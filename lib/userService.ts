@@ -144,13 +144,15 @@ class UserService {
   }
 
   async getTopLiftById(liftId: MainLiftType | string): Promise<UserProgress | undefined> {
-      if (isMainLift(liftId)) {
-        const lift = await this.getUsersTopLifts().then(lifts => lifts.find(lift => lift.workoutId === liftId));
-        return lift ?? undefined;
+    if (isMainLift(liftId)) {
+      const lift = await this.getUsersTopLifts().then(lifts => lifts.find(lift => lift.workoutId === liftId));
+      return lift ?? undefined;
     }
     const profile = await this.getRealUserProfile();
     const bodyWeightInLbs = convertWeightToLbs(profile?.weight.value || 0, profile?.weight.unit || 'lbs');
-    const lift = profile?.secondaryLifts.filter(lift => lift.id === liftId).sort((a, b) => OneRMCalculator.estimate(b.weight, b.reps) - OneRMCalculator.estimate(a.weight, a.reps))[0];
+    const lift = profile?.secondaryLifts.filter(lift => lift.id === liftId)
+      .sort((a, b) => OneRMCalculator.estimate(b.weight, b.reps) - OneRMCalculator.estimate(a.weight, a.reps))[0];
+    
     if (lift) {
       const percentile = calculateStrengthPercentile(
         OneRMCalculator.estimate(lift.weight, lift.reps),

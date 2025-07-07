@@ -1,10 +1,10 @@
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import {
-    Raleway_400Regular,
-    Raleway_500Medium,
-    Raleway_600SemiBold,
-    Raleway_700Bold,
-    useFonts as useRalewayFonts
+  Raleway_400Regular,
+  Raleway_500Medium,
+  Raleway_600SemiBold,
+  Raleway_700Bold,
+  useFonts as useRalewayFonts
 } from '@expo-google-fonts/raleway';
 
 import {
@@ -14,14 +14,15 @@ import {
 } from '@expo-google-fonts/karla';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { AudioModule } from 'expo-audio';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
 export {
-    // Catch any errors thrown by the Layout component.
-    ErrorBoundary
+  // Catch any errors thrown by the Layout component.
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -58,6 +59,26 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  // Configure audio session to allow mixing with other apps
+  useEffect(() => {
+    const configureAudio = async () => {
+      try {
+        await AudioModule.setAudioModeAsync({
+          // Allow audio to mix with other apps (like Spotify)
+          interruptionMode: 'mixWithOthers',
+          // Don't play in silent mode for sound effects
+          playsInSilentMode: false,
+          // Don't stay active in background for sound effects
+          shouldPlayInBackground: false,
+        });
+      } catch (error) {
+        console.warn('Failed to configure audio mode:', error);
+      }
+    };
+
+    configureAudio();
+  }, []);
 
   if (!loaded) {
     return null;

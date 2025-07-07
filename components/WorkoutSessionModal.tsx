@@ -29,8 +29,10 @@ const getRecommendedWeight = async (liftId: string, reps: string): Promise<numbe
   if (!userProgress) {
     return 0;
   }
+  console.log('userProgress', userProgress);
   const weightForPercentage = OneRMCalculator.getWeightForPercentage(userProgress.personalRecord, OneRMCalculator.getPercentageFor(parseInt(reps)));
   // Round to nearest 5 lbs
+  console.log('weightForPercentage', weightForPercentage);
   return Math.round(weightForPercentage / 5) * 5;
 }
 
@@ -89,7 +91,9 @@ export default function WorkoutSessionModal({
       if (activeSession) {
         const currentExercise = activeSession.exercises[activeSession.currentExerciseIndex];
         const recommendedWeight = await getRecommendedWeight(currentExercise.id, currentExercise.reps);
+        console.log('recommendedWeight', recommendedWeight);
         setCurrentWeight({ value: recommendedWeight, unit: 'lbs' });
+        console.log('recommendedWeight', recommendedWeight);
       }
     }
     updateRecommendedWeight();
@@ -158,6 +162,7 @@ export default function WorkoutSessionModal({
   const currentSet = currentExercise.completedSets.length + 1;
   const isExerciseComplete = currentExercise.isCompleted;
   const completedExercises = activeSession.exercises.filter(ex => ex.isCompleted).length;
+  const isAllExercisesComplete = completedExercises === activeSession.exercises.length;
 
   return (
     <Modal
@@ -332,7 +337,7 @@ export default function WorkoutSessionModal({
                   ✅ Exercise Complete!
                 </Text>
                 
-                {completedExercises === activeSession.exercises.length ? (
+                {isAllExercisesComplete ? (
                   <Button
                     title="Finish Workout"
                     onPress={handleFinishWorkout}
@@ -342,7 +347,7 @@ export default function WorkoutSessionModal({
                 ) : (
                   <Button
                     title="Next Exercise"
-                    onPress={nextExercise}
+                    onPress={async () => await nextExercise()}
                     variant="primary"
                     size="large"
                   />

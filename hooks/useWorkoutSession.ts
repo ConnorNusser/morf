@@ -134,12 +134,22 @@ export const useWorkoutSession = () => {
     setCurrentReps(0);
   };
 
-  const nextExercise = () => {
-    if (!activeSession) return;
+  const findNextExerciseNotCompleted = (activeSession: ActiveWorkoutSession) => {
+    for (let i = activeSession.currentExerciseIndex + 1; i < activeSession.exercises.length; i++) {
+      if (!activeSession.exercises[i].isCompleted) {
+        return i;
+      }
+    }
+    return null;
+  };
 
-    const nextIndex = activeSession.currentExerciseIndex + 1;
-    if (nextIndex >= activeSession.exercises.length) {
-      finishWorkout();
+  const nextExercise = async () => {
+    if (!activeSession) return;
+    const nextIndex = findNextExerciseNotCompleted(activeSession);
+    
+    if (nextIndex === null) {
+      console.log('All exercises completed, finishing workout');
+      await finishWorkout();
       return;
     }
 

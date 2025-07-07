@@ -22,7 +22,7 @@ interface WorkoutSessionContextType {
   completeSet: () => Promise<void>;
   updateSet: (setIndex: number, weight: { value: number; unit: WeightUnit }, reps: number) => Promise<void>;
   jumpToExercise: (exerciseIndex: number) => void;
-  nextExercise: () => void;
+  nextExercise: () => Promise<void>;
   finishWorkout: () => Promise<any>;
   cancelWorkout: () => Promise<boolean>;
 }
@@ -46,8 +46,6 @@ export function WorkoutSessionProvider({ children }: { children: React.ReactNode
     setGeneratedWorkout(null);
   };
 
-  // Enhanced finish workout that returns result but doesn't auto-close modal
-  // The calling component (GlobalWorkoutSessionModal) will handle modal transitions
   const finishWorkout = async () => {
     try {
       const result = await workoutSession.finishWorkout();

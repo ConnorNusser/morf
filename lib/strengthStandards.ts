@@ -98,7 +98,14 @@ export function calculateStrengthPercentile(
   age?: number
 ): number {
   // Get the appropriate standards based on gender
+  console.log('exercise', exercise);
   const standards = gender === 'male' ? MALE_STANDARDS[exercise] : FEMALE_STANDARDS[exercise];
+  
+  // If no standards exist for this exercise (e.g., secondary lifts), return a default percentile
+  if (!standards) {
+    console.log('No standards found for exercise:', exercise, 'returning default percentile');
+    return 50; // Default to 50th percentile for exercises without standards
+  }
   
   // Calculate the ratio (lift weight / body weight)
   let ratio = liftWeight / bodyWeight;
