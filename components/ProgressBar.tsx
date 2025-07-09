@@ -1,7 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import ProgressBarModal from './ProgressBarModal';
 
 interface ProgressBarProps {
   progress: number; // 0 to 100
@@ -128,14 +127,14 @@ export default function ProgressBar({
         ))}
       </Pressable>
 
-      <ProgressBarModal
+      {/* <ProgressBarModal
         visible={showModal}
         onClose={() => setShowModal(false)}
         progress={progress}
         currentWeight={currentWeight}
         targetWeight={targetWeight}
         exerciseName={exerciseName}
-      />
+      /> */}
     </>
   );
 }
