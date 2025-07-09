@@ -56,8 +56,10 @@ class UserService {
 
     const bodyWeightInLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
 
-    return profile.lifts.map(lift => {
-      const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
+    const allLifts: Record<string, UserProgress> = {};
+
+    for (const lift of profile.lifts) {
+      let maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
       const percentile = calculateStrengthPercentile(
         maxEstimatedLift,
         bodyWeightInLbs,
@@ -65,17 +67,27 @@ class UserService {
         lift.id,
         profile.age
       );
+      if (lift.id in allLifts && maxEstimatedLift > allLifts[lift.id].personalRecord) {
+        allLifts[lift.id] = {
+          workoutId: lift.id,
+          personalRecord: maxEstimatedLift,
+          lastUpdated: lift.dateRecorded,
+          percentileRanking: Math.round(percentile),
+          strengthLevel: getStrengthLevelName(percentile),
+        }
+        
+      } else {
+        allLifts[lift.id] = {
+          workoutId: lift.id,
+          personalRecord: maxEstimatedLift,
+          lastUpdated: lift.dateRecorded,
+          percentileRanking: Math.round(percentile),
+          strengthLevel: getStrengthLevelName(percentile),
+        }
+      }
+    }
 
-      const strengthLevel = getStrengthLevelName(percentile);
-
-      return {
-        workoutId: lift.id,
-        personalRecord: maxEstimatedLift,
-        lastUpdated: lift.dateRecorded,
-        percentileRanking: Math.round(percentile),
-        strengthLevel,
-      };
-    });
+    return Object.values(allLifts);
   }
 
   async getUsersTopLifts(): Promise<UserProgress[]> {
