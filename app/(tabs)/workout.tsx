@@ -4,6 +4,7 @@ import Divider from '@/components/Divider';
 import PreviousWorkoutCard from '@/components/PreviousWorkoutCard';
 import PreviousWorkoutDetailsModal from '@/components/PreviousWorkoutDetailsModal';
 import { Text, View } from '@/components/Themed';
+import WeeklyOverview from '@/components/WeeklyOverview';
 import WorkoutModal from '@/components/WorkoutModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
@@ -14,7 +15,7 @@ import { userService } from '@/lib/userService';
 import { GeneratedWorkout, UserProgress } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet } from 'react-native';
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -268,47 +269,19 @@ export default function WorkoutScreen() {
             </Card>
           )}
 
-          {/* AI Workout Generation */}
-          <Card style={styles.generateCard} variant="elevated">
-            <View style={[styles.generateContent, { backgroundColor: 'transparent' }]}>
-              <Image
-                source={require('@/assets/images/splash-icon.png')}
-                style={[styles.generateIcon, { width: 96, height: 96, marginRight: 16 }]}
-                resizeMode="contain"
-              />
-              <View style={[styles.generateTextContent, { backgroundColor: 'transparent' }]}>
-                <Text style={[
-                  styles.generateTitle, 
-                  { 
-                    color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_700Bold',
-                  }
-                ]}>
-                  Morf the AI Trainer
-                </Text>
-                <Text style={[
-                  styles.generateDescription, 
-                  { 
-                    color: currentTheme.colors.text, 
-                    opacity: 0.8,
-                    fontFamily: 'Raleway_400Regular',
-                  }
-                ]}>
-                  Get an intelligent workout based on your training history, progress, and preferences
-                </Text>
-              </View>
-            </View>
-            
-            <Button
-              title={isGenerating ? "Generating workout..." : "Generate My Workout"}
-              onPress={handleGenerateWorkout}
-              variant="primary"
-              size="large"
-              style={styles.generateButton}
-              disabled={isGenerating}
-              hapticType="light"      
-            />
-          </Card>
+          {/* Weekly Overview */}
+          <WeeklyOverview workoutHistory={workoutHistory} />
+
+          {/* Simple Generate Workout Button */}
+          <Button
+            title={isGenerating ? "Generating workout..." : "Generate My Workout"}
+            onPress={handleGenerateWorkout}
+            variant="primary"
+            size="large"
+            style={styles.generateButton}
+            disabled={isGenerating}
+            hapticType="light"      
+          />
 
           {/* Previous Workouts Section */}
           {workoutHistory.length > 0 && (
@@ -365,7 +338,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 20,
-    paddingTop: 160,
+    paddingTop: 80,
   },
   sectionTitle: {
     fontSize: 20,
@@ -373,116 +346,31 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 8,
   },
-  headerCard: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.8,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  statsPreview: {
-    marginTop: 8,
-  },
-  statsText: {
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  generateCard: {
-    marginBottom: 24,
-    padding: 20,
-  },
-  generateContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  generateIcon: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  generateTextContent: {
-    flex: 1,
-  },
-  generateTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  generateDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
   generateButton: {
-    marginTop: 8,
-  },
-  viewAllButton: {
     marginBottom: 24,
-  },
-  quickStatsCard: {
-    marginBottom: 24,
-    padding: 20,
-  },
-  quickStatsTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  quickStatsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickStatValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    textAlign: 'center',
-  },
-  noDataContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  noDataText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   resumeCard: {
     marginBottom: 24,
-    padding: 20,
   },
   resumeContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 16,
-  },
-  resumeIcon: {
-    fontSize: 32,
-    marginRight: 16,
   },
   resumeTextContent: {
     flex: 1,
   },
+  resumeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   resumeTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+  },
+  workoutTime: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   resumeDescription: {
     fontSize: 14,
@@ -490,26 +378,5 @@ const styles = StyleSheet.create({
   },
   resumeButton: {
     marginTop: 8,
-  },
-  centeredContainerFullHeight: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  generateIconLarge: {
-    width: 96,
-    height: 96,
-    marginRight: 16,
-  },
-  resumeHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  workoutTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
   },
 }); 
