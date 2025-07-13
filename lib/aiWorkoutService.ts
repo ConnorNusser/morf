@@ -3,9 +3,12 @@ import {
   GeneratedWorkout,
   Workout,
   WorkoutContext,
-  WorkoutExerciseSession
+  WorkoutExerciseSession,
+  WorkoutSplit
 } from '@/types';
+import OpenAI from 'openai';
 import { promptBuilder } from './promptBuilder';
+import { getStrengthLevelName } from './strengthStandards';
 import { calculateOverallPercentile } from './utils';
 import { getAvailableWorkouts, getWorkoutById } from './workouts';
 import { POWERLIFTING_EXERCISE_PRIORITY, POWERLIFTING_WORKOUT_TEMPLATES, PRIMARY_POWERLIFTING_LIFTS } from './workoutTemplates';
@@ -14,13 +17,20 @@ import { ValidationResult, workoutValidator } from './workoutValidator';
 class AIWorkoutService {
   private readonly AI_API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
   private readonly MAX_RETRY_ATTEMPTS = 2;
+  private readonly openai: OpenAI;
 
-  async generateWorkout(context: WorkoutContext, customRequest?: string, workoutType?: string): Promise<GeneratedWorkout> {
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: this.AI_API_KEY,
+    });
+  }
+
+  async generateWorkout(context: WorkoutContext, customRequest?: string, workoutType?: WorkoutSplit): Promise<GeneratedWorkout> {
     if (!this.AI_API_KEY) {
-      return this.generateFallback(context);
+      return await this.generateFallback(context);
     }
 
-    const analysis = promptBuilder.analyzeWorkoutHistory(context.workoutHistory, getWorkoutById.bind(this));
+    const analysis = await promptBuilder.analyzeWorkoutHistory(context.workoutHistory, getWorkoutById.bind(this), workoutType);
     
     const percentiles = context.userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
@@ -29,65 +39,52 @@ class AIWorkoutService {
                             overallPercentile >= 50 ? 'Intermediate' : 
                             overallPercentile >= 25 ? 'Novice' : 'Beginner';
 
-    let lastPrompt = '';
     let attempts = 0;
 
     while (attempts <= this.MAX_RETRY_ATTEMPTS) {
       try {
-        const prompt = attempts === 0 
-          ? promptBuilder.buildPrompt(context, analysis, customRequest, workoutType)
-          : lastPrompt;
-        console.log('🔍 Prompt:', prompt);
+        const prompt = await promptBuilder.buildPrompt(context, analysis, customRequest, workoutType);
         const workout = await this.callAIAPI(prompt);
-        console.log('🔍 Workout:', workout);
         const validationResult = workoutValidator.validate(workout, getWorkoutById.bind(this));
-        
         if (validationResult.isValid) {
           return workout;
         }
 
         if (attempts < this.MAX_RETRY_ATTEMPTS) {
-          lastPrompt = workoutValidator.generateFeedbackPrompt(workout, validationResult, prompt);
+          const lastPrompt = workoutValidator.generateFeedbackPrompt(workout, validationResult, prompt);
           attempts++;
           continue;
         }
-        return this.generateFallback(context);
+        return await this.generateFallback(context);
 
       } catch (error) {
-        console.error(`AI generation attempt ${attempts + 1} failed:`, error);
         attempts++;
         
         if (attempts > this.MAX_RETRY_ATTEMPTS) {
-          return this.generateFallback(context);
+          return await this.generateFallback(context);
         }
       }
     }
 
-    return this.generateFallback(context);
+    return await this.generateFallback(context);
   }
 
   private async callAIAPI(prompt: string): Promise<GeneratedWorkout> {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.AI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'You are a powerlifting coach. Return only valid JSON for workout generation.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 800,
-      }),
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a powerlifting coach. You MUST return ONLY valid JSON for workout generation. Do not use markdown, code blocks, backticks, or any other formatting. Your response must start with { and end with }. Return raw JSON only.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500,
     });
 
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-    const data = await response.json();
-    const result = JSON.parse(data.choices[0]?.message?.content || '{}');
+    const messageContent = response.choices[0]?.message?.content;
+    if (!messageContent) {
+      throw new Error('No content received from API');
+    }
+    const result = JSON.parse(messageContent);
     
     // Convert exercises to proper format
     const exercises: WorkoutExerciseSession[] = (result.exercises || []).map((exercise: ExerciseSet) => ({
@@ -104,15 +101,14 @@ class AIWorkoutService {
     };
   }
 
-  private generateFallback(context: WorkoutContext): GeneratedWorkout {
-    console.log('🔄 Generating fallback powerlifting workout...');
+  private async generateFallback(context: WorkoutContext): Promise<GeneratedWorkout> {
     
     const { userProgress, availableEquipment, preferences, workoutHistory } = context;
     
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
     
-    const analysis = promptBuilder.analyzeWorkoutHistory(workoutHistory, getWorkoutById.bind(this));
+    const analysis = await promptBuilder.analyzeWorkoutHistory(workoutHistory, getWorkoutById.bind(this));
     const recommendedWorkoutType = promptBuilder.selectWorkoutType(analysis, userProgress);
     const template = POWERLIFTING_WORKOUT_TEMPLATES[recommendedWorkoutType as keyof typeof POWERLIFTING_WORKOUT_TEMPLATES];
     
@@ -135,10 +131,8 @@ class AIWorkoutService {
     
     if (requiredLifts.length > 0) {
       selectedWorkouts.push(requiredLifts[0]);
-      console.log(`✅ Added required lift: ${requiredLifts[0].id}`);
     } else if (availablePrimaryLifts.length > 0) {
       selectedWorkouts.push(availablePrimaryLifts[0]);
-      console.log(`✅ Added primary lift: ${availablePrimaryLifts[0].id}`);
     } else {
       const allWorkouts = getAvailableWorkouts(100);
       const emergencyPrimaryLift = allWorkouts.find(w => 
@@ -198,9 +192,7 @@ class AIWorkoutService {
       };
     });
 
-    const strengthLevel = overallPercentile >= 75 ? 'Advanced' : 
-                         overallPercentile >= 50 ? 'Intermediate' : 
-                         overallPercentile >= 25 ? 'Novice' : 'Beginner';
+    const strengthLevel = getStrengthLevelName(overallPercentile);
 
     const fallbackWorkout = {
       id: `powerlifting_fallback_${Date.now()}`,

@@ -12,7 +12,7 @@ import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { aiWorkoutService } from '@/lib/aiWorkoutService';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { GeneratedWorkout, UserProgress } from '@/types';
+import { GeneratedWorkout, UserProgress, WorkoutSplit } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet } from 'react-native';
@@ -113,7 +113,7 @@ export default function WorkoutScreen() {
     }
   };
 
-  const handleRegenerateWorkout = async (workoutType?: string) => {
+  const handleRegenerateWorkout = async (workoutType?: WorkoutSplit) => {
     // Get user preferences, real profile, and workout history
     const preferences = await storageService.getUserPreferences();
     const userProfile = await userService.getUserProfileOrDefault(); // Always returns a profile

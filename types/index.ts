@@ -15,6 +15,8 @@ export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'g
 // Exercise categories
 export type WorkoutCategory = 'compound' | 'isolation' | 'cardio' | 'flexibility';
 
+export type WorkoutSplit = 'push' | 'pull' | 'legs' | 'full-body' | 'upper-body' | 'lower-body' | 'calisthenics';
+
 // Muscle groups
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'core' | 'full-body';
 

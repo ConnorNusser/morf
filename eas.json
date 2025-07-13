@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_AI_API_KEY": "$EXPO_PUBLIC_AI_API_KEY"
+        "EXPO_PUBLIC_AI_API_KEY": "***REMOVED***"
       }
     }
   },

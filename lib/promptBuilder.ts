@@ -1,77 +1,94 @@
-import { WorkoutContext } from '@/types';
-import { calculateOverallPercentile } from './utils';
-import { getAvailableWorkouts } from './workouts';
+import { WorkoutContext, WorkoutSplit } from '@/types';
+import { getStrengthLevelName } from './strengthStandards';
+import { analyzeAutoWorkoutFocus, analyzeSelectedSplitWeaknesses, calculateOverallPercentile } from './utils';
+import { getAvailableWorkouts, getWorkoutById } from './workouts';
+import workouts from './workouts.json';
 import { POWERLIFTING_WORKOUT_TEMPLATES, PRIMARY_POWERLIFTING_LIFTS } from './workoutTemplates';
 
 export interface WorkoutAnalysis {
-  recentMuscleGroups: string[];
-  daysSinceLastWorkout: number;
-  workoutFrequency: string;
   recentExerciseIds: string[];
   overallPercentile: number;
   strengthLevel: string;
+  // For auto-generated workouts
+  autoFocus?: {
+    recommendedSplit: WorkoutSplit;
+    reasoning: string;
+    muscleGroupGaps: string[];
+  };
+  // For user-selected splits
+  splitWeaknesses?: {
+    weakerAreas: string[];
+    progressionAnalysis: string[];
+    progressionIssues: string[];
+  };
+}
+
+interface RecentAnalysis {
+  name: string;
+  primaryMuscles: string[];
+  count: number;
 }
 
 export class PromptBuilder {
-  analyzeWorkoutHistory(workoutHistory: any[], getWorkoutById: (id: string) => any): WorkoutAnalysis {
-    const recentWorkouts = workoutHistory.slice(-10); // Last 10 workouts
-    const recentMuscleGroups: string[] = [];
-    
-    // Extract muscle groups from recent exercises
-    recentWorkouts.forEach(workout => {
-      workout.exercises.forEach((exercise: any) => {
-        const workoutDetails = getWorkoutById(exercise.id);
-        if (workoutDetails && workoutDetails.primaryMuscles) {
-          recentMuscleGroups.push(...workoutDetails.primaryMuscles);
-        }
-      });
-    });
-
-    const daysSinceLastWorkout = recentWorkouts.length > 0 
-      ? Math.floor((Date.now() - new Date(recentWorkouts[recentWorkouts.length - 1].createdAt).getTime()) / (1000 * 60 * 60 * 24))
-      : 7;
-
-    const workoutFrequency = recentWorkouts.length >= 6 ? 'high' : 
-                           recentWorkouts.length >= 3 ? 'moderate' : 'low';
-
+  async analyzeWorkoutHistory(workoutHistory: any[], getWorkoutById: (id: string) => any, selectedSplit?: WorkoutSplit): Promise<WorkoutAnalysis> {
     const recentExerciseIds = workoutHistory.slice(-3).flatMap(w => w.exercises.map((e: any) => e.id));
 
+    let autoFocus;
+    let splitWeaknesses;
+
+    if (selectedSplit) {
+      // User selected a specific split - analyze weaknesses within that split
+      splitWeaknesses = await analyzeSelectedSplitWeaknesses(workoutHistory, selectedSplit);
+    } else {
+      // Auto-generate workout - focus on what was trained longest ago
+      autoFocus = await analyzeAutoWorkoutFocus(workoutHistory);
+    }
+
     return { 
-      recentMuscleGroups, 
-      daysSinceLastWorkout, 
-      workoutFrequency, 
       recentExerciseIds,
       overallPercentile: 50, // Will be calculated later
-      strengthLevel: 'Intermediate' // Will be calculated later
+      strengthLevel: 'Intermediate', // Will be calculated later
+      autoFocus,
+      splitWeaknesses
     };
   }
 
   selectWorkoutType(analysis: WorkoutAnalysis, userProgress: any[]): string {
+    // If we have auto-focus analysis, use its recommendation
+    if (analysis.autoFocus) {
+      return analysis.autoFocus.recommendedSplit;
+    }
+
+    // Fallback to random selection
     const workoutSplits = [
-      'Push (Chest, Shoulders, Triceps)',
-      'Pull (Back, Biceps)',
-      'Legs (Quads, Glutes, Hamstrings)',
-      'Full Body',
-      'Upper Body',
-    ]
+      'push',
+      'pull',
+      'legs',
+      'upper-body',
+      'full-body'
+    ];
+
     return workoutSplits[Math.floor(Math.random() * workoutSplits.length)];
   }
 
-  buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: string): string {
+  async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit): Promise<string> {
     const { userProfile, userProgress, availableEquipment, workoutHistory, preferences } = context;
+
+    let workoutExamples;
     
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
     const availableWorkouts = getAvailableWorkouts(overallPercentile);
     
     const recommendedWorkoutType = workoutTypeOverride || this.selectWorkoutType(analysis, userProgress);
-    const template = POWERLIFTING_WORKOUT_TEMPLATES[recommendedWorkoutType as keyof typeof POWERLIFTING_WORKOUT_TEMPLATES];
     
-    // Filter workouts based on equipment and focus areas
-    let filteredWorkouts = availableWorkouts.filter(workout =>
-      workout.equipment && workout.equipment.some(eq => availableEquipment && availableEquipment.includes(eq)) &&
-      workout.primaryMuscles && workout.primaryMuscles.some(muscle => template.primaryMuscles && template.primaryMuscles.includes(muscle))
-    );
+    let template = POWERLIFTING_WORKOUT_TEMPLATES[recommendedWorkoutType as keyof typeof POWERLIFTING_WORKOUT_TEMPLATES];
+
+    let filteredWorkouts = availableWorkouts.filter(workout => {
+      const equipmentMatch = workout.equipment && workout.equipment.some(eq => availableEquipment && availableEquipment.includes(eq));
+      const muscleMatch = workout.primaryMuscles && workout.primaryMuscles.some(muscle => template.primaryMuscles && template.primaryMuscles.includes(muscle));      
+      return equipmentMatch && muscleMatch;
+    });
     
     if (preferences.excludeBodyweight) {
       filteredWorkouts = filteredWorkouts.filter(w => w.equipment && !w.equipment.includes('bodyweight'));
@@ -87,9 +104,42 @@ export class PromptBuilder {
       template.requiredPrimaryLifts.includes(w.id)
     );
 
-    const strengthLevel = overallPercentile >= 75 ? 'Advanced' : 
-                         overallPercentile >= 50 ? 'Intermediate' : 
-                         overallPercentile >= 25 ? 'Novice' : 'Beginner';
+    const strengthLevel = getStrengthLevelName(overallPercentile);
+
+    if (workoutTypeOverride) {
+      workoutExamples = workouts.filter((w: any) => w.split === workoutTypeOverride);
+    }
+
+    let recentAnalysis: Record<string, RecentAnalysis> = { };
+    for (const lift of analysis.recentExerciseIds) {
+      const liftData = getWorkoutById(lift);
+      if (liftData && recentAnalysis[lift]) {
+        recentAnalysis[lift].count++;
+      } else if (liftData) {
+        recentAnalysis[lift] = {
+          name: liftData?.name,
+          primaryMuscles: liftData?.primaryMuscles,
+          count: 1,
+        };
+      }
+    }
+
+    // Build the analysis section based on whether it's auto-generated or user-selected
+    let analysisSection = '';
+    if (analysis.autoFocus) {
+      analysisSection = `
+POWERLIFTING FOCUS ANALYSIS (Auto-Generated):
+${analysis.autoFocus.reasoning}
+${analysis.autoFocus.muscleGroupGaps.length > 0 ? `Priority gaps: ${analysis.autoFocus.muscleGroupGaps.join(', ')}` : 'No significant training gaps'}
+Recent exercises (avoid overuse): ${analysis.recentExerciseIds.join(', ') || 'None'}`;
+    } else if (analysis.splitWeaknesses) {
+      analysisSection = `
+POWERLIFTING FOCUS ANALYSIS (${recommendedWorkoutType.toUpperCase()} Split):
+Exercise progression over 21 days: ${analysis.splitWeaknesses.progressionAnalysis.length > 0 ? analysis.splitWeaknesses.progressionAnalysis.join(', ') : 'No recent data'}
+${analysis.splitWeaknesses.progressionIssues.length > 0 ? `Issues requiring attention: ${analysis.splitWeaknesses.progressionIssues.join(', ')}` : 'All exercises progressing well'}
+${analysis.splitWeaknesses.weakerAreas.length > 0 ? `Focus areas: ${analysis.splitWeaknesses.weakerAreas.join(', ')}` : 'No specific weak areas identified'}
+Recent exercises (avoid overuse): ${analysis.recentExerciseIds.join(', ') || 'None'}`;
+    }
 
     return `    
 You are an expert powerlifting coach with competition experience designing training programs.
@@ -97,12 +147,13 @@ You are an expert powerlifting coach with competition experience designing train
 CLIENT PROFILE:
 - Gender: ${userProfile.gender}
 - Powerlifting Strength Level: ${strengthLevel} (${overallPercentile}th percentile)
-- Days since last workout: ${analysis.daysSinceLastWorkout}
-- Training frequency: ${analysis.workoutFrequency}
+- Training frequency: Based on recent history
+${analysisSection}
 
-POWERLIFTING ANALYSIS:
-Recent muscle groups trained: ${analysis.recentMuscleGroups.join(', ') || 'None'}
-Recent exercises (avoid overuse): ${analysis.recentExerciseIds.join(', ') || 'None'}
+${workoutTypeOverride ? `EXAMPLES OF ${workoutTypeOverride.toUpperCase()} WORKOUTS: ${workoutExamples?.map((w: any) => `${w.name} - ${w.notes || 'No description'}, ${w.exercises.map((e: any) => {
+  const exerciseData = getWorkoutById(e.id);
+  return `${e.id}: ${exerciseData?.name || e.id}`;
+}).join(', ')}`).join('\n')}` : ''}
 
 TODAY'S POWERLIFTING FOCUS: "${recommendedWorkoutType}"
 ${template.description}
@@ -112,14 +163,14 @@ MANDATORY: ALWAYS include at least ONE of these primary powerlifting lifts:
 ${availablePrimaryLifts.map(w => `${w.id}: ${w.name}`).join('\n')}
 
 REQUIRED LIFTS for this session (must include at least one):
-${requiredLifts.map(w => `${w.id}: ${w.name} - ${template.powerliftingFocus}`).join('\n')}
+${requiredLifts.map(w => `${w.id}: ${w.name} - ${template?.powerliftingFocus || 'Strength training'}`).join('\n')}
 
 ALL AVAILABLE EXERCISES (use ONLY these IDs):
 ${filteredWorkouts.map(w => `${w.id}: ${w.name} (${w.primaryMuscles.join(', ')}) - ${w.category}`).join('\n')}
 
 POWERLIFTING COACH INSTRUCTIONS:
 1. MANDATORY: Include at least 1 primary powerlifting lift (squat, bench-press, deadlift, or overhead-press)
-2. Design a ${recommendedWorkoutType.toLowerCase()} workout targeting: ${template.focusAreas.join(', ')}
+2. Design a ${recommendedWorkoutType.toLowerCase()} workout targeting: ${template?.focusAreas?.join(', ') || 'full body'}
 3. Prioritize compound movements that support powerlifting performance
 4. Structure: Primary lift → Competition support → Accessories
 5. Volume for powerlifting: 3-5 sets
@@ -135,7 +186,8 @@ ${customRequest ? `SPECIAL POWERLIFTING REQUEST: ${customRequest}` : ''}
 
 The time is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
 
-Return ONLY valid JSON:
+CRITICAL: Return ONLY the JSON object below. No markdown, no code blocks, no explanations, no other text. Start with { and end with }:
+
 {
 "title":"A workout title based on the time of day, day of the week and the type of body workout eg. 'Tuesday Legs' or 'Friday Push' or 'Saturday is for the boys benching' or 'Monday is for the girls' or 'Weekend Warriors hate legs'",
 "description":"[2-3 sentence description emphasizing powerlifting benefits and competition lift carryover]",

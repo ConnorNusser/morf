@@ -4,7 +4,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { getWorkoutById } from '@/lib/workouts';
-import { ExerciseSet, GeneratedWorkout } from '@/types';
+import { ExerciseSet, GeneratedWorkout, WorkoutSplit } from '@/types';
 import * as Haptics from 'expo-haptics';
 import {
   Activity,
@@ -21,51 +21,37 @@ import {
 import React, { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
 
-// Golden ratio and Fibonacci spacing constants
-const GOLDEN_RATIO = 1.618;
-const SPACING_BASE = 8;
-const SPACING = {
-  xs: SPACING_BASE,           // 8
-  sm: SPACING_BASE * 1.625,   // 13 (fibonacci)
-  md: SPACING_BASE * 2.625,   // 21 (fibonacci)
-  lg: SPACING_BASE * 4.25,    // 34 (fibonacci)
-  xl: SPACING_BASE * 6.875,   // 55 (fibonacci)
-};
-
 interface WorkoutModalProps {
   visible: boolean;
   onClose: () => void;
   workout: GeneratedWorkout | null;
   onStartWorkout?: () => void;
-  onRegenerateWorkout?: (workoutType?: string) => Promise<GeneratedWorkout>;
+  onRegenerateWorkout?: (workoutType?: WorkoutSplit) => Promise<GeneratedWorkout>;
   onWorkoutUpdate?: (workout: GeneratedWorkout) => void;
 }
 
-const WORKOUT_TYPES = [
-  'Push (Chest, Shoulders, Triceps)',
-  'Pull (Back, Biceps)',
-  'Legs (Quads, Glutes, Hamstrings)',
-  'Full Body',
-  'Upper Body',
-];
+interface WorkoutTypes {
+  id: WorkoutSplit | null;
+  label: string;
+}
 
 const WorkoutTypeFilter: React.FC<{
-  selectedType: string | null;
-  onTypeSelect: (type: string | null) => void;
+  selectedType: WorkoutSplit | null;
+  onTypeSelect: (type: WorkoutSplit | null) => void;
 }> = ({ selectedType, onTypeSelect }) => {
   const { currentTheme } = useTheme();
   const { play: playTapVariant1 } = useSound('tapVariant1');
   
-  const workoutChips = [
+  const workoutChips: WorkoutTypes[] = [
     { id: null, label: 'Any' },
-    { id: 'Push (Chest, Shoulders, Triceps)', label: 'Push' },
-    { id: 'Pull (Back, Biceps)', label: 'Pull' },
-    { id: 'Legs (Quads, Glutes, Hamstrings)', label: 'Legs' },
-    { id: 'Full Body', label: 'Full Body' },
-    { id: 'Upper Body', label: 'Upper' },
+    { id: 'push', label: 'Push' },
+    { id: 'pull', label: 'Pull' },
+    { id: 'legs', label: 'Legs' },
+    { id: 'full-body', label: 'Full Body' },
+    { id: 'upper-body', label: 'Upper' },
   ];
 
-  const handlePress = async (chipId: string | null) => {
+  const handlePress = async (chipId: WorkoutSplit | null) => {
     // Haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     playTapVariant1();
@@ -99,7 +85,7 @@ const WorkoutTypeFilter: React.FC<{
               variant={isSelected ? 'primary' : 'secondary'}
               size="small"
               style={{
-                backgroundColor: isSelected ? currentTheme.colors.primary : '#FFFFFF',
+                backgroundColor: isSelected ? currentTheme.colors.primary : currentTheme.colors.background,
                 borderRadius: currentTheme.borderRadius,
                 paddingHorizontal: 20,
                 marginRight: 8,
@@ -564,7 +550,7 @@ export default function WorkoutModal({
   const [currentWorkout, setCurrentWorkout] = useState<GeneratedWorkout | null>(workout);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isNewWorkout, setIsNewWorkout] = useState(false);
-  const [selectedWorkoutType, setSelectedWorkoutType] = useState<string | null>(null);
+  const [selectedWorkoutType, setSelectedWorkoutType] = useState<WorkoutSplit | null>(null);
   const { play: playSelectionComplete } = useSound('selectionComplete');
   // Update internal state when workout prop changes
   React.useEffect(() => {

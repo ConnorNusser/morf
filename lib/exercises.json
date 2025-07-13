@@ -682,8 +682,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "incline-dumbbell-press",
-    "name": "Incline Dumbbell Press",
+    "id": "incline-dumbbell-chest-press",
+    "name": "Incline Dumbbell Chest Press",
     "category": "compound",
     "primaryMuscles": ["chest"],
     "secondaryMuscles": ["shoulders", "arms"],
@@ -811,7 +811,7 @@
     "equipment": ["machine"],
     "description": "Wide grip lat pulldown for lat width development.",
     "isMainLift": false,
-    "themeLevel": "intermediate"
+    "themeLevel": "beginner"
   },
   {
     "id": "dumbbell-farmers-walk",
