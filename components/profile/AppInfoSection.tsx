@@ -24,7 +24,7 @@ export default function AppInfoSection() {
         await StoreReview.requestReview();
       } else {
         const appStoreUrl = Platform.select({
-          ios: 'https://apps.apple.com/app/id123456789',
+          ios: 'https://apps.apple.com/us/app/morf-your-ai-workout-tracker/id6747366819?platform=iphone',
           android: 'https://play.google.com/store/apps/details?id=com.vanquil.morfai',
         });
         
@@ -53,7 +53,7 @@ export default function AppInfoSection() {
         `Please describe your issue below:\n\n`
       );
       
-      const emailUrl = `mailto:support@vanquil.com?subject=${subject}&body=${body}`;
+      const emailUrl = `mailto:connornusser@gmail.com?subject=${subject}&body=${body}`;
       
       const canOpen = await Linking.canOpenURL(emailUrl);
       if (canOpen) {
@@ -61,10 +61,10 @@ export default function AppInfoSection() {
       } else {
         Alert.alert(
           'Contact Support',
-          'Please email us at: support@vanquil.com',
+          'Please email us at: connornusser@gmail.com',
           [
             { text: 'Copy Email', onPress: () => {
-              Alert.alert('Email Address', 'support@vanquil.com');
+              Alert.alert('Email Address', 'connornusser@gmail.com');
             }},
             { text: 'OK', style: 'cancel' }
           ]
@@ -74,7 +74,7 @@ export default function AppInfoSection() {
       console.error('Error opening email:', error);
       Alert.alert(
         'Contact Support',
-        'Please email us at: support@vanquil.com'
+        'Please email us at: connornusser@gmail.com'
       );
     }
   };
