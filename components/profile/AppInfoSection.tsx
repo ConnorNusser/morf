@@ -208,10 +208,10 @@ const styles = StyleSheet.create({
   versionSubtitle: {
     fontSize: 14,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: 2,
   },
   appInfoContent: {
-    paddingTop: 12,
+    paddingTop: 20,
     gap: 20,
   },
   infoRow: {

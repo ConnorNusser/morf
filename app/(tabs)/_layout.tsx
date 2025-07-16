@@ -1,19 +1,20 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { WorkoutSessionProvider } from '@/contexts/WorkoutSessionContext';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 import GlobalWorkoutSessionModal from '@/components/GlobalWorkoutSessionModal';
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
+import { OnboardingModal } from '@/components/OnboardingModal';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
+import { userService } from '@/lib/userService';
 import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
-
 
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -189,6 +190,37 @@ function TabsContent() {
 }
 
 export default function TabLayout() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+
+  useEffect(() => {
+    checkForFirstTimeUser();
+  }, []);
+
+  const checkForFirstTimeUser = async () => {
+    try {
+      const existingProfile = await userService.getRealUserProfile();
+      
+      if (!existingProfile) {
+        // No profile exists - show onboarding
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.error('Error checking user profile:', error);
+    } finally {
+      setIsCheckingProfile(false);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
+  // Show loading state while checking profile
+  if (isCheckingProfile) {
+    return null; // Could add a loading screen here
+  }
+
   return (
     <WorkoutSessionProvider>
       <TabsContent />
@@ -198,6 +230,12 @@ export default function TabLayout() {
       
       {/* Global Workout Session Modal */}
       <GlobalWorkoutSessionModal />
+      
+      {/* Onboarding Modal for first-time users */}
+      <OnboardingModal 
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
     </WorkoutSessionProvider>
   );
 }

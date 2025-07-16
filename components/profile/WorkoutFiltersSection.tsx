@@ -20,6 +20,7 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<WorkoutFilters>({
     excludedWorkoutIds: [],
+    workoutType: 'powerlifting', // Default to powerlifting
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -41,12 +42,16 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
   };
 
   const getFilterSummary = () => {
+    const workoutTypeLabel = filters.workoutType === 'powerlifting' ? 'Powerlifting' : 
+                            filters.workoutType === 'bodyweight' ? 'Bodyweight' : 
+                            filters.workoutType === 'generic' ? 'General' : 'Powerlifting';
+    
     if (filters.excludedWorkoutIds.length === 0) {
-      return `${ALL_WORKOUTS.length} exercises available`;
+      return `${workoutTypeLabel} • ${ALL_WORKOUTS.length} exercises available`;
     }
 
     const availableCount = ALL_WORKOUTS.length - filters.excludedWorkoutIds.length;
-    return `${availableCount} available • ${filters.excludedWorkoutIds.length} hidden`;
+    return `${workoutTypeLabel} • ${availableCount} available • ${filters.excludedWorkoutIds.length} hidden`;
   };
 
   const handleSaveFilters = async () => {
@@ -63,7 +68,7 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
   };
 
   const handleClearAllFilters = () => {
-    setFilters({ excludedWorkoutIds: [] });
+    setFilters({ ...filters, excludedWorkoutIds: [] });
     setHasUnsavedChanges(true);
   };
 
@@ -120,7 +125,7 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
       });
     }
     
-    setFilters({ excludedWorkoutIds: newExcludedIds });
+    setFilters({ ...filters, excludedWorkoutIds: newExcludedIds });
     setHasUnsavedChanges(true);
   };
 
@@ -143,7 +148,7 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
       });
     }
     
-    setFilters({ excludedWorkoutIds: newExcludedIds });
+    setFilters({ ...filters, excludedWorkoutIds: newExcludedIds });
     setHasUnsavedChanges(true);
   };
 
@@ -166,7 +171,7 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
       });
     }
     
-    setFilters({ excludedWorkoutIds: newExcludedIds });
+    setFilters({ ...filters, excludedWorkoutIds: newExcludedIds });
     setHasUnsavedChanges(true);
   };
 
@@ -180,13 +185,13 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
       newExcludedIds.push(workoutId);
     }
     
-    setFilters({ excludedWorkoutIds: newExcludedIds });
+    setFilters({ ...filters, excludedWorkoutIds: newExcludedIds });
     setHasUnsavedChanges(true);
   };
 
   const removeWorkoutFilter = (workoutId: string) => {
     const newExcludedIds = filters.excludedWorkoutIds.filter(id => id !== workoutId);
-    setFilters({ excludedWorkoutIds: newExcludedIds });
+    setFilters({ ...filters, excludedWorkoutIds: newExcludedIds });
     setHasUnsavedChanges(true);
   };
 
@@ -608,6 +613,72 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
             </Text>
           </View>
 
+          {/* Training Style Selection */}
+          <View style={styles.workoutTypeSection}>
+            <View style={styles.trainingStyleHeader}>
+              <Text style={[
+                styles.sectionLabel,
+                { 
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_600SemiBold',
+                }
+              ]}>
+                Training Style
+              </Text>
+              <Text style={[
+                styles.sectionDescription,
+                { 
+                  color: currentTheme.colors.text + '70',
+                  fontFamily: 'Raleway_400Regular',
+                }
+              ]}>
+                Choose your primary training approach
+              </Text>
+            </View>
+            <View style={styles.workoutTypeButtons}>
+              {[
+                { key: 'powerlifting', label: 'Powerlifting' },
+                { key: 'generic', label: 'General' },
+                { key: 'bodyweight', label: 'Bodyweight' },
+              ].map((type) => (
+                <TouchableOpacity
+                  key={type.key}
+                  style={[
+                    styles.workoutTypeButton,
+                    {
+                      backgroundColor: filters.workoutType === type.key 
+                        ? currentTheme.colors.primary 
+                        : currentTheme.colors.surface,
+                      borderColor: filters.workoutType === type.key 
+                        ? currentTheme.colors.primary 
+                        : currentTheme.colors.border,
+                    }
+                  ]}
+                  onPress={() => {
+                    setFilters({ ...filters, workoutType: type.key as any });
+                    setHasUnsavedChanges(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text 
+                    style={[
+                      styles.workoutTypeText,
+                      {
+                        color: filters.workoutType === type.key ? 'white' : currentTheme.colors.text,
+                        fontFamily: 'Raleway_500Medium',
+                      }
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
           {/* Active Filters */}
           {activeFilters.length > 0 && (
             <View style={styles.activeFiltersSection}>
@@ -620,6 +691,15 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
               ]}>
                 Active Filters
               </Text>
+              <Text style={[
+                styles.sectionDescription,
+                { 
+                  color: currentTheme.colors.text + '70',
+                  fontFamily: 'Raleway_400Regular',
+                }
+              ]}>
+                Tap any filter to remove it and include those exercises again
+              </Text>
               <ScrollView 
                 horizontal 
                 showsHorizontalScrollIndicator={false}
@@ -630,17 +710,32 @@ export default function WorkoutFiltersSection({ onFiltersUpdate }: WorkoutFilter
             </View>
           )}
 
-          {/* Quick Filters */}
-          <View style={styles.quickFiltersSection}>
-            <Text style={[
-              styles.sectionLabel,
-              { 
-                color: currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
-              }
-            ]}>
-              Quick Filters
-            </Text>
+          {/* Exercise Exclusions */}
+          <View style={[
+            styles.quickFiltersSection, 
+            styles.exerciseExclusionsSection,
+            { borderTopColor: currentTheme.colors.border }
+          ]}>
+            <View style={styles.trainingStyleHeader}>
+              <Text style={[
+                styles.sectionLabel,
+                { 
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_600SemiBold',
+                }
+              ]}>
+                Exercise Exclusions
+              </Text>
+              <Text style={[
+                styles.sectionDescription,
+                { 
+                  color: currentTheme.colors.text + '70',
+                  fontFamily: 'Raleway_400Regular',
+                }
+              ]}>
+                Hide exercises you can't do or don't want
+              </Text>
+            </View>
             
                           <ScrollView 
                 horizontal 
@@ -761,7 +856,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 12,
+    marginBottom: 4,
   },
   activeFiltersSection: {
     gap: 8,
@@ -813,6 +908,42 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     marginLeft: 12,
+  },
+
+  workoutTypeSection: {
+    gap: 12,
+  },
+  trainingStyleHeader: {
+    gap: 4,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  exerciseExclusionsSection: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  workoutTypeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  workoutTypeButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    minHeight: 44,
+  },
+  workoutTypeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   // Modal Styles
   modalContainer: {

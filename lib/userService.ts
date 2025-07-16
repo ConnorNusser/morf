@@ -59,6 +59,9 @@ class UserService {
     const allLifts: Record<string, UserProgress> = {};
 
     for (const lift of profile.lifts) {
+      // Skip lifts with zero weight to avoid meaningless progress calculations
+      if (lift.weight <= 0) continue;
+      
       let maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
       const percentile = calculateStrengthPercentile(
         maxEstimatedLift,
@@ -128,6 +131,9 @@ class UserService {
     };
 
     for (const lift of profile?.lifts || []) {
+      // Skip lifts with zero weight to avoid meaningless records
+      if (lift.weight <= 0) continue;
+      
       if (lift.id in topLifts && OneRMCalculator.estimate(lift.weight, lift.reps) > OneRMCalculator.estimate(topLifts[lift.id as MainLiftType].weight, topLifts[lift.id as MainLiftType].reps)) {
         topLifts[lift.id as MainLiftType] = lift;
       }
@@ -162,7 +168,7 @@ class UserService {
     }
     const profile = await this.getRealUserProfile();
     const bodyWeightInLbs = convertWeightToLbs(profile?.weight.value || 0, profile?.weight.unit || 'lbs');
-    const lift = profile?.secondaryLifts.filter(lift => lift.id === liftId)
+    const lift = profile?.secondaryLifts.filter(lift => lift.id === liftId && lift.weight > 0)
       .sort((a, b) => OneRMCalculator.estimate(b.weight, b.reps) - OneRMCalculator.estimate(a.weight, a.reps))[0];
     
     if (lift) {
@@ -226,7 +232,7 @@ class UserService {
     if (!profile) return undefined;
     
     const bodyWeightInLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
-    const mainLifts = profile.lifts.filter(lift => lift.id === liftId);
+    const mainLifts = profile.lifts.filter(lift => lift.id === liftId && lift.weight > 0);
     
     if (mainLifts.length === 0) return undefined;
     

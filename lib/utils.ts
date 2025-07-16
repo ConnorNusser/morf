@@ -119,12 +119,12 @@ export const analyzeSelectedSplitWeaknesses = async (
     const recentSets = recentWorkouts
       .flatMap(w => w.exercises.filter((e: any) => e.id === exerciseId))
       .flatMap((e: any) => e.completedSets || [])
-      .filter((set: any) => set.weight && set.reps);
+      .filter((set: any) => set.weight && set.reps && set.weight > 0);
     
     const olderSets = olderWorkouts
       .flatMap(w => w.exercises.filter((e: any) => e.id === exerciseId))
       .flatMap((e: any) => e.completedSets || [])
-      .filter((set: any) => set.weight && set.reps);
+      .filter((set: any) => set.weight && set.reps && set.weight > 0);
     
     const recentBest1RM = recentSets.length > 0 
       ? Math.max(...recentSets.map((s: any) => OneRMCalculator.estimate(s.weight, s.reps)))

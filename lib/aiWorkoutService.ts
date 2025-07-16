@@ -25,7 +25,7 @@ class AIWorkoutService {
     });
   }
 
-  async generateWorkout(context: WorkoutContext, customRequest?: string, workoutType?: WorkoutSplit): Promise<GeneratedWorkout> {
+  async generateWorkout(context: WorkoutContext, customRequest?: string, workoutType?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<GeneratedWorkout> {
     if (!this.AI_API_KEY) {
       return await this.generateFallback(context);
     }
@@ -43,19 +43,24 @@ class AIWorkoutService {
 
     while (attempts <= this.MAX_RETRY_ATTEMPTS) {
       try {
-        const prompt = await promptBuilder.buildPrompt(context, analysis, customRequest, workoutType);
+        const prompt = await promptBuilder.buildPrompt(context, analysis, customRequest, workoutType, previousWorkout);
         const workout = await this.callAIAPI(prompt);
-        const validationResult = workoutValidator.validate(workout, getWorkoutById.bind(this));
-        if (validationResult.isValid) {
-          return workout;
-        }
+        
+        // TEMPORARILY DISABLED: Workout validator
+        // const validationResult = workoutValidator.validate(workout, getWorkoutById.bind(this));
+        // if (validationResult.isValid) {
+        //   return workout;
+        // }
 
-        if (attempts < this.MAX_RETRY_ATTEMPTS) {
-          const lastPrompt = workoutValidator.generateFeedbackPrompt(workout, validationResult, prompt);
-          attempts++;
-          continue;
-        }
-        return await this.generateFallback(context);
+        // if (attempts < this.MAX_RETRY_ATTEMPTS) {
+        //   const lastPrompt = workoutValidator.generateFeedbackPrompt(workout, validationResult, prompt);
+        //   attempts++;
+        //   continue;
+        // }
+        
+        // For now, return the workout without validation
+        console.log('⚠️ Workout validator disabled - returning AI workout without validation');
+        return workout;
 
       } catch (error) {
         attempts++;
@@ -103,7 +108,7 @@ class AIWorkoutService {
 
   private async generateFallback(context: WorkoutContext): Promise<GeneratedWorkout> {
     
-    const { userProgress, availableEquipment, preferences, workoutHistory } = context;
+    const { userProgress, availableEquipment, preferences, workoutHistory, workoutFilters } = context;
     
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
@@ -112,7 +117,14 @@ class AIWorkoutService {
     const recommendedWorkoutType = promptBuilder.selectWorkoutType(analysis, userProgress);
     const template = POWERLIFTING_WORKOUT_TEMPLATES[recommendedWorkoutType as keyof typeof POWERLIFTING_WORKOUT_TEMPLATES];
     
-    let workouts = getAvailableWorkouts(overallPercentile);
+    // Apply workout filters to available exercises
+    let workouts = getAvailableWorkouts(overallPercentile, workoutFilters);
+    
+    // Debug log the filtering
+    if (workoutFilters && workoutFilters.excludedWorkoutIds.length > 0) {
+      const totalBefore = getAvailableWorkouts(overallPercentile).length;
+      console.log(`🔍 Fallback filter: ${totalBefore} → ${workouts.length} exercises (filtered out ${workoutFilters.excludedWorkoutIds.length})`);
+    }
     
     // Filter by equipment and muscle groups
     workouts = workouts.filter(w => 

@@ -6,6 +6,7 @@ import PreviousWorkoutDetailsModal from '@/components/PreviousWorkoutDetailsModa
 import { Text, View } from '@/components/Themed';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import WorkoutModal from '@/components/WorkoutModal';
+import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
@@ -84,20 +85,26 @@ export default function WorkoutScreen() {
     setIsGenerating(true);
     
     try {
-      // Get user preferences, real profile, and workout history
+      // Get user preferences, real profile, workout history, and filters
       const preferences = await storageService.getUserPreferences();
       const userProfile = await userService.getUserProfileOrDefault();
       const workoutHistory = await storageService.getWorkoutHistory();
+      const workoutFilters = await storageService.getWorkoutFilters();
       
       // Use real user progress if available, otherwise use empty array
       const progressToUse = userProgress.length > 0 ? userProgress : [];
       
-      // Generate AI workout with real user data and history
+      // Debug log the filters
+      console.log('🔍 Applying workout filters:', workoutFilters);
+      console.log('🚫 Excluding exercises:', workoutFilters.excludedWorkoutIds.length);
+      
+      // Generate AI workout with real user data, history, and filters
       const workout = await aiWorkoutService.generateWorkout({
         userProfile: userProfile,
         userProgress: progressToUse,
         availableEquipment: preferences.preferredEquipment as any,
         workoutHistory: workoutHistory,
+        workoutFilters: workoutFilters,
         preferences: {
           duration: preferences.workoutDuration,
           excludeBodyweight: preferences.excludeBodyweight,
@@ -113,26 +120,29 @@ export default function WorkoutScreen() {
     }
   };
 
-  const handleRegenerateWorkout = async (workoutType?: WorkoutSplit) => {
-    // Get user preferences, real profile, and workout history
+  const handleRegenerateWorkout = async (workoutType?: WorkoutSplit, previousWorkout?: GeneratedWorkout) => {
+    // Get user preferences, real profile, workout history, and filters
     const preferences = await storageService.getUserPreferences();
     const userProfile = await userService.getUserProfileOrDefault(); // Always returns a profile
     const workoutHistory = await storageService.getWorkoutHistory();
+    const workoutFilters = await storageService.getWorkoutFilters();
     
     // Use real user progress if available, otherwise use empty array
     const progressToUse = userProgress.length > 0 ? userProgress : [];
     
-    // Generate AI workout with real user data and history (with optional workoutType override)
+    // Generate AI workout with real user data, history, and filters (with optional workoutType override)
+    // Pass the previousWorkout parameter for variation
     const workout = await aiWorkoutService.generateWorkout({
       userProfile: userProfile,
       userProgress: progressToUse,
       availableEquipment: preferences.preferredEquipment as any,
       workoutHistory: workoutHistory,
+      workoutFilters: workoutFilters,
       preferences: {
         duration: preferences.workoutDuration,
         excludeBodyweight: preferences.excludeBodyweight,
       }
-    }, undefined, workoutType);
+    }, undefined, workoutType, previousWorkout);
     
     return workout;
   };
@@ -281,6 +291,13 @@ export default function WorkoutScreen() {
             style={styles.generateButton}
             disabled={isGenerating}
             hapticType="light"      
+          />
+
+          {/* Workout Filters */}
+          <WorkoutFiltersSection 
+            onFiltersUpdate={async () => {
+              await loadUserData();
+            }}
           />
 
           {/* Previous Workouts Section */}

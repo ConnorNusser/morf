@@ -157,11 +157,13 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_FILTERS);
       return data ? JSON.parse(data) : {
         excludedWorkoutIds: [],
+        workoutType: 'powerlifting', // Default to powerlifting
       };
     } catch (error) {
       console.error('Error loading workout filters:', error);
       return {
         excludedWorkoutIds: [],
+        workoutType: 'powerlifting', // Default to powerlifting
       };
     }
   }

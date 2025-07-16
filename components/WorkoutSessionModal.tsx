@@ -90,10 +90,17 @@ export default function WorkoutSessionModal({
     const updateRecommendedWeight = async () => {
       if (activeSession) {
         const currentExercise = activeSession.exercises[activeSession.currentExerciseIndex];
-        const recommendedWeight = await getRecommendedWeight(currentExercise.id, currentExercise.reps);
-        console.log('recommendedWeight', recommendedWeight);
-        setCurrentWeight({ value: recommendedWeight, unit: 'lbs' });
-        console.log('recommendedWeight', recommendedWeight);
+        const currentExerciseDetails = getWorkoutById(currentExercise.id);
+        const isBodyweight = currentExerciseDetails?.equipment?.includes('bodyweight') || false;
+        
+        if (!isBodyweight) {
+          const recommendedWeight = await getRecommendedWeight(currentExercise.id, currentExercise.reps);
+          console.log('recommendedWeight', recommendedWeight);
+          setCurrentWeight({ value: recommendedWeight, unit: 'lbs' });
+        } else {
+          // For bodyweight exercises, set weight to 0
+          setCurrentWeight({ value: 0, unit: 'lbs' });
+        }
       }
     }
     updateRecommendedWeight();
@@ -134,9 +141,25 @@ export default function WorkoutSessionModal({
     setEditingSetIndex(setIndex);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEdit = async () => {
     setEditingSetIndex(null);
-    setCurrentWeight({ value: 0, unit: 'lbs' });
+    
+    // Reset weight appropriately based on exercise type
+    if (activeSession) {
+      const currentExercise = activeSession.exercises[activeSession.currentExerciseIndex];
+      const currentExerciseDetails = getWorkoutById(currentExercise.id);
+      const isBodyweight = currentExerciseDetails?.equipment?.includes('bodyweight') || false;
+      
+      if (!isBodyweight) {
+        const recommendedWeight = await getRecommendedWeight(currentExercise.id, currentExercise.reps);
+        setCurrentWeight({ value: recommendedWeight, unit: 'lbs' });
+      } else {
+        setCurrentWeight({ value: 0, unit: 'lbs' });
+      }
+    } else {
+      setCurrentWeight({ value: 0, unit: 'lbs' });
+    }
+    
     setCurrentReps(0);
   };
 
@@ -163,6 +186,9 @@ export default function WorkoutSessionModal({
   const isExerciseComplete = currentExercise.isCompleted;
   const completedExercises = activeSession.exercises.filter(ex => ex.isCompleted).length;
   const isAllExercisesComplete = completedExercises === activeSession.exercises.length;
+  
+  // Check if the current exercise is bodyweight
+  const isBodyweightExercise = currentExerciseDetails?.equipment?.includes('bodyweight') || false;
 
   return (
     <Modal
@@ -277,7 +303,7 @@ export default function WorkoutSessionModal({
                       ]}
                     >
                       <Text style={[{ color: currentTheme.colors.text }]}>
-                        {set.weight}{set.unit} × {set.reps}
+                        {isBodyweightExercise ? `${set.reps} reps` : `${set.weight}${set.unit} × ${set.reps}`}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -295,19 +321,22 @@ export default function WorkoutSessionModal({
                     </Text>
                     <Button
                       title="Cancel"
-                      onPress={handleCancelEdit}
+                      onPress={() => handleCancelEdit()}
                       variant="ghost"
                       size="small"
                     />
                   </View>
                 )}
                 
-                <WeightInput
-                  key={`weight-${activeSession.currentExerciseIndex}-${editingSetIndex}`}
-                  value={currentWeight}
-                  onChange={setCurrentWeight}
-                  style={styles.weightInput}
-                />
+                {/* Only show weight input for non-bodyweight exercises */}
+                {!isBodyweightExercise && (
+                  <WeightInput
+                    key={`weight-${activeSession.currentExerciseIndex}-${editingSetIndex}`}
+                    value={currentWeight}
+                    onChange={setCurrentWeight}
+                    style={styles.weightInput}
+                  />
+                )}
                 
                 <NumberInput
                   key={`reps-${activeSession.currentExerciseIndex}-${editingSetIndex}`}
@@ -325,7 +354,7 @@ export default function WorkoutSessionModal({
                   onPress={handleCompleteSet}
                   variant="primary"
                   size="large"
-                  disabled={currentReps <= 0 || currentWeight.value <= 0}
+                  disabled={currentReps <= 0 || (!isBodyweightExercise && currentWeight.value <= 0)}
                 />
               </Card>
             )}

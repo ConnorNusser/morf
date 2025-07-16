@@ -26,7 +26,7 @@ interface WorkoutModalProps {
   onClose: () => void;
   workout: GeneratedWorkout | null;
   onStartWorkout?: () => void;
-  onRegenerateWorkout?: (workoutType?: WorkoutSplit) => Promise<GeneratedWorkout>;
+  onRegenerateWorkout?: (workoutType?: WorkoutSplit, previousWorkout?: GeneratedWorkout) => Promise<GeneratedWorkout>;
   onWorkoutUpdate?: (workout: GeneratedWorkout) => void;
 }
 
@@ -565,7 +565,7 @@ export default function WorkoutModal({
     setIsNewWorkout(false);
     
     try {
-      const newWorkout = await onRegenerateWorkout(selectedWorkoutType || undefined);
+      const newWorkout = await onRegenerateWorkout(selectedWorkoutType || undefined, currentWorkout || undefined);
       
       // Add a small delay to make the slot machine feel more realistic
       setTimeout(() => {

@@ -1,12 +1,13 @@
 import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
+import { getWorkoutById } from '@/lib/workouts';
 import {
-  ActiveWorkoutSession,
-  GeneratedWorkout,
-  isMainLift,
-  WeightUnit,
-  WorkoutSetCompletion
+    ActiveWorkoutSession,
+    GeneratedWorkout,
+    isMainLift,
+    WeightUnit,
+    WorkoutSetCompletion
 } from '@/types';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -65,9 +66,15 @@ export const useWorkoutSession = () => {
   };
 
   const completeSet = async () => {
-    if (!activeSession || !currentReps || currentWeight.value <= 0) return;
+    if (!activeSession || !currentReps) return;
 
     const currentExercise = activeSession.exercises[activeSession.currentExerciseIndex];
+    const currentExerciseDetails = getWorkoutById(currentExercise.id);
+    const isBodyweightExercise = currentExerciseDetails?.equipment?.includes('bodyweight') || false;
+    
+    // For non-bodyweight exercises, require weight > 0
+    if (!isBodyweightExercise && currentWeight.value <= 0) return;
+
     const setNumber = currentExercise.completedSets.length + 1;
     
     const newSet: WorkoutSetCompletion = {
@@ -98,9 +105,15 @@ export const useWorkoutSession = () => {
   };
 
   const updateSet = async (setIndex: number, weight: { value: number; unit: WeightUnit }, reps: number) => {
-    if (!activeSession || !reps || weight.value <= 0) return;
+    if (!activeSession || !reps) return;
 
     const currentExercise = activeSession.exercises[activeSession.currentExerciseIndex];
+    const currentExerciseDetails = getWorkoutById(currentExercise.id);
+    const isBodyweightExercise = currentExerciseDetails?.equipment?.includes('bodyweight') || false;
+    
+    // For non-bodyweight exercises, require weight > 0
+    if (!isBodyweightExercise && weight.value <= 0) return;
+    
     if (setIndex >= currentExercise.completedSets.length) return;
 
     const updatedSet: WorkoutSetCompletion = {

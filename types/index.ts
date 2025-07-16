@@ -134,10 +134,29 @@ export interface WorkoutContext {
   userProgress: UserProgress[];
   availableEquipment: Equipment[];
   workoutHistory: GeneratedWorkout[];
+  workoutFilters?: WorkoutFilters;
   preferences: {
     duration?: number;
     focusAreas?: MuscleGroup[];
     excludeBodyweight?: boolean;
+  };
+}
+
+export interface WorkoutAnalysis {
+  recentExerciseIds: string[];
+  overallPercentile: number;
+  strengthLevel: string;
+  // For auto-generated workouts
+  autoFocus?: {
+    recommendedSplit: WorkoutSplit;
+    reasoning: string;
+    muscleGroupGaps: string[];
+  };
+  // For user-selected splits
+  splitWeaknesses?: {
+    weakerAreas: string[];
+    progressionAnalysis: string[];
+    progressionIssues: string[];
   };
 }
 
@@ -153,6 +172,7 @@ export interface UserPreferences {
 
 export interface WorkoutFilters {
   excludedWorkoutIds: string[];
+  workoutType?: 'powerlifting' | 'bodyweight' | 'generic';
 }
 
 export interface ExerciseMax {
