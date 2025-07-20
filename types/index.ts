@@ -6,6 +6,7 @@ export type Gender = 'male' | 'female' | 'other' | 'prefer-not-to-say';
 // Units
 export type HeightUnit = 'feet' | 'cm';
 export type WeightUnit = 'lbs' | 'kg';
+export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Theme progression levels
 export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god';
@@ -118,6 +119,15 @@ export interface ExerciseSet {
   reps: string;
 }
 
+// ===== ROUTINE TYPES =====
+export interface Routine {
+  id: string;
+  name: string;
+  description: string;
+  exercises: GeneratedWorkout[];
+  createdAt: Date;
+}
+
 // Simplified workout using existing types
 export interface GeneratedWorkout {
   id: string;
@@ -127,6 +137,8 @@ export interface GeneratedWorkout {
   estimatedDuration: number;
   difficulty: string;
   createdAt: Date;
+  // day of week for routines
+  dayOfWeek?: DayOfWeek;
 }
 
 export interface WorkoutContext {

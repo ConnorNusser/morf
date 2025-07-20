@@ -3,7 +3,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { Gender, HeightUnit, WeightUnit } from '@/types';
+import { Gender, HeightUnit, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -89,6 +89,23 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         workoutType,
         excludedWorkoutIds: [],
       });
+
+      // Create default routine (only if it doesn't exist)
+      const existingRoutines = await storageService.getRoutines();
+      const hasDefaultRoutine = existingRoutines.some(routine => routine.id === 'default-routine');
+      
+      if (!hasDefaultRoutine) {
+        const defaultRoutine: Routine = {
+          id: 'default-routine',
+          name: 'Default',
+          description: 'Your default workout routine',
+          exercises: [],
+          createdAt: new Date(),
+        };
+        
+        await storageService.saveRoutine(defaultRoutine);
+        await storageService.setCurrentRoutine(defaultRoutine);
+      }
 
       onComplete();
     } catch (error) {

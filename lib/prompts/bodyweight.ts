@@ -11,19 +11,10 @@ export class BodyweightPromptStrategy implements PromptStrategy {
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
     
-    // Apply workout filters and focus on bodyweight exercises
     const availableWorkouts = getAvailableWorkouts(overallPercentile, workoutFilters);
-    
-    // Debug log the filtering for AI prompt
-    if (workoutFilters && workoutFilters.excludedWorkoutIds.length > 0) {
-      const totalBefore = getAvailableWorkouts(overallPercentile).length;
-      console.log(`🔍 Bodyweight prompt filter: ${totalBefore} → ${availableWorkouts.length} exercises (filtered out ${workoutFilters.excludedWorkoutIds.length})`);
-    }
-    console.log('🔍 Available bodyweight workouts:', availableWorkouts.length);
     
     const recommendedWorkoutType = workoutTypeOverride || this.selectWorkoutType(analysis);
     
-    // Filter for bodyweight and minimal equipment exercises
     let filteredWorkouts = availableWorkouts.filter(workout => {
       return workout.equipment && (
         workout.equipment.includes('bodyweight') ||
@@ -32,7 +23,6 @@ export class BodyweightPromptStrategy implements PromptStrategy {
       );
     });
     
-    // Prioritize bodyweight exercises first for calisthenics focus
     filteredWorkouts = filteredWorkouts.sort((a, b) => {
       const aBodyweight = a.equipment.includes('bodyweight') ? 1 : 0;
       const bBodyweight = b.equipment.includes('bodyweight') ? 1 : 0;

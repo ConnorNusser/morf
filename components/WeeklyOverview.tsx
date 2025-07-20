@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { GeneratedWorkout } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
@@ -26,7 +27,8 @@ interface WeekData {
 
 export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) {
   const { currentTheme } = useTheme();
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = current week, -1 = last week, +1 = next week
   const [modalVisible, setModalVisible] = useState(false);
   const [modalInvocationType, setModalInvocationType] = useState<'day' | 'week' | 'volume' | 'time'>('day');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -67,7 +69,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     }
   };
 
-  const getWeekData = (weekOffset: number): WeekData => {
+  const getWeekData = (weekOffset: number = 0): WeekData => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Adjust to get Monday
@@ -120,7 +122,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     };
   };
 
-  const weekData = useMemo(() => getWeekData(currentWeekOffset), [currentWeekOffset, workoutHistory]);
+  const weekData = useMemo(() => getWeekData(currentWeekOffset), [workoutHistory, currentWeekOffset]);
 
   const weekStats = useMemo(() => {
     const totalWorkouts = weekData.workouts.length;
@@ -165,9 +167,9 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const year = endDate.getFullYear().toString().slice(-2);
     
     if (startMonth === endMonth) {
-      return `${startMonth} ${startDay} - ${endDay}, ${year}`;
+      return `${startMonth} ${startDay}-${endDay}`;
     }
-    return `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
   };
 
   const getDayBackgroundColor = (hasWorkout: boolean, workoutCategory?: string) => {
@@ -180,10 +182,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     if (!hasWorkout) return currentTheme.colors.text + '60';
     if (!workoutCategory) return currentTheme.colors.accent;
     return getCategoryColor(workoutCategory);
-  };
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    setCurrentWeekOffset(prev => direction === 'prev' ? prev - 1 : prev + 1);
   };
 
   const handleDayPress = (day: WeekData['weekDays'][0]) => {
@@ -217,124 +215,145 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     setModalWorkouts([]);
   };
 
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    setCurrentWeekOffset(prev => direction === 'prev' ? prev - 1 : prev + 1);
+  };
+
   return (
     <>
       <Card variant="elevated" style={styles.container}>
-        {/* Header with navigation */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigateWeek('prev')} style={styles.navButton}>
-            <Text style={[styles.navArrow, { color: currentTheme.colors.text }]}>‹</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.dateContainer}>
+        {/* Compact Header */}
+        <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.headerContainer}>
+          <View style={styles.header}>
             <Text style={[
-              styles.workoutSummaryTitle, 
+              styles.title, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_700Bold',
+                fontFamily: 'Raleway_600SemiBold',
               }
             ]}>
-              Workout Summary
+              Weekly Overview
             </Text>
             <Text style={[
               styles.dateRange, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
-                opacity: 0.6,
+                fontFamily: 'Raleway_400Regular',
+                opacity: 0.7,
               }
             ]}>
               {formatDateRange(weekData.startDate, weekData.endDate)}
             </Text>
           </View>
-          
-          <TouchableOpacity onPress={() => navigateWeek('next')} style={styles.navButton}>
-            <Text style={[styles.navArrow, { color: currentTheme.colors.text }]}>›</Text>
-          </TouchableOpacity>
-        </View>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={currentTheme.colors.text}
+            style={styles.chevronIcon}
+          />
+        </TouchableOpacity>
 
-        {/* Day numbers with category colors */}
-        <View style={styles.daysContainer}>
-          {weekData.weekDays.map((day, index) => (
-            <View key={index} style={styles.dayColumn}>
-              <TouchableOpacity 
-                onPress={() => handleDayPress(day)}
-                style={[
-                  styles.dayButton,
-                  { backgroundColor: getDayBackgroundColor(day.hasWorkout, day.workoutCategory) }
-                ]}
-              >
+        {/* Week Days with integrated navigation arrows */}
+        <View style={styles.weekContainer}>
+          {/* Left Arrow - Only visible when expanded */}
+          {isExpanded ? (
+            <TouchableOpacity 
+              onPress={() => navigateWeek('prev')}
+              style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-back" size={16} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          ) : <View style={styles.spacer} />}
+          
+          {/* Days */}
+          <View style={styles.daysContainer}>
+            {weekData.weekDays.map((day, index) => (
+              <View key={index} style={styles.dayColumn}>
+                <TouchableOpacity 
+                  onPress={() => handleDayPress(day)}
+                  style={[
+                    styles.dayButton,
+                    { backgroundColor: getDayBackgroundColor(day.hasWorkout, day.workoutCategory) }
+                  ]}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.dayNumber, 
+                    { color: getDayTextColor(day.hasWorkout, day.workoutCategory) }
+                  ]}>
+                    {day.dayNumber}
+                  </Text>
+                </TouchableOpacity>
                 <Text style={[
-                  styles.dayNumber, 
-                  { color: getDayTextColor(day.hasWorkout, day.workoutCategory) }
+                  styles.dayLabel, 
+                  { 
+                    color: currentTheme.colors.text,
+                    fontFamily: 'Raleway_400Regular',
+                    opacity: day.hasWorkout ? 0.8 : 0.4,
+                  }
                 ]}>
-                  {day.dayNumber}
+                  {day.dayLetter}
                 </Text>
-              </TouchableOpacity>
-              <Text style={[
-                styles.dayLabel, 
-                { 
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
-                  opacity: day.hasWorkout ? 1 : 0.5,
-                }
-              ]}>
-                {day.dayLetter}
-              </Text>
-            </View>
-          ))}
+              </View>
+            ))}
+          </View>
+
+          {/* Right Arrow - Only visible when expanded */}
+          {isExpanded ? (
+            <TouchableOpacity 
+              onPress={() => navigateWeek('next')}
+              style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          ) : <View style={styles.spacer} />}
         </View>
 
-        {/* Clean Minimalist Statistics */}
-        <View style={styles.statsContainer}>
-          <TouchableOpacity 
-            style={[
-              styles.statCard, 
-              { backgroundColor: currentTheme.colors.surface }
-            ]} 
-            onPress={handleWeekPress}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-              {weekStats.totalWorkouts}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-              Workouts
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[
-              styles.statCard, 
-              { backgroundColor: currentTheme.colors.surface }
-            ]} 
-            onPress={handleTimePress}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-              {weekStats.totalTime}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-              Time
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[
-              styles.statCard, 
-              { backgroundColor: currentTheme.colors.surface }
-            ]} 
-            onPress={handleVolumePress}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-              {weekStats.totalVolume}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-              Volume
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Compact Stats - Only when expanded */}
+        {isExpanded && (
+          <View style={styles.statsContainer}>
+            <TouchableOpacity 
+              style={styles.statItem} 
+              onPress={handleWeekPress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
+                {weekStats.totalWorkouts}
+              </Text>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
+                Workouts
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.statItem} 
+              onPress={handleTimePress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
+                {weekStats.totalTime}
+              </Text>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
+                Time
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.statItem} 
+              onPress={handleVolumePress}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
+                {weekStats.totalVolume}
+              </Text>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
+                Volume
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </Card>
 
       <WeeklyOverviewModal
@@ -352,86 +371,92 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
-  header: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
+  },
+  header: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 1,
+  },
+  dateRange: {
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  chevronIcon: {
+    marginLeft: 8,
+  },
+  weekContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   navButton: {
-    padding: 8,
-    minWidth: 32,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  navArrow: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  dateContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  workoutSummaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  dateRange: {
-    fontSize: 14,
-    fontWeight: '500',
+  spacer: {
+    width: 28,
   },
   daysContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    flex: 1,
+    marginHorizontal: 8,
   },
   dayColumn: {
     alignItems: 'center',
     flex: 1,
   },
   dayButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   dayNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
+    fontSize: 12,
+    fontWeight: '600',
   },
   dayLabel: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 10,
+    fontWeight: '400',
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 12,
+    justifyContent: 'space-around',
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
   },
-  statCard: {
-    flex: 1,
+  statItem: {
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginHorizontal: 4,
+    flex: 1,
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 13,
-    fontFamily: 'Raleway_500Medium',
+    fontSize: 10,
+    fontWeight: '400',
     opacity: 0.7,
   },
 }); 

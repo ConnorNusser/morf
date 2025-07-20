@@ -3,10 +3,13 @@ import Card from '@/components/Card';
 import Divider from '@/components/Divider';
 import PreviousWorkoutCard from '@/components/PreviousWorkoutCard';
 import PreviousWorkoutDetailsModal from '@/components/PreviousWorkoutDetailsModal';
-import { Text, View } from '@/components/Themed';
-import WeeklyOverview from '@/components/WeeklyOverview';
-import WorkoutModal from '@/components/WorkoutModal';
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
+import MyRoutinesSection from '@/components/routine/MyRoutinesSection';
+import RoutinesModal from '@/components/routine/RoutinesModal';
+import BrowseSection from '@/components/routine/BrowseSection';
+import BrowseWorkoutsModal, { BrowseWorkoutsMode } from '@/components/routine/BrowseWorkoutsModal';
+import { Text, View } from '@/components/Themed';
+import WorkoutModal from '@/components/WorkoutModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
@@ -14,9 +17,10 @@ import { aiWorkoutService } from '@/lib/aiWorkoutService';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { GeneratedWorkout, UserProgress, WorkoutSplit } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -31,6 +35,12 @@ export default function WorkoutScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [showPreviousWorkouts, setShowPreviousWorkouts] = useState(false);
+  const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
+  const [browseWorkoutsModalVisible, setBrowseWorkoutsModalVisible] = useState(false);
+  const [browseWorkoutsMode, setBrowseWorkoutsMode] = useState<BrowseWorkoutsMode>('browse');
+  const [selectedDay, setSelectedDay] = useState(0); // Track selected day from routine scheduler
+  const [selectedDayName, setSelectedDayName] = useState('Monday'); // Track selected day name
 
   // Add workout timer for active session
   const { formattedTime: activeWorkoutTime } = useWorkoutTimer(activeSession?.startTime || null);
@@ -93,10 +103,6 @@ export default function WorkoutScreen() {
       
       // Use real user progress if available, otherwise use empty array
       const progressToUse = userProgress.length > 0 ? userProgress : [];
-      
-      // Debug log the filters
-      console.log('🔍 Applying workout filters:', workoutFilters);
-      console.log('🚫 Excluding exercises:', workoutFilters.excludedWorkoutIds.length);
       
       // Generate AI workout with real user data, history, and filters
       const workout = await aiWorkoutService.generateWorkout({
@@ -221,6 +227,86 @@ export default function WorkoutScreen() {
     }
   };
 
+  const handleBrowseRoutines = () => {
+    setRoutinesModalVisible(true);
+  };
+
+  const handleSelectedDayChange = useCallback((day: number, dayName: string) => {
+    setSelectedDay(day);
+    setSelectedDayName(dayName);
+  }, []);
+
+  const handleBrowseWorkouts = () => {
+    setBrowseWorkoutsMode('browse');
+    setBrowseWorkoutsModalVisible(true);
+  };
+
+  const handleEditWorkout = (workout: GeneratedWorkout) => {
+    // TODO: Implement workout editing
+    console.log('Edit workout:', workout.title);
+    Alert.alert('Edit Workout', `Editing functionality for "${workout.title}" will be available soon!`);
+  };
+
+  const handleImportWorkout = (workout: GeneratedWorkout) => {
+    // Import workout directly to the generate modal
+    console.log('Import workout to generate:', workout.title);
+    setGeneratedWorkout(workout);
+    setWorkoutModalVisible(true);
+    setBrowseWorkoutsModalVisible(false);
+    Alert.alert('Workout Imported', `"${workout.title}" has been imported and is ready to start!`);
+  };
+
+  const handleStartSelectedDayWorkout = async () => {
+    try {
+      // Get current routine
+      const currentRoutine = await storageService.getCurrentRoutine();
+      
+      if (!currentRoutine) {
+        Alert.alert(
+          'No Routine Selected', 
+          'Please select a routine first to start the workout.',
+          [
+            { text: 'OK' },
+            { text: 'Browse Routines', onPress: () => setRoutinesModalVisible(true) }
+          ]
+        );
+        return;
+      }
+
+      // Convert day index to day name for filtering
+      const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const selectedDayNameLower = dayNames[selectedDay];
+
+      // Find workouts for the selected day
+      const dayWorkouts = currentRoutine.exercises.filter(workout => workout.dayOfWeek === selectedDayNameLower);
+
+      if (dayWorkouts.length === 0) {
+        Alert.alert(
+          'No Workout Scheduled', 
+          `No workouts scheduled for ${selectedDayName}. Would you like to generate a workout instead?`,
+          [
+            { text: 'Cancel' },
+            { text: 'Generate Workout', onPress: handleGenerateWorkout }
+          ]
+        );
+        return;
+      }
+
+      // If there's exactly one workout, start it directly
+      if (dayWorkouts.length === 1) {
+        openGlobalWorkoutModal(dayWorkouts[0]);
+        return;
+      }
+
+      // If multiple workouts, let user choose (for now, just start the first one)
+      openGlobalWorkoutModal(dayWorkouts[0]);
+      
+    } catch (error) {
+      console.error('Error starting selected day workout:', error);
+      Alert.alert('Error', 'Failed to start workout. Please try again.');
+    }
+  };
+
   const hasActiveSession = activeSession && !activeSession.isCompleted;
 
   return (
@@ -279,51 +365,106 @@ export default function WorkoutScreen() {
             </Card>
           )}
 
-          {/* Weekly Overview */}
-          <WeeklyOverview workoutHistory={workoutHistory} />
+          {/* Workout Action Buttons - MOVED TO TOP */}
+          <View style={[styles.actionButtonsContainer, { backgroundColor: 'transparent' }]}>
+            <Button
+              title={`Start ${selectedDayName}'s Workout`}
+              onPress={handleStartSelectedDayWorkout}
+              variant="primary"
+              size="small"
+              style={styles.primaryActionButton}
+              hapticType="light"      
+            />
+            
+            <Button
+              title={isGenerating ? "Generating..." : "Generate Workout"}
+              onPress={handleGenerateWorkout}
+              variant="secondary"
+              size="small"
+              style={styles.secondaryActionButton}
+              disabled={isGenerating}
+              hapticType="light"
+            />
+          </View>
 
-          {/* Simple Generate Workout Button */}
-          <Button
-            title={isGenerating ? "Generating workout..." : "Generate My Workout"}
-            onPress={handleGenerateWorkout}
-            variant="primary"
-            size="large"
-            style={styles.generateButton}
-            disabled={isGenerating}
-            hapticType="light"      
+          {/* My Routines Section - MOVED TO SECOND POSITION */}
+          <MyRoutinesSection 
+            onOpenBrowseRoutines={() => setRoutinesModalVisible(true)} 
+            refreshTrigger={0} // No longer needed, context handles updates
+            onSelectedDayChange={handleSelectedDayChange}
           />
 
-          {/* Workout Filters */}
+          {/* Browse Section */}
+          <BrowseSection
+            onBrowseRoutines={handleBrowseRoutines}
+            onBrowseWorkouts={handleBrowseWorkouts}
+          />
+
+          {/* Workout Filters - MOVED TO BOTTOM */}
           <WorkoutFiltersSection 
             onFiltersUpdate={async () => {
               await loadUserData();
             }}
           />
 
-          {/* Previous Workouts Section */}
+          {/* Previous Workouts Section - Collapsible */}
           {workoutHistory.length > 0 && (
-            <>
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
-                }
-              ]}>
-                Previous Workouts
-              </Text>
-              
-              <Divider />
-              
-              {workoutHistory.map((workout) => (
-                <PreviousWorkoutCard
-                  key={workout.id}
-                  workout={workout}
-                  onPress={() => handlePreviousWorkoutPress(workout)}
-                  onDelete={handleDeleteWorkout}
+            <View style={[styles.previousWorkoutsContainer, { backgroundColor: 'transparent' }]}>
+              <TouchableOpacity 
+                onPress={() => setShowPreviousWorkouts(!showPreviousWorkouts)}
+                style={styles.previousWorkoutsHeader}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.previousWorkoutsTitle,
+                  {
+                    color: currentTheme.colors.text,
+                    fontFamily: 'Raleway_500Medium',
+                  }
+                ]}>
+                  Previous Workouts ({workoutHistory.length})
+                </Text>
+                <Ionicons
+                  name={showPreviousWorkouts ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={currentTheme.colors.text}
+                  style={{ opacity: 0.6 }}
                 />
-              ))}
-            </>
+              </TouchableOpacity>
+              
+              {showPreviousWorkouts && (
+                <>
+                  <Divider />
+                  {workoutHistory.slice(0, 5).map((workout) => (
+                    <PreviousWorkoutCard
+                      key={workout.id}
+                      workout={workout}
+                      onPress={() => handlePreviousWorkoutPress(workout)}
+                      onDelete={handleDeleteWorkout}
+                    />
+                  ))}
+                  {workoutHistory.length > 5 && (
+                    <TouchableOpacity 
+                      style={styles.viewAllButton}
+                      onPress={() => {
+                        // TODO: Implement view all previous workouts
+                        Alert.alert('Coming Soon', 'View all workouts functionality is being developed!');
+                      }}
+                    >
+                      <Text style={[
+                        styles.viewAllText,
+                        { 
+                          color: currentTheme.colors.accent,
+                          fontFamily: 'Raleway_500Medium',
+                        }
+                      ]}>
+                        View All {workoutHistory.length} Workouts
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+            </View>
           )}
         </View>
         <View style={{ marginBottom: 120 }} />
@@ -344,6 +485,23 @@ export default function WorkoutScreen() {
         workout={selectedPreviousWorkout}
         onDelete={handleDeleteWorkout}
       />
+
+      <RoutinesModal
+        visible={routinesModalVisible}
+        onClose={() => setRoutinesModalVisible(false)}
+        onRoutineCreated={() => {
+          // Trigger refresh of MyRoutinesSection
+          // No longer needed, context handles updates
+        }}
+      />
+
+      <BrowseWorkoutsModal
+        visible={browseWorkoutsModalVisible}
+        onClose={() => setBrowseWorkoutsModalVisible(false)}
+        mode={browseWorkoutsMode}
+        onImportWorkout={handleImportWorkout}
+        onEditWorkout={handleEditWorkout}
+      />
     </>
   );
 }
@@ -353,7 +511,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    flex: 1,
     padding: 20,
     paddingTop: 80,
   },
@@ -365,6 +522,27 @@ const styles = StyleSheet.create({
   },
   generateButton: {
     marginBottom: 24,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    gap: 12,
+  },
+  primaryActionButton: {
+    flex: 2,
+    marginBottom: 0,
+  },
+  secondaryActionButton: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  emptyStateCard: {
+    marginTop: 8,
+  },
+  emptyStateText: {
+    textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 20,
   },
   resumeCard: {
     marginBottom: 24,
@@ -395,5 +573,28 @@ const styles = StyleSheet.create({
   },
   resumeButton: {
     marginTop: 8,
+  },
+  previousWorkoutsContainer: {
+    marginTop: 24,
+  },
+  previousWorkoutsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  previousWorkoutsTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  viewAllButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 

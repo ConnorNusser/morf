@@ -1,16 +1,17 @@
+import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import {
-  Raleway_400Regular,
-  Raleway_500Medium,
-  Raleway_600SemiBold,
-  Raleway_700Bold,
-  useFonts as useRalewayFonts
+    Raleway_400Regular,
+    Raleway_500Medium,
+    Raleway_600SemiBold,
+    Raleway_700Bold,
+    useFonts as useRalewayFonts
 } from '@expo-google-fonts/raleway';
 
 import {
-  Karla_400Regular,
-  Karla_700Bold,
-  useFonts as useKarlaFonts
+    Karla_400Regular,
+    Karla_700Bold,
+    useFonts as useKarlaFonts
 } from '@expo-google-fonts/karla';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -21,8 +22,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
 export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary
+    // Catch any errors thrown by the Layout component.
+    ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -86,10 +87,12 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+      <RoutineProvider>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </RoutineProvider>
     </ThemeProvider>
   );
 }

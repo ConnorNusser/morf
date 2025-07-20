@@ -1,4 +1,4 @@
-import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, UserPreferences, UserProfile, UserProgress, WorkoutFilters } from '@/types';
+import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from './theme';
 
@@ -11,6 +11,10 @@ const STORAGE_KEYS = {
   ACTIVE_WORKOUT_SESSION: 'active_workout_session',
   THEME_PREFERENCE: 'theme_preference',
   WORKOUT_FILTERS: 'workout_filters',
+  ROUTINES: 'routines',
+  CURRENT_ROUTINE: 'current_routine',
+  WORKOUT_ROUTINES: 'workout_routines',
+
 } as const;
 
 export { ExerciseMax, ThemeLevel, UserPreferences, WorkoutFilters };
@@ -228,6 +232,73 @@ class StorageService {
       console.error('Error exporting data:', error);
       return '';
     }
+  }
+
+  // Routines
+  async getCurrentRoutine(): Promise<Routine | null> {
+    const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_ROUTINE);
+    return data ? JSON.parse(data) : null;
+  };
+
+  async setCurrentRoutine(routine: Routine): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_ROUTINE, JSON.stringify(routine));
+  };
+
+  async getRoutines(): Promise<Routine[]> {
+    const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
+    const routines = data ? JSON.parse(data) : [];
+    console.log('💾 Storage: Found', routines.length, 'routines in storage');
+    return routines;
+  };
+
+  async saveRoutine(routine: Routine): Promise<void> {
+    routine.createdAt = new Date();
+    const routines = await this.getRoutines();
+    
+    // Check if routine with same ID already exists
+    const existingIndex = routines.findIndex(r => r.id === routine.id);
+    
+    if (existingIndex >= 0) {
+      // Update existing routine
+      console.log('💾 Storage: Updating existing routine:', routine.name);
+      routines[existingIndex] = routine;
+    } else {
+      // Add new routine
+      console.log('💾 Storage: Adding new routine:', routine.name);
+      routines.push(routine);
+    }
+    
+    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+    console.log('💾 Storage: Saved routine. Total routines now:', routines.length);
+  };
+
+  async deleteRoutine(routineId: string): Promise<void> {
+    const routines = await this.getRoutines();
+    const filtered = routines.filter(r => r.id !== routineId);
+    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(filtered));
+  }
+
+  async getWorkoutRoutines(): Promise<GeneratedWorkout[]> {
+    const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_ROUTINES);
+    return data ? JSON.parse(data) : [];
+  }
+
+  async saveWorkoutRoutine(workout: GeneratedWorkout): Promise<void> {
+    workout.createdAt = new Date();
+    workout.exercises.forEach((exercise: WorkoutExerciseSession) => {
+      exercise.completedSets = [];
+      exercise.isCompleted = false;
+    });
+
+    const workoutRoutines = await this.getWorkoutRoutines();
+    workoutRoutines.push(workout);
+    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(workoutRoutines));
+  }
+  
+  async deleteWorkoutRoutine(workoutId: string): Promise<void> {
+    const workoutRoutines = await this.getWorkoutRoutines();
+    const filtered = workoutRoutines.filter(w => w.id !== workoutId);
+    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(filtered));
   }
 }
 

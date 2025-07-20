@@ -18,7 +18,6 @@ export default function PreviousWorkoutDetailsModal({
   onDelete,
 }: PreviousWorkoutDetailsModalProps) {
   const { currentTheme } = useTheme();
-  console.log('workout', workout);
 
   if (!workout) return null;
 

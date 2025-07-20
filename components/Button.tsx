@@ -8,7 +8,7 @@ import { Text, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'subtle';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   style?: ViewStyle;
@@ -32,7 +32,6 @@ export default function Button({
   
   const soundFile = soundName ? getSound(soundName) : null;
   const audioPlayer = useAudioPlayer(soundFile);
-
 
   const playSound = () => {
     if (!soundFile || disabled || !audioPlayer) return;
@@ -84,6 +83,11 @@ export default function Button({
         borderWidth: 1,
         borderColor: currentTheme.colors.primary,
       },
+      subtle: {
+        backgroundColor: currentTheme.colors.surface + '40',
+        borderWidth: 1,
+        borderColor: currentTheme.colors.border + '30',
+      },
     };
 
     return [baseStyle, sizeStyles[size], variantStyles[variant]];
@@ -106,6 +110,7 @@ export default function Button({
       primary: { color: currentTheme.colors.background },
       secondary: { color: currentTheme.colors.text },
       ghost: { color: currentTheme.colors.primary },
+      subtle: { color: currentTheme.colors.text, opacity: 0.7 },
     };
 
     return [baseTextStyle, sizeTextStyles[size], variantTextStyles[variant]];

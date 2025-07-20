@@ -27,7 +27,6 @@ export default function WorkoutCompletionModal({
 }: WorkoutCompletionModalProps) {
   const { currentTheme } = useTheme();
 
-  console.log('🎉 WorkoutCompletionModal - visible:', visible, 'hasData:', !!workoutSession && !!workoutStats);
 
   if (!workoutSession || !workoutStats) {
     return null;

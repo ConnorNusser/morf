@@ -29,10 +29,8 @@ const getRecommendedWeight = async (liftId: string, reps: string): Promise<numbe
   if (!userProgress) {
     return 0;
   }
-  console.log('userProgress', userProgress);
   const weightForPercentage = OneRMCalculator.getWeightForPercentage(userProgress.personalRecord, OneRMCalculator.getPercentageFor(parseInt(reps)));
   // Round to nearest 5 lbs
-  console.log('weightForPercentage', weightForPercentage);
   return Math.round(weightForPercentage / 5) * 5;
 }
 
@@ -95,7 +93,6 @@ export default function WorkoutSessionModal({
         
         if (!isBodyweight) {
           const recommendedWeight = await getRecommendedWeight(currentExercise.id, currentExercise.reps);
-          console.log('recommendedWeight', recommendedWeight);
           setCurrentWeight({ value: recommendedWeight, unit: 'lbs' });
         } else {
           // For bodyweight exercises, set weight to 0

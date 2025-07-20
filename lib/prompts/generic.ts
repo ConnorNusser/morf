@@ -14,12 +14,6 @@ export class GenericPromptStrategy implements PromptStrategy {
     // Apply workout filters to available exercises
     const availableWorkouts = getAvailableWorkouts(overallPercentile, workoutFilters);
     
-    // Debug log the filtering for AI prompt
-    if (workoutFilters && workoutFilters.excludedWorkoutIds.length > 0) {
-      const totalBefore = getAvailableWorkouts(overallPercentile).length;
-      console.log(`🔍 Generic prompt filter: ${totalBefore} → ${availableWorkouts.length} exercises (filtered out ${workoutFilters.excludedWorkoutIds.length})`);
-    }
-    console.log('🔍 Available generic workouts:', availableWorkouts.length);
     
     const recommendedWorkoutType = workoutTypeOverride || this.selectWorkoutType(analysis);
     

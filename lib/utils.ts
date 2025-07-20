@@ -18,6 +18,14 @@ const convertWeightToKg = (weight: number, unit: WeightUnit): number => {
   return weight;
 };
 
+export const getPercentileSuffix = (percentile: number): string => {
+  const percentileFirstChar = percentile.toString()[0];
+  if (percentileFirstChar === '1') return 'st';
+  if (percentileFirstChar === '2') return 'nd';
+  if (percentileFirstChar === '3') return 'rd';
+  return 'th';
+};
+
 // For auto-generated workouts: Focus on what was trained longest ago
 export const analyzeAutoWorkoutFocus = async (workoutHistory: any[]): Promise<{
   recommendedSplit: WorkoutSplit;

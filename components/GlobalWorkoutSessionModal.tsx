@@ -26,7 +26,6 @@ export default function GlobalWorkoutSessionModal() {
 
   const handleWorkoutComplete = (workoutData?: any) => {    
     if (workoutData) {
-      console.log('🎉 Workout completed');
       setCompletedWorkoutData(workoutData);
     }
   };

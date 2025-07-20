@@ -16,19 +16,6 @@ export default function DashboardHeader({ onLogoPress }: DashboardHeaderProps) {
         message: '🔥 Track your lifts with Morf! \n\nhttps://apps.apple.com/us/app/morf-your-ai-workout-tracker/id6747366819?platform=iphone 💪',
         title: 'Morf - Transform Your Strength',
       });
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // Shared via activity type
-          console.log('Shared via:', result.activityType);
-        } else {
-          // Shared
-          console.log('App shared successfully');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // Dismissed
-        console.log('Share dismissed');
-      }
     } catch (error) {
       console.error('Error sharing app:', error);
       Alert.alert(

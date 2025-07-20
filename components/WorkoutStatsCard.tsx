@@ -4,6 +4,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
+import { getPercentileSuffix } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
 import { isMainLift, MainLiftType, UserProgress } from '@/types';
 import React, { useState } from 'react';
@@ -110,7 +111,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                   fontFamily: 'Raleway_700Bold',
                 }
               ]}>
-                {percentileRanking}th
+                {percentileRanking}{getPercentileSuffix(percentileRanking)}
               </Text>
             </View>
           </View>

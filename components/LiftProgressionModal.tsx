@@ -1,6 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
+import { getPercentileSuffix } from '@/lib/utils';
 import { MainLiftType, UserLift, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -344,7 +345,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           </View>
           <View style={styles.quickStat}>
             <Text style={[styles.quickStatValue, { color: currentTheme.colors.text }]}>
-              {currentData.percentileRanking}th
+              {currentData.percentileRanking}{getPercentileSuffix(currentData.percentileRanking)}
             </Text>
             <Text style={[styles.quickStatLabel, { color: currentTheme.colors.text + '70' }]}>
               Percentile
