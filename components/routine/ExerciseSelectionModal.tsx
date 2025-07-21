@@ -4,8 +4,14 @@ import { getAvailableWorkouts } from '@/lib/workouts';
 import { Equipment, MuscleGroup, Workout, WorkoutCategory, WorkoutFilters } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import ExerciseOptionsModal, { ExerciseOptions } from '../inputs/ExerciseOptionsModal';
+import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import KeyboardToolbar from '../inputs/KeyboardToolbar';
+
+export interface ExerciseOptions {
+  sets: number;
+  reps: string;
+  weight?: string;
+}
 
 interface ExerciseSelectionModalProps {
   visible: boolean;
@@ -24,20 +30,33 @@ export default function ExerciseSelectionModal({
   const [hiddenExercises, setHiddenExercises] = useState<Workout[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilters, setUserFilters] = useState<WorkoutFilters | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<Workout | null>(null);
   const [activeTab, setActiveTab] = useState<'available' | 'hidden'>('available');
   const [activeFilters, setActiveFilters] = useState({
     category: null as WorkoutCategory | null,
     muscleGroup: null as MuscleGroup | null,
     equipment: null as Equipment | null,
   });
-
+  
+  // Inline expansion state
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [configSets, setConfigSets] = useState('3');
+  const [configReps, setConfigReps] = useState('8-12');
+  
+  // Keyboard toolbar state
+  const [activeInputRef, setActiveInputRef] = useState<any>(null);
+  const inputAccessoryViewID = 'ExerciseConfigToolbar';
+  
   useEffect(() => {
     if (visible) {
       loadExercisesAndFilters();
       setSearchQuery('');
-      setSelectedExercise(null);
       setActiveTab('available');
+      setExpandedExerciseId(null);
+      setActiveInputRef(null);
+    } else {
+      // Dismiss keyboard when modal closes
+      Keyboard.dismiss();
+      setActiveInputRef(null);
     }
   }, [visible]);
 
@@ -312,7 +331,57 @@ export default function ExerciseSelectionModal({
   };
 
   const handleExercisePress = (exercise: Workout) => {
-    setSelectedExercise(exercise);
+    // Toggle expansion for this exercise
+    if (expandedExerciseId === exercise.id) {
+      setExpandedExerciseId(null);
+    } else {
+      setExpandedExerciseId(exercise.id);
+      // Reset config values when expanding
+      setConfigSets('3');
+      setConfigReps('8-12');
+    }
+  };
+
+  const handleAddExercise = (exercise: Workout) => {
+    console.log('🎯 [EXERCISE] Adding exercise:', exercise.name, 'Sets:', configSets, 'Reps:', configReps);
+    
+    // Dismiss keyboard first
+    Keyboard.dismiss();
+    
+    const options: ExerciseOptions = {
+      sets: parseInt(configSets) || 3,
+      reps: configReps || '8-12',
+      weight: ''
+    };
+    
+    onSelectExercise(exercise, options);
+    
+    // Reset and close
+    setExpandedExerciseId(null);
+    onClose();
+  };
+
+  const handleCancelConfig = () => {
+    Keyboard.dismiss();
+    setExpandedExerciseId(null);
+  };
+
+  // Keyboard toolbar handlers
+  const handleKeyboardDone = () => {
+    if (activeInputRef) {
+      activeInputRef.blur();
+    }
+    setActiveInputRef(null);
+  };
+
+  const handleKeyboardCancel = () => {
+    if (activeInputRef) {
+      activeInputRef.blur();
+    }
+    setActiveInputRef(null);
+    // Reset to defaults
+    setConfigSets('3');
+    setConfigReps('8-12');
   };
 
   const clearFilters = () => {
@@ -330,258 +399,339 @@ export default function ExerciseSelectionModal({
   const currentExercises = activeTab === 'available' ? filteredExercises : hiddenExercises;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={currentTheme.colors.text} />
-          </TouchableOpacity>
-          <Text style={[
-            styles.title,
-            {
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_700Bold',
-            }
-          ]}>
-            Add Exercise
-          </Text>
-          <View style={styles.spacer} />
-        </View>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={[
-            styles.searchBar,
-            {
-              backgroundColor: currentTheme.colors.surface,
-              borderColor: currentTheme.colors.border,
-            }
-          ]}>
-            <Ionicons 
-              name="search" 
-              size={20} 
-              color={currentTheme.colors.text} 
-              style={{ opacity: 0.5 }} 
-            />
-            <TextInput
-              style={[
-                styles.searchInput,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
-                }
-              ]}
-              placeholder="Search exercises..."
-              placeholderTextColor={currentTheme.colors.text + '60'}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
-        </View>
-
-        {/* Filter Chips */}
-        <View style={styles.filtersContainer}>
-          {renderBodyPartFilters()}
-          {renderGeneralFilters()}
-        </View>
-
-        {/* Tabs */}
-        <View style={styles.tabsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              {
-                backgroundColor: activeTab === 'available' 
-                  ? currentTheme.colors.primary 
-                  : 'transparent',
-              }
-            ]}
-            onPress={() => setActiveTab('available')}
-          >
+    <>
+      <Modal
+        visible={visible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={onClose}
+      >
+        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+          {/* Header */}
+          <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color={currentTheme.colors.text} />
+            </TouchableOpacity>
             <Text style={[
-              styles.tabText,
+              styles.title,
               {
-                color: activeTab === 'available' 
-                  ? currentTheme.colors.background 
-                  : currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_700Bold',
               }
             ]}>
-              Available ({filteredExercises.length})
+              Add Exercise
             </Text>
-          </TouchableOpacity>
-          {hiddenExercises.length > 0 && (
+            <View style={styles.spacer} />
+          </View>
+
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={[
+              styles.searchBar,
+              {
+                backgroundColor: currentTheme.colors.surface,
+                borderColor: currentTheme.colors.border,
+              }
+            ]}>
+              <Ionicons 
+                name="search" 
+                size={20} 
+                color={currentTheme.colors.text} 
+                style={{ opacity: 0.5 }} 
+              />
+              <TextInput
+                style={[
+                  styles.searchInput,
+                  {
+                    color: currentTheme.colors.text,
+                    fontFamily: 'Raleway_500Medium',
+                  }
+                ]}
+                placeholder="Search exercises..."
+                placeholderTextColor={currentTheme.colors.text + '60'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+          </View>
+
+          {/* Filter Chips */}
+          <View style={styles.filtersContainer}>
+            {renderBodyPartFilters()}
+            {renderGeneralFilters()}
+          </View>
+
+          {/* Tabs */}
+          <View style={styles.tabsContainer}>
             <TouchableOpacity
               style={[
                 styles.tab,
                 {
-                  backgroundColor: activeTab === 'hidden' 
+                  backgroundColor: activeTab === 'available' 
                     ? currentTheme.colors.primary 
                     : 'transparent',
                 }
               ]}
-              onPress={() => setActiveTab('hidden')}
+              onPress={() => setActiveTab('available')}
             >
               <Text style={[
                 styles.tabText,
                 {
-                  color: activeTab === 'hidden' 
+                  color: activeTab === 'available' 
                     ? currentTheme.colors.background 
                     : currentTheme.colors.text,
                   fontFamily: 'Raleway_600SemiBold',
                 }
               ]}>
-                Hidden ({hiddenExercises.length})
+                Available ({filteredExercises.length})
               </Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Exercise List */}
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          style={styles.exerciseListContainer}
-          contentContainerStyle={[
-            styles.exerciseListContent,
-            { paddingBottom: selectedExercise ? 200 : 20 } // Add padding for bottom panel
-          ]}
-        >
-          {(() => {
-            const groupedExercises = groupExercisesByEquipment(currentExercises);
-            const groupKeys = Object.keys(groupedExercises);
-
-            if (groupKeys.length === 0) {
-              return (
-                <View style={styles.emptyState}>
-                  <Ionicons 
-                    name={activeTab === 'hidden' ? 'eye-off' : 'search'} 
-                    size={48} 
-                    color={currentTheme.colors.text + '30'} 
-                  />
-                  <Text style={[
-                    styles.emptyText,
-                    {
-                      color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
-                      opacity: 0.6,
+            {hiddenExercises.length > 0 && (
+              <TouchableOpacity
+                style={[
+                  styles.tab,
+                  {
+                    backgroundColor: activeTab === 'hidden' 
+                      ? currentTheme.colors.primary 
+                      : 'transparent',
+                  }
+                ]}
+                onPress={() => setActiveTab('hidden')}
+              >
+                <Text style={[
+                  styles.tabText,
+                  {
+                    color: activeTab === 'hidden' 
+                      ? currentTheme.colors.background 
+                      : currentTheme.colors.text,
+                      fontFamily: 'Raleway_600SemiBold',
                     }
                   ]}>
-                    {activeTab === 'hidden' 
-                      ? 'No hidden exercises found' 
-                      : 'No exercises found'
-                    }
-                  </Text>
-                </View>
-              );
-            }
+                  Hidden ({hiddenExercises.length})
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-            return groupKeys.map(equipmentType => {
-              const exercises = groupedExercises[equipmentType];
-              const equipmentDisplayName = equipmentType === 'bodyweight' ? 'Bodyweight' :
-                                         equipmentType.charAt(0).toUpperCase() + equipmentType.slice(1);
-              
-              return (
-                <View key={equipmentType} style={styles.equipmentSection}>
-                  <Text style={[
-                    styles.equipmentSectionTitle,
-                    {
-                      color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_700Bold',
-                    }
-                  ]}>
-                    {equipmentDisplayName} ({exercises.length})
-                  </Text>
-                  
-                  {exercises.map((exercise) => {
-                    const isSelected = selectedExercise?.id === exercise.id;
+          {/* Exercise List */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            style={styles.exerciseListContainer}
+            contentContainerStyle={[
+              styles.exerciseListContent,
+              { paddingBottom: 20 } // Add padding for bottom panel
+            ]}
+          >
+            {(() => {
+              const groupedExercises = groupExercisesByEquipment(currentExercises);
+              const groupKeys = Object.keys(groupedExercises);
+
+              if (groupKeys.length === 0) {
+                return (
+                  <View style={styles.emptyState}>
+                    <Ionicons 
+                      name={activeTab === 'hidden' ? 'eye-off' : 'search'} 
+                      size={48} 
+                      color={currentTheme.colors.text + '30'} 
+                    />
+                    <Text style={[
+                      styles.emptyText,
+                      {
+                        color: currentTheme.colors.text,
+                        fontFamily: 'Raleway_500Medium',
+                        opacity: 0.6,
+                      }
+                    ]}>
+                      {activeTab === 'hidden' 
+                        ? 'No hidden exercises found' 
+                        : 'No exercises found'
+                      }
+                    </Text>
+                  </View>
+                );
+              }
+
+              return groupKeys.map(equipmentType => {
+                const exercises = groupedExercises[equipmentType];
+                const equipmentDisplayName = equipmentType === 'bodyweight' ? 'Bodyweight' :
+                                           equipmentType.charAt(0).toUpperCase() + equipmentType.slice(1);
+                
+                return (
+                  <View key={equipmentType} style={styles.equipmentSection}>
+                    <Text style={[
+                      styles.equipmentSectionTitle,
+                      {
+                        color: currentTheme.colors.text,
+                        fontFamily: 'Raleway_700Bold',
+                      }
+                    ]}>
+                      {equipmentDisplayName} ({exercises.length})
+                    </Text>
                     
-                    return (
-                      <TouchableOpacity
-                        key={exercise.id}
-                        style={[
-                          styles.exerciseItem,
-                          {
-                            backgroundColor: isSelected 
-                              ? currentTheme.colors.primary + '20' 
-                              : currentTheme.colors.surface,
-                            borderColor: isSelected 
-                              ? currentTheme.colors.primary 
-                              : currentTheme.colors.border,
-                          }
-                        ]}
-                        onPress={() => handleExercisePress(exercise)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.exerciseInfo}>
-                          <Text style={[
-                            styles.exerciseName,
-                            {
-                              color: currentTheme.colors.text,
-                              fontFamily: 'Raleway_600SemiBold',
-                            }
-                          ]}>
-                            {exercise.name}
-                          </Text>
-                          <Text style={[
-                            styles.exerciseMuscles,
-                            {
-                              color: currentTheme.colors.text,
-                              fontFamily: 'Raleway_400Regular',
-                              opacity: 0.7,
-                            }
-                          ]}>
-                            {exercise.primaryMuscles.join(', ')}
-                          </Text>
-                          {exercise.equipment && exercise.equipment.length > 1 && (
-                            <Text style={[
-                              styles.exerciseEquipment,
-                              {
-                                color: currentTheme.colors.text,
-                                fontFamily: 'Raleway_400Regular',
-                                opacity: 0.5,
-                              }
-                            ]}>
-                              Also: {exercise.equipment.slice(1).join(', ')}
-                            </Text>
-                          )}
-                        </View>
-                        {isSelected ? (
-                          <Ionicons name="checkmark-circle" size={24} color={currentTheme.colors.primary} />
-                        ) : (
-                          <Ionicons name="add-circle-outline" size={24} color={currentTheme.colors.text} style={{ opacity: 0.5 }} />
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              );
-            });
-          })()}
-        </ScrollView>
+                    {exercises.map((exercise) => {
+                        const isExpanded = expandedExerciseId === exercise.id;
+                        
+                        return (
+                          <View key={exercise.id}>
+                            <TouchableOpacity
+                              onPress={() => handleExercisePress(exercise)}
+                              style={[
+                                styles.exerciseItem,
+                                {
+                                  backgroundColor: isExpanded 
+                                    ? currentTheme.colors.primary + '10' 
+                                    : currentTheme.colors.surface,
+                                  borderColor: isExpanded 
+                                    ? currentTheme.colors.primary 
+                                    : currentTheme.colors.border,
+                                }
+                              ]}
+                              activeOpacity={0.7}
+                            >
+                              <View style={styles.exerciseInfo}>
+                                <Text style={[styles.exerciseName, { 
+                                  color: currentTheme.colors.text,
+                                  fontFamily: 'Raleway_600SemiBold',
+                                }]}>
+                                  {exercise.name}
+                                </Text>
+                                <Text style={[styles.exerciseDescription, { 
+                                  color: currentTheme.colors.text,
+                                  fontFamily: 'Raleway_400Regular',
+                                  opacity: 0.7,
+                                }]}>
+                                  {exercise.primaryMuscles.join(', ')} • {exercise.category}
+                                </Text>
+                                {exercise.equipment.length > 0 && (
+                                  <Text style={[styles.exerciseEquipment, { 
+                                    color: currentTheme.colors.text,
+                                    fontFamily: 'Raleway_400Regular',
+                                    opacity: 0.5,
+                                  }]}>
+                                    {exercise.equipment.join(', ')}
+                                  </Text>
+                                )}
+                              </View>
+                              <Ionicons 
+                                name={isExpanded ? "chevron-up" : "add-circle-outline"} 
+                                size={24} 
+                                color={isExpanded ? currentTheme.colors.primary : currentTheme.colors.text} 
+                                style={{ opacity: isExpanded ? 1 : 0.5 }} 
+                              />
+                            </TouchableOpacity>
 
-        {/* Bottom Options Panel */}
-        {selectedExercise && (
-          <ExerciseOptionsModal
-            visible={!!selectedExercise}
-            onClose={() => setSelectedExercise(null)}
-            onSave={(options: ExerciseOptions) => {
-              onSelectExercise(selectedExercise!, options);
-              setSelectedExercise(null);
-              onClose();
-            }}
-            title={selectedExercise.name}
-            initialValues={{ sets: 3, reps: '8-12', weight: '' }} // Default values for new exercise
-            primaryButtonText="Add Exercise"
-          />
-        )}
-      </View>
-    </Modal>
+                            {/* Inline Configuration Panel */}
+                            {isExpanded && (
+                              <View style={[styles.configPanel, { 
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: currentTheme.colors.border,
+                              }]}>
+                                <View style={styles.configRow}>
+                                  <View style={styles.configItem}>
+                                    <Text style={[styles.configLabel, { 
+                                      color: currentTheme.colors.text,
+                                      fontFamily: 'Raleway_500Medium',
+                                    }]}>
+                                      Sets
+                                    </Text>
+                                    <TextInput
+                                      style={[styles.configInput, { 
+                                        backgroundColor: currentTheme.colors.surface,
+                                        borderColor: currentTheme.colors.border,
+                                        color: currentTheme.colors.text,
+                                        fontFamily: 'Raleway_400Regular',
+                                      }]}
+                                      value={configSets}
+                                      onChangeText={setConfigSets}
+                                      keyboardType="numeric"
+                                      selectTextOnFocus
+                                      inputAccessoryViewID={inputAccessoryViewID}
+                                      onFocus={(e) => setActiveInputRef(e.target)}
+                                      onBlur={() => setActiveInputRef(null)}
+                                    />
+                                  </View>
+
+                                  <View style={styles.configItem}>
+                                    <Text style={[styles.configLabel, { 
+                                      color: currentTheme.colors.text,
+                                      fontFamily: 'Raleway_500Medium',
+                                    }]}>
+                                      Reps
+                                    </Text>
+                                    <TextInput
+                                      style={[styles.configInput, { 
+                                        backgroundColor: currentTheme.colors.surface,
+                                        borderColor: currentTheme.colors.border,
+                                        color: currentTheme.colors.text,
+                                        fontFamily: 'Raleway_400Regular',
+                                      }]}
+                                      value={configReps}
+                                      onChangeText={setConfigReps}
+                                      placeholder="8-12"
+                                      placeholderTextColor={currentTheme.colors.text + '60'}
+                                      selectTextOnFocus
+                                      inputAccessoryViewID={inputAccessoryViewID}
+                                      onFocus={(e) => setActiveInputRef(e.target)}
+                                      onBlur={() => setActiveInputRef(null)}
+                                    />
+                                  </View>
+                                </View>
+
+                                <View style={styles.configButtons}>
+                                  <TouchableOpacity
+                                    onPress={handleCancelConfig}
+                                    style={[styles.configButton, styles.cancelButton, { 
+                                      backgroundColor: currentTheme.colors.surface,
+                                      borderColor: currentTheme.colors.border,
+                                    }]}
+                                    activeOpacity={0.7}
+                                  >
+                                    <Text style={[styles.configButtonText, { 
+                                      color: currentTheme.colors.text,
+                                      fontFamily: 'Raleway_500Medium',
+                                    }]}>
+                                      Cancel
+                                    </Text>
+                                  </TouchableOpacity>
+
+                                  <TouchableOpacity
+                                    onPress={() => handleAddExercise(exercise)}
+                                    style={[styles.configButton, styles.addButton, { 
+                                      backgroundColor: currentTheme.colors.primary,
+                                    }]}
+                                    activeOpacity={0.7}
+                                  >
+                                    <Text style={[styles.configButtonText, { 
+                                      color: currentTheme.colors.background,
+                                      fontFamily: 'Raleway_600SemiBold',
+                                    }]}>
+                                      Add Exercise
+                                    </Text>
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            )}
+                          </View>
+                        );
+                      })}
+                  </View>
+                );
+              });
+            })()}
+          </ScrollView>
+
+          {/* Bottom Options Panel */}
+          {/* Removed - using direct callbacks instead */}
+        </View>
+      </Modal>
+      
+      {/* Keyboard Toolbar */}
+      <KeyboardToolbar
+        nativeID={inputAccessoryViewID}
+        onCancel={handleKeyboardCancel}
+        onDone={handleKeyboardDone}
+      />
+    </>
   );
 }
 
@@ -718,12 +868,61 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 3,
   },
-  exerciseMuscles: {
-    fontSize: 13,
-    marginBottom: 2,
-  },
   exerciseEquipment: {
     fontSize: 11,
+  },
+  exerciseDescription: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  configPanel: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+  },
+  configRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  configItem: {
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  configLabel: {
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  configInput: {
+    fontSize: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  configButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  configButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  cancelButton: {
+    borderColor: 'transparent',
+  },
+  addButton: {
+    borderColor: 'transparent',
+  },
+  configButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

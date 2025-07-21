@@ -4,10 +4,10 @@ import Divider from '@/components/Divider';
 import PreviousWorkoutCard from '@/components/PreviousWorkoutCard';
 import PreviousWorkoutDetailsModal from '@/components/PreviousWorkoutDetailsModal';
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
+import BrowseSection from '@/components/routine/BrowseSection';
+import BrowseWorkoutsModal from '@/components/routine/BrowseWorkoutsModal';
 import MyRoutinesSection from '@/components/routine/MyRoutinesSection';
 import RoutinesModal from '@/components/routine/RoutinesModal';
-import BrowseSection from '@/components/routine/BrowseSection';
-import BrowseWorkoutsModal, { BrowseWorkoutsMode } from '@/components/routine/BrowseWorkoutsModal';
 import { Text, View } from '@/components/Themed';
 import WorkoutModal from '@/components/WorkoutModal';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -38,7 +38,7 @@ export default function WorkoutScreen() {
   const [showPreviousWorkouts, setShowPreviousWorkouts] = useState(false);
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [browseWorkoutsModalVisible, setBrowseWorkoutsModalVisible] = useState(false);
-  const [browseWorkoutsMode, setBrowseWorkoutsMode] = useState<BrowseWorkoutsMode>('browse');
+  const [browseForImportVisible, setBrowseForImportVisible] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0); // Track selected day from routine scheduler
   const [selectedDayName, setSelectedDayName] = useState('Monday'); // Track selected day name
 
@@ -237,14 +237,7 @@ export default function WorkoutScreen() {
   }, []);
 
   const handleBrowseWorkouts = () => {
-    setBrowseWorkoutsMode('browse');
     setBrowseWorkoutsModalVisible(true);
-  };
-
-  const handleEditWorkout = (workout: GeneratedWorkout) => {
-    // TODO: Implement workout editing
-    console.log('Edit workout:', workout.title);
-    Alert.alert('Edit Workout', `Editing functionality for "${workout.title}" will be available soon!`);
   };
 
   const handleImportWorkout = (workout: GeneratedWorkout) => {
@@ -252,8 +245,17 @@ export default function WorkoutScreen() {
     console.log('Import workout to generate:', workout.title);
     setGeneratedWorkout(workout);
     setWorkoutModalVisible(true);
-    setBrowseWorkoutsModalVisible(false);
-    Alert.alert('Workout Imported', `"${workout.title}" has been imported and is ready to start!`);
+  };
+
+  const handleOpenImportModal = () => {
+    setBrowseForImportVisible(true);
+  };
+
+  const handleImportForEditing = (workout: GeneratedWorkout) => {
+    // Import workout for editing in the WorkoutModal
+    setGeneratedWorkout(workout);
+    setBrowseForImportVisible(false);
+    setWorkoutModalVisible(true);
   };
 
   const handleStartSelectedDayWorkout = async () => {
@@ -365,32 +367,43 @@ export default function WorkoutScreen() {
             </Card>
           )}
 
-          {/* Workout Action Buttons - MOVED TO TOP */}
-          <View style={[styles.actionButtonsContainer, { backgroundColor: 'transparent' }]}>
-            <Button
-              title={`Start ${selectedDayName}'s Workout`}
-              onPress={handleStartSelectedDayWorkout}
-              variant="primary"
-              size="small"
-              style={styles.primaryActionButton}
-              hapticType="light"      
-            />
+          {/* Quick Actions Section */}
+          <View style={[styles.quickActionsSection, { backgroundColor: 'transparent' }]}>
+            <Text style={[
+              styles.quickActionsTitle,
+              {
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_600SemiBold',
+              }
+            ]}>
+              Quick Actions
+            </Text>
             
-            <Button
-              title={isGenerating ? "Generating..." : "Generate Workout"}
-              onPress={handleGenerateWorkout}
-              variant="secondary"
-              size="small"
-              style={styles.secondaryActionButton}
-              disabled={isGenerating}
-              hapticType="light"
-            />
+            <View style={[styles.actionButtonsContainer, { backgroundColor: 'transparent' }]}>
+              <Button
+                title={`Start ${selectedDayName}'s Workout`}
+                onPress={handleStartSelectedDayWorkout}
+                variant="primary"
+                size="medium"
+                style={styles.actionButton}
+                hapticType="light"      
+              />
+              
+              <Button
+                title={isGenerating ? "Generating..." : "Generate Workout"}
+                onPress={handleGenerateWorkout}
+                variant="secondary"
+                size="medium"
+                style={styles.actionButton}
+                disabled={isGenerating}
+                hapticType="light"
+              />
+            </View>
           </View>
 
           {/* My Routines Section - MOVED TO SECOND POSITION */}
           <MyRoutinesSection 
             onOpenBrowseRoutines={() => setRoutinesModalVisible(true)} 
-            refreshTrigger={0} // No longer needed, context handles updates
             onSelectedDayChange={handleSelectedDayChange}
           />
 
@@ -477,6 +490,7 @@ export default function WorkoutScreen() {
         onStartWorkout={handleStartWorkout}
         onRegenerateWorkout={handleRegenerateWorkout}
         onWorkoutUpdate={handleWorkoutUpdate}
+        onOpenImportModal={handleOpenImportModal}
       />
 
       <PreviousWorkoutDetailsModal
@@ -498,9 +512,15 @@ export default function WorkoutScreen() {
       <BrowseWorkoutsModal
         visible={browseWorkoutsModalVisible}
         onClose={() => setBrowseWorkoutsModalVisible(false)}
-        mode={browseWorkoutsMode}
         onImportWorkout={handleImportWorkout}
-        onEditWorkout={handleEditWorkout}
+      />
+
+      {/* Separate BrowseWorkoutsModal for importing into WorkoutModal */}
+      <BrowseWorkoutsModal
+        visible={browseForImportVisible}
+        onClose={() => setBrowseForImportVisible(false)}
+        onImportWorkout={handleImportForEditing}
+        title="Import Workout to Edit"
       />
     </>
   );
@@ -524,17 +544,10 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   actionButtonsContainer: {
-    flexDirection: 'row',
-    marginBottom: 24,
-    gap: 12,
+    marginBottom: 12,
   },
-  primaryActionButton: {
-    flex: 2,
-    marginBottom: 0,
-  },
-  secondaryActionButton: {
-    flex: 1,
-    marginBottom: 0,
+  actionButton: {
+    marginBottom: 12,
   },
   emptyStateCard: {
     marginTop: 8,
@@ -596,5 +609,13 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  quickActionsSection: {
+    marginBottom: 6,
+  },
+  quickActionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
   },
 }); 

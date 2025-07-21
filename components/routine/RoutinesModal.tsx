@@ -34,7 +34,6 @@ export default function RoutinesModal({ visible, onClose, onRoutineCreated }: Ro
   const handleRoutineCreated = async (data: RoutineCreationData) => {
     setShowCreateForm(false);
     // The context will automatically refresh, no need to manually reload
-    // Notify parent component (workout page) to refresh
     if (onRoutineCreated) {
       onRoutineCreated();
     }
@@ -315,8 +314,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     marginBottom: 8,
   },
   sectionDescription: {

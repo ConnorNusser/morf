@@ -12,7 +12,7 @@ export default function BrowseSection({ onBrowseRoutines, onBrowseWorkouts }: Br
   const { currentTheme } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View>
       <Text style={[styles.sectionTitle, { 
         color: currentTheme.colors.text,
         fontFamily: 'Raleway_700Bold',
@@ -84,10 +84,6 @@ export default function BrowseSection({ onBrowseRoutines, onBrowseWorkouts }: Br
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginTop: 24,
-    marginBottom: 16,
-  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',

@@ -1,5 +1,6 @@
 import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { WorkoutProvider } from '@/contexts/WorkoutContext';
 import {
     Raleway_400Regular,
     Raleway_500Medium,
@@ -88,10 +89,12 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <RoutineProvider>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
+        <WorkoutProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </WorkoutProvider>
       </RoutineProvider>
     </ThemeProvider>
   );

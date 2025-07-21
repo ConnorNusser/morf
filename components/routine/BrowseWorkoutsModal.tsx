@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { storageService } from '@/lib/storage';
+import { useWorkout } from '@/contexts/WorkoutContext';
 import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -20,9 +20,8 @@ export default function BrowseWorkoutsModal({
   title = 'Workout Library'
 }: BrowseWorkoutsModalProps) {
   const { currentTheme } = useTheme();
-  const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
+  const { workouts, isLoading, createWorkout, updateWorkout, deleteWorkout } = useWorkout();
   const [filteredWorkouts, setFilteredWorkouts] = useState<GeneratedWorkout[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Modal states
@@ -30,28 +29,7 @@ export default function BrowseWorkoutsModal({
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<GeneratedWorkout | null>(null);
 
-  const loadWorkouts = async () => {
-    try {
-      setIsLoading(true);
-      const workoutHistory = await storageService.getWorkoutHistory();
-      workoutHistory.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setWorkouts(workoutHistory);
-      setFilteredWorkouts(workoutHistory);
-    } catch (error) {
-      setWorkouts([]);
-      setFilteredWorkouts([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (visible) {
-      loadWorkouts();
-    }
-  }, [visible]);
-
-  // Simple search filter
+  // Filter workouts based on search
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredWorkouts(workouts);
@@ -80,7 +58,7 @@ export default function BrowseWorkoutsModal({
       if (editingWorkout) {
         // Update existing
         const updatedWorkout = { ...editingWorkout, ...workoutData };
-        await storageService.saveWorkout(updatedWorkout);
+        await updateWorkout(updatedWorkout);
       } else {
         // Create new
         const newWorkout: GeneratedWorkout = {
@@ -93,10 +71,9 @@ export default function BrowseWorkoutsModal({
           difficulty: 'intermediate',
           ...workoutData
         };
-        await storageService.saveWorkout(newWorkout);
+        await createWorkout(newWorkout);
       }
       
-      await loadWorkouts();
       setIsEditModalVisible(false);
       setIsCreateModalVisible(false);
       setEditingWorkout(null);
@@ -116,8 +93,7 @@ export default function BrowseWorkoutsModal({
           style: 'destructive',
           onPress: async () => {
             try {
-              await storageService.deleteWorkout(workoutId);
-              await loadWorkouts();
+              await deleteWorkout(workoutId);
             } catch (error) {
               Alert.alert('Error', 'Failed to delete workout');
             }

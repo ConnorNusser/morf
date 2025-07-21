@@ -74,6 +74,7 @@ export default function WeeklyRoutineScheduler({
 
   const handleDayChange = (newDay: number) => {
     setSelectedDay(newDay);
+    
     if (onSelectedDayChange) {
       onSelectedDayChange(newDay, getDayName(newDay));
     }
@@ -349,48 +350,55 @@ export default function WeeklyRoutineScheduler({
   return (
     <View style={[styles.container]}>
       {/* Weekly Day Selector */}
-      <View style={[styles.weeklySelector, { backgroundColor: 'transparent' }]}>
-        {DAY_NAMES_SHORT.map((day, index) => (
-          <TouchableOpacity
-            key={day}
-            onPress={() => handleDayChange(index)}
-            style={[
-              styles.weekdayButton,
-              {
-                backgroundColor: selectedDay === index 
-                  ? currentTheme.colors.primary
-                  : currentTheme.colors.surface,
-                borderColor: selectedDay === index 
-                  ? currentTheme.colors.primary
-                  : currentTheme.colors.border,
-              }
-            ]}
-            activeOpacity={0.7}
-          >
-            <Text style={[
-              styles.weekdayText,
-              {
-                color: selectedDay === index 
-                  ? currentTheme.colors.background
-                  : currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
-              }
-            ]}>
-              {day}
-            </Text>
-            {/* Workout indicator dot */}
-            {dayHasWorkouts(index) && (
-              <View style={[
-                styles.workoutDot,
-                { 
+      <View style={[styles.weeklySelector, { 
+        backgroundColor: currentTheme.colors.surface + '40',
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 16,
+      }]}>
+        <View style={styles.weekdayContainer}>
+          {DAY_NAMES_SHORT.map((day, index) => (
+            <TouchableOpacity
+              key={day}
+              onPress={() => handleDayChange(index)}
+              style={[
+                styles.weekdayButton,
+                {
                   backgroundColor: selectedDay === index 
-                    ? currentTheme.colors.background
-                    : currentTheme.colors.primary
+                    ? currentTheme.colors.primary
+                    : 'transparent', // Make unselected transparent to blend with container
+                  borderColor: selectedDay === index 
+                    ? currentTheme.colors.primary 
+                    : currentTheme.colors.border + '30', // Very subtle border for unselected
                 }
-              ]} />
-            )}
-          </TouchableOpacity>
-        ))}
+              ]}
+              activeOpacity={0.7} // Clean touch feedback
+            >
+              <Text style={[
+                styles.weekdayText,
+                {
+                  color: selectedDay === index 
+                    ? currentTheme.colors.background
+                    : currentTheme.colors.text,
+                  fontFamily: 'Raleway_600SemiBold',
+                }
+              ]}>
+                {day}
+              </Text>
+              {/* Workout indicator dot */}
+              {dayHasWorkouts(index) && (
+                <View style={[
+                  styles.workoutDot,
+                  { 
+                    backgroundColor: selectedDay === index 
+                      ? currentTheme.colors.background
+                      : currentTheme.colors.primary
+                  }
+                ]} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Current Day Routine Builder */}
@@ -586,7 +594,6 @@ export default function WeeklyRoutineScheduler({
       <BrowseWorkoutsModal
         visible={isImportWorkoutModalVisible}
         onClose={() => setIsImportWorkoutModalVisible(false)}
-        mode="import"
         onImportWorkout={handleImportWorkout}
         title="Import Workout"
       />
@@ -601,28 +608,38 @@ const styles = StyleSheet.create({
   },
   weeklySelector: {
     flexDirection: 'row',
-    marginBottom: 12,
-    gap: 6,
-    paddingHorizontal: 0,
+    marginBottom: 20, // Will be overridden by inline style
+    paddingHorizontal: 0, // Remove since we have padding on container now
+    justifyContent: 'center', // Center the day buttons
+  },
+  weekdayContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between', // Distribute buttons evenly
+    flex: 1,
   },
   weekdayButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 8,
-    borderWidth: 1,
+    flex: 1, // Make buttons take equal space
+    minHeight: 56, // Slightly shorter to fit better in container
+    borderRadius: 12, // Clean rounded corners
+    borderWidth: 1, // Thin border
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10, // Comfortable padding
+    paddingHorizontal: 2, // Minimal horizontal padding to fit all days
+    marginHorizontal: 1, // Very small margin to fit 7 days
+    // No shadow properties - completely clean
   },
   weekdayText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15, // Slightly smaller to fit better in mobile buttons
+    fontWeight: '700', // Bolder for better contrast
+    textAlign: 'center',
   },
   workoutDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 10, // Even larger for better visibility
+    height: 10,
+    borderRadius: 5,
     position: 'absolute',
     top: 6,
     right: 6,
@@ -651,56 +668,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 12,
+    paddingVertical: 16, // Increased from 12
     paddingHorizontal: 16,
   },
   workoutInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16, // Increased from 12
   },
   workoutTitle: {
-    fontSize: 16,
+    fontSize: 18, // Increased from 16
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 6, // Increased from 4
   },
   workoutDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15, // Increased from 13
+    lineHeight: 20, // Increased from 18
   },
   workoutActions: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 8, // Increased from 4
   },
   exerciseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 14, // Increased from 10 for better touch area
     paddingHorizontal: 16,
-    minHeight: 44,
+    minHeight: 56, // Increased from 44 for comfortable touch
   },
   exerciseInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: 16, // Increased from 12 for better spacing
   },
   exerciseName: {
-    fontSize: 15,
+    fontSize: 17, // Increased from 15 for better readability
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 4, // Increased from 2
   },
   exerciseDetails: {
-    fontSize: 13,
+    fontSize: 15, // Increased from 13
     marginBottom: 0,
   },
   exerciseActions: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 8, // Increased from 4 for better spacing
   },
   actionButton: {
-    padding: 12,
-    borderRadius: 8,
-    minWidth: 30,
-    minHeight: 30,
+    padding: 14, // Increased from 12
+    borderRadius: 10, // Larger border radius
+    minWidth: 44, // iOS minimum touch target (was 30)
+    minHeight: 44, // iOS minimum touch target (was 30)
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -710,10 +727,12 @@ const styles = StyleSheet.create({
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 16, // Increased from 12 for better separation
+    marginTop: 8, // Add some top margin
+    paddingHorizontal: 4, // Add slight padding for better alignment
   },
   sectionDivider: {
     height: 1,
-    marginVertical: 16,
+    marginVertical: 20, // Increased from 16 for more breathing room
   },
 }); 

@@ -4,7 +4,8 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { getWorkoutById } from '@/lib/workouts';
-import { ExerciseSet, GeneratedWorkout, WorkoutSplit } from '@/types';
+import { ExerciseSet, GeneratedWorkout, Workout, WorkoutSplit } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import {
   Activity,
@@ -20,6 +21,8 @@ import {
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet } from 'react-native';
+import ExerciseOptionsModal from './inputs/ExerciseOptionsModal';
+import ExerciseSelectionModal from './routine/ExerciseSelectionModal';
 
 interface WorkoutModalProps {
   visible: boolean;
@@ -28,6 +31,7 @@ interface WorkoutModalProps {
   onStartWorkout?: () => void;
   onRegenerateWorkout?: (workoutType?: WorkoutSplit, previousWorkout?: GeneratedWorkout) => Promise<GeneratedWorkout>;
   onWorkoutUpdate?: (workout: GeneratedWorkout) => void;
+  onOpenImportModal?: () => void;
 }
 
 interface WorkoutTypes {
@@ -471,7 +475,9 @@ const CompactExerciseRow: React.FC<{
   index: number; 
   themeColors: any;
   isNew?: boolean;
-}> = ({ exercise, index, themeColors, isNew = false }) => {
+  onEdit?: (index: number) => void;
+  onDelete?: (index: number) => void;
+}> = ({ exercise, index, themeColors, isNew = false, onEdit, onDelete }) => {
   const workoutDetails = getWorkoutById(exercise.id);
   const fadeAnim = React.useRef(new Animated.Value(isNew ? 0 : 1)).current;
   
@@ -491,8 +497,8 @@ const CompactExerciseRow: React.FC<{
   
   if (!workoutDetails) {
     return (
-      <View style={[styles.exerciseRow, { borderBottomColor: themeColors.border }]}>
-        <Text style={[styles.exerciseRowText, { color: themeColors.text }]}>
+      <View style={[styles.exerciseItem, { backgroundColor: 'transparent' }]}>
+        <Text style={[styles.exerciseName, { color: themeColors.text }]}>
           Exercise not found: {exercise.id}
         </Text>
       </View>
@@ -502,11 +508,12 @@ const CompactExerciseRow: React.FC<{
   return (
     <Animated.View 
       style={[
-        styles.exerciseRow, 
+        styles.exerciseItem, 
         { 
-          borderBottomColor: themeColors.border,
           opacity: fadeAnim,
-          backgroundColor: 'transparent'
+          backgroundColor: index % 2 === 0 
+            ? 'transparent' 
+            : themeColors.surface + '30'
         }
       ]}
     >
@@ -517,22 +524,40 @@ const CompactExerciseRow: React.FC<{
       </View>
       
       <View style={[styles.exerciseInfo, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.exerciseName, { color: themeColors.text }]}>
+        <Text style={[styles.exerciseName, { 
+          color: themeColors.text,
+          fontFamily: 'Raleway_600SemiBold',
+        }]}>
           {workoutDetails.name}
           {isNew && <Text style={{ color: themeColors.accent }} />}
         </Text>
-        <Text style={[styles.exerciseTarget, { color: themeColors.text, opacity: 0.7 }]}>
-          {workoutDetails.primaryMuscles.join(', ')}
+        <Text style={[styles.exerciseDetails, { 
+          color: themeColors.text,
+          fontFamily: 'Raleway_500Medium',
+          opacity: 0.8,
+        }]}>
+          {exercise.sets} sets × {exercise.reps} reps
         </Text>
       </View>
-      
-      <View style={[styles.exerciseSets, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.setsText, { color: themeColors.primary }]}>
-          {exercise.sets} × {exercise.reps}
-        </Text>
-        <Text style={[styles.equipmentText, { color: themeColors.text, opacity: 0.6 }]}>
-          {workoutDetails.equipment[0]}
-        </Text>
+
+      {/* Inline Edit/Delete Buttons */}
+      <View style={[styles.exerciseActions, { backgroundColor: 'transparent' }]}>
+        {onEdit && (
+          <Pressable
+            onPress={() => onEdit(index)}
+            style={[styles.actionButton, { backgroundColor: themeColors.surface + '40' }]}
+          >
+            <Ionicons name="pencil" size={18} color={themeColors.text} style={{ opacity: 0.6 }} />
+          </Pressable>
+        )}
+        {onDelete && (
+          <Pressable
+            onPress={() => onDelete(index)}
+            style={[styles.actionButton, { backgroundColor: themeColors.surface + '40' }]}
+          >
+            <Ionicons name="remove-circle-outline" size={18} color={themeColors.text} style={{ opacity: 0.6 }} />
+          </Pressable>
+        )}
       </View>
     </Animated.View>
   );
@@ -544,19 +569,35 @@ export default function WorkoutModal({
   workout, 
   onStartWorkout,
   onRegenerateWorkout,
-  onWorkoutUpdate
+  onWorkoutUpdate,
+  onOpenImportModal
 }: WorkoutModalProps) {
   const { currentTheme } = useTheme();
   const [currentWorkout, setCurrentWorkout] = useState<GeneratedWorkout | null>(workout);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isNewWorkout, setIsNewWorkout] = useState(false);
   const [selectedWorkoutType, setSelectedWorkoutType] = useState<WorkoutSplit | null>(null);
+  
+  // Inline editing states
+  const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
+  const [isExerciseOptionsModalVisible, setIsExerciseOptionsModalVisible] = useState(false);
+  const [editingExerciseIndex, setEditingExerciseIndex] = useState<number | null>(null);
+  
   const { play: playSelectionComplete } = useSound('selectionComplete');
   // Update internal state when workout prop changes
   React.useEffect(() => {
     setCurrentWorkout(workout);
     setIsNewWorkout(false);
   }, [workout]);
+
+  // Close editing modals when main modal closes
+  React.useEffect(() => {
+    if (!visible) {
+      setIsExerciseSelectionModalVisible(false);
+      setIsExerciseOptionsModalVisible(false);
+      setEditingExerciseIndex(null);
+    }
+  }, [visible]);
 
   const handleRegenerate = async () => {
     if (!onRegenerateWorkout) return;
@@ -590,6 +631,83 @@ export default function WorkoutModal({
     // Use the current workout from this modal's state, not the parent's potentially stale state
     if (onStartWorkout && currentWorkout) {
       onStartWorkout();
+    }
+  };
+
+  const handleAddExercise = () => {
+    setIsExerciseSelectionModalVisible(true);
+  };
+
+  const handleSelectExercise = (exercise: Workout, options: { sets: number; reps: string; weight?: string }) => {
+    if (!currentWorkout) return;
+
+    const newExercise = {
+      id: exercise.id,
+      sets: options.sets,
+      reps: options.reps,
+      completedSets: [],
+      isCompleted: false,
+    };
+
+    const updatedWorkout = {
+      ...currentWorkout,
+      exercises: [...currentWorkout.exercises, newExercise]
+    };
+
+    setCurrentWorkout(updatedWorkout);
+    setIsExerciseSelectionModalVisible(false);
+    
+    // Notify parent component of the updated workout
+    if (onWorkoutUpdate) {
+      onWorkoutUpdate(updatedWorkout);
+    }
+  };
+
+  const handleEditExercise = (index: number) => {
+    setEditingExerciseIndex(index);
+    setIsExerciseOptionsModalVisible(true);
+  };
+
+  const handleSaveEditedExercise = (options: { sets: number; reps: string; weight?: string }) => {
+    if (!currentWorkout || editingExerciseIndex === null) return;
+
+    const updatedWorkout = {
+      ...currentWorkout,
+      exercises: currentWorkout.exercises.map((exercise, index) => {
+        if (index === editingExerciseIndex) {
+          return {
+            ...exercise,
+            sets: options.sets,
+            reps: options.reps
+          };
+        }
+        return exercise;
+      })
+    };
+
+    setCurrentWorkout(updatedWorkout);
+    setEditingExerciseIndex(null);
+    setIsExerciseOptionsModalVisible(false);
+    
+    // Notify parent component of the updated workout
+    if (onWorkoutUpdate) {
+      onWorkoutUpdate(updatedWorkout);
+    }
+  };
+
+  const handleDeleteExercise = (index: number) => {
+    if (!currentWorkout) return;
+
+    const updatedWorkout = {
+      ...currentWorkout,
+      exercises: currentWorkout.exercises.filter((_, i) => i !== index)
+    };
+
+    setCurrentWorkout(updatedWorkout);
+    
+    // Notify parent component of the updated workout
+    if (onWorkoutUpdate) {
+      onWorkoutUpdate(updatedWorkout);
     }
   };
 
@@ -682,12 +800,64 @@ export default function WorkoutModal({
                   index={index}
                   themeColors={currentTheme.colors}
                   isNew={isNewWorkout}
+                  onEdit={handleEditExercise}
+                  onDelete={handleDeleteExercise}
                 />
               ))}
+
+              {/* Action Buttons inside card */}
+              <View style={[styles.actionButtonsContainer, { backgroundColor: 'transparent' }]}>
+                <Button
+                  title="Add Exercise"
+                  onPress={handleAddExercise}
+                  variant="subtle"
+                  size="small"
+                  style={{ flex: 1 }}
+                  hapticType="light"
+                />
+
+                {onOpenImportModal && (
+                  <Button
+                    title="Import"
+                    onPress={onOpenImportModal}
+                    variant="subtle"
+                    size="small"
+                    style={{ flex: 1 }}
+                    hapticType="light"
+                  />
+                )}
+              </View>
             </Card>
           </ScrollView>
         )}
       </View>
+
+      {/* Exercise Selection Modal for Adding Exercises */}
+      <ExerciseSelectionModal
+        visible={isExerciseSelectionModalVisible}
+        onClose={() => setIsExerciseSelectionModalVisible(false)}
+        onSelectExercise={handleSelectExercise}
+      />
+
+      {/* Exercise Options Modal for Editing Exercises */}
+      {editingExerciseIndex !== null && currentWorkout && (
+        <ExerciseOptionsModal
+          visible={isExerciseOptionsModalVisible}
+          onClose={() => {
+            setIsExerciseOptionsModalVisible(false);
+            setEditingExerciseIndex(null);
+          }}
+          onSave={handleSaveEditedExercise}
+          title={`Edit ${getWorkoutById(currentWorkout.exercises[editingExerciseIndex]?.id)?.name || 'Exercise'}`}
+          initialValues={{
+            sets: currentWorkout.exercises[editingExerciseIndex]?.sets || 3,
+            reps: currentWorkout.exercises[editingExerciseIndex]?.reps || '10',
+            weight: ''
+          }}
+          primaryButtonText="Update Exercise"
+          showWeight={false}
+        />
+      )}
     </Modal>
   );
 }
@@ -737,7 +907,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   slotContainer: {
     flex: 1,
@@ -812,26 +982,18 @@ const styles = StyleSheet.create({
   },
   exercisesCard: {
     marginBottom: 40,
-    padding: 16,
+    padding: 6,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 12,
     textAlign: 'center',
   },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    marginHorizontal: -8,
-  },
-  exerciseRowText: {
-    fontSize: 14,
-    padding: 12,
+  regenerateText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   exerciseNumber: {
     width: 28,
@@ -845,30 +1007,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
+  exerciseItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    minHeight: 44,
+  },
   exerciseInfo: {
     flex: 1,
     marginRight: 12,
   },
   exerciseName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: 2,
   },
-  exerciseTarget: {
-    fontSize: 12,
-    textTransform: 'capitalize',
+  exerciseDetails: {
+    fontSize: 13,
+    marginBottom: 0,
   },
-  exerciseSets: {
-    alignItems: 'flex-end',
+  exerciseActions: {
+    flexDirection: 'row',
+    gap: 4,
   },
-  setsText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 2,
+  actionButton: {
+    padding: 12,
+    borderRadius: 8,
+    minWidth: 30,
+    minHeight: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  equipmentText: {
-    fontSize: 11,
-    textTransform: 'capitalize',
+  exerciseActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  exerciseActionText: {
+    fontSize: 14,
   },
   progressContainer: {
     width: 200,
@@ -908,5 +1088,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+    paddingHorizontal: 10,
   },
 }); 
