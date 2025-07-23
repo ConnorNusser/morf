@@ -7,11 +7,18 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 interface CompactRepsInputProps {
   value: number;
   onChange: (value: number) => void;
-  placeholder?: string;
+  placeholder: string;
+  showPlaceholderStyle?: boolean;
   themeColors: Theme['colors'];
 }
 
-export default function CompactRepsInput({ value, onChange, placeholder, themeColors }: CompactRepsInputProps) {
+export default function CompactRepsInput({ 
+  value, 
+  onChange, 
+  placeholder,
+  showPlaceholderStyle = false,
+  themeColors 
+}: CompactRepsInputProps) {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [tempValue, setTempValue] = useState('');
 
@@ -19,15 +26,20 @@ export default function CompactRepsInput({ value, onChange, placeholder, themeCo
 
   // Get the effective value (use placeholder if empty)
   const getEffectiveValue = () => {
-    if (isEmpty && placeholder) {
-      // Parse placeholder like "8-12" to get the first number
-      if (placeholder.includes('-')) {
-        const firstNum = parseInt(placeholder.split('-')[0]);
-        return firstNum || 0;
-      }
+    if (isEmpty) {
       return parseInt(placeholder) || 0;
     }
     return value;
+  };
+
+  const getTextColor = () => {
+    if (isEmpty) {
+      return themeColors.text + '60'; // Always placeholder color when empty
+    }
+    if (showPlaceholderStyle) {
+      return themeColors.text + '60'; // Gray when exercise not completed
+    }
+    return themeColors.text; // Normal color when completed
   };
 
   const handlePress = () => {
@@ -58,7 +70,7 @@ export default function CompactRepsInput({ value, onChange, placeholder, themeCo
         onPress={handlePress}
       >
         <Text style={[styles.value, { 
-          color: isEmpty ? themeColors.text + '60' : themeColors.text 
+          color: getTextColor()
         }]}>
           {displayValue}
         </Text>

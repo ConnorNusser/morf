@@ -172,16 +172,20 @@ export const useWorkoutSession = () => {
     });
   };
 
-  const addExercise = async () => {
+  const addExercise = async (exercise?: { id: string; name?: string }, options?: { sets: number; reps: string }) => {
     if (!activeSession) return;
     const updatedExercises = [...activeSession.exercises];
-    updatedExercises.push({
-      id: `exercise_${Date.now()}`,
-      sets: 1,
-      reps: '8',
+    
+    // Create new exercise with provided parameters or defaults
+    const newExercise = {
+      id: exercise?.id || `exercise_${Date.now()}`,
+      sets: options?.sets || 3,
+      reps: options?.reps || '8',
       completedSets: [],
       isCompleted: false,
-    });
+    };
+    
+    updatedExercises.push(newExercise);
     setActiveSession({
       ...activeSession,
       exercises: updatedExercises,

@@ -8,9 +8,10 @@ import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { getRecommendedWeight } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
-import { ActiveWorkoutSession, GeneratedWorkout, WeightUnit } from '@/types';
+import { ActiveWorkoutSession, GeneratedWorkout, WeightUnit, Workout } from '@/types';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import ExerciseSelectionModal, { ExerciseOptions } from '../routine/ExerciseSelectionModal';
 import ExerciseCard from './ExerciseCard';
 import WorkoutHeader from './WorkoutHeader';
 
@@ -41,6 +42,9 @@ export default function WorkoutSessionModalV2({
   // Global display unit for the entire workout
   const [displayUnit, setDisplayUnit] = useState<WeightUnit>('lbs');
   
+  // Exercise selection modal state
+  const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
+  
   // Use the persistent rest timer hook
   const { isResting, formattedTime, startTimer, skipTimer } = useRestTimer();
   
@@ -68,6 +72,39 @@ export default function WorkoutSessionModalV2({
     setDisplayUnit(prev => prev === 'lbs' ? 'kg' : 'lbs');
   };
 
+  const handleAddExercise = () => {
+    setIsExerciseSelectionModalVisible(true);
+  };
+
+  const handleSelectExercise = async (exercise: Workout, options: ExerciseOptions) => {
+    // Calculate the exercise index before adding
+    const exerciseIndex = activeSession ? activeSession.exercises.length : 0;
+    
+    // Add the exercise using the context method
+    await addExercise({ id: exercise.id, name: exercise.name }, { sets: options.sets, reps: options.reps });
+    
+    // Initialize set inputs for the new exercise
+    const exerciseDetails = getWorkoutById(exercise.id);
+    const isBodyweight = exerciseDetails?.equipment?.includes('bodyweight') || false;
+    
+    const newExerciseInputs: { [setIndex: number]: { weight: { value: number; unit: 'lbs' | 'kg' }; reps: number } } = {};
+    
+    for (let setIndex = 0; setIndex < options.sets; setIndex++) {
+      const recommendedWeight = isBodyweight ? 0 : await getRecommendedWeight(exercise.id, options.reps);
+      newExerciseInputs[setIndex] = {
+        weight: { value: recommendedWeight, unit: 'lbs' },
+        reps: parseInt(options.reps) || 0
+      };
+    }
+    
+    setSetInputs(prev => ({
+      ...prev,
+      [exerciseIndex]: newExerciseInputs
+    }));
+    
+    setIsExerciseSelectionModalVisible(false);
+  };
+
   useEffect(() => {
     if (visible && workout) {
       initializeWorkout(workout).catch(() => {
@@ -75,6 +112,13 @@ export default function WorkoutSessionModalV2({
       });
     }
   }, [visible, workout]);
+
+  // Close exercise selection modal when main modal closes
+  useEffect(() => {
+    if (!visible) {
+      setIsExerciseSelectionModalVisible(false);
+    }
+  }, [visible]);
 
   // Initialize set inputs when session starts - properly sync with context
   useEffect(() => {
@@ -193,7 +237,7 @@ export default function WorkoutSessionModalV2({
     );
   }
 
-  const isAllExercisesComplete = activeSession.exercises.every(ex => ex.isCompleted);
+  const isAllExercisesComplete = true;
 
   return (
     <Modal
@@ -262,7 +306,6 @@ export default function WorkoutSessionModalV2({
                 exercise={exercise}
                 exerciseIndex={index}
                 setInputs={setInputs[index] || {}}
-                // Special-Tag: we might want to change this behavior to not auto complete the set when the input changes
                 onSetInputChange={(setIndex, field, value) => updateSetInput(index, setIndex, field, value)}
                 onCompleteSet={(setIndex) => handleCompleteSet(index, setIndex)}
                 onDeleteSet={(setIndex) => deleteSet(index, setIndex)}
@@ -272,6 +315,18 @@ export default function WorkoutSessionModalV2({
                 displayUnit={displayUnit}
               />
             ))}
+            
+            {/* Add Exercise Button - Subtle */}
+            <View style={styles.addExerciseContainer}>
+              <Button
+                title="+ Add Exercise"
+                onPress={handleAddExercise}
+                variant="secondary"
+                size="large"
+                hapticType="light"
+                style={styles.addExerciseButton}
+              />
+            </View>
             
             {/* Finish Button */}
             {isAllExercisesComplete && (
@@ -290,6 +345,13 @@ export default function WorkoutSessionModalV2({
           </View>
         </ScrollView>
       </View>
+
+      {/* Exercise Selection Modal */}
+      <ExerciseSelectionModal
+        visible={isExerciseSelectionModalVisible}
+        onClose={() => setIsExerciseSelectionModalVisible(false)}
+        onSelectExercise={handleSelectExercise}
+      />
     </Modal>
   );
 }
@@ -346,12 +408,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
+  addExerciseContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+    paddingBottom: 30,
+  },
+  addExerciseButton: {
+    width: '100%',
+    paddingVertical: 15,
+  },
   unitToggle: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'transparent', // Will be overridden by borderColor
+    borderColor: 'transparent',
   },
   unitToggleText: {
     fontSize: 14,

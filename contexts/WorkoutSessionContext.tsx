@@ -23,7 +23,7 @@ interface WorkoutSessionContextType {
   updateSet: (exerciseIndex: number, setIndex: number, weight: { value: number; unit: WeightUnit }, reps: number) => Promise<void>;
   deleteSet: (exerciseIndex: number, setIndex: number) => Promise<void>;
   addSet: (exerciseIndex: number) => Promise<void>;
-  addExercise: () => Promise<void>;
+  addExercise: (exercise?: { id: string; name?: string }, options?: { sets: number; reps: string }) => Promise<void>;
   deleteExercise: (exerciseIndex: number) => Promise<void>;
   finishWorkout: () => Promise<any>;
   cancelWorkout: () => Promise<boolean>;

@@ -93,6 +93,7 @@ export default function SetRow({
             placeholder={convertWeight(estimatedMaxWeight, 'lbs', displayUnit).toString()}
             onChange={onWeightChange}
             themeColors={themeColors}
+            showPlaceholderStyle={!isCompleted}
           />
         </View>
       )}
@@ -104,6 +105,7 @@ export default function SetRow({
           onChange={onRepsChange}
           placeholder={targetReps}
           themeColors={themeColors}
+          showPlaceholderStyle={!isCompleted}
         />
       </View>
 

@@ -1,11 +1,10 @@
-import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import { Theme } from '@/lib/theme';
 import { getRecommendedWeight } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
 import { WeightUnit, WorkoutExerciseSession } from '@/types';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import SetRow from './SetRow';
 import SetTableHeader from './SetTableHeader';
 
@@ -56,6 +55,24 @@ export default function ExerciseCard({
     getEstimatedWeight();
   }, [exercise.id, exercise.reps, isBodyweight]);
 
+  const handleDeleteExercise = () => {
+    Alert.alert(
+      'Delete Exercise',
+      'Are you sure you want to delete this exercise? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: onDeleteExercise,
+        },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       {/* Exercise Header */}
@@ -67,22 +84,19 @@ export default function ExerciseCard({
           {exerciseDetails?.name || 'Unknown Exercise'}
         </Text>
         <View style={[styles.headerRight, { backgroundColor: 'transparent' }]}>
-          {/* Delete Exercise Button */}
-          <Button
-            title="Delete"
-            onPress={onDeleteExercise}
-            variant="ghost"
-            size="small"
-          />
+          {/* Delete Exercise Button - More Subtle */}
+          <TouchableOpacity
+            style={[styles.deleteButton, { backgroundColor: 'transparent' }]}
+            onPress={handleDeleteExercise}
+          >
+            <Text style={[styles.deleteButtonText, { 
+              color: themeColors.primary,
+              fontFamily: 'Raleway_600SemiBold',
+            }]}>
+              ×
+            </Text>
+          </TouchableOpacity>
           
-          <View style={[
-            styles.progressDot, 
-            { 
-              backgroundColor: exercise.isCompleted 
-                ? themeColors.accent 
-                : themeColors.border 
-            }
-          ]} />
         </View>
       </View>
 
@@ -159,11 +173,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   addSetButton: {
     marginTop: 12,
     paddingVertical: 12,
@@ -172,5 +181,12 @@ const styles = StyleSheet.create({
   },
   addSetText: {
     fontSize: 14,
+  },
+  deleteButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  deleteButtonText: {
+    fontSize: 16,
   },
 }); 

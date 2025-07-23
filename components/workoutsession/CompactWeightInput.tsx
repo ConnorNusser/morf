@@ -9,6 +9,7 @@ interface CompactWeightInputProps {
   value: { value: number; unit: 'lbs' | 'kg' };
   displayUnit: WeightUnit;
   placeholder: string;
+  showPlaceholderStyle?: boolean;
   onChange: (value: { value: number; unit: 'lbs' | 'kg' }) => void;
   themeColors: Theme['colors'];
 }
@@ -17,6 +18,7 @@ export default function CompactWeightInput({
   value, 
   displayUnit, 
   placeholder,
+  showPlaceholderStyle = false,
   onChange, 
   themeColors 
 }: CompactWeightInputProps) {
@@ -32,6 +34,16 @@ export default function CompactWeightInput({
       return parseFloat(placeholder) || 0;
     }
     return displayValue;
+  };
+
+  const getTextColor = () => {
+    if (isEmpty) {
+      return themeColors.text + '60'; // Always placeholder color when empty
+    }
+    if (showPlaceholderStyle) {
+      return themeColors.text + '60'; // Gray when exercise not completed
+    }
+    return themeColors.text; // Normal color when completed
   };
 
   const handlePress = () => {
@@ -69,7 +81,7 @@ export default function CompactWeightInput({
         onPress={handlePress}
       >
         <Text style={[styles.value, { 
-          color: isEmpty ? themeColors.text + '60' : themeColors.text 
+          color: getTextColor()
         }]}>
           {isEmpty ? placeholder : displayValue}
         </Text>
