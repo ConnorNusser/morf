@@ -1,4 +1,4 @@
-import { useWorkoutSession } from '@/hooks/useWorkoutSession';
+import { useWorkoutSession } from '@/hooks/useWorkoutSessionV2';
 import { ActiveWorkoutSession, GeneratedWorkout, WeightUnit } from '@/types';
 import React, { createContext, useContext, useState } from 'react';
 
@@ -20,9 +20,11 @@ interface WorkoutSessionContextType {
   setStatsExpanded: (expanded: boolean) => void;
   initializeWorkout: (workout: GeneratedWorkout) => Promise<void>;
   completeSet: () => Promise<void>;
-  updateSet: (setIndex: number, weight: { value: number; unit: WeightUnit }, reps: number) => Promise<void>;
-  jumpToExercise: (exerciseIndex: number) => void;
-  nextExercise: () => Promise<void>;
+  updateSet: (exerciseIndex: number, setIndex: number, weight: { value: number; unit: WeightUnit }, reps: number) => Promise<void>;
+  deleteSet: (exerciseIndex: number, setIndex: number) => Promise<void>;
+  addSet: (exerciseIndex: number) => Promise<void>;
+  addExercise: () => Promise<void>;
+  deleteExercise: (exerciseIndex: number) => Promise<void>;
   finishWorkout: () => Promise<any>;
   cancelWorkout: () => Promise<boolean>;
 }
@@ -85,8 +87,10 @@ export function WorkoutSessionProvider({ children }: { children: React.ReactNode
     initializeWorkout: workoutSession.initializeWorkout,
     completeSet: workoutSession.completeSet,
     updateSet: workoutSession.updateSet,
-    jumpToExercise: workoutSession.jumpToExercise,
-    nextExercise: workoutSession.nextExercise,
+    deleteSet: workoutSession.deleteSet,
+    addSet: workoutSession.addSet,
+    addExercise: workoutSession.addExercise,
+    deleteExercise: workoutSession.deleteExercise,
     finishWorkout, // Use our enhanced version
     cancelWorkout, // Use our enhanced version
   };

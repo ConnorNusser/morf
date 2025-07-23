@@ -1,9 +1,9 @@
+import { WorkoutSessionModalV2 } from '@/components/workoutsession';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
+import { useSound } from '@/hooks/useSound';
 import { ActiveWorkoutSession } from '@/types';
 import React, { useState } from 'react';
 import WorkoutCompletionModal from './WorkoutCompletionModal';
-import WorkoutSessionModal from './WorkoutSessionModal';
-import { useSound } from '@/hooks/useSound';
 
 export default function GlobalWorkoutSessionModal() {
   const { 
@@ -49,7 +49,7 @@ export default function GlobalWorkoutSessionModal() {
           workoutStats={completedWorkoutData.stats}
         />
       ) : (
-        <WorkoutSessionModal
+        <WorkoutSessionModalV2
           visible={isModalVisible}
           onClose={closeWorkoutModal}
           workout={generatedWorkout}

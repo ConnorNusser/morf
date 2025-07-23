@@ -2,6 +2,7 @@ import { ExerciseSet, MainLiftType, WeightUnit, WorkoutSplit } from "@/types";
 import { storageService } from "./storage";
 import { OneRMCalculator } from "./strengthStandards";
 import { getDateDaysAgo } from "./time";
+import { userService } from "./userService";
 import { getWorkoutById } from "./workouts";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
@@ -32,6 +33,16 @@ export const getPercentileSuffix = (percentile: number): string => {
     default: return 'th';
   }
 };
+
+export const getRecommendedWeight = async (liftId: string, reps: string): Promise<number> => {
+  const userProgress = await userService.getTopLiftById(liftId);
+  if (!userProgress) {
+    return 0;
+  }
+  const weightForPercentage = OneRMCalculator.getWeightForPercentage(userProgress.personalRecord, OneRMCalculator.getPercentageFor(parseInt(reps)));
+  // Round to nearest 5 lbs
+  return Math.round(weightForPercentage / 5) * 5;
+}
 
 
 // For auto-generated workouts: Focus on what was trained longest ago

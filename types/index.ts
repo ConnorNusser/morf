@@ -104,7 +104,9 @@ export interface ActiveWorkoutSession {
   title: string;
   exercises: WorkoutExerciseSession[];
   startTime: Date;
+  // i can probably remove this and just use the exercises array
   currentExerciseIndex: number;
+  // i can probably remove this and just use the exercises array
   currentSetIndex: number;
   isCompleted: boolean;
   totalRestTime: number; // in seconds
