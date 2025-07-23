@@ -19,12 +19,20 @@ const convertWeightToKg = (weight: number, unit: WeightUnit): number => {
 };
 
 export const getPercentileSuffix = (percentile: number): string => {
-  const percentileFirstChar = percentile.toString()[0];
-  if (percentileFirstChar === '1') return 'st';
-  if (percentileFirstChar === '2') return 'nd';
-  if (percentileFirstChar === '3') return 'rd';
-  return 'th';
+  const mod100 = percentile % 100;
+  if (mod100 >= 11 && mod100 <= 13) {
+    return 'th';
+  }
+
+  const lastDigit = percentile % 10;
+  switch (lastDigit) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
 };
+
 
 // For auto-generated workouts: Focus on what was trained longest ago
 export const analyzeAutoWorkoutFocus = async (workoutHistory: any[]): Promise<{

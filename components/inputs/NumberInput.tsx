@@ -1,9 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
-import { useSound } from '@/hooks/useSound';
 
 interface NumberInputProps {
   value: number;
@@ -59,15 +59,17 @@ export default function NumberInput({
   return (
     <>
       <View style={[styles.container, style]}>
-        <Text style={[
-          styles.label, 
-          { 
-            color: currentTheme.colors.text,
-            fontFamily: 'Raleway_600SemiBold',
-          }
-        ]}>
-          {label}
-        </Text>
+        {label && (
+          <Text style={[
+            styles.label, 
+            { 
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }
+          ]}>
+            {label}
+          </Text>
+        )}
         
         {/* Input Field */}
         <TouchableOpacity
@@ -104,7 +106,7 @@ export default function NumberInput({
         onValueChange={setTempValue}
         onDone={handleKeyboardDone}
         onCancel={handleKeyboardCancel}
-        title={`Enter ${label}`}
+        title={`Enter ${label || 'Value'}`}
         allowDecimal={allowDecimal}
         maxLength={maxLength}
       />
@@ -122,14 +124,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    height: 50,
+    height: 40,
     borderWidth: 1,
     borderRadius: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     justifyContent: 'center',
+    minWidth: 60,
   },
   inputText: {
     fontSize: 16,
     minHeight: 20,
+    textAlign: 'center',
   },
 }); 

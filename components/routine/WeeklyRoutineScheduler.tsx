@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Button from '../Button';
-import ExerciseOptionsModal from '../inputs/ExerciseOptionsModal';
 import BrowseWorkoutsModal from './BrowseWorkoutsModal';
 import ExerciseSelectionModal from './ExerciseSelectionModal';
 import WorkoutEditModal from './WorkoutEditModal';
@@ -32,17 +31,9 @@ export default function WeeklyRoutineScheduler({
   
   const [selectedDay, setSelectedDay] = useState(getCurrentDayIndex());
   const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
-  const [isExerciseOptionsModalVisible, setIsExerciseOptionsModalVisible] = useState(false);
   const [isWorkoutEditModalVisible, setIsWorkoutEditModalVisible] = useState(false);
   const [isImportWorkoutModalVisible, setIsImportWorkoutModalVisible] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<GeneratedWorkout | null>(null);
-  const [editingExerciseData, setEditingExerciseData] = useState<{
-    workoutId: string;
-    exerciseId: string;
-    currentSets: number;
-    currentReps: string;
-    exerciseName: string;
-  } | null>(null);
 
   useEffect(() => {
     const newDay = getCurrentDayIndex();
@@ -95,54 +86,6 @@ export default function WeeklyRoutineScheduler({
     const dayName = getDayNameInternal(dayIndex);
     if (!dayName) return false;
     return currentRoutine.exercises.some((workout: GeneratedWorkout) => workout && workout.dayOfWeek === dayName);
-  };
-
-  const handleEditExercise = (workoutId: string, exerciseId: string, currentSets: number, currentReps: string) => {
-    const exerciseName = getWorkoutById(exerciseId)?.name || exerciseId;
-    setEditingExerciseData({ 
-      workoutId, 
-      exerciseId, 
-      currentSets, 
-      currentReps, 
-      exerciseName 
-    });
-    setIsExerciseOptionsModalVisible(true);
-  };
-
-  const handleSaveEditedExercise = async (options: { sets: number; reps: string; weight?: string }) => {
-    if (!currentRoutine || !editingExerciseData) return;
-
-    try {
-      const updatedWorkouts = currentRoutine.exercises.map((workout: GeneratedWorkout) => {
-        if (workout.id === editingExerciseData.workoutId) {
-          return {
-            ...workout,
-            exercises: workout.exercises.map((exercise: any) => {
-              if (exercise.id === editingExerciseData.exerciseId) {
-                return {
-                  ...exercise,
-                  sets: options.sets,
-                  reps: options.reps
-                };
-              }
-              return exercise;
-            })
-          };
-        }
-        return workout;
-      });
-
-      const updatedRoutine = {
-        ...currentRoutine,
-        exercises: updatedWorkouts
-      };
-
-      await updateRoutineWithLoading(updatedRoutine);
-      setEditingExerciseData(null);
-      setIsExerciseOptionsModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update exercise');
-    }
   };
 
   const handleAddExercise = () => {
@@ -244,44 +187,6 @@ export default function WeeklyRoutineScheduler({
     }
   };
 
-  const handleDeleteExercise = async (workoutId: string, exerciseId: string) => {
-    if (!currentRoutine) return;
-
-    Alert.alert(
-      'Delete Exercise',
-      'Are you sure you want to delete this exercise?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const updatedWorkouts = currentRoutine.exercises.map((workout: GeneratedWorkout) => {
-                if (workout.id === workoutId) {
-                  return {
-                    ...workout,
-                    exercises: workout.exercises.filter((ex: any) => ex.id !== exerciseId)
-                  };
-                }
-                return workout;
-              });
-
-              const updatedRoutine = {
-                ...currentRoutine,
-                exercises: updatedWorkouts
-              };
-
-              await updateRoutineWithLoading(updatedRoutine);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete exercise');
-            }
-          }
-        }
-      ]
-    );
-  };
-
   const handleEditWorkout = (workout: GeneratedWorkout) => {
     setEditingWorkout(workout);
     setIsWorkoutEditModalVisible(true);
@@ -315,46 +220,35 @@ export default function WeeklyRoutineScheduler({
     }
   };
 
-  const handleDeleteWorkout = async (workoutId: string) => {
-    if (!currentRoutine) return;
+  const handleDeleteWorkout = async () => {
+    if (!currentRoutine || !editingWorkout) return;
 
-    Alert.alert(
-      'Delete Workout',
-      'Are you sure you want to delete this entire workout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const updatedWorkouts = currentRoutine.exercises.filter((workout: GeneratedWorkout) => workout.id !== workoutId);
+    try {
+      const updatedWorkouts = currentRoutine.exercises.filter((workout: GeneratedWorkout) => workout.id !== editingWorkout.id);
 
-              const updatedRoutine = {
-                ...currentRoutine,
-                exercises: updatedWorkouts
-              };
+      const updatedRoutine = {
+        ...currentRoutine,
+        exercises: updatedWorkouts
+      };
 
-              await updateRoutineWithLoading(updatedRoutine);
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete workout');
-            }
-          }
-        }
-      ]
-    );
+      await updateRoutineWithLoading(updatedRoutine);
+      
+      setEditingWorkout(null);
+      setIsWorkoutEditModalVisible(false);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete workout');
+    }
   };
 
   const workoutsForDay = getWorkoutsForDay();
 
   return (
-    <View style={[styles.container]}>
+    <View style={styles.container}>
       {/* Weekly Day Selector */}
       <View style={[styles.weeklySelector, { 
-        backgroundColor: currentTheme.colors.surface + '40',
+        backgroundColor: currentTheme.colors.surface + '30',
         borderRadius: 16,
-        padding: 12,
-        marginBottom: 16,
+        padding: 8,
       }]}>
         <View style={styles.weekdayContainer}>
           {DAY_NAMES_SHORT.map((day, index) => (
@@ -366,13 +260,13 @@ export default function WeeklyRoutineScheduler({
                 {
                   backgroundColor: selectedDay === index 
                     ? currentTheme.colors.primary
-                    : 'transparent', // Make unselected transparent to blend with container
+                    : 'transparent',
                   borderColor: selectedDay === index 
                     ? currentTheme.colors.primary 
-                    : currentTheme.colors.border + '30', // Very subtle border for unselected
+                    : currentTheme.colors.border + '30',
                 }
               ]}
-              activeOpacity={0.7} // Clean touch feedback
+              activeOpacity={0.7}
             >
               <Text style={[
                 styles.weekdayText,
@@ -385,7 +279,6 @@ export default function WeeklyRoutineScheduler({
               ]}>
                 {day}
               </Text>
-              {/* Workout indicator dot */}
               {dayHasWorkouts(index) && (
                 <View style={[
                   styles.workoutDot,
@@ -434,24 +327,21 @@ export default function WeeklyRoutineScheduler({
                     }]}>
                       {workout.title}
                     </Text>
+                    <Text style={[styles.workoutMeta, { 
+                      color: currentTheme.colors.text,
+                      fontFamily: 'Raleway_400Regular',
+                    }]}>
+                      {workout.exercises?.length || 0} exercises • {workout.description}
+                    </Text>
                   </View>
                   
-                  <View style={styles.workoutActions}>
-                    <TouchableOpacity
-                      onPress={() => handleEditWorkout(workout)}
-                      style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '40' }]}
-                      activeOpacity={0.6}
-                    >
-                      <Ionicons name="pencil" size={18} color={currentTheme.colors.text} style={{ opacity: 0.7 }} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => handleDeleteWorkout(workout.id)}
-                      style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '40' }]}
-                      activeOpacity={0.6}
-                    >
-                      <Ionicons name="remove-circle-outline" size={18} color={currentTheme.colors.text} style={{ opacity: 0.7 }} />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleEditWorkout(workout)}
+                    style={[styles.editWorkoutButton, { backgroundColor: currentTheme.colors.primary }]}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="pencil" size={16} color={currentTheme.colors.background} />
+                  </TouchableOpacity>
                 </View>
 
                 {/* Exercises List */}
@@ -474,42 +364,53 @@ export default function WeeklyRoutineScheduler({
                           { 
                             backgroundColor: exerciseIndex % 2 === 0 
                               ? 'transparent' 
-                              : currentTheme.colors.surface + '30'
+                              : currentTheme.colors.surface + '60'
                           }
                         ]}
                       >
                         <View style={styles.exerciseInfo}>
-                          <Text style={[styles.exerciseName, { 
-                            color: currentTheme.colors.text,
-                            fontFamily: 'Raleway_600SemiBold',
-                          }]}>
+                          <Text 
+                            style={[styles.exerciseName, { 
+                              color: currentTheme.colors.text,
+                              fontFamily: 'Raleway_600SemiBold',
+                            }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
                             {exerciseName}
-                          </Text>
-                          
-                          <Text style={[styles.exerciseDetails, { 
-                            color: currentTheme.colors.text,
-                            fontFamily: 'Raleway_500Medium',
-                            opacity: 0.8,
-                          }]}>
-                            {exercise.sets} sets × {exercise.reps} reps
                           </Text>
                         </View>
                         
-                        <View style={styles.exerciseActions}>
-                          <TouchableOpacity
-                            onPress={() => handleEditExercise(workout.id, exercise.id, exercise.sets, exercise.reps)}
-                            style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '40' }]}
-                            activeOpacity={0.6}
-                          >
-                            <Ionicons name="pencil" size={18} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            onPress={() => handleDeleteExercise(workout.id, exercise.id)}
-                            style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '40' }]}
-                            activeOpacity={0.6}
-                          >
-                            <Ionicons name="remove-circle-outline" size={18} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
-                          </TouchableOpacity>
+                        <View style={styles.exerciseStats}>
+                          <View style={[styles.statBox, { backgroundColor: currentTheme.colors.surface }]}>
+                            <Text style={[styles.statNumber, { 
+                              color: currentTheme.colors.text,
+                              fontFamily: 'Raleway_600SemiBold',
+                            }]}>
+                              {exercise.sets}
+                            </Text>
+                            <Text style={[styles.statLabel, { 
+                              color: currentTheme.colors.text,
+                              fontFamily: 'Raleway_400Regular',
+                            }]}>
+                              sets
+                            </Text>
+                          </View>
+                          
+                          <View style={[styles.statBox, { backgroundColor: currentTheme.colors.surface }]}>
+                            <Text style={[styles.statNumber, { 
+                              color: currentTheme.colors.text,
+                              fontFamily: 'Raleway_600SemiBold',
+                            }]}>
+                              {exercise.reps}
+                            </Text>
+                            <Text style={[styles.statLabel, { 
+                              color: currentTheme.colors.text,
+                              fontFamily: 'Raleway_400Regular',
+                            }]}>
+                              reps
+                            </Text>
+                          </View>
                         </View>
                       </View>
                     );
@@ -559,26 +460,6 @@ export default function WeeklyRoutineScheduler({
         onSelectExercise={handleSelectExercise}
       />
 
-      {/* Exercise Options Modal for Editing */}
-      {editingExerciseData && (
-        <ExerciseOptionsModal
-          visible={isExerciseOptionsModalVisible}
-          onClose={() => {
-            setIsExerciseOptionsModalVisible(false);
-            setEditingExerciseData(null);
-          }}
-          onSave={handleSaveEditedExercise}
-          title={`Edit ${editingExerciseData.exerciseName}`}
-          initialValues={{
-            sets: editingExerciseData.currentSets,
-            reps: editingExerciseData.currentReps,
-            weight: ''
-          }}
-          primaryButtonText="Update Exercise"
-          showWeight={false}
-        />
-      )}
-
       {/* Workout Edit Modal */}
       <WorkoutEditModal
         visible={isWorkoutEditModalVisible}
@@ -587,6 +468,7 @@ export default function WeeklyRoutineScheduler({
           setEditingWorkout(null);
         }}
         onSave={handleSaveWorkout}
+        onDelete={handleDeleteWorkout}
         workout={editingWorkout}
       />
 
@@ -603,136 +485,161 @@ export default function WeeklyRoutineScheduler({
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 4,
-    paddingHorizontal: 0,
+    flex: 1,
   },
   weeklySelector: {
     flexDirection: 'row',
-    marginBottom: 20, // Will be overridden by inline style
-    paddingHorizontal: 0, // Remove since we have padding on container now
-    justifyContent: 'center', // Center the day buttons
+    marginBottom: 24,
+    paddingHorizontal: 0,
+    justifyContent: 'center',
   },
   weekdayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Distribute buttons evenly
+    justifyContent: 'space-between',
     flex: 1,
+    gap: 4,
   },
   weekdayButton: {
-    flex: 1, // Make buttons take equal space
-    minHeight: 56, // Slightly shorter to fit better in container
-    borderRadius: 12, // Clean rounded corners
-    borderWidth: 1, // Thin border
+    flex: 1,
+    height: 48,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10, // Comfortable padding
-    paddingHorizontal: 2, // Minimal horizontal padding to fit all days
-    marginHorizontal: 1, // Very small margin to fit 7 days
-    // No shadow properties - completely clean
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    position: 'relative',
   },
   weekdayText: {
-    fontSize: 15, // Slightly smaller to fit better in mobile buttons
-    fontWeight: '700', // Bolder for better contrast
+    fontSize: 14,
+    fontWeight: '700',
     textAlign: 'center',
   },
   workoutDot: {
-    width: 10, // Even larger for better visibility
-    height: 10,
-    borderRadius: 5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     position: 'absolute',
     top: 6,
     right: 6,
   },
   dayRoutineContainer: {
-    marginTop: 0,
+    flex: 1,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 12,
+    paddingVertical: 60,
+    paddingHorizontal: 20,
   },
   emptyStateText: {
-    fontSize: 14,
+    fontSize: 15,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    lineHeight: 22,
   },
   workoutGroup: {
-    marginBottom: 16,
-    borderRadius: 12,
+    marginBottom: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   workoutHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: 16, // Increased from 12
-    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   workoutInfo: {
     flex: 1,
-    marginRight: 16, // Increased from 12
+    marginRight: 16,
   },
   workoutTitle: {
-    fontSize: 18, // Increased from 16
+    fontSize: 18,
     fontWeight: '700',
-    marginBottom: 6, // Increased from 4
+    lineHeight: 24,
+    marginBottom: 4,
   },
-  workoutDescription: {
-    fontSize: 15, // Increased from 13
-    lineHeight: 20, // Increased from 18
+  workoutMeta: {
+    fontSize: 14,
+    opacity: 0.6,
+    lineHeight: 18,
   },
-  workoutActions: {
-    flexDirection: 'row',
-    gap: 8, // Increased from 4
+  editWorkoutButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    marginTop: -2,
   },
   exerciseItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 14, // Increased from 10 for better touch area
-    paddingHorizontal: 16,
-    minHeight: 56, // Increased from 44 for comfortable touch
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    minHeight: 52,
   },
   exerciseInfo: {
     flex: 1,
-    marginRight: 16, // Increased from 12 for better spacing
+    marginRight: 12,
+    minWidth: 0,
   },
   exerciseName: {
-    fontSize: 17, // Increased from 15 for better readability
+    fontSize: 15,
     fontWeight: '600',
-    marginBottom: 4, // Increased from 2
+    lineHeight: 18,
+    marginBottom: 2,
   },
-  exerciseDetails: {
-    fontSize: 15, // Increased from 13
-    marginBottom: 0,
-  },
-  exerciseActions: {
+  exerciseStats: {
     flexDirection: 'row',
-    gap: 8, // Increased from 4 for better spacing
-  },
-  actionButton: {
-    padding: 14, // Increased from 12
-    borderRadius: 10, // Larger border radius
-    minWidth: 44, // iOS minimum touch target (was 30)
-    minHeight: 44, // iOS minimum touch target (was 30)
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 8,
+    flexShrink: 0,
+    minWidth: 100,
+  },
+  statBox: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 16,
+  },
+  statLabel: {
+    fontSize: 10,
+    opacity: 0.6,
+    marginTop: 1,
   },
   workoutSeparator: {
-    height: 8,
-    backgroundColor: 'transparent',
+    height: 12,
   },
   actionButtonsContainer: {
     flexDirection: 'row',
-    gap: 16, // Increased from 12 for better separation
-    marginTop: 8, // Add some top margin
-    paddingHorizontal: 4, // Add slight padding for better alignment
+    gap: 12,
+    marginTop: 24,
+    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   sectionDivider: {
     height: 1,
-    marginVertical: 20, // Increased from 16 for more breathing room
+    marginVertical: 32,
+    opacity: 0.3,
   },
 }); 
