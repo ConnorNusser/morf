@@ -12,7 +12,6 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { userService } from '@/lib/userService';
-import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
 
@@ -46,7 +45,7 @@ function TabBarIcon({ iconName, focused }: {
 
 function FloatingResumeButton() {
   const { currentTheme } = useTheme();
-  const { activeSession, openWorkoutModal } = useWorkoutSessionContext();
+  const { activeSession, openWorkoutModal, generatedWorkout } = useWorkoutSessionContext();
   const { formattedTime } = useWorkoutTimer(activeSession?.startTime || null);
 
   const hasActiveSession = activeSession && !activeSession.isCompleted;
@@ -56,24 +55,26 @@ function FloatingResumeButton() {
   }
 
   const handleResumeWorkout = () => {
-    if (activeSession) {
-      // Create a GeneratedWorkout object from the active session for the modal
-      const workoutForModal: GeneratedWorkout = {
-        id: activeSession.workoutId,
-        title: activeSession.title,
-        description: `Resume workout with ${activeSession.exercises.length} exercises`,
-        exercises: activeSession.exercises.map((ex: any) => ({
-          id: ex.id,
-          sets: ex.sets,
-          reps: ex.reps,
-        })),
-        estimatedDuration: 45,
-        difficulty: 'In Progress',
-        createdAt: activeSession.startTime,
-      };
+    // if (activeSession) {
+    //   // Create a GeneratedWorkout object from the active session for the modal
+    //   const workoutForModal: GeneratedWorkout = {
+    //     id: activeSession.workoutId,
+    //     title: activeSession.title,
+    //     description: `Resume workout with ${activeSession.exercises.length} exercises`,
+    //     exercises: activeSession.exercises.map((ex: any) => ({
+    //       id: ex.id,
+    //       sets: ex.sets,
+    //       reps: ex.reps,
+    //       ...ex,
+    //     })),
+    //     estimatedDuration: 45,
+    //     difficulty: 'In Progress',
+    //     createdAt: activeSession.startTime,
+    //   };
       
-      openWorkoutModal(workoutForModal);
-    }
+    //   openWorkoutModal(generatedWorkout!);
+    // }
+    openWorkoutModal(generatedWorkout!);
   };
 
   return (
