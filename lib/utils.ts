@@ -5,18 +5,27 @@ import { getDateDaysAgo } from "./time";
 import { userService } from "./userService";
 import { getWorkoutById } from "./workouts";
 
+
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
-    return weight * 2.20462;
+    return Math.round(weight * 2.20462);
   }
   return weight;
 };
 
 const convertWeightToKg = (weight: number, unit: WeightUnit): number => {
   if (unit === 'lbs') {
-    return weight / 2.20462;
+    return Math.round(weight / 2.20462);
   }
   return weight;
+};
+
+export const getWeightBasedonPreference = async (weight: number, weightType: 'lbs' | 'kg'): Promise<number> => {
+  const profile = await userService.getUserProfileOrDefault();
+  if (profile.weightUnitPreference === 'kg') {
+    return convertWeightToKg(weight, weightType);
+  }
+  return convertWeightToLbs(weight, weightType);
 };
 
 export const getPercentileSuffix = (percentile: number): string => {

@@ -7,15 +7,15 @@ import { Gender, HeightUnit, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
@@ -30,6 +30,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [height, setHeight] = useState<{ value: number; unit: HeightUnit }>({ value: 5.9, unit: 'feet' });
   const [weight, setWeight] = useState<{ value: number; unit: WeightUnit }>({ value: 185, unit: 'lbs' });
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [gender, setGender] = useState<Gender>('male');
   const [age, setAge] = useState<number>(28);
   const [workoutType, setWorkoutType] = useState<'powerlifting' | 'generic' | 'bodyweight' | null>(null);
@@ -40,7 +41,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const { play: playUnlock } = useSound('unlock');
   const { play: playTap } = useSound('tapVariant1');
 
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   const handleNext = () => {
     playHapticFeedback('selection', false);
@@ -54,6 +55,12 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
+  const handleWeightUnitChange = (weightUnit: WeightUnit) => {
+    playHapticFeedback('selection', false);
+    playSound();
+    setWeightUnit(weightUnit);
+  };
+
   const canProceedFromStep = () => {
     switch (currentStep) {
       case 0: return true; // Welcome step
@@ -62,6 +69,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 3: return true; // Gender step - always valid since we have default
       case 4: return age > 0 && age < 120; // Age step
       case 5: return workoutType !== null; // Workout type step
+      case 6: return weightUnit !== null; // Weight unit step
       default: return false;
     }
   };
@@ -82,6 +90,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         age, // Use the entered age
         lifts: [], // Start with empty lifts array
         secondaryLifts: [], // Start with empty secondary lifts array
+        weightUnitPreference: weightUnit,
       });
 
       // Set workout filters
@@ -308,6 +317,90 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          </View>
+        );
+
+
+      case 6:
+        return (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, { 
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }]}>Choose your weight units</Text>
+            
+            <View style={styles.unitSelectionContainer}>
+              <View style={styles.unitToggle}>
+                <TouchableOpacity
+                  style={[
+                    styles.unitButton,
+                    { 
+                      backgroundColor: weightUnit === 'lbs' ? currentTheme.colors.primary : currentTheme.colors.surface,
+                      borderColor: currentTheme.colors.border,
+                    },
+                  ]}
+                  onPress={() => handleWeightUnitChange('lbs')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.unitButtonText,
+                    { 
+                      color: weightUnit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
+                      fontFamily: 'Raleway_600SemiBold',
+                    }
+                  ]}>
+                    lbs
+                  </Text>
+                  <Text style={[
+                    styles.unitButtonSubtext,
+                    { 
+                      color: weightUnit === 'lbs' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
+                      fontFamily: 'Raleway_400Regular',
+                    }
+                  ]}>
+                    Imperial
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[
+                    styles.unitButton,
+                    { 
+                      backgroundColor: weightUnit === 'kg' ? currentTheme.colors.primary : currentTheme.colors.surface,
+                      borderColor: currentTheme.colors.border,
+                    },
+                  ]}
+                  onPress={() => handleWeightUnitChange('kg')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.unitButtonText,
+                    { 
+                      color: weightUnit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
+                      fontFamily: 'Raleway_600SemiBold',
+                    }
+                  ]}>
+                    kg
+                  </Text>
+                  <Text style={[
+                    styles.unitButtonSubtext,
+                    { 
+                      color: weightUnit === 'kg' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
+                      fontFamily: 'Raleway_400Regular',
+                    }
+                  ]}>
+                    Metric
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={[styles.unitHint, { 
+                color: currentTheme.colors.text + '60',
+                fontFamily: 'Raleway_400Regular',
+              }]}>
+                You can change this later in your profile settings
+              </Text>
             </View>
           </View>
         );
@@ -581,5 +674,38 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  unitSelectionContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  unitToggle: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: 20,
+    gap: 12,
+  },
+  unitButton: {
+    flex: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unitButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  unitButtonSubtext: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
+  unitHint: {
+    fontSize: 14,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 }); 

@@ -4,10 +4,11 @@ import ProgressBar from '@/components/ProgressBar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
-import { getPercentileSuffix } from '@/lib/utils';
+import { userService } from '@/lib/userService';
+import { getPercentileSuffix, getWeightBasedonPreference } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
-import { isMainLift, MainLiftType, UserProgress } from '@/types';
-import React, { useState } from 'react';
+import { isMainLift, MainLiftType, UserProfile, UserProgress } from '@/types';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface WorkoutStatsCardProps {
@@ -18,6 +19,15 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const { currentTheme } = useTheme();
   const { workoutId, personalRecord, percentileRanking, strengthLevel } = stats;
   const [modalVisible, setModalVisible] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const profile = await userService.getUserProfileOrDefault();
+      setProfile(profile);
+    };
+    loadProfile();
+  }, []);
 
   const getPercentileColor = (percentile: number) => {
     if (percentile >= 90) return currentTheme.colors.accent;
@@ -90,7 +100,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                   fontFamily: 'Raleway_700Bold',
                 }
               ]}>
-                {personalRecord} lbs
+                {getWeightBasedonPreference(personalRecord, 'lbs')} {profile?.weightUnitPreference === 'kg' ? 'kg' : 'lbs'}
               </Text>
             </View>
 

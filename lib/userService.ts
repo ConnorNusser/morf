@@ -18,6 +18,7 @@ class UserService {
       // Preserve existing lifts when updating profile
       lifts: profile.lifts || existingProfile?.lifts || [],
       secondaryLifts: profile.secondaryLifts || existingProfile?.secondaryLifts || [],
+      weightUnitPreference: profile.weightUnitPreference || existingProfile?.weightUnitPreference || 'lbs',
     };
     
     await storageService.saveUserProfile(realProfile);

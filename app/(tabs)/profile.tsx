@@ -2,6 +2,7 @@ import Card from '@/components/Card';
 import AppInfoSection from '@/components/profile/AppInfoSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
+import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -95,6 +96,9 @@ export default function ProfileScreen() {
         <WorkoutFiltersSection 
           onFiltersUpdate={loadUserData}
         />
+
+        {/* Weight Unit Preference Section */}
+        <WeightUnitPreferenceSection />
 
         {/* App Info Section */}
         <AppInfoSection />

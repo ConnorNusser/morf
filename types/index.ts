@@ -58,6 +58,7 @@ export interface UserProfile {
   age?: number;
   lifts: UserLift[];
   secondaryLifts: UserLift[];
+  weightUnitPreference: WeightUnit;
 }
 
 // ===== WORKOUT TYPES =====
