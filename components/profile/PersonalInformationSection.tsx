@@ -5,7 +5,7 @@ import HeightInput from '@/components/inputs/HeightInput';
 import WeightInput from '@/components/inputs/WeightInput';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { userService } from '@/lib/userService';
+import { useUser } from '@/hooks/useUser';
 import { UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -21,6 +21,7 @@ export default function PersonalInformationSection({
   onProfileUpdate 
 }: PersonalInformationSectionProps) {
   const { currentTheme } = useTheme();
+  const { updateProfile } = useUser();
   const [isExpanded, setIsExpanded] = useState(false);
   const [localProfile, setLocalProfile] = useState(userProfile);
 
@@ -43,11 +44,10 @@ export default function PersonalInformationSection({
 
   const handleSaveChanges = async () => {
     if (!localProfile) return;
-    await userService.createUserProfile({
+    await updateProfile({
       ...localProfile,
       age: localProfile.age || 28,
     });
-    await onProfileUpdate();
     Alert.alert('Changes saved', 'Your profile has been updated');
   };
 

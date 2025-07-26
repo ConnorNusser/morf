@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { UserProvider } from '@/contexts/UserContext';
 import { WorkoutSessionProvider } from '@/contexts/WorkoutSessionContext';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -223,21 +224,23 @@ export default function TabLayout() {
   }
 
   return (
-    <WorkoutSessionProvider>
-      <TabsContent />
-      
-      {/* Floating Resume Button - positioned within navbar area */}
-      <FloatingResumeButton />
-      
-      {/* Global Workout Session Modal */}
-      <GlobalWorkoutSessionModal />
-      
-      {/* Onboarding Modal for first-time users */}
-      <OnboardingModal 
-        visible={showOnboarding}
-        onComplete={handleOnboardingComplete}
-      />
-    </WorkoutSessionProvider>
+    <UserProvider>
+      <WorkoutSessionProvider>
+        <TabsContent />
+        
+        {/* Floating Resume Button - positioned within navbar area */}
+        <FloatingResumeButton />
+        
+        {/* Global Workout Session Modal */}
+        <GlobalWorkoutSessionModal />
+        
+        {/* Onboarding Modal for first-time users */}
+        <OnboardingModal 
+          visible={showOnboarding}
+          onComplete={handleOnboardingComplete}
+        />
+      </WorkoutSessionProvider>
+    </UserProvider>
   );
 }
 

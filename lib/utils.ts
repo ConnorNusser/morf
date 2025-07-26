@@ -28,6 +28,14 @@ export const getWeightBasedonPreference = async (weight: number, weightType: 'lb
   return convertWeightToLbs(weight, weightType);
 };
 
+// Synchronous version when you already have the user preference
+export const convertWeightForPreference = (weight: number, fromUnit: 'lbs' | 'kg', userPreference: 'lbs' | 'kg'): number => {
+  if (userPreference === 'kg') {
+    return convertWeightToKg(weight, fromUnit);
+  }
+  return convertWeightToLbs(weight, fromUnit);
+};
+
 export const getPercentileSuffix = (percentile: number): string => {
   const mod100 = percentile % 100;
   if (mod100 >= 11 && mod100 <= 13) {

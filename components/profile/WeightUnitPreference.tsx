@@ -1,32 +1,21 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSound } from "@/hooks/useSound";
+import { useUser } from "@/hooks/useUser";
 import playHapticFeedback from "@/lib/haptic";
-import { userService } from "@/lib/userService";
 import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "../Card";
 import { Text } from "../Themed";
 
 const WeightUnitPreferenceSection = () => {
   const { currentTheme } = useTheme();
+  const { userProfile, updateProfile } = useUser();
   const { play: playSound } = useSound('pop');
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [isExpanded, setIsExpanded] = useState(false);
 
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const loadUserProfile = async () => {
-    try {
-      const profile = await userService.getUserProfileOrDefault();
-      setWeightUnit(profile.weightUnitPreference || 'lbs');
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-  };
+  const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -36,13 +25,13 @@ const WeightUnitPreferenceSection = () => {
     try {
       playHapticFeedback('selection', false);
       playSound();
-      setWeightUnit(newWeightUnit);
       
-      // Get current profile and update weight unit preference
-      const currentProfile = await userService.getUserProfileOrDefault();
-      await userService.createUserProfile({
-        ...currentProfile,
-        age: currentProfile.age || 28, // Provide default age if undefined
+      if (!userProfile) return;
+      
+      // Update profile using context which will trigger re-renders across the app
+      await updateProfile({
+        ...userProfile,
+        age: userProfile.age || 28,
         weightUnitPreference: newWeightUnit,
       });
     } catch (error) {

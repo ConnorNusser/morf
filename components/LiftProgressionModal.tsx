@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
-import { getPercentileSuffix } from '@/lib/utils';
+import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
 import { MainLiftType, UserLift, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -30,6 +30,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const [selectedMetric, setSelectedMetric] = useState<'oneRM' | 'volume'>('oneRM');
   const [predictions, setPredictions] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
 
   useEffect(() => {
     if (visible) {
@@ -40,10 +41,15 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const loadLiftData = async () => {
     try {
       setIsLoading(true);
-      const data = await userService.getAllLiftsById(liftId);
-      const rawData = await userService.getRawLiftsById(liftId);
+      const [data, rawData, profile] = await Promise.all([
+        userService.getAllLiftsById(liftId),
+        userService.getRawLiftsById(liftId),
+        userService.getUserProfileOrDefault()
+      ]);
+      
       setLiftData(data || []);
       setOriginalLiftData(rawData || []);
+      setWeightUnit(profile.weightUnitPreference || 'lbs');
       
       if (data && data.length > 0) {
         calculatePredictions(data);
@@ -320,7 +326,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
             Current 1RM
           </Text>
           <Text style={[styles.currentValue, { color: currentTheme.colors.text }]}>
-            {currentData.personalRecord} lbs
+            {convertWeightForPreference(currentData.personalRecord, 'lbs', weightUnit)} {weightUnit}
           </Text>
           {avg3MonthPrediction > 0 && (
             <View style={styles.predictionContainer}>
@@ -328,7 +334,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 3-month prediction
               </Text>
               <Text style={[styles.predictionText, { color: currentTheme.colors.primary }]}>
-                {avg3MonthPrediction} lbs
+                {convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit)} {weightUnit}
               </Text>
             </View>
           )}
@@ -364,15 +370,14 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
         <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
           Lift History
         </Text>
-        <Text style={[styles.sectionDescription, { color: currentTheme.colors.text + '70' }]}>
-          All recorded sessions with actual weight and reps
-        </Text>
         
         <View style={[styles.historyCard, { backgroundColor: currentTheme.colors.surface }]}>
           {/* TODO: reverse the order of the lifts */}
-          {originalLiftData.reverse().map((lift, index) => {
+          {originalLiftData.slice().reverse().map((lift, index) => {
             const estimatedOneRM = OneRMCalculator.estimate(lift.weight, lift.reps);
             const isMaxAttempt = lift.reps === 1;
+            const convertedWeight = convertWeightForPreference(lift.weight, 'lbs', weightUnit);
+            const convertedEstimate = convertWeightForPreference(estimatedOneRM, 'lbs', weightUnit);
             
             return (
               <View key={index} style={[
@@ -390,10 +395,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 </View>
                 <View style={styles.historyValue}>
                   <Text style={[styles.historyValueText, { color: currentTheme.colors.primary }]}>
-                    {lift.weight % 1 === 0 ? lift.weight : lift.weight.toFixed(1)} × {lift.reps}
+                    {convertedWeight} × {lift.reps}
                   </Text>
                   <Text style={[styles.historyEstimate, { color: currentTheme.colors.text + '60' }]}>
-                    {isMaxAttempt ? '1RM attempt' : `~${estimatedOneRM.toFixed(1)} lbs 1RM`}
+                    {isMaxAttempt ? '1RM attempt' : `~${convertedEstimate} ${weightUnit} 1RM`}
                   </Text>
                 </View>
               </View>
@@ -420,8 +425,12 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           const prediction3M = predictions[`${model.name}_90`] || 0;
           const prediction1Y = predictions[`${model.name}_365`] || 0;
           const currentValue = liftData[liftData.length - 1]?.personalRecord || 0;
-          const gain3M = prediction3M - currentValue;
-          const gain1Y = prediction1Y - currentValue;
+          
+          const convertedPrediction3M = convertWeightForPreference(Math.round(prediction3M / 5) * 5, 'lbs', weightUnit);
+          const convertedPrediction1Y = convertWeightForPreference(Math.round(prediction1Y / 5) * 5, 'lbs', weightUnit);
+          const convertedCurrent = convertWeightForPreference(currentValue, 'lbs', weightUnit);
+          const gain3M = convertedPrediction3M - convertedCurrent;
+          const gain1Y = convertedPrediction1Y - convertedCurrent;
           
           return (
             <View key={index} style={[styles.predictionCard, { backgroundColor: currentTheme.colors.surface }]}>
@@ -440,10 +449,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     3 Months
                   </Text>
                   <Text style={[styles.predictionValue, { color: currentTheme.colors.primary }]}>
-                    {Math.round(prediction3M / 5) * 5} lbs
+                    {convertedPrediction3M} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{Math.round(gain3M / 5) * 5} lbs
+                    +{Math.round(gain3M)} {weightUnit}
                   </Text>
                 </View>
                 
@@ -452,10 +461,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     1 Year
                   </Text>
                   <Text style={[styles.predictionValue, { color: currentTheme.colors.primary }]}>
-                    {Math.round(prediction1Y / 5) * 5} lbs
+                    {convertedPrediction1Y} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{Math.round(gain1Y / 5) * 5} lbs
+                    +{Math.round(gain1Y)} {weightUnit}
                   </Text>
                 </View>
               </View>

@@ -6,43 +6,40 @@ import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreferen
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUser } from '@/hooks/useUser';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';
-import { UserProfile } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { userProfile, isLoading, refreshProfile } = useUser();
   const [userPercentile, setUserPercentile] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadUserData();
-  }, []);
 
   const loadUserData = async () => {
     try {
-      const profile = await userService.getUserProfileOrDefault();
       const userProgress = await userService.calculateRealUserProgress();
       const percentile = calculateOverallPercentile(userProgress.map(p => p.percentileRanking));
-      
-      setUserProfile(profile);
       setUserPercentile(percentile);
-      setIsLoading(false);
     } catch (error) {
       console.error('Error loading user data:', error);
-      setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (userProfile) {
+      loadUserData();
+    }
+  }, [userProfile]);
 
   // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      refreshProfile();
       loadUserData();
-    }, [])
+    }, [refreshProfile])
   );
 
 

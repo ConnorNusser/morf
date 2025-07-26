@@ -3,12 +3,12 @@ import LiftProgressionModal from '@/components/LiftProgressionModal';
 import ProgressBar from '@/components/ProgressBar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
+import { useUser } from '@/hooks/useUser';
 import playHapticFeedback from '@/lib/haptic';
-import { userService } from '@/lib/userService';
-import { getPercentileSuffix, getWeightBasedonPreference } from '@/lib/utils';
+import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
-import { isMainLift, MainLiftType, UserProfile, UserProgress } from '@/types';
-import React, { useEffect, useState } from 'react';
+import { isMainLift, MainLiftType, UserProgress } from '@/types';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface WorkoutStatsCardProps {
@@ -17,17 +17,11 @@ interface WorkoutStatsCardProps {
 
 export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const { currentTheme } = useTheme();
+  const { userProfile } = useUser();
   const { workoutId, personalRecord, percentileRanking, strengthLevel } = stats;
   const [modalVisible, setModalVisible] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
 
-  useEffect(() => {
-    const loadProfile = async () => {
-      const profile = await userService.getUserProfileOrDefault();
-      setProfile(profile);
-    };
-    loadProfile();
-  }, []);
+  const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
   const getPercentileColor = (percentile: number) => {
     if (percentile >= 90) return currentTheme.colors.accent;
@@ -100,7 +94,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                   fontFamily: 'Raleway_700Bold',
                 }
               ]}>
-                {getWeightBasedonPreference(personalRecord, 'lbs')} {profile?.weightUnitPreference === 'kg' ? 'kg' : 'lbs'}
+                {convertWeightForPreference(personalRecord, 'lbs', weightUnit)} {weightUnit}
               </Text>
             </View>
 
