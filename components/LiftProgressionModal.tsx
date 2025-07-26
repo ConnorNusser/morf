@@ -1,13 +1,13 @@
+import InteractiveProgressChart from '@/components/InteractiveProgressChart';
+import ProgressionIndicator from '@/components/ProgressionIndicator';
 import { useTheme } from '@/contexts/ThemeContext';
-import { OneRMCalculator } from '@/lib/strengthStandards';
+import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
-import { MainLiftType, UserLift, UserProgress } from '@/types';
+import { MainLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface LiftProgressionModalProps {
   visible: boolean;
@@ -26,11 +26,12 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const { currentTheme } = useTheme();
   const [liftData, setLiftData] = useState<UserProgress[]>([]);
   const [originalLiftData, setOriginalLiftData] = useState<UserLift[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
   const [selectedMetric, setSelectedMetric] = useState<'oneRM' | 'volume'>('oneRM');
   const [predictions, setPredictions] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -50,6 +51,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       setLiftData(data || []);
       setOriginalLiftData(rawData || []);
       setWeightUnit(profile.weightUnitPreference || 'lbs');
+      setUserProfile(profile);
       
       if (data && data.length > 0) {
         calculatePredictions(data);
@@ -59,6 +61,54 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Calculate next rank target
+  const getNextRankInfo = () => {
+    if (!userProfile || liftData.length === 0) return null;
+
+    const strengthGender = userProfile.gender === 'female' ? 'female' : 'male';
+    const standards = strengthGender === 'male' ? MALE_STANDARDS[liftId] : FEMALE_STANDARDS[liftId];
+    
+    if (!standards) return null;
+
+    const currentData = liftData[liftData.length - 1];
+    const currentPercentile = currentData.percentileRanking;
+
+    // Convert body weight to lbs for calculation
+    const bodyWeightLbs = convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs');
+    const currentOneRMInDisplayUnits = convertWeightForPreference(currentData.personalRecord, 'lbs', weightUnit);
+
+    // Define targets in order
+    const targets = [
+      { name: 'Advanced', multiplier: standards.advanced, threshold: 50 },
+      { name: 'Elite', multiplier: standards.elite, threshold: 75 },
+      { name: 'God', multiplier: standards.god, threshold: 90 },
+    ];
+
+    // Find the next unachieved target
+    for (const target of targets) {
+      if (currentPercentile < target.threshold) {
+        const targetWeightLbs = bodyWeightLbs * target.multiplier;
+        const targetInDisplayUnits = convertWeightForPreference(targetWeightLbs, 'lbs', weightUnit);
+        
+        // Round to increment
+        const increment = weightUnit === 'kg' ? 2.5 : 5;
+        const roundedTarget = Math.round(targetInDisplayUnits / increment) * increment;
+        const roundedCurrent = Math.round(currentOneRMInDisplayUnits / increment) * increment;
+        
+        const deficit = Math.max(0, roundedTarget - roundedCurrent);
+        
+        if (deficit > 0) {
+          return {
+            level: target.name,
+            deficit: deficit,
+          };
+        }
+      }
+    }
+    
+    return null; // Already at God tier
   };
 
   // Asymptotic regression model for strength predictions
@@ -153,164 +203,21 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     return liftData.filter(d => new Date(d.lastUpdated) >= cutoffDate);
   };
 
-  const renderChart = () => {
-    const data = getFilteredData();
-    if (data.length === 0) return null;
-
-    // Round values to nearest 5s
-    const values = selectedMetric === 'oneRM' 
-      ? data.map(d => Math.round(d.personalRecord / 5) * 5)
-      : data.map((d, i) => {
-          const baseVolume = d.personalRecord * 0.8 * 15;
-          return Math.round((baseVolume + (i * 100)) / 5) * 5;
-        });
-
-    const maxValue = Math.max(...values);
-    const minValue = Math.min(...values);
-    const range = maxValue - minValue || 1;
-    const chartWidth = screenWidth - 80;
-    const chartHeight = 200;
-
-    // Add predictions to chart
-    const currentValue = values[values.length - 1];
-    const avgPrediction = Math.round(predictionModels.reduce((sum, model) => {
-      return sum + (predictions[`${model.name}_90`] || currentValue);
-    }, 0) / predictionModels.length / 5) * 5;
-
-    const extendedValues = [...values, avgPrediction];
-    const extendedMaxValue = Math.max(...extendedValues);
-    const extendedRange = extendedMaxValue - minValue || 1;
-
-    // Calculate points for lines
-    const chartPoints = values.map((value, index) => {
-      const x = (index / Math.max(values.length - 1, 1)) * (chartWidth - 40);
-      const y = chartHeight - ((value - minValue) / extendedRange) * chartHeight;
-      return { x, y, value };
-    });
-
-    // Add prediction point
-    if (avgPrediction > 0) {
-      const predictionX = chartWidth - 40;
-      const predictionY = chartHeight - ((avgPrediction - minValue) / extendedRange) * chartHeight;
-      chartPoints.push({ x: predictionX, y: predictionY, value: avgPrediction });
-    }
-
-    return (
-      <View style={styles.chartContainer}>
-        <View style={styles.chartHeader}>
-          <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>
-            {selectedMetric === 'oneRM' ? 'One Rep Max' : 'Training Volume'} Progression
-          </Text>
-          <Text style={[styles.chartDescription, { color: currentTheme.colors.text + '70' }]}>
-            Historical data with 3-month prediction
-          </Text>
-        </View>
-
-        <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
-          {/* Y-axis labels with rounded values */}
-          <View style={styles.yAxisLabels}>
-            <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-              {Math.round(extendedMaxValue / 5) * 5}
-            </Text>
-            <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-              {Math.round(((extendedMaxValue + minValue) / 2) / 5) * 5}
-            </Text>
-            <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-              {Math.round(minValue / 5) * 5}
-            </Text>
-          </View>
-
-          {/* More grid lines for better readability */}
-          {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
-            <View
-              key={ratio}
-              style={[
-                styles.gridLine,
-                {
-                  top: chartHeight * ratio,
-                  width: chartWidth - 40,
-                  left: 40,
-                  backgroundColor: currentTheme.colors.border + (ratio === 0.5 ? '40' : '20'),
-                }
-              ]}
-            />
-          ))}
-          
-          {/* Chart area */}
-          <View style={[styles.chartLine, { left: 40 }]}>
-            {/* Connecting lines */}
-            {chartPoints.map((point, index) => {
-              if (index === 0) return null;
-              
-              const prevPoint = chartPoints[index - 1];
-              const distance = Math.sqrt(
-                Math.pow(point.x - prevPoint.x, 2) + Math.pow(point.y - prevPoint.y, 2)
-              );
-              const angle = Math.atan2(point.y - prevPoint.y, point.x - prevPoint.x) * 180 / Math.PI;
-              
-              return (
-                <View
-                  key={`line-${index}`}
-                  style={[
-                    styles.chartLineSegment,
-                    {
-                      left: prevPoint.x,
-                      top: prevPoint.y,
-                      width: distance,
-                      transform: [{ rotate: `${angle}deg` }],
-                      backgroundColor: index === chartPoints.length - 1 ? '#FFA500' : currentTheme.colors.primary,
-                    }
-                  ]}
-                />
-              );
-            })}
-            
-            {/* Data points */}
-            {chartPoints.map((point, index) => {
-              const isHistorical = index < values.length;
-              const isPrediction = index === chartPoints.length - 1 && avgPrediction > 0;
-              
-              return (
-                <View
-                  key={`point-${index}`}
-                  style={[
-                    styles.chartPoint,
-                    isPrediction && styles.predictionPoint,
-                    {
-                      left: point.x - 3,
-                      top: point.y - 3,
-                      backgroundColor: isPrediction ? '#FFA500' : currentTheme.colors.primary,
-                      borderColor: isPrediction ? currentTheme.colors.background : 'transparent',
-                      borderWidth: isPrediction ? 2 : 0,
-                    }
-                  ]}
-                />
-              );
-            })}
-          </View>
-        </View>
-
-        <View style={styles.xAxisLabels}>
-          <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-            Start
-          </Text>
-          <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-            Now
-          </Text>
-          {avgPrediction > 0 && (
-            <Text style={[styles.axisLabel, { color: '#FFA500' }]}>
-              3M Pred
-            </Text>
-          )}
-        </View>
-      </View>
-    );
+  // Calculate average prediction for chart
+  const getAveragePrediction = () => {
+    if (Object.keys(predictions).length === 0 || liftData.length === 0) return undefined;
+    
+    const currentData = liftData[liftData.length - 1];
+    return Math.round(predictionModels.reduce((sum, model) => {
+      return sum + (predictions[`${model.name}_90`] || currentData.personalRecord);
+    }, 0) / predictionModels.length);
   };
 
   const renderCurrentStats = () => {
     if (liftData.length === 0) return null;
     
     const currentData = liftData[liftData.length - 1];
+    const nextRank = getNextRankInfo();
     
     // Calculate 3-month prediction average
     const avg3MonthPrediction = Object.keys(predictions).length > 0 
@@ -328,6 +235,11 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           <Text style={[styles.currentValue, { color: currentTheme.colors.text }]}>
             {convertWeightForPreference(currentData.personalRecord, 'lbs', weightUnit)} {weightUnit}
           </Text>
+          {nextRank && (
+            <Text style={[styles.nextRankSubtitle, { color: currentTheme.colors.primary }]}>
+              {nextRank.deficit} {weightUnit} to {nextRank.level}
+            </Text>
+          )}
           {avg3MonthPrediction > 0 && (
             <View style={styles.predictionContainer}>
               <Text style={[styles.predictionLabel, { color: currentTheme.colors.text + '70' }]}>
@@ -638,14 +550,33 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
               {/* Current Stats */}
               {renderCurrentStats()}
               
-              {/* Chart */}
-              {renderChart()}
+              {/* Interactive Chart */}
+              <InteractiveProgressChart
+                data={getFilteredData()}
+                selectedMetric={selectedMetric}
+                weightUnit={weightUnit}
+                predictionValue={getAveragePrediction()}
+                title={selectedMetric === 'oneRM' ? 'One Rep Max' : 'Training Volume' + ' Progression'}
+                description="Tap points to see exact values"
+              />
               
               {/* Timeframe Selector */}
               {renderTimeframeSelector()}
               
               {/* Predictions */}
               {renderPredictions()}
+              
+              {/* Progression Indicator */}
+              {userProfile && liftData.length > 0 && (
+                <ProgressionIndicator
+                  currentOneRM={liftData[liftData.length - 1].personalRecord}
+                  bodyWeight={convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs')}
+                  gender={userProfile.gender}
+                  age={userProfile.age || 28}
+                  liftId={liftId}
+                  weightUnit={weightUnit}
+                />
+              )}
               
               {/* Lift History */}
               {renderLiftHistory()}
@@ -722,6 +653,12 @@ const styles = StyleSheet.create({
     fontSize: 48,
     fontWeight: '300',
     fontFamily: 'Raleway_300Light',
+    marginBottom: 4,
+  },
+  nextRankSubtitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 8,
   },
   changeContainer: {
@@ -773,71 +710,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: 'Raleway_600SemiBold',
     marginBottom: 12,
-  },
-  chartContainer: {
-    paddingVertical: 20,
-  },
-  chartHeader: {
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  chartTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
-    marginBottom: 4,
-  },
-  chartDescription: {
-    fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
-  },
-  chart: {
-    position: 'relative',
-    marginVertical: 16,
-  },
-  yAxisLabels: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 35,
-    justifyContent: 'space-between',
-  },
-  xAxisLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingLeft: 40,
-    marginTop: 8,
-  },
-  axisLabel: {
-    fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
-  },
-  gridLine: {
-    position: 'absolute',
-    height: StyleSheet.hairlineWidth,
-  },
-  chartLine: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-  },
-  chartPoint: {
-    position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  predictionPoint: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  chartLineSegment: {
-    position: 'absolute',
-    height: 2,
-    transformOrigin: '0 50%',
   },
   timeframeContainer: {
     flexDirection: 'row',
