@@ -27,6 +27,30 @@ export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'bodyweight' | 'cab
 // Main lift exercises
 export type MainLiftType = 'squat' | 'bench-press' | 'deadlift' | 'overhead-press';
 
+// Featured secondary lifts that appear on main dashboard (all lifts with strength standards)
+export type FeaturedSecondaryLiftType = 
+  | 'dumbbell-bench-press'
+  | 'dumbbell-curl'
+  | 'barbell-curl'
+  | 'leg-press'
+  | 'barbell-row'
+  | 'incline-bench-press'
+  | 'lat-pulldown'
+  | 'leg-extension'
+  | 'romanian-deadlift'
+  | 'incline-dumbbell-chest-press'
+  | 'dumbbell-shoulder-press'
+  | 'front-squat'
+  | 'barbell-hip-thrust'
+  | 'lateral-raise'
+  | 'seated-cable-row'
+  | 'hack-squat'
+  | 'preacher-curl'
+  | 'machine-shoulder-press';
+
+// All featured lifts (main + secondary)
+export type FeaturedLiftType = MainLiftType | FeaturedSecondaryLiftType;
+
 // Main Lift Constants - Use these instead of hardcoded strings
 export const MAIN_LIFTS = {
   SQUAT: 'squat' as const,
@@ -35,12 +59,50 @@ export const MAIN_LIFTS = {
   OVERHEAD_PRESS: 'overhead-press' as const,
 } as const;
 
+// Featured Secondary Lift Constants
+export const FEATURED_SECONDARY_LIFTS = {
+  DUMBBELL_BENCH_PRESS: 'dumbbell-bench-press' as const,
+  DUMBBELL_CURL: 'dumbbell-curl' as const,
+  BARBELL_CURL: 'barbell-curl' as const,
+  LEG_PRESS: 'leg-press' as const,
+  BARBELL_ROW: 'barbell-row' as const,
+  INCLINE_BENCH_PRESS: 'incline-bench-press' as const,
+  LAT_PULLDOWN: 'lat-pulldown' as const,
+  LEG_EXTENSION: 'leg-extension' as const,
+  ROMANIAN_DEADLIFT: 'romanian-deadlift' as const,
+  INCLINE_DUMBBELL_CHEST_PRESS: 'incline-dumbbell-chest-press' as const,
+  DUMBBELL_SHOULDER_PRESS: 'dumbbell-shoulder-press' as const,
+  FRONT_SQUAT: 'front-squat' as const,
+  BARBELL_HIP_THRUST: 'barbell-hip-thrust' as const,
+  LATERAL_RAISE: 'lateral-raise' as const,
+  SEATED_CABLE_ROW: 'seated-cable-row' as const,
+  HACK_SQUAT: 'hack-squat' as const,
+  PREACHER_CURL: 'preacher-curl' as const,
+  MACHINE_SHOULDER_PRESS: 'machine-shoulder-press' as const,
+} as const;
+
 // Array of all main lifts for iteration
 export const ALL_MAIN_LIFTS: MainLiftType[] = Object.values(MAIN_LIFTS);
+
+// Array of all featured secondary lifts for iteration
+export const ALL_FEATURED_SECONDARY_LIFTS: FeaturedSecondaryLiftType[] = Object.values(FEATURED_SECONDARY_LIFTS);
+
+// Array of all featured lifts (main + secondary) for iteration
+export const ALL_FEATURED_LIFTS: FeaturedLiftType[] = [...ALL_MAIN_LIFTS, ...ALL_FEATURED_SECONDARY_LIFTS];
 
 // Helper to check if an exercise ID is a main lift
 export const isMainLift = (exerciseId: string): exerciseId is MainLiftType => {
   return ALL_MAIN_LIFTS.includes(exerciseId as MainLiftType);
+};
+
+// Helper to check if an exercise ID is a featured secondary lift
+export const isFeaturedSecondaryLift = (exerciseId: string): exerciseId is FeaturedSecondaryLiftType => {
+  return ALL_FEATURED_SECONDARY_LIFTS.includes(exerciseId as FeaturedSecondaryLiftType);
+};
+
+// Helper to check if an exercise ID is any featured lift (main or secondary)
+export const isFeaturedLift = (exerciseId: string): exerciseId is FeaturedLiftType => {
+  return isMainLift(exerciseId) || isFeaturedSecondaryLift(exerciseId);
 };
 
 // ===== USER PROFILE TYPES =====
@@ -188,6 +250,11 @@ export interface UserPreferences {
 export interface WorkoutFilters {
   excludedWorkoutIds: string[];
   workoutType?: 'powerlifting' | 'bodyweight' | 'generic';
+}
+
+// Lift Display Filters for "Your Lifts" section
+export interface LiftDisplayFilters {
+  hiddenLiftIds: string[]; // Exercise IDs to hide from the main dashboard
 }
 
 export interface ExerciseMax {

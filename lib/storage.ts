@@ -1,4 +1,4 @@
-import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters } from '@/types';
+import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from './theme';
 
@@ -11,13 +11,14 @@ const STORAGE_KEYS = {
   ACTIVE_WORKOUT_SESSION: 'active_workout_session',
   THEME_PREFERENCE: 'theme_preference',
   WORKOUT_FILTERS: 'workout_filters',
+  LIFT_DISPLAY_FILTERS: 'lift_display_filters',
   ROUTINES: 'routines',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
 
 } as const;
 
-export { ExerciseMax, ThemeLevel, UserPreferences, WorkoutFilters };
+export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences, WorkoutFilters };
 
 class StorageService {
   // User Profile
@@ -168,6 +169,29 @@ class StorageService {
       return {
         excludedWorkoutIds: [],
         workoutType: 'powerlifting', // Default to powerlifting
+      };
+    }
+  }
+
+  // Lift Display Filters
+  async saveLiftDisplayFilters(filters: LiftDisplayFilters): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LIFT_DISPLAY_FILTERS, JSON.stringify(filters));
+    } catch (error) {
+      console.error('Error saving lift display filters:', error);
+    }
+  }
+
+  async getLiftDisplayFilters(): Promise<LiftDisplayFilters> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.LIFT_DISPLAY_FILTERS);
+      return data ? JSON.parse(data) : {
+        hiddenLiftIds: [],
+      };
+    } catch (error) {
+      console.error('Error loading lift display filters:', error);
+      return {
+        hiddenLiftIds: [],
       };
     }
   }

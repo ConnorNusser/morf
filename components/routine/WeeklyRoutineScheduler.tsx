@@ -1,12 +1,12 @@
 import { useRoutine } from '@/contexts/RoutineContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
-  capitalizeDayName,
-  DAY_NAMES_SHORT,
-  getCurrentDayIndex,
-  getDayName,
-  getDayNameInternal,
-  validateDayIndex
+    capitalizeDayName,
+    DAY_NAMES_SHORT,
+    getCurrentDayIndex,
+    getDayName,
+    getDayNameInternal,
+    validateDayIndex
 } from '@/lib/day';
 import { getWorkoutById } from '@/lib/workouts';
 import { GeneratedWorkout, Workout } from '@/types';
@@ -14,9 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Button from '../Button';
-import BrowseWorkoutsModal from './BrowseWorkoutsModal';
 import ExerciseSelectionModal from './ExerciseSelectionModal';
-import WorkoutEditModal from './WorkoutEditModal';
+import UnifiedWorkoutBrowserModal from './UnifiedWorkoutBrowserModal';
+import UnifiedWorkoutEditorModal from './UnifiedWorkoutEditorModal';
 
 interface WeeklyRoutineSchedulerProps {
   onSelectedDayChange?: (day: number, dayName: string) => void;
@@ -34,6 +34,7 @@ export default function WeeklyRoutineScheduler({
   const [isWorkoutEditModalVisible, setIsWorkoutEditModalVisible] = useState(false);
   const [isImportWorkoutModalVisible, setIsImportWorkoutModalVisible] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<GeneratedWorkout | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     const newDay = getCurrentDayIndex();
@@ -93,15 +94,20 @@ export default function WeeklyRoutineScheduler({
   };
 
   const handleImportWorkout = async (workoutToImport: GeneratedWorkout) => {
-    if (!currentRoutine) {
-      Alert.alert('Error', 'No routine selected');
+    if (!currentRoutine || isImporting) {
+      if (!currentRoutine) {
+        Alert.alert('Error', 'No routine selected');
+      }
       return;
     }
 
     try {
+      setIsImporting(true);
+      
       const currentDayName = getDayNameInternal(selectedDay);
       if (!currentDayName) {
         Alert.alert('Error', 'Invalid day selected');
+        setIsImporting(false);
         return;
       }
 
@@ -126,8 +132,13 @@ export default function WeeklyRoutineScheduler({
       };
 
       await updateRoutineWithLoading(updatedRoutine);
+      
+      // Ensure import modal is closed
+      setIsImportWorkoutModalVisible(false);
     } catch (error) {
       Alert.alert('Error', 'Failed to import workout');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -461,7 +472,7 @@ export default function WeeklyRoutineScheduler({
       />
 
       {/* Workout Edit Modal */}
-      <WorkoutEditModal
+      <UnifiedWorkoutEditorModal
         visible={isWorkoutEditModalVisible}
         onClose={() => {
           setIsWorkoutEditModalVisible(false);
@@ -470,14 +481,25 @@ export default function WeeklyRoutineScheduler({
         onSave={handleSaveWorkout}
         onDelete={handleDeleteWorkout}
         workout={editingWorkout}
+        mode="routine-edit"
+        title="Edit Workout"
+        saveButtonText="Save Changes"
       />
 
       {/* Import Workout Modal */}
-      <BrowseWorkoutsModal
+      <UnifiedWorkoutBrowserModal
         visible={isImportWorkoutModalVisible}
         onClose={() => setIsImportWorkoutModalVisible(false)}
         onImportWorkout={handleImportWorkout}
         title="Import Workout"
+        source="standalone"
+        mode="import"
+        showCreateNew={true}
+        onCreateNew={() => {
+          setIsImportWorkoutModalVisible(false);
+          setEditingWorkout(null);
+          setIsWorkoutEditModalVisible(true);
+        }}
       />
     </View>
   );

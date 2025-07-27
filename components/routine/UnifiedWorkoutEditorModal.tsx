@@ -8,44 +8,108 @@ import Button from '../Button';
 import ExerciseOptionsModal from '../inputs/ExerciseOptionsModal';
 import ExerciseSelectionModal from './ExerciseSelectionModal';
 
-interface BrowseWorkoutEditModalProps {
+export type EditMode = 'create' | 'edit' | 'routine-create' | 'routine-edit';
+
+interface UnifiedWorkoutEditorModalProps {
   visible: boolean;
   onClose: () => void;
   onSave: (workoutData: Partial<GeneratedWorkout>) => void;
   workout: GeneratedWorkout | null;
+  mode?: EditMode;
+  
+  // Routine-specific props
+  assignToDayOfWeek?: string;
+  showDayOfWeekSelector?: boolean;
+  availableDays?: string[];
+  
+  // Customization
+  title?: string;
+  saveButtonText?: string;
+  showCreateNewButton?: boolean;
+  onCreateNew?: () => void;
+  onDelete?: () => void;
 }
 
-export default function BrowseWorkoutEditModal({
+const DAY_OPTIONS = [
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+];
+
+export default function UnifiedWorkoutEditorModal({
   visible,
   onClose,
   onSave,
-  workout
-}: BrowseWorkoutEditModalProps) {
+  workout,
+  mode = 'edit',
+  assignToDayOfWeek,
+  showDayOfWeekSelector = false,
+  availableDays = DAY_OPTIONS,
+  title,
+  saveButtonText,
+  showCreateNewButton = false,
+  onCreateNew,
+  onDelete
+}: UnifiedWorkoutEditorModalProps) {
   const { currentTheme } = useTheme();
-  const isCreating = !workout;
+  const isCreating = mode === 'create' || mode === 'routine-create';
+  const isRoutineMode = mode === 'routine-create' || mode === 'routine-edit';
   
   // Form state
-  const [title, setTitle] = useState(workout?.title || '');
-  const [description, setDescription] = useState(workout?.description || '');
-  const [estimatedDuration, setEstimatedDuration] = useState((workout?.estimatedDuration || 45).toString());
-  const [exercises, setExercises] = useState(workout?.exercises || []);
+  const [workoutTitle, setWorkoutTitle] = useState(() => workout?.title || '');
+  const [description, setDescription] = useState(() => workout?.description || '');
+  const [estimatedDuration, setEstimatedDuration] = useState(() => (workout?.estimatedDuration || 45).toString());
+  const [exercises, setExercises] = useState(() => workout?.exercises || []);
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(() => assignToDayOfWeek || workout?.dayOfWeek || '');
   
   // Modal states
   const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
   const [isExerciseOptionsModalVisible, setIsExerciseOptionsModalVisible] = useState(false);
   const [editingExerciseIndex, setEditingExerciseIndex] = useState<number | null>(null);
 
+  // Update form state when workout prop changes
+  React.useEffect(() => {
+    if (workout) {
+      setWorkoutTitle(workout.title || '');
+      setDescription(workout.description || '');
+      setEstimatedDuration((workout.estimatedDuration || 45).toString());
+      setExercises(workout.exercises || []);
+      setSelectedDayOfWeek(assignToDayOfWeek || workout.dayOfWeek || '');
+    } else {
+      // Reset form for new workout
+      setWorkoutTitle('');
+      setDescription('');
+      setEstimatedDuration('45');
+      setExercises([]);
+      setSelectedDayOfWeek(assignToDayOfWeek || '');
+    }
+  }, [workout?.id, assignToDayOfWeek]); // Only depend on workout ID to avoid infinite updates
+
+  const getModalTitle = () => {
+    if (title) return title;
+    
+    if (isCreating) {
+      return isRoutineMode ? 'Create Routine Workout' : 'Create Workout';
+    } else {
+      return isRoutineMode ? 'Edit Routine Workout' : 'Edit Workout';
+    }
+  };
+
+  const getSaveButtonText = () => {
+    if (saveButtonText) return saveButtonText;
+    return isCreating ? 'Create' : 'Save';
+  };
+
   const handleSave = () => {
-    if (!title.trim()) {
+    if (!workoutTitle.trim()) {
       Alert.alert('Error', 'Please enter a workout title');
       return;
     }
 
     const workoutData: Partial<GeneratedWorkout> = {
-      title: title.trim(),
+      title: workoutTitle.trim(),
       description: description.trim(),
       estimatedDuration: parseInt(estimatedDuration) || 45,
       exercises,
+      ...(isRoutineMode && selectedDayOfWeek && { dayOfWeek: selectedDayOfWeek as any }),
       ...(isCreating && { 
         id: Date.now().toString(),
         createdAt: new Date(),
@@ -116,6 +180,15 @@ export default function BrowseWorkoutEditModal({
     );
   };
 
+  const handleMoveExercise = (fromIndex: number, toIndex: number) => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      const [movedExercise] = newExercises.splice(fromIndex, 1);
+      newExercises.splice(toIndex, 0, movedExercise);
+      return newExercises;
+    });
+  };
+
   const currentEditingExercise = editingExerciseIndex !== null ? exercises[editingExerciseIndex] : null;
   const currentEditingExerciseName = currentEditingExercise ? 
     getWorkoutById(currentEditingExercise.id)?.name || currentEditingExercise.id : '';
@@ -137,21 +210,31 @@ export default function BrowseWorkoutEditModal({
             <Ionicons name="close" size={24} color={currentTheme.colors.text} />
           </TouchableOpacity>
           
-          <Text style={[styles.headerTitle, { 
-            color: currentTheme.colors.text,
-            fontFamily: 'Raleway_700Bold',
-          }]}>
-            {isCreating ? 'Create Workout' : 'Edit Workout'}
-          </Text>
-          
-          <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-            <Text style={[styles.saveButtonText, { 
-              color: currentTheme.colors.primary,
-              fontFamily: 'Raleway_600SemiBold',
+          {!isCreating && (
+            <Text style={[styles.headerTitle, { 
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_700Bold',
             }]}>
-              {isCreating ? 'Create' : 'Save'}
+              {getModalTitle()}
             </Text>
-          </TouchableOpacity>
+          )}
+          {isCreating && <View style={styles.headerSpacer} />}
+          
+          {showCreateNewButton && onCreateNew ? (
+            <TouchableOpacity onPress={onCreateNew} style={styles.createNewButton}>
+              <Ionicons name="add" size={24} color={currentTheme.colors.primary} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.saveButtonContainer}>
+              <Button
+                title={getSaveButtonText()}
+                onPress={handleSave}
+                variant="primary"
+                size="small"
+                hapticType="light"
+              />
+            </View>
+          )}
         </View>
 
         <ScrollView 
@@ -185,8 +268,8 @@ export default function BrowseWorkoutEditModal({
                 }]}
                 placeholder="Enter workout name"
                 placeholderTextColor={currentTheme.colors.text + '60'}
-                value={title}
-                onChangeText={setTitle}
+                value={workoutTitle}
+                onChangeText={setWorkoutTitle}
               />
             </View>
 
@@ -236,25 +319,79 @@ export default function BrowseWorkoutEditModal({
                 keyboardType="numeric"
               />
             </View>
+
+            {/* Day of Week Selector for Routine Mode */}
+            {showDayOfWeekSelector && isRoutineMode && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { 
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_500Medium',
+                }]}>
+                  Day of Week
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.daySelector}>
+                    {availableDays.map((day) => (
+                      <TouchableOpacity
+                        key={day}
+                        style={[
+                          styles.dayButton,
+                          {
+                            backgroundColor: selectedDayOfWeek === day 
+                              ? currentTheme.colors.primary 
+                              : currentTheme.colors.background,
+                            borderColor: currentTheme.colors.border,
+                          }
+                        ]}
+                        onPress={() => setSelectedDayOfWeek(day)}
+                      >
+                        <Text style={[
+                          styles.dayButtonText,
+                          {
+                            color: selectedDayOfWeek === day 
+                              ? currentTheme.colors.background 
+                              : currentTheme.colors.text,
+                            fontFamily: 'Raleway_500Medium',
+                          }
+                        ]}>
+                          {day.charAt(0).toUpperCase() + day.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
           </View>
 
           {/* Exercises Section */}
           <View style={[styles.section, { backgroundColor: currentTheme.colors.surface }]}>
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { 
-                color: currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
-              }]}>
-                Exercises ({exercises.length})
-              </Text>
-              
+            <Text style={[styles.sectionTitle, { 
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }]}>
+              Exercises ({exercises.length})
+            </Text>
+            
+            <View style={styles.exerciseActions}>
               <Button
                 title="Add Exercise"
                 onPress={handleAddExercise}
                 variant="primary"
-                size="small"
+                size="medium"
                 hapticType="light"
+                style={styles.fullWidthButton}
               />
+              {onDelete && !isCreating && (
+                <Button
+                  title="Delete Workout"
+                  onPress={onDelete}
+                  variant="subtle"
+                  size="medium"
+                  hapticType="light"
+                  style={styles.fullWidthButton}
+                />
+              )}
             </View>
 
             {exercises.length === 0 ? (
@@ -312,14 +449,14 @@ export default function BrowseWorkoutEditModal({
                           style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
                           activeOpacity={0.6}
                         >
-                          <Ionicons name="pencil" size={16} color={currentTheme.colors.text} style={{ opacity: 0.7 }} />
+                          <Ionicons name="create-outline" size={14} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={() => handleDeleteExercise(index)}
                           style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
                           activeOpacity={0.6}
                         >
-                          <Ionicons name="trash-outline" size={16} color={currentTheme.colors.text} style={{ opacity: 0.7 }} />
+                          <Ionicons name="remove-outline" size={14} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -381,7 +518,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  headerSpacer: {
+    flex: 1,
+  },
   saveButton: {
+    padding: 8,
+    marginRight: -8,
+  },
+  saveButtonContainer: {
+    marginRight: -8,
+  },
+  createNewButton: {
     padding: 8,
     marginRight: -8,
   },
@@ -405,6 +552,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  exerciseActions: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  fullWidthButton: {
+    width: '100%',
   },
   sectionTitle: {
     fontSize: 16,
@@ -433,6 +591,23 @@ const styles = StyleSheet.create({
   numberInput: {
     width: 100,
   },
+  daySelector: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  dayButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  dayButtonText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
   emptyExercises: {
     alignItems: 'center',
     paddingVertical: 40,
@@ -451,7 +626,6 @@ const styles = StyleSheet.create({
   },
   exerciseItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 12,
@@ -462,22 +636,19 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   exerciseName: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
     marginBottom: 2,
   },
   exerciseDetails: {
-    fontSize: 12,
+    fontSize: 11,
   },
-  exerciseActions: {
-    flexDirection: 'row',
-    gap: 4,
-  },
+
   actionButton: {
-    padding: 8,
-    borderRadius: 6,
-    minWidth: 28,
-    minHeight: 28,
+    padding: 6,
+    borderRadius: 4,
+    minWidth: 24,
+    minHeight: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,5 +1,6 @@
 import Card from '@/components/Card';
 import AppInfoSection from '@/components/profile/AppInfoSection';
+import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
@@ -92,6 +93,11 @@ export default function ProfileScreen() {
         {/* Workout Filters Section */}
         <WorkoutFiltersSection 
           onFiltersUpdate={loadUserData}
+        />
+
+        {/* Lift Display Preferences Section */}
+        <LiftDisplayPreferencesSection 
+          onPreferencesUpdate={loadUserData}
         />
 
         {/* Weight Unit Preference Section */}

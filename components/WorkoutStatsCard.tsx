@@ -7,7 +7,7 @@ import { useUser } from '@/hooks/useUser';
 import playHapticFeedback from '@/lib/haptic';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
-import { isMainLift, MainLiftType, UserProgress } from '@/types';
+import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -37,14 +37,14 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const handleCardPress = () => {
     playHapticFeedback('medium', false);
     playForwardMinimal();
-    if (isMainLift(workoutId)) {
+    if (isFeaturedLift(workoutId)) {
       setModalVisible(true);
     }
   };
 
   return (
     <>
-      <TouchableOpacity onPress={handleCardPress} activeOpacity={isMainLift(workoutId) ? 0.7 : 1}>
+      <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
             <Text style={[
@@ -68,7 +68,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                   {strengthLevel}
                 </Text>
               </View>
-              {isMainLift(workoutId) && (
+              {isFeaturedLift(workoutId) && (
                 <Text style={[styles.tapHint, { color: currentTheme.colors.text + '60' }]}>
                   Tap for details
                 </Text>
@@ -141,11 +141,11 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
         </Card>
       </TouchableOpacity>
 
-      {isMainLift(workoutId) && (
+      {isFeaturedLift(workoutId) && (
         <LiftProgressionModal
           visible={modalVisible}
           onClose={() => setModalVisible(false)}
-          liftId={workoutId as MainLiftType}
+          liftId={workoutId as FeaturedLiftType}
           workoutName={workout?.name || 'Lift'}
         />
       )}

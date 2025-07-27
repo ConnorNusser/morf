@@ -4,7 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
-import { MainLiftType, UserLift, UserProfile, UserProgress } from '@/types';
+import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -12,7 +12,7 @@ import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 interface LiftProgressionModalProps {
   visible: boolean;
   onClose: () => void;
-  liftId: MainLiftType;
+  liftId: FeaturedLiftType;
   workoutName: string;
 }
 
@@ -43,8 +43,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     try {
       setIsLoading(true);
       const [data, rawData, profile] = await Promise.all([
-        userService.getAllLiftsById(liftId),
-        userService.getRawLiftsById(liftId),
+        userService.getAllLiftsForFeaturedExercise(liftId),
+        userService.getRawLiftsForFeaturedExercise(liftId),
         userService.getUserProfileOrDefault()
       ]);
       

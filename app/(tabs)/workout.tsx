@@ -5,12 +5,14 @@ import PreviousWorkoutCard from '@/components/PreviousWorkoutCard';
 import PreviousWorkoutDetailsModal from '@/components/PreviousWorkoutDetailsModal';
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import BrowseSection from '@/components/routine/BrowseSection';
-import BrowseWorkoutsModal from '@/components/routine/BrowseWorkoutsModal';
 import MyRoutinesSection from '@/components/routine/MyRoutinesSection';
 import RoutinesModal from '@/components/routine/RoutinesModal';
+import UnifiedWorkoutBrowserModal from '@/components/routine/UnifiedWorkoutBrowserModal';
+import UnifiedWorkoutEditorModal from '@/components/routine/UnifiedWorkoutEditorModal';
 import { Text, View } from '@/components/Themed';
 import WorkoutModal from '@/components/WorkoutModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWorkout } from '@/contexts/WorkoutContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { aiWorkoutService } from '@/lib/aiWorkoutService';
@@ -27,6 +29,7 @@ export default function WorkoutScreen() {
   const { 
     activeSession, 
     openWorkoutModal: openGlobalWorkoutModal  } = useWorkoutSessionContext();
+  const { createWorkout: createStandaloneWorkout } = useWorkout();
   
   const [workoutModalVisible, setWorkoutModalVisible] = useState(false);
   const [previousWorkoutModalVisible, setPreviousWorkoutModalVisible] = useState(false);
@@ -39,6 +42,9 @@ export default function WorkoutScreen() {
   const [routinesModalVisible, setRoutinesModalVisible] = useState(false);
   const [browseWorkoutsModalVisible, setBrowseWorkoutsModalVisible] = useState(false);
   const [browseForImportVisible, setBrowseForImportVisible] = useState(false);
+  const [createWorkoutModalVisible, setCreateWorkoutModalVisible] = useState(false);
+  const [editWorkoutModalVisible, setEditWorkoutModalVisible] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState<GeneratedWorkout | null>(null);
   const [selectedDay, setSelectedDay] = useState(0); // Track selected day from routine scheduler
   const [selectedDayName, setSelectedDayName] = useState('Monday'); // Track selected day name
 
@@ -256,6 +262,50 @@ export default function WorkoutScreen() {
     setGeneratedWorkout(workout);
     setBrowseForImportVisible(false);
     setWorkoutModalVisible(true);
+  };
+
+  const handleCreateNewWorkout = () => {
+    setCreateWorkoutModalVisible(true);
+  };
+
+  const handleSaveNewWorkout = async (workoutData: Partial<GeneratedWorkout>) => {
+    try {
+      // Create the workout using the workout context
+      await createStandaloneWorkout(workoutData as GeneratedWorkout);
+      setCreateWorkoutModalVisible(false);
+      
+      // Optionally, import the new workout into the generate modal
+      if (workoutData.id) {
+        const newWorkout = workoutData as GeneratedWorkout;
+        setGeneratedWorkout(newWorkout);
+        setWorkoutModalVisible(true);
+      }
+    } catch (error) {
+      console.error('Error creating workout:', error);
+    }
+  };
+
+  const handleEditWorkout = (workout: GeneratedWorkout) => {
+    setEditingWorkout(workout);
+    setBrowseWorkoutsModalVisible(false);
+    setTimeout(() => setEditWorkoutModalVisible(true), 100);
+  };
+
+  const handleSaveEditedWorkout = async (workoutData: Partial<GeneratedWorkout>) => {
+    try {
+      if (editingWorkout) {
+        const updatedWorkout = { ...editingWorkout, ...workoutData };
+        await createStandaloneWorkout(updatedWorkout);
+        setEditWorkoutModalVisible(false);
+        setEditingWorkout(null);
+      }
+    } catch (error) {
+      console.error('Error updating workout:', error);
+    }
+  };
+
+  const handleDeleteWorkoutFromBrowser = async (workoutId: string, workoutTitle: string) => {
+    // This will be handled by the UnifiedWorkoutBrowserModal itself
   };
 
   const handleStartSelectedDayWorkout = async () => {
@@ -509,18 +559,52 @@ export default function WorkoutScreen() {
         }}
       />
 
-      <BrowseWorkoutsModal
+      <UnifiedWorkoutBrowserModal
         visible={browseWorkoutsModalVisible}
         onClose={() => setBrowseWorkoutsModalVisible(false)}
         onImportWorkout={handleImportWorkout}
+        onEditWorkout={handleEditWorkout}
+        source="standalone"
+        mode="browse"
+        showCreateNew={true}
+        onCreateNew={handleCreateNewWorkout}
       />
 
-      {/* Separate BrowseWorkoutsModal for importing into WorkoutModal */}
-      <BrowseWorkoutsModal
+      {/* Separate unified browser for importing into WorkoutModal */}
+      <UnifiedWorkoutBrowserModal
         visible={browseForImportVisible}
         onClose={() => setBrowseForImportVisible(false)}
         onImportWorkout={handleImportForEditing}
         title="Import Workout to Edit"
+        source="standalone"
+        mode="import"
+        showCreateNew={true}
+        onCreateNew={handleCreateNewWorkout}
+      />
+
+      {/* Create New Workout Modal */}
+      <UnifiedWorkoutEditorModal
+        visible={createWorkoutModalVisible}
+        onClose={() => setCreateWorkoutModalVisible(false)}
+        onSave={handleSaveNewWorkout}
+        workout={null}
+        mode="create"
+        title="Create New Workout"
+        saveButtonText="Create Workout"
+      />
+
+      {/* Edit Workout Modal */}
+      <UnifiedWorkoutEditorModal
+        visible={editWorkoutModalVisible}
+        onClose={() => {
+          setEditWorkoutModalVisible(false);
+          setEditingWorkout(null);
+        }}
+        onSave={handleSaveEditedWorkout}
+        workout={editingWorkout}
+        mode="edit"
+        title="Edit Workout"
+        saveButtonText="Save Changes"
       />
     </>
   );

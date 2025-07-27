@@ -40,61 +40,54 @@ export default function MyRoutinesSection({
     <View style={[styles.myRoutinesContainer, { backgroundColor: 'transparent', overflow: 'visible' }]}>
       {/* Header Section */}
       <View style={styles.headerSection}>
-        <Text style={[
-          styles.sectionTitle,
-          {
-            color: currentTheme.colors.text,
-            fontFamily: 'Raleway_500Medium',
-          }
-        ]}>
-          My Routines
-        </Text>
+        <View style={styles.headerRow}>
+          <Text style={[
+            styles.sectionTitle,
+            {
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_500Medium',
+            }
+          ]}>
+            My Routines
+          </Text>
+          
+          {/* Compact Routine Selector */}
+          {currentRoutine && (
+            <TouchableOpacity
+              onPress={handleToggleSelector}
+              style={[styles.compactRoutineSelector, {
+                backgroundColor: currentTheme.colors.surface,
+                borderColor: currentTheme.colors.border,
+              }]}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.compactRoutineText, {
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_500Medium',
+              }]} numberOfLines={1}>
+                {currentRoutine.name}
+              </Text>
+              <Ionicons 
+                name={showRoutineSelector ? "chevron-up" : "chevron-down"} 
+                size={16} 
+                color={currentTheme.colors.text} 
+                style={{ opacity: 0.6 }}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
         
-        {/* Current Routine Card */}
-        {currentRoutine ? (
+        {/* Create First Routine Card - only show when no routine */}
+        {!currentRoutine && (
           <TouchableOpacity
-            onPress={handleToggleSelector}
-            style={[styles.currentRoutineCard, {
+            onPress={handleCreateNewRoutine}
+            style={[styles.createFirstRoutineCard, {
               backgroundColor: currentTheme.colors.surface,
             }]}
             activeOpacity={0.8}
           >
-            <View style={styles.routineCardContent}>
-              <View style={styles.routineInfo}>
-                <Text style={[styles.currentRoutineTitle, {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
-                }]}>
-                  {currentRoutine.name}
-                </Text>
-                <Text style={[styles.currentRoutineSubtitle, {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_400Regular',
-                  opacity: 0.7,
-                }]}>
-                  {currentRoutine.exercises.length} workout{currentRoutine.exercises.length !== 1 ? 's' : ''}
-                </Text>
-              </View>
-              <View style={styles.routineCardActions}>
-                <Ionicons 
-                  name={showRoutineSelector ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={currentTheme.colors.text} 
-                  style={{ opacity: 0.6 }}
-                />
-              </View>
-            </View>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity
-            onPress={handleCreateNewRoutine}
-            style={[styles.createFirstRoutineCard, {
-              backgroundColor: currentTheme.colors.primary + '15',
-            }]}
-            activeOpacity={0.8}
-          >
             <View style={styles.createCardContent}>
-              <Ionicons name="add-circle" size={32} color={currentTheme.colors.primary} />
+              <Ionicons name="add-circle-outline" size={32} color={currentTheme.colors.primary} />
               <Text style={[styles.createCardTitle, {
                 color: currentTheme.colors.text,
                 fontFamily: 'Raleway_600SemiBold',
@@ -106,33 +99,34 @@ export default function MyRoutinesSection({
                 fontFamily: 'Raleway_400Regular',
                 opacity: 0.7,
               }]}>
-                Get started with a personalized workout plan
+                Build a custom workout plan
               </Text>
             </View>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Routine Selector Cards */}
+      {/* Compact Routine Selector Dropdown */}
       {showRoutineSelector && (
         <View style={[styles.routineSelectorContainer, {
-          backgroundColor: currentTheme.colors.background,
+          backgroundColor: currentTheme.colors.surface,
         }]}>
           {/* Create New Button */}
           <TouchableOpacity
-            onPress={handleCreateNewRoutine}
-            style={[styles.createRoutineCard, {
-              backgroundColor: currentTheme.colors.primary + '15',
-            }]}
-            activeOpacity={0.8}
+            onPress={() => {
+              setShowRoutineSelector(false);
+              handleCreateNewRoutine();
+            }}
+            style={styles.createRoutineCard}
+            activeOpacity={0.6}
           >
             <View style={styles.createCardRow}>
-              <Ionicons name="add-circle-outline" size={24} color={currentTheme.colors.primary} />
+              <Ionicons name="add-outline" size={16} color={currentTheme.colors.primary} />
               <Text style={[styles.createCardText, {
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_600SemiBold',
+                fontFamily: 'Raleway_500Medium',
               }]}>
-                Create New Routine
+                Create New
               </Text>
             </View>
           </TouchableOpacity>
@@ -142,36 +136,29 @@ export default function MyRoutinesSection({
             <TouchableOpacity
               key={routine.id}
               onPress={() => handleSelectRoutine(routine)}
-              style={[
-                styles.routineOptionCard,
-                {
-                  backgroundColor: currentRoutine?.id === routine.id 
-                    ? currentTheme.colors.primary + '15' 
-                    : currentTheme.colors.surface,
-                }
-              ]}
-              activeOpacity={0.8}
+              style={styles.routineOptionCard}
+              activeOpacity={0.6}
             >
               <View style={styles.routineOptionContent}>
                 <View style={styles.routineOptionInfo}>
                   <Text style={[styles.routineOptionTitle, {
-                    color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_600SemiBold',
+                    color: currentRoutine?.id === routine.id 
+                      ? currentTheme.colors.primary 
+                      : currentTheme.colors.text,
+                    fontFamily: 'Raleway_500Medium',
                   }]}>
                     {routine.name}
                   </Text>
                   <Text style={[styles.routineOptionSubtitle, {
                     color: currentTheme.colors.text,
                     fontFamily: 'Raleway_400Regular',
-                    opacity: 0.7,
+                    opacity: 0.6,
                   }]}>
-                    {routine.exercises.length} workout{routine.exercises.length !== 1 ? 's' : ''} • Created {new Date(routine.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    {routine.exercises.length} workout{routine.exercises.length !== 1 ? 's' : ''}
                   </Text>
                 </View>
                 {currentRoutine?.id === routine.id && (
-                  <View style={[styles.selectedBadge, { backgroundColor: currentTheme.colors.primary }]}>
-                    <Ionicons name="checkmark" size={16} color={currentTheme.colors.background} />
-                  </View>
+                  <Ionicons name="checkmark-outline" size={16} color={currentTheme.colors.primary} />
                 )}
               </View>
             </TouchableOpacity>
@@ -207,14 +194,34 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   headerSection: {
-    marginBottom: 16,
+    marginBottom: 12,
     position: 'relative',
     zIndex: 10,
     overflow: 'visible',
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   sectionTitle: {
     fontSize: 18,
-    marginBottom: 12,
+  },
+  compactRoutineSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    maxWidth: 220,
+  },
+  compactRoutineText: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginRight: 6,
+    flex: 1,
   },
   currentRoutineCard: {
     flexDirection: 'row',
@@ -250,71 +257,72 @@ const styles = StyleSheet.create({
   createFirstRoutineCard: {
     flexDirection: 'column',
     alignItems: 'center',
-    padding: 32, // Much more padding
-    borderRadius: 16,
-    borderWidth: 0, // Remove border
-    backgroundColor: 'transparent', // Will be set dynamically
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    marginTop: 8,
   },
   createCardContent: {
     alignItems: 'center',
   },
   createCardTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginTop: 16, // More space from icon
+    marginTop: 12,
     marginBottom: 4,
   },
   createCardSubtitle: {
-    fontSize: 15,
+    fontSize: 13,
     marginTop: 4,
     textAlign: 'center',
   },
   routineSelectorContainer: {
     position: 'absolute',
-    top: 110, // Adjust based on new header height
+    top: 70,
     left: 0,
     right: 0,
-    maxWidth: 360, // Slightly wider
-    borderRadius: 16, // More rounded
-    borderWidth: 0, // Remove border
-    marginTop: 8,
+    maxWidth: 360,
+    borderRadius: 12,
+    borderWidth: 0,
+    marginTop: 4,
     zIndex: 1000,
     elevation: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     alignSelf: 'center',
-    padding: 16, // Add internal padding
+    padding: 16,
   },
   createRoutineCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18, // More padding
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 0, // Remove border
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 6,
+    borderWidth: 0,
     marginBottom: 12,
-    backgroundColor: 'transparent', // Will be set dynamically
+    backgroundColor: 'transparent',
   },
   createCardRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   createCardText: {
-    fontSize: 17, // Larger text
-    marginLeft: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    marginLeft: 6,
+    fontWeight: '500',
   },
   routineOptionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 18, // More padding
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 0, // Remove border completely
-    marginBottom: 12,
-    backgroundColor: 'transparent', // Will be set dynamically
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 6,
+    borderWidth: 0,
+    marginBottom: 8,
+    backgroundColor: 'transparent',
   },
   routineOptionContent: {
     flexDirection: 'row',
@@ -324,28 +332,20 @@ const styles = StyleSheet.create({
   },
   routineOptionInfo: {
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
   },
   routineOptionTitle: {
-    fontSize: 16, // Increased from 14 for better readability
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
   },
   routineOptionSubtitle: {
-    fontSize: 14, // Increased from 12
-  },
-  selectedBadge: {
-    width: 20, // Slightly smaller
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 12, // Use margin instead of absolute positioning
+    fontSize: 12,
   },
   emptyRoutinesState: {
-    paddingVertical: 24, // Increased from 20
+    paddingVertical: 16,
     alignItems: 'center',
   },
   emptyRoutinesText: {
-    fontSize: 16, // Increased from 14 for better readability
+    fontSize: 13,
   },
 }); 

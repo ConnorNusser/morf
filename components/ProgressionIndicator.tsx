@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { FEMALE_STANDARDS, MALE_STANDARDS } from '@/lib/strengthStandards';
 import { convertWeightForPreference } from '@/lib/utils';
-import { Gender, MainLiftType } from '@/types';
+import { FeaturedLiftType, Gender } from '@/types';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
@@ -10,7 +10,7 @@ interface ProgressionIndicatorProps {
   bodyWeight: number;
   gender: Gender;
   age: number;
-  liftId: MainLiftType;
+  liftId: FeaturedLiftType;
   weightUnit: 'lbs' | 'kg';
 }
 
