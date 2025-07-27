@@ -111,21 +111,23 @@ export default function HomeScreen() {
 
           {userProgress.length > 0 && (
             <>
-              <Text style={[
-                styles.sectionTitle, 
-                { 
-                  color: currentTheme.colors.text,
-                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
-                  marginBottom: 0,
-                }
-              ]}>
-                Your Lifts
-              </Text>
-              
-              <LiftDisplayFilter
-                availableLifts={userProgress}
-                onFiltersChanged={handleFiltersChanged}
-              />
+              <View>
+                <Text style={[
+                  styles.sectionTitle, 
+                  { 
+                    color: currentTheme.colors.text,
+                    fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
+                    marginBottom: 0,
+                  }
+                ]}>
+                  Your Lifts
+                </Text>
+                
+                <LiftDisplayFilter
+                  availableLifts={userProgress}
+                  onFiltersChanged={handleFiltersChanged}
+                />
+              </View>
               
               {filteredProgress.map((progress, index) => (
                 <WorkoutStatsCard key={progress.workoutId} stats={progress} />

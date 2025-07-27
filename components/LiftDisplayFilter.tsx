@@ -77,7 +77,12 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
   return (
     <View>
       <TouchableOpacity 
-        style={[styles.header, { borderBottomColor: currentTheme.colors.border + '30' }]}
+        style={[
+          styles.header, 
+          { 
+            borderBottomColor: currentTheme.colors.border + '30',
+          }
+        ]}
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
