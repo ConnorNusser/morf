@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   prLabel: {
     fontSize: 12,
     opacity: 0.7,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   prValue: {
     fontSize: 24,
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   percentileLabel: {
     fontSize: 12,
     opacity: 0.7,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   percentileValue: {
     fontSize: 24,

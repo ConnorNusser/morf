@@ -37,6 +37,11 @@ export default function HomeScreen() {
     applyFilters();
   }, [userProgress, liftFilters]);
 
+  // Update overall stats when filtered progress changes
+  useEffect(() => {
+    updateOverallStats();
+  }, [filteredProgress]);
+
   const loadUserData = async () => {
     try {
       // Ensure user profile exists (this will create default if needed)
@@ -50,15 +55,6 @@ export default function HomeScreen() {
       setUserProgress(userProgressData);
       setLiftFilters(savedFilters);
 
-      const percentiles = userProgressData.map(p => p.percentileRanking);
-      const calculatedPercentile = percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
-      const strengthLevel = calculatedPercentile > 0 ? getStrengthLevelName(calculatedPercentile) : 'Beginner';
-      setOverallStats({
-        overallPercentile: calculatedPercentile,
-        strengthLevel,
-        improvementTrend: 'improving',
-      });
-
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -71,6 +67,17 @@ export default function HomeScreen() {
       !liftFilters.hiddenLiftIds.includes(progress.workoutId)
     );
     setFilteredProgress(filtered);
+  };
+
+  const updateOverallStats = () => {
+    const percentiles = filteredProgress.map(p => p.percentileRanking);
+    const calculatedPercentile = percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
+    const strengthLevel = calculatedPercentile > 0 ? getStrengthLevelName(calculatedPercentile) : 'Beginner';
+    setOverallStats({
+      overallPercentile: calculatedPercentile,
+      strengthLevel,
+      improvementTrend: 'improving',
+    });
   };
 
   const handleFiltersChanged = (newFilters: LiftDisplayFilters) => {
@@ -109,6 +116,7 @@ export default function HomeScreen() {
                 { 
                   color: currentTheme.colors.text,
                   fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
+                  marginBottom: 0,
                 }
               ]}>
                 Your Lifts

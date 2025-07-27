@@ -3,15 +3,16 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
+import { storageService } from '@/lib/storage';
 import {
-  getThemeDisplayName,
-  getThemeRequirement,
-  isThemeUnlocked,
-  ThemeLevel
+    getThemeDisplayName,
+    getThemeRequirement,
+    isThemeUnlocked,
+    ThemeLevel
 } from '@/lib/userProfile';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';
-import { UserProgress } from '@/types';
+import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -20,14 +21,37 @@ export default function ThemeEvolutionSection() {
   const { currentTheme, currentThemeLevel, themes, setThemeLevel } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
+  const [filteredProgress, setFilteredProgress] = useState<UserProgress[]>([]);
+  const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
   const { play: playSelectionComplete } = useSound('selectionComplete');
+
   useEffect(() => {
-    const loadUserData = async () => {
-      const userProgress = await userService.getUsersTopLifts();
-      setUserProgress(userProgress);
-    };
     loadUserData();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [userProgress, liftFilters]);
+
+  const loadUserData = async () => {
+    try {
+      const [userProgressData, savedFilters] = await Promise.all([
+        userService.getAllFeaturedLifts(),
+        storageService.getLiftDisplayFilters()
+      ]);
+      setUserProgress(userProgressData);
+      setLiftFilters(savedFilters);
+    } catch (error) {
+      console.error('Error loading theme evolution data:', error);
+    }
+  };
+
+  const applyFilters = () => {
+    const filtered = userProgress.filter(progress => 
+      !liftFilters.hiddenLiftIds.includes(progress.workoutId)
+    );
+    setFilteredProgress(filtered);
+  };
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
@@ -42,7 +66,7 @@ export default function ThemeEvolutionSection() {
   };
 
   const isThemeAvailable = (level: ThemeLevel) => {
-    const percentiles = userProgress.map(p => p.percentileRanking);
+    const percentiles = filteredProgress.map(p => p.percentileRanking);
     const calculatedPercentile = percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
     return isThemeUnlocked(level, calculatedPercentile);
   };
