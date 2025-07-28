@@ -186,10 +186,10 @@ class StorageService {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.SHARE_COUNT);
       // Default to 10 for testing, change to 0 for production
-      return data ? JSON.parse(data) : 10;
+      return data ? JSON.parse(data) : 0;
     } catch (error) {
       console.error('Error loading share count:', error);
-      return 10; // Default for testing
+      return 0; // Default for testing
     }
   }
 
