@@ -56,6 +56,16 @@ export const THEME_CONFIG: Record<ThemeLevel, {
     requiredPercentile: 90,
     description: 'Requires 90th percentile',
   },
+  share_warm: {
+    displayName: 'Dream Land',
+    requiredPercentile: -1, // Special value for shareable themes
+    description: '🍭 Share to unlock (1 share needed)',
+  },
+  share_cool: {
+    displayName: 'Anime Night',
+    requiredPercentile: -1, // Special value for shareable themes
+    description: '🌙 Share to unlock (3 shares needed)',
+  },
 };
 
 // Get theme display name
@@ -73,8 +83,16 @@ export const getThemeRequiredPercentile = (level: ThemeLevel): number => {
   return THEME_CONFIG[level].requiredPercentile;
 };
 
-// Check if theme is unlocked based on user's percentile
-export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number): boolean => {
+// Check if theme is unlocked based on user's percentile or share status
+export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, shareCount: number = 0): boolean => {
+  // For shareable themes, check share count milestones
+  if (level === 'share_warm') {
+    return shareCount >= 1; // Bauhaus unlocks at 1 share
+  }
+  if (level === 'share_cool') {
+    return shareCount >= 3; // Uncle Iroh unlocks at 3 shares
+  }
+  // For fitness themes, check percentile
   return userPercentile >= getThemeRequiredPercentile(level);
 };
 
@@ -86,6 +104,8 @@ export const getThemeOrder = (level: ThemeLevel): number => {
     advanced: 3,
     elite: 4,
     god: 5,
+    share_warm: 6,  // Shareable themes come after fitness themes
+    share_cool: 7,
   };
   return order[level];
 };

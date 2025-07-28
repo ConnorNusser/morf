@@ -44,9 +44,9 @@ export const themes: Record<ThemeLevel, Theme> = {
   intermediate: {
     name: 'intermediate',
     colors: {
-      background: '#FAFAFA',    // Very light gray background (previously advanced)
+      background: '#FAFAFA',    // Very light gray background
       text: '#1D1D1F',          // Dark iOS-like text
-      primary: '#007AFF',       // iOS blue (was advanced primary)
+      primary: '#007AFF',       // iOS blue
       secondary: '#F5F5F5',     // Light gray cards
       accent: '#34C759',        // iOS green accent
       surface: '#FFFFFF',       // White cards
@@ -56,7 +56,7 @@ export const themes: Record<ThemeLevel, Theme> = {
       fontFamily: 'System',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 10,  // Keeping the previous advanced radius
+    borderRadius: 10,
   },
   
   // iOS-inspired - Clean, minimal, professional (now advanced)
@@ -114,6 +114,44 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Raleway_600SemiBold',
     },
     borderRadius: 8,
+  },
+
+  // Shareable Cotton Candy - Soft pastel dreamland
+  share_warm: {
+    name: 'share_warm',
+    colors: {
+      background: '#FFF0F5',    // Soft lavender blush
+      text: '#8B4A8C',          // Soft purple text
+      primary: '#FF69B4',       // Hot pink primary
+      secondary: '#FFE4E1',     // Misty rose surface
+      accent: '#87CEEB',        // Sky blue accent
+      surface: '#FFFFFF',       // Pure white cards
+      border: '#DDA0DD',        // Plum border
+    },
+    properties: {
+      fontFamily: 'System',
+      headingFontFamily: 'Raleway_600SemiBold',
+    },
+    borderRadius: 20, // Extra rounded for soft aesthetic
+  },
+
+  // Shareable Anime Night - Dark anime-inspired aesthetics
+  share_cool: {
+    name: 'share_cool',
+    colors: {
+      background: '#0D1421',    // Deep midnight blue
+      text: '#E8E8FF',          // Soft white with blue tint
+      primary: '#6366F1',       // Electric indigo primary
+      secondary: '#1E293B',     // Dark slate surface
+      accent: '#F59E0B',        // Bright amber accent
+      surface: '#1F2937',       // Dark gray cards
+      border: '#4F46E5',        // Electric purple border
+    },
+    properties: {
+      fontFamily: 'System',
+      headingFontFamily: 'Raleway_700Bold', // Bold for dramatic effect
+    },
+    borderRadius: 8, // Moderate rounding for modern anime feel
   },
 };
 

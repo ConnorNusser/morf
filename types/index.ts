@@ -9,7 +9,7 @@ export type WeightUnit = 'lbs' | 'kg';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Theme progression levels
-export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god';
+export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool';
 
 // ===== EXERCISE TYPES =====
 

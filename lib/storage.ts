@@ -15,7 +15,8 @@ const STORAGE_KEYS = {
   ROUTINES: 'routines',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
-
+  APP_SHARED: 'app_shared', // Added for app share status
+  SHARE_COUNT: 'share_count', // Added for share count tracking
 } as const;
 
 export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences, WorkoutFilters };
@@ -145,6 +146,50 @@ class StorageService {
     } catch (error) {
       console.error('Error loading theme preference:', error);
       return 'beginner';
+    }
+  }
+
+  // App Share Status (for unlocking shareable themes)
+  async setAppShared(shared: boolean = true): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.APP_SHARED, JSON.stringify(shared));
+    } catch (error) {
+      console.error('Error saving app share status:', error);
+    }
+  }
+
+  async getAppShared(): Promise<boolean> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.APP_SHARED);
+      // Default to true for testing, change to false for production
+      return data ? JSON.parse(data) : true; 
+    } catch (error) {
+      console.error('Error loading app share status:', error);
+      return true; // Default to true for testing
+    }
+  }
+
+  // Share count tracking for theme milestones
+  async incrementShareCount(): Promise<number> {
+    try {
+      const currentCount = await this.getShareCount();
+      const newCount = currentCount + 1;
+      await AsyncStorage.setItem(STORAGE_KEYS.SHARE_COUNT, JSON.stringify(newCount));
+      return newCount;
+    } catch (error) {
+      console.error('Error incrementing share count:', error);
+      return 0;
+    }
+  }
+
+  async getShareCount(): Promise<number> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.SHARE_COUNT);
+      // Default to 10 for testing, change to 0 for production
+      return data ? JSON.parse(data) : 10;
+    } catch (error) {
+      console.error('Error loading share count:', error);
+      return 10; // Default for testing
     }
   }
 
