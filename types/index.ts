@@ -11,15 +11,6 @@ export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'frida
 // Theme progression levels
 export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god';
 
-// Shareable/Premium themes unlocked via social actions
-export type ShareableThemeLevel = 'neon' | 'retro' | 'cosmic' | 'forest' | 'ocean';
-
-// Combined theme types
-export type AllThemeLevel = ThemeLevel | ShareableThemeLevel;
-
-// Theme unlock mechanism
-export type ThemeUnlockType = 'fitness' | 'share' | 'premium';
-
 // ===== EXERCISE TYPES =====
 
 // Exercise categories

@@ -80,11 +80,9 @@ export default function ProfileScreen() {
         <DashboardHeader />
         
         {/* Weekly Overview */}
-        <View style={styles.weeklyOverviewContainer}>
-          <WeeklyOverview 
-            workoutHistory={workoutHistory}
-          />
-        </View>
+        <WeeklyOverview 
+          workoutHistory={workoutHistory}
+        />
 
         {/* Header */}
         <Card style={styles.headerCard} variant="subtle">
@@ -198,9 +196,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     marginTop: 24,
-  },
-  weeklyOverviewContainer: {
-    marginTop: -8, // Reduces gap from DashboardHeader's 16px bottom padding to 8px total
   },
 
 }); 

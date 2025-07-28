@@ -1,9 +1,9 @@
-import { AllThemeLevel, ShareableThemeLevel, ThemeLevel, ThemeUnlockType } from '@/types';
+import { ThemeLevel } from '@/types';
 
-export { AllThemeLevel, ShareableThemeLevel, ThemeLevel, ThemeUnlockType };
+export { ThemeLevel };
 
 export interface Theme {
-  name: AllThemeLevel;
+  name: ThemeLevel;
   colors: {
     background: string;
     text: string;
@@ -18,9 +18,6 @@ export interface Theme {
     headingFontFamily?: string;
   };
   borderRadius: number;
-  unlockType: ThemeUnlockType;
-  displayName: string;
-  description: string;
 }
 
 export const themes: Record<ThemeLevel, Theme> = {
@@ -41,9 +38,6 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Raleway_600SemiBold',
     },
     borderRadius: 16,  // Rounded, organic feeling
-    unlockType: 'fitness',
-    displayName: 'Beginner',
-    description: 'A warm, nature-inspired theme for beginners.',
   },
   
   // Clean Material Design - Soft, accessible (now intermediate)
@@ -63,9 +57,6 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Raleway_600SemiBold',
     },
     borderRadius: 10,  // Keeping the previous advanced radius
-    unlockType: 'fitness',
-    displayName: 'Intermediate',
-    description: 'A clean, accessible theme for intermediate users.',
   },
   
   // iOS-inspired - Clean, minimal, professional (now advanced)
@@ -85,9 +76,6 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Raleway_600SemiBold',
     },
     borderRadius: 12,  // Slightly larger radius for dark theme
-    unlockType: 'fitness',
-    displayName: 'Advanced',
-    description: 'A dark, professional theme for advanced users.',
   },
   
   // ARCTIC ICE - Frozen mastery with elite darkness (now elite)
@@ -107,9 +95,6 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Karla_700Bold', // Bold Karla for consistent font family
     },
     borderRadius: 8,
-    unlockType: 'fitness',
-    displayName: 'Elite',
-    description: 'A frozen, elite theme for the most dedicated users.',
   },
   
   // Dark mode - Modern, sophisticated (now god)
@@ -129,129 +114,7 @@ export const themes: Record<ThemeLevel, Theme> = {
       headingFontFamily: 'Raleway_600SemiBold',
     },
     borderRadius: 8,
-    unlockType: 'fitness',
-    displayName: 'God',
-    description: 'A modern, sophisticated theme for the ultimate user.',
   },
-};
-
-// Shareable themes unlocked via social actions
-export const shareableThemes: Record<ShareableThemeLevel, Theme> = {
-  // NEON CYBERPUNK - Electric vibes
-  neon: {
-    name: 'neon',
-    colors: {
-      background: '#0A0A0F',
-      text: '#00FFFF',
-      primary: '#FF00FF',
-      secondary: '#1A1A2E',
-      accent: '#00FF41',
-      surface: '#16213E',
-      border: '#FF00FF',
-    },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_700Bold',
-    },
-    borderRadius: 6,
-    unlockType: 'share',
-    displayName: 'Neon Cyberpunk',
-    description: 'Electric vibes for digital natives. Share the app to unlock!',
-  },
-
-  // RETRO SUNSET - 80s aesthetic
-  retro: {
-    name: 'retro',
-    colors: {
-      background: '#2D1B69',
-      text: '#FFFFFF',
-      primary: '#F72585',
-      secondary: '#4C956C',
-      accent: '#FFD60A',
-      surface: '#3F2F7A',
-      border: '#B388EB',
-    },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_700Bold',
-    },
-    borderRadius: 20,
-    unlockType: 'share',
-    displayName: 'Retro Sunset',
-    description: '80s synthwave aesthetic. Share to unlock those nostalgic vibes!',
-  },
-
-  // COSMIC DREAM - Space theme
-  cosmic: {
-    name: 'cosmic',
-    colors: {
-      background: '#0B0E1A',
-      text: '#FFFFFF',
-      primary: '#6366F1',
-      secondary: '#1E1B4B',
-      accent: '#F59E0B',
-      surface: '#312E81',
-      border: '#4C1D95',
-    },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
-    },
-    borderRadius: 14,
-    unlockType: 'share',
-    displayName: 'Cosmic Dream',
-    description: 'Journey through the stars. Share to unlock the cosmos!',
-  },
-
-  // FOREST MYSTIC - Deep nature theme
-  forest: {
-    name: 'forest',
-    colors: {
-      background: '#1A2B1F',
-      text: '#E8F5E8',
-      primary: '#4ADE80',
-      secondary: '#0F3318',
-      accent: '#FCD34D',
-      surface: '#2D5A3A',
-      border: '#059669',
-    },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
-    },
-    borderRadius: 18,
-    unlockType: 'share',
-    displayName: 'Forest Mystic',
-    description: 'Embrace the wilderness within. Share to unlock nature\'s power!',
-  },
-
-  // OCEAN DEPTHS - Deep sea theme
-  ocean: {
-    name: 'ocean',
-    colors: {
-      background: '#0C1B2B',
-      text: '#E0F7FA',
-      primary: '#00BCD4',
-      secondary: '#1A3A52',
-      accent: '#FF7043',
-      surface: '#2E5A78',
-      border: '#0097A7',
-    },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
-    },
-    borderRadius: 12,
-    unlockType: 'share',
-    displayName: 'Ocean Depths',
-    description: 'Dive deep into tranquility. Share to unlock the abyss!',
-  },
-};
-
-// Combined themes for easy access
-export const allThemes: Record<AllThemeLevel, Theme> = {
-  ...themes,
-  ...shareableThemes,
 };
 
 export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
