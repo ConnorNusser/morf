@@ -1,16 +1,19 @@
 import { WorkoutSessionModalV2 } from '@/components/workoutsession';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useSound } from '@/hooks/useSound';
-import { ActiveWorkoutSession } from '@/types';
+import { ActiveWorkoutSession, convertActiveWorkoutSessionToGeneratedWorkout, GeneratedWorkout } from '@/types';
 import React, { useState } from 'react';
 import WorkoutCompletionModal from './WorkoutCompletionModal';
+import { useWorkout } from '@/contexts/WorkoutContext';
 
 export default function GlobalWorkoutSessionModal() {
   const { 
     isModalVisible, 
     generatedWorkout, 
-    closeWorkoutModal
+    closeWorkoutModal,
   } = useWorkoutSessionContext();
+
+  const { createWorkout: createStandaloneWorkout } = useWorkout();
 
   const { play: playSelectionComplete } = useSound('selectionComplete');
 
@@ -36,6 +39,15 @@ export default function GlobalWorkoutSessionModal() {
     closeWorkoutModal();
   };
 
+  const handleModalCloseAndSave = () => {
+    if (completedWorkoutData) {
+      createStandaloneWorkout(convertActiveWorkoutSessionToGeneratedWorkout(completedWorkoutData.session));
+    }
+    playSelectionComplete();
+    setCompletedWorkoutData(null);
+    closeWorkoutModal();
+  };
+
   // If workout is completed, show completion content, otherwise show workout session
   const isShowingCompletion = !!completedWorkoutData;
 
@@ -45,6 +57,7 @@ export default function GlobalWorkoutSessionModal() {
         <WorkoutCompletionModal
           visible={isModalVisible}
           onClose={handleModalClose}
+          onCloseAndSave={handleModalCloseAndSave}
           workoutSession={completedWorkoutData.session}
           workoutStats={completedWorkoutData.stats}
         />

@@ -11,6 +11,15 @@ export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'frida
 // Theme progression levels
 export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god';
 
+// Shareable/Premium themes unlocked via social actions
+export type ShareableThemeLevel = 'neon' | 'retro' | 'cosmic' | 'forest' | 'ocean';
+
+// Combined theme types
+export type AllThemeLevel = ThemeLevel | ShareableThemeLevel;
+
+// Theme unlock mechanism
+export type ThemeUnlockType = 'fitness' | 'share' | 'premium';
+
 // ===== EXERCISE TYPES =====
 
 // Exercise categories
@@ -174,6 +183,18 @@ export interface ActiveWorkoutSession {
   isCompleted: boolean;
   totalRestTime: number; // in seconds
 }
+
+export const convertActiveWorkoutSessionToGeneratedWorkout = (activeWorkoutSession: ActiveWorkoutSession): GeneratedWorkout => {
+  return {
+    id: activeWorkoutSession.id,
+    title: activeWorkoutSession.title,
+    exercises: activeWorkoutSession.exercises,
+    description: '',
+    estimatedDuration: 0,
+    difficulty: '',
+    createdAt: new Date(),
+  };
+};
 
 // ===== AI WORKOUT TYPES =====
 

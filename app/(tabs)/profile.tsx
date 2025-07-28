@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
@@ -6,18 +7,22 @@ import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import { Text, View } from '@/components/Themed';
+import WeeklyOverview from '@/components/WeeklyOverview';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/hooks/useUser';
+import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';
+import { GeneratedWorkout } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
   const { userProfile, isLoading, refreshProfile } = useUser();
   const [userPercentile, setUserPercentile] = useState(0);
+  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
 
   const loadUserData = async () => {
     try {
@@ -29,9 +34,20 @@ export default function ProfileScreen() {
     }
   };
 
+  const loadWorkoutHistory = async () => {
+    try {
+      const history = await storageService.getWorkoutHistory();
+      setWorkoutHistory(history);
+    } catch (error) {
+      console.error('Error loading workout history:', error);
+      setWorkoutHistory([]);
+    }
+  };
+
   useEffect(() => {
     if (userProfile) {
       loadUserData();
+      loadWorkoutHistory();
     }
   }, [userProfile]);
 
@@ -40,6 +56,7 @@ export default function ProfileScreen() {
     useCallback(() => {
       refreshProfile();
       loadUserData();
+      loadWorkoutHistory();
     }, [refreshProfile])
   );
 
@@ -59,6 +76,16 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+        {/* Morf Logo and Brand */}
+        <DashboardHeader />
+        
+        {/* Weekly Overview */}
+        <View style={styles.weeklyOverviewContainer}>
+          <WeeklyOverview 
+            workoutHistory={workoutHistory}
+          />
+        </View>
+
         {/* Header */}
         <Card style={styles.headerCard} variant="subtle">
           <Text style={[
@@ -68,7 +95,7 @@ export default function ProfileScreen() {
               fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
             }
           ]}>
-            Profile
+            Profile Settings
           </Text>
           <Text style={[
             styles.subtitle, 
@@ -154,8 +181,6 @@ const styles = StyleSheet.create({
   },
   headerCard: {
     alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 24,
   },
   title: {
     fontSize: 28,
@@ -167,6 +192,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     opacity: 0.8,
     textAlign: 'center',
+  },
+  sectionHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    marginTop: 24,
+  },
+  weeklyOverviewContainer: {
+    marginTop: -8, // Reduces gap from DashboardHeader's 16px bottom padding to 8px total
   },
 
 }); 

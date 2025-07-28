@@ -1,4 +1,4 @@
-import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters } from '@/types';
+import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters, WorkoutSetCompletion } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from './theme';
 
@@ -15,7 +15,8 @@ const STORAGE_KEYS = {
   ROUTINES: 'routines',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
-
+  SHARE_COUNT: 'share_count',
+  UNLOCKED_SHAREABLE_THEMES: 'unlocked_shareable_themes',
 } as const;
 
 export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences, WorkoutFilters };
@@ -145,6 +146,82 @@ class StorageService {
     } catch (error) {
       console.error('Error loading theme preference:', error);
       return 'beginner';
+    }
+  }
+
+  // Sharing and Shareable Themes
+  async incrementShareCount(): Promise<number> {
+    try {
+      const currentCount = await this.getShareCount();
+      const newCount = currentCount + 1;
+      await AsyncStorage.setItem(STORAGE_KEYS.SHARE_COUNT, newCount.toString());
+      
+      // Auto-unlock themes based on share count
+      await this.checkAndUnlockShareableThemes(newCount);
+      
+      return newCount;
+    } catch (error) {
+      console.error('Error incrementing share count:', error);
+      return 0;
+    }
+  }
+
+  async getShareCount(): Promise<number> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.SHARE_COUNT);
+      return data ? parseInt(data, 10) : 0;
+    } catch (error) {
+      console.error('Error loading share count:', error);
+      return 0;
+    }
+  }
+
+  async getUnlockedShareableThemes(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.UNLOCKED_SHAREABLE_THEMES);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading unlocked shareable themes:', error);
+      return [];
+    }
+  }
+
+  private async checkAndUnlockShareableThemes(shareCount: number): Promise<void> {
+    try {
+      const unlockedThemes = await this.getUnlockedShareableThemes();
+      const newUnlocks: string[] = [];
+
+      // Progressive unlock system based on shares
+      const unlockThresholds = {
+        neon: 1,      // First share unlocks Neon
+        retro: 3,     // 3 shares unlock Retro
+        cosmic: 5,    // 5 shares unlock Cosmic  
+        forest: 8,    // 8 shares unlock Forest
+        ocean: 12,    // 12 shares unlock Ocean
+      };
+
+      for (const [theme, threshold] of Object.entries(unlockThresholds)) {
+        if (shareCount >= threshold && !unlockedThemes.includes(theme)) {
+          newUnlocks.push(theme);
+        }
+      }
+
+      if (newUnlocks.length > 0) {
+        const updatedUnlocked = [...unlockedThemes, ...newUnlocks];
+        await AsyncStorage.setItem(STORAGE_KEYS.UNLOCKED_SHAREABLE_THEMES, JSON.stringify(updatedUnlocked));
+      }
+    } catch (error) {
+      console.error('Error checking and unlocking shareable themes:', error);
+    }
+  }
+
+  async isShareableThemeUnlocked(themeLevel: string): Promise<boolean> {
+    try {
+      const unlockedThemes = await this.getUnlockedShareableThemes();
+      return unlockedThemes.includes(themeLevel);
+    } catch (error) {
+      console.error('Error checking if shareable theme is unlocked:', error);
+      return false;
     }
   }
 
@@ -310,12 +387,16 @@ class StorageService {
   async saveWorkoutRoutine(workout: GeneratedWorkout): Promise<void> {
     workout.createdAt = new Date();
     workout.exercises.forEach((exercise: WorkoutExerciseSession) => {
-      exercise.completedSets = [];
+      exercise.completedSets.forEach((set: WorkoutSetCompletion) => {
+        set.completed = false;
+      });
       exercise.isCompleted = false;
     });
 
     const workoutRoutines = await this.getWorkoutRoutines();
-    workoutRoutines.push(workout);
+    //filter out any workouts with the same id
+    const filtered = workoutRoutines.filter(w => w.id !== workout.id);
+    filtered.push(workout);
     await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(workoutRoutines));
   }
   

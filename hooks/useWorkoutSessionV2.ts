@@ -4,11 +4,11 @@ import { userService } from '@/lib/userService';
 import { getRecommendedWeight } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
 import {
-    ActiveWorkoutSession,
-    GeneratedWorkout,
-    isMainLift,
-    WeightUnit,
-    WorkoutSetCompletion
+  ActiveWorkoutSession,
+  GeneratedWorkout,
+  isMainLift,
+  WeightUnit,
+  WorkoutSetCompletion
 } from '@/types';
 import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
@@ -217,7 +217,7 @@ export const useWorkoutSession = () => {
 
       // Save completed workout to history
       await storageService.saveWorkout({
-        id: activeSession.workoutId,
+        id: activeSession.workoutId + new Date().getTime().toString(),
         title: activeSession.title,
         exercises: activeSession.exercises.map(ex => ({
           id: ex.id,

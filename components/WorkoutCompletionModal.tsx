@@ -10,6 +10,7 @@ import { Modal, ScrollView, StyleSheet } from 'react-native';
 interface WorkoutCompletionModalProps {
   visible: boolean;
   onClose: () => void;
+  onCloseAndSave: () => void;
   workoutSession: ActiveWorkoutSession | null;
   workoutStats: {
     duration: number;
@@ -22,6 +23,7 @@ interface WorkoutCompletionModalProps {
 export default function WorkoutCompletionModal({
   visible,
   onClose,
+  onCloseAndSave,
   workoutSession,
   workoutStats
 }: WorkoutCompletionModalProps) {
@@ -217,9 +219,17 @@ export default function WorkoutCompletionModal({
         {/* Bottom Actions */}
         <View style={[styles.bottomActions, { backgroundColor: 'transparent' }]}>
           <Button
-            title="Awesome!"
+            title="Finish!"
             onPress={onClose}
             variant="primary"
+            size="large"
+            style={styles.closeButton}
+            hapticType="light"
+          />
+          <Button
+            title="Save Workout to Library"
+            onPress={onCloseAndSave}
+            variant="secondary"
             size="large"
             style={styles.closeButton}
             hapticType="light"
@@ -320,8 +330,10 @@ const styles = StyleSheet.create({
   bottomActions: {
     padding: 20,
     paddingBottom: 40,
+    gap: 10,
   },
   closeButton: {
+    paddingTop: 10,
     width: '100%',
   },
   noExercisesContainer: {

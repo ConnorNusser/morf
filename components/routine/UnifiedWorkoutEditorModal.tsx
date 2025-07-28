@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { DAY_NAMES_INTERNAL } from '@/lib/day';
 import { getWorkoutById } from '@/lib/workouts';
 import { GeneratedWorkout, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,10 +31,6 @@ interface UnifiedWorkoutEditorModalProps {
   onDelete?: () => void;
 }
 
-const DAY_OPTIONS = [
-  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
-];
-
 export default function UnifiedWorkoutEditorModal({
   visible,
   onClose,
@@ -42,7 +39,7 @@ export default function UnifiedWorkoutEditorModal({
   mode = 'edit',
   assignToDayOfWeek,
   showDayOfWeekSelector = false,
-  availableDays = DAY_OPTIONS,
+  availableDays = DAY_NAMES_INTERNAL as unknown as string[],
   title,
   saveButtonText,
   showCreateNewButton = false,
@@ -56,9 +53,11 @@ export default function UnifiedWorkoutEditorModal({
   // Form state
   const [workoutTitle, setWorkoutTitle] = useState(() => workout?.title || '');
   const [description, setDescription] = useState(() => workout?.description || '');
-  const [estimatedDuration, setEstimatedDuration] = useState(() => (workout?.estimatedDuration || 45).toString());
   const [exercises, setExercises] = useState(() => workout?.exercises || []);
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(() => assignToDayOfWeek || workout?.dayOfWeek || '');
+  
+  // Calculate estimated duration: total sets × 3 minutes per set
+  const estimatedDuration = exercises.reduce((total, exercise) => total + (exercise?.sets || 0), 0) * 3;
   
   // Modal states
   const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
@@ -70,14 +69,12 @@ export default function UnifiedWorkoutEditorModal({
     if (workout) {
       setWorkoutTitle(workout.title || '');
       setDescription(workout.description || '');
-      setEstimatedDuration((workout.estimatedDuration || 45).toString());
       setExercises(workout.exercises || []);
       setSelectedDayOfWeek(assignToDayOfWeek || workout.dayOfWeek || '');
     } else {
       // Reset form for new workout
       setWorkoutTitle('');
       setDescription('');
-      setEstimatedDuration('45');
       setExercises([]);
       setSelectedDayOfWeek(assignToDayOfWeek || '');
     }
@@ -107,7 +104,7 @@ export default function UnifiedWorkoutEditorModal({
     const workoutData: Partial<GeneratedWorkout> = {
       title: workoutTitle.trim(),
       description: description.trim(),
-      estimatedDuration: parseInt(estimatedDuration) || 45,
+      estimatedDuration: estimatedDuration || 45,
       exercises,
       ...(isRoutineMode && selectedDayOfWeek && { dayOfWeek: selectedDayOfWeek as any }),
       ...(isCreating && { 
@@ -303,7 +300,15 @@ export default function UnifiedWorkoutEditorModal({
                 color: currentTheme.colors.text,
                 fontFamily: 'Raleway_500Medium',
               }]}>
-                Estimated Duration (minutes)
+                Estimated Duration (auto-calculated)
+              </Text>
+              <Text style={{ 
+                color: currentTheme.colors.text + '70',
+                fontFamily: 'Raleway_400Regular',
+                fontSize: 12,
+                marginBottom: 8,
+              }}>
+                3 minutes per set across all exercises
               </Text>
               <TextInput
                 style={[styles.textInput, styles.numberInput, { 
@@ -312,10 +317,10 @@ export default function UnifiedWorkoutEditorModal({
                   color: currentTheme.colors.text,
                   fontFamily: 'Raleway_400Regular',
                 }]}
-                placeholder="45"
+                placeholder="0"
                 placeholderTextColor={currentTheme.colors.text + '60'}
-                value={estimatedDuration}
-                onChangeText={setEstimatedDuration}
+                value={estimatedDuration.toString()}
+                editable={false}
                 keyboardType="numeric"
               />
             </View>
@@ -362,6 +367,17 @@ export default function UnifiedWorkoutEditorModal({
                 </ScrollView>
               </View>
             )}
+
+            {onDelete && !isCreating && (
+                <Button
+                  title="Delete Workout"
+                  onPress={onDelete}
+                  variant="subtle"
+                  size="medium"
+                  hapticType="light"
+                  style={styles.fullWidthButton}
+                />
+              )}
           </View>
 
           {/* Exercises Section */}
@@ -372,27 +388,6 @@ export default function UnifiedWorkoutEditorModal({
             }]}>
               Exercises ({exercises.length})
             </Text>
-            
-            <View style={styles.exerciseActions}>
-              <Button
-                title="Add Exercise"
-                onPress={handleAddExercise}
-                variant="primary"
-                size="medium"
-                hapticType="light"
-                style={styles.fullWidthButton}
-              />
-              {onDelete && !isCreating && (
-                <Button
-                  title="Delete Workout"
-                  onPress={onDelete}
-                  variant="subtle"
-                  size="medium"
-                  hapticType="light"
-                  style={styles.fullWidthButton}
-                />
-              )}
-            </View>
 
             {exercises.length === 0 ? (
               <View style={styles.emptyExercises}>
@@ -449,14 +444,14 @@ export default function UnifiedWorkoutEditorModal({
                           style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
                           activeOpacity={0.6}
                         >
-                          <Ionicons name="create-outline" size={14} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
+                          <Ionicons name="create-outline" size={20} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
                         </TouchableOpacity>
                         <TouchableOpacity
                           onPress={() => handleDeleteExercise(index)}
                           style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
                           activeOpacity={0.6}
                         >
-                          <Ionicons name="remove-outline" size={14} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
+                          <Ionicons name="remove-outline" size={20} color={currentTheme.colors.text} style={{ opacity: 0.6 }} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -464,6 +459,16 @@ export default function UnifiedWorkoutEditorModal({
                 })}
               </View>
             )}
+            <View style={styles.exerciseActions}> 
+              <Button
+                title="Add Exercise"
+                onPress={handleAddExercise}
+                variant="primary"
+                size="medium"
+                hapticType="light"
+                style={styles.fullWidthButton}
+              />
+            </View>
           </View>
         </ScrollView>
       </View>
@@ -558,8 +563,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   exerciseActions: {
+    flexDirection: 'row',
     gap: 12,
-    marginBottom: 16,
+    marginTop: 12,
   },
   fullWidthButton: {
     width: '100%',
@@ -636,7 +642,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   exerciseName: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '500',
     marginBottom: 2,
   },

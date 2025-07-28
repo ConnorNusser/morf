@@ -55,10 +55,7 @@ export default function MyRoutinesSection({
           {currentRoutine && (
             <TouchableOpacity
               onPress={handleToggleSelector}
-              style={[styles.compactRoutineSelector, {
-                backgroundColor: currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              }]}
+              style={styles.compactRoutineSelector}
               activeOpacity={0.8}
             >
               <Text style={[styles.compactRoutineText, {
@@ -121,12 +118,11 @@ export default function MyRoutinesSection({
             activeOpacity={0.6}
           >
             <View style={styles.createCardRow}>
-              <Ionicons name="add-outline" size={16} color={currentTheme.colors.primary} />
               <Text style={[styles.createCardText, {
                 color: currentTheme.colors.primary,
                 fontFamily: 'Raleway_500Medium',
               }]}>
-                Create New
+                Browse/Create Routine
               </Text>
             </View>
           </TouchableOpacity>
@@ -214,7 +210,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
     maxWidth: 220,
   },
   compactRoutineText: {
@@ -279,7 +274,7 @@ const styles = StyleSheet.create({
   },
   routineSelectorContainer: {
     position: 'absolute',
-    top: 70,
+    top: 40,
     left: 0,
     right: 0,
     maxWidth: 360,

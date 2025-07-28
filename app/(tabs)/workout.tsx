@@ -16,6 +16,7 @@ import { useWorkout } from '@/contexts/WorkoutContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { aiWorkoutService } from '@/lib/aiWorkoutService';
+import { DAY_NAMES_INTERNAL } from '@/lib/day';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { GeneratedWorkout, UserProgress, WorkoutSplit } from '@/types';
@@ -326,7 +327,7 @@ export default function WorkoutScreen() {
       }
 
       // Convert day index to day name for filtering
-      const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const dayNames = DAY_NAMES_INTERNAL as unknown as string[];
       const selectedDayNameLower = dayNames[selectedDay];
 
       // Find workouts for the selected day
@@ -604,7 +605,7 @@ export default function WorkoutScreen() {
         workout={editingWorkout}
         mode="edit"
         title="Edit Workout"
-        saveButtonText="Save Changes"
+        saveButtonText="Save"
       />
     </>
   );

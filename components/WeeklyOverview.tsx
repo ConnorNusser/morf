@@ -27,7 +27,6 @@ interface WeekData {
 
 export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) {
   const { currentTheme } = useTheme();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = current week, -1 = last week, +1 = next week
   const [modalVisible, setModalVisible] = useState(false);
   const [modalInvocationType, setModalInvocationType] = useState<'day' | 'week' | 'volume' | 'time'>('day');
@@ -223,7 +222,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     <>
       <Card variant="elevated" style={styles.container}>
         {/* Compact Header */}
-        <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)} style={styles.headerContainer}>
+        <View style={styles.headerContainer}>
           <View style={styles.header}>
             <Text style={[
               styles.title, 
@@ -245,26 +244,18 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               {formatDateRange(weekData.startDate, weekData.endDate)}
             </Text>
           </View>
-          <Ionicons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={currentTheme.colors.text}
-            style={styles.chevronIcon}
-          />
-        </TouchableOpacity>
+        </View>
 
         {/* Week Days with integrated navigation arrows */}
         <View style={styles.weekContainer}>
-          {/* Left Arrow - Only visible when expanded */}
-          {isExpanded ? (
-            <TouchableOpacity 
-              onPress={() => navigateWeek('prev')}
-              style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={16} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-          ) : <View style={styles.spacer} />}
+          {/* Left Arrow */}
+          <TouchableOpacity 
+            onPress={() => navigateWeek('prev')}
+            style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={16} color={currentTheme.colors.text} />
+          </TouchableOpacity>
           
           {/* Days */}
           <View style={styles.daysContainer}>
@@ -299,21 +290,18 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             ))}
           </View>
 
-          {/* Right Arrow - Only visible when expanded */}
-          {isExpanded ? (
-            <TouchableOpacity 
-              onPress={() => navigateWeek('next')}
-              style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-          ) : <View style={styles.spacer} />}
+          {/* Right Arrow */}
+          <TouchableOpacity 
+            onPress={() => navigateWeek('next')}
+            style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text} />
+          </TouchableOpacity>
         </View>
 
-        {/* Compact Stats - Only when expanded */}
-        {isExpanded && (
-          <View style={styles.statsContainer}>
+        {/* Compact Stats */}
+        <View style={styles.statsContainer}>
             <TouchableOpacity 
               style={styles.statItem} 
               onPress={handleWeekPress}
@@ -353,7 +341,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               </Text>
             </TouchableOpacity>
           </View>
-        )}
       </Card>
 
       <WeeklyOverviewModal

@@ -32,6 +32,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const [isLoading, setIsLoading] = useState(true);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [topLift, setTopLift] = useState<UserProgress | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -42,16 +43,21 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const loadLiftData = async () => {
     try {
       setIsLoading(true);
-      const [data, rawData, profile] = await Promise.all([
+      const [data, rawData, profile, allFeaturedLifts] = await Promise.all([
         userService.getAllLiftsForFeaturedExercise(liftId),
         userService.getRawLiftsForFeaturedExercise(liftId),
-        userService.getUserProfileOrDefault()
+        userService.getUserProfileOrDefault(),
+        userService.getAllFeaturedLifts()
       ]);
+      
+      // Use the same data source as the home screen for consistency
+      const topLift = allFeaturedLifts.find(lift => lift.workoutId === liftId) || null;
       
       setLiftData(data || []);
       setOriginalLiftData(rawData || []);
       setWeightUnit(profile.weightUnitPreference || 'lbs');
       setUserProfile(profile);
+      setTopLift(topLift);
       
       if (data && data.length > 0) {
         calculatePredictions(data);
@@ -77,7 +83,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     // Convert body weight to lbs for calculation
     const bodyWeightLbs = convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs');
-    const currentOneRMInDisplayUnits = convertWeightForPreference(currentData.personalRecord, 'lbs', weightUnit);
+    const currentOneRMInDisplayUnits = convertWeightForPreference(topLift?.personalRecord || 0, 'lbs', weightUnit);
 
     // Define targets in order
     const targets = [
@@ -92,10 +98,9 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
         const targetWeightLbs = bodyWeightLbs * target.multiplier;
         const targetInDisplayUnits = convertWeightForPreference(targetWeightLbs, 'lbs', weightUnit);
         
-        // Round to increment
-        const increment = weightUnit === 'kg' ? 2.5 : 5;
-        const roundedTarget = Math.round(targetInDisplayUnits / increment) * increment;
-        const roundedCurrent = Math.round(currentOneRMInDisplayUnits / increment) * increment;
+        // Use exact values for higher precision
+        const roundedTarget = targetInDisplayUnits;
+        const roundedCurrent = currentOneRMInDisplayUnits;
         
         const deficit = Math.max(0, roundedTarget - roundedCurrent);
         
@@ -113,7 +118,16 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
   // Asymptotic regression model for strength predictions
   const asymptoticRegression = (data: UserProgress[], targetDays: number): number => {
-    if (data.length < 3) return data[data.length - 1]?.personalRecord || 0;
+    if (data.length === 0) return 0;
+    if (data.length < 3) {
+      // Use simple linear extrapolation for insufficient data
+      const currentValue = data[data.length - 1].personalRecord;
+      if (data.length === 1) return currentValue; // No progression data
+      const firstValue = data[0].personalRecord;
+      const timeSpan = data.length;
+      const growthRate = (currentValue - firstValue) / timeSpan;
+      return Math.max(currentValue, currentValue + (growthRate * targetDays / 7));
+    }
     
     const values = data.map(d => d.personalRecord);
     const lastValue = values[values.length - 1];
@@ -134,7 +148,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
   // Exponential smoothing model
   const exponentialSmoothing = (data: UserProgress[], targetDays: number): number => {
-    if (data.length < 2) return data[data.length - 1]?.personalRecord || 0;
+    if (data.length === 0) return 0;
+    if (data.length === 1) return data[0].personalRecord; // No trend data
     
     const alpha = 0.3; // Smoothing factor
     let smoothedValue = data[0].personalRecord;
@@ -145,7 +160,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     
     // Project forward with trend
     const trend = (data[data.length - 1].personalRecord - smoothedValue) / data.length;
-    return smoothedValue + (trend * targetDays / 7); // Weekly trend
+    return Math.max(data[data.length - 1].personalRecord, smoothedValue + (trend * targetDays / 7)); // Weekly trend
   };
 
   const predictionModels: PredictionModel[] = [
@@ -222,7 +237,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     // Calculate 3-month prediction average
     const avg3MonthPrediction = Object.keys(predictions).length > 0 
       ? Math.round(predictionModels.reduce((sum, model) => {
-          return sum + (predictions[`${model.name}_90`] || currentData.personalRecord);
+          return sum + (predictions[`${model.name}_90`] || topLift?.personalRecord || 0);
         }, 0) / predictionModels.length)
       : 0;
 
@@ -233,7 +248,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
             Current 1RM
           </Text>
           <Text style={[styles.currentValue, { color: currentTheme.colors.text }]}>
-            {convertWeightForPreference(currentData.personalRecord, 'lbs', weightUnit)} {weightUnit}
+            {convertWeightForPreference(topLift?.personalRecord || 0, 'lbs', weightUnit)} {weightUnit}
           </Text>
           {nextRank && (
             <Text style={[styles.nextRankSubtitle, { color: currentTheme.colors.primary }]}>
@@ -338,8 +353,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           const prediction1Y = predictions[`${model.name}_365`] || 0;
           const currentValue = liftData[liftData.length - 1]?.personalRecord || 0;
           
-          const convertedPrediction3M = convertWeightForPreference(Math.round(prediction3M / 5) * 5, 'lbs', weightUnit);
-          const convertedPrediction1Y = convertWeightForPreference(Math.round(prediction1Y / 5) * 5, 'lbs', weightUnit);
+          const convertedPrediction3M = convertWeightForPreference(Math.round(prediction3M), 'lbs', weightUnit);
+          const convertedPrediction1Y = convertWeightForPreference(Math.round(prediction1Y), 'lbs', weightUnit);
           const convertedCurrent = convertWeightForPreference(currentValue, 'lbs', weightUnit);
           const gain3M = convertedPrediction3M - convertedCurrent;
           const gain1Y = convertedPrediction1Y - convertedCurrent;
@@ -364,7 +379,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     {convertedPrediction3M} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{Math.round(gain3M)} {weightUnit}
+                    +{gain3M.toFixed(1)} {weightUnit}
                   </Text>
                 </View>
                 
@@ -376,7 +391,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     {convertedPrediction1Y} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{Math.round(gain1Y)} {weightUnit}
+                    +{gain1Y.toFixed(1)} {weightUnit}
                   </Text>
                 </View>
               </View>
@@ -443,79 +458,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     );
   };
 
-  const renderMetricSelector = () => (
-    <View style={styles.selectorContainer}>
-      <Text style={[styles.selectorTitle, { color: currentTheme.colors.text }]}>
-        Metric Type
-      </Text>
-      <View style={styles.metricContainer}>
-        <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'oneRM' && {
-              backgroundColor: currentTheme.colors.surface,
-              borderColor: currentTheme.colors.primary,
-            }
-          ]}
-          onPress={() => setSelectedMetric('oneRM')}
-        >
-          <Text style={[
-            styles.metricLabel,
-            {
-              color: selectedMetric === 'oneRM'
-                ? currentTheme.colors.text
-                : currentTheme.colors.text + '70'
-            }
-          ]}>
-            One Rep Max
-          </Text>
-          <Text style={[
-            styles.metricDescription,
-            {
-              color: selectedMetric === 'oneRM'
-                ? currentTheme.colors.text + '80'
-                : currentTheme.colors.text + '50'
-            }
-          ]}>
-            Maximum weight for single repetition
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[
-            styles.metricButton,
-            selectedMetric === 'volume' && {
-              backgroundColor: currentTheme.colors.surface,
-              borderColor: currentTheme.colors.primary,
-            }
-          ]}
-          onPress={() => setSelectedMetric('volume')}
-        >
-          <Text style={[
-            styles.metricLabel,
-            {
-              color: selectedMetric === 'volume'
-                ? currentTheme.colors.text
-                : currentTheme.colors.text + '70'
-            }
-          ]}>
-            Training Volume
-          </Text>
-          <Text style={[
-            styles.metricDescription,
-            {
-              color: selectedMetric === 'volume'
-                ? currentTheme.colors.text + '80'
-                : currentTheme.colors.text + '50'
-            }
-          ]}>
-            Total weight lifted over time
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   if (isLoading) {
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="formSheet">
@@ -569,7 +511,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
               {/* Progression Indicator */}
               {userProfile && liftData.length > 0 && (
                 <ProgressionIndicator
-                  currentOneRM={liftData[liftData.length - 1].personalRecord}
+                  currentOneRM={topLift?.personalRecord || 0}
                   bodyWeight={convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs')}
                   gender={userProfile.gender}
                   age={userProfile.age || 28}

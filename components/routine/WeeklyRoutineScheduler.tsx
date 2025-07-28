@@ -1,12 +1,12 @@
 import { useRoutine } from '@/contexts/RoutineContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
-    capitalizeDayName,
-    DAY_NAMES_SHORT,
-    getCurrentDayIndex,
-    getDayName,
-    getDayNameInternal,
-    validateDayIndex
+  capitalizeDayName,
+  DAY_NAMES_SHORT,
+  getCurrentDayIndex,
+  getDayName,
+  getDayNameInternal,
+  validateDayIndex
 } from '@/lib/day';
 import { getWorkoutById } from '@/lib/workouts';
 import { GeneratedWorkout, Workout } from '@/types';
@@ -482,8 +482,9 @@ export default function WeeklyRoutineScheduler({
         onDelete={handleDeleteWorkout}
         workout={editingWorkout}
         mode="routine-edit"
-        title="Edit Workout"
-        saveButtonText="Save Changes"
+        title="Edit Routine"
+        saveButtonText="Save"
+        showDayOfWeekSelector={true}
       />
 
       {/* Import Workout Modal */}

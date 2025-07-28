@@ -87,11 +87,6 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     refreshWorkouts,
   };
 
-  console.log('🔄 WorkoutContext state:', {
-    workoutsCount: workouts.length,
-    isLoading
-  });
-
   return (
     <WorkoutContext.Provider value={value}>
       {children}

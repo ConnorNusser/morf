@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: 1,
+    paddingTop: 4
   },
   headerContent: {
     flexDirection: 'row',
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   filterSummary: {
-    fontSize: 13,
+    fontSize: 14,
   },
   filterList: {
     paddingTop: 8,

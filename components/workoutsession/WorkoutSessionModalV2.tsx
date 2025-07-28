@@ -1,5 +1,4 @@
 import Button from '@/components/Button';
-import Card from '@/components/Card';
 import RestTimer from '@/components/RestTimer';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -197,16 +196,6 @@ export default function WorkoutSessionModalV2({
     startTimer(90);
   };
 
-  const handleDeleteExercise = async (exerciseIndex: number) => {
-    // Simplified - just don't allow this for now
-    console.log('Delete exercise not implemented in V2');
-  };
-
-  const handleAddSet = async (exerciseIndex: number) => {
-    // Simplified - just don't allow this for now
-    console.log('Add set not implemented in V2');
-  };
-
   const handleFinishWorkout = async () => {
     try {
       const result = await finishWorkout();
@@ -319,7 +308,7 @@ export default function WorkoutSessionModalV2({
             {/* Add Exercise Button - Subtle */}
             <View style={styles.addExerciseContainer}>
               <Button
-                title="+ Add Exercise"
+                title="Add Exercise"
                 onPress={handleAddExercise}
                 variant="secondary"
                 size="large"
@@ -327,21 +316,6 @@ export default function WorkoutSessionModalV2({
                 style={styles.addExerciseButton}
               />
             </View>
-            
-            {/* Finish Button */}
-            {isAllExercisesComplete && (
-              <Card style={styles.finishCard} variant="elevated">
-                <Text style={[styles.completeText, { color: currentTheme.colors.accent }]}>
-                  🎉 Workout Complete!
-                </Text>
-                <Button
-                  title="Finish Workout"
-                  onPress={handleFinishWorkout}
-                  variant="primary"
-                  size="large"
-                />
-              </Card>
-            )}
           </View>
         </ScrollView>
       </View>

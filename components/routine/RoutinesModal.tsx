@@ -18,13 +18,34 @@ interface RoutinesModalProps {
 
 export default function RoutinesModal({ visible, onClose, onRoutineCreated }: RoutinesModalProps) {
   const { currentTheme } = useTheme();
-  const { routines, deleteRoutine: deleteRoutineFromContext, updateRoutine, setCurrentRoutine } = useRoutine();
+  const { routines, deleteRoutine: deleteRoutineFromContext, updateRoutine, setCurrentRoutine, createRoutine } = useRoutine();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedRoutineForEdit, setSelectedRoutineForEdit] = useState<Routine | null>(null);
 
 
   const handleCreateRoutine = () => {
     setShowCreateForm(true);
+  };
+
+  const handleCreateEmptyRoutine = async () => {
+    try {
+      const emptyRoutine: Routine = {
+        id: `routine-${Date.now()}`,
+        name: 'New Empty Routine',
+        description: 'Start building your custom routine by adding workouts.',
+        exercises: [],
+        createdAt: new Date(),
+      };
+      
+      await createRoutine(emptyRoutine);
+      await setCurrentRoutine(emptyRoutine);
+      
+      if (onRoutineCreated) {
+        onRoutineCreated();
+      }
+    } catch (error) {
+      console.error('Failed to create empty routine:', error);
+    }
   };
 
   const handleCreateFormClose = () => {
@@ -128,16 +149,17 @@ export default function RoutinesModal({ visible, onClose, onRoutineCreated }: Ro
           ) : (
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Create Routine Section */}
-            <Card style={styles.createSection} variant="elevated">
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
-                }
-              ]}>
-                Create Your Own Routine
-              </Text>
+            <Text style={[
+              styles.sectionHeader,
+              {
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_600SemiBold',
+              }
+            ]}>
+              Create Your Own Routine
+            </Text>
+            
+            <Card style={styles.createCard} variant="elevated">
               <Text style={[
                 styles.sectionDescription,
                 {
@@ -148,28 +170,40 @@ export default function RoutinesModal({ visible, onClose, onRoutineCreated }: Ro
               ]}>
                 Build a custom workout routine tailored to your goals and schedule.
               </Text>
-              <Button
-                title="Create Routine"
-                onPress={handleCreateRoutine}
-                variant="primary"
-                size="medium"
-                style={styles.createButton}
-                hapticType="light"
-              />
+              
+              <View style={styles.createButtonsContainer}>
+                <Button
+                  title="AI-Generated Routine"
+                  onPress={handleCreateRoutine}
+                  variant="primary"
+                  size="medium"
+                  style={styles.createButton}
+                  hapticType="light"
+                />
+                <Button
+                  title="Start Empty Routine"
+                  onPress={handleCreateEmptyRoutine}
+                  variant="secondary"
+                  size="medium"
+                  style={styles.createButton}
+                  hapticType="light"
+                />
+              </View>
             </Card>
 
             {/* My Routines Section */}
-            <Card style={styles.browseSection} variant="surface">
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
-                }
-              ]}>
-                My Routines
-              </Text>
-              {routines.length === 0 ? (
+            <Text style={[
+              styles.sectionHeader,
+              {
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_600SemiBold',
+              }
+            ]}>
+              My Routines
+            </Text>
+            
+            {routines.length === 0 ? (
+              <Card style={styles.emptyCard} variant="surface">
                 <Text style={[
                   styles.emptyText,
                   {
@@ -180,15 +214,17 @@ export default function RoutinesModal({ visible, onClose, onRoutineCreated }: Ro
                 ]}>
                   No routines yet. Create your first routine to get started!
                 </Text>
-              ) : (
-                <View style={styles.routinesList}>
-                  {routines.map((routine) => (
+              </Card>
+            ) : (
+              <View style={styles.routinesList}>
+                {routines.map((routine) => (
+                  <Card
+                    key={routine.id}
+                    style={styles.routineCard}
+                    variant="surface"
+                  >
                     <TouchableOpacity
-                      key={routine.id}
-                      style={[
-                        styles.routineItem,
-                        { borderColor: currentTheme.colors.border }
-                      ]}
+                      style={styles.routineItem}
                       onPress={() => handleRoutineSelect(routine)}
                     >
                       <View style={styles.routineHeader}>
@@ -263,10 +299,10 @@ export default function RoutinesModal({ visible, onClose, onRoutineCreated }: Ro
                         {routine.exercises.length} workout{routine.exercises.length !== 1 ? 's' : ''}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </Card>
+                  </Card>
+                ))}
+              </View>
+            )}
           </ScrollView>
           )
         ) : (
@@ -304,27 +340,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  createSection: {
-    marginBottom: 20,
-  },
-  browseSection: {
-    marginBottom: 20,
-  },
-  editSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    marginTop: 8,
   },
   sectionDescription: {
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 16,
   },
-  createButton: {
+  createCard: {
+    marginBottom: 24,
+  },
+  createButtonsContainer: {
+    flexDirection: 'column',
+    gap: 12,
     marginTop: 8,
+  },
+  createButton: {
+    width: '100%',
+  },
+  emptyCard: {
+    marginBottom: 20,
   },
   emptyText: {
     textAlign: 'center',
@@ -335,11 +374,11 @@ const styles = StyleSheet.create({
   routinesList: {
     gap: 12,
   },
+  routineCard: {
+    marginBottom: 0,
+  },
   routineItem: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    backgroundColor: 'transparent',
+    padding: 0,
   },
   routineHeader: {
     flexDirection: 'row',

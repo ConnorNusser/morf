@@ -64,7 +64,7 @@ export default function ProgressionIndicator({
 
   // Convert current 1RM to display units first
   const currentOneRMInDisplayUnits = convertWeightForPreference(currentOneRM, 'lbs', weightUnit);
-  const currentOneRMRounded = roundToIncrement(currentOneRMInDisplayUnits, weightUnit);
+  const currentOneRMRounded = currentOneRMInDisplayUnits;
 
   // Calculate targets based on actual strength standards
   const targets: ProgressTarget[] = STRENGTH_TARGETS.map(target => {
