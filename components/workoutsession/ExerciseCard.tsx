@@ -74,7 +74,7 @@ export default function ExerciseCard({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <View style={[styles.container, { backgroundColor: 'transparent', borderColor: themeColors.border }]}>
       {/* Exercise Header */}
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
         <Text style={[styles.title, { 
@@ -156,7 +156,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
   },
   header: {
     flexDirection: 'row',

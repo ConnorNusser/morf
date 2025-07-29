@@ -254,7 +254,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-back" size={16} color={currentTheme.colors.text} />
+            <Ionicons name="chevron-back" size={30} color={currentTheme.colors.text} />
           </TouchableOpacity>
           
           {/* Days */}
@@ -296,7 +296,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text} />
+            <Ionicons name="chevron-forward" size={30} color={currentTheme.colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -365,12 +365,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    fontSize: 24,
   },
   header: {
     flex: 1,
   },
   title: {
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: '600',
     marginBottom: 1,
   },
@@ -379,7 +380,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   chevronIcon: {
-    marginLeft: 8,
+    marginLeft: 4,
   },
   weekContainer: {
     flexDirection: 'row',
@@ -393,13 +394,14 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginHorizontal: -8,
   },
   spacer: {
     width: 28,
   },
   daysContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     flex: 1,
     marginHorizontal: 8,
   },
@@ -408,19 +410,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayButton: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
   dayNumber: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
   },
   dayLabel: {
-    fontSize: 10,
+    fontSize: 14,
     fontWeight: '400',
     textAlign: 'center',
   },
@@ -442,7 +444,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '400',
     opacity: 0.7,
   },

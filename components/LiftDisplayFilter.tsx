@@ -195,12 +195,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 14,
+    paddingVertical: 8,
+    borderRadius: 18,
     borderWidth: 1,
   },
   filterChipText: {
-    fontSize: 12,
+    fontSize: 16,
   },
   chipIcon: {
     marginLeft: 3,

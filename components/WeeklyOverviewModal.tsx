@@ -918,12 +918,12 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   workoutTime: {
-    fontSize: 14,
+    fontSize: 24,
     fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
   },
   workoutExercises: {
-    fontSize: 14,
+    fontSize: 24,
     fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
     marginTop: 4,
@@ -939,7 +939,7 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: 'bold',
     fontFamily: 'Raleway_700Bold',
     marginBottom: 12,
@@ -951,11 +951,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLabel: {
-    fontSize: 14,
+    fontSize: 18,
     fontFamily: 'Raleway_500Medium',
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Raleway_600SemiBold',
   },
@@ -993,7 +993,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
@@ -1027,7 +1027,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   workoutStatText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
   },
@@ -1047,11 +1047,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   exerciseName: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_600SemiBold',
   },
   exerciseVolume: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_600SemiBold',
     color: '#FF6B6B', // Example color for volume
   },
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dailyStat: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
     marginLeft: 15,
   },
@@ -1107,7 +1107,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   exerciseRankStat: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_600SemiBold',
     marginLeft: 15,
   },
@@ -1128,11 +1128,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryDetailLabel: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
   },
   categoryDetailValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     fontFamily: 'Raleway_600SemiBold',
   },
@@ -1173,7 +1173,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   exerciseMetricLabel: {
-    fontSize: 12,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
@@ -1191,7 +1191,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dailyTimeStat: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: 'Raleway_500Medium',
     marginLeft: 15,
   },

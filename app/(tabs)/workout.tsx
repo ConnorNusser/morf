@@ -462,6 +462,7 @@ export default function WorkoutScreen() {
           <BrowseSection
             onBrowseRoutines={handleBrowseRoutines}
             onBrowseWorkouts={handleBrowseWorkouts}
+            onQuickStartWorkout={handleImportWorkout}
           />
 
           {/* Workout Filters - MOVED TO BOTTOM */}
