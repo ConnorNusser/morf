@@ -4,6 +4,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
 import { useRestTimer } from '@/hooks/useRestTimer';
+import { useUser } from '@/hooks/useUser';
 import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { getRecommendedWeight } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
@@ -37,9 +38,19 @@ export default function WorkoutSessionModalV2({
   onWorkoutComplete
 }: WorkoutSessionModalV2Props) {
   const { currentTheme } = useTheme();
-  
-  // Global display unit for the entire workout
-  const [displayUnit, setDisplayUnit] = useState<WeightUnit>('lbs');
+
+  const { userProfile } = useUser();
+
+  // Global display unit for the entire workout - initialize with user preference
+  const [displayUnit, setDisplayUnit] = useState<WeightUnit>(
+    userProfile?.weightUnitPreference || 'lbs'
+  );
+
+  useEffect(() => {
+    if (userProfile) {
+      setDisplayUnit(userProfile.weightUnitPreference);
+    }
+  }, [userProfile]);
   
   // Exercise selection modal state
   const [isExerciseSelectionModalVisible, setIsExerciseSelectionModalVisible] = useState(false);
