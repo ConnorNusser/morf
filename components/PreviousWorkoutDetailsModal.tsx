@@ -1,5 +1,7 @@
+import Button from '@/components/Button';
 import { useTheme } from '@/contexts/ThemeContext';
 import exercisesData from '@/lib/exercises.json';
+import { OneRMCalculator } from '@/lib/strengthStandards';
 import { GeneratedWorkout } from '@/types';
 import React from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +11,7 @@ interface PreviousWorkoutDetailsModalProps {
   onClose: () => void;
   workout: GeneratedWorkout | null;
   onDelete?: (workoutId: string) => void;
+  onStartWorkout?: (workout: GeneratedWorkout) => void;
 }
 
 export default function PreviousWorkoutDetailsModal({
@@ -16,6 +19,7 @@ export default function PreviousWorkoutDetailsModal({
   onClose,
   workout,
   onDelete,
+  onStartWorkout,
 }: PreviousWorkoutDetailsModalProps) {
   const { currentTheme } = useTheme();
 
@@ -269,6 +273,44 @@ export default function PreviousWorkoutDetailsModal({
               {workout.description || 'No description available'}
             </Text>
 
+            {/* Action Buttons */}
+            <View style={styles.actionButtonsContainer}>
+              {/* Start Workout Button */}
+              {onStartWorkout && (
+                <Button 
+                  title="Start This Workout"
+                  onPress={() => {
+                    // Create a clean workout for starting (without completed sets)
+                    const cleanWorkout: GeneratedWorkout = {
+                      ...workout,
+                      id: `workout_${Date.now()}`, // New ID to avoid conflicts
+                      exercises: workout.exercises.map(ex => ({
+                        id: ex.id,
+                        sets: ex.sets,
+                        reps: ex.reps,
+                        completedSets: [], // Clear completed sets
+                        isCompleted: false,
+                      })),
+                      createdAt: new Date(),
+                    };
+                    onStartWorkout(cleanWorkout);
+                    onClose();
+                  }}
+                />
+              )}
+              
+              {/* Delete Button */}
+              {onDelete && (
+                <Button 
+                  title="Delete Workout"
+                  onPress={handleDelete}
+                  variant="secondary"
+                  style={{ backgroundColor: '#EF4444', borderColor: '#EF4444' }}
+                  textStyle={{ color: 'white' }}
+                />
+              )}
+            </View>
+
             {/* Exercises List */}
             <View style={styles.exercisesList}>
               <Text style={[
@@ -372,12 +414,12 @@ export default function PreviousWorkoutDetailsModal({
                           </View>
                         ))}
                         
-                        {/* Show max weight if available */}
+                        {/* Show max 1RM if available */}
                         {exercise.completedSets.some((set: any) => set.completed) && (
                           <Text style={[styles.maxWeight, { color: currentTheme.colors.accent }]}>
-                            Max weight: {Math.max(...exercise.completedSets
+                            Max 1RM: {Math.round(Math.max(...exercise.completedSets
                               .filter((set: any) => set.completed)
-                              .map((set: any) => set.weight))}
+                              .map((set: any) => OneRMCalculator.estimate(set.weight, set.reps))) * 100) / 100}
                             {exercise.completedSets.find((set: any) => set.completed)?.unit || 'lbs'}
                           </Text>
                         )}
@@ -387,24 +429,6 @@ export default function PreviousWorkoutDetailsModal({
                 );
               })}
             </View>
-            
-            {/* Delete Button */}
-            {onDelete && (
-              <Pressable 
-                style={[styles.deleteWorkoutButton, { backgroundColor: '#EF4444' }]}
-                onPress={handleDelete}
-              >
-                <Text style={[
-                  styles.deleteWorkoutButtonText,
-                  { 
-                    color: 'white',
-                    fontFamily: 'Raleway_600SemiBold',
-                  }
-                ]}>
-                  Delete Workout
-                </Text>
-              </Pressable>
-            )}
             
             {/* Bottom spacing */}
             <View style={styles.bottomSpacing} />
@@ -683,16 +707,37 @@ const styles = StyleSheet.create({
     height: 20,
   },
 
+  actionButtonsContainer: {
+    flexDirection: 'column',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 16,
+  },
+ 
+  startWorkoutButton: {
+    backgroundColor: '#6366F1',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    width: '100%',
+  },
+  startWorkoutButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+  },
+
   deleteWorkoutButton: {
     backgroundColor: '#EF4444',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
     alignItems: 'center',
+    width: '100%',
   },
   deleteWorkoutButtonText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: 'white',
   },

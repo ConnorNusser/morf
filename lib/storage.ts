@@ -365,7 +365,7 @@ class StorageService {
     //filter out any workouts with the same id
     const filtered = workoutRoutines.filter(w => w.id !== workout.id);
     filtered.push(workout);
-    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(workoutRoutines));
+    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(filtered));
   }
   
   async deleteWorkoutRoutine(workoutId: string): Promise<void> {

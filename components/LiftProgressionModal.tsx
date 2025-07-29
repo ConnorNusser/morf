@@ -98,16 +98,16 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
         const targetWeightLbs = bodyWeightLbs * target.multiplier;
         const targetInDisplayUnits = convertWeightForPreference(targetWeightLbs, 'lbs', weightUnit);
         
-        // Use exact values for higher precision
-        const roundedTarget = targetInDisplayUnits;
-        const roundedCurrent = currentOneRMInDisplayUnits;
+        // Round to 2 decimal places for better display
+        const roundedTarget = Math.round(targetInDisplayUnits * 100) / 100;
+        const roundedCurrent = Math.round(currentOneRMInDisplayUnits * 100) / 100;
         
         const deficit = Math.max(0, roundedTarget - roundedCurrent);
         
         if (deficit > 0) {
           return {
             level: target.name,
-            deficit: deficit,
+            deficit: Math.round(deficit * 100) / 100,
           };
         }
       }
@@ -248,7 +248,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
             Current 1RM
           </Text>
           <Text style={[styles.currentValue, { color: currentTheme.colors.text }]}>
-            {convertWeightForPreference(topLift?.personalRecord || 0, 'lbs', weightUnit)} {weightUnit}
+            {Math.round(convertWeightForPreference(topLift?.personalRecord || 0, 'lbs', weightUnit) * 100) / 100} {weightUnit}
           </Text>
           {nextRank && (
             <Text style={[styles.nextRankSubtitle, { color: currentTheme.colors.primary }]}>
@@ -261,7 +261,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 3-month prediction
               </Text>
               <Text style={[styles.predictionText, { color: currentTheme.colors.primary }]}>
-                {convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit)} {weightUnit}
+                {Math.round(convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit) * 100) / 100} {weightUnit}
               </Text>
             </View>
           )}
@@ -303,8 +303,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           {originalLiftData.slice().reverse().map((lift, index) => {
             const estimatedOneRM = OneRMCalculator.estimate(lift.weight, lift.reps);
             const isMaxAttempt = lift.reps === 1;
-            const convertedWeight = convertWeightForPreference(lift.weight, 'lbs', weightUnit);
-            const convertedEstimate = convertWeightForPreference(estimatedOneRM, 'lbs', weightUnit);
+            const convertedWeight = Math.round(convertWeightForPreference(lift.weight, 'lbs', weightUnit) * 100) / 100;
+            const convertedEstimate = Math.round(convertWeightForPreference(estimatedOneRM, 'lbs', weightUnit) * 100) / 100;
             
             return (
               <View key={index} style={[
@@ -353,11 +353,11 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           const prediction1Y = predictions[`${model.name}_365`] || 0;
           const currentValue = liftData[liftData.length - 1]?.personalRecord || 0;
           
-          const convertedPrediction3M = convertWeightForPreference(Math.round(prediction3M), 'lbs', weightUnit);
-          const convertedPrediction1Y = convertWeightForPreference(Math.round(prediction1Y), 'lbs', weightUnit);
-          const convertedCurrent = convertWeightForPreference(currentValue, 'lbs', weightUnit);
-          const gain3M = convertedPrediction3M - convertedCurrent;
-          const gain1Y = convertedPrediction1Y - convertedCurrent;
+          const convertedPrediction3M = Math.round(convertWeightForPreference(prediction3M, 'lbs', weightUnit) * 100) / 100;
+          const convertedPrediction1Y = Math.round(convertWeightForPreference(prediction1Y, 'lbs', weightUnit) * 100) / 100;
+          const convertedCurrent = Math.round(convertWeightForPreference(currentValue, 'lbs', weightUnit) * 100) / 100;
+          const gain3M = Math.round((convertedPrediction3M - convertedCurrent) * 100) / 100;
+          const gain1Y = Math.round((convertedPrediction1Y - convertedCurrent) * 100) / 100;
           
           return (
             <View key={index} style={[styles.predictionCard, { backgroundColor: currentTheme.colors.surface }]}>
@@ -379,7 +379,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     {convertedPrediction3M} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{gain3M.toFixed(1)} {weightUnit}
+                    +{gain3M} {weightUnit}
                   </Text>
                 </View>
                 
@@ -391,7 +391,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                     {convertedPrediction1Y} {weightUnit}
                   </Text>
                   <Text style={[styles.predictionGain, { color: '#10B981' }]}>
-                    +{gain1Y.toFixed(1)} {weightUnit}
+                    +{gain1Y} {weightUnit}
                   </Text>
                 </View>
               </View>

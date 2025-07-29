@@ -181,21 +181,22 @@ export default function WorkoutScreen() {
       const workoutForModal: GeneratedWorkout = {
         id: activeSession.workoutId,
         title: activeSession.title,
-        description: `Resume workout with ${activeSession.exercises.length} exercises`,
-        exercises: activeSession.exercises.map((ex: any) => ({
-          id: ex.id,
-          sets: ex.sets,
-          reps: ex.reps,
-          completedSets: ex.completedSets,
-          isCompleted: ex.isCompleted,
-        })),
-        estimatedDuration: 45,
+        exercises: activeSession.exercises,
+        description: 'Resume workout with ' + activeSession.exercises.length + ' exercises',
+        estimatedDuration: 0,
         difficulty: 'In Progress',
         createdAt: activeSession.startTime,
       };
       
       openGlobalWorkoutModal(workoutForModal);
+    } else {
+      console.error('❌ No active session to resume');
     }
+  };
+
+  const handleStartWorkoutFromPrevious = (workout: GeneratedWorkout) => {
+    // Start the workout using the global workout modal
+    openGlobalWorkoutModal(workout);
   };
 
   const handleWorkoutUpdate = (updatedWorkout: GeneratedWorkout) => {
@@ -306,7 +307,21 @@ export default function WorkoutScreen() {
   };
 
   const handleDeleteWorkoutFromBrowser = async (workoutId: string, workoutTitle: string) => {
-    // This will be handled by the UnifiedWorkoutBrowserModal itself
+    Alert.alert(
+      'Delete Workout',
+      `Are you sure you want to delete "${workoutTitle}"? This will also remove any recorded lifts from this workout.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDeleteWorkout(workoutId),
+        },
+      ]
+    );
   };
 
   const handleStartSelectedDayWorkout = async () => {
@@ -550,6 +565,7 @@ export default function WorkoutScreen() {
         onClose={() => setPreviousWorkoutModalVisible(false)}
         workout={selectedPreviousWorkout}
         onDelete={handleDeleteWorkout}
+        onStartWorkout={handleStartWorkoutFromPrevious}
       />
 
       <RoutinesModal
@@ -566,6 +582,7 @@ export default function WorkoutScreen() {
         onClose={() => setBrowseWorkoutsModalVisible(false)}
         onImportWorkout={handleImportWorkout}
         onEditWorkout={handleEditWorkout}
+        onDeleteWorkout={handleDeleteWorkoutFromBrowser}
         source="standalone"
         mode="browse"
         showCreateNew={true}
@@ -577,6 +594,7 @@ export default function WorkoutScreen() {
         visible={browseForImportVisible}
         onClose={() => setBrowseForImportVisible(false)}
         onImportWorkout={handleImportForEditing}
+        onDeleteWorkout={handleDeleteWorkoutFromBrowser}
         title="Import Workout to Edit"
         source="standalone"
         mode="import"
