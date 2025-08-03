@@ -87,31 +87,10 @@ export default function WorkoutSessionModalV2({
   };
 
   const handleSelectExercise = async (exercise: Workout, options: ExerciseOptions) => {
-    // Calculate the exercise index before adding
-    const exerciseIndex = activeSession ? activeSession.exercises.length : 0;
-    
     // Add the exercise using the context method
     await addExercise({ id: exercise.id, name: exercise.name }, { sets: options.sets, reps: options.reps });
     
-    // Initialize set inputs for the new exercise
-    const exerciseDetails = getWorkoutById(exercise.id);
-    const isBodyweight = exerciseDetails?.equipment?.includes('bodyweight') || false;
-    
-    const newExerciseInputs: { [setIndex: number]: { weight: { value: number; unit: 'lbs' | 'kg' }; reps: number } } = {};
-    
-    for (let setIndex = 0; setIndex < options.sets; setIndex++) {
-      const recommendedWeight = isBodyweight ? 0 : await getRecommendedWeight(exercise.id, options.reps);
-      newExerciseInputs[setIndex] = {
-        weight: { value: recommendedWeight, unit: 'lbs' },
-        reps: parseInt(options.reps) || 0
-      };
-    }
-    
-    setSetInputs(prev => ({
-      ...prev,
-      [exerciseIndex]: newExerciseInputs
-    }));
-    
+    // The useEffect will handle initializing the set inputs for the new exercise
     setIsExerciseSelectionModalVisible(false);
   };
 
@@ -130,7 +109,7 @@ export default function WorkoutSessionModalV2({
     }
   }, [visible]);
 
-  // Initialize set inputs when session starts - properly sync with context
+  // Initialize set inputs when session starts
   useEffect(() => {
     const initializeSetInputs = async () => {
       if (activeSession) {
@@ -169,7 +148,7 @@ export default function WorkoutSessionModalV2({
     };
     
     initializeSetInputs();
-  }, [activeSession?.id]); // Use session ID to avoid too frequent updates
+  }, [activeSession?.id, activeSession?.exercises?.length, activeSession?.exercises?.map(e => `${e.id}-${e.sets}`).join(',')]); // Listen to exercises changes
 
   const updateSetInput = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: any) => {
     setSetInputs(prev => ({
@@ -182,6 +161,13 @@ export default function WorkoutSessionModalV2({
         }
       }
     }));
+  };
+
+  const handleAddSet = async (exerciseIndex: number) => {
+    // Add the set using the context method
+    await addSet(exerciseIndex);
+    
+    // The useEffect will handle initializing the set inputs for the new set
   };
 
   const handleCompleteSet = async (exerciseIndex: number, setIndex: number) => {
@@ -310,7 +296,7 @@ export default function WorkoutSessionModalV2({
                 onCompleteSet={(setIndex) => handleCompleteSet(index, setIndex)}
                 onDeleteSet={(setIndex) => deleteSet(index, setIndex)}
                 onDeleteExercise={() => deleteExercise(index)}
-                onAddSet={() => addSet(index)}
+                onAddSet={() => handleAddSet(index)}
                 themeColors={currentTheme.colors}
                 displayUnit={displayUnit}
               />

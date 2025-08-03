@@ -154,8 +154,19 @@ export const useWorkoutSession = () => {
   const deleteSet = async (exerciseIndex: number, setIndex: number) => {
     if (!activeSession) return;
     const updatedExercises = [...activeSession.exercises];
-    updatedExercises[exerciseIndex].completedSets.splice(setIndex, 1);
-    updatedExercises[exerciseIndex].sets = updatedExercises[exerciseIndex].sets -1;
+    const exercise = updatedExercises[exerciseIndex];
+    
+    // Remove the set from completedSets array
+    exercise.completedSets.splice(setIndex, 1);
+    
+    // Update set numbers for remaining sets
+    exercise.completedSets.forEach((set, index) => {
+      set.setNumber = index + 1;
+    });
+    
+    // Decrease the total sets count
+    exercise.sets--;
+    
     setActiveSession({
       ...activeSession,
       exercises: updatedExercises,
@@ -164,8 +175,23 @@ export const useWorkoutSession = () => {
 
   const addSet = async (exerciseIndex: number) => {
     if (!activeSession) return;
+    
     const updatedExercises = [...activeSession.exercises];
-    updatedExercises[exerciseIndex].sets++;
+    const exercise = updatedExercises[exerciseIndex];
+    
+    // Add a new empty set to the completedSets array
+    const newSet: WorkoutSetCompletion = {
+      setNumber: exercise.completedSets.length + 1,
+      weight: 0,
+      reps: parseInt(exercise.reps),
+      unit: 'lbs' as WeightUnit,
+      completed: false,
+      restStartTime: undefined,
+    };
+    
+    exercise.completedSets.push(newSet);
+    exercise.sets++;
+    
     setActiveSession({
       ...activeSession,
       exercises: updatedExercises,
@@ -174,18 +200,36 @@ export const useWorkoutSession = () => {
 
   const addExercise = async (exercise?: { id: string; name?: string }, options?: { sets: number; reps: string }) => {
     if (!activeSession) return;
+    
     const updatedExercises = [...activeSession.exercises];
     
     // Create new exercise with provided parameters or defaults
+    const sets = options?.sets || 3;
+    const reps = options?.reps || '8';
+    
+    // Initialize completedSets array with empty sets
+    const completedSets: WorkoutSetCompletion[] = [];
+    for (let i = 0; i < sets; i++) {
+      completedSets.push({
+        setNumber: i + 1,
+        weight: 0,
+        reps: parseInt(reps),
+        unit: 'lbs' as WeightUnit,
+        completed: false,
+        restStartTime: undefined,
+      });
+    }
+    
     const newExercise = {
       id: exercise?.id || `exercise_${Date.now()}`,
-      sets: options?.sets || 3,
-      reps: options?.reps || '8',
-      completedSets: [],
+      sets: sets,
+      reps: reps,
+      completedSets: completedSets,
       isCompleted: false,
     };
     
     updatedExercises.push(newExercise);
+    
     setActiveSession({
       ...activeSession,
       exercises: updatedExercises,
