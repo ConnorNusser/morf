@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { OverallStats } from '@/lib/userProfile';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
 import TrendingArrow from './TrendingArrow';
@@ -22,7 +22,11 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   
   const percentile = Number.isNaN(stats.overallPercentile) ? 0 : stats.overallPercentile;
 
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+
   return (
+    <>
+    <TouchableOpacity activeOpacity={0.8} onPress={() => setIsModalOpen(true)}>
     <Card variant="elevated" style={styles.container}>
       <View style={styles.header}>
         <Text style={[
@@ -90,6 +94,13 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
         </View>
       </View>
     </Card>
+    </TouchableOpacity>
+    {/* Lazy import to avoid circular deps in native fast refresh */}
+    {isModalOpen && (
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      React.createElement(require('./OverallStrengthModal').default, { visible: isModalOpen, onClose: () => setIsModalOpen(false) })
+    )}
+    </>
   );
 }
 
