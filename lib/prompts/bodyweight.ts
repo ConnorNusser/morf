@@ -6,12 +6,12 @@ import { PromptStrategy } from './powerlifting';
 
 export class BodyweightPromptStrategy implements PromptStrategy {
   async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<string> {
-    const { userProfile, userProgress, workoutHistory, workoutFilters } = context;
-    
+    const { userProfile, userProgress, workoutHistory } = context;
+
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
-    
-    const availableWorkouts = getAvailableWorkouts(overallPercentile, workoutFilters);
+
+    const availableWorkouts = getAvailableWorkouts(overallPercentile);
     
     const recommendedWorkoutType = workoutTypeOverride || this.selectWorkoutType(analysis);
     

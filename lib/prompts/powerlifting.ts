@@ -17,15 +17,15 @@ interface RecentAnalysis {
 
 export class PowerliftingPromptStrategy implements PromptStrategy {
   async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<string> {
-    const { userProfile, userProgress, workoutHistory, preferences, workoutFilters } = context;
+    const { userProfile, userProgress, workoutHistory, preferences } = context;
 
     let workoutExamples;
-    
+
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
-    
-    // Apply workout filters to available exercises
-    const availableWorkouts = getAvailableWorkouts(overallPercentile, workoutFilters);
+
+    // Get available exercises
+    const availableWorkouts = getAvailableWorkouts(overallPercentile);
     
     const recommendedWorkoutType = workoutTypeOverride || this.selectWorkoutType(analysis, userProgress);
     

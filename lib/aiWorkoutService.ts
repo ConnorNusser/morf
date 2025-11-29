@@ -76,7 +76,7 @@ class AIWorkoutService {
 
   private async callAIAPI(prompt: string): Promise<GeneratedWorkout> {
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-5',
       messages: [
         { role: 'system', content: 'You are a powerlifting coach. You MUST return ONLY valid JSON for workout generation. Do not use markdown, code blocks, backticks, or any other formatting. Your response must start with { and end with }. Return raw JSON only.' },
         { role: 'user', content: prompt }
@@ -107,24 +107,18 @@ class AIWorkoutService {
   }
 
   private async generateFallback(context: WorkoutContext): Promise<GeneratedWorkout> {
-    
-    const { userProgress, availableEquipment, preferences, workoutHistory, workoutFilters } = context;
-    
+
+    const { userProgress, availableEquipment, preferences, workoutHistory } = context;
+
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
-    
+
     const analysis = await promptBuilder.analyzeWorkoutHistory(workoutHistory, getWorkoutById.bind(this));
     const recommendedWorkoutType = promptBuilder.selectWorkoutType(analysis, userProgress);
     const template = POWERLIFTING_WORKOUT_TEMPLATES[recommendedWorkoutType as keyof typeof POWERLIFTING_WORKOUT_TEMPLATES];
-    
-    // Apply workout filters to available exercises
-    let workouts = getAvailableWorkouts(overallPercentile, workoutFilters);
-    
-    // Debug log the filtering
-    if (workoutFilters && workoutFilters.excludedWorkoutIds.length > 0) {
-      const totalBefore = getAvailableWorkouts(overallPercentile).length;
-      console.log(`🔍 Fallback filter: ${totalBefore} → ${workouts.length} exercises (filtered out ${workoutFilters.excludedWorkoutIds.length})`);
-    }
+
+    // Get available exercises
+    let workouts = getAvailableWorkouts(overallPercentile);
     
     // Filter by equipment and muscle groups
     workouts = workouts.filter(w => 

@@ -38,7 +38,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow Morf to log workouts with your voice",
+          "speechRecognitionPermission": "Allow Morf to understand your workout commands"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

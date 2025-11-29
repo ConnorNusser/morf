@@ -1,32 +1,25 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { UserProvider } from '@/contexts/UserContext';
-import { WorkoutSessionProvider } from '@/contexts/WorkoutSessionContext';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
-import GlobalWorkoutSessionModal from '@/components/GlobalWorkoutSessionModal';
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useWorkoutSessionContext } from '@/contexts/WorkoutSessionContext';
-import { useWorkoutTimer } from '@/hooks/useWorkoutTimer';
 import { userService } from '@/lib/userService';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, View } from 'react-native';
 
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon({ iconName, focused }: {
-  iconName: 'home' | 'workout' | 'profile';
+  iconName: 'home' | 'workout' | 'history' | 'profile';
   focused: boolean;
 }) {
   const { currentTheme } = useTheme();
   const color = focused ? currentTheme.colors.primary : '#8E8E93';
   const size = 24;
-
-
 
   const getIcon = () => {
     switch (iconName) {
@@ -34,6 +27,8 @@ function TabBarIcon({ iconName, focused }: {
         return <Ionicons name="home" size={20} color={color} />;
       case 'workout':
         return <Ionicons name="add" size={28} color={color} />;
+      case 'history':
+        return <Ionicons name="time-outline" size={22} color={color} />;
       case 'profile':
         return <ProfileIcon color={color} size={size} />;
       default:
@@ -42,69 +37,6 @@ function TabBarIcon({ iconName, focused }: {
   };
 
   return getIcon();
-}
-
-function FloatingResumeButton() {
-  const { currentTheme } = useTheme();
-  const { activeSession, openWorkoutModal, generatedWorkout } = useWorkoutSessionContext();
-  const { formattedTime } = useWorkoutTimer(activeSession?.startTime || null);
-
-  const hasActiveSession = activeSession && !activeSession.isCompleted;
-
-  if (!hasActiveSession) {
-    return null;
-  }
-
-  const handleResumeWorkout = () => {
-    // if (activeSession) {
-    //   // Create a GeneratedWorkout object from the active session for the modal
-    //   const workoutForModal: GeneratedWorkout = {
-    //     id: activeSession.workoutId,
-    //     title: activeSession.title,
-    //     description: `Resume workout with ${activeSession.exercises.length} exercises`,
-    //     exercises: activeSession.exercises.map((ex: any) => ({
-    //       id: ex.id,
-    //       sets: ex.sets,
-    //       reps: ex.reps,
-    //       ...ex,
-    //     })),
-    //     estimatedDuration: 45,
-    //     difficulty: 'In Progress',
-    //     createdAt: activeSession.startTime,
-    //   };
-      
-    //   openWorkoutModal(generatedWorkout!);
-    // }
-    openWorkoutModal(generatedWorkout!);
-  };
-
-  return (
-    <TouchableOpacity
-      style={[
-        styles.floatingResumeButton,
-        {
-          backgroundColor: currentTheme.colors.accent,
-          shadowColor: currentTheme.colors.accent,
-        }
-      ]}
-      onPress={handleResumeWorkout}
-      activeOpacity={0.8}
-    >
-      <View style={styles.floatingButtonContent}>
-        <View style={styles.resumeButtonLeft}>
-          <Ionicons name="play" size={18} color="#FFFFFF" />
-          <Text style={styles.floatingButtonText}>
-            Resume Workout
-          </Text>
-        </View>
-        <View style={styles.resumeButtonRight}>
-          <Text style={styles.timerText}>
-            {formattedTime}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 }
 
 function TabsContent() {
@@ -131,32 +63,32 @@ function TabsContent() {
         tabBarStyle: Platform.select({
           ios: {
             position: 'absolute',
-            bottom: 25,
-            left: 30,
-            right: 30,
-            height: 70,
-            borderRadius: 25,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 85,
+            borderRadius: 0,
             backgroundColor: 'transparent',
             borderTopWidth: 0,
             shadowColor: '#000',
             shadowOffset: {
               width: 0,
-              height: 8,
+              height: -4,
             },
-            shadowOpacity: 0.15,
-            shadowRadius: 20,
-            elevation: 15,
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 10,
           },
           default: {
             position: 'absolute',
-            bottom: 25,
-            left: 30,
-            right: 30,
-            height: 70,
-            borderRadius: 25,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 85,
+            borderRadius: 0,
             backgroundColor: 'transparent',
             borderTopWidth: 0,
-            elevation: 15,
+            elevation: 10,
           },
         }),
       }}>
@@ -166,6 +98,15 @@ function TabsContent() {
           title: 'Home',
           tabBarIcon: ({ focused }) => (
             <TabBarIcon iconName="home" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon iconName="history" focused={focused} />
           ),
         }}
       />
@@ -225,21 +166,13 @@ export default function TabLayout() {
 
   return (
     <UserProvider>
-      <WorkoutSessionProvider>
-        <TabsContent />
-        
-        {/* Floating Resume Button - positioned within navbar area */}
-        <FloatingResumeButton />
-        
-        {/* Global Workout Session Modal */}
-        <GlobalWorkoutSessionModal />
-        
-        {/* Onboarding Modal for first-time users */}
-        <OnboardingModal 
-          visible={showOnboarding}
-          onComplete={handleOnboardingComplete}
-        />
-      </WorkoutSessionProvider>
+      <TabsContent />
+
+      {/* Onboarding Modal for first-time users */}
+      <OnboardingModal
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
     </UserProvider>
   );
 }
@@ -249,72 +182,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
-  },
-  floatingResumeButton: {
-    position: 'absolute',
-    bottom: 95, // Position it just above the tab bar
-    left: 30, // Match the tab bar's left position exactly
-    right: 30, // Match the tab bar's right position exactly
-    height: 44,
-    borderTopLeftRadius: 25, // Match the tab bar's border radius
-    borderTopRightRadius: 25,
-    borderBottomLeftRadius: 0, // Flat bottom to connect visually
-    borderBottomRightRadius: 0,
-    paddingHorizontal: 16,
-    paddingVertical: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    // Match the tab bar's shadow exactly
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 15,
-    zIndex: 999, // Just under the tab bar to create connection illusion
-    // Remove the border to make it seamless
-    borderWidth: 0,
-  },
-  floatingButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingHorizontal: 4,
-  },
-  floatingButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
-  },
-  resumeButtonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    flex: 1,
-  },
-  resumeButtonRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    minWidth: 60,
-  },
-  workoutTitleText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
-    flex: 1,
-    textAlign: 'right',
-    marginRight: 8,
-  },
-  timerText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Raleway_700Bold',
-    textAlign: 'right',
   },
 });

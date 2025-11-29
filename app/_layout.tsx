@@ -21,6 +21,7 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
     // Catch any errors thrown by the Layout component.
@@ -87,15 +88,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <RoutineProvider>
-        <WorkoutProvider>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-          </Stack>
-        </WorkoutProvider>
-      </RoutineProvider>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <RoutineProvider>
+          <WorkoutProvider>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+            </Stack>
+          </WorkoutProvider>
+        </RoutineProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

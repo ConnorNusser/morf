@@ -223,7 +223,6 @@ export interface WorkoutContext {
   userProgress: UserProgress[];
   availableEquipment: Equipment[];
   workoutHistory: GeneratedWorkout[];
-  workoutFilters?: WorkoutFilters;
   preferences: {
     duration?: number;
     focusAreas?: MuscleGroup[];
@@ -259,9 +258,22 @@ export interface UserPreferences {
   notifications: boolean;
 }
 
-export interface WorkoutFilters {
-  excludedWorkoutIds: string[];
-  workoutType?: 'powerlifting' | 'bodyweight' | 'generic';
+// Custom user-created exercise
+export interface CustomExercise {
+  id: string;           // 'custom_' + uuid
+  name: string;
+  muscleGroup?: MuscleGroup;
+  isCustom: true;
+  createdAt: Date;
+}
+
+// Workout template (saved workout notes for reuse)
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  noteText: string;  // The workout note format (e.g., "Bench Press 135x10, 145x8")
+  createdAt: Date;
+  lastUsed?: Date;
 }
 
 // Lift Display Filters for "Your Lifts" section

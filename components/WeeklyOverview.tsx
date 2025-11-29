@@ -1,10 +1,14 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { GeneratedWorkout } from '@/types';
+import { getWorkoutById } from '@/lib/workouts';
+import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import WeeklyOverviewModal from './WeeklyOverviewModal';
+
+// All trackable muscle groups
+const ALL_MUSCLE_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
 
 interface WeeklyOverviewProps {
   workoutHistory: GeneratedWorkout[];
@@ -68,6 +72,32 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     }
   };
 
+  const getMuscleGroupColor = (muscle: MuscleGroup): string => {
+    switch (muscle) {
+      case 'chest': return '#FF6B6B';
+      case 'back': return '#4ECDC4';
+      case 'shoulders': return '#FFA726';
+      case 'arms': return '#9B59B6';
+      case 'legs': return '#45B7D1';
+      case 'glutes': return '#E91E63';
+      case 'core': return '#26A69A';
+      default: return currentTheme.colors.accent;
+    }
+  };
+
+  const getMuscleGroupLabel = (muscle: MuscleGroup): string => {
+    switch (muscle) {
+      case 'chest': return 'Chest';
+      case 'back': return 'Back';
+      case 'shoulders': return 'Shoulders';
+      case 'arms': return 'Arms';
+      case 'legs': return 'Legs';
+      case 'glutes': return 'Glutes';
+      case 'core': return 'Core';
+      default: return muscle;
+    }
+  };
+
   const getWeekData = (weekOffset: number = 0): WeekData => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -122,6 +152,29 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   };
 
   const weekData = useMemo(() => getWeekData(currentWeekOffset), [workoutHistory, currentWeekOffset]);
+
+  // Calculate muscle groups trained this week
+  const muscleGroupStats = useMemo(() => {
+    const trainedMuscles: Record<MuscleGroup, number> = {
+      chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0
+    };
+
+    weekData.workouts.forEach(workout => {
+      workout.exercises.forEach(exercise => {
+        const exerciseInfo = getWorkoutById(exercise.id);
+        if (exerciseInfo) {
+          exerciseInfo.primaryMuscles.forEach(muscle => {
+            trainedMuscles[muscle] = (trainedMuscles[muscle] || 0) + 1;
+          });
+        }
+      });
+    });
+
+    const trained = ALL_MUSCLE_GROUPS.filter(m => trainedMuscles[m] > 0);
+    const missed = ALL_MUSCLE_GROUPS.filter(m => trainedMuscles[m] === 0);
+
+    return { trainedMuscles, trained, missed };
+  }, [weekData.workouts]);
 
   const weekStats = useMemo(() => {
     const totalWorkouts = weekData.workouts.length;
@@ -302,8 +355,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
         {/* Compact Stats */}
         <View style={styles.statsContainer}>
-            <TouchableOpacity 
-              style={styles.statItem} 
+            <TouchableOpacity
+              style={styles.statItem}
               onPress={handleWeekPress}
               activeOpacity={0.7}
             >
@@ -314,9 +367,9 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                 Workouts
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.statItem} 
+
+            <TouchableOpacity
+              style={styles.statItem}
               onPress={handleTimePress}
               activeOpacity={0.7}
             >
@@ -327,9 +380,9 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                 Time
               </Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.statItem} 
+
+            <TouchableOpacity
+              style={styles.statItem}
               onPress={handleVolumePress}
               activeOpacity={0.7}
             >
@@ -341,6 +394,59 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               </Text>
             </TouchableOpacity>
           </View>
+
+        {/* Muscle Groups Focus */}
+        <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
+          <Text style={[styles.muscleSectionTitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+            Muscle Focus
+          </Text>
+          <View style={styles.muscleChips}>
+            {ALL_MUSCLE_GROUPS.map(muscle => {
+              const isTrained = muscleGroupStats.trained.includes(muscle);
+              const count = muscleGroupStats.trainedMuscles[muscle];
+              return (
+                <View
+                  key={muscle}
+                  style={[
+                    styles.muscleChip,
+                    {
+                      backgroundColor: isTrained
+                        ? getMuscleGroupColor(muscle) + '20'
+                        : currentTheme.colors.surface,
+                      borderColor: isTrained
+                        ? getMuscleGroupColor(muscle) + '40'
+                        : currentTheme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.muscleChipText,
+                      {
+                        color: isTrained
+                          ? getMuscleGroupColor(muscle)
+                          : currentTheme.colors.text + '40',
+                        fontFamily: isTrained ? 'Raleway_600SemiBold' : 'Raleway_400Regular',
+                      },
+                    ]}
+                  >
+                    {getMuscleGroupLabel(muscle)}
+                  </Text>
+                  {isTrained && count > 1 && (
+                    <View style={[styles.muscleCount, { backgroundColor: getMuscleGroupColor(muscle) }]}>
+                      <Text style={styles.muscleCountText}>{count}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          {muscleGroupStats.missed.length > 0 && muscleGroupStats.trained.length > 0 && (
+            <Text style={[styles.missedHint, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+              Missing: {muscleGroupStats.missed.map(m => getMuscleGroupLabel(m)).join(', ')}
+            </Text>
+          )}
+        </View>
       </Card>
 
       <WeeklyOverviewModal
@@ -447,5 +553,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400',
     opacity: 0.7,
+  },
+  muscleSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  muscleSectionTitle: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  muscleChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  muscleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+  },
+  muscleChipText: {
+    fontSize: 12,
+  },
+  muscleCount: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  muscleCountText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  missedHint: {
+    fontSize: 11,
+    marginTop: 10,
   },
 }); 

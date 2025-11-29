@@ -54,16 +54,9 @@ export class PromptBuilder {
     return workoutSplits[Math.floor(Math.random() * workoutSplits.length)];
   }
 
-  // Determine workout prompt type based on user filter selection
+  // Determine workout prompt type - default to powerlifting
   private determinePromptType(context: WorkoutContext): WorkoutPromptType {
-    const { workoutFilters } = context;
-    
-    // Use the user's explicit workout type selection from filters
-    if (workoutFilters?.workoutType) {
-      return workoutFilters.workoutType;
-    }
-    
-    // Default to powerlifting if no selection
+    // Default to powerlifting
     return 'powerlifting';
   }
 

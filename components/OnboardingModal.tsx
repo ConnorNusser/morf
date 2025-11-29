@@ -1,9 +1,8 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { Gender, HeightUnit, Routine, WeightUnit } from '@/types';
+import { Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -33,15 +32,13 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [gender, setGender] = useState<Gender>('male');
   const [age, setAge] = useState<number>(28);
-  const [workoutType, setWorkoutType] = useState<'powerlifting' | 'generic' | 'bodyweight' | null>(null);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
   const { play: playUnlock } = useSound('unlock');
-  const { play: playTap } = useSound('tapVariant1');
 
-  const totalSteps = 7;
+  const totalSteps = 6;
 
   const handleNext = () => {
     playHapticFeedback('selection', false);
@@ -68,14 +65,13 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 2: return weight.value > 0; // Weight step
       case 3: return true; // Gender step - always valid since we have default
       case 4: return age > 0 && age < 120; // Age step
-      case 5: return workoutType !== null; // Workout type step
-      case 6: return weightUnit !== null; // Weight unit step
+      case 5: return weightUnit !== null; // Weight unit step
       default: return false;
     }
   };
 
   const handleComplete = async () => {
-    if (!height || !weight || !workoutType) return;
+    if (!height || !weight) return;
 
     setIsCreatingProfile(true);
     playHapticFeedback('success', false);
@@ -87,34 +83,11 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         height,
         weight,
         gender,
-        age, // Use the entered age
-        lifts: [], // Start with empty lifts array
-        secondaryLifts: [], // Start with empty secondary lifts array
+        age,
+        lifts: [],
+        secondaryLifts: [],
         weightUnitPreference: weightUnit,
       });
-
-      // Set workout filters
-      await storageService.saveWorkoutFilters({
-        workoutType,
-        excludedWorkoutIds: [],
-      });
-
-      // Create default routine (only if it doesn't exist)
-      const existingRoutines = await storageService.getRoutines();
-      const hasDefaultRoutine = existingRoutines.some(routine => routine.id === 'default-routine');
-      
-      if (!hasDefaultRoutine) {
-        const defaultRoutine: Routine = {
-          id: 'default-routine',
-          name: 'Default',
-          description: 'Your default workout routine',
-          exercises: [],
-          createdAt: new Date(),
-        };
-        
-        await storageService.saveRoutine(defaultRoutine);
-        await storageService.setCurrentRoutine(defaultRoutine);
-      }
 
       onComplete();
     } catch (error) {
@@ -123,24 +96,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       setIsCreatingProfile(false);
     }
   };
-
-  const workoutTypeOptions = [
-    {
-      id: 'powerlifting' as const,
-      title: 'Powerlifting',
-      description: 'Focus on squat, bench, deadlift, and overhead press',
-    },
-    {
-      id: 'generic' as const,
-      title: 'General Fitness',
-      description: 'Balanced strength and muscle building',
-    },
-    {
-      id: 'bodyweight' as const,
-      title: 'Bodyweight',
-      description: 'No equipment needed, use your body weight',
-    },
-  ];
 
   const renderStep = () => {
     switch (currentStep) {
@@ -268,61 +223,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         );
 
       case 5:
-        return (
-          <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { 
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your training style?</Text>
-            <Text style={[styles.stepSubtitle, { 
-              color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
-            }]}>
-              Choose your primary focus. You can change this later in settings.
-            </Text>
-            
-            <View style={styles.workoutTypeContainer}>
-              {workoutTypeOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.workoutTypeOption,
-                    { 
-                      backgroundColor: currentTheme.colors.surface,
-                      borderColor: workoutType === option.id ? currentTheme.colors.primary : currentTheme.colors.border,
-                    },
-                    workoutType === option.id && { 
-                      backgroundColor: currentTheme.colors.primary + '15',
-                      borderWidth: 2,
-                    }
-                  ]}
-                  onPress={() => {
-                    setWorkoutType(option.id);
-                    playHapticFeedback('selection', false);
-                    playTap();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.workoutTypeTitle, { 
-                    color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_600SemiBold',
-                  }]}>
-                    {option.title}
-                  </Text>
-                  <Text style={[styles.workoutTypeDescription, { 
-                    color: currentTheme.colors.text + '80',
-                    fontFamily: 'Raleway_400Regular',
-                  }]}>
-                    {option.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        );
-
-
-      case 6:
         return (
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { 
@@ -606,26 +506,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginHorizontal: 40,
-  },
-  workoutTypeContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  workoutTypeOption: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1.5,
-  },
-  workoutTypeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  workoutTypeDescription: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
   },
   navigationContainer: {
     position: 'absolute',
