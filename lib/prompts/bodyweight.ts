@@ -6,7 +6,7 @@ import { PromptStrategy } from './powerlifting';
 
 export class BodyweightPromptStrategy implements PromptStrategy {
   async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<string> {
-    const { userProfile, userProgress, workoutHistory } = context;
+    const { userProfile, userProgress, workoutHistory, customExercises = [] } = context;
 
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
@@ -74,6 +74,7 @@ Focus on functional movement patterns, progressive overload through variations, 
 
 ALL AVAILABLE EXERCISES (use ONLY these IDs):
 ${filteredWorkouts.map(w => `${w.id}: ${w.name} (${w.primaryMuscles.join(', ')}) - ${w.category} - Equipment: ${w.equipment.join(', ')}`).join('\n')}
+${customExercises.length > 0 ? `\nUSER'S CUSTOM EXERCISES (prefer these when relevant):\n${customExercises.map(e => `${e.id}: ${e.name} (custom)`).join('\n')}` : ''}
 
 BODYWEIGHT TRAINING INSTRUCTIONS:
 1. Prioritize compound movements and functional patterns

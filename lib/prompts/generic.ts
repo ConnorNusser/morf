@@ -6,7 +6,7 @@ import { PromptStrategy } from './powerlifting';
 
 export class GenericPromptStrategy implements PromptStrategy {
   async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<string> {
-    const { userProfile, userProgress, workoutHistory, preferences } = context;
+    const { userProfile, userProgress, workoutHistory, preferences, customExercises = [] } = context;
 
     const percentiles = userProgress.map(p => p.percentileRanking);
     const overallPercentile = calculateOverallPercentile(percentiles);
@@ -77,6 +77,7 @@ Create a well-rounded workout that balances strength, conditioning, and function
 
 ALL AVAILABLE EXERCISES (use ONLY these IDs):
 ${filteredWorkouts.map(w => `${w.id}: ${w.name} (${w.primaryMuscles.join(', ')}) - ${w.category} - Equipment: ${w.equipment.join(', ')}`).join('\n')}
+${customExercises.length > 0 ? `\nUSER'S CUSTOM EXERCISES (prefer these when relevant):\n${customExercises.map(e => `${e.id}: ${e.name} (custom)`).join('\n')}` : ''}
 
 GENERAL FITNESS INSTRUCTIONS:
 1. Create a balanced workout targeting multiple muscle groups

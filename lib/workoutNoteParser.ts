@@ -502,15 +502,43 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
   }
 
   // Convert parsed workout to summary format for toast
+  // Consolidates exercises with the same name
   toSummary(parsed: ParsedWorkout): ParsedExerciseSummary[] {
-    return parsed.exercises.map(ex => ({
-      name: ex.matchedExerciseId
+    const consolidatedMap = new Map<string, ParsedExerciseSummary>();
+
+    for (const ex of parsed.exercises) {
+      const displayName = ex.matchedExerciseId
         ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name
-        : ex.name,
-      setCount: ex.sets.length,
-      sets: ex.sets, // Actual working sets
-      recommendedSets: ex.recommendedSets, // Template/target sets
-    }));
+        : ex.name;
+
+      // Normalize the name for comparison (lowercase, trim)
+      const normalizedName = displayName.toLowerCase().trim();
+
+      if (consolidatedMap.has(normalizedName)) {
+        // Consolidate with existing exercise
+        const existing = consolidatedMap.get(normalizedName)!;
+        existing.sets = [...existing.sets, ...ex.sets];
+        existing.setCount = existing.sets.length;
+
+        // Merge recommended sets if present
+        if (ex.recommendedSets) {
+          existing.recommendedSets = [
+            ...(existing.recommendedSets || []),
+            ...ex.recommendedSets,
+          ];
+        }
+      } else {
+        // Add new exercise to map
+        consolidatedMap.set(normalizedName, {
+          name: displayName,
+          setCount: ex.sets.length,
+          sets: [...ex.sets],
+          recommendedSets: ex.recommendedSets ? [...ex.recommendedSets] : undefined,
+        });
+      }
+    }
+
+    return Array.from(consolidatedMap.values());
   }
 
   // Convert parsed workout to GeneratedWorkout format for saving

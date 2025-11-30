@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -137,41 +138,47 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
         <KeyboardAvoidingView
           style={styles.content}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
         >
-          {/* Template Name */}
-          <RNView style={styles.nameContainer}>
-            <TextInput
-              style={[
-                styles.nameInput,
-                {
-                  color: currentTheme.colors.text,
-                  borderBottomColor: currentTheme.colors.border,
-                  fontFamily: 'Raleway_600SemiBold',
-                },
-              ]}
-              value={name}
-              onChangeText={setName}
-              placeholder="Template name..."
-              placeholderTextColor={currentTheme.colors.text + '40'}
-              maxLength={50}
-              autoFocus={!isEditing}
-            />
-          </RNView>
+          <ScrollView
+            style={styles.scrollContent}
+            contentContainerStyle={styles.scrollContentContainer}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
+            {/* Template Name */}
+            <RNView style={styles.nameContainer}>
+              <TextInput
+                style={[
+                  styles.nameInput,
+                  {
+                    color: currentTheme.colors.text,
+                    borderBottomColor: currentTheme.colors.border,
+                    fontFamily: 'Raleway_600SemiBold',
+                  },
+                ]}
+                value={name}
+                onChangeText={setName}
+                placeholder="Template name..."
+                placeholderTextColor={currentTheme.colors.text + '40'}
+                maxLength={50}
+                autoFocus={!isEditing}
+              />
+            </RNView>
 
-          {/* Notes Input */}
-          <RNView style={styles.notesContainer}>
-            <TextInput
-              style={[
-                styles.notesInput,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_400Regular',
-                },
-              ]}
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder={`Enter your workout notes...
+            {/* Notes Input */}
+            <RNView style={styles.notesContainer}>
+              <TextInput
+                style={[
+                  styles.notesInput,
+                  {
+                    color: currentTheme.colors.text,
+                    fontFamily: 'Raleway_400Regular',
+                  },
+                ]}
+                value={noteText}
+                onChangeText={setNoteText}
+                placeholder={`Enter your workout notes...
 
 Examples:
 Bench Press 135x10, 145x8, 155x6
@@ -179,12 +186,14 @@ Bench Press 135x10, 145x8, 155x6
 Squats 225x8, 245x6
 
 Dumbbell Rows 50x12, 55x10`}
-              placeholderTextColor={currentTheme.colors.text + '30'}
-              multiline
-              textAlignVertical="top"
-              autoFocus={isEditing}
-            />
-          </RNView>
+                placeholderTextColor={currentTheme.colors.text + '30'}
+                multiline
+                textAlignVertical="top"
+                scrollEnabled={false}
+                autoFocus={isEditing}
+              />
+            </RNView>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -216,6 +225,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flex: 1,
+  },
+  scrollContentContainer: {
+    flexGrow: 1,
     paddingHorizontal: 20,
   },
   nameContainer: {

@@ -5,8 +5,6 @@ import {
   StyleSheet,
   TextInput,
   TextInputProps,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 
@@ -37,38 +35,33 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     }));
 
     return (
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.input,
-              {
-                color: currentTheme.colors.text,
-                fontFamily: 'Raleway_400Regular',
-              }
-            ]}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor={currentTheme.colors.text + '40'}
-            multiline
-            textAlignVertical="top"
-            autoCapitalize="sentences"
-            autoCorrect={false}
-            scrollEnabled={false}
-            {...props}
-          />
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.input,
+            {
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_400Regular',
+            }
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={currentTheme.colors.text + '40'}
+          multiline
+          textAlignVertical="top"
+          autoCapitalize="sentences"
+          autoCorrect={false}
+          scrollEnabled={false}
+          {...props}
+        />
+      </ScrollView>
     );
   }
 );
@@ -76,9 +69,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
 WorkoutNoteInput.displayName = 'WorkoutNoteInput';
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollContainer: {
     flex: 1,
   },

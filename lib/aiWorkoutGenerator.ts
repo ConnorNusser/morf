@@ -147,7 +147,7 @@ USER CONTEXT:
 - Weight Unit: ${weightUnit}
 
 AVAILABLE EXERCISES:
-${allExerciseNames.slice(0, 40).join(', ')}
+${allExerciseNames.join(', ')}
 
 INSTRUCTIONS:
 1. Understand what the user wants to change or know
@@ -250,7 +250,7 @@ ${exerciseHistorySummary}
 ${customExercisesSummary}
 
 AVAILABLE EXERCISES (prefer using these exact names when possible):
-${allExerciseNames.slice(0, 60).join(', ')}
+${allExerciseNames.join(', ')}
 
 FORMATTING RULES:
 1. Generate 4-7 exercises matching the user's request

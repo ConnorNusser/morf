@@ -17,7 +17,7 @@ interface RecentAnalysis {
 
 export class PowerliftingPromptStrategy implements PromptStrategy {
   async buildPrompt(context: WorkoutContext, analysis: WorkoutAnalysis, customRequest?: string, workoutTypeOverride?: WorkoutSplit, previousWorkout?: GeneratedWorkout): Promise<string> {
-    const { userProfile, userProgress, workoutHistory, preferences } = context;
+    const { userProfile, userProgress, workoutHistory, preferences, customExercises = [] } = context;
 
     let workoutExamples;
 
@@ -128,6 +128,7 @@ ${requiredLifts.map(w => `${w.id}: ${w.name} - ${template?.powerliftingFocus || 
 
 ALL AVAILABLE EXERCISES (use ONLY these IDs this is the only list of exercises you can use, even if you aren't able to meet the requirements of the workout):
 ${filteredWorkouts.map(w => `${w.id}: ${w.name} (${w.primaryMuscles.join(', ')}) - ${w.category}`).join('\n')}
+${customExercises.length > 0 ? `\nUSER'S CUSTOM EXERCISES (prefer these when relevant):\n${customExercises.map(e => `${e.id}: ${e.name} (custom)`).join('\n')}` : ''}
 
 POWERLIFTING COACH INSTRUCTIONS:
 1. MANDATORY: Include at least 1 primary powerlifting lift (squat, bench-press, deadlift, or overhead-press)

@@ -181,14 +181,20 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           </RNView>
         </View>
 
-        {/* Chat Messages */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.chatContainer}
-          contentContainerStyle={styles.chatContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+        <KeyboardAvoidingView
+          style={styles.keyboardAvoid}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
         >
+          {/* Chat Messages */}
+          <ScrollView
+            ref={scrollViewRef}
+            style={styles.chatContainer}
+            contentContainerStyle={styles.chatContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
+          >
           {/* Welcome message */}
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
@@ -293,13 +299,9 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               </RNView>
             </RNView>
           )}
-        </ScrollView>
+          </ScrollView>
 
-        {/* Input Area */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
+          {/* Input Area */}
           <View style={[styles.inputContainer, { backgroundColor: currentTheme.colors.background }]}>
             <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
               <TextInput
@@ -348,6 +350,9 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+  },
+  keyboardAvoid: {
     flex: 1,
   },
   header: {

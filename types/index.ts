@@ -223,6 +223,7 @@ export interface WorkoutContext {
   userProgress: UserProgress[];
   availableEquipment: Equipment[];
   workoutHistory: GeneratedWorkout[];
+  customExercises?: CustomExercise[];
   preferences: {
     duration?: number;
     focusAreas?: MuscleGroup[];
