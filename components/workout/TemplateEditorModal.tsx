@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -97,6 +99,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
   }, [name, noteText, onClose]);
 
   const isEditing = !!template;
+  const inputAccessoryViewID = 'templateEditorAccessory';
 
   return (
     <Modal
@@ -163,6 +166,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
                 placeholderTextColor={currentTheme.colors.text + '40'}
                 maxLength={50}
                 autoFocus={!isEditing}
+                inputAccessoryViewID={inputAccessoryViewID}
               />
             </RNView>
 
@@ -191,10 +195,28 @@ Dumbbell Rows 50x12, 55x10`}
                 textAlignVertical="top"
                 scrollEnabled={false}
                 autoFocus={isEditing}
+                inputAccessoryViewID={inputAccessoryViewID}
               />
             </RNView>
           </ScrollView>
         </KeyboardAvoidingView>
+
+        {/* Keyboard accessory with Done button */}
+        {Platform.OS === 'ios' && (
+          <InputAccessoryView nativeID={inputAccessoryViewID}>
+            <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>
+              <RNView style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() => Keyboard.dismiss()}
+                style={styles.doneButton}
+              >
+                <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+          </InputAccessoryView>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -249,6 +271,20 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
+  },
+  accessoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  doneButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  doneButtonText: {
+    fontSize: 16,
   },
 });
 
