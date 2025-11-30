@@ -5,7 +5,7 @@ import HeightInput from '@/components/inputs/HeightInput';
 import WeightInput from '@/components/inputs/WeightInput';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import { UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';

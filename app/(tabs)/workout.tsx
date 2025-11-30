@@ -23,7 +23,6 @@ import {
 } from 'react-native';
 
 export default function WorkoutScreen() {
-  console.log('WorkoutScreen rendering...');
   const { currentTheme } = useTheme();
   const noteInputRef = useRef<WorkoutNoteInputRef>(null);
 

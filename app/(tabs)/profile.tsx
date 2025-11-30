@@ -9,7 +9,7 @@ import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';

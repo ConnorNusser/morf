@@ -379,7 +379,6 @@ Return ONLY valid JSON (no markdown):
             const matchedExercise = this.matchExercise(aiMatch.matchedName);
             if (matchedExercise) {
               match = matchedExercise;
-              console.log(`AI matched "${ex.name}" -> "${aiMatch.matchedName}" (${aiMatch.confidence * 100}% confidence)`);
             }
           }
         }
@@ -695,7 +694,6 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
           await storageService.saveCustomExercise(customExercise);
           exerciseId = customExercise.id;
           newCustomExercisesCreated = true;
-          console.log(`Created new custom exercise: "${ex.name}" (${customExercise.id})`);
         }
       }
 

@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Dimensions,
   FlatList,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   StyleSheet,
   TouchableOpacity,
   View as RNView,
@@ -245,7 +247,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
     );
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / CARD_WIDTH);
     setCurrentCardIndex(index);

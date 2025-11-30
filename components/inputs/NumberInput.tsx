@@ -2,7 +2,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
 
 interface NumberInputProps {
@@ -12,7 +12,7 @@ interface NumberInputProps {
   placeholder?: string;
   allowDecimal?: boolean;
   maxLength?: number;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export default function NumberInput({ 

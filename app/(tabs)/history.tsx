@@ -7,7 +7,7 @@ import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';

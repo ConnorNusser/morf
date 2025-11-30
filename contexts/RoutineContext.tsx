@@ -131,12 +131,6 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
     refreshRoutines,
   };
 
-  console.log('🔄 RoutineContext state:', {
-    routinesCount: routines.length,
-    currentRoutineName: currentRoutine?.name || 'null',
-    isLoading
-  });
-
   return (
     <RoutineContext.Provider value={value}>
       {children}

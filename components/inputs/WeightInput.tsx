@@ -3,7 +3,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { WeightUnit, convertWeight } from '@/lib/userProfile';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
 
 interface WeightInputProps {
@@ -12,7 +12,7 @@ interface WeightInputProps {
     unit: WeightUnit;
   };
   onChange: (weight: { value: number; unit: WeightUnit }) => void;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export default function WeightInput({ value, onChange, style }: WeightInputProps) {

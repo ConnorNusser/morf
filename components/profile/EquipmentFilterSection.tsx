@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSound } from "@/hooks/useSound";
-import { useUser } from "@/hooks/useUser";
+import { useUser } from "@/contexts/UserContext";
 import playHapticFeedback from "@/lib/haptic";
 import { Equipment } from "@/types";
 import { Ionicons } from "@expo/vector-icons";

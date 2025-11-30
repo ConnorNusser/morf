@@ -3,7 +3,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { HeightUnit, convertHeight, formatHeight } from '@/lib/userProfile';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
 
 interface HeightInputProps {
@@ -12,7 +12,7 @@ interface HeightInputProps {
     unit: HeightUnit;
   };
   onChange: (height: { value: number; unit: HeightUnit }) => void;
-  style?: any;
+  style?: ViewStyle;
 }
 
 export default function HeightInput({ value, onChange, style }: HeightInputProps) {

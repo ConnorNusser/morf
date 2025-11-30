@@ -1,9 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 
 interface DividerProps {
-  style?: any;
+  style?: ViewStyle;
   thickness?: number;
   margin?: number;
 }

@@ -300,7 +300,6 @@ class StorageService {
   async getRoutines(): Promise<Routine[]> {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
     const routines = data ? JSON.parse(data) : [];
-    console.log('💾 Storage: Found', routines.length, 'routines in storage');
     return routines;
   };
 
@@ -313,16 +312,13 @@ class StorageService {
     
     if (existingIndex >= 0) {
       // Update existing routine
-      console.log('💾 Storage: Updating existing routine:', routine.name);
       routines[existingIndex] = routine;
     } else {
       // Add new routine
-      console.log('💾 Storage: Adding new routine:', routine.name);
       routines.push(routine);
     }
-    
+
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
-    console.log('💾 Storage: Saved routine. Total routines now:', routines.length);
   };
 
   async deleteRoutine(routineId: string): Promise<void> {
