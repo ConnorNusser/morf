@@ -193,7 +193,6 @@ Dumbbell Rows 50x12, 55x10`}
                 placeholderTextColor={currentTheme.colors.text + '30'}
                 multiline
                 textAlignVertical="top"
-                scrollEnabled={false}
                 autoFocus={isEditing}
                 inputAccessoryViewID={inputAccessoryViewID}
               />
