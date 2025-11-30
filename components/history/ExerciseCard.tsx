@@ -48,8 +48,9 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
 
       if (periodEntries.length > 0) {
         // Convert to user's preferred unit before finding max
+        // Default to 'lbs' for legacy data without unit field
         const maxWeight = Math.max(...periodEntries.map(e =>
-          convertWeight(e.weight, e.unit, weightUnit)
+          convertWeight(e.weight, e.unit || 'lbs', weightUnit)
         ));
         periods.push(maxWeight);
       } else if (periods.length > 0) {
@@ -67,7 +68,8 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
 
     const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
     // Convert to user's preferred unit
-    const currentMax = convertWeight(sorted[0].weight, sorted[0].unit, weightUnit);
+    // Default to 'lbs' for legacy data without unit field
+    const currentMax = convertWeight(sorted[0].weight, sorted[0].unit || 'lbs', weightUnit);
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -76,7 +78,8 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
     if (oldEntries.length === 0) return null;
 
     // Convert old entries to user's preferred unit before finding max
-    const oldMax = Math.max(...oldEntries.map(h => convertWeight(h.weight, h.unit, weightUnit)));
+    // Default to 'lbs' for legacy data without unit field
+    const oldMax = Math.max(...oldEntries.map(h => convertWeight(h.weight, h.unit || 'lbs', weightUnit)));
     const delta = currentMax - oldMax;
 
     if (delta === 0) return null;

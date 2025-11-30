@@ -51,7 +51,9 @@ export default function WorkoutCard({
       ex.completedSets?.forEach(set => {
         totalSets++;
         // Convert weight to user's preferred unit before calculating volume
-        const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
+        // Default to 'lbs' for legacy data without unit field
+        const setUnit = set.unit || 'lbs';
+        const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
         totalVolume += weightInPreferredUnit * set.reps;
       });
     });
@@ -67,27 +69,33 @@ export default function WorkoutCard({
 
       if (ex.completedSets && ex.completedSets.length > 0) {
         // Convert weights to user's preferred unit for display
+        // Default to 'lbs' for legacy data without unit field
         const sets = ex.completedSets.map(set => {
-          const displayWeight = Math.round(convertWeight(set.weight, set.unit, weightUnit));
+          const setUnit = set.unit || 'lbs';
+          const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
           return `${displayWeight}×${set.reps}`;
         });
 
         // Find best set by converting to same unit for comparison
         const bestSet = ex.completedSets.reduce((best, current) => {
-          const bestInLbs = convertWeight(best.weight, best.unit, 'lbs');
-          const currentInLbs = convertWeight(current.weight, current.unit, 'lbs');
+          const bestUnit = best.unit || 'lbs';
+          const currentUnit = current.unit || 'lbs';
+          const bestInLbs = convertWeight(best.weight, bestUnit, 'lbs');
+          const currentInLbs = convertWeight(current.weight, currentUnit, 'lbs');
           return currentInLbs > bestInLbs ? current : best;
         }, ex.completedSets[0]);
 
         // Calculate volume in user's preferred unit
         const volume = ex.completedSets.reduce((sum, set) => {
-          const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
+          const setUnit = set.unit || 'lbs';
+          const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
           return sum + weightInPreferredUnit * set.reps;
         }, 0);
 
         // Compare best set to exercise stats (stats are in lbs)
         const exerciseStat = exerciseStats.find(s => s.id === ex.id);
-        const bestSetInLbs = convertWeight(bestSet.weight, bestSet.unit, 'lbs');
+        const bestSetUnit = bestSet.unit || 'lbs';
+        const bestSetInLbs = convertWeight(bestSet.weight, bestSetUnit, 'lbs');
         const isPR = exerciseStat ? bestSetInLbs >= exerciseStat.maxWeight : false;
 
         exercises.push({ name, sets, isPR, volume });

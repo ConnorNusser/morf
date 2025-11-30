@@ -180,7 +180,8 @@ export default function HistoryScreen() {
       for (const workout of workoutHistory) {
         for (const exercise of workout.exercises) {
           for (const set of exercise.completedSets || []) {
-            addEntry(exercise.id, set.weight, set.reps, new Date(workout.createdAt), set.unit);
+            // Default to 'lbs' for legacy data without unit field
+            addEntry(exercise.id, set.weight, set.reps, new Date(workout.createdAt), set.unit || 'lbs');
           }
         }
       }
@@ -412,12 +413,15 @@ export default function HistoryScreen() {
       }
     }
 
-    // Total volume this week
+    // Total volume this week (converted to user's preferred unit)
     let weekVolume = 0;
     thisWeekWorkouts.forEach(workout => {
       workout.exercises.forEach(ex => {
         ex.completedSets?.forEach(set => {
-          weekVolume += set.weight * set.reps;
+          // Default to 'lbs' for legacy data without unit field
+          const setUnit = set.unit || 'lbs';
+          const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
+          weekVolume += weightInPreferredUnit * set.reps;
         });
       });
     });
@@ -426,9 +430,9 @@ export default function HistoryScreen() {
       streak,
       thisWeek: thisWeekWorkouts.length,
       thisMonth: thisMonthWorkouts.length,
-      weekVolume,
+      weekVolume: Math.round(weekVolume),
     };
-  }, [workouts]);
+  }, [workouts, weightUnit]);
 
   // Filter exercises with data for the Your Lifts section
   const liftsWithData = useMemo(() =>
@@ -813,19 +817,30 @@ export default function HistoryScreen() {
                   No history recorded yet
                 </Text>
               ) : (
-                selectedExercise.history.map((entry, idx) => (
-                  <View key={idx} style={[styles.historyRow, { borderBottomColor: currentTheme.colors.border }]}>
-                    <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                      {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </Text>
-                    <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                      {entry.weight} {entry.unit} × {entry.reps}
-                    </Text>
-                    <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
-                      ~{Math.round(OneRMCalculator.estimate(entry.unit === 'kg' ? convertWeight(entry.weight, 'kg', 'lbs') : entry.weight, entry.reps))} 1RM
-                    </Text>
-                  </View>
-                ))
+                selectedExercise.history.map((entry, idx) => {
+                  // Default to 'lbs' for legacy data without unit field
+                  const entryUnit = entry.unit || 'lbs';
+                  // Convert to user's preferred unit for display
+                  const displayWeight = Math.round(convertWeight(entry.weight, entryUnit, weightUnit));
+                  // Calculate 1RM in lbs first, then convert for display
+                  const weightInLbs = convertWeight(entry.weight, entryUnit, 'lbs');
+                  const oneRMInLbs = OneRMCalculator.estimate(weightInLbs, entry.reps);
+                  const displayOneRM = weightUnit === 'kg' ? Math.round(convertWeight(oneRMInLbs, 'lbs', 'kg')) : Math.round(oneRMInLbs);
+
+                  return (
+                    <View key={idx} style={[styles.historyRow, { borderBottomColor: currentTheme.colors.border }]}>
+                      <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </Text>
+                      <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                        {displayWeight} {weightUnit} × {entry.reps}
+                      </Text>
+                      <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                        ~{displayOneRM} 1RM
+                      </Text>
+                    </View>
+                  );
+                })
               )}
             </ScrollView>
           )}

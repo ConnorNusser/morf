@@ -77,13 +77,15 @@ export default function WorkoutDetailModal({
   };
 
   // Get best estimated 1RM from all sets
-  const getBestE1RM = (sets: { weight: number; reps: number; unit: WeightUnit }[]): { e1rm: number; weight: number; reps: number; unit: WeightUnit } | null => {
+  const getBestE1RM = (sets: { weight: number; reps: number; unit?: WeightUnit }[]): { e1rm: number; weight: number; reps: number; unit: WeightUnit } | null => {
     if (!sets || sets.length === 0) return null;
     let best = { e1rm: 0, weight: 0, reps: 0, unit: 'lbs' as WeightUnit };
     sets.forEach(set => {
-      const e1rm = calculateE1RM(set.weight, set.reps, set.unit);
+      // Default to 'lbs' for legacy data without unit field
+      const setUnit = set.unit || 'lbs';
+      const e1rm = calculateE1RM(set.weight, set.reps, setUnit);
       if (e1rm > best.e1rm) {
-        best = { e1rm, weight: set.weight, reps: set.reps, unit: set.unit };
+        best = { e1rm, weight: set.weight, reps: set.reps, unit: setUnit };
       }
     });
     return best.e1rm > 0 ? best : null;
@@ -128,11 +130,15 @@ export default function WorkoutDetailModal({
     workout.exercises.forEach(ex => {
       ex.completedSets?.forEach(set => {
         sets++;
-        volume += set.weight * set.reps;
+        // Convert weight to user's preferred unit before calculating volume
+        // Default to 'lbs' for legacy data without unit field
+        const setUnit = set.unit || 'lbs';
+        const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
+        volume += weightInPreferredUnit * set.reps;
       });
     });
-    return { sets, volume };
-  }, [workout]);
+    return { sets, volume: Math.round(volume) };
+  }, [workout, weightUnit]);
 
   return (
     <Modal visible={!!workout} animationType="slide" presentationStyle="fullScreen">
@@ -223,13 +229,19 @@ export default function WorkoutDetailModal({
                         )}
                       </View>
                       <View style={styles.setsGrid}>
-                        {exercise.completedSets?.map((set, setIdx) => (
-                          <View key={setIdx} style={styles.setPill}>
-                            <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                              {set.weight} x {set.reps}
-                            </Text>
-                          </View>
-                        ))}
+                        {exercise.completedSets?.map((set, setIdx) => {
+                          // Convert weight to user's preferred unit
+                          // Default to 'lbs' for legacy data without unit field
+                          const setUnit = set.unit || 'lbs';
+                          const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
+                          return (
+                            <View key={setIdx} style={styles.setPill}>
+                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                                {displayWeight} x {set.reps}
+                              </Text>
+                            </View>
+                          );
+                        })}
                       </View>
                     </View>
                   );
