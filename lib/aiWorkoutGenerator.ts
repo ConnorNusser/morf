@@ -152,7 +152,7 @@ ${allExerciseNames.join(', ')}
 INSTRUCTIONS:
 1. Understand what the user wants to change or know
 2. Update the plan if they request changes (add/remove exercises, adjust weights/reps, swap exercises)
-3. Keep the same format: "Exercise Name WeightxReps, WeightxReps" with blank lines between exercises
+3. Keep the same format: "Exercise Name WeightxReps, WeightxReps" followed by "Actual" on the next line, with blank lines between exercise blocks
 4. Provide a brief, helpful response explaining what you changed or answering their question
 5. Suggest 1-2 follow-up questions if relevant
 
@@ -284,14 +284,18 @@ CRITICAL - EQUIPMENT CONSTRAINTS:
 
 EXAMPLES of noteText format (with blank lines between exercises):
 "Bench Press 135x10, 145x8, 155x6
+Actual
 
 Incline Dumbbell Press 40x12, 45x10, 45x10
+Actual
 
 Cable Fly 30x15, 30x12, 35x10
+Actual
 
-Tricep Pushdown 50x12, 55x10, 55x10"
+Tricep Pushdown 50x12, 55x10, 55x10
+Actual"
 
-NOTE: Separate each exercise with a blank line (double newline).
+NOTE: Each exercise MUST have "Actual" on the line below it (for users to fill in their completed sets). Separate each exercise block with a blank line.
 
 Return ONLY valid JSON (no markdown, no backticks):
 {
@@ -427,7 +431,7 @@ CONTEXT QUESTIONS RULES:
       ];
     }
 
-    // Build note text with double newline between exercises for better spacing
+    // Build note text with "Actual" placeholder below each exercise
     const noteText = exercises.map(ex => {
       const sets = [];
       for (let i = 0; i < ex.sets; i++) {
@@ -435,7 +439,7 @@ CONTEXT QUESTIONS RULES:
         const reps = ex.reps + (i === ex.sets - 1 ? -2 : 0);
         sets.push(`${ex.suggestedWeight}x${Math.max(reps, 1)}`);
       }
-      return `${ex.name} ${sets.join(', ')}`;
+      return `${ex.name} ${sets.join(', ')}\nActual`;
     }).join('\n\n');
 
     return {

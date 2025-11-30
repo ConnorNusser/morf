@@ -187,12 +187,9 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
                       </RNView>
                     )}
 
-                    {/* Actual Sets */}
+                    {/* Completed Sets */}
                     {exercise.sets && exercise.sets.length > 0 && (
                       <RNView style={styles.setsSection}>
-                        <Text style={[styles.sectionLabel, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
-                          Actual
-                        </Text>
                         {exercise.sets.map((set, setIndex) => (
                           <RNView key={setIndex} style={styles.setRow}>
                             <Text style={[styles.setLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
