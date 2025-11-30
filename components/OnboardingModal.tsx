@@ -407,10 +407,11 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {renderProgressBar()}
           {renderStep()}

@@ -517,6 +517,7 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={currentTheme.colors.primary} />}
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode="interactive"
       >
         {activeTab === 'workouts' ? (
           <>
