@@ -1,6 +1,7 @@
 import Card from '@/components/Card';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
+import CustomExercisesSection from '@/components/profile/CustomExercisesSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
@@ -144,6 +145,9 @@ export default function ProfileScreen() {
 
         {/* Weight Unit Preference Section */}
         <WeightUnitPreferenceSection />
+
+        {/* Custom Exercises Section */}
+        <CustomExercisesSection />
 
         {/* App Info Section */}
         <AppInfoSection />
