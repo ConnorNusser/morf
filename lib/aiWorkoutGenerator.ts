@@ -156,6 +156,16 @@ INSTRUCTIONS:
 4. Provide a brief, helpful response explaining what you changed or answering their question
 5. Suggest 1-2 follow-up questions if relevant
 
+CRITICAL - EQUIPMENT CONSTRAINTS:
+- If the user specifies equipment (e.g., "dumbbells only", "barbell and dumbbells", "no machines", "bodyweight only"), you MUST ONLY include exercises that use that equipment
+- Never suggest cable machines, machines, or other equipment the user didn't mention having access to
+- When in doubt about equipment, ask for clarification
+- Common equipment mappings:
+  * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, etc.)
+  * "barbell only" = barbell exercises only (bench, squat, deadlift, rows, etc.)
+  * "bodyweight" = no equipment (pushups, pullups, dips, squats, lunges, etc.)
+  * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
+
 Return ONLY valid JSON (no markdown, no backticks):
 {
   "noteText": "The updated workout plan (or same if no changes needed)",
@@ -261,6 +271,16 @@ FORMATTING RULES:
 6. Use ${weightUnit} for all weights (no unit symbol needed)
 7. Base weights on the user's history if available, otherwise use reasonable defaults
 8. Include 2-4 sets per exercise with slight weight progression or same weight
+
+CRITICAL - EQUIPMENT CONSTRAINTS:
+- If the user specifies equipment (e.g., "dumbbells only", "barbell and dumbbells", "no machines", "bodyweight only"), you MUST ONLY include exercises that use that equipment
+- Never suggest cable machines, machines, or other equipment the user didn't mention having access to
+- Common equipment mappings:
+  * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, goblet squats, lunges, etc.)
+  * "barbell only" = barbell exercises only (bench, squat, deadlift, rows, OHP, etc.)
+  * "barbell and dumbbells" = only barbell and dumbbell exercises, NO cables or machines
+  * "bodyweight" = no equipment (pushups, pullups, dips, bodyweight squats, lunges, etc.)
+  * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
 
 EXAMPLES of noteText format (with blank lines between exercises):
 "Bench Press 135x10, 145x8, 155x6
