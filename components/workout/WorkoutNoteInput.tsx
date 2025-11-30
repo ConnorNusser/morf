@@ -41,33 +41,34 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     }));
 
     return (
-      <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="interactive"
-      >
-        <TextInput
-          ref={inputRef}
-          style={[
-            styles.input,
-            {
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_400Regular',
-            }
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={currentTheme.colors.text + '40'}
-          multiline
-          textAlignVertical="top"
-          autoCapitalize="sentences"
-          autoCorrect={false}
-          scrollEnabled={false}
-          inputAccessoryViewID={inputAccessoryViewID}
-          {...props}
-        />
+      <>
+        <ScrollView
+          style={styles.scrollContainer}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <TextInput
+            ref={inputRef}
+            style={[
+              styles.input,
+              {
+                color: currentTheme.colors.text,
+                fontFamily: 'Raleway_400Regular',
+              }
+            ]}
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            placeholderTextColor={currentTheme.colors.text + '40'}
+            multiline
+            textAlignVertical="top"
+            autoCapitalize="sentences"
+            autoCorrect={false}
+            inputAccessoryViewID={inputAccessoryViewID}
+            {...props}
+          />
+        </ScrollView>
         {/* Keyboard accessory with Done button */}
         {Platform.OS === 'ios' && (
           <InputAccessoryView nativeID={inputAccessoryViewID}>
@@ -84,7 +85,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
             </RNView>
           </InputAccessoryView>
         )}
-      </ScrollView>
+      </>
     );
   }
 );
