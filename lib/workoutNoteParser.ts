@@ -1,7 +1,8 @@
-import { CustomExercise, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion, GeneratedWorkout } from '@/types';
+import { CustomExercise, GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import OpenAI from 'openai';
-import { getWorkoutById, getAvailableWorkouts } from './workouts';
+import { aiWorkoutGenerator } from './aiWorkoutGenerator';
 import { storageService } from './storage';
+import { getAvailableWorkouts, getWorkoutById } from './workouts';
 
 // Types for parsed workout data
 export interface ParsedSet {
@@ -125,30 +126,93 @@ class WorkoutNoteParser {
   // Get common aliases for exercises
   private getExerciseAliases(id: string, name: string): string[] {
     const aliasMap: Record<string, string[]> = {
-      'bench-press': ['bench', 'flat bench', 'barbell bench'],
-      'squat': ['squats', 'back squat', 'barbell squat'],
-      'deadlift': ['deadlifts', 'conventional deadlift', 'deads'],
-      'overhead-press': ['ohp', 'military press', 'shoulder press', 'press'],
-      'dumbbell-bench-press': ['db bench', 'dumbbell bench'],
-      'dumbbell-curl': ['db curl', 'curls', 'bicep curl'],
-      'barbell-curl': ['bb curl', 'barbell curls'],
-      'lat-pulldown': ['lat pulldowns', 'pulldown', 'pulldowns'],
-      'barbell-row': ['bent over row', 'rows', 'bb row'],
-      'leg-press': ['leg press machine'],
-      'pull-up': ['pullups', 'pull ups', 'chin up', 'chinup'],
-      'push-up': ['pushups', 'push ups'],
-      'incline-bench-press': ['incline bench', 'incline press'],
-      'romanian-deadlift': ['rdl', 'romanian dl', 'stiff leg deadlift'],
-      'cable-fly': ['cable flies', 'flies', 'flyes', 'pec fly'],
-      'tricep-pushdown': ['pushdowns', 'tricep pushdowns', 'rope pushdown'],
-      'lateral-raise': ['lateral raises', 'side raise', 'side raises'],
-      'face-pull': ['face pulls'],
-      'leg-extension': ['leg extensions', 'quad extension'],
-      'leg-curl': ['leg curls', 'hamstring curl'],
-      'calf-raise': ['calf raises', 'calves'],
+      // Barbell exercises
+      'bench-press': ['bench', 'flat bench', 'barbell bench', 'bb bench', 'bench press barbell'],
+      'squat': ['squats', 'back squat', 'barbell squat', 'bb squat'],
+      'deadlift': ['deadlifts', 'conventional deadlift', 'deads', 'barbell deadlift', 'bb deadlift'],
+      'overhead-press': ['ohp', 'military press', 'barbell shoulder press', 'barbell press', 'bb ohp'],
+      'barbell-row': ['bent over row', 'rows', 'bb row', 'barbell rows', 'bent row'],
+      'incline-bench-press': ['incline bench', 'incline press', 'incline barbell', 'incline bb'],
+      'romanian-deadlift': ['rdl', 'romanian dl', 'stiff leg deadlift', 'barbell rdl', 'bb rdl'],
+      'sumo-deadlift': ['sumo', 'sumo dl', 'sumo deads'],
+      'barbell-bicep-curl': ['bb curl', 'barbell curls', 'barbell curl'],
+      'barbell-hip-thrust': ['bb hip thrust', 'barbell thrust'],
+      'barbell-shrugs': ['bb shrugs', 'barbell shrug'],
+      'barbell-lunges': ['bb lunges', 'barbell lunge'],
+      'front-squat': ['front squats', 'bb front squat'],
+      't-bar-row': ['t bar row', 'tbar row', 't-bar'],
+
+      // Dumbbell exercises
+      'dumbbell-chest-press': ['db bench', 'dumbbell bench', 'db press', 'dumbbell press', 'dumbbell bench press'],
+      'bicep-curl': ['db curl', 'curls', 'dumbbell curl', 'dumbbell curls'],
+      'dumbbell-shoulder-press': ['db shoulder press', 'db press', 'dumbbell ohp'],
+      'hammer-curl': ['hammer curls', 'db hammer curl'],
+      'lateral-raise': ['lateral raises', 'side raise', 'side raises', 'db lateral raise'],
+      'dumbbell-flyes': ['db fly', 'db flyes', 'dumbbell fly', 'chest fly dumbbell'],
+      'dumbbell-bent-over-row': ['db row', 'dumbbell row', 'one arm row'],
+      'single-arm-dumbbell-row': ['single arm row', 'one arm db row', 'single db row'],
+      'incline-dumbbell-chest-press': ['incline db press', 'incline dumbbell', 'incline dumbbell press'],
+      'dumbbell-romanian-deadlift': ['db rdl', 'dumbbell rdl'],
+      'goblet-squat': ['goblet squats', 'db goblet squat'],
+      'dumbbell-lunges': ['db lunges', 'dumbbell lunge'],
+      'skull-crushers': ['skull crusher', 'db skull crushers', 'lying tricep extension'],
+      'dumbbell-shrugs': ['db shrugs', 'dumbbell shrug'],
+
+      // Cable exercises
+      'lat-pulldown': ['lat pulldowns', 'pulldown', 'pulldowns', 'cable pulldown'],
+      'cable-tricep-pushdown': ['pushdowns', 'tricep pushdowns', 'rope pushdown', 'cable pushdown', 'tricep pulldowns', 'tricep pulldown'],
+      'cable-chest-fly': ['cable fly', 'cable flies', 'cable flyes', 'pec fly cables'],
+      'seated-cable-row': ['cable row', 'seated row cables', 'low row'],
+      'cable-bicep-curl': ['cable curl', 'cable curls'],
+      'cable-lateral-raise': ['cable lateral', 'cable side raise'],
+      'cable-rear-delt-fly': ['cable rear delt', 'face pull', 'face pulls'],
+      'cable-wood-chop': ['wood chops', 'cable chop'],
+
+      // Machine exercises
+      'leg-press': ['leg press machine', 'machine leg press'],
+      'leg-extension': ['leg extensions', 'quad extension', 'machine leg extension'],
+      'leg-curl': ['leg curls', 'hamstring curl', 'machine leg curl'],
+      'chest-press-machine': ['machine chest press', 'machine bench', 'chest press machine', 'machine press'],
+      'shoulder-press-machine': ['machine shoulder press', 'machine ohp'],
+      'seated-row-machine': ['machine row', 'machine rows'],
+      'chest-fly-machine': ['machine fly', 'pec deck', 'pec fly machine'],
+      'hack-squat-machine': ['hack squat', 'hack squats'],
+      'smith-machine-squat': ['smith squat', 'smith machine squat'],
+      'smith-machine-bench-press': ['smith bench', 'smith press', 'smith machine bench'],
+      'machine-hip-thrust': ['hip thrust machine'],
+      'machine-lateral-raise': ['machine lateral', 'lateral raise machine'],
+      'machine-rear-delt-fly': ['reverse fly machine', 'rear delt machine'],
+
+      // Bodyweight exercises
+      'pull-up': ['pullups', 'pull ups', 'pullup'],
+      'chin-up': ['chinups', 'chin ups', 'chinup'],
+      'push-up': ['pushups', 'push ups', 'pushup'],
+      'dip': ['dips', 'parallel bar dips'],
+      'plank': ['planks', 'front plank'],
+
+      // Kettlebell exercises
+      'kettlebell-swing': ['kb swing', 'kettlebell swings', 'kb swings'],
+      'kettlebell-goblet-squat': ['kb goblet squat', 'kettlebell squat'],
+
+      // Common misspellings
+      'calf-raise': ['calf raises', 'calves', 'calf raise', 'calve raise'],
     };
 
     return aliasMap[id] || [];
+  }
+
+  // Modifiers that change the meaning of an exercise significantly
+  private readonly SIGNIFICANT_MODIFIERS = [
+    'incline', 'decline', 'flat', 'seated', 'standing', 'lying',
+    'reverse', 'close grip', 'wide grip', 'narrow', 'sumo', 'romanian',
+    'front', 'rear', 'lateral', 'overhead', 'behind', 'single arm', 'one arm',
+    'super', 'pause', 'tempo', 'explosive', 'slow'
+  ];
+
+  // Check if a name contains any significant modifiers
+  private getModifiers(name: string): string[] {
+    const lowerName = name.toLowerCase();
+    return this.SIGNIFICANT_MODIFIERS.filter(mod => lowerName.includes(mod));
   }
 
   // Try to match a parsed exercise name to an existing exercise
@@ -165,22 +229,52 @@ class WorkoutNoteParser {
       return { id: this.customExerciseCache.get(normalizedName)!, isCustom: true };
     }
 
-    // Try partial matching in database exercises
+    // Get modifiers in the input name
+    const inputModifiers = this.getModifiers(normalizedName);
+
+    // Try partial matching in database exercises (with modifier awareness)
     for (const [cachedName, id] of this.exerciseNameCache.entries()) {
-      if (normalizedName.includes(cachedName) || cachedName.includes(normalizedName)) {
+      if (this.isValidPartialMatch(normalizedName, cachedName, inputModifiers)) {
         return { id, isCustom: false };
       }
     }
 
-    // Try partial matching in custom exercises
+    // Try partial matching in custom exercises (with modifier awareness)
     for (const [cachedName, id] of this.customExerciseCache.entries()) {
-      if (normalizedName.includes(cachedName) || cachedName.includes(normalizedName)) {
+      if (this.isValidPartialMatch(normalizedName, cachedName, inputModifiers)) {
         return { id, isCustom: true };
       }
     }
 
     // No match found - this will be a new custom exercise
     return null;
+  }
+
+  // Check if partial match is valid (not a false positive due to modifiers)
+  private isValidPartialMatch(inputName: string, cachedName: string, inputModifiers: string[]): boolean {
+    // Must have substring relationship
+    if (!inputName.includes(cachedName) && !cachedName.includes(inputName)) {
+      return false;
+    }
+
+    // Get modifiers in the cached name
+    const cachedModifiers = this.getModifiers(cachedName);
+
+    // If input has modifiers that the cached name doesn't have, it's likely a different exercise
+    // e.g., "incline chest fly" should NOT match "chest fly"
+    const extraInputModifiers = inputModifiers.filter(mod => !cachedModifiers.includes(mod));
+    if (extraInputModifiers.length > 0) {
+      return false;
+    }
+
+    // If cached has modifiers that input doesn't have, also reject
+    // e.g., "chest fly" should NOT match "incline chest fly" in the cache
+    const extraCachedModifiers = cachedModifiers.filter(mod => !inputModifiers.includes(mod));
+    if (extraCachedModifiers.length > 0) {
+      return false;
+    }
+
+    return true;
   }
 
   // AI-assisted matching for exercise names that didn't match locally
@@ -201,10 +295,13 @@ AVAILABLE EXERCISES:
 ${availableExercises.slice(0, 50).join('\n')}
 
 RULES:
-1. Only return a match if you're confident it's the same exercise (just named differently)
-2. Common variations to match: "DB" = "Dumbbell", "BB" = "Barbell", "Press" = "Chest Press", etc.
-3. If no good match exists, return null
-4. Consider that "Incline DB Press" should match "Incline Dumbbell Press"
+1. Only return a match if you're VERY confident it's the EXACT same exercise (just named differently)
+2. Common abbreviation matches: "DB" = "Dumbbell", "BB" = "Barbell"
+3. If the input has words like "super", "special", "custom", or other unique modifiers NOT in the available list, return null
+4. If the input describes a different VARIATION (e.g., different angle, grip, or style), return null
+5. "Super horizontal bench press" is NOT the same as "Bench Press" - return null
+6. "Incline cable fly" is NOT the same as "Chest Fly (Cables)" - different angle means different exercise
+7. Only match if ALL significant words match (just reordered or abbreviated)
 
 Return ONLY valid JSON (no markdown):
 {
@@ -215,7 +312,7 @@ Return ONLY valid JSON (no markdown):
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are an exercise name matcher. Return only valid JSON.' },
+          { role: 'system', content: 'You are a strict exercise name matcher. Only match if exercises are EXACTLY the same movement. Return only valid JSON.' },
           { role: 'user', content: prompt },
         ],
         temperature: 0.1,
@@ -232,7 +329,8 @@ Return ONLY valid JSON (no markdown):
 
       const result = JSON.parse(cleanedContent);
 
-      if (result.matchedName && result.confidence >= 0.7) {
+      // Require 85% confidence for a match (raised from 70%)
+      if (result.matchedName && result.confidence >= 0.85) {
         return { matchedName: result.matchedName, confidence: result.confidence };
       }
 
@@ -331,6 +429,37 @@ IMPORTANT RULES:
    - "Pullups bodyweight x 10, 8, 6" = 3 sets
    - "DB curls 25s 3x12" = 3 sets of 25x12
 
+EQUIPMENT KEYWORDS - Use these to format exercise names correctly:
+- "barbell", "bb", "bar" → indicates barbell exercise: "Bench Press (Barbell)"
+- "dumbbell", "db", "dumbbells" → indicates dumbbell exercise: "Chest Press (Dumbbells)"
+- "cable", "cables" → indicates cable exercise: "Tricep Pushdown (Cables)"
+- "machine" → indicates machine exercise: "Chest Press (Machine)"
+- "smith", "smith machine" → indicates Smith machine: "Bench Press (Smith Machine)"
+- "kettlebell", "kb" → indicates kettlebell: "Swing (Kettlebell)"
+- "bodyweight", "bw" → indicates bodyweight: "Pull-up (Bodyweight)"
+- "single arm", "one arm", "unilateral" → indicates single-sided exercise
+
+EXERCISE NAME MATCHING RULES:
+- Include equipment type in parentheses at the end: "Exercise Name (Equipment)"
+- "machine bench press" = "Bench Press (Machine)", NOT "Bench Press (Barbell)"
+- "bench press" (no qualifier) = "Bench Press (Barbell)" (default to barbell for main lifts)
+- "db bench" or "dumbbell bench" = "Chest Press (Dumbbells)"
+- "cable fly" = "Chest Fly (Cables)"
+- "tricep pulldown" or "tricep pushdown" = "Tricep Pushdown (Cables)"
+- Handle misspellings and abbreviations (e.g., "lat pulldown" = "Lat Pulldown (Cables)")
+- "custom" keyword means user's custom exercise - assume this doesn't match any of the available exercises
+
+CRITICAL - UNRECOGNIZED/CUSTOM EXERCISES:
+- If you cannot confidently match an exercise name to a standard exercise, STILL format it properly
+- Use Title Case and add equipment type in parentheses based on context clues
+- Do NOT try to match to a known exercise - just format the name nicely
+- Examples:
+  * "super horizontal bench press" → "Super Horizontal Bench Press (Machine)"
+  * "incline cable fly" → "Incline Cable Fly (Cables)"
+  * "crazy 8s biceps" → "Crazy 8s Biceps (Dumbbells)" (assume dumbbells if no equipment mentioned for arm exercises)
+  * "pause squat" → "Pause Squat (Barbell)" (assume barbell for squat variations)
+- ALWAYS format exercise names in Title Case with equipment in parentheses, even for custom exercises
+
 DISTINGUISHING TARGET vs ACTUAL SETS:
 - "Target" sets are PLANNED sets, NOT actual working sets performed
 - Keywords that indicate TARGET sets: "target", "recommended", "plan", "goal", "aim for", "try", "should do"
@@ -340,9 +469,11 @@ DISTINGUISHING TARGET vs ACTUAL SETS:
 - NEVER put target sets in the main "sets" array - only actual working sets go there
 
 EXAMPLES:
-- "Bench target 135x8, did 145x8, 155x6" → recommendedSets: [135x8], sets: [145x8, 155x6]
-- "Squats target 225x5, actual 225x5, 235x4" → recommendedSets: [225x5], sets: [225x5, 235x4]
-- "Deadlift 315x5, 335x3" (no qualifiers) → sets: [315x5, 335x3] (assumed actual)
+- "Bench target 135x8, did 145x8, 155x6" → name: "Bench Press (Barbell)", recommendedSets: [135x8], sets: [145x8, 155x6]
+- "Machine bench 100x10" → name: "Bench Press (Machine)", sets: [100x10]
+- "DB bench 40x12" → name: "Chest Press (Dumbbells)", sets: [40x12]
+- "Tricep pulldowns 50x15" → name: "Tricep Pushdown (Cables)", sets: [50x15]
+- "Single arm db row 35x10" → name: "Single Arm Row (Dumbbells)", sets: [35x10]
 
 WORKOUT NOTES:
 ${text}
@@ -351,7 +482,7 @@ Return ONLY valid JSON in this exact format (no markdown, no backticks):
 {
   "exercises": [
     {
-      "name": "Exercise Name",
+      "name": "Exercise Name (Equipment)",
       "sets": [
         { "weight": 145, "reps": 8, "unit": "lbs" },
         { "weight": 155, "reps": 6, "unit": "lbs" }
@@ -543,6 +674,7 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
 
   // Convert parsed workout to GeneratedWorkout format for saving
   // Also auto-creates custom exercises for unmatched exercise names
+  // Uses AI to generate proper metadata (muscle groups, equipment, category)
   async toGeneratedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number): Promise<GeneratedWorkout> {
     const exercises: WorkoutExerciseSession[] = [];
     let newCustomExercisesCreated = false;
@@ -550,27 +682,20 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
     for (const ex of parsed.exercises) {
       let exerciseId = ex.matchedExerciseId;
 
-      // If this is a custom exercise (no match), create it
+      // If this is a custom exercise (no match), create it with AI-generated metadata
       if (ex.isCustom && !exerciseId) {
-        const customId = `custom_${ex.name.toLowerCase().replace(/\s+/g, '-')}_${Date.now()}`;
-
         // Check if a custom exercise with this name already exists
         const existingCustom = await storageService.getCustomExerciseByName(ex.name);
 
         if (existingCustom) {
           exerciseId = existingCustom.id;
         } else {
-          // Create new custom exercise
-          const customExercise: CustomExercise = {
-            id: customId,
-            name: ex.name,
-            isCustom: true,
-            createdAt: new Date(),
-          };
+          // Generate custom exercise with AI (includes proper ID format, muscle groups, equipment, etc.)
+          const customExercise = await aiWorkoutGenerator.generateCustomExerciseMetadata(ex.name);
           await storageService.saveCustomExercise(customExercise);
-          exerciseId = customId;
+          exerciseId = customExercise.id;
           newCustomExercisesCreated = true;
-          console.log(`Created new custom exercise: "${ex.name}" (${customId})`);
+          console.log(`Created new custom exercise: "${ex.name}" (${customExercise.id})`);
         }
       }
 
@@ -582,8 +707,16 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
         completed: true,
       }));
 
+      // Generate kebab-case ID if we still don't have one
+      const fallbackId = ex.name
+        .toLowerCase()
+        .replace(/[()]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
       exercises.push({
-        id: exerciseId || `custom_${ex.name.toLowerCase().replace(/\s+/g, '-')}_${Date.now()}`,
+        id: exerciseId || fallbackId,
         sets: ex.sets.length,
         reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
         completedSets,
@@ -612,7 +745,7 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
     };
   }
 
-  // Sync version for backwards compatibility
+  // Sync version for backwards compatibility (uses kebab-case IDs)
   toGeneratedWorkout(parsed: ParsedWorkout, duration: number): GeneratedWorkout {
     const exercises: WorkoutExerciseSession[] = parsed.exercises.map(ex => {
       const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, index) => ({
@@ -623,8 +756,16 @@ The confidence score should be between 0 and 1, where 1 means very confident in 
         completed: true,
       }));
 
+      // Generate kebab-case ID for custom exercises
+      const kebabId = ex.name
+        .toLowerCase()
+        .replace(/[()]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
       return {
-        id: ex.matchedExerciseId || `custom_${ex.name.toLowerCase().replace(/\s+/g, '-')}_${Date.now()}`,
+        id: ex.matchedExerciseId || kebabId,
         sets: ex.sets.length,
         reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
         completedSets,

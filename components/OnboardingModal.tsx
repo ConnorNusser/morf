@@ -2,7 +2,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { userService } from '@/lib/userService';
-import { Gender, HeightUnit, WeightUnit } from '@/types';
+import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -16,9 +16,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import EquipmentFilterInput from './inputs/EquipmentFilterInput';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
+
+const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'];
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -32,13 +35,14 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [gender, setGender] = useState<Gender>('male');
   const [age, setAge] = useState<number>(28);
+  const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>(ALL_EQUIPMENT);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
   const { play: playUnlock } = useSound('unlock');
 
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   const handleNext = () => {
     playHapticFeedback('selection', false);
@@ -65,7 +69,8 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 2: return weight.value > 0; // Weight step
       case 3: return true; // Gender step - always valid since we have default
       case 4: return age > 0 && age < 120; // Age step
-      case 5: return weightUnit !== null; // Weight unit step
+      case 5: return availableEquipment.length > 0; // Equipment step
+      case 6: return weightUnit !== null; // Weight unit step
       default: return false;
     }
   };
@@ -87,6 +92,10 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         lifts: [],
         secondaryLifts: [],
         weightUnitPreference: weightUnit,
+        equipmentFilter: {
+          mode: availableEquipment.length === ALL_EQUIPMENT.length ? 'all' : 'custom',
+          includedEquipment: availableEquipment,
+        },
       });
 
       onComplete();
@@ -225,7 +234,30 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 5:
         return (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { 
+            <Text style={[styles.stepTitle, {
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }]}>What equipment do you have?</Text>
+            <Text style={[styles.stepSubtitle, {
+              color: currentTheme.colors.text + '80',
+              fontFamily: 'Raleway_400Regular',
+            }]}>
+              This helps us generate workouts with exercises you can actually do.
+            </Text>
+            <View style={styles.inputWrapper}>
+              <EquipmentFilterInput
+                value={availableEquipment}
+                onChange={setAvailableEquipment}
+                style={styles.inputComponent}
+              />
+            </View>
+          </View>
+        );
+
+      case 6:
+        return (
+          <View style={styles.stepContent}>
+            <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
             }]}>Choose your weight units</Text>

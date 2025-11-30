@@ -1,7 +1,6 @@
-import { RefObject } from 'react';
-import { View } from 'react-native';
-import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { RefObject } from 'react';
+import ViewShot from 'react-native-view-shot';
 
 export async function captureAndShare(viewRef: RefObject<ViewShot>): Promise<boolean> {
   try {

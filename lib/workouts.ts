@@ -1,4 +1,5 @@
 import {
+  CustomExercise,
   Equipment,
   MuscleGroup,
   ThemeLevel,
@@ -7,6 +8,7 @@ import {
   WorkoutCategory,
 } from '@/types';
 import exercisesData from './exercises.json';
+import { storageService } from './storage';
 import { getThemeRequiredPercentile } from './userProfile';
 
 export {
@@ -116,12 +118,16 @@ export const analyzeWeakPoints = (
   };
 };
 
+// Sync version - only checks built-in exercises
 export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null => {
   const allWorkouts = getAvailableWorkouts(100);
   const workout = allWorkouts.find(w => w.id === exerciseId);
 
   if (!workout) {
-    console.warn(`⚠️ Exercise not found: ${exerciseId}`);
+    // Don't warn for custom exercises - they need async lookup
+    if (!exerciseId.startsWith('custom_') && !exerciseId.includes('-')) {
+      console.warn(`⚠️ Exercise not found: ${exerciseId}`);
+    }
     return null;
   }
 
@@ -133,4 +139,62 @@ export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' 
     primaryMuscles: workout.primaryMuscles,
     equipment: workout.equipment,
   };
+};
+
+// Async version - checks both built-in and custom exercises
+export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null> => {
+  // First try built-in exercises
+  const builtInWorkout = getWorkoutById(exerciseId);
+  if (builtInWorkout) {
+    return builtInWorkout;
+  }
+
+  // Then try custom exercises
+  try {
+    const customExercises = await storageService.getCustomExercises();
+    const customExercise = customExercises.find(e => e.id === exerciseId);
+
+    if (customExercise) {
+      return {
+        id: customExercise.id,
+        name: customExercise.name,
+        description: customExercise.description,
+        category: customExercise.category,
+        primaryMuscles: customExercise.primaryMuscles,
+        equipment: customExercise.equipment,
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching custom exercise:', error);
+  }
+
+  console.warn(`⚠️ Exercise not found: ${exerciseId}`);
+  return null;
+};
+
+// Sync version with custom exercises cache - use when you have custom exercises loaded
+export const getWorkoutByIdWithCustom = (
+  exerciseId: string,
+  customExercises: CustomExercise[]
+): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null => {
+  // First try built-in exercises
+  const builtInWorkout = getWorkoutById(exerciseId);
+  if (builtInWorkout) {
+    return builtInWorkout;
+  }
+
+  // Then try custom exercises from the provided cache
+  const customExercise = customExercises.find(e => e.id === exerciseId);
+  if (customExercise) {
+    return {
+      id: customExercise.id,
+      name: customExercise.name,
+      description: customExercise.description,
+      category: customExercise.category,
+      primaryMuscles: customExercise.primaryMuscles,
+      equipment: customExercise.equipment,
+    };
+  }
+
+  return null;
 }

@@ -1,7 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutById } from '@/lib/workouts';
-import { convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
+import { getWorkoutByIdWithCustom } from '@/lib/workouts';
+import { convertWeight, CustomExercise, GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
@@ -20,6 +20,7 @@ interface WorkoutCardProps {
   workout: GeneratedWorkout;
   exerciseStats: ExerciseWithMax[];
   weightUnit: WeightUnit;
+  customExercises: CustomExercise[];
   onPress: () => void;
   onLongPress: () => void;
 }
@@ -28,6 +29,7 @@ export default function WorkoutCard({
   workout,
   exerciseStats,
   weightUnit,
+  customExercises,
   onPress,
   onLongPress,
 }: WorkoutCardProps) {
@@ -64,7 +66,7 @@ export default function WorkoutCard({
     const exercises: { name: string; sets: string[]; isPR: boolean; volume: number }[] = [];
 
     workout.exercises.forEach(ex => {
-      const exerciseInfo = getWorkoutById(ex.id);
+      const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
       const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
 
       if (ex.completedSets && ex.completedSets.length > 0) {

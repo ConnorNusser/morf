@@ -2,6 +2,7 @@ import Card from '@/components/Card';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
 import CustomExercisesSection from '@/components/profile/CustomExercisesSection';
+import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
@@ -145,6 +146,9 @@ export default function ProfileScreen() {
 
         {/* Weight Unit Preference Section */}
         <WeightUnitPreferenceSection />
+
+        {/* Equipment Filter Section */}
+        <EquipmentFilterSection />
 
         {/* Custom Exercises Section */}
         <CustomExercisesSection />

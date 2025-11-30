@@ -24,6 +24,16 @@ export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'gl
 // Equipment types
 export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'bodyweight' | 'cable' | 'kettlebell';
 
+// Equipment filter mode
+export type EquipmentFilterMode = 'all' | 'bodyweight-only' | 'custom';
+
+// Equipment filter settings
+export interface EquipmentFilter {
+  mode: EquipmentFilterMode;
+  // Only used when mode is 'custom' - which equipment types to include
+  includedEquipment: Equipment[];
+}
+
 // Main lift exercises
 export type MainLiftType = 'squat' | 'bench-press' | 'deadlift' | 'overhead-press';
 
@@ -121,6 +131,7 @@ export interface UserProfile {
   lifts: UserLift[];
   secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
+  equipmentFilter?: EquipmentFilter;
 }
 
 // ===== WORKOUT TYPES =====
@@ -259,13 +270,10 @@ export interface UserPreferences {
   notifications: boolean;
 }
 
-// Custom user-created exercise
-export interface CustomExercise {
-  id: string;           // 'custom_' + uuid
-  name: string;
-  muscleGroup?: MuscleGroup;
-  isCustom: true;
-  createdAt: Date;
+// Custom user-created exercise (same structure as Workout but user-created)
+export interface CustomExercise extends Workout {
+  isCustom: true;       // Override to always be true
+  createdAt: Date;      // When the user created this exercise
 }
 
 // Workout template (saved workout notes for reuse)

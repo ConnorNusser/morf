@@ -1,8 +1,8 @@
-import { CustomExercise, GeneratedWorkout, UserProfile } from '@/types';
+import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, UserProfile, WorkoutCategory } from '@/types';
 import OpenAI from 'openai';
 import { storageService } from './storage';
 import { userService } from './userService';
-import { getAvailableWorkouts, getWorkoutById } from './workouts';
+import { getAvailableWorkouts, getWorkoutById, getWorkoutsByEquipment } from './workouts';
 
 interface GenerateWorkoutOptions {
   focusArea?: string;
@@ -32,6 +32,15 @@ interface RefinePlanResponse {
   title: string;
   response: string;
   followUpQuestions?: string[];
+}
+
+interface AICustomExerciseMetadata {
+  displayName: string;
+  category: WorkoutCategory;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles: MuscleGroup[];
+  equipment: Equipment[];
+  description: string;
 }
 
 class AIWorkoutGeneratorService {
@@ -120,12 +129,27 @@ class AIWorkoutGeneratorService {
     customExercises: CustomExercise[]
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
+    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
 
-    // Get available exercises
-    const availableExercises = getAvailableWorkouts(100);
+    // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
+    const availableExercises = userEquipment.length > 0
+      ? getWorkoutsByEquipment(userEquipment, 100)
+      : getAvailableWorkouts(100);
     const exerciseNames = availableExercises.map(e => e.name);
+    // Always include all custom exercises (they're not equipment-specific)
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
+
+    // Format equipment list for display
+    const equipmentDisplayMap: Record<Equipment, string> = {
+      barbell: 'Barbell',
+      dumbbell: 'Dumbbells',
+      machine: 'Machines',
+      cable: 'Cables',
+      kettlebell: 'Kettlebell',
+      bodyweight: 'Bodyweight',
+    };
+    const userEquipmentDisplay = userEquipment.map(e => equipmentDisplayMap[e]).join(', ');
 
     // Build chat history string
     const chatHistoryStr = chatHistory
@@ -145,20 +169,27 @@ ${userMessage}
 
 USER CONTEXT:
 - Weight Unit: ${weightUnit}
+- Available Equipment: ${userEquipmentDisplay}
 
-AVAILABLE EXERCISES:
+AVAILABLE EXERCISES (already filtered to user's equipment):
 ${allExerciseNames.join(', ')}
 
 INSTRUCTIONS:
 1. Understand what the user wants to change or know
 2. Update the plan if they request changes (add/remove exercises, adjust weights/reps, swap exercises)
-3. Keep the same format: "Exercise Name WeightxReps, WeightxReps" followed by "Actual" on the next line, with blank lines between exercise blocks
+3. Keep the same format: "Exercise Name (Equipment) WeightxReps, WeightxReps" followed by "Actual" on the next line, with blank lines between exercise blocks
 4. Provide a brief, helpful response explaining what you changed or answering their question
 5. Suggest 1-2 follow-up questions if relevant
 
+EXERCISE NAMING FORMAT - Always include equipment in parentheses:
+- Use format: "Exercise Name (Equipment)"
+- Examples: "Bench Press (Barbell)", "Chest Press (Dumbbells)", "Tricep Pushdown (Cables)"
+- Equipment types: Barbell, Dumbbells, Cables, Machine, Smith Machine, Kettlebell, Bodyweight
+
 CRITICAL - EQUIPMENT CONSTRAINTS:
-- If the user specifies equipment (e.g., "dumbbells only", "barbell and dumbbells", "no machines", "bodyweight only"), you MUST ONLY include exercises that use that equipment
-- Never suggest cable machines, machines, or other equipment the user didn't mention having access to
+- The user has specified their available equipment: ${userEquipmentDisplay}
+- ONLY use exercises that use this equipment - do NOT suggest exercises requiring equipment they don't have
+- If the user further specifies equipment in their request (e.g., "dumbbells only"), narrow it down further
 - When in doubt about equipment, ask for clarification
 - Common equipment mappings:
   * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, etc.)
@@ -211,14 +242,28 @@ Return ONLY valid JSON (no markdown, no backticks):
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const gender = userProfile?.gender || 'male';
+    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
 
-    // Get available exercises from database
-    const availableExercises = getAvailableWorkouts(100);
+    // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
+    const availableExercises = userEquipment.length > 0
+      ? getWorkoutsByEquipment(userEquipment, 100)
+      : getAvailableWorkouts(100);
     const exerciseNames = availableExercises.map(e => e.name);
 
-    // Add custom exercises to the list
+    // Always include all custom exercises (they're not equipment-specific)
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
+
+    // Format equipment list for display
+    const equipmentDisplayMap: Record<Equipment, string> = {
+      barbell: 'Barbell',
+      dumbbell: 'Dumbbells',
+      machine: 'Machines',
+      cable: 'Cables',
+      kettlebell: 'Kettlebell',
+      bodyweight: 'Bodyweight',
+    };
+    const userEquipmentDisplay = userEquipment.map(e => equipmentDisplayMap[e]).join(', ');
 
     // Analyze recent workout history for context
     const recentWorkouts = workoutHistory.slice(-5);
@@ -256,6 +301,7 @@ Return ONLY valid JSON (no markdown, no backticks):
 USER CONTEXT:
 - Gender: ${gender}
 - Weight Unit: ${weightUnit}
+- Available Equipment: ${userEquipmentDisplay}
 ${exerciseHistorySummary}
 ${customExercisesSummary}
 
@@ -272,9 +318,15 @@ FORMATTING RULES:
 7. Base weights on the user's history if available, otherwise use reasonable defaults
 8. Include 2-4 sets per exercise with slight weight progression or same weight
 
+EXERCISE NAMING FORMAT - Always include equipment in parentheses:
+- Use format: "Exercise Name (Equipment)"
+- Examples: "Bench Press (Barbell)", "Chest Press (Dumbbells)", "Tricep Pushdown (Cables)"
+- Equipment types: Barbell, Dumbbells, Cables, Machine, Smith Machine, Kettlebell, Bodyweight
+
 CRITICAL - EQUIPMENT CONSTRAINTS:
-- If the user specifies equipment (e.g., "dumbbells only", "barbell and dumbbells", "no machines", "bodyweight only"), you MUST ONLY include exercises that use that equipment
-- Never suggest cable machines, machines, or other equipment the user didn't mention having access to
+- The user has specified their available equipment: ${userEquipmentDisplay}
+- ONLY use exercises that use this equipment - do NOT suggest exercises requiring equipment they don't have
+- If the user further specifies equipment in their request (e.g., "dumbbells only"), narrow it down further
 - Common equipment mappings:
   * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, goblet squats, lunges, etc.)
   * "barbell only" = barbell exercises only (bench, squat, deadlift, rows, OHP, etc.)
@@ -283,16 +335,16 @@ CRITICAL - EQUIPMENT CONSTRAINTS:
   * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
 
 EXAMPLES of noteText format (with blank lines between exercises):
-"Bench Press 135x10, 145x8, 155x6
+"Bench Press (Barbell) 135x10, 145x8, 155x6
 Actual
 
-Incline Dumbbell Press 40x12, 45x10, 45x10
+Incline Chest Press (Dumbbells) 40x12, 45x10, 45x10
 Actual
 
-Cable Fly 30x15, 30x12, 35x10
+Chest Fly (Cables) 30x15, 30x12, 35x10
 Actual
 
-Tricep Pushdown 50x12, 55x10, 55x10
+Tricep Pushdown (Cables) 50x12, 55x10, 55x10
 Actual"
 
 NOTE: Each exercise MUST have "Actual" on the line below it (for users to fill in their completed sets). Separate each exercise block with a blank line.
@@ -446,6 +498,176 @@ CONTEXT QUESTIONS RULES:
       title,
       noteText,
       exercises,
+    };
+  }
+
+  /**
+   * Generate metadata for a custom exercise using AI
+   * This creates proper muscle groups, equipment, category, and description
+   */
+  async generateCustomExerciseMetadata(exerciseName: string): Promise<CustomExercise> {
+    // Try AI first, fall back to defaults
+    if (this.AI_API_KEY) {
+      try {
+        const metadata = await this.callCustomExerciseAI(exerciseName);
+        // Use AI-formatted displayName for the exercise name
+        const formattedName = metadata.displayName || exerciseName;
+        const kebabId = formattedName
+          .toLowerCase()
+          .replace(/[()]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+
+        return {
+          id: kebabId,
+          name: formattedName,
+          category: metadata.category,
+          primaryMuscles: metadata.primaryMuscles,
+          secondaryMuscles: metadata.secondaryMuscles,
+          equipment: metadata.equipment,
+          description: metadata.description,
+          isMainLift: false,
+          themeLevel: 'beginner',
+          isCustom: true,
+          createdAt: new Date(),
+        };
+      } catch (error) {
+        console.error('AI custom exercise generation failed, using defaults:', error);
+      }
+    }
+
+    // Fallback: generate reasonable defaults
+    const kebabId = exerciseName
+      .toLowerCase()
+      .replace(/[()]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    return this.generateFallbackCustomExercise(exerciseName, kebabId);
+  }
+
+  private async callCustomExerciseAI(exerciseName: string): Promise<AICustomExerciseMetadata> {
+    const prompt = `You are a fitness expert. Given the exercise name "${exerciseName}", return JSON with exercise metadata.
+
+VALID VALUES:
+- displayName: Properly formatted exercise name in Title Case with equipment in parentheses at the end
+  Examples: "Super Horizontal Bench Press (Machine)", "Incline Cable Fly (Cables)", "Pause Squat (Barbell)"
+- category: "compound" | "isolation" | "cardio" | "flexibility"
+- primaryMuscles: Array of 1-2 from ["chest", "back", "shoulders", "arms", "legs", "glutes", "core"]
+- secondaryMuscles: Array of 0-3 from ["chest", "back", "shoulders", "arms", "legs", "glutes", "core"]
+- equipment: Array from ["barbell", "dumbbell", "machine", "cable", "kettlebell", "bodyweight"]
+- description: Short 1-sentence description of the exercise
+
+FORMATTING RULES for displayName:
+- Use Title Case for all words
+- Put primary equipment type in parentheses at the end
+- Equipment labels: (Barbell), (Dumbbells), (Machine), (Cables), (Kettlebell), (Bodyweight)
+- If input is "super horizontal bench press", output displayName: "Super Horizontal Bench Press (Machine)"
+- If input is "incline cable fly", output displayName: "Incline Cable Fly (Cables)"
+
+RETURN ONLY VALID JSON:
+{
+  "displayName": "Exercise Name (Equipment)",
+  "category": "compound",
+  "primaryMuscles": ["chest"],
+  "secondaryMuscles": ["shoulders", "arms"],
+  "equipment": ["machine"],
+  "description": "A pressing movement targeting the chest."
+}`;
+
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a fitness expert. Return only valid JSON for exercise metadata.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.3,
+      max_tokens: 500,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No content received from AI');
+    }
+
+    let cleanedContent = content.trim();
+    if (cleanedContent.startsWith('```')) {
+      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
+    }
+
+    return JSON.parse(cleanedContent);
+  }
+
+  private generateFallbackCustomExercise(exerciseName: string, kebabId: string): CustomExercise {
+    const nameLower = exerciseName.toLowerCase();
+
+    // Infer equipment from name
+    let equipment: Equipment[] = ['bodyweight'];
+    if (nameLower.includes('barbell') || nameLower.includes('bar ')) equipment = ['barbell'];
+    else if (nameLower.includes('dumbbell') || nameLower.includes('db ')) equipment = ['dumbbell'];
+    else if (nameLower.includes('machine')) equipment = ['machine'];
+    else if (nameLower.includes('cable')) equipment = ['cable'];
+    else if (nameLower.includes('kettlebell') || nameLower.includes('kb ')) equipment = ['kettlebell'];
+
+    // Infer primary muscle from common exercise patterns
+    let primaryMuscles: MuscleGroup[] = ['chest'];
+    let secondaryMuscles: MuscleGroup[] = [];
+    let category: WorkoutCategory = 'isolation';
+
+    if (nameLower.includes('press') || nameLower.includes('bench') || nameLower.includes('fly') || nameLower.includes('push')) {
+      primaryMuscles = ['chest'];
+      secondaryMuscles = ['shoulders', 'arms'];
+      category = 'compound';
+    } else if (nameLower.includes('row') || nameLower.includes('pull') || nameLower.includes('lat')) {
+      primaryMuscles = ['back'];
+      secondaryMuscles = ['arms'];
+      category = 'compound';
+    } else if (nameLower.includes('squat') || nameLower.includes('leg press') || nameLower.includes('lunge')) {
+      primaryMuscles = ['legs'];
+      secondaryMuscles = ['glutes', 'core'];
+      category = 'compound';
+    } else if (nameLower.includes('deadlift') || nameLower.includes('hip')) {
+      primaryMuscles = ['back', 'legs'];
+      secondaryMuscles = ['glutes', 'core'];
+      category = 'compound';
+    } else if (nameLower.includes('shoulder') || nameLower.includes('ohp') || nameLower.includes('lateral') || nameLower.includes('arnold')) {
+      primaryMuscles = ['shoulders'];
+      secondaryMuscles = ['arms'];
+      category = nameLower.includes('lateral') ? 'isolation' : 'compound';
+    } else if (nameLower.includes('curl') || nameLower.includes('bicep')) {
+      primaryMuscles = ['arms'];
+      category = 'isolation';
+    } else if (nameLower.includes('tricep') || nameLower.includes('extension') || nameLower.includes('pushdown')) {
+      primaryMuscles = ['arms'];
+      category = 'isolation';
+    } else if (nameLower.includes('calf') || nameLower.includes('calves')) {
+      primaryMuscles = ['legs'];
+      category = 'isolation';
+    } else if (nameLower.includes('ab') || nameLower.includes('crunch') || nameLower.includes('plank') || nameLower.includes('core')) {
+      primaryMuscles = ['core'];
+      category = 'isolation';
+    } else if (nameLower.includes('glute') || nameLower.includes('thrust')) {
+      primaryMuscles = ['glutes'];
+      secondaryMuscles = ['legs'];
+      category = 'isolation';
+    }
+
+    return {
+      id: kebabId,
+      name: exerciseName,
+      category,
+      primaryMuscles,
+      secondaryMuscles,
+      equipment,
+      description: `Custom exercise: ${exerciseName}`,
+      isMainLift: false,
+      themeLevel: 'beginner',
+      isCustom: true,
+      createdAt: new Date(),
     };
   }
 }

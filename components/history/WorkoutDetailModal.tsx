@@ -1,8 +1,8 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/strengthStandards';
-import { getWorkoutById } from '@/lib/workouts';
-import { convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
+import { getWorkoutByIdWithCustom } from '@/lib/workouts';
+import { convertWeight, CustomExercise, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
@@ -30,6 +30,7 @@ interface WorkoutDetailModalProps {
   workout: GeneratedWorkout | null;
   weightUnit: WeightUnit;
   exerciseStats: ExerciseWithMax[];
+  customExercises: CustomExercise[];
   onClose: () => void;
   onDelete: (workout: GeneratedWorkout) => void;
 }
@@ -38,6 +39,7 @@ export default function WorkoutDetailModal({
   workout,
   weightUnit,
   exerciseStats,
+  customExercises,
   onClose,
   onDelete,
 }: WorkoutDetailModalProps) {
@@ -99,7 +101,7 @@ export default function WorkoutDetailModal({
     workout.exercises.forEach(ex => {
       if (!ex.completedSets || ex.completedSets.length === 0) return;
 
-      const exerciseInfo = getWorkoutById(ex.id);
+      const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
       const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
       const stat = exerciseStats.find(s => s.id === ex.id);
 
@@ -120,7 +122,7 @@ export default function WorkoutDetailModal({
     });
 
     return prList;
-  }, [workout, exerciseStats]);
+  }, [workout, exerciseStats, customExercises]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -202,7 +204,7 @@ export default function WorkoutDetailModal({
               {/* Exercise List - Clean table style */}
               <View style={styles.exerciseList}>
                 {workout.exercises.map((exercise, idx) => {
-                  const exerciseInfo = getWorkoutById(exercise.id);
+                  const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
                   const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
                   const bestE1RM = getBestE1RM(exercise.completedSets || []);
                   const isPR = prs.some(pr => pr.name === name);

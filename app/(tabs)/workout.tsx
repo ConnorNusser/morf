@@ -3,6 +3,7 @@ import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import QuickSummaryToast from '@/components/workout/QuickSummaryToast';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
 import WorkoutConfirmationModal from '@/components/workout/WorkoutConfirmationModal';
+import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage';
@@ -46,6 +47,9 @@ export default function WorkoutScreen() {
 
   // Template library modal state
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  // Help modal state
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // User preferences
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
@@ -259,7 +263,7 @@ export default function WorkoutScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
+        keyboardVerticalOffset={0}
       >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent' }]}>
@@ -275,12 +279,20 @@ export default function WorkoutScreen() {
                 </Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                onPress={() => setShowPlanBuilder(true)}
-              >
-                <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
-              </TouchableOpacity>
+              <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                  onPress={() => setShowPlanBuilder(true)}
+                >
+                  <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.surface }]}
+                  onPress={() => setShowHelpModal(true)}
+                >
+                  <Ionicons name="help-circle-outline" size={20} color={currentTheme.colors.secondary} />
+                </TouchableOpacity>
+              </View>
             )}
           </View>
 
@@ -367,6 +379,12 @@ Squats 225 for 5 reps`}
         onClose={() => setShowTemplateLibrary(false)}
         onSelectTemplate={handleTemplateSelect}
       />
+
+      {/* Help Modal */}
+      <WorkoutKeywordsHelpModal
+        visible={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -442,5 +460,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  headerButtonGroup: {
+    flexDirection: 'row',
+    gap: 8,
   },
 });

@@ -2,17 +2,22 @@ import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
+import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
 import playHapticFeedback from '@/lib/haptic';
 import { storageService } from '@/lib/storage';
-import { CustomExercise } from '@/types';
+import { userService } from '@/lib/userService';
+import { ALL_WORKOUTS } from '@/lib/workouts';
+import { CustomExercise, Equipment, UserLift, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -24,16 +29,67 @@ interface CustomExercisesSectionProps {
   onExercisesUpdate?: () => Promise<void>;
 }
 
+const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
+  { value: 'barbell', label: 'Barbell' },
+  { value: 'dumbbell', label: 'Dumbbell' },
+  { value: 'machine', label: 'Machine' },
+  { value: 'cable', label: 'Cable' },
+  { value: 'kettlebell', label: 'Kettlebell' },
+  { value: 'bodyweight', label: 'Bodyweight' },
+];
+
+// Helper to format equipment label for display name
+const formatEquipmentLabel = (equipment: Equipment): string => {
+  switch (equipment) {
+    case 'barbell': return 'Barbell';
+    case 'dumbbell': return 'Dumbbell';
+    case 'machine': return 'Machine';
+    case 'cable': return 'Cable';
+    case 'kettlebell': return 'Kettlebell';
+    case 'bodyweight': return 'Bodyweight';
+    default: return equipment;
+  }
+};
+
+// Helper to generate full exercise name with equipment
+const generateFullExerciseName = (baseName: string, equipment: Equipment): string => {
+  const trimmedName = baseName.trim();
+  // Title case the name
+  const titleCased = trimmedName
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+  return `${titleCased} (${formatEquipmentLabel(equipment)})`;
+};
+
+// Helper to generate kebab-case ID from exercise name
+const generateExerciseId = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[()]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+};
+
 export default function CustomExercisesSection({ onExercisesUpdate }: CustomExercisesSectionProps) {
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
+  const [userLifts, setUserLifts] = useState<UserLift[]>([]);
 
-  // Edit modal state
-  const [editModalVisible, setEditModalVisible] = useState(false);
+  // Main modal state - 'exercises' | 'custom' | null
+  const [activeModal, setActiveModal] = useState<'exercises' | 'custom' | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [equipmentFilter, setEquipmentFilter] = useState<Equipment | 'all'>('all');
+
+  // Edit/Add state - using inline approach instead of nested modals
   const [editingExercise, setEditingExercise] = useState<CustomExercise | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [editedName, setEditedName] = useState('');
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment>('machine');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -41,24 +97,55 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
   const loadData = async () => {
     try {
-      const exercises = await storageService.getCustomExercises();
+      const [exercises, profile] = await Promise.all([
+        storageService.getCustomExercises(),
+        userService.getRealUserProfile(),
+      ]);
       setCustomExercises(exercises);
+      if (profile) {
+        // Combine main and secondary lifts
+        const allLifts = [...(profile.lifts || []), ...(profile.secondaryLifts || [])];
+        setUserLifts(allLifts);
+      }
     } catch (error) {
-      console.error('Error loading custom exercises:', error);
+      console.error('Error loading data:', error);
     }
   };
 
-  const toggleExpanded = () => {
+  const openExercisesModal = () => {
     playHapticFeedback('selection', false);
-    setIsExpanded(!isExpanded);
+    setSearchQuery('');
+    setEquipmentFilter('all');
+    setActiveModal('exercises');
   };
 
-  const getSummary = () => {
+  const openCustomModal = () => {
+    playHapticFeedback('selection', false);
+    setSearchQuery('');
+    setEquipmentFilter('all');
+    setActiveModal('custom');
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setSearchQuery('');
+    setEquipmentFilter('all');
+    setEditingExercise(null);
+    setIsAdding(false);
+    setEditedName('');
+    setSelectedEquipment('machine');
+  };
+
+  const getCustomSummary = () => {
     const count = customExercises.length;
     if (count === 0) {
       return 'No custom exercises yet';
     }
     return `${count} custom exercise${count === 1 ? '' : 's'}`;
+  };
+
+  const getExercisesSummary = () => {
+    return `${ALL_WORKOUTS.length} built-in exercises`;
   };
 
   const formatDate = (date: Date) => {
@@ -70,32 +157,132 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     });
   };
 
-  const handleEditExercise = (exercise: CustomExercise) => {
-    playHapticFeedback('selection', false);
-    setEditingExercise(exercise);
-    setEditedName(exercise.name);
-    setEditModalVisible(true);
+  // Get lift records for an exercise
+  const getLiftRecordForExercise = useCallback((exerciseId: string): UserLift | null => {
+    const liftsForExercise = userLifts.filter(lift => lift.id === exerciseId);
+    if (liftsForExercise.length === 0) return null;
+
+    // Find the best lift (highest estimated 1RM)
+    return liftsForExercise.reduce((best, current) => {
+      const bestOneRM = best.weight * (1 + best.reps / 30);
+      const currentOneRM = current.weight * (1 + current.reps / 30);
+      return currentOneRM > bestOneRM ? current : best;
+    });
+  }, [userLifts]);
+
+  // Filter built-in exercises based on search query and equipment filter
+  const filteredExercises = useMemo(() => {
+    let result = ALL_WORKOUTS;
+
+    // Apply equipment filter
+    if (equipmentFilter !== 'all') {
+      result = result.filter(ex =>
+        ex.equipment?.includes(equipmentFilter)
+      );
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(ex =>
+        ex.name.toLowerCase().includes(query) ||
+        ex.id.toLowerCase().includes(query) ||
+        ex.primaryMuscles?.some(m => m.toLowerCase().includes(query)) ||
+        ex.equipment?.some(e => e.toLowerCase().includes(query)) ||
+        ex.category?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [searchQuery, equipmentFilter]);
+
+  // Filter custom exercises based on search query and equipment filter
+  const filteredCustomExercises = useMemo(() => {
+    let result = customExercises;
+
+    // Apply equipment filter
+    if (equipmentFilter !== 'all') {
+      result = result.filter(ex =>
+        ex.equipment?.includes(equipmentFilter)
+      );
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(ex =>
+        ex.name.toLowerCase().includes(query) ||
+        ex.id.toLowerCase().includes(query) ||
+        ex.primaryMuscles?.some(m => m.toLowerCase().includes(query)) ||
+        ex.equipment?.some(e => e.toLowerCase().includes(query)) ||
+        ex.category?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [customExercises, searchQuery, equipmentFilter]);
+
+  // Helper to extract base name (without equipment suffix) from full exercise name
+  const extractBaseName = (fullName: string): string => {
+    // Remove equipment suffix like "(Machine)", "(Barbell)", etc.
+    return fullName.replace(/\s*\([^)]+\)\s*$/, '').trim();
   };
 
+  // Helper to extract equipment from exercise
+  const extractEquipment = (exercise: CustomExercise): Equipment => {
+    if (exercise.equipment && exercise.equipment.length > 0) {
+      return exercise.equipment[0];
+    }
+    return 'machine';
+  };
+
+  // Start editing
+  const handleStartEdit = (exercise: CustomExercise) => {
+    playHapticFeedback('selection', false);
+    setEditingExercise(exercise);
+    setEditedName(extractBaseName(exercise.name));
+    setSelectedEquipment(extractEquipment(exercise));
+    setIsAdding(false);
+  };
+
+  // Start adding
+  const handleStartAdd = () => {
+    playHapticFeedback('selection', false);
+    setIsAdding(true);
+    setEditingExercise(null);
+    setEditedName('');
+    setSelectedEquipment('machine');
+  };
+
+  // Cancel edit/add
+  const handleCancelEditAdd = () => {
+    Keyboard.dismiss();
+    setIsAdding(false);
+    setEditingExercise(null);
+    setEditedName('');
+    setSelectedEquipment('machine');
+  };
+
+  // Save edit - regenerates full name and ID based on base name + equipment
   const handleSaveEdit = async () => {
     if (!editingExercise || !editedName.trim()) return;
 
-    const trimmedName = editedName.trim();
-
-    // Check if name changed
-    if (trimmedName === editingExercise.name) {
-      setEditModalVisible(false);
-      return;
-    }
+    // Generate new full name with equipment suffix
+    const fullName = generateFullExerciseName(editedName, selectedEquipment);
+    const newId = generateExerciseId(fullName);
 
     try {
       playHapticFeedback('medium', false);
       playSound();
 
-      // Update the exercise with new name
+      // Delete old exercise and create new one with new ID
+      await storageService.deleteCustomExercise(editingExercise.id);
+
       const updatedExercise: CustomExercise = {
         ...editingExercise,
-        name: trimmedName,
+        id: newId,
+        name: fullName,
+        equipment: [selectedEquipment],
       };
 
       await storageService.saveCustomExercise(updatedExercise);
@@ -105,20 +292,56 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         await onExercisesUpdate();
       }
 
-      setEditModalVisible(false);
       setEditingExercise(null);
       setEditedName('');
+      setSelectedEquipment('machine');
     } catch (error) {
       console.error('Error updating exercise:', error);
-      Alert.alert('Error', 'Failed to update exercise name');
+      Alert.alert('Error', 'Failed to update exercise');
     }
   };
 
-  const handleCancelEdit = () => {
-    Keyboard.dismiss();
-    setEditModalVisible(false);
-    setEditingExercise(null);
-    setEditedName('');
+  // Save add - generates full name with equipment and AI metadata
+  const handleSaveAdd = async () => {
+    if (!editedName.trim()) return;
+
+    // Generate full name with equipment suffix
+    const fullName = generateFullExerciseName(editedName, selectedEquipment);
+
+    try {
+      // Check if a custom exercise with this name already exists
+      const existingCustom = await storageService.getCustomExerciseByName(fullName);
+      if (existingCustom) {
+        Alert.alert('Exercise Exists', `An exercise named "${fullName}" already exists.`);
+        return;
+      }
+
+      setIsGenerating(true);
+      playHapticFeedback('medium', false);
+      playSound();
+
+      // Generate custom exercise with AI (includes proper ID format, muscle groups, etc.)
+      const newExercise = await aiWorkoutGenerator.generateCustomExerciseMetadata(fullName);
+
+      // Ensure the equipment matches user selection
+      newExercise.equipment = [selectedEquipment];
+
+      await storageService.saveCustomExercise(newExercise);
+      await loadData();
+
+      if (onExercisesUpdate) {
+        await onExercisesUpdate();
+      }
+
+      setIsAdding(false);
+      setEditedName('');
+      setSelectedEquipment('machine');
+    } catch (error) {
+      console.error('Error adding exercise:', error);
+      Alert.alert('Error', 'Failed to add exercise');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleDeleteExercise = (exercise: CustomExercise) => {
@@ -178,12 +401,468 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     );
   };
 
+  // Render exercise item for built-in exercises
+  const renderExerciseItem = (exercise: Workout) => {
+    const liftRecord = getLiftRecordForExercise(exercise.id);
+
+    return (
+      <View
+        key={exercise.id}
+        style={[
+          styles.exerciseItem,
+          {
+            backgroundColor: currentTheme.colors.surface,
+            borderColor: currentTheme.colors.border + '30',
+          }
+        ]}
+      >
+        <View style={styles.exerciseInfo}>
+          <Text style={[
+            styles.exerciseName,
+            {
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }
+          ]}>
+            {exercise.name}
+          </Text>
+
+          {/* Equipment & Muscles chips */}
+          <View style={styles.metadataRow}>
+            {exercise.equipment && exercise.equipment.length > 0 && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.equipment[0]}
+                </Text>
+              </View>
+            )}
+            {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.primaryMuscles.join(', ')}
+                </Text>
+              </View>
+            )}
+            {exercise.category && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.category}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Lift record if exists */}
+          {liftRecord && (
+            <View style={[styles.liftRecordRow, { backgroundColor: currentTheme.colors.accent + '15' }]}>
+              <Ionicons name="trophy" size={12} color={currentTheme.colors.accent} />
+              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
+                PR: {liftRecord.weight} {liftRecord.unit} x {liftRecord.reps}
+              </Text>
+            </View>
+          )}
+
+          <Text style={[
+            styles.exerciseId,
+            {
+              color: currentTheme.colors.text + '50',
+              fontFamily: 'Raleway_400Regular',
+            }
+          ]} numberOfLines={1}>
+            ID: {exercise.id}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  // Render custom exercise item with inline edit form
+  const renderCustomExerciseItem = (exercise: CustomExercise) => {
+    const isEditing = editingExercise?.id === exercise.id;
+
+    if (isEditing) {
+      // Generate full name and ID preview for editing
+      const fullNamePreview = editedName.trim()
+        ? generateFullExerciseName(editedName, selectedEquipment)
+        : '';
+      const previewId = fullNamePreview ? generateExerciseId(fullNamePreview) : 'exercise-id';
+
+      return (
+        <View
+          key={exercise.id}
+          style={[
+            styles.exerciseItem,
+            styles.editingItem,
+            {
+              backgroundColor: currentTheme.colors.surface,
+              borderColor: currentTheme.colors.primary,
+            }
+          ]}
+        >
+          <View style={styles.editForm}>
+            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+              Exercise Name (without equipment)
+            </Text>
+            <TextInput
+              style={[
+                styles.editInput,
+                {
+                  backgroundColor: currentTheme.colors.background,
+                  color: currentTheme.colors.text,
+                  borderColor: currentTheme.colors.border,
+                  fontFamily: 'Raleway_500Medium',
+                }
+              ]}
+              value={editedName}
+              onChangeText={setEditedName}
+              placeholder="Enter exercise name"
+              placeholderTextColor={currentTheme.colors.text + '40'}
+              autoFocus
+            />
+
+            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium', marginTop: 12 }]}>
+              Equipment Type
+            </Text>
+            <View style={styles.equipmentRow}>
+              {EQUIPMENT_OPTIONS.map((eq) => (
+                <TouchableOpacity
+                  key={eq.value}
+                  style={[
+                    styles.equipmentChip,
+                    {
+                      backgroundColor: selectedEquipment === eq.value
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.background,
+                      borderColor: selectedEquipment === eq.value
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.border,
+                    }
+                  ]}
+                  onPress={() => setSelectedEquipment(eq.value)}
+                >
+                  <Text style={[
+                    styles.equipmentChipText,
+                    {
+                      color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                      fontFamily: 'Raleway_500Medium',
+                    }
+                  ]}>
+                    {eq.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {fullNamePreview && (
+              <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                  Full Name:
+                </Text>
+                <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  {fullNamePreview}
+                </Text>
+                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular', marginTop: 4 }]}>
+                  ID:
+                </Text>
+                <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+                  {previewId}
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
+                onPress={handleCancelEditAdd}
+              >
+                <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.editActionButton,
+                  { backgroundColor: currentTheme.colors.primary },
+                  !editedName.trim() && styles.disabledButton
+                ]}
+                onPress={handleSaveEdit}
+                disabled={!editedName.trim()}
+              >
+                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: 'Raleway_600SemiBold' }]}>
+                  Save
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View
+        key={exercise.id}
+        style={[
+          styles.exerciseItem,
+          {
+            backgroundColor: currentTheme.colors.surface,
+            borderColor: currentTheme.colors.border + '30',
+          }
+        ]}
+      >
+        <View style={styles.exerciseInfo}>
+          <Text style={[
+            styles.exerciseName,
+            {
+              color: currentTheme.colors.text,
+              fontFamily: 'Raleway_600SemiBold',
+            }
+          ]}>
+            {exercise.name}
+          </Text>
+
+          {/* Equipment & Muscles chips */}
+          <View style={styles.metadataRow}>
+            {exercise.equipment && exercise.equipment.length > 0 && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.equipment[0]}
+                </Text>
+              </View>
+            )}
+            {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.primaryMuscles.join(', ')}
+                </Text>
+              </View>
+            )}
+            {exercise.category && (
+              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                  {exercise.category}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={[
+            styles.exerciseId,
+            {
+              color: currentTheme.colors.text + '50',
+              fontFamily: 'Raleway_400Regular',
+            }
+          ]} numberOfLines={1}>
+            ID: {exercise.id}
+          </Text>
+          <Text style={[
+            styles.exerciseDate,
+            {
+              color: currentTheme.colors.text + '40',
+              fontFamily: 'Raleway_400Regular',
+            }
+          ]}>
+            Created {formatDate(exercise.createdAt)}
+          </Text>
+        </View>
+
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
+            onPress={() => handleStartEdit(exercise)}
+            style={[styles.actionButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="pencil" size={16} color={currentTheme.colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => handleDeleteExercise(exercise)}
+            style={[styles.actionButton, { backgroundColor: '#DC262615' }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close-circle" size={18} color="#DC2626" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // Render add form
+  const renderAddForm = () => {
+    if (!isAdding) return null;
+
+    // Generate full name and ID preview
+    const fullNamePreview = editedName.trim()
+      ? generateFullExerciseName(editedName, selectedEquipment)
+      : '';
+    const previewId = fullNamePreview ? generateExerciseId(fullNamePreview) : 'exercise-id';
+
+    return (
+      <View
+        style={[
+          styles.exerciseItem,
+          styles.editingItem,
+          {
+            backgroundColor: currentTheme.colors.surface,
+            borderColor: currentTheme.colors.primary,
+          }
+        ]}
+      >
+        <View style={styles.editForm}>
+          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+            Exercise Name (without equipment)
+          </Text>
+          <TextInput
+            style={[
+              styles.editInput,
+              {
+                backgroundColor: currentTheme.colors.background,
+                color: currentTheme.colors.text,
+                borderColor: currentTheme.colors.border,
+                fontFamily: 'Raleway_500Medium',
+              }
+            ]}
+            value={editedName}
+            onChangeText={setEditedName}
+            placeholder="e.g., Super Horizontal Press"
+            placeholderTextColor={currentTheme.colors.text + '40'}
+            autoFocus
+          />
+
+          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium', marginTop: 12 }]}>
+            Equipment Type
+          </Text>
+          <View style={styles.equipmentRow}>
+            {EQUIPMENT_OPTIONS.map((eq) => (
+              <TouchableOpacity
+                key={eq.value}
+                style={[
+                  styles.equipmentChip,
+                  {
+                    backgroundColor: selectedEquipment === eq.value
+                      ? currentTheme.colors.primary
+                      : currentTheme.colors.background,
+                    borderColor: selectedEquipment === eq.value
+                      ? currentTheme.colors.primary
+                      : currentTheme.colors.border,
+                  }
+                ]}
+                onPress={() => setSelectedEquipment(eq.value)}
+              >
+                <Text style={[
+                  styles.equipmentChipText,
+                  {
+                    color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                    fontFamily: 'Raleway_500Medium',
+                  }
+                ]}>
+                  {eq.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {fullNamePreview && (
+            <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                Full Name:
+              </Text>
+              <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                {fullNamePreview}
+              </Text>
+              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular', marginTop: 4 }]}>
+                ID:
+              </Text>
+              <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+                {previewId}
+              </Text>
+            </View>
+          )}
+
+          <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+            AI will generate muscle group metadata
+          </Text>
+
+          <View style={styles.editActions}>
+            <TouchableOpacity
+              style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
+              onPress={handleCancelEditAdd}
+              disabled={isGenerating}
+            >
+              <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.editActionButton,
+                { backgroundColor: currentTheme.colors.primary },
+                (!editedName.trim() || isGenerating) && styles.disabledButton
+              ]}
+              onPress={handleSaveAdd}
+              disabled={!editedName.trim() || isGenerating}
+            >
+              {isGenerating ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: 'Raleway_600SemiBold' }]}>
+                  Add
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <>
+      {/* Exercises Card */}
       <Card style={styles.card} variant="clean">
         <TouchableOpacity
           style={styles.sectionHeader}
-          onPress={toggleExpanded}
+          onPress={openExercisesModal}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
+            <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
+              <Text style={[
+                styles.sectionTitle,
+                {
+                  color: currentTheme.colors.text,
+                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
+                }
+              ]}>
+                Exercises
+              </Text>
+              <View style={[styles.badge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                <Text style={[styles.badgeText, { color: currentTheme.colors.primary }]}>
+                  {ALL_WORKOUTS.length}
+                </Text>
+              </View>
+            </View>
+            <Text style={[
+              styles.subtitle,
+              {
+                color: currentTheme.colors.primary,
+                fontFamily: 'Raleway_500Medium',
+              }
+            ]}>
+              {getExercisesSummary()}
+            </Text>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={currentTheme.colors.text}
+          />
+        </TouchableOpacity>
+      </Card>
+
+      {/* Custom Exercises Card */}
+      <Card style={styles.card} variant="clean">
+        <TouchableOpacity
+          style={styles.sectionHeader}
+          onPress={openCustomModal}
           activeOpacity={0.7}
         >
           <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
@@ -205,41 +884,138 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 </View>
               )}
             </View>
-            {!isExpanded && (
-              <Text style={[
-                styles.subtitle,
-                {
-                  color: currentTheme.colors.primary,
-                  fontFamily: 'Raleway_500Medium',
-                }
-              ]}>
-                {getSummary()}
-              </Text>
-            )}
+            <Text style={[
+              styles.subtitle,
+              {
+                color: currentTheme.colors.primary,
+                fontFamily: 'Raleway_500Medium',
+              }
+            ]}>
+              {getCustomSummary()}
+            </Text>
           </View>
           <Ionicons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            name="chevron-forward"
             size={20}
             color={currentTheme.colors.text}
           />
         </TouchableOpacity>
+      </Card>
 
-        {isExpanded && (
-          <View style={styles.expandedContent}>
-            <Text style={[
-              styles.description,
-              {
-                color: currentTheme.colors.text + '70',
-                fontFamily: 'Raleway_400Regular',
-              }
-            ]}>
-              These exercises were created from your workout notes. Tap an exercise to edit its name.
+      {/* Exercises Modal (Built-in) */}
+      <Modal
+        visible={activeModal === 'exercises'}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={closeModal}
+      >
+        <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
+          {/* Header */}
+          <View style={[styles.modalHeader, { backgroundColor: 'transparent' }]}>
+            <View style={{ width: 40 }} />
+            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              Exercises
             </Text>
+            <TouchableOpacity
+              onPress={closeModal}
+              style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
+            >
+              <Ionicons name="close" size={20} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          </View>
 
-            {customExercises.length === 0 ? (
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: 'transparent' }]}>
+            <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+              <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+              <TextInput
+                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
+                placeholder="Search by name, muscle, equipment..."
+                placeholderTextColor={currentTheme.colors.text + '40'}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          {/* Equipment Filter */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterContainer}
+            contentContainerStyle={styles.filterContent}
+          >
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                {
+                  backgroundColor: equipmentFilter === 'all'
+                    ? currentTheme.colors.primary
+                    : currentTheme.colors.surface,
+                  borderColor: equipmentFilter === 'all'
+                    ? currentTheme.colors.primary
+                    : currentTheme.colors.border,
+                }
+              ]}
+              onPress={() => setEquipmentFilter('all')}
+            >
+              <Text style={[
+                styles.filterChipText,
+                {
+                  color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
+                  fontFamily: 'Raleway_500Medium',
+                }
+              ]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            {EQUIPMENT_OPTIONS.map((eq) => (
+              <TouchableOpacity
+                key={eq.value}
+                style={[
+                  styles.filterChip,
+                  {
+                    backgroundColor: equipmentFilter === eq.value
+                      ? currentTheme.colors.primary
+                      : currentTheme.colors.surface,
+                    borderColor: equipmentFilter === eq.value
+                      ? currentTheme.colors.primary
+                      : currentTheme.colors.border,
+                  }
+                ]}
+                onPress={() => setEquipmentFilter(eq.value)}
+              >
+                <Text style={[
+                  styles.filterChipText,
+                  {
+                    color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                    fontFamily: 'Raleway_500Medium',
+                  }
+                ]}>
+                  {eq.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          {/* Exercise List */}
+          <ScrollView
+            style={styles.exercisesList}
+            contentContainerStyle={styles.exercisesListContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {filteredExercises.length === 0 ? (
               <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
                 <Ionicons
-                  name="barbell-outline"
+                  name="search-outline"
                   size={32}
                   color={currentTheme.colors.text + '40'}
                 />
@@ -247,198 +1023,224 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   styles.emptyText,
                   { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }
                 ]}>
-                  No custom exercises yet
+                  No exercises found
                 </Text>
                 <Text style={[
                   styles.emptySubtext,
                   { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }
                 ]}>
-                  Log workouts with new exercises and they'll appear here
+                  Try a different search term
                 </Text>
               </View>
             ) : (
               <>
-                <ScrollView style={styles.exercisesList} showsVerticalScrollIndicator={false}>
-                  {customExercises.map((exercise) => (
-                    <TouchableOpacity
-                      key={exercise.id}
-                      style={[
-                        styles.exerciseItem,
-                        {
-                          backgroundColor: currentTheme.colors.surface,
-                          borderColor: currentTheme.colors.border + '30',
-                        }
-                      ]}
-                      onPress={() => handleEditExercise(exercise)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.exerciseInfo}>
-                        <View style={[styles.exerciseNameRow, { backgroundColor: 'transparent' }]}>
-                          <Text style={[
-                            styles.exerciseName,
-                            {
-                              color: currentTheme.colors.text,
-                              fontFamily: 'Raleway_600SemiBold',
-                            }
-                          ]}>
-                            {exercise.name}
-                          </Text>
-                          <Ionicons
-                            name="pencil-outline"
-                            size={14}
-                            color={currentTheme.colors.primary}
-                            style={styles.editIcon}
-                          />
-                        </View>
-                        <Text style={[
-                          styles.exerciseId,
-                          {
-                            color: currentTheme.colors.text + '50',
-                            fontFamily: 'Raleway_400Regular',
-                          }
-                        ]} numberOfLines={1}>
-                          ID: {exercise.id}
-                        </Text>
-                        <Text style={[
-                          styles.exerciseDate,
-                          {
-                            color: currentTheme.colors.text + '40',
-                            fontFamily: 'Raleway_400Regular',
-                          }
-                        ]}>
-                          Created {formatDate(exercise.createdAt)}
-                        </Text>
-                      </View>
-
-                      <TouchableOpacity
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          handleDeleteExercise(exercise);
-                        }}
-                        style={[styles.deleteButton, { backgroundColor: '#DC262610' }]}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="trash-outline"
-                          size={18}
-                          color="#DC2626"
-                        />
-                      </TouchableOpacity>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <TouchableOpacity
-                  style={[styles.clearAllButton, { backgroundColor: '#DC262615' }]}
-                  onPress={handleClearAll}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="trash-outline" size={16} color="#DC2626" />
-                  <Text style={[styles.clearAllText, { fontFamily: 'Raleway_600SemiBold' }]}>
-                    Clear All Custom Exercises
+                {/* Results count */}
+                {searchQuery && (
+                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    {filteredExercises.length} result{filteredExercises.length !== 1 ? 's' : ''}
                   </Text>
-                </TouchableOpacity>
+                )}
+
+                {filteredExercises.map((exercise) => renderExerciseItem(exercise))}
               </>
             )}
-          </View>
-        )}
-      </Card>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
-      {/* Edit Exercise Modal */}
+      {/* Custom Exercises Modal */}
       <Modal
-        visible={editModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={handleCancelEdit}
+        visible={activeModal === 'custom'}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={closeModal}
       >
-        <TouchableWithoutFeedback onPress={handleCancelEdit}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-              <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.modalKeyboardView}
-              >
-                <View style={[styles.modalContent, { backgroundColor: currentTheme.colors.background }]}>
-                  <Text style={[
-                    styles.modalTitle,
-                    { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }
-                  ]}>
-                    Edit Exercise Name
-                  </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
+            <KeyboardAvoidingView
+              style={{ flex: 1 }}
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={0}
+            >
+              {/* Header */}
+              <View style={[styles.modalHeader, { backgroundColor: 'transparent' }]}>
+                <View style={{ width: 40 }} />
+                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  Custom Exercises
+                </Text>
+                <TouchableOpacity
+                  onPress={closeModal}
+                  style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
+                >
+                  <Ionicons name="close" size={20} color={currentTheme.colors.text} />
+                </TouchableOpacity>
+              </View>
 
-                  <Text style={[
-                    styles.modalLabel,
-                    { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }
-                  ]}>
-                    Exercise Name
-                  </Text>
+              {/* Auto-generation disclaimer */}
+              <View style={[styles.disclaimerBanner, { backgroundColor: currentTheme.colors.primary + '10', borderColor: currentTheme.colors.primary + '30' }]}>
+                <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
+                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+                  Custom exercises are auto-created when you log workouts with new exercises. You can also add them manually here.
+                </Text>
+              </View>
 
+              {/* Search Bar */}
+              <View style={[styles.searchContainer, { backgroundColor: 'transparent' }]}>
+                <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
+                    placeholder="Search exercises..."
+                    placeholderTextColor={currentTheme.colors.text + '40'}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {searchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setSearchQuery('')}>
+                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              {/* Equipment Filter */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.filterContainer}
+                contentContainerStyle={styles.filterContent}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: equipmentFilter === 'all'
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.surface,
+                      borderColor: equipmentFilter === 'all'
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.border,
+                    }
+                  ]}
+                  onPress={() => setEquipmentFilter('all')}
+                >
+                  <Text style={[
+                    styles.filterChipText,
+                    {
+                      color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
+                      fontFamily: 'Raleway_500Medium',
+                    }
+                  ]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                {EQUIPMENT_OPTIONS.map((eq) => (
+                  <TouchableOpacity
+                    key={eq.value}
                     style={[
-                      styles.modalInput,
+                      styles.filterChip,
                       {
-                        backgroundColor: currentTheme.colors.surface,
-                        color: currentTheme.colors.text,
-                        borderColor: currentTheme.colors.border,
-                        fontFamily: 'Raleway_500Medium',
+                        backgroundColor: equipmentFilter === eq.value
+                          ? currentTheme.colors.primary
+                          : currentTheme.colors.surface,
+                        borderColor: equipmentFilter === eq.value
+                          ? currentTheme.colors.primary
+                          : currentTheme.colors.border,
                       }
                     ]}
-                    value={editedName}
-                    onChangeText={setEditedName}
-                    placeholder="Enter exercise name"
-                    placeholderTextColor={currentTheme.colors.text + '40'}
-                    autoFocus
-                    selectTextOnFocus
-                    returnKeyType="done"
-                    onSubmitEditing={handleSaveEdit}
-                  />
-
-                  {editingExercise && (
+                    onPress={() => setEquipmentFilter(eq.value)}
+                  >
                     <Text style={[
-                      styles.modalIdText,
+                      styles.filterChipText,
+                      {
+                        color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                        fontFamily: 'Raleway_500Medium',
+                      }
+                    ]}>
+                      {eq.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Add Exercise Button */}
+              {!isAdding && !editingExercise && (
+                <View style={[styles.addButtonContainer, { backgroundColor: 'transparent' }]}>
+                  <TouchableOpacity
+                    style={[styles.addButton, { backgroundColor: currentTheme.colors.primary }]}
+                    onPress={handleStartAdd}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add" size={18} color="#FFFFFF" />
+                    <Text style={[styles.addButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                      Add Custom Exercise
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Exercise List */}
+              <ScrollView
+                style={styles.exercisesList}
+                contentContainerStyle={styles.exercisesListContent}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {/* Add form at top if adding */}
+                {renderAddForm()}
+
+                {filteredCustomExercises.length === 0 && !isAdding ? (
+                  <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
+                    <Ionicons
+                      name={searchQuery ? "search-outline" : "barbell-outline"}
+                      size={32}
+                      color={currentTheme.colors.text + '40'}
+                    />
+                    <Text style={[
+                      styles.emptyText,
+                      { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }
+                    ]}>
+                      {searchQuery ? 'No exercises found' : 'No custom exercises yet'}
+                    </Text>
+                    <Text style={[
+                      styles.emptySubtext,
                       { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }
                     ]}>
-                      ID: {editingExercise.id}
+                      {searchQuery
+                        ? 'Try a different search term'
+                        : 'Log workouts with new exercises and they\'ll appear here'}
                     </Text>
-                  )}
-
-                  <View style={styles.modalButtons}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, styles.cancelButton, { backgroundColor: currentTheme.colors.surface }]}
-                      onPress={handleCancelEdit}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={[
-                        styles.cancelButtonText,
-                        { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }
-                      ]}>
-                        Cancel
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.modalButton,
-                        styles.saveButton,
-                        { backgroundColor: currentTheme.colors.primary },
-                        !editedName.trim() && styles.disabledButton
-                      ]}
-                      onPress={handleSaveEdit}
-                      activeOpacity={0.7}
-                      disabled={!editedName.trim()}
-                    >
-                      <Text style={[
-                        styles.saveButtonText,
-                        { fontFamily: 'Raleway_600SemiBold' }
-                      ]}>
-                        Save
-                      </Text>
-                    </TouchableOpacity>
                   </View>
-                </View>
-              </KeyboardAvoidingView>
-            </TouchableWithoutFeedback>
-          </View>
+                ) : (
+                  <>
+                    {/* Results count */}
+                    {searchQuery && (
+                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        {filteredCustomExercises.length} result{filteredCustomExercises.length !== 1 ? 's' : ''}
+                      </Text>
+                    )}
+
+                    {filteredCustomExercises.map((exercise) => renderCustomExerciseItem(exercise))}
+
+                    {/* Clear All Button */}
+                    {customExercises.length > 0 && !searchQuery && !isAdding && !editingExercise && (
+                      <TouchableOpacity
+                        style={[styles.clearAllButton, { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DC262630' }]}
+                        onPress={handleClearAll}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.clearAllText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                          Clear All Custom Exercises
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                )}
+              </ScrollView>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </TouchableWithoutFeedback>
       </Modal>
     </>
@@ -481,19 +1283,115 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 4,
   },
-  expandedContent: {
-    paddingTop: 12,
-    gap: 16,
+  // Full screen modal styles
+  modalContainer: {
+    flex: 1,
   },
-  description: {
-    fontSize: 14,
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  modalHeaderTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disclaimerBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 13,
     lineHeight: 18,
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  addButtonContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  filterContainer: {
+    flexGrow: 0,
+    flexShrink: 0,
+    marginBottom: 12,
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+    alignItems: 'center',
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterChipText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  exercisesList: {
+    flex: 1,
+  },
+  exercisesListContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+  resultsCount: {
+    fontSize: 13,
+    marginBottom: 12,
   },
   emptyState: {
     alignItems: 'center',
-    padding: 24,
+    padding: 32,
     borderRadius: 12,
     gap: 8,
+    marginTop: 20,
   },
   emptyText: {
     fontSize: 16,
@@ -503,32 +1401,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-  exercisesList: {
-    maxHeight: 300,
-  },
   exerciseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 10,
+    alignItems: 'flex-start',
+    padding: 14,
+    marginBottom: 10,
+    borderRadius: 12,
     borderWidth: 1,
+  },
+  editingItem: {
+    borderWidth: 2,
   },
   exerciseInfo: {
     flex: 1,
     marginRight: 12,
   },
-  exerciseNameRow: {
+  exerciseName: {
+    fontSize: 16,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  metadataChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  metadataChipText: {
+    fontSize: 11,
+    textTransform: 'capitalize',
+  },
+  liftRecordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
   },
-  exerciseName: {
-    fontSize: 15,
-  },
-  editIcon: {
-    marginTop: 1,
+  liftRecordText: {
+    fontSize: 11,
   },
   exerciseId: {
     fontSize: 11,
@@ -538,77 +1457,88 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 1,
   },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  clearAllButton: {
+  actionButtons: {
     flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
+  },
+  clearAllButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
     borderRadius: 10,
-    gap: 8,
+    marginTop: 12,
   },
   clearAllText: {
     color: '#DC2626',
     fontSize: 14,
   },
-  // Modal styles
-  modalOverlay: {
+  // Edit form styles
+  editForm: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  modalKeyboardView: {
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+  editLabel: {
+    fontSize: 13,
+    marginBottom: 6,
   },
-  modalContent: {
-    width: '85%',
-    maxWidth: 400,
-    borderRadius: 16,
-    padding: 24,
-    gap: 16,
+  editInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 15,
   },
-  modalTitle: {
-    fontSize: 20,
-    textAlign: 'center',
+  equipmentRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  modalLabel: {
+  equipmentChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  equipmentChipText: {
+    fontSize: 13,
+  },
+  previewBox: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  previewLabel: {
+    fontSize: 11,
+  },
+  previewValue: {
     fontSize: 14,
   },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-  },
-  modalIdText: {
-    fontSize: 12,
-    marginTop: -8,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
+  hintText: {
+    fontSize: 11,
     marginTop: 8,
+    fontStyle: 'italic',
   },
-  modalButton: {
+  editActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  editActionButton: {
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  cancelButton: {},
-  cancelButtonText: {
-    fontSize: 16,
-  },
-  saveButton: {},
-  saveButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
+  editActionText: {
+    fontSize: 14,
   },
   disabledButton: {
     opacity: 0.5,
