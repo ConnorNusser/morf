@@ -162,8 +162,8 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onCancel} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={currentTheme.colors.text} />
+          <TouchableOpacity onPress={onCancel} style={[styles.backButton, { backgroundColor: currentTheme.colors.surface }]}>
+            <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Plan Builder
@@ -171,7 +171,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           <RNView style={styles.headerRight}>
             {currentPlan ? (
               <TouchableOpacity onPress={handleUsePlan} style={styles.createButton}>
-                <Text style={[styles.createText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
                   Create
                 </Text>
               </TouchableOpacity>
@@ -184,7 +184,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         <KeyboardAvoidingView
           style={styles.keyboardAvoid}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           {/* Chat Messages */}
           <ScrollView
@@ -198,7 +198,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {/* Welcome message */}
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
-              <Ionicons name="sparkles" size={48} color={currentTheme.colors.accent + '40'} />
+              <Ionicons name="sparkles" size={48} color={currentTheme.colors.primary + '40'} />
               <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                 Let's Build Your Workout
               </Text>
@@ -217,7 +217,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                 message.role === 'user' ? styles.userMessage : styles.assistantMessage,
                 {
                   backgroundColor: message.role === 'user'
-                    ? currentTheme.colors.accent
+                    ? currentTheme.colors.primary
                     : currentTheme.colors.surface,
                 },
               ]}
@@ -262,7 +262,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             >
               <RNView style={styles.planHeader}>
                 <RNView style={styles.planHeaderLeft}>
-                  <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.accent} />
+                  <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
                   <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     Current Plan
                   </Text>
@@ -327,7 +327,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   styles.sendButton,
                   {
                     backgroundColor: inputText.trim() && !isLoading
-                      ? currentTheme.colors.accent
+                      ? currentTheme.colors.primary
                       : 'transparent',
                   },
                 ]}
@@ -364,9 +364,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'flex-start',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerRight: {
@@ -477,8 +478,8 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    paddingBottom: 20,
+    paddingVertical: 8,
+    paddingBottom: 8,
   },
   inputWrapper: {
     flexDirection: 'row',

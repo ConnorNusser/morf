@@ -41,13 +41,10 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
       activeOpacity={0.7}
     >
       <RNView style={styles.header}>
-        <RNView style={styles.titleRow}>
-          <Text style={styles.icon}>🎯</Text>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-            This Week's Focus
-          </Text>
-        </RNView>
-        <Text style={[styles.topMuscle, { color: currentTheme.colors.accent, fontFamily: 'Raleway_700Bold' }]}>
+        <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          This Week's Focus
+        </Text>
+        <Text style={[styles.topMuscle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
           {topMuscle.group}
         </Text>
       </RNView>
@@ -64,7 +61,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
                   styles.barFill,
                   {
                     width: `${muscle.percentage}%`,
-                    backgroundColor: index === 0 ? currentTheme.colors.accent : currentTheme.colors.accent + '60',
+                    backgroundColor: index === 0 ? currentTheme.colors.primary : currentTheme.colors.primary + '60',
                   },
                 ]}
               />
@@ -81,7 +78,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
   },
@@ -89,21 +86,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  icon: {
-    fontSize: 16,
+    marginBottom: 14,
   },
   title: {
     fontSize: 14,
   },
   topMuscle: {
-    fontSize: 14,
+    fontSize: 13,
     textTransform: 'capitalize',
   },
   barsContainer: {

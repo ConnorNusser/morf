@@ -55,34 +55,12 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     }
   };
 
-  const getCategoryColor = (category: string): string => {
-    switch (category) {
-      case 'push':
-        return '#FF6B6B';
-      case 'pull':
-        return '#4ECDC4';
-      case 'legs':
-        return '#45B7D1';
-      case 'upper':
-        return '#FFA726';
-      case 'full':
-        return '#AB47BC';
-      default:
-        return currentTheme.colors.accent;
-    }
+  const getCategoryColor = (_category: string): string => {
+    return currentTheme.colors.primary;
   };
 
-  const getMuscleGroupColor = (muscle: MuscleGroup): string => {
-    switch (muscle) {
-      case 'chest': return '#FF6B6B';
-      case 'back': return '#4ECDC4';
-      case 'shoulders': return '#FFA726';
-      case 'arms': return '#9B59B6';
-      case 'legs': return '#45B7D1';
-      case 'glutes': return '#E91E63';
-      case 'core': return '#26A69A';
-      default: return currentTheme.colors.accent;
-    }
+  const getMuscleGroupColor = (_muscle: MuscleGroup): string => {
+    return currentTheme.colors.primary;
   };
 
   const getMuscleGroupLabel = (muscle: MuscleGroup): string => {
@@ -224,16 +202,14 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
   };
 
-  const getDayBackgroundColor = (hasWorkout: boolean, workoutCategory?: string) => {
+  const getDayBackgroundColor = (hasWorkout: boolean, _workoutCategory?: string) => {
     if (!hasWorkout) return 'transparent';
-    if (!workoutCategory) return currentTheme.colors.accent + '20';
-    return getCategoryColor(workoutCategory) + '20';
+    return currentTheme.colors.primary + '1A'; // 10% opacity
   };
 
-  const getDayTextColor = (hasWorkout: boolean, workoutCategory?: string) => {
-    if (!hasWorkout) return currentTheme.colors.text + '60';
-    if (!workoutCategory) return currentTheme.colors.accent;
-    return getCategoryColor(workoutCategory);
+  const getDayTextColor = (hasWorkout: boolean, _workoutCategory?: string) => {
+    if (!hasWorkout) return currentTheme.colors.text + '4D'; // 30%
+    return currentTheme.colors.primary;
   };
 
   const handleDayPress = (day: WeekData['weekDays'][0]) => {
@@ -278,8 +254,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         <View style={styles.headerContainer}>
           <View style={styles.header}>
             <Text style={[
-              styles.title, 
-              { 
+              styles.title,
+              {
                 color: currentTheme.colors.text,
                 fontFamily: 'Raleway_600SemiBold',
               }
@@ -287,11 +263,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               Weekly Overview
             </Text>
             <Text style={[
-              styles.dateRange, 
-              { 
-                color: currentTheme.colors.text,
+              styles.dateRange,
+              {
+                color: currentTheme.colors.text + '99', // 60%
                 fontFamily: 'Raleway_400Regular',
-                opacity: 0.7,
               }
             ]}>
               {formatDateRange(weekData.startDate, weekData.endDate)}
@@ -302,12 +277,12 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         {/* Week Days with integrated navigation arrows */}
         <View style={styles.weekContainer}>
           {/* Left Arrow */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigateWeek('prev')}
-            style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
-            activeOpacity={0.7}
+            style={styles.navButton}
+            activeOpacity={0.6}
           >
-            <Ionicons name="chevron-back" size={30} color={currentTheme.colors.text} />
+            <Ionicons name="chevron-back" size={24} color={currentTheme.colors.text + '4D'} />
           </TouchableOpacity>
           
           {/* Days */}
@@ -330,11 +305,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                   </Text>
                 </TouchableOpacity>
                 <Text style={[
-                  styles.dayLabel, 
-                  { 
-                    color: currentTheme.colors.text,
+                  styles.dayLabel,
+                  {
+                    color: day.hasWorkout ? currentTheme.colors.text + '99' : currentTheme.colors.text + '4D',
                     fontFamily: 'Raleway_400Regular',
-                    opacity: day.hasWorkout ? 0.8 : 0.4,
                   }
                 ]}>
                   {day.dayLetter}
@@ -344,60 +318,60 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           </View>
 
           {/* Right Arrow */}
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigateWeek('next')}
-            style={[styles.navButton, { backgroundColor: currentTheme.colors.surface + '60' }]}
-            activeOpacity={0.7}
+            style={styles.navButton}
+            activeOpacity={0.6}
           >
-            <Ionicons name="chevron-forward" size={30} color={currentTheme.colors.text} />
+            <Ionicons name="chevron-forward" size={24} color={currentTheme.colors.text + '4D'} />
           </TouchableOpacity>
         </View>
 
         {/* Compact Stats */}
         <View style={styles.statsContainer}>
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={handleWeekPress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                {weekStats.totalWorkouts}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-                Workouts
-              </Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleWeekPress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              {weekStats.totalWorkouts}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+              Workouts
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={handleTimePress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                {weekStats.totalTime}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-                Time
-              </Text>
-            </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleTimePress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              {weekStats.totalTime}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+              Time
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.statItem}
-              onPress={handleVolumePress}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                {weekStats.totalVolume}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-                Volume
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleVolumePress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              {weekStats.totalVolume}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+              Volume
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Muscle Groups Focus */}
         <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
-          <Text style={[styles.muscleSectionTitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+          <Text style={[styles.muscleSectionTitle, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_500Medium' }]}>
             Muscle Focus
           </Text>
           <View style={styles.muscleChips}>
@@ -411,10 +385,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                     styles.muscleChip,
                     {
                       backgroundColor: isTrained
-                        ? getMuscleGroupColor(muscle) + '20'
-                        : currentTheme.colors.surface,
+                        ? currentTheme.colors.primary + '1A' // 10%
+                        : 'transparent',
                       borderColor: isTrained
-                        ? getMuscleGroupColor(muscle) + '40'
+                        ? currentTheme.colors.primary + '4D' // 30%
                         : currentTheme.colors.border,
                     },
                   ]}
@@ -424,16 +398,16 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                       styles.muscleChipText,
                       {
                         color: isTrained
-                          ? getMuscleGroupColor(muscle)
-                          : currentTheme.colors.text + '40',
-                        fontFamily: isTrained ? 'Raleway_600SemiBold' : 'Raleway_400Regular',
+                          ? currentTheme.colors.primary
+                          : currentTheme.colors.text + '4D', // 30%
+                        fontFamily: isTrained ? 'Raleway_500Medium' : 'Raleway_400Regular',
                       },
                     ]}
                   >
                     {getMuscleGroupLabel(muscle)}
                   </Text>
                   {isTrained && count > 1 && (
-                    <View style={[styles.muscleCount, { backgroundColor: getMuscleGroupColor(muscle) }]}>
+                    <View style={[styles.muscleCount, { backgroundColor: currentTheme.colors.primary }]}>
                       <Text style={styles.muscleCountText}>{count}</Text>
                     </View>
                   )}
@@ -442,7 +416,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             })}
           </View>
           {muscleGroupStats.missed.length > 0 && muscleGroupStats.trained.length > 0 && (
-            <Text style={[styles.missedHint, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.missedHint, { color: currentTheme.colors.text + '4D', fontFamily: 'Raleway_400Regular' }]}>
               Missing: {muscleGroupStats.missed.map(m => getMuscleGroupLabel(m)).join(', ')}
             </Text>
           )}
@@ -470,20 +444,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    fontSize: 24,
+    marginBottom: 16,
   },
   header: {
     flex: 1,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 1,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.2,
   },
   dateRange: {
-    fontSize: 12,
-    fontWeight: '400',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
   chevronIcon: {
     marginLeft: 4,
@@ -492,18 +466,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 16,
   },
   navButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: -8,
   },
   spacer: {
-    width: 28,
+    width: 32,
   },
   daysContainer: {
     flexDirection: 'row',
@@ -516,54 +489,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   dayNumber: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   dayLabel: {
-    fontSize: 14,
-    fontWeight: '400',
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
+    lineHeight: 22,
     fontWeight: '600',
-    marginBottom: 2,
   },
   statLabel: {
-    fontSize: 16,
-    fontWeight: '400',
-    opacity: 0.7,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
   muscleSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   muscleSectionTitle: {
-    fontSize: 11,
-    textTransform: 'uppercase',
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 0.5,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   muscleChips: {
     flexDirection: 'row',
@@ -573,29 +545,31 @@ const styles = StyleSheet.create({
   muscleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     gap: 4,
   },
   muscleChipText: {
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
   muscleCount: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
   muscleCountText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFF',
   },
   missedHint: {
-    fontSize: 11,
-    marginTop: 10,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 12,
   },
 }); 

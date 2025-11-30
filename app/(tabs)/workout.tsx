@@ -1,13 +1,10 @@
-import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import QuickSummaryToast from '@/components/workout/QuickSummaryToast';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
-import VoiceMicButton from '@/components/workout/VoiceMicButton';
 import WorkoutConfirmationModal from '@/components/workout/WorkoutConfirmationModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
@@ -33,22 +30,6 @@ export default function WorkoutScreen() {
   const [noteText, setNoteText] = useState('');
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-
-  // Voice recognition
-  const {
-    isListening,
-    startListening,
-    stopListening,
-    error: voiceError,
-  } = useVoiceRecognition({
-    onResult: (text) => {
-      // Append voice result to note
-      noteInputRef.current?.appendText(text);
-    },
-    onError: (error) => {
-      Alert.alert('Voice Error', error);
-    },
-  });
 
   // Quick summary state
   const [showSummary, setShowSummary] = useState(false);
@@ -97,15 +78,6 @@ export default function WorkoutScreen() {
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-
-  // Handle voice button press
-  const handleVoicePress = useCallback(async () => {
-    if (isListening) {
-      await stopListening();
-    } else {
-      await startListening();
-    }
-  }, [isListening, startListening, stopListening]);
 
   // Handle quick summary
   const handleQuickSummary = useCallback(async () => {
@@ -275,12 +247,21 @@ export default function WorkoutScreen() {
         <View style={[styles.header, { backgroundColor: 'transparent' }]}>
           <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
             {hasWorkoutStarted ? (
-              <TouchableOpacity onPress={handleNewWorkout}>
-                <Ionicons name="refresh-outline" size={24} color={currentTheme.colors.text} />
+              <TouchableOpacity
+                style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface }]}
+                onPress={handleQuickSummary}
+              >
+                <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
+                <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  Summary
+                </Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={() => setShowPlanBuilder(true)}>
-                <Ionicons name="sparkles-outline" size={26} color={currentTheme.colors.text + '80'} />
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                onPress={() => setShowPlanBuilder(true)}
+              >
+                <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -303,17 +284,19 @@ export default function WorkoutScreen() {
           <View style={[styles.headerRight, { backgroundColor: 'transparent' }]}>
             {hasWorkoutStarted ? (
               <TouchableOpacity
-                style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface }]}
-                onPress={handleQuickSummary}
+                style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
+                onPress={handleFinishWorkout}
               >
-                <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                  Summary
+                <Text style={[styles.finishButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                  Finish
                 </Text>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={() => setShowTemplateLibrary(true)}>
-                <Ionicons name="download-outline" size={24} color={currentTheme.colors.text + '80'} />
+              <TouchableOpacity
+                style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                onPress={() => setShowTemplateLibrary(true)}
+              >
+                <Ionicons name="download-outline" size={20} color={currentTheme.colors.primary} />
               </TouchableOpacity>
             )}
           </View>
@@ -333,34 +316,12 @@ export default function WorkoutScreen() {
             ref={noteInputRef}
             value={noteText}
             onChangeText={setNoteText}
-            placeholder={`Start typing or tap mic to log your workout...
+            placeholder={`Start typing your workout...
 
 Examples:
 Bench 135x8, 155x6
 Squats 225 for 5 reps`}
           />
-        </View>
-
-        {/* Bottom Action Bar */}
-        <View style={[styles.bottomBar, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}>
-          <View style={[styles.bottomBarContent, { backgroundColor: 'transparent' }]}>
-            {/* Voice Button */}
-            <VoiceMicButton
-              isListening={isListening}
-              onPress={handleVoicePress}
-              size="medium"
-            />
-
-            {/* Action Button */}
-            <Button
-              title={hasWorkoutStarted ? "Finish Workout" : "Start Typing"}
-              onPress={hasWorkoutStarted ? handleFinishWorkout : () => noteInputRef.current?.focus()}
-              variant={hasWorkoutStarted ? "primary" : "secondary"}
-              size="large"
-              style={styles.finishButton}
-              disabled={!hasWorkoutStarted}
-            />
-          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -407,7 +368,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   headerLeft: {
-    width: 60,
+    minWidth: 90,
     alignItems: 'flex-start',
   },
   headerCenter: {
@@ -444,21 +405,23 @@ const styles = StyleSheet.create({
   summaryButtonText: {
     fontSize: 13,
   },
-  content: {
-    flex: 1,
-  },
-  bottomBar: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    paddingBottom: 16,
-    borderTopWidth: 1,
-  },
-  bottomBarContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
   finishButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  finishButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
     flex: 1,
   },
 });

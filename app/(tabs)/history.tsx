@@ -1,5 +1,7 @@
 import ExerciseCard from '@/components/history/ExerciseCard';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
+import WorkoutCard from '@/components/history/WorkoutCard';
+import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import { Text, View } from '@/components/Themed';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
@@ -10,7 +12,7 @@ import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { ALL_WORKOUTS, getWorkoutById } from '@/lib/workouts';
-import { convertWeight, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
+import { convertWeight, GeneratedWorkout, WeightUnit, WorkoutTemplate, WorkoutSplit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -39,6 +41,40 @@ interface ExerciseWithMax {
 }
 
 type TabType = 'workouts' | 'exercises' | 'templates';
+
+// Helper to detect workout split from title or exercises
+const detectWorkoutSplit = (workout: GeneratedWorkout): WorkoutSplit | null => {
+  const titleLower = workout.title.toLowerCase();
+
+  if (titleLower.includes('push')) return 'push';
+  if (titleLower.includes('pull')) return 'pull';
+  if (titleLower.includes('leg') || titleLower.includes('lower')) return 'legs';
+  if (titleLower.includes('upper')) return 'upper-body';
+  if (titleLower.includes('full') || titleLower.includes('total body')) return 'full-body';
+  if (titleLower.includes('calisthenics') || titleLower.includes('bodyweight')) return 'calisthenics';
+
+  // Detect from exercises if title doesn't indicate
+  const muscles = getWorkoutMuscleGroups(workout);
+  if (muscles.includes('chest') && muscles.includes('shoulders')) return 'push';
+  if (muscles.includes('back') && (muscles.includes('biceps') || muscles.includes('arms'))) return 'pull';
+  if (muscles.includes('legs') || muscles.includes('glutes') || muscles.includes('quadriceps')) return 'legs';
+
+  return null;
+};
+
+// Helper to get unique muscle groups from a workout
+const getWorkoutMuscleGroups = (workout: GeneratedWorkout): string[] => {
+  const muscleSet = new Set<string>();
+
+  workout.exercises.forEach(ex => {
+    const exerciseInfo = getWorkoutById(ex.id);
+    if (exerciseInfo?.primaryMuscles) {
+      exerciseInfo.primaryMuscles.forEach(muscle => muscleSet.add(muscle.toLowerCase()));
+    }
+  });
+
+  return Array.from(muscleSet).slice(0, 3); // Limit to top 3
+};
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
@@ -394,55 +430,6 @@ export default function HistoryScreen() {
     };
   }, [workouts]);
 
-  // Calculate workout stats for display
-  const getWorkoutStats = (workout: GeneratedWorkout) => {
-    let totalSets = 0;
-    let totalVolume = 0;
-    workout.exercises.forEach(ex => {
-      ex.completedSets?.forEach(set => {
-        totalSets++;
-        totalVolume += set.weight * set.reps;
-      });
-    });
-    return { totalSets, totalVolume };
-  };
-
-  // Get all exercises from a workout with their sets
-  const getWorkoutExercises = (workout: GeneratedWorkout): { name: string; sets: string[]; isPR: boolean }[] => {
-    const exercises: { name: string; sets: string[]; isPR: boolean; volume: number }[] = [];
-
-    workout.exercises.forEach(ex => {
-      const exerciseInfo = getWorkoutById(ex.id);
-      const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
-
-      if (ex.completedSets && ex.completedSets.length > 0) {
-        // Get all sets formatted
-        const sets = ex.completedSets.map(set => `${set.weight}×${set.reps}`);
-
-        // Find best set for PR check
-        const bestSet = ex.completedSets.reduce((best, current) => {
-          return (current.weight > best.weight) ? current : best;
-        }, ex.completedSets[0]);
-
-        const volume = ex.completedSets.reduce((sum, set) => sum + set.weight * set.reps, 0);
-
-        // Check if PR
-        const exerciseStat = exerciseStats.find(s => s.id === ex.id);
-        const isPR = exerciseStat ? bestSet.weight >= exerciseStat.maxWeight : false;
-
-        exercises.push({
-          name,
-          sets,
-          isPR,
-          volume,
-        });
-      }
-    });
-
-    // Sort by volume
-    return exercises.sort((a, b) => b.volume - a.volume);
-  };
-
   // Filter exercises with data for the Your Lifts section
   const liftsWithData = useMemo(() =>
     exerciseStats.filter(ex => ex.estimated1RM > 0).slice(0, 10),
@@ -473,7 +460,7 @@ export default function HistoryScreen() {
               style={[
                 styles.tab,
                 activeTab === 'workouts' && styles.activeTab,
-                activeTab === 'workouts' && { borderBottomColor: currentTheme.colors.accent }
+                activeTab === 'workouts' && { borderBottomColor: currentTheme.colors.primary }
               ]}
               onPress={() => setActiveTab('workouts')}
             >
@@ -489,7 +476,7 @@ export default function HistoryScreen() {
               style={[
                 styles.tab,
                 activeTab === 'exercises' && styles.activeTab,
-                activeTab === 'exercises' && { borderBottomColor: currentTheme.colors.accent }
+                activeTab === 'exercises' && { borderBottomColor: currentTheme.colors.primary }
               ]}
               onPress={() => setActiveTab('exercises')}
             >
@@ -505,7 +492,7 @@ export default function HistoryScreen() {
               style={[
                 styles.tab,
                 activeTab === 'templates' && styles.activeTab,
-                activeTab === 'templates' && { borderBottomColor: currentTheme.colors.accent }
+                activeTab === 'templates' && { borderBottomColor: currentTheme.colors.primary }
               ]}
               onPress={() => setActiveTab('templates')}
             >
@@ -524,7 +511,7 @@ export default function HistoryScreen() {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={currentTheme.colors.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={currentTheme.colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
         {activeTab === 'workouts' ? (
@@ -535,22 +522,33 @@ export default function HistoryScreen() {
             {/* Quick Stats - Inline */}
             {workouts.length > 0 && (
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
-                {quickStats.streak > 0 && (
+                {quickStats.streak > 0 ? (
                   <>
-                    <Ionicons name="flame" size={16} color="#FF6B35" />
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
                       {quickStats.streak} day streak
                     </Text>
-                    <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>•</Text>
+                    <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
                   </>
+                ) : null}
+                {quickStats.thisWeek > 0 ? (
+                  <>
+                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                      {quickStats.thisWeek} workout{quickStats.thisWeek !== 1 ? 's' : ''} this week
+                    </Text>
+                    {quickStats.weekVolume > 0 && (
+                      <>
+                        <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
+                        <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                          {quickStats.weekVolume > 1000 ? `${(quickStats.weekVolume / 1000).toFixed(1)}k` : quickStats.weekVolume} {weightUnit}
+                        </Text>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                    {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
+                  </Text>
                 )}
-                <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
-                  {quickStats.thisWeek} this week
-                </Text>
-                <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>•</Text>
-                <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
-                  {quickStats.weekVolume > 1000 ? `${(quickStats.weekVolume / 1000).toFixed(0)}k` : quickStats.weekVolume} {weightUnit}
-                </Text>
               </View>
             )}
 
@@ -564,56 +562,20 @@ export default function HistoryScreen() {
             {/* Recent Workouts */}
             {recentWorkouts.length > 0 && (
               <View style={styles.section}>
-                {recentWorkouts.map((workout) => {
-                  const stats = getWorkoutStats(workout);
-                  const exercises = getWorkoutExercises(workout);
-                  return (
-                    <TouchableOpacity
-                      key={workout.id}
-                      style={[styles.workoutCard, { borderColor: currentTheme.colors.border }]}
-                      onPress={() => setSelectedWorkout(workout)}
-                      onLongPress={() => handleDeleteWorkout(workout)}
-                      activeOpacity={0.7}
-                    >
-                      {/* Header */}
-                      <View style={[styles.workoutHeader, { backgroundColor: 'transparent' }]}>
-                        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                          {workout.title}
-                        </Text>
-                        <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-                          {formatRelativeDate(workout.createdAt)} • {stats.totalSets} sets • {stats.totalVolume > 1000 ? `${(stats.totalVolume / 1000).toFixed(1)}k` : stats.totalVolume} {weightUnit}
-                        </Text>
-                      </View>
-
-                      {/* Exercise list */}
-                      {exercises.length > 0 && (
-                        <View style={styles.exercisesList}>
-                          {exercises.map((ex, idx) => (
-                            <View key={idx} style={[styles.exerciseRow, { backgroundColor: 'transparent' }]}>
-                              <View style={[styles.exerciseNameContainer, { backgroundColor: 'transparent' }]}>
-                                <Text style={[styles.exerciseName, { color: currentTheme.colors.text + '90', fontFamily: 'Raleway_500Medium' }]}>
-                                  {ex.name}
-                                </Text>
-                                {ex.isPR && (
-                                  <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
-                                    <Text style={[styles.prText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>PR</Text>
-                                  </View>
-                                )}
-                              </View>
-                              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-                                {ex.sets.join(' · ')}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
+                {recentWorkouts.map((workout) => (
+                  <WorkoutCard
+                    key={workout.id}
+                    workout={workout}
+                    exerciseStats={exerciseStats}
+                    weightUnit={weightUnit}
+                    onPress={() => setSelectedWorkout(workout)}
+                    onLongPress={() => handleDeleteWorkout(workout)}
+                  />
+                ))}
 
                 {workouts.length > 5 && (
                   <TouchableOpacity style={styles.viewAllButton}>
-                    <Text style={[styles.viewAllText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
                       View all {workouts.length} workouts
                     </Text>
                   </TouchableOpacity>
@@ -664,7 +626,7 @@ export default function HistoryScreen() {
             {/* Notes Tab */}
             {/* Create Note Button */}
             <TouchableOpacity
-              style={[styles.createTemplateButton, { backgroundColor: currentTheme.colors.accent }]}
+              style={[styles.createTemplateButton, { backgroundColor: currentTheme.colors.primary }]}
               onPress={handleCreateTemplate}
               activeOpacity={0.8}
             >
@@ -707,13 +669,13 @@ export default function HistoryScreen() {
                         >
                           <View style={[styles.templateHeader, { backgroundColor: 'transparent' }]}>
                             <View style={[styles.templateHeaderLeft, { backgroundColor: 'transparent' }]}>
-                              <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.accent} />
+                              <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
                               <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                                 {template.name}
                               </Text>
                             </View>
                             <TouchableOpacity
-                              style={[styles.copyButton, { backgroundColor: currentTheme.colors.accent }]}
+                              style={[styles.copyButton, { backgroundColor: currentTheme.colors.primary }]}
                               onPress={(e) => {
                                 e.stopPropagation();
                                 handleCopyTemplate(template);
@@ -763,57 +725,18 @@ export default function HistoryScreen() {
       </ScrollView>
 
       {/* Workout Detail Modal */}
-      <Modal visible={!!selectedWorkout} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <TouchableOpacity onPress={() => setSelectedWorkout(null)}>
-              <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-              Workout Details
-            </Text>
-            <TouchableOpacity onPress={() => selectedWorkout && handleDeleteWorkout(selectedWorkout)}>
-              <Ionicons name="trash-outline" size={24} color={currentTheme.colors.text + '60'} />
-            </TouchableOpacity>
-          </View>
-          {selectedWorkout && (
-            <ScrollView style={styles.modalContent}>
-              <Text style={[styles.modalWorkoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-                {selectedWorkout.title}
-              </Text>
-              <Text style={[styles.modalDate, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                {formatFullDate(selectedWorkout.createdAt)}
-              </Text>
-
-              <View style={styles.modalExerciseList}>
-                {selectedWorkout.exercises.map((exercise, idx) => {
-                  const exerciseInfo = getWorkoutById(exercise.id);
-                  const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
-                  return (
-                    <View key={idx} style={[styles.modalExerciseItem, { borderBottomColor: currentTheme.colors.border }]}>
-                      <Text style={[styles.modalExerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                        {name}
-                      </Text>
-                      <View style={styles.modalSetsList}>
-                        {exercise.completedSets?.map((set, setIdx) => (
-                          <View key={setIdx} style={[styles.modalSetRow, { backgroundColor: 'transparent' }]}>
-                            <Text style={[styles.modalSetNumber, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_500Medium' }]}>
-                              Set {setIdx + 1}
-                            </Text>
-                            <Text style={[styles.modalSetValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                              {set.weight} {set.unit} × {set.reps}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
+      <WorkoutDetailModal
+        workout={selectedWorkout}
+        weightUnit={weightUnit}
+        exerciseStats={exerciseStats}
+        onClose={() => setSelectedWorkout(null)}
+        onDelete={async (workout) => {
+          await userService.deleteWorkoutAndLifts(workout.id);
+          setSelectedWorkout(null);
+          await loadHistory();
+          await loadExerciseStats();
+        }}
+      />
 
       {/* Template Library Modal */}
       <TemplateLibraryModal
@@ -854,7 +777,7 @@ export default function HistoryScreen() {
               {selectedExercise.estimated1RM > 0 && (
                 <View style={[styles.exerciseStatsBanner, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.accent, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
                       {selectedExercise.estimated1RM}
                     </Text>
                     <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
@@ -969,45 +892,6 @@ const styles = StyleSheet.create({
   widgetSection: {
     marginTop: 16,
   },
-  // Workout card styles - minimal, borderless
-  workoutCard: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  workoutHeader: {
-    marginBottom: 12,
-  },
-  workoutTitle: {
-    fontSize: 16,
-    marginBottom: 4,
-  },
-  workoutMeta: {
-    fontSize: 13,
-  },
-  exercisesList: {
-    gap: 8,
-  },
-  exerciseRow: {},
-  exerciseNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
-  },
-  exerciseName: {
-    fontSize: 14,
-  },
-  exerciseSets: {
-    fontSize: 13,
-  },
-  prBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  prText: {
-    fontSize: 9,
-  },
   viewAllButton: {
     paddingVertical: 16,
     alignItems: 'center',
@@ -1081,7 +965,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  // Modal styles
+  // Exercise history modal
   modalContainer: {
     flex: 1,
   },
@@ -1091,10 +975,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   modalTitle: {
     fontSize: 17,
+    lineHeight: 22,
   },
   modalContent: {
     flex: 1,
@@ -1102,36 +987,8 @@ const styles = StyleSheet.create({
   },
   modalWorkoutTitle: {
     fontSize: 24,
-    marginBottom: 8,
+    marginBottom: 16,
   },
-  modalDate: {
-    fontSize: 14,
-    marginBottom: 24,
-  },
-  modalExerciseList: {},
-  modalExerciseItem: {
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  modalExerciseName: {
-    fontSize: 17,
-    marginBottom: 12,
-  },
-  modalSetsList: {
-    gap: 8,
-  },
-  modalSetRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  modalSetNumber: {
-    fontSize: 14,
-  },
-  modalSetValue: {
-    fontSize: 16,
-  },
-  // Exercise history modal
   exerciseStatsBanner: {
     flexDirection: 'row',
     borderRadius: 12,

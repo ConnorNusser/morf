@@ -102,8 +102,8 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={currentTheme.colors.text} />
+          <TouchableOpacity onPress={onClose} style={[styles.backButton, { backgroundColor: currentTheme.colors.surface }]}>
+            <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Import Notes
@@ -138,7 +138,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                 activeOpacity={0.7}
               >
                 <RNView style={styles.templateHeader}>
-                  <Ionicons name="document-text" size={20} color={currentTheme.colors.accent} />
+                  <Ionicons name="document-text" size={20} color={currentTheme.colors.primary} />
                   <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     {template.name}
                   </Text>
@@ -156,7 +156,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
                     Created {formatDate(template.createdAt)}
                   </Text>
                   {template.lastUsed && (
-                    <Text style={[styles.templateDate, { color: currentTheme.colors.accent + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.templateDate, { color: currentTheme.colors.primary + '80', fontFamily: 'Raleway_500Medium' }]}>
                       Last used {formatDate(template.lastUsed)}
                     </Text>
                   )}
@@ -183,9 +183,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'flex-start',
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {

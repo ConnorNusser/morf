@@ -255,8 +255,8 @@ export default function RecapView({ onClose }: RecapViewProps) {
     <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <RNView style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color={currentTheme.colors.text} />
+        <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}>
+          <Ionicons name="close" size={20} color={currentTheme.colors.text} />
         </TouchableOpacity>
 
         {/* Period Selector */}
@@ -266,7 +266,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
               key={p}
               style={[
                 styles.periodButton,
-                period === p && { backgroundColor: currentTheme.colors.accent },
+                period === p && { backgroundColor: currentTheme.colors.primary },
               ]}
               onPress={() => setPeriod(p)}
             >
@@ -312,7 +312,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
       {/* Cards */}
       {loading ? (
         <RNView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={currentTheme.colors.accent} />
+          <ActivityIndicator size="large" color={currentTheme.colors.primary} />
           <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>
             Loading your recap...
           </Text>
@@ -353,7 +353,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
                   styles.dot,
                   {
                     backgroundColor: index === currentCardIndex
-                      ? currentTheme.colors.accent
+                      ? currentTheme.colors.primary
                       : currentTheme.colors.text + '30',
                   },
                 ]}
@@ -384,7 +384,11 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   closeButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   periodSelector: {
     flexDirection: 'row',

@@ -91,8 +91,8 @@ export default function ExerciseCard({ exercise, onPress }: ExerciseCardProps) {
             {exercise.name}
           </Text>
           {exercise.isCustom && (
-            <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.accent + '15' }]}>
-              <Text style={[styles.customBadgeText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' }]}>
+            <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
                 Custom
               </Text>
             </View>

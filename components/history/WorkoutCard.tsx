@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getWorkoutById } from '@/lib/workouts';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface ExerciseWithMax {
   id: string;
@@ -106,21 +106,23 @@ export default function WorkoutCard({
       {exercises.length > 0 && (
         <View style={styles.exercisesList}>
           {exercises.map((ex, idx) => (
-            <View key={idx} style={[styles.exerciseRow, { backgroundColor: 'transparent' }]}>
-              <View style={[styles.exerciseNameContainer, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text + '90', fontFamily: 'Raleway_500Medium' }]}>
+            <RNView key={idx} style={[styles.exerciseRow, { backgroundColor: currentTheme.colors.surface }]}>
+              <RNView style={styles.exerciseContent}>
+                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
                   {ex.name}
                 </Text>
-                {ex.isPR && (
-                  <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
-                    <Text style={[styles.prText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>PR</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-                {ex.sets.join(' · ')}
-              </Text>
-            </View>
+                <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                  {ex.sets.join(' · ')}
+                </Text>
+              </RNView>
+              {ex.isPR && (
+                <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+                  <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                    PR
+                  </Text>
+                </RNView>
+              )}
+            </RNView>
           ))}
         </View>
       )}
@@ -131,40 +133,52 @@ export default function WorkoutCard({
 const styles = StyleSheet.create({
   workoutCard: {
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   workoutHeader: {
     marginBottom: 12,
   },
   workoutTitle: {
     fontSize: 16,
-    marginBottom: 4,
+    lineHeight: 22,
+    letterSpacing: -0.2,
   },
   workoutMeta: {
     fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
   exercisesList: {
     gap: 8,
   },
-  exerciseRow: {},
-  exerciseNameContainer: {
+  exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  exerciseContent: {
+    flex: 1,
   },
   exerciseName: {
-    fontSize: 14,
+    fontSize: 15,
+    lineHeight: 20,
   },
   exerciseSets: {
     fontSize: 13,
+    lineHeight: 18,
+    marginTop: 2,
   },
-  prBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
+  prChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginLeft: 12,
   },
-  prText: {
-    fontSize: 9,
+  prChipText: {
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
 });
