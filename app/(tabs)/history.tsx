@@ -605,6 +605,7 @@ export default function HistoryScreen() {
                   <ExerciseCard
                     key={exercise.id}
                     exercise={exercise}
+                    weightUnit={weightUnit}
                     onPress={() => setSelectedExercise(exercise)}
                   />
                 ))}

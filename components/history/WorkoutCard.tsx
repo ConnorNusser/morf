@@ -1,7 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getWorkoutById } from '@/lib/workouts';
-import { GeneratedWorkout, WeightUnit } from '@/types';
+import { convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
@@ -50,10 +50,12 @@ export default function WorkoutCard({
     workout.exercises.forEach(ex => {
       ex.completedSets?.forEach(set => {
         totalSets++;
-        totalVolume += set.weight * set.reps;
+        // Convert weight to user's preferred unit before calculating volume
+        const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
+        totalVolume += weightInPreferredUnit * set.reps;
       });
     });
-    return { totalSets, totalVolume };
+    return { totalSets, totalVolume: Math.round(totalVolume) };
   };
 
   const getWorkoutExercises = (): { name: string; sets: string[]; isPR: boolean }[] => {
@@ -64,16 +66,29 @@ export default function WorkoutCard({
       const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
 
       if (ex.completedSets && ex.completedSets.length > 0) {
-        const sets = ex.completedSets.map(set => `${set.weight}×${set.reps}`);
+        // Convert weights to user's preferred unit for display
+        const sets = ex.completedSets.map(set => {
+          const displayWeight = Math.round(convertWeight(set.weight, set.unit, weightUnit));
+          return `${displayWeight}×${set.reps}`;
+        });
 
+        // Find best set by converting to same unit for comparison
         const bestSet = ex.completedSets.reduce((best, current) => {
-          return (current.weight > best.weight) ? current : best;
+          const bestInLbs = convertWeight(best.weight, best.unit, 'lbs');
+          const currentInLbs = convertWeight(current.weight, current.unit, 'lbs');
+          return currentInLbs > bestInLbs ? current : best;
         }, ex.completedSets[0]);
 
-        const volume = ex.completedSets.reduce((sum, set) => sum + set.weight * set.reps, 0);
+        // Calculate volume in user's preferred unit
+        const volume = ex.completedSets.reduce((sum, set) => {
+          const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
+          return sum + weightInPreferredUnit * set.reps;
+        }, 0);
 
+        // Compare best set to exercise stats (stats are in lbs)
         const exerciseStat = exerciseStats.find(s => s.id === ex.id);
-        const isPR = exerciseStat ? bestSet.weight >= exerciseStat.maxWeight : false;
+        const bestSetInLbs = convertWeight(bestSet.weight, bestSet.unit, 'lbs');
+        const isPR = exerciseStat ? bestSetInLbs >= exerciseStat.maxWeight : false;
 
         exercises.push({ name, sets, isPR, volume });
       }

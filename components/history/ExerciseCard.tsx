@@ -1,7 +1,7 @@
 import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { WeightUnit } from '@/types';
+import { convertWeight, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -19,13 +19,15 @@ interface ExerciseWithMax {
 
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;
+  weightUnit: WeightUnit;
   onPress: () => void;
 }
 
-export default function ExerciseCard({ exercise, onPress }: ExerciseCardProps) {
+export default function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
 
   // Get sparkline data for an exercise (bi-weekly periods, last 6)
+  // Data is converted to user's preferred unit for consistent display
   const getSparklineData = (history: ExerciseWithMax['history']): number[] => {
     if (history.length === 0) return [];
 
@@ -45,7 +47,10 @@ export default function ExerciseCard({ exercise, onPress }: ExerciseCardProps) {
       });
 
       if (periodEntries.length > 0) {
-        const maxWeight = Math.max(...periodEntries.map(e => e.weight));
+        // Convert to user's preferred unit before finding max
+        const maxWeight = Math.max(...periodEntries.map(e =>
+          convertWeight(e.weight, e.unit, weightUnit)
+        ));
         periods.push(maxWeight);
       } else if (periods.length > 0) {
         periods.push(periods[periods.length - 1]);
@@ -56,11 +61,13 @@ export default function ExerciseCard({ exercise, onPress }: ExerciseCardProps) {
   };
 
   // Get delta for an exercise (3 month comparison)
+  // Returns delta in user's preferred unit
   const getDelta = (history: ExerciseWithMax['history']): { value: number; isPositive: boolean } | null => {
     if (history.length < 2) return null;
 
     const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
-    const currentMax = sorted[0].weight;
+    // Convert to user's preferred unit
+    const currentMax = convertWeight(sorted[0].weight, sorted[0].unit, weightUnit);
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
@@ -68,12 +75,13 @@ export default function ExerciseCard({ exercise, onPress }: ExerciseCardProps) {
     const oldEntries = sorted.filter(h => new Date(h.date) < threeMonthsAgo);
     if (oldEntries.length === 0) return null;
 
-    const oldMax = Math.max(...oldEntries.map(h => h.weight));
+    // Convert old entries to user's preferred unit before finding max
+    const oldMax = Math.max(...oldEntries.map(h => convertWeight(h.weight, h.unit, weightUnit)));
     const delta = currentMax - oldMax;
 
     if (delta === 0) return null;
 
-    return { value: Math.abs(delta), isPositive: delta > 0 };
+    return { value: Math.round(Math.abs(delta)), isPositive: delta > 0 };
   };
 
   const sparklineData = getSparklineData(exercise.history);

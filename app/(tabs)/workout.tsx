@@ -8,7 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
-import { WorkoutTemplate } from '@/types';
+import { WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -46,6 +46,24 @@ export default function WorkoutScreen() {
 
   // Template library modal state
   const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+
+  // User preferences
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
+
+  // Load user preferences
+  useEffect(() => {
+    const loadUserPreferences = async () => {
+      try {
+        const profile = await userService.getRealUserProfile();
+        if (profile?.weightUnitPreference) {
+          setWeightUnit(profile.weightUnitPreference);
+        }
+      } catch (error) {
+        console.error('Error loading user preferences:', error);
+      }
+    };
+    loadUserPreferences();
+  }, []);
 
   // Start timer when user starts typing
   useEffect(() => {
@@ -330,6 +348,7 @@ Squats 225 for 5 reps`}
         visible={showConfirmation}
         parsedWorkout={lastParsedWorkout}
         duration={elapsedTime}
+        weightUnit={weightUnit}
         onConfirm={handleConfirmSave}
         onCancel={handleCancelConfirmation}
         isLoading={isSaving}

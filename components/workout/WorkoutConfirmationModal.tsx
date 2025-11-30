@@ -3,6 +3,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ParsedWorkout } from '@/lib/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workouts';
+import { convertWeight, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import {
@@ -16,6 +17,7 @@ interface WorkoutConfirmationModalProps {
   visible: boolean;
   parsedWorkout: ParsedWorkout | null;
   duration: number; // in seconds
+  weightUnit: WeightUnit;
   onConfirm: () => void;
   onCancel: () => void;
   onEdit?: () => void;
@@ -26,6 +28,7 @@ const WorkoutConfirmationModal: React.FC<WorkoutConfirmationModalProps> = ({
   visible,
   parsedWorkout,
   duration,
+  weightUnit,
   onConfirm,
   onCancel,
   onEdit,
@@ -33,7 +36,7 @@ const WorkoutConfirmationModal: React.FC<WorkoutConfirmationModalProps> = ({
 }) => {
   const { currentTheme } = useTheme();
 
-  // Calculate stats
+  // Calculate stats - convert all weights to user's preferred unit
   const stats = useMemo(() => {
     if (!parsedWorkout) {
       return { exercises: 0, sets: 0, volume: 0 };
@@ -42,11 +45,15 @@ const WorkoutConfirmationModal: React.FC<WorkoutConfirmationModalProps> = ({
     const exercises = parsedWorkout.exercises.length;
     const sets = parsedWorkout.exercises.reduce((total, ex) => total + ex.sets.length, 0);
     const volume = parsedWorkout.exercises.reduce((total, ex) => {
-      return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
+      return total + ex.sets.reduce((setTotal, set) => {
+        // Convert weight to user's preferred unit before calculating volume
+        const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
+        return setTotal + (weightInPreferredUnit * set.reps);
+      }, 0);
     }, 0);
 
-    return { exercises, sets, volume };
-  }, [parsedWorkout]);
+    return { exercises, sets, volume: Math.round(volume) };
+  }, [parsedWorkout, weightUnit]);
 
   // Format duration
   const formatDuration = (seconds: number): string => {
@@ -118,7 +125,7 @@ const WorkoutConfirmationModal: React.FC<WorkoutConfirmationModalProps> = ({
               {stats.volume.toLocaleString()}
             </Text>
             <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-              lbs Volume
+              {weightUnit} Volume
             </Text>
           </View>
         </View>

@@ -108,6 +108,7 @@ CLIENT PROFILE:
 - Gender: ${userProfile.gender}
 - Powerlifting Strength Level: ${strengthLevel} (${overallPercentile}th percentile)
 - Training frequency: Based on recent history
+- Weight Unit Preference: ${userProfile.weightUnitPreference || 'lbs'} (ALWAYS use this unit for all weight suggestions)
 ${analysisSection}
 ${previousWorkoutSection}
 

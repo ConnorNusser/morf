@@ -66,6 +66,7 @@ CLIENT PROFILE:
 - Fitness Level: ${strengthLevel} (${overallPercentile}th percentile)
 - Training focus: Bodyweight/Calisthenics movements
 - Equipment: Minimal (bodyweight, basic dumbbells, resistance bands)
+- Weight Unit Preference: ${userProfile.weightUnitPreference || 'lbs'} (ALWAYS use this unit for all weight suggestions)
 ${analysisSection}
 ${previousWorkoutSection}
 

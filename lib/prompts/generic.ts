@@ -69,6 +69,7 @@ CLIENT PROFILE:
 - Fitness Level: ${strengthLevel} (${overallPercentile}th percentile)
 - Available Equipment: ${equipmentSummary}
 - Training Style: General fitness and strength development
+- Weight Unit Preference: ${userProfile.weightUnitPreference || 'lbs'} (ALWAYS use this unit for all weight suggestions)
 ${analysisSection}
 ${previousWorkoutSection}
 
