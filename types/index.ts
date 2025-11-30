@@ -311,6 +311,28 @@ export interface UserLift {
   dateRecorded: Date;
 }
 
+// ===== EXERCISE HISTORY TYPES =====
+
+// Single history entry for an exercise
+export interface ExerciseHistoryEntry {
+  weight: number;
+  reps: number;
+  date: Date;
+  unit: WeightUnit;
+}
+
+// Exercise with computed max stats (used in history views)
+export interface ExerciseWithMax {
+  id: string;
+  name: string;
+  maxWeight: number;
+  maxReps: number;
+  estimated1RM: number;
+  isCustom: boolean;
+  lastUsed?: Date;
+  history: ExerciseHistoryEntry[];
+}
+
 // ===== STRENGTH STANDARDS TYPES =====
 
 export interface StrengthStandard {

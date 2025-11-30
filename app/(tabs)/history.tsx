@@ -12,7 +12,7 @@ import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { ALL_WORKOUTS, getWorkoutById, getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, WeightUnit, WorkoutTemplate, WorkoutSplit } from '@/types';
+import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate, WorkoutSplit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -28,17 +28,6 @@ import {
   View as RNView,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-
-interface ExerciseWithMax {
-  id: string;
-  name: string;
-  maxWeight: number;
-  maxReps: number;
-  estimated1RM: number;
-  isCustom: boolean;
-  lastUsed?: Date;
-  history: { weight: number; reps: number; date: Date; unit: WeightUnit }[];
-}
 
 type TabType = 'workouts' | 'exercises' | 'templates';
 

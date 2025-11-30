@@ -1,6 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ParsedSet } from '@/lib/workoutNoteParser';
+import { ParsedExerciseSummary } from '@/lib/workoutNoteParser';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -11,13 +11,6 @@ import {
   Dimensions,
   View as RNView,
 } from 'react-native';
-
-interface ParsedExerciseSummary {
-  name: string;
-  setCount: number;
-  sets?: ParsedSet[];
-  recommendedSets?: ParsedSet[];
-}
 
 interface QuickSummaryToastProps {
   visible: boolean;

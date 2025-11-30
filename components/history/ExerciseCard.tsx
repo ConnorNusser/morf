@@ -1,21 +1,10 @@
 import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { convertWeight, WeightUnit } from '@/types';
+import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
-
-interface ExerciseWithMax {
-  id: string;
-  name: string;
-  maxWeight: number;
-  maxReps: number;
-  estimated1RM: number;
-  isCustom: boolean;
-  lastUsed?: Date;
-  history: { weight: number; reps: number; date: Date; unit: WeightUnit }[];
-}
 
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;

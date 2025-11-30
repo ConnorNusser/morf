@@ -1,20 +1,9 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
-
-interface ExerciseWithMax {
-  id: string;
-  name: string;
-  maxWeight: number;
-  maxReps: number;
-  estimated1RM: number;
-  isCustom: boolean;
-  lastUsed?: Date;
-  history: { weight: number; reps: number; date: Date; unit: WeightUnit }[];
-}
 
 interface WorkoutCardProps {
   workout: GeneratedWorkout;
