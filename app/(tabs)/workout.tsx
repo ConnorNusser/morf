@@ -259,7 +259,7 @@ export default function WorkoutScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardAvoid}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
       >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent' }]}>

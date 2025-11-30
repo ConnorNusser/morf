@@ -15,6 +15,7 @@ import {
   Platform,
   View as RNView,
   Keyboard,
+  InputAccessoryView,
 } from 'react-native';
 
 export interface ChatMessage {
@@ -45,6 +46,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [contextQuestions, setContextQuestions] = useState<string[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputAccessoryViewID = 'planBuilderAccessory';
 
   // Reset state when modal opens
   useEffect(() => {
@@ -321,6 +323,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                 editable={!isLoading}
                 onSubmitEditing={() => handleSendMessage(inputText)}
                 blurOnSubmit={false}
+                inputAccessoryViewID={inputAccessoryViewID}
               />
               <TouchableOpacity
                 style={[
@@ -342,6 +345,23 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               </TouchableOpacity>
             </RNView>
           </View>
+
+          {/* Keyboard accessory with Done button */}
+          {Platform.OS === 'ios' && (
+            <InputAccessoryView nativeID={inputAccessoryViewID}>
+              <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>
+                <RNView style={{ flex: 1 }} />
+                <TouchableOpacity
+                  onPress={() => Keyboard.dismiss()}
+                  style={styles.doneButton}
+                >
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </RNView>
+            </InputAccessoryView>
+          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -501,6 +521,20 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  accessoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  doneButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  doneButtonText: {
+    fontSize: 16,
   },
 });
 

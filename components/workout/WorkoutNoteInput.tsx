@@ -2,10 +2,15 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import {
+  InputAccessoryView,
+  Keyboard,
+  Platform,
   StyleSheet,
   TextInput,
   TextInputProps,
   ScrollView,
+  TouchableOpacity,
+  View as RNView,
 } from 'react-native';
 
 interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
@@ -24,6 +29,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", ...props }, ref) => {
     const { currentTheme } = useTheme();
     const inputRef = useRef<TextInput>(null);
+    const inputAccessoryViewID = 'workoutNoteAccessory';
 
     useImperativeHandle(ref, () => ({
       focus: () => inputRef.current?.focus(),
@@ -59,8 +65,25 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
           autoCapitalize="sentences"
           autoCorrect={false}
           scrollEnabled={false}
+          inputAccessoryViewID={inputAccessoryViewID}
           {...props}
         />
+        {/* Keyboard accessory with Done button */}
+        {Platform.OS === 'ios' && (
+          <InputAccessoryView nativeID={inputAccessoryViewID}>
+            <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>
+              <RNView style={{ flex: 1 }} />
+              <TouchableOpacity
+                onPress={() => Keyboard.dismiss()}
+                style={styles.doneButton}
+              >
+                <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+          </InputAccessoryView>
+        )}
       </ScrollView>
     );
   }
@@ -82,6 +105,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 28,
     minHeight: 200,
+  },
+  accessoryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  doneButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  doneButtonText: {
+    fontSize: 16,
   },
 });
 
