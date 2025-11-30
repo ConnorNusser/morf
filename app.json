@@ -14,6 +14,9 @@
       "jsEngine": "hermes",
       "config": {
         "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you add photos to your workout logs and profile."
       }
     },
     "android": {
