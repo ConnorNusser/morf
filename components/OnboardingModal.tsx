@@ -21,7 +21,7 @@ import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
 
-const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'];
+const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
 
 interface OnboardingModalProps {
   visible: boolean;

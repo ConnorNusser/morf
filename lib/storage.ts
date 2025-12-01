@@ -148,13 +148,25 @@ class StorageService {
     }
   }
 
-  async getThemePreference(): Promise<ThemeLevel> {
+  async getThemePreference(): Promise<ThemeLevel | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE);
-      return (data as ThemeLevel) || 'beginner'; // Default to beginner theme
+      if (!data) return null;
+
+      // Migrate old themes that no longer exist
+      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool'];
+      if (!validThemes.includes(data as ThemeLevel)) {
+        // Map removed themes to their closest equivalent
+        if (data === 'beginner_ocean') {
+          return 'beginner';
+        }
+        return 'beginner';
+      }
+
+      return data as ThemeLevel;
     } catch (error) {
       console.error('Error loading theme preference:', error);
-      return 'beginner';
+      return null;
     }
   }
 
@@ -467,6 +479,69 @@ class StorageService {
       }
     } catch (error) {
       console.error('Error updating template last used:', error);
+    }
+  }
+
+  /**
+   * Migrate all references from an old exercise ID to a new exercise ID.
+   * This updates:
+   * - Workout history (exercises in past workouts)
+   * - User profile lifts and secondaryLifts
+   * - Workout templates
+   */
+  async migrateExerciseId(oldId: string, newId: string): Promise<void> {
+    if (oldId === newId) return;
+
+    try {
+      // 1. Update workout history
+      const history = await this.getWorkoutHistory();
+      let historyChanged = false;
+      for (const workout of history) {
+        for (const exercise of workout.exercises) {
+          if (exercise.id === oldId) {
+            exercise.id = newId;
+            historyChanged = true;
+          }
+        }
+      }
+      if (historyChanged) {
+        await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify(history));
+      }
+
+      // 2. Update user profile lifts
+      const profileData = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      if (profileData) {
+        const profile = JSON.parse(profileData);
+        let profileChanged = false;
+
+        if (profile.lifts) {
+          for (const lift of profile.lifts) {
+            if (lift.id === oldId) {
+              lift.id = newId;
+              profileChanged = true;
+            }
+          }
+        }
+
+        if (profile.secondaryLifts) {
+          for (const lift of profile.secondaryLifts) {
+            if (lift.id === oldId) {
+              lift.id = newId;
+              profileChanged = true;
+            }
+          }
+        }
+
+        if (profileChanged) {
+          await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+        }
+      }
+
+      // Note: WorkoutTemplates store raw noteText, not exercise IDs, so no migration needed
+
+    } catch (error) {
+      console.error('Error migrating exercise ID:', error);
+      throw error;
     }
   }
 }

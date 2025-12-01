@@ -1,5 +1,6 @@
+import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutById } from '@/lib/workouts';
+import { getWorkoutByIdWithCustom } from '@/lib/workouts';
 import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -31,6 +32,7 @@ interface WeekData {
 
 export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) {
   const { currentTheme } = useTheme();
+  const { customExercises } = useCustomExercises();
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = current week, -1 = last week, +1 = next week
   const [modalVisible, setModalVisible] = useState(false);
   const [modalInvocationType, setModalInvocationType] = useState<'day' | 'week' | 'volume' | 'time'>('day');
@@ -139,7 +141,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
     weekData.workouts.forEach(workout => {
       workout.exercises.forEach(exercise => {
-        const exerciseInfo = getWorkoutById(exercise.id);
+        const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
         if (exerciseInfo) {
           exerciseInfo.primaryMuscles.forEach(muscle => {
             trainedMuscles[muscle] = (trainedMuscles[muscle] || 0) + 1;

@@ -101,33 +101,33 @@ class UserService {
   async getUsersTopLifts(): Promise<UserProgress[]> {
     const profile = await this.getRealUserProfile();
     const topLifts: Record<MainLiftType, UserLift> = {
-      "squat": {
+      "squat-barbell": {
         parentId: '',
-        id: 'squat',
+        id: 'squat-barbell',
         weight: 0,
         reps: 0,
         dateRecorded: new Date(),
         unit: 'lbs',
       },
-      "bench-press": {
+      "bench-press-barbell": {
         parentId: '',
-        id: 'bench-press',
+        id: 'bench-press-barbell',
         weight: 0,
         reps: 0,
         unit: 'lbs',
         dateRecorded: new Date(),
       },
-      "deadlift": {
+      "deadlift-barbell": {
         parentId: '',
-        id: 'deadlift',
+        id: 'deadlift-barbell',
         weight: 0,
         reps: 0,
         unit: 'lbs',
         dateRecorded: new Date(),
       },
-      "overhead-press": {
+      "overhead-press-barbell": {
         parentId: '',
-        id: 'overhead-press',
+        id: 'overhead-press-barbell',
         weight: 0,
         reps: 0,
         unit: 'lbs',

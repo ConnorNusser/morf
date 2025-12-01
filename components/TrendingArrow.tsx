@@ -19,7 +19,7 @@ export default function TrendingArrow({ color = '#10B981' }: TrendingArrowProps)
   const [trendData, setTrendData] = useState<TrendData | null>(null);
   const bounceAnim = useRef(new Animated.Value(1)).current;
 
-  const mainLifts = ['deadlift', 'overhead-press', 'squat', 'bench-press'];
+  const mainLifts = ['squat-barbell', 'bench-press-barbell', 'deadlift-barbell', 'overhead-press-barbell'];
 
   useEffect(() => {
     calculateTrend();

@@ -13,12 +13,13 @@ const EQUIPMENT_OPTIONS: { type: Equipment; label: string; icon: string }[] = [
   { type: 'barbell', label: 'Barbell', icon: 'barbell-outline' },
   { type: 'dumbbell', label: 'Dumbbells', icon: 'fitness-outline' },
   { type: 'machine', label: 'Machines', icon: 'cog-outline' },
+  { type: 'smith-machine', label: 'Smith Machine', icon: 'apps-outline' },
   { type: 'cable', label: 'Cables', icon: 'git-branch-outline' },
   { type: 'kettlebell', label: 'Kettlebell', icon: 'ellipse-outline' },
   { type: 'bodyweight', label: 'Bodyweight', icon: 'body-outline' },
 ];
 
-const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'];
+const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
 
 const EquipmentFilterSection = () => {
   const { currentTheme } = useTheme();

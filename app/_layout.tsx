@@ -1,3 +1,4 @@
+import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
 import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
@@ -90,14 +91,16 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <RoutineProvider>
-          <WorkoutProvider>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-            </Stack>
-          </WorkoutProvider>
-        </RoutineProvider>
+        <CustomExercisesProvider>
+          <RoutineProvider>
+            <WorkoutProvider>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+              </Stack>
+            </WorkoutProvider>
+          </RoutineProvider>
+        </CustomExercisesProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

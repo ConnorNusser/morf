@@ -1,5 +1,8 @@
 import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, UserProfile, WorkoutCategory } from '@/types';
 import OpenAI from 'openai';
+import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
+import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
+import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
 import { storageService } from './storage';
 import { userService } from './userService';
 import { getAvailableWorkouts, getWorkoutById, getWorkoutsByEquipment } from './workouts';
@@ -125,11 +128,11 @@ class AIWorkoutGeneratorService {
     chatHistory: ChatMessage[],
     userMessage: string,
     userProfile: UserProfile | null,
-    workoutHistory: GeneratedWorkout[],
+    _workoutHistory: GeneratedWorkout[],
     customExercises: CustomExercise[]
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
-    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
+    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
 
     // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
     const availableExercises = userEquipment.length > 0
@@ -145,6 +148,7 @@ class AIWorkoutGeneratorService {
       barbell: 'Barbell',
       dumbbell: 'Dumbbells',
       machine: 'Machines',
+      'smith-machine': 'Smith Machine',
       cable: 'Cables',
       kettlebell: 'Kettlebell',
       bodyweight: 'Bodyweight',
@@ -156,54 +160,14 @@ class AIWorkoutGeneratorService {
       .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
 
-    return `You are helping refine a workout plan through conversation.
-
-CURRENT PLAN:
-${currentPlan}
-
-CONVERSATION HISTORY:
-${chatHistoryStr}
-
-USER'S NEW MESSAGE:
-${userMessage}
-
-USER CONTEXT:
-- Weight Unit: ${weightUnit}
-- Available Equipment: ${userEquipmentDisplay}
-
-AVAILABLE EXERCISES (already filtered to user's equipment):
-${allExerciseNames.join(', ')}
-
-INSTRUCTIONS:
-1. Understand what the user wants to change or know
-2. Update the plan if they request changes (add/remove exercises, adjust weights/reps, swap exercises)
-3. Keep the same format: "Exercise Name (Equipment) WeightxReps, WeightxReps" followed by "Actual" on the next line, with blank lines between exercise blocks
-4. Provide a brief, helpful response explaining what you changed or answering their question
-5. Suggest 1-2 follow-up questions if relevant
-
-EXERCISE NAMING FORMAT - Always include equipment in parentheses:
-- Use format: "Exercise Name (Equipment)"
-- Examples: "Bench Press (Barbell)", "Chest Press (Dumbbells)", "Tricep Pushdown (Cables)"
-- Equipment types: Barbell, Dumbbells, Cables, Machine, Smith Machine, Kettlebell, Bodyweight
-
-CRITICAL - EQUIPMENT CONSTRAINTS:
-- The user has specified their available equipment: ${userEquipmentDisplay}
-- ONLY use exercises that use this equipment - do NOT suggest exercises requiring equipment they don't have
-- If the user further specifies equipment in their request (e.g., "dumbbells only"), narrow it down further
-- When in doubt about equipment, ask for clarification
-- Common equipment mappings:
-  * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, etc.)
-  * "barbell only" = barbell exercises only (bench, squat, deadlift, rows, etc.)
-  * "bodyweight" = no equipment (pushups, pullups, dips, squats, lunges, etc.)
-  * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
-
-Return ONLY valid JSON (no markdown, no backticks):
-{
-  "noteText": "The updated workout plan (or same if no changes needed)",
-  "title": "Short title for the workout",
-  "response": "Brief response to the user (1-2 sentences)",
-  "followUpQuestions": ["Optional follow-up question 1", "Optional follow-up question 2"]
-}`;
+    return buildWorkoutRefinementPrompt({
+      currentPlan,
+      chatHistoryStr,
+      userMessage,
+      weightUnit,
+      userEquipmentDisplay,
+      allExerciseNames,
+    });
   }
 
   private async callRefineAI(prompt: string): Promise<RefinePlanResponse> {
@@ -242,7 +206,7 @@ Return ONLY valid JSON (no markdown, no backticks):
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const gender = userProfile?.gender || 'male';
-    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
+    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
 
     // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
     const availableExercises = userEquipment.length > 0
@@ -259,6 +223,7 @@ Return ONLY valid JSON (no markdown, no backticks):
       barbell: 'Barbell',
       dumbbell: 'Dumbbells',
       machine: 'Machines',
+      'smith-machine': 'Smith Machine',
       cable: 'Cables',
       kettlebell: 'Kettlebell',
       bodyweight: 'Bodyweight',
@@ -296,73 +261,15 @@ Return ONLY valid JSON (no markdown, no backticks):
     // The user's request is the primary input
     const userRequest = options.customRequest || options.focusArea || 'a balanced full-body workout';
 
-    return `Generate a workout based on this request: "${userRequest}"
-
-USER CONTEXT:
-- Gender: ${gender}
-- Weight Unit: ${weightUnit}
-- Available Equipment: ${userEquipmentDisplay}
-${exerciseHistorySummary}
-${customExercisesSummary}
-
-AVAILABLE EXERCISES (prefer using these exact names when possible):
-${allExerciseNames.join(', ')}
-
-FORMATTING RULES:
-1. Generate 4-7 exercises matching the user's request
-2. PREFER exercises from the AVAILABLE EXERCISES list above - use their exact names
-3. If you need an exercise not in the list, use a clear, standard name
-4. Format as simple notes, one exercise per line
-5. Each line: "Exercise Name WeightxReps, WeightxReps, WeightxReps"
-6. Use ${weightUnit} for all weights (no unit symbol needed)
-7. Base weights on the user's history if available, otherwise use reasonable defaults
-8. Include 2-4 sets per exercise with slight weight progression or same weight
-
-EXERCISE NAMING FORMAT - Always include equipment in parentheses:
-- Use format: "Exercise Name (Equipment)"
-- Examples: "Bench Press (Barbell)", "Chest Press (Dumbbells)", "Tricep Pushdown (Cables)"
-- Equipment types: Barbell, Dumbbells, Cables, Machine, Smith Machine, Kettlebell, Bodyweight
-
-CRITICAL - EQUIPMENT CONSTRAINTS:
-- The user has specified their available equipment: ${userEquipmentDisplay}
-- ONLY use exercises that use this equipment - do NOT suggest exercises requiring equipment they don't have
-- If the user further specifies equipment in their request (e.g., "dumbbells only"), narrow it down further
-- Common equipment mappings:
-  * "dumbbells only" = dumbbell exercises only (DB press, DB rows, DB curls, goblet squats, lunges, etc.)
-  * "barbell only" = barbell exercises only (bench, squat, deadlift, rows, OHP, etc.)
-  * "barbell and dumbbells" = only barbell and dumbbell exercises, NO cables or machines
-  * "bodyweight" = no equipment (pushups, pullups, dips, bodyweight squats, lunges, etc.)
-  * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
-
-EXAMPLES of noteText format (with blank lines between exercises):
-"Bench Press (Barbell) 135x10, 145x8, 155x6
-Actual
-
-Incline Chest Press (Dumbbells) 40x12, 45x10, 45x10
-Actual
-
-Chest Fly (Cables) 30x15, 30x12, 35x10
-Actual
-
-Tricep Pushdown (Cables) 50x12, 55x10, 55x10
-Actual"
-
-NOTE: Each exercise MUST have "Actual" on the line below it (for users to fill in their completed sets). Separate each exercise block with a blank line.
-
-Return ONLY valid JSON (no markdown, no backticks):
-{
-  "title": "Short title for this workout",
-  "noteText": "The workout as described above, exercises separated by newlines",
-  "exercises": [{"name": "Exercise Name", "sets": 3, "reps": 10, "suggestedWeight": 135}],
-  "contextQuestions": ["2-3 personalized questions to help refine the plan based on their history"]
-}
-
-CONTEXT QUESTIONS RULES:
-- Generate 2-3 short, helpful questions based on the user's history and request
-- Questions should help customize the workout (weight adjustments, exercise swaps, focus areas)
-- If user has history, reference it (e.g., "You hit 155 last week - want to try 160 today?")
-- Keep questions concise and actionable
-- Examples: "Include tricep isolation?", "Go heavier on compounds?", "Add any supersets?"`;
+    return buildWorkoutGenerationPrompt({
+      userRequest,
+      gender,
+      weightUnit,
+      userEquipmentDisplay,
+      exerciseHistorySummary,
+      customExercisesSummary,
+      allExerciseNames,
+    });
   }
 
   private async callAI(prompt: string): Promise<AIGeneratedWorkoutNote> {
@@ -548,33 +455,7 @@ CONTEXT QUESTIONS RULES:
   }
 
   private async callCustomExerciseAI(exerciseName: string): Promise<AICustomExerciseMetadata> {
-    const prompt = `You are a fitness expert. Given the exercise name "${exerciseName}", return JSON with exercise metadata.
-
-VALID VALUES:
-- displayName: Properly formatted exercise name in Title Case with equipment in parentheses at the end
-  Examples: "Super Horizontal Bench Press (Machine)", "Incline Cable Fly (Cables)", "Pause Squat (Barbell)"
-- category: "compound" | "isolation" | "cardio" | "flexibility"
-- primaryMuscles: Array of 1-2 from ["chest", "back", "shoulders", "arms", "legs", "glutes", "core"]
-- secondaryMuscles: Array of 0-3 from ["chest", "back", "shoulders", "arms", "legs", "glutes", "core"]
-- equipment: Array from ["barbell", "dumbbell", "machine", "cable", "kettlebell", "bodyweight"]
-- description: Short 1-sentence description of the exercise
-
-FORMATTING RULES for displayName:
-- Use Title Case for all words
-- Put primary equipment type in parentheses at the end
-- Equipment labels: (Barbell), (Dumbbells), (Machine), (Cables), (Kettlebell), (Bodyweight)
-- If input is "super horizontal bench press", output displayName: "Super Horizontal Bench Press (Machine)"
-- If input is "incline cable fly", output displayName: "Incline Cable Fly (Cables)"
-
-RETURN ONLY VALID JSON:
-{
-  "displayName": "Exercise Name (Equipment)",
-  "category": "compound",
-  "primaryMuscles": ["chest"],
-  "secondaryMuscles": ["shoulders", "arms"],
-  "equipment": ["machine"],
-  "description": "A pressing movement targeting the chest."
-}`;
+    const prompt = buildCustomExercisePrompt({ exerciseName });
 
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
@@ -609,6 +490,7 @@ RETURN ONLY VALID JSON:
     let equipment: Equipment[] = ['bodyweight'];
     if (nameLower.includes('barbell') || nameLower.includes('bar ')) equipment = ['barbell'];
     else if (nameLower.includes('dumbbell') || nameLower.includes('db ')) equipment = ['dumbbell'];
+    else if (nameLower.includes('smith machine') || nameLower.includes('smith-machine')) equipment = ['smith-machine'];
     else if (nameLower.includes('machine')) equipment = ['machine'];
     else if (nameLower.includes('cable')) equipment = ['cable'];
     else if (nameLower.includes('kettlebell') || nameLower.includes('kb ')) equipment = ['kettlebell'];

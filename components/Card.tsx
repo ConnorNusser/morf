@@ -52,6 +52,9 @@ export default function Card({
       case 'clean':
         return {
           ...baseStyle,
+          backgroundColor: currentTheme.colors.surface,
+          borderWidth: 1,
+          borderColor: currentTheme.colors.border,
         };
       default:
         return baseStyle;

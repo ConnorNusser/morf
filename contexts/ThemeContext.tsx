@@ -1,6 +1,7 @@
 import { storageService } from '@/lib/storage';
 import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/theme';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useColorScheme } from 'react-native';
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -13,14 +14,29 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Initialize with the beginner theme, will be updated from storage
-  const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>('beginner');
+  const colorScheme = useColorScheme();
+
+  // Get default theme based on system preference
+  const getDefaultTheme = (): ThemeLevel => {
+    return colorScheme === 'dark' ? 'beginner_dark' : 'beginner';
+  };
+
+  // Initialize with system preference, will be updated from storage
+  const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
 
   // Load theme preference from storage on mount
   useEffect(() => {
     const loadThemePreference = async () => {
       const savedTheme = await storageService.getThemePreference();
-      setCurrentThemeLevel(savedTheme);
+      // If no saved theme (null/undefined), use system preference
+      if (savedTheme) {
+        setCurrentThemeLevel(savedTheme);
+      } else {
+        // First time user - set based on system preference
+        const defaultTheme = getDefaultTheme();
+        setCurrentThemeLevel(defaultTheme);
+        await storageService.saveThemePreference(defaultTheme);
+      }
     };
     loadThemePreference();
   }, []);

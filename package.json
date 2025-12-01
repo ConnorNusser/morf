@@ -1,14 +1,17 @@
 {
   "name": "morfai",
   "main": "expo-router/entry",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "prepare": "husky"
   },
   "dependencies": {
     "@expo-google-fonts/karla": "^0.4.1",
@@ -55,10 +58,14 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
     "metro-config": "^0.82.4",
+    "ts-jest": "^29.4.5",
     "typescript": "~5.8.3"
   },
   "private": true

@@ -286,10 +286,10 @@ export default function WorkoutScreen() {
                   <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.surface }]}
+                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                   onPress={() => setShowHelpModal(true)}
                 >
-                  <Ionicons name="help-circle-outline" size={20} color={currentTheme.colors.secondary} />
+                  <Ionicons name="information-circle-outline" size={20} color={currentTheme.colors.text} />
                 </TouchableOpacity>
               </View>
             )}

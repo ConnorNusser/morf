@@ -1,6 +1,6 @@
 [
   {
-    "id": "push-up",
+    "id": "push-up-bodyweight",
     "name": "Push-up (Bodyweight)",
     "category": "compound",
     "primaryMuscles": ["chest"],
@@ -11,7 +11,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "bodyweight-squat",
+    "id": "squat-bodyweight",
     "name": "Squat (Bodyweight)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -22,7 +22,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "pull-up",
+    "id": "pull-up-bodyweight",
     "name": "Pull-up (Bodyweight)",
     "category": "compound",
     "primaryMuscles": ["back"],
@@ -33,7 +33,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dip",
+    "id": "dip-bodyweight",
     "name": "Dip (Bodyweight)",
     "category": "compound",
     "primaryMuscles": ["chest", "arms"],
@@ -44,7 +44,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "plank",
+    "id": "plank-bodyweight",
     "name": "Plank (Bodyweight)",
     "category": "isolation",
     "primaryMuscles": ["core"],
@@ -55,7 +55,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "squat",
+    "id": "squat-barbell",
     "name": "Squat (Barbell)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -66,7 +66,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "deadlift",
+    "id": "deadlift-barbell",
     "name": "Deadlift (Barbell)",
     "category": "compound",
     "primaryMuscles": ["back", "legs", "glutes"],
@@ -77,7 +77,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "bench-press",
+    "id": "bench-press-barbell",
     "name": "Bench Press (Barbell)",
     "category": "compound",
     "primaryMuscles": ["chest"],
@@ -88,7 +88,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "overhead-press",
+    "id": "overhead-press-barbell",
     "name": "Overhead Press (Barbell)",
     "category": "compound",
     "primaryMuscles": ["shoulders"],
@@ -99,7 +99,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "barbell-row",
+    "id": "row-barbell",
     "name": "Row (Barbell)",
     "category": "compound",
     "primaryMuscles": ["back"],
@@ -110,7 +110,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "romanian-deadlift",
+    "id": "romanian-deadlift-barbell",
     "name": "Romanian Deadlift (Barbell)",
     "category": "compound",
     "primaryMuscles": ["glutes", "back"],
@@ -121,7 +121,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "incline-bench-press",
+    "id": "incline-bench-press-barbell",
     "name": "Incline Bench Press (Barbell)",
     "category": "compound",
     "primaryMuscles": ["chest"],
@@ -132,7 +132,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "front-squat",
+    "id": "front-squat-barbell",
     "name": "Front Squat (Barbell)",
     "category": "compound",
     "primaryMuscles": ["legs"],
@@ -143,7 +143,7 @@
     "themeLevel": "advanced"
   },
   {
-    "id": "sumo-deadlift",
+    "id": "sumo-deadlift-barbell",
     "name": "Sumo Deadlift (Barbell)",
     "category": "compound",
     "primaryMuscles": ["back", "legs", "glutes"],
@@ -154,7 +154,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "barbell-bicep-curl",
+    "id": "bicep-curl-barbell",
     "name": "Bicep Curl (Barbell)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -165,7 +165,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "barbell-hip-thrust",
+    "id": "hip-thrust-barbell",
     "name": "Hip Thrust (Barbell)",
     "category": "compound",
     "primaryMuscles": ["glutes"],
@@ -176,7 +176,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "barbell-lunges",
+    "id": "lunges-barbell",
     "name": "Lunges (Barbell)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -187,7 +187,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "barbell-shrugs",
+    "id": "shrugs-barbell",
     "name": "Shrugs (Barbell)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -198,8 +198,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-chest-press",
-    "name": "Chest Press (Dumbbells)",
+    "id": "bench-press-dumbbells",
+    "name": "Bench Press (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["chest"],
     "secondaryMuscles": ["shoulders", "arms"],
@@ -209,7 +209,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "goblet-squat",
+    "id": "goblet-squat-dumbbells",
     "name": "Goblet Squat (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -220,7 +220,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-shoulder-press",
+    "id": "shoulder-press-dumbbells",
     "name": "Shoulder Press (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["shoulders"],
@@ -231,7 +231,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "bicep-curl",
+    "id": "bicep-curl-dumbbells",
     "name": "Bicep Curl (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -242,7 +242,18 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "tricep-extension",
+    "id": "preacher-curl-dumbbells",
+    "name": "Preacher Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": ["arms"],
+    "secondaryMuscles": [],
+    "equipment": ["dumbbell"],
+    "description": "Bicep isolation exercise using a preacher bench to eliminate momentum and target the biceps more effectively.",
+    "isMainLift": false,
+    "themeLevel": "beginner"
+  },
+  {
+    "id": "tricep-extension-dumbbells",
     "name": "Tricep Extension (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -253,7 +264,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "lateral-raise",
+    "id": "lateral-raise-dumbbells",
     "name": "Lateral Raise (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -264,7 +275,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "walking-lunge",
+    "id": "walking-lunge-dumbbells",
     "name": "Walking Lunge (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -275,8 +286,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-bent-over-row",
-    "name": "Bent-Over Row (Dumbbells)",
+    "id": "row-dumbbells",
+    "name": "Row (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["back"],
     "secondaryMuscles": ["arms"],
@@ -286,7 +297,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-flyes",
+    "id": "flyes-dumbbells",
     "name": "Flyes (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["chest"],
@@ -297,7 +308,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "hammer-curl",
+    "id": "hammer-curl-dumbbells",
     "name": "Hammer Curl (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -308,7 +319,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "rear-delt-fly",
+    "id": "rear-delt-fly-dumbbells",
     "name": "Rear Delt Fly (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -319,8 +330,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "incline-dumbbell-chest-press",
-    "name": "Incline Chest Press (Dumbbells)",
+    "id": "incline-bench-press-dumbbells",
+    "name": "Incline Bench Press (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["chest"],
     "secondaryMuscles": ["shoulders", "arms"],
@@ -330,7 +341,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-romanian-deadlift",
+    "id": "romanian-deadlift-dumbbells",
     "name": "Romanian Deadlift (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["glutes", "back"],
@@ -341,7 +352,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "skull-crushers",
+    "id": "skull-crushers-dumbbells",
     "name": "Skull Crushers (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -352,7 +363,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "arnold-press",
+    "id": "arnold-press-dumbbells",
     "name": "Arnold Press (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["shoulders"],
@@ -363,7 +374,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-hip-thrust",
+    "id": "hip-thrust-dumbbells",
     "name": "Hip Thrust (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["glutes"],
@@ -374,7 +385,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "bulgarian-split-squat",
+    "id": "bulgarian-split-squat-dumbbells",
     "name": "Bulgarian Split Squat (Dumbbells)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -385,7 +396,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "dumbbell-shrugs",
+    "id": "shrugs-dumbbells",
     "name": "Shrugs (Dumbbells)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -396,7 +407,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "lat-pulldown",
+    "id": "lat-pulldown-cables",
     "name": "Lat Pulldown (Cables)",
     "category": "compound",
     "primaryMuscles": ["back"],
@@ -407,7 +418,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-row",
+    "id": "row-cables",
     "name": "Row (Cables)",
     "category": "compound",
     "primaryMuscles": ["back"],
@@ -418,7 +429,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-bicep-curl",
+    "id": "bicep-curl-cables",
     "name": "Bicep Curl (Cables)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -429,7 +440,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-tricep-pushdown",
+    "id": "tricep-pushdown-cables",
     "name": "Tricep Pushdown (Cables)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -440,7 +451,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-chest-fly",
+    "id": "chest-fly-cables",
     "name": "Chest Fly (Cables)",
     "category": "isolation",
     "primaryMuscles": ["chest"],
@@ -451,7 +462,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-lateral-raise",
+    "id": "lateral-raise-cables",
     "name": "Lateral Raise (Cables)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -462,7 +473,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-rear-delt-fly",
+    "id": "rear-delt-fly-cables",
     "name": "Rear Delt Fly (Cables)",
     "category": "isolation",
     "primaryMuscles": ["shoulders"],
@@ -473,18 +484,18 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-machine-crossover",
+    "id": "crossover-cables",
     "name": "Crossover (Cables)",
     "category": "isolation",
     "primaryMuscles": ["chest"],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": ["cable"],
     "description": "Cable crossover exercise for chest isolation.",
     "isMainLift": false,
     "themeLevel": "beginner"
   },
   {
-    "id": "cable-overhead-tricep-extension",
+    "id": "overhead-tricep-extension-cables",
     "name": "Overhead Tricep Extension (Cables)",
     "category": "isolation",
     "primaryMuscles": ["arms"],
@@ -495,7 +506,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "leg-press",
+    "id": "leg-press-machine",
     "name": "Leg Press (Machine)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -506,7 +517,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "leg-extension",
+    "id": "leg-extension-machine",
     "name": "Leg Extension (Machine)",
     "category": "isolation",
     "primaryMuscles": ["legs"],
@@ -517,7 +528,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "leg-curl",
+    "id": "leg-curl-machine",
     "name": "Leg Curl (Machine)",
     "category": "isolation",
     "primaryMuscles": ["legs"],
@@ -528,8 +539,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "chest-press-machine",
-    "name": "Chest Press (Machine)",
+    "id": "bench-press-machine",
+    "name": "Bench Press (Machine)",
     "category": "compound",
     "primaryMuscles": ["chest"],
     "secondaryMuscles": ["shoulders", "arms"],
@@ -550,8 +561,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "shoulder-press-machine",
-    "name": "Shoulder Press (Machine)",
+    "id": "overhead-press-machine",
+    "name": "Overhead Press (Machine)",
     "category": "compound",
     "primaryMuscles": ["shoulders"],
     "secondaryMuscles": ["arms"],
@@ -572,7 +583,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "assisted-pull-up",
+    "id": "assisted-pull-up-machine",
     "name": "Assisted Pull-up (Machine)",
     "category": "compound",
     "primaryMuscles": ["back"],
@@ -594,8 +605,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "seated-calf-raise",
-    "name": "Seated Calf Raise (Machine)",
+    "id": "calf-raise-machine",
+    "name": "Calf Raise (Machine)",
     "category": "isolation",
     "primaryMuscles": ["legs"],
     "secondaryMuscles": [],
@@ -605,7 +616,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "machine-hip-thrust",
+    "id": "hip-thrust-machine",
     "name": "Hip Thrust (Machine)",
     "category": "compound",
     "primaryMuscles": ["glutes"],
@@ -616,7 +627,7 @@
     "themeLevel": "advanced"
   },
   {
-    "id": "smith-machine-squat",
+    "id": "squat-smith-machine",
     "name": "Squat (Smith Machine)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],
@@ -627,7 +638,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "smith-machine-bench-press",
+    "id": "bench-press-smith-machine",
     "name": "Bench Press (Smith Machine)",
     "category": "compound",
     "primaryMuscles": ["chest"],
@@ -638,8 +649,8 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "kettlebell-swing",
-    "name": "Kettlebell Swing (Kettlebell)",
+    "id": "swing-kettlebell",
+    "name": "Swing (Kettlebell)",
     "category": "compound",
     "primaryMuscles": ["glutes", "back"],
     "secondaryMuscles": ["core", "shoulders"],
@@ -649,7 +660,7 @@
     "themeLevel": "beginner"
   },
   {
-    "id": "kettlebell-goblet-squat",
+    "id": "goblet-squat-kettlebell",
     "name": "Goblet Squat (Kettlebell)",
     "category": "compound",
     "primaryMuscles": ["legs", "glutes"],

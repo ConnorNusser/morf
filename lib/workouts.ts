@@ -33,6 +33,7 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
   const userThemeLevel = getUserThemeLevel(userPercentile);
   const themeOrder: Record<ThemeLevel, number> = {
     beginner: 1,
+    beginner_dark: 1,
     intermediate: 2,
     advanced: 3,
     elite: 4,

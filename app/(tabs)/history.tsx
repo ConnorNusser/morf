@@ -6,13 +6,14 @@ import { Text, View } from '@/components/Themed';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
+import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
-import { ALL_WORKOUTS, getWorkoutById, getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate, WorkoutSplit } from '@/types';
+import { ALL_WORKOUTS, getWorkoutByIdWithCustom } from '@/lib/workouts';
+import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
@@ -25,31 +26,10 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View as RNView,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
 type TabType = 'workouts' | 'exercises' | 'templates';
-
-// Helper to detect workout split from title or exercises
-const detectWorkoutSplit = (workout: GeneratedWorkout, customExercises: CustomExercise[] = []): WorkoutSplit | null => {
-  const titleLower = workout.title.toLowerCase();
-
-  if (titleLower.includes('push')) return 'push';
-  if (titleLower.includes('pull')) return 'pull';
-  if (titleLower.includes('leg') || titleLower.includes('lower')) return 'legs';
-  if (titleLower.includes('upper')) return 'upper-body';
-  if (titleLower.includes('full') || titleLower.includes('total body')) return 'full-body';
-  if (titleLower.includes('calisthenics') || titleLower.includes('bodyweight')) return 'calisthenics';
-
-  // Detect from exercises if title doesn't indicate
-  const muscles = getWorkoutMuscleGroups(workout, customExercises);
-  if (muscles.includes('chest') && muscles.includes('shoulders')) return 'push';
-  if (muscles.includes('back') && (muscles.includes('biceps') || muscles.includes('arms'))) return 'pull';
-  if (muscles.includes('legs') || muscles.includes('glutes') || muscles.includes('quadriceps')) return 'legs';
-
-  return null;
-};
 
 // Helper to get unique muscle groups from a workout (with custom exercise support)
 const getWorkoutMuscleGroups = (workout: GeneratedWorkout, customExercises: CustomExercise[] = []): string[] => {
@@ -68,6 +48,7 @@ const getWorkoutMuscleGroups = (workout: GeneratedWorkout, customExercises: Cust
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
+  const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('workouts');
 
@@ -83,9 +64,6 @@ export default function HistoryScreen() {
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
   const [notesSearchQuery, setNotesSearchQuery] = useState('');
-
-  // Custom exercises state
-  const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
 
   // Modal states
   const [selectedWorkout, setSelectedWorkout] = useState<GeneratedWorkout | null>(null);
@@ -128,8 +106,6 @@ export default function HistoryScreen() {
   const loadExerciseStats = useCallback(async () => {
     try {
       const profile = await userService.getRealUserProfile();
-      const loadedCustomExercises = await storageService.getCustomExercises();
-      setCustomExercises(loadedCustomExercises);
       const workoutHistory = await storageService.getWorkoutHistory();
 
       // Build a map of exercise IDs to their history and max
@@ -206,7 +182,7 @@ export default function HistoryScreen() {
       }
 
       // Add custom exercises
-      for (const custom of loadedCustomExercises) {
+      for (const custom of customExercises) {
         const data = exerciseDataMap[custom.id];
         const displayWeight = data && weightUnit === 'kg' ? convertWeight(data.maxWeight, 'lbs', 'kg') : (data?.maxWeight || 0);
         const displayOneRM = data && weightUnit === 'kg' ? convertWeight(data.maxOneRM, 'lbs', 'kg') : (data?.maxOneRM || 0);
@@ -231,7 +207,7 @@ export default function HistoryScreen() {
     } catch (error) {
       console.error('Error loading exercise stats:', error);
     }
-  }, [weightUnit]);
+  }, [weightUnit, customExercises]);
 
   useEffect(() => {
     loadHistory();

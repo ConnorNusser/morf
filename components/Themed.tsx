@@ -24,17 +24,11 @@ export function Text(props: TextProps) {
 
 export function View(props: ViewProps) {
   const { style, ...otherProps } = props;
-  const { currentTheme } = useTheme();
 
   return (
-    <DefaultView 
-      style={[
-        { 
-          backgroundColor: currentTheme.colors.background,
-        }, 
-        style
-      ]} 
-      {...otherProps} 
+    <DefaultView
+      style={style}
+      {...otherProps}
     />
   );
 }

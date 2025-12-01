@@ -36,14 +36,19 @@ export const THEME_CONFIG: Record<ThemeLevel, {
     requiredPercentile: 0,
     description: 'Available to everyone',
   },
+  beginner_dark: {
+    displayName: 'Beginner Dark',
+    requiredPercentile: 0,
+    description: 'Available to everyone',
+  },
   intermediate: {
-    displayName: 'Intermediate', 
+    displayName: 'Intermediate',
     requiredPercentile: 25,
     description: 'Requires 25th percentile',
   },
   advanced: {
     displayName: 'Advanced',
-    requiredPercentile: 50, 
+    requiredPercentile: 50,
     description: 'Requires 50th percentile',
   },
   elite: {
@@ -70,17 +75,17 @@ export const THEME_CONFIG: Record<ThemeLevel, {
 
 // Get theme display name
 export const getThemeDisplayName = (level: ThemeLevel): string => {
-  return THEME_CONFIG[level].displayName;
+  return THEME_CONFIG[level]?.displayName ?? 'Unknown';
 };
 
 // Get theme unlock requirement
 export const getThemeRequirement = (level: ThemeLevel): string => {
-  return THEME_CONFIG[level].description;
+  return THEME_CONFIG[level]?.description ?? '';
 };
 
 // Get required percentile for theme level
 export const getThemeRequiredPercentile = (level: ThemeLevel): number => {
-  return THEME_CONFIG[level].requiredPercentile;
+  return THEME_CONFIG[level]?.requiredPercentile ?? 0;
 };
 
 // Check if theme is unlocked based on user's percentile or share status
@@ -100,7 +105,8 @@ export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, share
 export const getThemeOrder = (level: ThemeLevel): number => {
   const order: Record<ThemeLevel, number> = {
     beginner: 1,
-    intermediate: 2, 
+    beginner_dark: 1,  // Same level as beginner (just dark variant)
+    intermediate: 2,
     advanced: 3,
     elite: 4,
     god: 5,

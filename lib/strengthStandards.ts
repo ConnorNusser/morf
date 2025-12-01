@@ -9,154 +9,154 @@ export { StrengthStandard };
 // Realistic strength standards as multipliers of body weight
 // Based on drug-tested, unequipped powerlifting competition data
 export const MALE_STANDARDS: Record<string, StrengthStandard> = {
-  squat: {
+  'squat-barbell': {
     beginner: 0.75,      // 10th percentile
     intermediate: 1.25,   // 25th percentile
     advanced: 1.5,       // 50th percentile
     elite: 2.2,          // 75th percentile
     god: 2.8,            // 90th percentile (from study)
   },
-  'bench-press': {
+  'bench-press-barbell': {
     beginner: 0.671,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.201,       // 50th percentile
     elite: 1.532,          // 75th percentile
     god: 2.169,           // 90th percentile (from study)
   },
-  deadlift: {
+  'deadlift-barbell': {
     beginner: 1.069,       // 10th percentile
     intermediate: 1.415,   // 25th percentile
     advanced: 1.832,       // 50th percentile
     elite: 2.504,          // 75th percentile
     god: 3.227,           // 90th percentile (from study)
   },
-  'overhead-press': {
+  'overhead-press-barbell': {
     beginner: 0.414,       // 10th percentile
     intermediate: 0.580,   // 25th percentile
     advanced: 0.783,       // 50th percentile
     elite: 1.018,          // 75th percentile
     god: 1.463,            // 90th percentile (estimated)
   },
-  'dumbbell-bench-press': {
+  'bench-press-dumbbells': {
     beginner: 0.225,       // 10th percentile
     intermediate: 0.348,   // 25th percentile
     advanced: 0.507,       // 50th percentile
     elite: .695,          // 75th percentile
     god: .904,            // 90th percentile (estimated)
   },
-  'dumbbell-curl': {
+  'bicep-curl-dumbbells': {
     beginner: 0.091,       // 10th percentile
     intermediate: 0.175,   // 25th percentile
     advanced: 0.292,       // 50th percentile
     elite: 0.439,          // 75th percentile
     god: 0.699,            // 90th percentile (estimated)
   },
-  'barbell-curl': {
+  'bicep-curl-barbell': {
     beginner: 0.108,       // 10th percentile
     intermediate: 0.213,   // 25th percentile
     advanced: 0.362,       // 50th percentile
     elite: 0.550,          // 75th percentile
     god: .884,            // 90th percentile (estimated)
   },
-  'leg-press': {
+  'leg-press-machine': {
     beginner: 1.0,       // 10th percentile
     intermediate: 1.75,   // 25th percentile
     advanced: 2.75,       // 50th percentile
     elite: 4.0,          // 75th percentile
     god: 5.25,           // 90th percentile (estimated)
   },
-  'barbell-row': {
+  'row-barbell': {
     beginner: 0.5,       // 10th percentile
     intermediate: .75,   // 25th percentile
     advanced: 1.0,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 1.75,            // 90th percentile (estimated)
   },
-  'incline-bench-press': {
+  'incline-bench-press-barbell': {
     beginner: 0.5,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.0,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 1.75,           // 90th percentile (from study)
   },
-  'lat-pulldown': {
+  'lat-pulldown-cables': {
     beginner: 0.5,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.0,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 1.75,           // 90th percentile (from study)
   },
-  'leg-extension': {
+  'leg-extension-machine': {
     beginner: 0.5,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.25,       // 50th percentile
     elite: 1.75,          // 75th percentile
     god: 2.50,           // 90th percentile (from study)
   },
-  'romanian-deadlift': {
+  'romanian-deadlift-barbell': {
     beginner: 0.75,       // 10th percentile
     intermediate: 1.00,   // 25th percentile
     advanced: 1.50,       // 50th percentile
     elite: 2.00,          // 75th percentile
     god: 2.75,           // 90th percentile (from study)
   },
-  'incline-dumbbell-chest-press': {
+  'incline-bench-press-dumbbells': {
     beginner: 0.25,       // 10th percentile
     intermediate: 0.35,   // 25th percentile
     advanced: 0.50,       // 50th percentile
     elite: 0.65,          // 75th percentile
     god: 0.85,           // 90th percentile (from study)
   },
-  'dumbbell-shoulder-press': {
+  'shoulder-press-dumbbells': {
     beginner: 0.15,       // 10th percentile
     intermediate: 0.25,   // 25th percentile
     advanced: 0.40,       // 50th percentile
     elite: 0.60,          // 75th percentile
     god: 0.75,           // 90th percentile (from study)
   },
-  'front-squat': {
+  'front-squat-barbell': {
     beginner: 0.75,       // 10th percentile
     intermediate: 1.0,   // 25th percentile
     advanced: 1.25,       // 50th percentile
     elite: 1.75,          // 75th percentile
     god: 2.25,           // 90th percentile (from study)
   },
-  'barbell-hip-thrust': {
+  'hip-thrust-barbell': {
     beginner: 0.5,       // 10th percentile
     intermediate: 1.0,   // 25th percentile
     advanced: 1.75,       // 50th percentile
     elite: 2.50,          // 75th percentile
     god: 3.50,           // 90th percentile (from study)
   },
-  'lateral-raise': {
+  'lateral-raise-dumbbells': {
     beginner: 0.05,       // 10th percentile
     intermediate: 0.10,   // 25th percentile
     advanced: 0.20,       // 50th percentile
     elite: 0.30,          // 75th percentile
     god: 0.45,           // 90th percentile (from study)
   },
-  'seated-cable-row': {
+  'row-cables': {
     beginner: 0.50,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.00,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 2.00,            // 90th percentile (estimated)
   },
-  'hack-squat': {
+  'hack-squat-machine': {
     beginner: 0.75,       // 10th percentile
     intermediate: 1.25,   // 25th percentile
     advanced: 2.00,       // 50th percentile
     elite: 2.75,          // 75th percentile
     god: 4.00,            // 90th percentile (estimated)
-  },  
-  'preacher-curl': {
+  },
+  'preacher-curl-dumbbells': {
     beginner: 0.20,       // 10th percentile
     intermediate: 0.35,   // 25th percentile
     advanced: 0.60,       // 50th percentile
     elite: 0.85,          // 75th percentile
     god: 1.10,           // 90th percentile (from study)
   },
-  'machine-shoulder-press': {
+  'overhead-press-machine': {
     beginner: 0.25,       // 10th percentile
     intermediate: 0.5,   // 25th percentile
     advanced: 1.00,       // 50th percentile
@@ -166,154 +166,154 @@ export const MALE_STANDARDS: Record<string, StrengthStandard> = {
 };
 
 export const FEMALE_STANDARDS: Record<string, StrengthStandard> = {
-  squat: {
+  'squat-barbell': {
     beginner: 0.5,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.25,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 2.00,           // 90th percentile (from study)
   },
-  'bench-press': {
+  'bench-press-barbell': {
     beginner: 0.25,       // 10th percentile
     intermediate: 0.5,   // 25th percentile
     advanced: 0.8,       // 50th percentile
     elite: 1.0,          // 75th percentile
     god: 1.50,           // 90th percentile (from study)
   },
-  deadlift: {
+  'deadlift-barbell': {
     beginner: 0.594,       // 10th percentile
     intermediate: .887,   // 25th percentile
     advanced: 1.261,       // 50th percentile
     elite: 1.698,          // 75th percentile
     god: 2.504,           // 90th percentile (from study)
   },
-  'overhead-press': {
+  'overhead-press-barbell': {
     beginner: 0.204,      // 10th percentile
     intermediate: 0.328,   // 25th percentile
     advanced: 0.490,       // 50th percentile
     elite: 0.686,          // 75th percentile
     god: 1.040,            // 90th percentile (estimated)
   },
-  'dumbbell-bench-press': {
+  'bench-press-dumbbells': {
     beginner: 0.095,       // 10th percentile
     intermediate: 0.183,   // 25th percentile
     advanced: 0.305,       // 50th percentile
     elite: .461,          // 75th percentile
     god: .641,            // 90th percentile (estimated)
   },
-  'dumbbell-curl': {
+  'bicep-curl-dumbbells': {
     beginner: 0.058,       // 10th percentile
     intermediate: 0.116,   // 25th percentile
     advanced: 0.200,       // 50th percentile
     elite: 0.306,          // 75th percentile
     god: 0.494,            // 90th percentile (estimated)
   },
-  'barbell-curl': {
+  'bicep-curl-barbell': {
     beginner: 0.108,       // 10th percentile
     intermediate: 0.213,   // 25th percentile
     advanced: 0.362,       // 50th percentile
     elite: 0.550,          // 75th percentile
     god: .884,            // 90th percentile (estimated)
   },
-  'leg-press': {
+  'leg-press-machine': {
     beginner: 0.5,       // 10th percentile
     intermediate: 1.25,   // 25th percentile
     advanced: 2.0,       // 50th percentile
     elite: 3.25,          // 75th percentile
     god: 4.5,            // 90th percentile (estimated)
   },
-  'barbell-row': {
+  'row-barbell': {
     beginner: 0.25,       // 10th percentile
     intermediate: .4,   // 25th percentile
     advanced: .65,       // 50th percentile
     elite: .9,          // 75th percentile
     god: 1.2,            // 90th percentile (estimated)
   },
-  'incline-bench-press': {
+  'incline-bench-press-barbell': {
     beginner: 0.2,       // 10th percentile
     intermediate: 0.4,   // 25th percentile
     advanced: 0.65,       // 50th percentile
     elite: 1.00,          // 75th percentile
     god: 1.40,           // 90th percentile (from study)
   },
-  'lat-pulldown': {
+  'lat-pulldown-cables': {
     beginner: 0.3,       // 10th percentile
     intermediate: 0.45,   // 25th percentile
     advanced: 0.70,       // 50th percentile
     elite: 0.95,          // 75th percentile
     god: 1.30,           // 90th percentile (from study)
   },
-  'leg-extension': {
+  'leg-extension-machine': {
     beginner: 0.25,       // 10th percentile
     intermediate: 0.50,   // 25th percentile
     advanced: 1.00,       // 50th percentile
     elite: 1.25,          // 75th percentile
     god: 2.00,           // 90th percentile (from study)
   },
-  'romanian-deadlift': {
+  'romanian-deadlift-barbell': {
     beginner: 0.50,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.00,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 1.75,           // 90th percentile (from study)
   },
-  'incline-dumbbell-chest-press': {
+  'incline-bench-press-dumbbells': {
     beginner: 0.1,       // 10th percentile
     intermediate: 0.2,   // 25th percentile
     advanced: 0.30,       // 50th percentile
     elite: 0.45,          // 75th percentile
     god: 0.60,           // 90th percentile (from study)
   },
-  'dumbbell-shoulder-press': {
+  'shoulder-press-dumbbells': {
     beginner: 0.10,       // 10th percentile
     intermediate: 0.15,   // 25th percentile
     advanced: 0.25,       // 50th percentile
     elite: 0.35,          // 75th percentile
     god: 0.50,           // 90th percentile (from study)
   },
-  'front-squat': {
+  'front-squat-barbell': {
     beginner: 0.50,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.0,       // 50th percentile
     elite: 1.25,          // 75th percentile
     god: 1.50,           // 90th percentile (from study)
   },
-  'barbell-hip-thrust': {
+  'hip-thrust-barbell': {
     beginner: 0.50,       // 10th percentile
     intermediate: 1.00,   // 25th percentile
     advanced: 1.5,       // 50th percentile
     elite: 2.25,          // 75th percentile
     god: 3.00,           // 90th percentile (from study)
   },
-  'lateral-raise': {
+  'lateral-raise-dumbbells': {
     beginner: 0.05,       // 10th percentile
     intermediate: 0.10,   // 25th percentile
     advanced: 0.15,       // 50th percentile
     elite: 0.20,          // 75th percentile
     god: 0.30,           // 90th percentile (from study)
   },
-  'seated-cable-row': {
+  'row-cables': {
     beginner: 0.30,       // 10th percentile
     intermediate: 0.50,   // 25th percentile
     advanced: 0.75,       // 50th percentile
     elite: 1.00,          // 75th percentile
     god: 1.35,            // 90th percentile (estimated)
   },
-  'hack-squat': {
+  'hack-squat-machine': {
     beginner: 0.25,       // 10th percentile
     intermediate: 0.75,   // 25th percentile
     advanced: 1.50,       // 50th percentile
     elite: 2.25,          // 75th percentile
     god: 3.25,            // 90th percentile (estimated)
   },
-  'preacher-curl': {
+  'preacher-curl-dumbbells': {
     beginner: 0.10,       // 10th percentile
     intermediate: 0.20,   // 25th percentile
     advanced: 0.40,       // 50th percentile
     elite: 0.60,          // 75th percentile
     god: 0.85,           // 90th percentile (from study)
   },
-  'machine-shoulder-press': {
+  'overhead-press-machine': {
     beginner: 0.10,       // 10th percentile
     intermediate: 0.25,   // 25th percentile
     advanced: 0.50,       // 50th percentile

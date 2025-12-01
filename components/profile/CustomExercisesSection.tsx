@@ -1,15 +1,13 @@
 import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
+import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
 import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
-import { userService } from '@/lib/userService';
-import { ALL_WORKOUTS } from '@/lib/workouts';
-import { CustomExercise, Equipment, UserLift, Workout } from '@/types';
+import { CustomExercise, Equipment } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -33,17 +31,18 @@ const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
   { value: 'barbell', label: 'Barbell' },
   { value: 'dumbbell', label: 'Dumbbell' },
   { value: 'machine', label: 'Machine' },
+  { value: 'smith-machine', label: 'Smith Machine' },
   { value: 'cable', label: 'Cable' },
   { value: 'kettlebell', label: 'Kettlebell' },
   { value: 'bodyweight', label: 'Bodyweight' },
 ];
 
-// Helper to format equipment label for display name
 const formatEquipmentLabel = (equipment: Equipment): string => {
   switch (equipment) {
     case 'barbell': return 'Barbell';
     case 'dumbbell': return 'Dumbbell';
     case 'machine': return 'Machine';
+    case 'smith-machine': return 'Smith Machine';
     case 'cable': return 'Cable';
     case 'kettlebell': return 'Kettlebell';
     case 'bodyweight': return 'Bodyweight';
@@ -51,10 +50,8 @@ const formatEquipmentLabel = (equipment: Equipment): string => {
   }
 };
 
-// Helper to generate full exercise name with equipment
 const generateFullExerciseName = (baseName: string, equipment: Equipment): string => {
   const trimmedName = baseName.trim();
-  // Title case the name
   const titleCased = trimmedName
     .split(' ')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
@@ -62,7 +59,6 @@ const generateFullExerciseName = (baseName: string, equipment: Equipment): strin
   return `${titleCased} (${formatEquipmentLabel(equipment)})`;
 };
 
-// Helper to generate kebab-case ID from exercise name
 const generateExerciseId = (name: string): string => {
   return name
     .toLowerCase()
@@ -76,58 +72,32 @@ const generateExerciseId = (name: string): string => {
 export default function CustomExercisesSection({ onExercisesUpdate }: CustomExercisesSectionProps) {
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
-  const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
-  const [userLifts, setUserLifts] = useState<UserLift[]>([]);
-
-  // Main modal state - 'exercises' | 'custom' | null
-  const [activeModal, setActiveModal] = useState<'exercises' | 'custom' | null>(null);
+  const {
+    customExercises,
+    addExercise,
+    updateExercise,
+    deleteExercise,
+    clearAll,
+    getByName,
+  } = useCustomExercises();
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [equipmentFilter, setEquipmentFilter] = useState<Equipment | 'all'>('all');
-
-  // Edit/Add state - using inline approach instead of nested modals
   const [editingExercise, setEditingExercise] = useState<CustomExercise | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [editedName, setEditedName] = useState('');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment>('machine');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    try {
-      const [exercises, profile] = await Promise.all([
-        storageService.getCustomExercises(),
-        userService.getRealUserProfile(),
-      ]);
-      setCustomExercises(exercises);
-      if (profile) {
-        // Combine main and secondary lifts
-        const allLifts = [...(profile.lifts || []), ...(profile.secondaryLifts || [])];
-        setUserLifts(allLifts);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
-
-  const openExercisesModal = () => {
+  const openModal = () => {
     playHapticFeedback('selection', false);
     setSearchQuery('');
     setEquipmentFilter('all');
-    setActiveModal('exercises');
-  };
-
-  const openCustomModal = () => {
-    playHapticFeedback('selection', false);
-    setSearchQuery('');
-    setEquipmentFilter('all');
-    setActiveModal('custom');
+    setIsModalVisible(true);
   };
 
   const closeModal = () => {
-    setActiveModal(null);
+    setIsModalVisible(false);
     setSearchQuery('');
     setEquipmentFilter('all');
     setEditingExercise(null);
@@ -138,14 +108,8 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
   const getCustomSummary = () => {
     const count = customExercises.length;
-    if (count === 0) {
-      return 'No custom exercises yet';
-    }
+    if (count === 0) return 'No custom exercises yet';
     return `${count} custom exercise${count === 1 ? '' : 's'}`;
-  };
-
-  const getExercisesSummary = () => {
-    return `${ALL_WORKOUTS.length} built-in exercises`;
   };
 
   const formatDate = (date: Date) => {
@@ -157,57 +121,13 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     });
   };
 
-  // Get lift records for an exercise
-  const getLiftRecordForExercise = useCallback((exerciseId: string): UserLift | null => {
-    const liftsForExercise = userLifts.filter(lift => lift.id === exerciseId);
-    if (liftsForExercise.length === 0) return null;
-
-    // Find the best lift (highest estimated 1RM)
-    return liftsForExercise.reduce((best, current) => {
-      const bestOneRM = best.weight * (1 + best.reps / 30);
-      const currentOneRM = current.weight * (1 + current.reps / 30);
-      return currentOneRM > bestOneRM ? current : best;
-    });
-  }, [userLifts]);
-
-  // Filter built-in exercises based on search query and equipment filter
-  const filteredExercises = useMemo(() => {
-    let result = ALL_WORKOUTS;
-
-    // Apply equipment filter
-    if (equipmentFilter !== 'all') {
-      result = result.filter(ex =>
-        ex.equipment?.includes(equipmentFilter)
-      );
-    }
-
-    // Apply search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(ex =>
-        ex.name.toLowerCase().includes(query) ||
-        ex.id.toLowerCase().includes(query) ||
-        ex.primaryMuscles?.some(m => m.toLowerCase().includes(query)) ||
-        ex.equipment?.some(e => e.toLowerCase().includes(query)) ||
-        ex.category?.toLowerCase().includes(query)
-      );
-    }
-
-    return result;
-  }, [searchQuery, equipmentFilter]);
-
-  // Filter custom exercises based on search query and equipment filter
   const filteredCustomExercises = useMemo(() => {
     let result = customExercises;
 
-    // Apply equipment filter
     if (equipmentFilter !== 'all') {
-      result = result.filter(ex =>
-        ex.equipment?.includes(equipmentFilter)
-      );
+      result = result.filter(ex => ex.equipment?.includes(equipmentFilter));
     }
 
-    // Apply search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(ex =>
@@ -222,13 +142,10 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     return result;
   }, [customExercises, searchQuery, equipmentFilter]);
 
-  // Helper to extract base name (without equipment suffix) from full exercise name
   const extractBaseName = (fullName: string): string => {
-    // Remove equipment suffix like "(Machine)", "(Barbell)", etc.
     return fullName.replace(/\s*\([^)]+\)\s*$/, '').trim();
   };
 
-  // Helper to extract equipment from exercise
   const extractEquipment = (exercise: CustomExercise): Equipment => {
     if (exercise.equipment && exercise.equipment.length > 0) {
       return exercise.equipment[0];
@@ -236,7 +153,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     return 'machine';
   };
 
-  // Start editing
   const handleStartEdit = (exercise: CustomExercise) => {
     playHapticFeedback('selection', false);
     setEditingExercise(exercise);
@@ -245,7 +161,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     setIsAdding(false);
   };
 
-  // Start adding
   const handleStartAdd = () => {
     playHapticFeedback('selection', false);
     setIsAdding(true);
@@ -254,7 +169,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     setSelectedEquipment('machine');
   };
 
-  // Cancel edit/add
   const handleCancelEditAdd = () => {
     Keyboard.dismiss();
     setIsAdding(false);
@@ -263,20 +177,15 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     setSelectedEquipment('machine');
   };
 
-  // Save edit - regenerates full name and ID based on base name + equipment
   const handleSaveEdit = async () => {
     if (!editingExercise || !editedName.trim()) return;
 
-    // Generate new full name with equipment suffix
     const fullName = generateFullExerciseName(editedName, selectedEquipment);
     const newId = generateExerciseId(fullName);
 
     try {
       playHapticFeedback('medium', false);
       playSound();
-
-      // Delete old exercise and create new one with new ID
-      await storageService.deleteCustomExercise(editingExercise.id);
 
       const updatedExercise: CustomExercise = {
         ...editingExercise,
@@ -285,8 +194,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         equipment: [selectedEquipment],
       };
 
-      await storageService.saveCustomExercise(updatedExercise);
-      await loadData();
+      await updateExercise(editingExercise.id, updatedExercise);
 
       if (onExercisesUpdate) {
         await onExercisesUpdate();
@@ -301,16 +209,13 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     }
   };
 
-  // Save add - generates full name with equipment and AI metadata
   const handleSaveAdd = async () => {
     if (!editedName.trim()) return;
 
-    // Generate full name with equipment suffix
     const fullName = generateFullExerciseName(editedName, selectedEquipment);
 
     try {
-      // Check if a custom exercise with this name already exists
-      const existingCustom = await storageService.getCustomExerciseByName(fullName);
+      const existingCustom = getByName(fullName);
       if (existingCustom) {
         Alert.alert('Exercise Exists', `An exercise named "${fullName}" already exists.`);
         return;
@@ -320,14 +225,10 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
       playHapticFeedback('medium', false);
       playSound();
 
-      // Generate custom exercise with AI (includes proper ID format, muscle groups, etc.)
       const newExercise = await aiWorkoutGenerator.generateCustomExerciseMetadata(fullName);
-
-      // Ensure the equipment matches user selection
       newExercise.equipment = [selectedEquipment];
 
-      await storageService.saveCustomExercise(newExercise);
-      await loadData();
+      await addExercise(newExercise);
 
       if (onExercisesUpdate) {
         await onExercisesUpdate();
@@ -357,8 +258,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             try {
               playHapticFeedback('medium', false);
               playSound();
-              await storageService.deleteCustomExercise(exercise.id);
-              await loadData();
+              await deleteExercise(exercise.id);
               if (onExercisesUpdate) {
                 await onExercisesUpdate();
               }
@@ -386,8 +286,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           onPress: async () => {
             try {
               playHapticFeedback('heavy', false);
-              await storageService.clearCustomExercises();
-              await loadData();
+              await clearAll();
               if (onExercisesUpdate) {
                 await onExercisesUpdate();
               }
@@ -401,87 +300,10 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     );
   };
 
-  // Render exercise item for built-in exercises
-  const renderExerciseItem = (exercise: Workout) => {
-    const liftRecord = getLiftRecordForExercise(exercise.id);
-
-    return (
-      <View
-        key={exercise.id}
-        style={[
-          styles.exerciseItem,
-          {
-            backgroundColor: currentTheme.colors.surface,
-            borderColor: currentTheme.colors.border + '30',
-          }
-        ]}
-      >
-        <View style={styles.exerciseInfo}>
-          <Text style={[
-            styles.exerciseName,
-            {
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
-            }
-          ]}>
-            {exercise.name}
-          </Text>
-
-          {/* Equipment & Muscles chips */}
-          <View style={styles.metadataRow}>
-            {exercise.equipment && exercise.equipment.length > 0 && (
-              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
-                  {exercise.equipment[0]}
-                </Text>
-              </View>
-            )}
-            {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
-              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
-                  {exercise.primaryMuscles.join(', ')}
-                </Text>
-              </View>
-            )}
-            {exercise.category && (
-              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
-                  {exercise.category}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Lift record if exists */}
-          {liftRecord && (
-            <View style={[styles.liftRecordRow, { backgroundColor: currentTheme.colors.accent + '15' }]}>
-              <Ionicons name="trophy" size={12} color={currentTheme.colors.accent} />
-              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
-                PR: {liftRecord.weight} {liftRecord.unit} x {liftRecord.reps}
-              </Text>
-            </View>
-          )}
-
-          <Text style={[
-            styles.exerciseId,
-            {
-              color: currentTheme.colors.text + '50',
-              fontFamily: 'Raleway_400Regular',
-            }
-          ]} numberOfLines={1}>
-            ID: {exercise.id}
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
-  // Render custom exercise item with inline edit form
   const renderCustomExerciseItem = (exercise: CustomExercise) => {
     const isEditing = editingExercise?.id === exercise.id;
 
     if (isEditing) {
-      // Generate full name and ID preview for editing
       const fullNamePreview = editedName.trim()
         ? generateFullExerciseName(editedName, selectedEquipment)
         : '';
@@ -605,7 +427,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           styles.exerciseItem,
           {
             backgroundColor: currentTheme.colors.surface,
-            borderColor: currentTheme.colors.border + '30',
+            borderColor: currentTheme.colors.border,
           }
         ]}
       >
@@ -620,7 +442,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             {exercise.name}
           </Text>
 
-          {/* Equipment & Muscles chips */}
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
@@ -685,11 +506,9 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     );
   };
 
-  // Render add form
   const renderAddForm = () => {
     if (!isAdding) return null;
 
-    // Generate full name and ID preview
     const fullNamePreview = editedName.trim()
       ? generateFullExerciseName(editedName, selectedEquipment)
       : '';
@@ -816,57 +635,14 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
   return (
     <>
-      {/* Exercises Card */}
       <Card style={styles.card} variant="clean">
         <TouchableOpacity
           style={styles.sectionHeader}
-          onPress={openExercisesModal}
+          onPress={openModal}
           activeOpacity={0.7}
         >
-          <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
-                }
-              ]}>
-                Exercises
-              </Text>
-              <View style={[styles.badge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                <Text style={[styles.badgeText, { color: currentTheme.colors.primary }]}>
-                  {ALL_WORKOUTS.length}
-                </Text>
-              </View>
-            </View>
-            <Text style={[
-              styles.subtitle,
-              {
-                color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
-              }
-            ]}>
-              {getExercisesSummary()}
-            </Text>
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={currentTheme.colors.text}
-          />
-        </TouchableOpacity>
-      </Card>
-
-      {/* Custom Exercises Card */}
-      <Card style={styles.card} variant="clean">
-        <TouchableOpacity
-          style={styles.sectionHeader}
-          onPress={openCustomModal}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
+          <View style={styles.sectionHeaderContent}>
+            <View style={styles.titleRow}>
               <Text style={[
                 styles.sectionTitle,
                 {
@@ -902,155 +678,8 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         </TouchableOpacity>
       </Card>
 
-      {/* Exercises Modal (Built-in) */}
       <Modal
-        visible={activeModal === 'exercises'}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={closeModal}
-      >
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
-          {/* Header */}
-          <View style={[styles.modalHeader, { backgroundColor: 'transparent' }]}>
-            <View style={{ width: 40 }} />
-            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-              Exercises
-            </Text>
-            <TouchableOpacity
-              onPress={closeModal}
-              style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
-            >
-              <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
-              <TextInput
-                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
-                placeholder="Search by name, muscle, equipment..."
-                placeholderTextColor={currentTheme.colors.text + '40'}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
-          {/* Equipment Filter */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterContainer}
-            contentContainerStyle={styles.filterContent}
-          >
-            <TouchableOpacity
-              style={[
-                styles.filterChip,
-                {
-                  backgroundColor: equipmentFilter === 'all'
-                    ? currentTheme.colors.primary
-                    : currentTheme.colors.surface,
-                  borderColor: equipmentFilter === 'all'
-                    ? currentTheme.colors.primary
-                    : currentTheme.colors.border,
-                }
-              ]}
-              onPress={() => setEquipmentFilter('all')}
-            >
-              <Text style={[
-                styles.filterChipText,
-                {
-                  color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
-                }
-              ]}>
-                All
-              </Text>
-            </TouchableOpacity>
-            {EQUIPMENT_OPTIONS.map((eq) => (
-              <TouchableOpacity
-                key={eq.value}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: equipmentFilter === eq.value
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.surface,
-                    borderColor: equipmentFilter === eq.value
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.border,
-                  }
-                ]}
-                onPress={() => setEquipmentFilter(eq.value)}
-              >
-                <Text style={[
-                  styles.filterChipText,
-                  {
-                    color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                    fontFamily: 'Raleway_500Medium',
-                  }
-                ]}>
-                  {eq.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Exercise List */}
-          <ScrollView
-            style={styles.exercisesList}
-            contentContainerStyle={styles.exercisesListContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {filteredExercises.length === 0 ? (
-              <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
-                <Ionicons
-                  name="search-outline"
-                  size={32}
-                  color={currentTheme.colors.text + '40'}
-                />
-                <Text style={[
-                  styles.emptyText,
-                  { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }
-                ]}>
-                  No exercises found
-                </Text>
-                <Text style={[
-                  styles.emptySubtext,
-                  { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }
-                ]}>
-                  Try a different search term
-                </Text>
-              </View>
-            ) : (
-              <>
-                {/* Results count */}
-                {searchQuery && (
-                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                    {filteredExercises.length} result{filteredExercises.length !== 1 ? 's' : ''}
-                  </Text>
-                )}
-
-                {filteredExercises.map((exercise) => renderExerciseItem(exercise))}
-              </>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-
-      {/* Custom Exercises Modal */}
-      <Modal
-        visible={activeModal === 'custom'}
+        visible={isModalVisible}
         animationType="slide"
         presentationStyle="fullScreen"
         onRequestClose={closeModal}
@@ -1062,8 +691,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               keyboardVerticalOffset={0}
             >
-              {/* Header */}
-              <View style={[styles.modalHeader, { backgroundColor: 'transparent' }]}>
+              <View style={styles.modalHeader}>
                 <View style={{ width: 40 }} />
                 <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                   Custom Exercises
@@ -1076,7 +704,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 </TouchableOpacity>
               </View>
 
-              {/* Auto-generation disclaimer */}
               <View style={[styles.disclaimerBanner, { backgroundColor: currentTheme.colors.primary + '10', borderColor: currentTheme.colors.primary + '30' }]}>
                 <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
                 <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
@@ -1084,8 +711,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 </Text>
               </View>
 
-              {/* Search Bar */}
-              <View style={[styles.searchContainer, { backgroundColor: 'transparent' }]}>
+              <View style={styles.searchContainer}>
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
@@ -1105,7 +731,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 </View>
               </View>
 
-              {/* Equipment Filter */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1165,9 +790,8 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 ))}
               </ScrollView>
 
-              {/* Add Exercise Button */}
               {!isAdding && !editingExercise && (
-                <View style={[styles.addButtonContainer, { backgroundColor: 'transparent' }]}>
+                <View style={styles.addButtonContainer}>
                   <TouchableOpacity
                     style={[styles.addButton, { backgroundColor: currentTheme.colors.primary }]}
                     onPress={handleStartAdd}
@@ -1181,14 +805,12 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 </View>
               )}
 
-              {/* Exercise List */}
               <ScrollView
                 style={styles.exercisesList}
                 contentContainerStyle={styles.exercisesListContent}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
               >
-                {/* Add form at top if adding */}
                 {renderAddForm()}
 
                 {filteredCustomExercises.length === 0 && !isAdding ? (
@@ -1215,7 +837,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   </View>
                 ) : (
                   <>
-                    {/* Results count */}
                     {searchQuery && (
                       <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
                         {filteredCustomExercises.length} result{filteredCustomExercises.length !== 1 ? 's' : ''}
@@ -1224,7 +845,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
                     {filteredCustomExercises.map((exercise) => renderCustomExerciseItem(exercise))}
 
-                    {/* Clear All Button */}
                     {customExercises.length > 0 && !searchQuery && !isAdding && !editingExercise && (
                       <TouchableOpacity
                         style={[styles.clearAllButton, { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DC262630' }]}
@@ -1283,7 +903,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 4,
   },
-  // Full screen modal styles
   modalContainer: {
     flex: 1,
   },
@@ -1416,6 +1035,7 @@ const styles = StyleSheet.create({
   exerciseInfo: {
     flex: 1,
     marginRight: 12,
+    backgroundColor: 'transparent',
   },
   exerciseName: {
     fontSize: 16,
@@ -1435,19 +1055,6 @@ const styles = StyleSheet.create({
   metadataChipText: {
     fontSize: 11,
     textTransform: 'capitalize',
-  },
-  liftRecordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginBottom: 6,
-  },
-  liftRecordText: {
-    fontSize: 11,
   },
   exerciseId: {
     fontSize: 11,
@@ -1480,7 +1087,6 @@ const styles = StyleSheet.create({
     color: '#DC2626',
     fontSize: 14,
   },
-  // Edit form styles
   editForm: {
     flex: 1,
   },
