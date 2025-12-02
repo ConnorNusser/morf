@@ -4,7 +4,6 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
-import TrendingArrow from './TrendingArrow';
 
 interface OverallStatsCardProps {
   stats: OverallStats;
@@ -30,15 +29,14 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
     <Card variant="elevated" style={styles.container}>
       <View style={styles.header}>
         <Text style={[
-          styles.title, 
-          { 
+          styles.title,
+          {
             color: currentTheme.colors.text,
             fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
           }
         ]}>
           Overall Strength
         </Text>
-        <TrendingArrow color={currentTheme.colors.text} />
       </View>
 
       <View style={styles.statsContainer}>
