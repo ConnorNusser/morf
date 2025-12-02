@@ -12,10 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_AI_API_KEY": "***REMOVED***"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
