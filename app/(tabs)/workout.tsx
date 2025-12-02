@@ -8,6 +8,7 @@ import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/Work
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/haptic';
+import { useRestTimer } from '@/hooks/useRestTimer';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { ParsedExerciseSummary, ParsedWorkout } from '@/lib/workoutNoteParser';
@@ -17,13 +18,22 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   Keyboard,
   KeyboardAvoidingView,
+  LayoutAnimation,
   Platform,
   SafeAreaView,
   StyleSheet,
-  TouchableOpacity
+  TouchableOpacity,
+  UIManager,
+  View as RNView,
 } from 'react-native';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -52,6 +62,10 @@ export default function WorkoutScreen() {
   // Help modal state
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Rest timer state
+  const [isTimerExpanded, setIsTimerExpanded] = useState(false);
+  const { isResting, remainingTime, formattedTime: formattedRestTime, startTimer: startRestTimer, skipTimer: skipRestTimer, addTime: addRestTime } = useRestTimer();
+
   // User preferences
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
 
@@ -70,10 +84,15 @@ export default function WorkoutScreen() {
     loadUserPreferences();
   }, []);
 
-  // Start timer when user starts typing
+  // Start timer when user starts typing, reset when text is cleared
   useEffect(() => {
     if (noteText.length > 0 && !workoutStartTime) {
       setWorkoutStartTime(new Date());
+    } else if (noteText.length === 0 && workoutStartTime) {
+      // User backspaced all text - reset workout state
+      setWorkoutStartTime(null);
+      setElapsedTime(0);
+      setParsedExercises([]);
     }
   }, [noteText, workoutStartTime]);
 
@@ -210,6 +229,42 @@ export default function WorkoutScreen() {
     // Timer will start automatically when noteText updates
   }, []);
 
+  // Handle timer tap - toggle expansion and start rest if not resting
+  const handleTimerTap = useCallback(() => {
+    playHapticFeedback('light', false);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+    if (!isTimerExpanded) {
+      // Expanding - start rest timer if not already resting
+      if (!isResting) {
+        startRestTimer(120); // 2 minutes default
+      }
+      setIsTimerExpanded(true);
+    } else {
+      setIsTimerExpanded(false);
+    }
+  }, [isTimerExpanded, isResting, startRestTimer]);
+
+  // Handle reset workout timer
+  const handleResetWorkoutTimer = useCallback(() => {
+    setWorkoutStartTime(new Date());
+    setElapsedTime(0);
+  }, []);
+
+  // Handle finish rest
+  const handleFinishRest = useCallback(() => {
+    playHapticFeedback('medium', false);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    skipRestTimer();
+    setIsTimerExpanded(false);
+  }, [skipRestTimer]);
+
+  // Handle add time to rest
+  const handleAddRestTime = useCallback((seconds: number) => {
+    playHapticFeedback('light', false);
+    addRestTime(seconds);
+  }, [addRestTime]);
+
 
 
   // Workout has started only if there's text
@@ -255,12 +310,35 @@ export default function WorkoutScreen() {
 
           <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
             {hasWorkoutStarted ? (
-              <View style={[styles.timerContainer, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                <Ionicons name="time-outline" size={16} color={currentTheme.colors.accent} />
-                <Text style={[styles.timerText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                  {formatTime(elapsedTime)}
-                </Text>
-              </View>
+              <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
+                <RNView style={[
+                  styles.timerContainer,
+                  {
+                    backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
+                    borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
+                  }
+                ]}>
+                  <Ionicons
+                    name={isResting ? 'hourglass-outline' : 'time-outline'}
+                    size={16}
+                    color={isResting ? '#fff' : currentTheme.colors.accent}
+                  />
+                  <Text style={[
+                    styles.timerText,
+                    {
+                      color: isResting ? '#fff' : currentTheme.colors.text,
+                      fontFamily: 'Raleway_600SemiBold'
+                    }
+                  ]}>
+                    {isResting ? formattedRestTime : formatTime(elapsedTime)}
+                  </Text>
+                  {isResting && (
+                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: 'Raleway_500Medium' }]}>
+                      REST
+                    </Text>
+                  )}
+                </RNView>
+              </TouchableOpacity>
             ) : (
               <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                 Workout
@@ -288,6 +366,62 @@ export default function WorkoutScreen() {
             )}
           </View>
         </View>
+
+        {/* Expanded Rest Timer */}
+        {isTimerExpanded && hasWorkoutStarted && (
+          <RNView style={[styles.expandedTimer, { backgroundColor: currentTheme.colors.surface }]}>
+            <RNView style={styles.expandedTimerRow}>
+              {/* Subtract time */}
+              <TouchableOpacity
+                style={[styles.adjustButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                onPress={() => handleAddRestTime(-30)}
+              >
+                <Ionicons name="remove" size={24} color={currentTheme.colors.text} />
+              </TouchableOpacity>
+
+              {/* Rest timer display */}
+              <RNView style={styles.expandedTimerCenter}>
+                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                  {formattedRestTime}
+                </Text>
+                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  rest remaining
+                </Text>
+              </RNView>
+
+              {/* Add time */}
+              <TouchableOpacity
+                style={[styles.adjustButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                onPress={() => handleAddRestTime(30)}
+              >
+                <Ionicons name="add" size={24} color={currentTheme.colors.primary} />
+              </TouchableOpacity>
+            </RNView>
+
+            {/* Buttons row */}
+            <RNView style={styles.expandedButtonsRow}>
+              {/* Reset workout timer with duration */}
+              <TouchableOpacity
+                style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                onPress={handleResetWorkoutTimer}
+              >
+                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                  Restart Workout ({formatTime(elapsedTime)})
+                </Text>
+              </TouchableOpacity>
+
+              {/* Done button */}
+              <TouchableOpacity
+                style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
+                onPress={handleFinishRest}
+              >
+                <Text style={[styles.doneRestButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </RNView>
+          </RNView>
+        )}
 
         {/* Quick Summary Toast */}
         <QuickSummaryToast
@@ -380,10 +514,73 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    gap: 6,
+    gap: 5,
+  },
+  restLabel: {
+    fontSize: 10,
+    letterSpacing: 1,
+    marginLeft: 2,
   },
   timerText: {
     fontSize: 16,
+  },
+  expandedTimer: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  expandedTimerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  expandedTimerCenter: {
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  expandedTimerTime: {
+    fontSize: 32,
+  },
+  expandedTimerLabel: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  adjustButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  expandedButtonsRow: {
+    flexDirection: 'row',
+    marginTop: 16,
+    gap: 10,
+  },
+  resetWorkoutButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  resetWorkoutButtonText: {
+    fontSize: 13,
+  },
+  doneRestButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  doneRestButtonText: {
+    color: '#fff',
+    fontSize: 15,
   },
   headerTitle: {
     fontSize: 18,
