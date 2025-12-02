@@ -2,14 +2,18 @@ import { Text, View } from '@/components/Themed';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import QuickSummaryToast from '@/components/workout/QuickSummaryToast';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
-import WorkoutConfirmationModal from '@/components/workout/WorkoutConfirmationModal';
+import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useUser } from '@/contexts/UserContext';
+import { useSound } from '@/hooks/useSound';
+import playHapticFeedback from '@/lib/haptic';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
-import { WeightUnit, WorkoutTemplate } from '@/types';
+import { ParsedExerciseSummary, ParsedWorkout } from '@/lib/workoutNoteParser';
+import { workoutNoteParser } from '@/lib/workoutNoteParser';
+import { isMainLift, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -24,7 +28,11 @@ import {
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
+  const { refreshProfile } = useUser();
   const noteInputRef = useRef<WorkoutNoteInputRef>(null);
+
+  // Sound effects
+  const { play: playTap } = useSound('tapVariant1');
 
   // Workout note state
   const [noteText, setNoteText] = useState('');
@@ -37,9 +45,8 @@ export default function WorkoutScreen() {
   const [parsedExercises, setParsedExercises] = useState<ParsedExerciseSummary[]>([]);
   const [lastParsedWorkout, setLastParsedWorkout] = useState<ParsedWorkout | null>(null);
 
-  // Confirmation modal state
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // Finish modal state
+  const [showFinishModal, setShowFinishModal] = useState(false);
 
   // Plan builder modal state
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
@@ -124,114 +131,72 @@ export default function WorkoutScreen() {
     }
   }, [noteText]);
 
-  // Handle finish workout - open confirmation modal
-  const handleFinishWorkout = useCallback(async () => {
+  // Handle finish workout - open finish modal
+  const handleFinishWorkout = useCallback(() => {
     if (!noteText.trim()) {
       Alert.alert('No workout data', 'Add some exercises before finishing your workout.');
       return;
     }
-
+    playTap();
+    playHapticFeedback('medium', false);
     Keyboard.dismiss();
+    setShowFinishModal(true);
+  }, [noteText, playTap]);
 
-    try {
-      // Parse the workout notes if not already parsed
-      if (!lastParsedWorkout) {
-        const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
-        setLastParsedWorkout(parsed);
-      }
-      // Show confirmation modal
-      setShowConfirmation(true);
-    } catch (error) {
-      console.error('Error parsing workout:', error);
-      Alert.alert('Error', 'Failed to parse workout. Please try again.');
-    }
-  }, [noteText, lastParsedWorkout]);
+  // Handle save from finish modal
+  const handleSaveWorkout = useCallback(async (parsedWorkout: ParsedWorkout) => {
+    // Convert to duration in minutes
+    const durationMinutes = Math.ceil(elapsedTime / 60);
 
-  // Handle confirm save from modal
-  const handleConfirmSave = useCallback(async () => {
-    if (!lastParsedWorkout) return;
+    // Convert to GeneratedWorkout format (also auto-creates custom exercises)
+    const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(parsedWorkout, durationMinutes);
 
-    setIsSaving(true);
+    // Save to workout history
+    await storageService.saveWorkout(generatedWorkout);
 
-    try {
-      // Convert to duration in minutes
-      const durationMinutes = Math.ceil(elapsedTime / 60);
+    // Record lifts for progress tracking
+    for (const exercise of generatedWorkout.exercises) {
+      if (exercise.completedSets.length > 0) {
+        // Find the best set (highest estimated 1RM)
+        const bestSet = exercise.completedSets.reduce((best, current) => {
+          const bestOneRM = best.weight * (1 + best.reps / 30);
+          const currentOneRM = current.weight * (1 + current.reps / 30);
+          return currentOneRM > bestOneRM ? current : best;
+        });
 
-      // Convert to GeneratedWorkout format (also auto-creates custom exercises)
-      const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(lastParsedWorkout, durationMinutes);
-
-      // Save to workout history
-      await storageService.saveWorkout(generatedWorkout);
-
-      // Record lifts for progress tracking
-      for (const exercise of generatedWorkout.exercises) {
-        if (exercise.completedSets.length > 0) {
-          // Find the best set (highest estimated 1RM)
-          const bestSet = exercise.completedSets.reduce((best, current) => {
-            const bestOneRM = best.weight * (1 + best.reps / 30);
-            const currentOneRM = current.weight * (1 + current.reps / 30);
-            return currentOneRM > bestOneRM ? current : best;
-          });
-
-          // Only record lifts with actual weight
-          if (bestSet.weight > 0) {
-            await userService.recordLift({
-              parentId: generatedWorkout.id,
-              id: exercise.id,
-              weight: bestSet.weight,
-              reps: bestSet.reps,
-              unit: bestSet.unit,
-            }, exercise.id.includes('squat') || exercise.id.includes('bench') || exercise.id.includes('deadlift') || exercise.id.includes('overhead') ? 'main' : 'secondary');
-          }
+        // Only record lifts with actual weight
+        if (bestSet.weight > 0) {
+          // Use proper type guard to categorize lifts correctly
+          const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
+          await userService.recordLift({
+            parentId: generatedWorkout.id,
+            id: exercise.id,
+            weight: bestSet.weight,
+            reps: bestSet.reps,
+            unit: bestSet.unit,
+          }, liftType);
         }
       }
-
-      // Close modal and reset
-      setShowConfirmation(false);
-      setNoteText('');
-      setWorkoutStartTime(null);
-      setElapsedTime(0);
-      setParsedExercises([]);
-      setLastParsedWorkout(null);
-
-      // Show success toast
-      Alert.alert('Workout Saved!', 'Your workout has been saved to your history.');
-    } catch (error) {
-      console.error('Error saving workout:', error);
-      Alert.alert('Error', 'Failed to save workout. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
-  }, [lastParsedWorkout, elapsedTime]);
 
-  // Handle cancel from confirmation modal
-  const handleCancelConfirmation = useCallback(() => {
-    setShowConfirmation(false);
+    // Refresh user profile context so other screens get updated data
+    await refreshProfile();
+  }, [elapsedTime, refreshProfile]);
+
+  // Handle finish modal complete - reset workout state
+  const handleFinishComplete = useCallback(() => {
+    setShowFinishModal(false);
+    setNoteText('');
+    setWorkoutStartTime(null);
+    setElapsedTime(0);
+    setParsedExercises([]);
+    setLastParsedWorkout(null);
   }, []);
 
-  // Handle clear/new workout
-  const handleNewWorkout = useCallback(() => {
-    if (noteText.trim()) {
-      Alert.alert(
-        'Start New Workout?',
-        'This will clear your current workout notes.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Clear',
-            style: 'destructive',
-            onPress: () => {
-              setNoteText('');
-              setWorkoutStartTime(null);
-              setElapsedTime(0);
-              setParsedExercises([]);
-              setLastParsedWorkout(null);
-            },
-          },
-        ]
-      );
-    }
-  }, [noteText]);
+  // Handle cancel from finish modal
+  const handleFinishCancel = useCallback(() => {
+    setShowFinishModal(false);
+  }, []);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -354,15 +319,15 @@ Squats 225 for 5 reps`}
         </View>
       </KeyboardAvoidingView>
 
-      {/* Confirmation Modal */}
-      <WorkoutConfirmationModal
-        visible={showConfirmation}
-        parsedWorkout={lastParsedWorkout}
+      {/* Finish Modal (handles parsing, confirmation, and celebration) */}
+      <WorkoutFinishModal
+        visible={showFinishModal}
+        noteText={noteText}
         duration={elapsedTime}
         weightUnit={weightUnit}
-        onConfirm={handleConfirmSave}
-        onCancel={handleCancelConfirmation}
-        isLoading={isSaving}
+        onSave={handleSaveWorkout}
+        onCancel={handleFinishCancel}
+        onComplete={handleFinishComplete}
       />
 
       {/* Plan Builder Modal */}

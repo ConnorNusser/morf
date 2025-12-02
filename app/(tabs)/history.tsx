@@ -2,6 +2,7 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
+import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import { Text, View } from '@/components/Themed';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
@@ -15,8 +16,9 @@ import { userService } from '@/lib/userService';
 import { ALL_WORKOUTS, getWorkoutByIdWithCustom } from '@/lib/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as Clipboard from 'expo-clipboard';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -68,6 +70,8 @@ export default function HistoryScreen() {
   // Modal states
   const [selectedWorkout, setSelectedWorkout] = useState<GeneratedWorkout | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<ExerciseWithMax | null>(null);
+  const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
+  const [showAllWorkouts, setShowAllWorkouts] = useState(false);
 
   // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -215,6 +219,14 @@ export default function HistoryScreen() {
     loadTemplates();
   }, [loadHistory, loadExerciseStats, loadTemplates]);
 
+  // Refresh data when screen comes into focus (e.g., after completing a workout)
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+      loadExerciseStats();
+    }, [loadHistory, loadExerciseStats])
+  );
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([loadHistory(), loadExerciseStats(), loadTemplates()]);
@@ -250,16 +262,6 @@ export default function HistoryScreen() {
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const formatFullDate = (date: Date): string => {
-    return new Date(date).toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    });
   };
 
   const handleTemplateSelect = useCallback(async (template: WorkoutTemplate) => {
@@ -327,7 +329,10 @@ export default function HistoryScreen() {
   }, [handleDeleteTemplate]);
 
   // Get recent workouts (last 5)
-  const recentWorkouts = useMemo(() => workouts.slice(0, 5), [workouts]);
+  const recentWorkouts = useMemo(() =>
+    showAllWorkouts ? workouts : workouts.slice(0, 5),
+    [workouts, showAllWorkouts]
+  );
 
   // Calculate quick stats
   const quickStats = useMemo(() => {
@@ -533,6 +538,23 @@ export default function HistoryScreen() {
               </View>
             )}
 
+            {/* Monthly Trends Button */}
+            {workouts.length > 0 && (
+              <TouchableOpacity
+                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                onPress={() => setShowMonthlyTrends(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.monthlyTrendsContent}>
+                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                    View Monthly Trends
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+              </TouchableOpacity>
+            )}
+
             {/* Recent Workouts */}
             {recentWorkouts.length > 0 && (
               <View style={styles.section}>
@@ -548,10 +570,23 @@ export default function HistoryScreen() {
                   />
                 ))}
 
-                {workouts.length > 5 && (
-                  <TouchableOpacity style={styles.viewAllButton}>
+                {workouts.length > 5 && !showAllWorkouts && (
+                  <TouchableOpacity
+                    style={styles.viewAllButton}
+                    onPress={() => setShowAllWorkouts(true)}
+                  >
                     <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
                       View all {workouts.length} workouts
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                {showAllWorkouts && workouts.length > 5 && (
+                  <TouchableOpacity
+                    style={styles.viewAllButton}
+                    onPress={() => setShowAllWorkouts(false)}
+                  >
+                    <Text style={[styles.viewAllText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Show less
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -733,6 +768,13 @@ export default function HistoryScreen() {
         onSave={handleTemplateEditorSave}
       />
 
+      {/* Monthly Trends Modal */}
+      <MonthlyTrendsModal
+        visible={showMonthlyTrends}
+        onClose={() => setShowMonthlyTrends(false)}
+        workoutHistory={workouts}
+      />
+
       {/* Exercise History Modal */}
       <Modal visible={!!selectedExercise} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
@@ -886,6 +928,26 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
+  },
+  // Monthly trends button
+  monthlyTrendsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  monthlyTrendsContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  monthlyTrendsText: {
+    fontSize: 15,
   },
   // Lift card styles - minimal
   liftCard: {

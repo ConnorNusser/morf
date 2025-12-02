@@ -33,7 +33,8 @@ interface WeekData {
 export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) {
   const { currentTheme } = useTheme();
   const { customExercises } = useCustomExercises();
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0); // 0 = current week, -1 = last week, +1 = next week
+
+  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalInvocationType, setModalInvocationType] = useState<'day' | 'week' | 'volume' | 'time'>('day');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -154,7 +155,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const missed = ALL_MUSCLE_GROUPS.filter(m => trainedMuscles[m] === 0);
 
     return { trainedMuscles, trained, missed };
-  }, [weekData.workouts]);
+  }, [weekData.workouts, customExercises]);
 
   const weekStats = useMemo(() => {
     const totalWorkouts = weekData.workouts.length;
@@ -252,7 +253,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   return (
     <>
       <Card variant="elevated" style={styles.container}>
-        {/* Compact Header */}
+        {/* Header */}
         <View style={styles.headerContainer}>
           <View style={styles.header}>
             <Text style={[
@@ -267,7 +268,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             <Text style={[
               styles.dateRange,
               {
-                color: currentTheme.colors.text + '99', // 60%
+                color: currentTheme.colors.text + '99',
                 fontFamily: 'Raleway_400Regular',
               }
             ]}>
@@ -276,9 +277,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           </View>
         </View>
 
-        {/* Week Days with integrated navigation arrows */}
+        {/* Week Days with navigation */}
         <View style={styles.weekContainer}>
-          {/* Left Arrow */}
           <TouchableOpacity
             onPress={() => navigateWeek('prev')}
             style={styles.navButton}
@@ -286,12 +286,11 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           >
             <Ionicons name="chevron-back" size={24} color={currentTheme.colors.text + '4D'} />
           </TouchableOpacity>
-          
-          {/* Days */}
+
           <View style={styles.daysContainer}>
             {weekData.weekDays.map((day, index) => (
               <View key={index} style={styles.dayColumn}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => handleDayPress(day)}
                   style={[
                     styles.dayButton,
@@ -300,7 +299,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                   activeOpacity={0.7}
                 >
                   <Text style={[
-                    styles.dayNumber, 
+                    styles.dayNumber,
                     { color: getDayTextColor(day.hasWorkout, day.workoutCategory) }
                   ]}>
                     {day.dayNumber}
@@ -319,7 +318,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             ))}
           </View>
 
-          {/* Right Arrow */}
           <TouchableOpacity
             onPress={() => navigateWeek('next')}
             style={styles.navButton}
@@ -329,7 +327,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           </TouchableOpacity>
         </View>
 
-        {/* Compact Stats */}
+        {/* Stats */}
         <View style={styles.statsContainer}>
           <TouchableOpacity
             style={styles.statItem}
