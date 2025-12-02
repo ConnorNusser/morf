@@ -2,7 +2,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
@@ -177,10 +177,3 @@ export default function TabLayout() {
   );
 }
 
-const styles = StyleSheet.create({
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 4,
-  },
-});

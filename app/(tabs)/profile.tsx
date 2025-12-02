@@ -13,24 +13,17 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { calculateOverallPercentile } from '@/lib/utils';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
   const { userProfile, isLoading, refreshProfile } = useUser();
-  const [userPercentile, setUserPercentile] = useState(0);
 
   const loadUserData = async () => {
-    try {
-      const userProgress = await userService.calculateRealUserProgress();
-      const percentile = calculateOverallPercentile(userProgress.map(p => p.percentileRanking));
-      setUserPercentile(percentile);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
+    // Trigger refresh of user progress data
+    await userService.calculateRealUserProgress();
   };
 
   useEffect(() => {

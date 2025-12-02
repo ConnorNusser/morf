@@ -141,7 +141,7 @@ export default function HomeScreen() {
                 />
               </View>
               
-              {filteredProgress.map((progress, index) => (
+              {filteredProgress.map((progress) => (
                 <WorkoutStatsCard key={progress.workoutId} stats={progress} />
               ))}
             </>

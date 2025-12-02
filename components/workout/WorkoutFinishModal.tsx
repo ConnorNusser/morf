@@ -12,7 +12,6 @@ import {
   Dimensions,
   Image,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -22,7 +21,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
-  FadeOut,
   SlideInDown,
   useAnimatedStyle,
   useSharedValue,

@@ -1,4 +1,4 @@
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import {

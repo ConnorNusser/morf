@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { calculateRecapStats, MuscleDistribution } from '@/lib/recapStats';
 

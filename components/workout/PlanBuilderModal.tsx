@@ -1,4 +1,3 @@
-import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';

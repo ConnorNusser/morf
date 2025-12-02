@@ -13,8 +13,8 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
-import { ALL_WORKOUTS, getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
+import { ALL_WORKOUTS } from '@/lib/workouts';
+import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
@@ -32,20 +32,6 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 
 type TabType = 'workouts' | 'exercises' | 'templates';
-
-// Helper to get unique muscle groups from a workout (with custom exercise support)
-const getWorkoutMuscleGroups = (workout: GeneratedWorkout, customExercises: CustomExercise[] = []): string[] => {
-  const muscleSet = new Set<string>();
-
-  workout.exercises.forEach(ex => {
-    const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
-    if (exerciseInfo?.primaryMuscles) {
-      exerciseInfo.primaryMuscles.forEach(muscle => muscleSet.add(muscle.toLowerCase()));
-    }
-  });
-
-  return Array.from(muscleSet).slice(0, 3); // Limit to top 3
-};
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();

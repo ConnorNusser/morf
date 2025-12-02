@@ -39,7 +39,6 @@ export default function WorkoutScreen() {
   const [showSummary, setShowSummary] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [parsedExercises, setParsedExercises] = useState<ParsedExerciseSummary[]>([]);
-  const [lastParsedWorkout, setLastParsedWorkout] = useState<ParsedWorkout | null>(null);
 
   // Finish modal state
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -116,7 +115,6 @@ export default function WorkoutScreen() {
 
     try {
       const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
-      setLastParsedWorkout(parsed);
       const summary = workoutNoteParser.toSummary(parsed);
       setParsedExercises(summary);
     } catch (error) {
@@ -186,7 +184,6 @@ export default function WorkoutScreen() {
     setWorkoutStartTime(null);
     setElapsedTime(0);
     setParsedExercises([]);
-    setLastParsedWorkout(null);
   }, []);
 
   // Handle cancel from finish modal
