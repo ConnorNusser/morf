@@ -7,7 +7,6 @@ import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpMo
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
-import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
@@ -30,9 +29,6 @@ export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
   const { refreshProfile } = useUser();
   const noteInputRef = useRef<WorkoutNoteInputRef>(null);
-
-  // Sound effects
-  const { play: playTap } = useSound('tapVariant1');
 
   // Workout note state
   const [noteText, setNoteText] = useState('');
@@ -137,11 +133,11 @@ export default function WorkoutScreen() {
       Alert.alert('No workout data', 'Add some exercises before finishing your workout.');
       return;
     }
-    playTap();
+    // Note: No tap sound here - the celebration sounds play when workout is saved
     playHapticFeedback('medium', false);
     Keyboard.dismiss();
     setShowFinishModal(true);
-  }, [noteText, playTap]);
+  }, [noteText]);
 
   // Handle save from finish modal
   const handleSaveWorkout = useCallback(async (parsedWorkout: ParsedWorkout) => {
