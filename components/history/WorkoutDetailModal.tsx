@@ -1,10 +1,12 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import playHapticFeedback from '@/lib/haptic';
 import { OneRMCalculator } from '@/lib/strengthStandards';
 import { getWorkoutByIdWithCustom } from '@/lib/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import * as Clipboard from 'expo-clipboard';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -33,6 +35,58 @@ export default function WorkoutDetailModal({
   onDelete,
 }: WorkoutDetailModalProps) {
   const { currentTheme } = useTheme();
+  const [copied, setCopied] = useState(false);
+
+  // Convert workout to copyable text format
+  const workoutAsText = useMemo(() => {
+    if (!workout) return '';
+
+    const lines: string[] = [];
+
+    workout.exercises.forEach(exercise => {
+      const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
+      const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+
+      if (exercise.completedSets && exercise.completedSets.length > 0) {
+        // Group sets by weight for cleaner output
+        const setsByWeight: Record<string, number[]> = {};
+        exercise.completedSets.forEach(set => {
+          const setUnit = set.unit || 'lbs';
+          const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
+          const key = `${displayWeight}`;
+          if (!setsByWeight[key]) setsByWeight[key] = [];
+          setsByWeight[key].push(set.reps);
+        });
+
+        // Format: "Bench Press 135x8, 135x8, 155x6" or "Bench Press 135x8x3" for same reps
+        const setParts: string[] = [];
+        Object.entries(setsByWeight).forEach(([weight, reps]) => {
+          // Check if all reps are the same
+          const allSameReps = reps.every(r => r === reps[0]);
+          if (allSameReps && reps.length > 1) {
+            setParts.push(`${weight}x${reps[0]}x${reps.length}`);
+          } else {
+            reps.forEach(r => setParts.push(`${weight}x${r}`));
+          }
+        });
+
+        lines.push(`${name} ${setParts.join(', ')}`);
+      }
+    });
+
+    return lines.join('\n');
+  }, [workout, customExercises, weightUnit]);
+
+  const handleCopy = useCallback(async () => {
+    if (!workoutAsText) return;
+
+    await Clipboard.setStringAsync(workoutAsText);
+    playHapticFeedback('light', false);
+    setCopied(true);
+
+    // Reset after 2 seconds
+    setTimeout(() => setCopied(false), 2000);
+  }, [workoutAsText]);
 
   const formatFullDate = (date: Date): string => {
     return new Date(date).toLocaleDateString('en-US', {
@@ -134,15 +188,24 @@ export default function WorkoutDetailModal({
   return (
     <Modal visible={!!workout} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header - close button on right */}
+        {/* Header */}
         <View style={styles.header}>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            onPress={handleCopy}
+            style={[styles.headerButton, { backgroundColor: copied ? currentTheme.colors.primary + '20' : currentTheme.colors.surface }]}
+          >
+            <Ionicons
+              name={copied ? "checkmark" : "copy-outline"}
+              size={20}
+              color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
+            />
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Workout
           </Text>
           <TouchableOpacity
             onPress={onClose}
-            style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
+            style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
           >
             <Ionicons name="close" size={20} color={currentTheme.colors.text} />
           </TouchableOpacity>
@@ -273,7 +336,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     lineHeight: 22,
   },
-  closeButton: {
+  headerButton: {
     width: 40,
     height: 40,
     borderRadius: 8,
