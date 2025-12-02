@@ -1,53 +1,34 @@
 import Card from '@/components/Card';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
+import CustomExercisesSection from '@/components/profile/CustomExercisesSection';
+import ExercisesSection from '@/components/profile/ExercisesSection';
+import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
-import WorkoutFiltersSection from '@/components/profile/WorkoutFiltersSection';
 import { Text, View } from '@/components/Themed';
-import WeeklyOverview from '@/components/WeeklyOverview';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { calculateOverallPercentile } from '@/lib/utils';
-import { GeneratedWorkout } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
   const { userProfile, isLoading, refreshProfile } = useUser();
-  const [userPercentile, setUserPercentile] = useState(0);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
 
   const loadUserData = async () => {
-    try {
-      const userProgress = await userService.calculateRealUserProgress();
-      const percentile = calculateOverallPercentile(userProgress.map(p => p.percentileRanking));
-      setUserPercentile(percentile);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  };
-
-  const loadWorkoutHistory = async () => {
-    try {
-      const history = await storageService.getWorkoutHistory();
-      setWorkoutHistory(history);
-    } catch (error) {
-      console.error('Error loading workout history:', error);
-      setWorkoutHistory([]);
-    }
+    // Trigger refresh of user progress data
+    await userService.calculateRealUserProgress();
   };
 
   useEffect(() => {
     if (userProfile) {
       loadUserData();
-      loadWorkoutHistory();
     }
   }, [userProfile]);
 
@@ -56,9 +37,51 @@ export default function ProfileScreen() {
     useCallback(() => {
       refreshProfile();
       loadUserData();
-      loadWorkoutHistory();
     }, [refreshProfile])
   );
+
+  // Reset all workout stats
+  const handleResetStats = () => {
+    Alert.alert(
+      'Reset All Workout Data',
+      'This will permanently delete all your workout history, lift records, and exercise data. Your profile information (name, age, weight) will be kept.\n\nThis action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Everything',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear workout history
+              await storageService.clearWorkoutHistory();
+
+              // Clear lifts from user profile but keep other info
+              if (userProfile) {
+                const updatedProfile = {
+                  ...userProfile,
+                  lifts: [],
+                  secondaryLifts: [],
+                };
+                await storageService.saveUserProfile(updatedProfile);
+              }
+
+              // Clear custom exercises
+              await storageService.clearCustomExercises();
+
+              // Refresh profile
+              await refreshProfile();
+              await loadUserData();
+
+              Alert.alert('Reset Complete', 'All workout data has been cleared.');
+            } catch (error) {
+              console.error('Error resetting stats:', error);
+              Alert.alert('Error', 'Failed to reset data. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
 
 
@@ -78,11 +101,6 @@ export default function ProfileScreen() {
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
         {/* Morf Logo and Brand */}
         <DashboardHeader />
-        
-        {/* Weekly Overview */}
-        <WeeklyOverview 
-          workoutHistory={workoutHistory}
-        />
 
         {/* Header */}
         <Card style={styles.headerCard} variant="subtle">
@@ -115,11 +133,6 @@ export default function ProfileScreen() {
         {/* Theme Evolution Section */}
         <ThemeEvolutionSection />
 
-        {/* Workout Filters Section */}
-        <WorkoutFiltersSection 
-          onFiltersUpdate={loadUserData}
-        />
-
         {/* Lift Display Preferences Section */}
         <LiftDisplayPreferencesSection 
           onPreferencesUpdate={loadUserData}
@@ -128,8 +141,28 @@ export default function ProfileScreen() {
         {/* Weight Unit Preference Section */}
         <WeightUnitPreferenceSection />
 
+        {/* Equipment Filter Section */}
+        <EquipmentFilterSection />
+
+        {/* Exercises Section */}
+        <ExercisesSection />
+
+        {/* Custom Exercises Section */}
+        <CustomExercisesSection />
+
         {/* App Info Section */}
         <AppInfoSection />
+
+        {/* Reset Button */}
+        <TouchableOpacity
+          style={styles.resetButton}
+          onPress={handleResetStats}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.resetButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+            Reset All Data
+          </Text>
+        </TouchableOpacity>
       </View>
       <View style={{ marginBottom: 100 }} />
     </ScrollView>
@@ -197,5 +230,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 24,
   },
-
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 16,
+  },
+  resetButton: {
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
 }); 

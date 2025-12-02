@@ -3,7 +3,7 @@ import LiftProgressionModal from '@/components/LiftProgressionModal';
 import ProgressBar from '@/components/ProgressBar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import { useUser } from '@/hooks/useUser';
+import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/haptic';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';

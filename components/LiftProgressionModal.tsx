@@ -477,8 +477,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color={currentTheme.colors.text} />
+          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}>
+            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
             {workoutName} Progression
@@ -556,7 +556,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,

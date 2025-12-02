@@ -1,6 +1,5 @@
-import ComingSoonFeaturesCard from '@/components/ComingSoonFeaturesCard';
 import DashboardHeader from '@/components/DashboardHeader';
-import ExclusiveFeaturesModal from '@/components/ExclusiveFeaturesModal';
+import RecapView from '@/components/history/RecapView';
 import LiftDisplayFilter from '@/components/LiftDisplayFilter';
 import OverallStatsCard from '@/components/OverallStatsCard';
 import Spacer from '@/components/Spacer';
@@ -12,9 +11,10 @@ import { getStrengthLevelName } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
   const { currentTheme } = useTheme();
@@ -27,7 +27,7 @@ export default function HomeScreen() {
     improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [exclusiveFeaturesModalVisible, setExclusiveFeaturesModalVisible] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -109,6 +109,18 @@ export default function HomeScreen() {
 
           <OverallStatsCard stats={overallStats} />
 
+          {/* Recap Button - Inline */}
+          <TouchableOpacity
+            style={styles.recapButton}
+            onPress={() => setShowRecap(true)}
+          >
+            <Ionicons name="trophy-outline" size={14} color={currentTheme.colors.text + '60'} />
+            <Text style={[styles.recapButtonText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+              View Recap
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={currentTheme.colors.text + '40'} />
+          </TouchableOpacity>
+
           {userProgress.length > 0 && (
             <>
               <View>
@@ -129,29 +141,19 @@ export default function HomeScreen() {
                 />
               </View>
               
-              {filteredProgress.map((progress, index) => (
+              {filteredProgress.map((progress) => (
                 <WorkoutStatsCard key={progress.workoutId} stats={progress} />
               ))}
             </>
           )}
-          <ComingSoonFeaturesCard
-            userPercentile={overallStats.overallPercentile}
-            onPress={() => {}}
-          />
-
-          {/* <ExclusiveFeaturesCard 
-            userPercentile={overallStats.overallPercentile} 
-            onPress={() => setExclusiveFeaturesModalVisible(true)}
-          /> */}
         </View>
         <Spacer height={100} />
       </ScrollView>
 
-      <ExclusiveFeaturesModal
-        visible={exclusiveFeaturesModalVisible}
-        onClose={() => setExclusiveFeaturesModalVisible(false)}
-        userPercentile={overallStats.overallPercentile}
-      />
+      {/* Recap Modal */}
+      <Modal visible={showRecap} animationType="slide" presentationStyle="fullScreen">
+        <RecapView onClose={() => setShowRecap(false)} />
+      </Modal>
     </>
   );
 }
@@ -192,5 +194,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  recapButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  recapButtonText: {
+    fontSize: 13,
   },
 });

@@ -39,7 +39,26 @@ export const themes: Record<ThemeLevel, Theme> = {
     },
     borderRadius: 16,  // Rounded, organic feeling
   },
-  
+
+  // Beginner Dark - Dark ocean theme for users who prefer dark mode
+  beginner_dark: {
+    name: 'beginner_dark',
+    colors: {
+      background: '#0D1B2A',    // Deep ocean dark background
+      text: '#E0E1DD',          // Soft white text
+      primary: '#4A90D9',       // Bolder, brighter blue primary
+      secondary: '#1B263B',     // Darker blue for cards
+      accent: '#5FA8D3',        // Brighter blue accent
+      surface: '#1B263B',       // Card surface
+      border: '#4A6FA5',        // Brighter blue border
+    },
+    properties: {
+      fontFamily: 'System',
+      headingFontFamily: 'Raleway_600SemiBold',
+    },
+    borderRadius: 16,
+  },
+
   // Clean Material Design - Soft, accessible (now intermediate)
   intermediate: {
     name: 'intermediate',
@@ -156,7 +175,11 @@ export const themes: Record<ThemeLevel, Theme> = {
 };
 
 export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
+  // Only progression themes are in order - beginner variants stay at same level
   const themeOrder: ThemeLevel[] = ['beginner', 'intermediate', 'advanced', 'elite', 'god'];
-  const currentIndex = themeOrder.indexOf(currentTheme);
+
+  // Map beginner variants to beginner for progression purposes
+  const normalizedTheme = currentTheme.startsWith('beginner') ? 'beginner' : currentTheme;
+  const currentIndex = themeOrder.indexOf(normalizedTheme);
   return themeOrder[Math.min(currentIndex + 1, themeOrder.length - 1)];
 }; 

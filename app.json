@@ -2,7 +2,7 @@
   "expo": {
     "name": "Morf",
     "slug": "morfai",
-    "version": "1.0.6",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "morfai",
@@ -11,7 +11,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vanquil.morfai",
-      "jsEngine": "hermes"
+      "jsEngine": "hermes",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you add photos to your workout logs and profile."
+      }
     },
     "android": {
       "adaptiveIcon": {

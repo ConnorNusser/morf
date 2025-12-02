@@ -9,7 +9,7 @@ export type WeightUnit = 'lbs' | 'kg';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Theme progression levels
-export type ThemeLevel = 'beginner' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool';
+export type ThemeLevel = 'beginner' | 'beginner_dark' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool';
 
 // ===== EXERCISE TYPES =====
 
@@ -22,63 +22,73 @@ export type WorkoutSplit = 'push' | 'pull' | 'legs' | 'full-body' | 'upper-body'
 export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'glutes' | 'core' | 'full-body';
 
 // Equipment types
-export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'bodyweight' | 'cable' | 'kettlebell';
+export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'smith-machine' | 'bodyweight' | 'cable' | 'kettlebell';
+
+// Equipment filter mode
+export type EquipmentFilterMode = 'all' | 'bodyweight-only' | 'custom';
+
+// Equipment filter settings
+export interface EquipmentFilter {
+  mode: EquipmentFilterMode;
+  // Only used when mode is 'custom' - which equipment types to include
+  includedEquipment: Equipment[];
+}
 
 // Main lift exercises
-export type MainLiftType = 'squat' | 'bench-press' | 'deadlift' | 'overhead-press';
+export type MainLiftType = 'squat-barbell' | 'bench-press-barbell' | 'deadlift-barbell' | 'overhead-press-barbell';
 
 // Featured secondary lifts that appear on main dashboard (all lifts with strength standards)
-export type FeaturedSecondaryLiftType = 
-  | 'dumbbell-bench-press'
-  | 'dumbbell-curl'
-  | 'barbell-curl'
-  | 'leg-press'
-  | 'barbell-row'
-  | 'incline-bench-press'
-  | 'lat-pulldown'
-  | 'leg-extension'
-  | 'romanian-deadlift'
-  | 'incline-dumbbell-chest-press'
-  | 'dumbbell-shoulder-press'
-  | 'front-squat'
-  | 'barbell-hip-thrust'
-  | 'lateral-raise'
-  | 'seated-cable-row'
-  | 'hack-squat'
-  | 'preacher-curl'
-  | 'machine-shoulder-press';
+export type FeaturedSecondaryLiftType =
+  | 'bench-press-dumbbells'
+  | 'bicep-curl-dumbbells'
+  | 'bicep-curl-barbell'
+  | 'leg-press-machine'
+  | 'row-barbell'
+  | 'incline-bench-press-barbell'
+  | 'lat-pulldown-cables'
+  | 'leg-extension-machine'
+  | 'romanian-deadlift-barbell'
+  | 'incline-bench-press-dumbbells'
+  | 'shoulder-press-dumbbells'
+  | 'front-squat-barbell'
+  | 'hip-thrust-barbell'
+  | 'lateral-raise-dumbbells'
+  | 'row-cables'
+  | 'hack-squat-machine'
+  | 'preacher-curl-dumbbells'
+  | 'overhead-press-machine';
 
 // All featured lifts (main + secondary)
 export type FeaturedLiftType = MainLiftType | FeaturedSecondaryLiftType;
 
 // Main Lift Constants - Use these instead of hardcoded strings
 export const MAIN_LIFTS = {
-  SQUAT: 'squat' as const,
-  BENCH_PRESS: 'bench-press' as const,
-  DEADLIFT: 'deadlift' as const,
-  OVERHEAD_PRESS: 'overhead-press' as const,
+  SQUAT: 'squat-barbell' as const,
+  BENCH_PRESS: 'bench-press-barbell' as const,
+  DEADLIFT: 'deadlift-barbell' as const,
+  OVERHEAD_PRESS: 'overhead-press-barbell' as const,
 } as const;
 
 // Featured Secondary Lift Constants
 export const FEATURED_SECONDARY_LIFTS = {
-  DUMBBELL_BENCH_PRESS: 'dumbbell-bench-press' as const,
-  DUMBBELL_CURL: 'dumbbell-curl' as const,
-  BARBELL_CURL: 'barbell-curl' as const,
-  LEG_PRESS: 'leg-press' as const,
-  BARBELL_ROW: 'barbell-row' as const,
-  INCLINE_BENCH_PRESS: 'incline-bench-press' as const,
-  LAT_PULLDOWN: 'lat-pulldown' as const,
-  LEG_EXTENSION: 'leg-extension' as const,
-  ROMANIAN_DEADLIFT: 'romanian-deadlift' as const,
-  INCLINE_DUMBBELL_CHEST_PRESS: 'incline-dumbbell-chest-press' as const,
-  DUMBBELL_SHOULDER_PRESS: 'dumbbell-shoulder-press' as const,
-  FRONT_SQUAT: 'front-squat' as const,
-  BARBELL_HIP_THRUST: 'barbell-hip-thrust' as const,
-  LATERAL_RAISE: 'lateral-raise' as const,
-  SEATED_CABLE_ROW: 'seated-cable-row' as const,
-  HACK_SQUAT: 'hack-squat' as const,
-  PREACHER_CURL: 'preacher-curl' as const,
-  MACHINE_SHOULDER_PRESS: 'machine-shoulder-press' as const,
+  BENCH_PRESS_DUMBBELLS: 'bench-press-dumbbells' as const,
+  BICEP_CURL_DUMBBELLS: 'bicep-curl-dumbbells' as const,
+  BICEP_CURL_BARBELL: 'bicep-curl-barbell' as const,
+  LEG_PRESS_MACHINE: 'leg-press-machine' as const,
+  ROW_BARBELL: 'row-barbell' as const,
+  INCLINE_BENCH_PRESS_BARBELL: 'incline-bench-press-barbell' as const,
+  LAT_PULLDOWN_CABLES: 'lat-pulldown-cables' as const,
+  LEG_EXTENSION_MACHINE: 'leg-extension-machine' as const,
+  ROMANIAN_DEADLIFT_BARBELL: 'romanian-deadlift-barbell' as const,
+  INCLINE_BENCH_PRESS_DUMBBELLS: 'incline-bench-press-dumbbells' as const,
+  SHOULDER_PRESS_DUMBBELLS: 'shoulder-press-dumbbells' as const,
+  FRONT_SQUAT_BARBELL: 'front-squat-barbell' as const,
+  HIP_THRUST_BARBELL: 'hip-thrust-barbell' as const,
+  LATERAL_RAISE_DUMBBELLS: 'lateral-raise-dumbbells' as const,
+  ROW_CABLES: 'row-cables' as const,
+  HACK_SQUAT_MACHINE: 'hack-squat-machine' as const,
+  PREACHER_CURL_DUMBBELLS: 'preacher-curl-dumbbells' as const,
+  OVERHEAD_PRESS_MACHINE: 'overhead-press-machine' as const,
 } as const;
 
 // Array of all main lifts for iteration
@@ -121,6 +131,7 @@ export interface UserProfile {
   lifts: UserLift[];
   secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
+  equipmentFilter?: EquipmentFilter;
 }
 
 // ===== WORKOUT TYPES =====
@@ -223,7 +234,7 @@ export interface WorkoutContext {
   userProgress: UserProgress[];
   availableEquipment: Equipment[];
   workoutHistory: GeneratedWorkout[];
-  workoutFilters?: WorkoutFilters;
+  customExercises?: CustomExercise[];
   preferences: {
     duration?: number;
     focusAreas?: MuscleGroup[];
@@ -259,9 +270,19 @@ export interface UserPreferences {
   notifications: boolean;
 }
 
-export interface WorkoutFilters {
-  excludedWorkoutIds: string[];
-  workoutType?: 'powerlifting' | 'bodyweight' | 'generic';
+// Custom user-created exercise (same structure as Workout but user-created)
+export interface CustomExercise extends Workout {
+  isCustom: true;       // Override to always be true
+  createdAt: Date;      // When the user created this exercise
+}
+
+// Workout template (saved workout notes for reuse)
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  noteText: string;  // The workout note format (e.g., "Bench Press 135x10, 145x8")
+  createdAt: Date;
+  lastUsed?: Date;
 }
 
 // Lift Display Filters for "Your Lifts" section
@@ -288,6 +309,28 @@ export interface UserLift {
   reps: number;
   unit: WeightUnit;
   dateRecorded: Date;
+}
+
+// ===== EXERCISE HISTORY TYPES =====
+
+// Single history entry for an exercise
+export interface ExerciseHistoryEntry {
+  weight: number;
+  reps: number;
+  date: Date;
+  unit: WeightUnit;
+}
+
+// Exercise with computed max stats (used in history views)
+export interface ExerciseWithMax {
+  id: string;
+  name: string;
+  maxWeight: number;
+  maxReps: number;
+  estimated1RM: number;
+  isCustom: boolean;
+  lastUsed?: Date;
+  history: ExerciseHistoryEntry[];
 }
 
 // ===== STRENGTH STANDARDS TYPES =====

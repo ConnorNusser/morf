@@ -1,9 +1,8 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { Gender, HeightUnit, Routine, WeightUnit } from '@/types';
+import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -17,9 +16,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import EquipmentFilterInput from './inputs/EquipmentFilterInput';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
+
+const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -33,13 +35,12 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [gender, setGender] = useState<Gender>('male');
   const [age, setAge] = useState<number>(28);
-  const [workoutType, setWorkoutType] = useState<'powerlifting' | 'generic' | 'bodyweight' | null>(null);
+  const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>(ALL_EQUIPMENT);
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
   const { play: playUnlock } = useSound('unlock');
-  const { play: playTap } = useSound('tapVariant1');
 
   const totalSteps = 7;
 
@@ -68,14 +69,14 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 2: return weight.value > 0; // Weight step
       case 3: return true; // Gender step - always valid since we have default
       case 4: return age > 0 && age < 120; // Age step
-      case 5: return workoutType !== null; // Workout type step
+      case 5: return availableEquipment.length > 0; // Equipment step
       case 6: return weightUnit !== null; // Weight unit step
       default: return false;
     }
   };
 
   const handleComplete = async () => {
-    if (!height || !weight || !workoutType) return;
+    if (!height || !weight) return;
 
     setIsCreatingProfile(true);
     playHapticFeedback('success', false);
@@ -87,34 +88,15 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         height,
         weight,
         gender,
-        age, // Use the entered age
-        lifts: [], // Start with empty lifts array
-        secondaryLifts: [], // Start with empty secondary lifts array
+        age,
+        lifts: [],
+        secondaryLifts: [],
         weightUnitPreference: weightUnit,
+        equipmentFilter: {
+          mode: availableEquipment.length === ALL_EQUIPMENT.length ? 'all' : 'custom',
+          includedEquipment: availableEquipment,
+        },
       });
-
-      // Set workout filters
-      await storageService.saveWorkoutFilters({
-        workoutType,
-        excludedWorkoutIds: [],
-      });
-
-      // Create default routine (only if it doesn't exist)
-      const existingRoutines = await storageService.getRoutines();
-      const hasDefaultRoutine = existingRoutines.some(routine => routine.id === 'default-routine');
-      
-      if (!hasDefaultRoutine) {
-        const defaultRoutine: Routine = {
-          id: 'default-routine',
-          name: 'Default',
-          description: 'Your default workout routine',
-          exercises: [],
-          createdAt: new Date(),
-        };
-        
-        await storageService.saveRoutine(defaultRoutine);
-        await storageService.setCurrentRoutine(defaultRoutine);
-      }
 
       onComplete();
     } catch (error) {
@@ -123,24 +105,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       setIsCreatingProfile(false);
     }
   };
-
-  const workoutTypeOptions = [
-    {
-      id: 'powerlifting' as const,
-      title: 'Powerlifting',
-      description: 'Focus on squat, bench, deadlift, and overhead press',
-    },
-    {
-      id: 'generic' as const,
-      title: 'General Fitness',
-      description: 'Balanced strength and muscle building',
-    },
-    {
-      id: 'bodyweight' as const,
-      title: 'Bodyweight',
-      description: 'No equipment needed, use your body weight',
-    },
-  ];
 
   const renderStep = () => {
     switch (currentStep) {
@@ -270,62 +234,30 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 5:
         return (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { 
+            <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your training style?</Text>
-            <Text style={[styles.stepSubtitle, { 
+            }]}>What equipment do you have?</Text>
+            <Text style={[styles.stepSubtitle, {
               color: currentTheme.colors.text + '80',
               fontFamily: 'Raleway_400Regular',
             }]}>
-              Choose your primary focus. You can change this later in settings.
+              This helps us generate workouts with exercises you can actually do.
             </Text>
-            
-            <View style={styles.workoutTypeContainer}>
-              {workoutTypeOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.id}
-                  style={[
-                    styles.workoutTypeOption,
-                    { 
-                      backgroundColor: currentTheme.colors.surface,
-                      borderColor: workoutType === option.id ? currentTheme.colors.primary : currentTheme.colors.border,
-                    },
-                    workoutType === option.id && { 
-                      backgroundColor: currentTheme.colors.primary + '15',
-                      borderWidth: 2,
-                    }
-                  ]}
-                  onPress={() => {
-                    setWorkoutType(option.id);
-                    playHapticFeedback('selection', false);
-                    playTap();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.workoutTypeTitle, { 
-                    color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_600SemiBold',
-                  }]}>
-                    {option.title}
-                  </Text>
-                  <Text style={[styles.workoutTypeDescription, { 
-                    color: currentTheme.colors.text + '80',
-                    fontFamily: 'Raleway_400Regular',
-                  }]}>
-                    {option.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.inputWrapper}>
+              <EquipmentFilterInput
+                value={availableEquipment}
+                onChange={setAvailableEquipment}
+                style={styles.inputComponent}
+              />
             </View>
           </View>
         );
 
-
       case 6:
         return (
           <View style={styles.stepContent}>
-            <Text style={[styles.stepTitle, { 
+            <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
             }]}>Choose your weight units</Text>
@@ -507,10 +439,11 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContent} 
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {renderProgressBar()}
           {renderStep()}
@@ -606,26 +539,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     marginHorizontal: 40,
-  },
-  workoutTypeContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  workoutTypeOption: {
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1.5,
-  },
-  workoutTypeTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  workoutTypeDescription: {
-    fontSize: 12,
-    textAlign: 'center',
-    lineHeight: 16,
   },
   navigationContainer: {
     position: 'absolute',

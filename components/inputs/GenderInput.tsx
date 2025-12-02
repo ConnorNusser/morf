@@ -1,12 +1,12 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { Gender } from '@/lib/userProfile';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 
 interface GenderInputProps {
   value: Gender;
   onChange: (gender: Gender) => void;
-  style?: any;
+  style?: ViewStyle;
 }
 
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [

@@ -42,8 +42,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     load();
   }, [visible]);
 
-  const mainLiftOrder = ['squat', 'bench-press', 'deadlift', 'overhead-press'] as const;
-
   // Build category averages across ALL lifts using ONLY primary muscles
   const chartData = useMemo(() => {
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;

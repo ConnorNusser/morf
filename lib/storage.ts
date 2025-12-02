@@ -1,4 +1,4 @@
-import { ActiveWorkoutSession, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutFilters, WorkoutSetCompletion } from '@/types';
+import { ActiveWorkoutSession, CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from './theme';
 
@@ -10,16 +10,17 @@ const STORAGE_KEYS = {
   USER_PREFERENCES: 'user_preferences',
   ACTIVE_WORKOUT_SESSION: 'active_workout_session',
   THEME_PREFERENCE: 'theme_preference',
-  WORKOUT_FILTERS: 'workout_filters',
   LIFT_DISPLAY_FILTERS: 'lift_display_filters',
   ROUTINES: 'routines',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
   APP_SHARED: 'app_shared', // Added for app share status
   SHARE_COUNT: 'share_count', // Added for share count tracking
+  CUSTOM_EXERCISES: 'custom_exercises', // User-created exercises
+  WORKOUT_TEMPLATES: 'workout_templates', // User-saved workout templates
 } as const;
 
-export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences, WorkoutFilters };
+export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences };
 
 class StorageService {
   // User Profile
@@ -99,6 +100,14 @@ class StorageService {
     }
   }
 
+  async clearWorkoutHistory(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify([]));
+    } catch (error) {
+      console.error('Error clearing workout history:', error);
+    }
+  }
+
   // User Preferences
   async saveUserPreferences(preferences: UserPreferences): Promise<void> {
     try {
@@ -139,13 +148,25 @@ class StorageService {
     }
   }
 
-  async getThemePreference(): Promise<ThemeLevel> {
+  async getThemePreference(): Promise<ThemeLevel | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE);
-      return (data as ThemeLevel) || 'beginner'; // Default to beginner theme
+      if (!data) return null;
+
+      // Migrate old themes that no longer exist
+      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool'];
+      if (!validThemes.includes(data as ThemeLevel)) {
+        // Map removed themes to their closest equivalent
+        if (data === 'beginner_ocean') {
+          return 'beginner';
+        }
+        return 'beginner';
+      }
+
+      return data as ThemeLevel;
     } catch (error) {
       console.error('Error loading theme preference:', error);
-      return 'beginner';
+      return null;
     }
   }
 
@@ -190,31 +211,6 @@ class StorageService {
     } catch (error) {
       console.error('Error loading share count:', error);
       return 0; // Default for testing
-    }
-  }
-
-  // Workout Filters
-  async saveWorkoutFilters(filters: WorkoutFilters): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_FILTERS, JSON.stringify(filters));
-    } catch (error) {
-      console.error('Error saving workout filters:', error);
-    }
-  }
-
-  async getWorkoutFilters(): Promise<WorkoutFilters> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_FILTERS);
-      return data ? JSON.parse(data) : {
-        excludedWorkoutIds: [],
-        workoutType: 'powerlifting', // Default to powerlifting
-      };
-    } catch (error) {
-      console.error('Error loading workout filters:', error);
-      return {
-        excludedWorkoutIds: [],
-        workoutType: 'powerlifting', // Default to powerlifting
-      };
     }
   }
 
@@ -316,7 +312,6 @@ class StorageService {
   async getRoutines(): Promise<Routine[]> {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
     const routines = data ? JSON.parse(data) : [];
-    console.log('💾 Storage: Found', routines.length, 'routines in storage');
     return routines;
   };
 
@@ -329,16 +324,13 @@ class StorageService {
     
     if (existingIndex >= 0) {
       // Update existing routine
-      console.log('💾 Storage: Updating existing routine:', routine.name);
       routines[existingIndex] = routine;
     } else {
       // Add new routine
-      console.log('💾 Storage: Adding new routine:', routine.name);
       routines.push(routine);
     }
-    
+
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
-    console.log('💾 Storage: Saved routine. Total routines now:', routines.length);
   };
 
   async deleteRoutine(routineId: string): Promise<void> {
@@ -372,6 +364,185 @@ class StorageService {
     const workoutRoutines = await this.getWorkoutRoutines();
     const filtered = workoutRoutines.filter(w => w.id !== workoutId);
     await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(filtered));
+  }
+
+  // Custom Exercises
+  async getCustomExercises(): Promise<CustomExercise[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOM_EXERCISES);
+      if (!data) return [];
+
+      const exercises = JSON.parse(data);
+      return exercises.map((e: any) => ({
+        ...e,
+        createdAt: new Date(e.createdAt),
+      }));
+    } catch (error) {
+      console.error('Error loading custom exercises:', error);
+      return [];
+    }
+  }
+
+  async saveCustomExercise(exercise: CustomExercise): Promise<void> {
+    try {
+      const exercises = await this.getCustomExercises();
+
+      // Check if exercise with same ID already exists
+      const existingIndex = exercises.findIndex(e => e.id === exercise.id);
+
+      if (existingIndex >= 0) {
+        exercises[existingIndex] = exercise;
+      } else {
+        exercises.push(exercise);
+      }
+
+      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(exercises));
+    } catch (error) {
+      console.error('Error saving custom exercise:', error);
+    }
+  }
+
+  async deleteCustomExercise(exerciseId: string): Promise<void> {
+    try {
+      const exercises = await this.getCustomExercises();
+      const filtered = exercises.filter(e => e.id !== exerciseId);
+      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error deleting custom exercise:', error);
+    }
+  }
+
+  async clearCustomExercises(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.CUSTOM_EXERCISES, JSON.stringify([]));
+    } catch (error) {
+      console.error('Error clearing custom exercises:', error);
+    }
+  }
+
+  async getCustomExerciseByName(name: string): Promise<CustomExercise | null> {
+    const exercises = await this.getCustomExercises();
+    return exercises.find(e => e.name.toLowerCase() === name.toLowerCase()) || null;
+  }
+
+  // Workout Templates
+  async getWorkoutTemplates(): Promise<WorkoutTemplate[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_TEMPLATES);
+      const templates = data ? JSON.parse(data) : [];
+      // Convert date strings back to Date objects
+      return templates.map((t: any) => ({
+        ...t,
+        createdAt: new Date(t.createdAt),
+        lastUsed: t.lastUsed ? new Date(t.lastUsed) : undefined,
+      }));
+    } catch (error) {
+      console.error('Error loading workout templates:', error);
+      return [];
+    }
+  }
+
+  async saveWorkoutTemplate(template: WorkoutTemplate): Promise<void> {
+    try {
+      const templates = await this.getWorkoutTemplates();
+      const existingIndex = templates.findIndex(t => t.id === template.id);
+
+      if (existingIndex >= 0) {
+        templates[existingIndex] = template;
+      } else {
+        templates.push(template);
+      }
+
+      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(templates));
+    } catch (error) {
+      console.error('Error saving workout template:', error);
+    }
+  }
+
+  async deleteWorkoutTemplate(templateId: string): Promise<void> {
+    try {
+      const templates = await this.getWorkoutTemplates();
+      const filtered = templates.filter(t => t.id !== templateId);
+      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error deleting workout template:', error);
+    }
+  }
+
+  async updateTemplateLastUsed(templateId: string): Promise<void> {
+    try {
+      const templates = await this.getWorkoutTemplates();
+      const template = templates.find(t => t.id === templateId);
+      if (template) {
+        template.lastUsed = new Date();
+        await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(templates));
+      }
+    } catch (error) {
+      console.error('Error updating template last used:', error);
+    }
+  }
+
+  /**
+   * Migrate all references from an old exercise ID to a new exercise ID.
+   * This updates:
+   * - Workout history (exercises in past workouts)
+   * - User profile lifts and secondaryLifts
+   * - Workout templates
+   */
+  async migrateExerciseId(oldId: string, newId: string): Promise<void> {
+    if (oldId === newId) return;
+
+    try {
+      // 1. Update workout history
+      const history = await this.getWorkoutHistory();
+      let historyChanged = false;
+      for (const workout of history) {
+        for (const exercise of workout.exercises) {
+          if (exercise.id === oldId) {
+            exercise.id = newId;
+            historyChanged = true;
+          }
+        }
+      }
+      if (historyChanged) {
+        await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify(history));
+      }
+
+      // 2. Update user profile lifts
+      const profileData = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+      if (profileData) {
+        const profile = JSON.parse(profileData);
+        let profileChanged = false;
+
+        if (profile.lifts) {
+          for (const lift of profile.lifts) {
+            if (lift.id === oldId) {
+              lift.id = newId;
+              profileChanged = true;
+            }
+          }
+        }
+
+        if (profile.secondaryLifts) {
+          for (const lift of profile.secondaryLifts) {
+            if (lift.id === oldId) {
+              lift.id = newId;
+              profileChanged = true;
+            }
+          }
+        }
+
+        if (profileChanged) {
+          await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
+        }
+      }
+
+      // Note: WorkoutTemplates store raw noteText, not exercise IDs, so no migration needed
+
+    } catch (error) {
+      console.error('Error migrating exercise ID:', error);
+      throw error;
+    }
   }
 }
 

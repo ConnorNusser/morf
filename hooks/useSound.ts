@@ -25,7 +25,6 @@ export function useSound(soundName: SoundName) {
       if (player) {
         player.seekTo(0);
         player.play();
-        console.log('playing sound', soundName);
       }
     } catch (error) {
       console.warn(`Failed to play sound "${soundName}":`, error);
@@ -60,32 +59,3 @@ export function useSound(soundName: SoundName) {
     player,
   };
 }
-
-/**
- * Hook for playing multiple sounds with individual controls
- * 
- * @param soundNames - Array of sound names to load
- * @returns Object with sound controls for each sound
- * 
- * @example
- * ```tsx
- * const sounds = useSounds(['success', 'beep', 'pop']);
- * 
- * const handleSuccess = () => {
- *   sounds.success.play();
- * };
- * 
- * const handleSelect = () => {
- *   sounds.beep.play();
- * };
- * ```
- */
-export function useSounds<T extends readonly SoundName[]>(soundNames: T) {
-  const sounds = {} as Record<T[number], ReturnType<typeof useSound>>;
-
-  soundNames.forEach((soundName) => {
-    sounds[soundName] = useSound(soundName);
-  });
-
-  return sounds;
-} 
