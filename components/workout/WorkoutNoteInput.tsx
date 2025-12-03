@@ -8,7 +8,6 @@ import {
   StyleSheet,
   TextInput,
   TextInputProps,
-  ScrollView,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
@@ -42,12 +41,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
 
     return (
       <>
-        <ScrollView
-          style={styles.scrollContainer}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="interactive"
-        >
+        <RNView style={styles.container}>
           <TextInput
             ref={inputRef}
             style={[
@@ -62,13 +56,14 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
             placeholder={placeholder}
             placeholderTextColor={currentTheme.colors.text + '40'}
             multiline
+            scrollEnabled
             textAlignVertical="top"
             autoCapitalize="sentences"
             autoCorrect={false}
             inputAccessoryViewID={inputAccessoryViewID}
             {...props}
           />
-        </ScrollView>
+        </RNView>
         {/* Keyboard accessory with Done button */}
         {Platform.OS === 'ios' && (
           <InputAccessoryView nativeID={inputAccessoryViewID}>
@@ -93,18 +88,15 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
 WorkoutNoteInput.displayName = 'WorkoutNoteInput';
 
 const styles = StyleSheet.create({
-  scrollContainer: {
+  container: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
     padding: 20,
     paddingTop: 12,
   },
   input: {
     flex: 1,
-    fontSize: 24,
-    lineHeight: 34,
+    fontSize: 16,
+    lineHeight: 22,
     minHeight: 200,
   },
   accessoryContainer: {

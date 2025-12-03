@@ -18,7 +18,6 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Keyboard,
-  KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
   SafeAreaView,
@@ -270,11 +269,7 @@ export default function WorkoutScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
+      <View style={styles.keyboardAvoid}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent' }]}>
           <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
@@ -442,7 +437,7 @@ Bench 135x8, 155x6
 Squats 225 for 5 reps`}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
       <WorkoutFinishModal
