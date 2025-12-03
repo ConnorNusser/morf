@@ -126,7 +126,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
               color: currentTheme.colors.text + '90',
               fontFamily: 'Raleway_400Regular',
             }]}>
-              Let's set up your profile to create personalized workouts just for you.
+              {"Let's set up your profile to create personalized workouts just for you."}
             </Text>
             <Text style={[styles.stepIndicator, { 
               color: currentTheme.colors.text + '60',
@@ -143,7 +143,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your height?</Text>
+            }]}>{"What's your height?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
               fontFamily: 'Raleway_400Regular',
@@ -162,7 +162,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your weight?</Text>
+            }]}>{"What's your weight?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
               fontFamily: 'Raleway_400Regular',
@@ -181,7 +181,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your gender?</Text>
+            }]}>{"What's your gender?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
               fontFamily: 'Raleway_400Regular',
@@ -200,7 +200,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_600SemiBold',
-            }]}>What's your age?</Text>
+            }]}>{"What's your age?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
               fontFamily: 'Raleway_400Regular',

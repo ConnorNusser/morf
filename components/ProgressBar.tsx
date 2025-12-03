@@ -27,7 +27,7 @@ export default function ProgressBar({
 }: ProgressBarProps) {
   const { currentTheme } = useTheme();
   const animatedProgress = useRef(new Animated.Value(0)).current;
-  const [showModal, setShowModal] = useState(false);
+  const [_showModal, setShowModal] = useState(false);
 
   // Strength standard percentiles
   const strengthTicks = [

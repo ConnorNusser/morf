@@ -1,4 +1,4 @@
-import { CustomExercise, GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
+import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import OpenAI from 'openai';
 import { aiWorkoutGenerator } from './aiWorkoutGenerator';
 import { exerciseNameToId } from './exerciseUtils';
@@ -362,7 +362,7 @@ class WorkoutNoteParser {
       // If no match, create custom exercise
       if (!exerciseId) {
         // Generate the expected ID from the name
-        const expectedId = exerciseNameToId(ex.name);
+        const _expectedId = exerciseNameToId(ex.name);
 
         // Check if custom exercise already exists by ID
         const existingCustom = await storageService.getCustomExerciseByName(ex.name);

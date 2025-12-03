@@ -201,7 +201,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             <RNView style={styles.welcomeContainer}>
               <Ionicons name="sparkles" size={48} color={currentTheme.colors.primary + '40'} />
               <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                Let's Build Your Workout
+                {"Let's Build Your Workout"}
               </Text>
               <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
                 Describe what you want to do today

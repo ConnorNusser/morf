@@ -49,7 +49,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
           <View style={[styles.importantNote, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary }]}>
             <Ionicons name="information-circle" size={20} color={currentTheme.colors.primary} />
             <Text style={[styles.importantNoteText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-              If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata.
+              {"If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata."}
             </Text>
           </View>
 
@@ -83,7 +83,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
                 <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>Target</Text>
               </View>
               <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
-                Marks sets as target/template sets (what you're aiming for). These won't count as completed.
+                {"Marks sets as target/template sets (what you're aiming for). These won't count as completed."}
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
                 <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>

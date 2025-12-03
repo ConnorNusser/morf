@@ -18,7 +18,7 @@ interface OverallStrengthModalProps {
 export default function OverallStrengthModal({ visible, onClose }: OverallStrengthModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserProgress[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState<boolean>(false);
@@ -46,8 +46,9 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const chartData = useMemo(() => {
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
     const liftToMuscles: Record<string, string[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { ALL_WORKOUTS } = require('@/lib/workouts');
-    ALL_WORKOUTS.forEach((w: any) => {
+    ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
       liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
     });
 
@@ -67,6 +68,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const tooltipDetails = useMemo(() => {
     const byGroup: Record<string, { name: string; pct: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -88,6 +90,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const groupInfos = useMemo(() => {
     const map: Record<string, { id: string; name: string; pct: number; oneRM: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -103,7 +106,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     return map;
   }, [lifts]);
 
-  const openGroupPanel = (index: number) => {
+  const _openGroupPanel = (index: number) => {
     setSelectedIdx(index);
     setIsGroupPanelOpen(true);
   };
@@ -271,7 +274,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 {`Strongest: ${bestGroup.label} • Weakest: ${weakGroup.label}`}
               </Text>
             </View>
-            {sortedLifts.map((l, i) => (
+            {sortedLifts.map((l, _i) => (
               <View key={l.workoutId} style={styles.liftRow}>
                 <Text style={[styles.liftName, { color: currentTheme.colors.text }]}>{l.workoutId.replace('-', ' ')}</Text>
                 <View style={styles.rowRight}>

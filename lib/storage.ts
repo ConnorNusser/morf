@@ -78,9 +78,9 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_HISTORY);
       if (!data) return [];
       
-      const workouts = JSON.parse(data);
+      const workouts = JSON.parse(data) as (Omit<GeneratedWorkout, 'createdAt'> & { createdAt: string })[];
       // Convert date strings back to Date objects
-      return workouts.map((w: any) => ({
+      return workouts.map((w) => ({
         ...w,
         createdAt: new Date(w.createdAt),
       }));
@@ -250,8 +250,8 @@ class StorageService {
       const session = JSON.parse(data);
       // Convert date strings back to Date objects
       session.startTime = new Date(session.startTime);
-      session.exercises.forEach((exercise: any) => {
-        exercise.completedSets.forEach((set: any) => {
+      session.exercises.forEach((exercise: { completedSets: { restStartTime?: string | Date }[] }) => {
+        exercise.completedSets.forEach((set: { restStartTime?: string | Date }) => {
           if (set.restStartTime) {
             set.restStartTime = new Date(set.restStartTime);
           }
@@ -372,8 +372,8 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOM_EXERCISES);
       if (!data) return [];
 
-      const exercises = JSON.parse(data);
-      return exercises.map((e: any) => ({
+      const exercises = JSON.parse(data) as (Omit<CustomExercise, 'createdAt'> & { createdAt: string })[];
+      return exercises.map((e) => ({
         ...e,
         createdAt: new Date(e.createdAt),
       }));
@@ -429,9 +429,9 @@ class StorageService {
   async getWorkoutTemplates(): Promise<WorkoutTemplate[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_TEMPLATES);
-      const templates = data ? JSON.parse(data) : [];
+      const templates = (data ? JSON.parse(data) : []) as (Omit<WorkoutTemplate, 'createdAt' | 'lastUsed'> & { createdAt: string; lastUsed?: string })[];
       // Convert date strings back to Date objects
-      return templates.map((t: any) => ({
+      return templates.map((t) => ({
         ...t,
         createdAt: new Date(t.createdAt),
         lastUsed: t.lastUsed ? new Date(t.lastUsed) : undefined,

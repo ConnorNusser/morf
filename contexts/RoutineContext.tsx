@@ -78,6 +78,7 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
         setCurrentRoutineState(null);
         // Clear from storage as well
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await storageService.setCurrentRoutine(null as any);
         } catch (storageError) {
           console.warn('Warning: Could not clear current routine from storage:', storageError);
@@ -98,6 +99,7 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Handle clearing current routine
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           await storageService.setCurrentRoutine(null as any);
         } catch (error) {
           console.warn('Warning: Could not clear current routine from storage:', error);

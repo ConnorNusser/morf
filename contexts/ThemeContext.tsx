@@ -39,6 +39,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       }
     };
     loadThemePreference();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
   }, []);
 
   const progressToNextTheme = () => {

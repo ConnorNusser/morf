@@ -16,9 +16,9 @@ interface PersonalInformationSectionProps {
   onProfileUpdate: () => Promise<void>;
 }
 
-export default function PersonalInformationSection({ 
-  userProfile, 
-  onProfileUpdate 
+export default function PersonalInformationSection({
+  userProfile,
+  onProfileUpdate: _onProfileUpdate
 }: PersonalInformationSectionProps) {
   const { currentTheme } = useTheme();
   const { updateProfile } = useUser();

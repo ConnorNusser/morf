@@ -36,13 +36,13 @@ const roundToIncrement = (value: number, unit: 'lbs' | 'kg'): number => {
   return Math.round(value / increment) * increment;
 };
 
-export default function ProgressionIndicator({ 
-  currentOneRM, 
-  bodyWeight, 
-  gender, 
-  age, 
-  liftId, 
-  weightUnit 
+export default function ProgressionIndicator({
+  currentOneRM,
+  bodyWeight,
+  gender,
+  age: _age,
+  liftId,
+  weightUnit
 }: ProgressionIndicatorProps) {
   const { currentTheme } = useTheme();
   const [slideAnim] = useState(new Animated.Value(0));
@@ -147,7 +147,7 @@ export default function ProgressionIndicator({
         </View>
 
         {/* Data rows with individual colors */}
-        {targets.map((target, index) => {
+        {targets.map((target, _index) => {
           return (
             <View key={target.name} style={styles.gridRow}>
               {/* Level info */}

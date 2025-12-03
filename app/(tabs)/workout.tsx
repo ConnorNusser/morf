@@ -11,14 +11,12 @@ import playHapticFeedback from '@/lib/haptic';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
-import { ParsedExerciseSummary, ParsedWorkout } from '@/lib/workoutNoteParser';
-import { workoutNoteParser } from '@/lib/workoutNoteParser';
+import { ParsedExerciseSummary, ParsedWorkout , workoutNoteParser } from '@/lib/workoutNoteParser';
 import { isMainLift, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Animated,
   Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
@@ -64,7 +62,7 @@ export default function WorkoutScreen() {
 
   // Rest timer state
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
-  const { isResting, remainingTime, formattedTime: formattedRestTime, startTimer: startRestTimer, skipTimer: skipRestTimer, addTime: addRestTime } = useRestTimer();
+  const { isResting, remainingTime: _remainingTime, formattedTime: formattedRestTime, startTimer: startRestTimer, skipTimer: skipRestTimer, addTime: addRestTime } = useRestTimer();
 
   // User preferences
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');

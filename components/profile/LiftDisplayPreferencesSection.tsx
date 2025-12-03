@@ -161,7 +161,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
               fontFamily: 'Raleway_400Regular',
             }
           ]}>
-            Choose which lifts to display in your "Your Lifts" section on the main dashboard.
+            {"Choose which lifts to display in your \"Your Lifts\" section on the main dashboard."}
           </Text>
 
           <View style={styles.quickActions}>

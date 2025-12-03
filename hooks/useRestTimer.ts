@@ -15,6 +15,7 @@ export const useRestTimer = () => {
   // Load any existing rest timer on mount
   useEffect(() => {
     loadExistingTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
   }, []);
 
   // Update timer every second when resting
@@ -28,6 +29,7 @@ export const useRestTimer = () => {
     }
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateTimer is stable, only re-run when isResting changes
   }, [isResting]);
 
   const loadExistingTimer = async () => {

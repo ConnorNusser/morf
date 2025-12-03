@@ -39,6 +39,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       const y = center + Math.sin(angle) * radius;
       return { x, y, angle } as const;
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- data dependency covered by data.length
   }, [data.length, center, radius, angleStep]);
 
   const valuePointCoords = useMemo(() => {
@@ -102,7 +103,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
                     dy={dy}
                     fill={text}
                     fontSize="11"
-                    textAnchor={anchor as any}
+                    textAnchor={anchor as "start" | "middle" | "end"}
                   >
                     {data[i].label}
                   </SvgText>

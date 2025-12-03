@@ -73,6 +73,7 @@ const PulsingDot = ({ delay, color }: { delay: number; color: string }) => {
         true
       )
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once on mount
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -117,6 +118,7 @@ const Particle = ({ delay, startX, color }: { delay: number; startX: number; col
       withRepeat(withTiming(360, { duration: 1000 }), -1, false)
     );
     opacity.value = withDelay(delay + 2000, withTiming(0, { duration: 1000 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once on mount
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -241,6 +243,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         true
       )
     );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once, sound hooks are stable
   }, [playWhoosh, playUnlock, playSuccess]);
 
   // Handle save

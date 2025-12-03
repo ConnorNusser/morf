@@ -27,7 +27,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const [liftData, setLiftData] = useState<UserProgress[]>([]);
   const [originalLiftData, setOriginalLiftData] = useState<UserLift[]>([]);
   const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
-  const [selectedMetric, setSelectedMetric] = useState<'oneRM' | 'volume'>('oneRM');
+  const [selectedMetric, _setSelectedMetric] = useState<'oneRM' | 'volume'>('oneRM');
   const [predictions, setPredictions] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
@@ -38,6 +38,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     if (visible) {
       loadLiftData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadLiftData is stable, only re-run on visibility/lift changes
   }, [visible, liftId]);
 
   const loadLiftData = async () => {
@@ -136,7 +137,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     
     // Asymptotic approach - assumes growth slows as we approach genetic potential
     const geneticPotential = lastValue * 1.3; // Assume 30% more potential
-    const currentProgress = (lastValue - firstValue) / (geneticPotential - firstValue);
+    const _currentProgress = (lastValue - firstValue) / (geneticPotential - firstValue);
     const remainingPotential = geneticPotential - lastValue;
     
     // Exponential decay model for remaining growth
@@ -411,7 +412,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       const firstDate = new Date(liftData[0].lastUpdated);
       const daysSinceFirst = (now.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
       
-      const timeframes: Array<'1M' | '3M' | '6M' | '1Y' | 'ALL'> = ['ALL'];
+      const timeframes: ('1M' | '3M' | '6M' | '1Y' | 'ALL')[] = ['ALL'];
       
       if (daysSinceFirst >= 30) timeframes.unshift('1M');
       if (daysSinceFirst >= 90) timeframes.unshift('3M');

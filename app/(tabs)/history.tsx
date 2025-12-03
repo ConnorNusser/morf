@@ -713,7 +713,7 @@ export default function HistoryScreen() {
                   No notes yet
                 </Text>
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: 'Raleway_400Regular' }]}>
-                  Tap "Create New Note" above to get started
+                  Tap &quot;Create New Note&quot; above to get started
                 </Text>
               </View>
             )}

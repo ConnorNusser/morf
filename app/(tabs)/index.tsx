@@ -35,11 +35,13 @@ export default function HomeScreen() {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyFilters is stable, only re-run on data changes
   }, [userProgress, liftFilters]);
 
   // Update overall stats when filtered progress changes
   useEffect(() => {
     updateOverallStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateOverallStats is stable, only re-run on data changes
   }, [filteredProgress]);
 
   const loadUserData = async () => {

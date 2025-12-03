@@ -95,7 +95,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
     </TouchableOpacity>
     {/* Lazy import to avoid circular deps in native fast refresh */}
     {isModalOpen && (
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
       React.createElement(require('./OverallStrengthModal').default, { visible: isModalOpen, onClose: () => setIsModalOpen(false) })
     )}
     </>

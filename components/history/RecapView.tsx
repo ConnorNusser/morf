@@ -111,7 +111,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
     }
   });
 
-  const renderCard = ({ item, index }: { item: RecapCardData; index: number }) => {
+  const renderCard = ({ item, index: _index }: { item: RecapCardData; index: number }) => {
     if (!stats) return null;
 
     const renderCardContent = () => {
@@ -215,7 +215,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
           style={styles.viewShot}
         >
           <LinearGradient
-            colors={item.gradient as any}
+            colors={item.gradient as unknown as readonly [string, string, ...string[]]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.card}

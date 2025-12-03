@@ -12,7 +12,7 @@ export default function DashboardHeader({ onLogoPress }: DashboardHeaderProps) {
 
   const handleShareApp = async () => {
     try {
-      const result = await Share.share({
+      const _result = await Share.share({
         message: '🔥 Track your lifts with Morf! \n\nhttps://apps.apple.com/us/app/morf-your-ai-workout-tracker/id6747366819?platform=iphone 💪',
         title: 'Morf - Transform Your Strength',
       });
