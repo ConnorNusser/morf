@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 24,
+    lineHeight: 34,
     minHeight: 200,
   },
   accessoryContainer: {

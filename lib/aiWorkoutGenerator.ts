@@ -52,7 +52,7 @@ class AIWorkoutGeneratorService {
 
   constructor() {
     this.openai = new OpenAI({
-      apiKey: this.AI_API_KEY,
+      apiKey: this.AI_API_KEY || process.env.OPENAI_API_KEY,
     });
   }
 

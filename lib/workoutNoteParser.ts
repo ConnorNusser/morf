@@ -161,7 +161,7 @@ class WorkoutNoteParser {
           name: ex.name,
           matchedExerciseId: match?.id,
           isCustom: match ? match.isCustom : true,
-          sets: ex.sets.map(s => ({
+          sets: (ex.sets || []).map(s => ({
             weight: s.weight,
             reps: s.reps,
             unit: s.unit as WeightUnit,
