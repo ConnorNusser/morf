@@ -1,0 +1,475 @@
+import IconButton from '@/components/IconButton';
+import StrengthRadarCard from '@/components/StrengthRadarCard';
+import { Text, View } from '@/components/Themed';
+import { useTheme } from '@/contexts/ThemeContext';
+import { getCountryFlag, getCountryName } from '@/lib/geoService';
+import { TIER_COLORS, StrengthTier } from '@/lib/strengthStandards';
+import { supabase } from '@/lib/supabase';
+import { userSyncService } from '@/lib/userSyncService';
+import { getWorkoutById } from '@/lib/workouts';
+import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+} from 'react-native';
+
+interface UserLiftData {
+  exercise_id: string;
+  estimated_1rm: number;
+  recorded_at: string;
+}
+
+
+interface UserProfileModalProps {
+  visible: boolean;
+  onClose: () => void;
+  user: RemoteUser | null;
+}
+
+const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
+
+export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
+  const { currentTheme } = useTheme();
+  const [lifts, setLifts] = useState<UserLiftData[]>([]);
+  const [_userData, setUserData] = useState<RemoteUserData | null>(null);
+  const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadUserData = useCallback(async () => {
+    if (!user || !supabase) return;
+
+    setIsLoading(true);
+    try {
+      // Get user data including profile info and percentile data
+      const [liftsResult, userResult, percentileResult] = await Promise.all([
+        supabase
+          .from('user_best_lifts')
+          .select('exercise_id, estimated_1rm, recorded_at')
+          .eq('user_id', user.id),
+        supabase
+          .from('users')
+          .select('user_data, country_code')
+          .eq('id', user.id)
+          .single(),
+        userSyncService.getUserPercentileData(user.id)
+      ]);
+
+      if (liftsResult.error) {
+        console.error('Error loading user lifts:', liftsResult.error);
+        setLifts([]);
+      } else {
+        setLifts(liftsResult.data || []);
+      }
+
+      if (userResult.data) {
+        if (userResult.data.user_data) {
+          setUserData(userResult.data.user_data as RemoteUserData);
+        } else {
+          setUserData(null);
+        }
+        // Update user with country code
+        if (userResult.data.country_code && user) {
+          user.country_code = userResult.data.country_code;
+        }
+      } else {
+        setUserData(null);
+      }
+
+      // Set percentile data
+      setPercentileData(percentileResult);
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setLifts([]);
+      setUserData(null);
+      setPercentileData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (visible && user) {
+      loadUserData();
+    }
+  }, [visible, user, loadUserData]);
+
+  if (!user) return null;
+
+  // Calculate stats
+  const getBig3Lift = (exerciseId: string) => {
+    const lift = lifts.find(l => l.exercise_id === exerciseId);
+    return lift ? Math.round(lift.estimated_1rm) : 0;
+  };
+
+  const benchMax = getBig3Lift(MAIN_LIFTS.BENCH_PRESS);
+  const squatMax = getBig3Lift(MAIN_LIFTS.SQUAT);
+  const deadliftMax = getBig3Lift(MAIN_LIFTS.DEADLIFT);
+  const big3Total = benchMax + squatMax + deadliftMax;
+  const thousandPoundProgress = Math.min(100, Math.round((big3Total / 1000) * 100));
+
+  // Calculate total volume (sum of all 1RMs as a rough proxy)
+  const totalVolume = lifts.reduce((sum, lift) => sum + lift.estimated_1rm, 0);
+
+  // Get overall percentile and strength level from synced data
+  const overallPercentile = percentileData?.overall_percentile ?? null;
+  const strengthLevel = percentileData?.strength_level ?? null;
+
+  // Get top lifts (excluding Big 3)
+  const otherLifts = lifts
+    .filter(l => !BIG_3.includes(l.exercise_id as typeof MAIN_LIFTS.BENCH_PRESS))
+    .filter(l => getWorkoutById(l.exercise_id) !== null)
+    .sort((a, b) => b.estimated_1rm - a.estimated_1rm)
+    .slice(0, 5);
+
+  const getExerciseName = (id: string) => {
+    const workout = getWorkoutById(id);
+    return workout?.name || id;
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <IconButton icon="chevron-back" onPress={onClose} />
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            Profile
+          </Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color={currentTheme.colors.primary} style={{ marginTop: 60 }} />
+          ) : (
+            <>
+              {/* User Info */}
+              <View style={styles.userHeader}>
+                <View style={styles.userInfoLeft}>
+                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    @{user.username}
+                  </Text>
+                  {user.country_code && (
+                    <View style={styles.countryRow}>
+                      <Text style={styles.countryFlag}>{getCountryFlag(user.country_code)}</Text>
+                      <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        {getCountryName(user.country_code)}
+                      </Text>
+                    </View>
+                  )}
+                  {strengthLevel && (
+                    <View style={[styles.tierBadgeSmall, {
+                      backgroundColor: (TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary) + '20',
+                      borderColor: TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary
+                    }]}>
+                      <Text style={[styles.tierBadgeText, {
+                        color: TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary,
+                        fontFamily: 'Raleway_700Bold'
+                      }]}>
+                        {strengthLevel} Tier
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                  <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+                    {user.username.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Strength Radar */}
+              {percentileData && overallPercentile !== null && (
+                <StrengthRadarCard
+                  overallPercentile={Math.round(overallPercentile)}
+                  strengthLevel={strengthLevel || 'F'}
+                  muscleGroups={percentileData.muscle_groups}
+                  topContributions={percentileData.top_contributions}
+                />
+              )}
+
+              {/* 1000lb Club Progress */}
+              <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.cardHeader, { backgroundColor: 'transparent' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    1000lb Club
+                  </Text>
+                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    {big3Total} lbs
+                  </Text>
+                </View>
+
+                <View style={[styles.progressBarContainer, { backgroundColor: currentTheme.colors.border }]}>
+                  <View
+                    style={[
+                      styles.progressBar,
+                      {
+                        backgroundColor: thousandPoundProgress >= 100 ? '#22C55E' : currentTheme.colors.primary,
+                        width: `${thousandPoundProgress}%`
+                      }
+                    ]}
+                  />
+                </View>
+                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  {thousandPoundProgress >= 100 ? 'Member!' : `${thousandPoundProgress}% to 1000lbs`}
+                </Text>
+
+                {/* Big 3 Breakdown */}
+                <View style={styles.big3Container}>
+                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Bench
+                    </Text>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      {benchMax || '-'}
+                    </Text>
+                  </View>
+                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
+                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Squat
+                    </Text>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      {squatMax || '-'}
+                    </Text>
+                  </View>
+                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
+                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Deadlift
+                    </Text>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      {deadliftMax || '-'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Stats Card */}
+              <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  Stats
+                </Text>
+                <View style={styles.statsGrid}>
+                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                      {lifts.length}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Exercises
+                    </Text>
+                  </View>
+                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                      {Math.round(totalVolume).toLocaleString()}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                      Total 1RM lbs
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Other Top Lifts */}
+              {otherLifts.length > 0 && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    Top Lifts
+                  </Text>
+                  <View style={styles.liftsList}>
+                    {otherLifts.map((lift) => (
+                      <View key={lift.exercise_id} style={[styles.liftRow, { backgroundColor: 'transparent' }]}>
+                        <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                          {getExerciseName(lift.exercise_id)}
+                        </Text>
+                        <Text style={[styles.liftValue, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }]}>
+                          {Math.round(lift.estimated_1rm)} lbs
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {lifts.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Ionicons name="barbell-outline" size={32} color={currentTheme.colors.text + '30'} />
+                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    No lift data available yet
+                  </Text>
+                </View>
+              )}
+            </>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  headerTitle: {
+    fontSize: 17,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    gap: 16,
+  },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  userInfoLeft: {
+    flex: 1,
+    gap: 6,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 16,
+  },
+  avatarText: {
+    fontSize: 28,
+    fontWeight: '600',
+  },
+  countryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  countryFlag: {
+    fontSize: 18,
+  },
+  username: {
+    fontSize: 20,
+  },
+  countryName: {
+    fontSize: 14,
+  },
+  tierBadgeSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  tierBadgeText: {
+    fontSize: 14,
+  },
+  card: {
+    borderRadius: 14,
+    padding: 16,
+    gap: 12,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 15,
+  },
+  cardValue: {
+    fontSize: 18,
+  },
+  progressBarContainer: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  big3Container: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  big3Item: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  big3Label: {
+    fontSize: 12,
+  },
+  big3Value: {
+    fontSize: 16,
+  },
+  big3Divider: {
+    width: 1,
+    height: '100%',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 22,
+  },
+  statLabel: {
+    fontSize: 12,
+  },
+  liftsList: {
+    gap: 10,
+  },
+  liftRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  liftName: {
+    fontSize: 14,
+    flex: 1,
+  },
+  liftValue: {
+    fontSize: 14,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 40,
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+});

@@ -104,7 +104,6 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 20,
   },
   header: {
     flexDirection: 'row',

@@ -1,3 +1,4 @@
+import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +8,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 
 interface WorkoutKeywordsHelpModalProps {
@@ -27,17 +27,12 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-          <View style={{ width: 40 }} />
+        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={styles.headerSpacer} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Workout Note Guide
           </Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
-          >
-            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView
@@ -223,16 +218,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSpacer: {
+    width: 40,
   },
   scrollView: {
     flex: 1,

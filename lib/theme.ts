@@ -40,23 +40,23 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 16,  // Rounded, organic feeling
   },
 
-  // Beginner Dark - Dark ocean theme for users who prefer dark mode
+  // Beginner Dark - Slack-inspired neutral gray theme
   beginner_dark: {
     name: 'beginner_dark',
     colors: {
-      background: '#0D1B2A',    // Deep ocean dark background
-      text: '#E0E1DD',          // Soft white text
-      primary: '#4A90D9',       // Bolder, brighter blue primary
-      secondary: '#1B263B',     // Darker blue for cards
-      accent: '#5FA8D3',        // Brighter blue accent
-      surface: '#1B263B',       // Card surface
-      border: '#4A6FA5',        // Brighter blue border
+      background: '#1A1D21',    // Slack dark background
+      text: '#D1D2D3',          // Soft gray text
+      primary: '#36C5F0',       // Slack blue accent
+      secondary: '#222529',     // Slightly lighter gray
+      accent: '#2EB67D',        // Slack green
+      surface: '#27242C',       // Card surface
+      border: '#3F4147',        // Subtle gray border
     },
     properties: {
       fontFamily: 'System',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 16,
+    borderRadius: 12,
   },
 
   // Clean Material Design - Soft, accessible (now intermediate)

@@ -6,20 +6,40 @@ import ExercisesSection from '@/components/profile/ExercisesSection';
 import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
+import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { analyticsService } from '@/lib/analytics';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
   const { userProfile, isLoading, refreshProfile } = useUser();
+  const [showSocialModal, setShowSocialModal] = useState(false);
+  const [username, setUsername] = useState<string>('');
+  const [friendCount, setFriendCount] = useState(0);
+
+  const loadSocialData = useCallback(async () => {
+    try {
+      const storedUsername = await analyticsService.getUsername();
+      if (storedUsername) {
+        setUsername(storedUsername);
+      }
+      const friends = await userSyncService.getFriends();
+      setFriendCount(friends.length);
+    } catch (error) {
+      console.error('Error loading social data:', error);
+    }
+  }, []);
 
   const loadUserData = async () => {
     // Trigger refresh of user progress data
@@ -37,7 +57,8 @@ export default function ProfileScreen() {
     useCallback(() => {
       refreshProfile();
       loadUserData();
-    }, [refreshProfile])
+      loadSocialData();
+    }, [refreshProfile, loadSocialData])
   );
 
   // Reset all workout stats
@@ -97,6 +118,7 @@ export default function ProfileScreen() {
   }
 
   return (
+    <>
     <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
         {/* Morf Logo and Brand */}
@@ -123,6 +145,26 @@ export default function ProfileScreen() {
             Customize your experience
           </Text>
         </Card>
+
+        {/* Social Button */}
+        <TouchableOpacity
+          style={[styles.socialButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+          onPress={() => setShowSocialModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
+            <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
+            <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
+              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                {username ? `@${username}` : 'Set Username'}
+              </Text>
+              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+        </TouchableOpacity>
 
         {/* Personal Information Section */}
         <PersonalInformationSection 
@@ -166,6 +208,16 @@ export default function ProfileScreen() {
       </View>
       <View style={{ marginBottom: 100 }} />
     </ScrollView>
+
+    {/* Social Modal */}
+    <SocialModal
+      visible={showSocialModal}
+      onClose={() => {
+        setShowSocialModal(false);
+        loadSocialData();
+      }}
+    />
+  </>
   );
 }
 
@@ -245,5 +297,28 @@ const styles = StyleSheet.create({
   resetButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
+  },
+  socialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  socialButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  socialButtonText: {
+    gap: 2,
+  },
+  socialButtonTitle: {
+    fontSize: 15,
+  },
+  socialButtonSubtitle: {
+    fontSize: 13,
   },
 }); 

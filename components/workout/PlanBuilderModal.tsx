@@ -1,3 +1,4 @@
+import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
@@ -163,9 +164,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onCancel} style={[styles.backButton, { backgroundColor: currentTheme.colors.surface }]}>
-            <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="chevron-back" onPress={onCancel} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Plan Builder
           </Text>
@@ -381,13 +380,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerRight: {
     minWidth: 60,

@@ -2,9 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 const DEVICE_ID_KEY = 'device_id';
+const USERNAME_KEY = 'username';
 
 class AnalyticsService {
   private deviceId: string | null = null;
+  private username: string | null = null;
 
   /**
    * Get or create a unique device ID for anonymous tracking
@@ -34,6 +36,43 @@ class AnalyticsService {
       const v = c === 'x' ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
+  }
+
+  /**
+   * Get the stored username
+   */
+  async getUsername(): Promise<string | null> {
+    if (this.username) return this.username;
+
+    try {
+      const username = await AsyncStorage.getItem(USERNAME_KEY);
+      this.username = username;
+      return username;
+    } catch (error) {
+      console.error('Error getting username:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set the username
+   */
+  async setUsername(username: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(USERNAME_KEY, username);
+      this.username = username;
+    } catch (error) {
+      console.error('Error setting username:', error);
+    }
+  }
+
+  /**
+   * Generate a default username (short UUID)
+   */
+  async generateDefaultUsername(): Promise<string> {
+    const deviceId = await this.getDeviceId();
+    // Use first 8 characters of device ID as default username
+    return `user_${deviceId.substring(0, 8)}`;
   }
 
   /**

@@ -2,8 +2,10 @@ import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/analytics';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
+import { getWorkoutById } from '@/lib/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
-import { isMainLift, WeightUnit } from '@/types';
+import { isMainLift, UserLift, WeightUnit } from '@/types';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -216,6 +218,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     await storageService.saveWorkout(generatedWorkout);
 
     // Record lifts for progress tracking
+    const liftsToSync: UserLift[] = [];
     for (const exercise of generatedWorkout.exercises) {
       if (exercise.completedSets.length > 0) {
         // Find the best set (highest estimated 1RM)
@@ -229,15 +232,30 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         if (bestSet.weight > 0) {
           // Use proper type guard to categorize lifts correctly
           const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
-          await userService.recordLift({
+          const liftData: UserLift = {
             parentId: generatedWorkout.id,
             id: exercise.id,
             weight: bestSet.weight,
             reps: bestSet.reps,
             unit: bestSet.unit,
-          }, liftType);
+            dateRecorded: new Date(),
+          };
+          await userService.recordLift(liftData, liftType);
+          liftsToSync.push(liftData);
         }
       }
+    }
+
+    // Sync lifts to Supabase for leaderboard (excluding custom exercises)
+    const liftsToSyncFiltered = liftsToSync.filter(lift => getWorkoutById(lift.id) !== null);
+    if (liftsToSyncFiltered.length > 0) {
+      userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
+        console.error('Error syncing lifts to Supabase:', err);
+      });
+      // Also sync overall percentile data
+      userSyncService.calculateAndSyncPercentiles().catch(err => {
+        console.error('Error syncing percentile data:', err);
+      });
     }
 
     // Refresh user profile context so other screens get updated data

@@ -1,14 +1,16 @@
 import Card from '@/components/Card';
+import IconButton from '@/components/IconButton';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, MALE_STANDARDS } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils';
 import { UserProfile, UserProgress } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Animated, Easing, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface OverallStrengthModalProps {
   visible: boolean;
@@ -154,6 +156,15 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
       .sort((a, b) => b.percentileRanking - a.percentileRanking);
   }, [lifts]);
 
+  // Sync percentile data to Supabase when modal is visible and data is loaded
+  useEffect(() => {
+    if (!visible || lifts.length === 0 || overallPercentile === 0) return;
+
+    userSyncService.calculateAndSyncPercentiles().catch(err => {
+      console.error('Error syncing percentile data:', err);
+    });
+  }, [visible, lifts.length, overallPercentile]);
+
   const getNextTierInfo = (value: number) => {
     const ordered = [...tiers].sort((a, b) => a.threshold - b.threshold);
     const next = ordered.find(t => t.threshold > value);
@@ -187,11 +198,19 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   }, [lifts, profile]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>        
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Header */}
+        <View style={[styles.modalHeader, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={styles.headerSpacer} />
+          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            Overall Strength
+          </Text>
+          <IconButton icon="close" onPress={onClose} />
+        </View>
+
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>            
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold' }]}>Overall Strength</Text>
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>Radar shows your percentile per main lift</Text>
           </View>
 
@@ -288,10 +307,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
           </Card>
         </ScrollView>
 
-        <TouchableOpacity style={[styles.closeBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]} onPress={onClose}>
-          <Text style={[styles.closeText, { color: currentTheme.colors.text }]}>Close</Text>
-        </TouchableOpacity>
-
         {/* Group detail sheet */}
         {isGroupPanelOpen && selectedIdx >= 0 && chartData[selectedIdx] && (
           <Modal visible transparent animationType="fade" onRequestClose={closeGroupPanel}>
@@ -314,17 +329,30 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             </View>
           </Modal>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingTop: 24 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalHeaderTitle: {
+    fontSize: 17,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  content: { padding: 20, paddingTop: 16 },
   header: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
-  title: { fontSize: 22,},
-  subtitle: { marginTop: 4, fontSize: 12, opacity: 0.7 },
+  subtitle: { fontSize: 12, opacity: 0.7 },
   chartCard: { marginTop: 8 },
   chartHeader: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
   headerStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -344,7 +372,6 @@ const styles = StyleSheet.create({
   liftValue: { width: 42, textAlign: 'right', fontVariant: ['tabular-nums'] },
   liftLevel: { width: 96, textAlign: 'right' },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'transparent' },
-  closeBar: { padding: 16, borderTopWidth: 1 },
   closeText: { textAlign: 'center', fontWeight: '600' },
   tierLegendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 12 },
   tierChip: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },

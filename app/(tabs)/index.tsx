@@ -1,7 +1,7 @@
 import DashboardHeader from '@/components/DashboardHeader';
-import RecapView from '@/components/history/RecapView';
 import LiftDisplayFilter from '@/components/LiftDisplayFilter';
 import OverallStatsCard from '@/components/OverallStatsCard';
+import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import Spacer from '@/components/Spacer';
 import { Text, View } from '@/components/Themed';
 import WorkoutStatsCard from '@/components/WorkoutStatsCard';
@@ -14,7 +14,7 @@ import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
   const { currentTheme } = useTheme();
@@ -27,7 +27,7 @@ export default function HomeScreen() {
     improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [showRecap, setShowRecap] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -111,16 +111,16 @@ export default function HomeScreen() {
 
           <OverallStatsCard stats={overallStats} />
 
-          {/* Recap Button - Inline */}
+          {/* Leaderboard Button */}
           <TouchableOpacity
-            style={styles.recapButton}
-            onPress={() => setShowRecap(true)}
+            style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+            onPress={() => setShowLeaderboard(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="trophy-outline" size={14} color={currentTheme.colors.text + '60'} />
-            <Text style={[styles.recapButtonText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
-              View Recap
+            <Text style={[styles.actionButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              View Leaderboards
             </Text>
-            <Ionicons name="chevron-forward" size={14} color={currentTheme.colors.text + '40'} />
+            <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
           </TouchableOpacity>
 
           {userProgress.length > 0 && (
@@ -152,10 +152,11 @@ export default function HomeScreen() {
         <Spacer height={100} />
       </ScrollView>
 
-      {/* Recap Modal */}
-      <Modal visible={showRecap} animationType="slide" presentationStyle="fullScreen">
-        <RecapView onClose={() => setShowRecap(false)} />
-      </Modal>
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        visible={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+      />
     </>
   );
 }
@@ -180,7 +181,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    marginTop: 10,
   },
   noDataCard: {
     padding: 24,
@@ -197,13 +197,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  recapButton: {
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    alignSelf: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
   },
-  recapButtonText: {
-    fontSize: 13,
+  actionButtonText: {
+    fontSize: 15,
   },
 });

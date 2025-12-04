@@ -79,7 +79,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
     if (!height || !weight) return;
 
     setIsCreatingProfile(true);
-    playHapticFeedback('success', false);
+    playHapticFeedback('medium', false);
     playUnlock();
 
     try {

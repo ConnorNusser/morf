@@ -16,7 +16,8 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you add photos to your workout logs and profile."
+        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you upload a profile picture.",
+        "NSLocationWhenInUseUsageDescription": "Morf uses your location to show your country on leaderboards and connect you with nearby lifters."
       }
     },
     "android": {
@@ -46,7 +47,19 @@
       ],
       "expo-font",
       "expo-audio",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Morf needs access to your photo library to let you upload a profile picture."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Morf uses your location to show your country on leaderboards."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

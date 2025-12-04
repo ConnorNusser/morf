@@ -393,14 +393,50 @@ export function calculateStrengthPercentile(
   }
 }
 
-// Helper function to get strength level name using theme levels
+// Anime-style tier system (F -> S)
+export type StrengthTier = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+
+export interface TierInfo {
+  tier: StrengthTier;
+  color: string;
+  label: string;
+}
+
+// Tier colors - vibrant anime style
+export const TIER_COLORS: Record<StrengthTier, string> = {
+  'S': '#FFD700', // Gold
+  'A': '#FF4500', // Orange Red
+  'B': '#9932CC', // Purple
+  'C': '#1E90FF', // Dodger Blue
+  'D': '#32CD32', // Lime Green
+  'E': '#808080', // Gray
+  'F': '#8B4513', // Brown
+};
+
+// Helper function to get strength tier from percentile
+export function getStrengthTier(percentile: number): StrengthTier {
+  if (percentile >= 90) return 'S';
+  if (percentile >= 75) return 'A';
+  if (percentile >= 50) return 'B';
+  if (percentile >= 25) return 'C';
+  if (percentile >= 10) return 'D';
+  if (percentile > 0) return 'E';
+  return 'F';
+}
+
+// Helper function to get full tier info
+export function getTierInfo(percentile: number): TierInfo {
+  const tier = getStrengthTier(percentile);
+  return {
+    tier,
+    color: TIER_COLORS[tier],
+    label: `${tier} Tier`,
+  };
+}
+
+// Helper function to get strength level name using theme levels (legacy, returns tier)
 export function getStrengthLevelName(percentile: number): string {
-  if (percentile >= 90) return 'God';
-  if (percentile >= 75) return 'Elite';
-  if (percentile >= 50) return 'Advanced';
-  if (percentile >= 25) return 'Intermediate';
-  if (percentile >= 10) return 'Beginner';
-  return 'Untrained';
+  return getStrengthTier(percentile);
 }
 
 

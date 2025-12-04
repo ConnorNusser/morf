@@ -1,19 +1,18 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/haptic';
-import { BlurView } from 'expo-blur';
-import React, { forwardRef, useImperativeHandle, useRef, useCallback, useState } from 'react';
+import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import {
   GestureResponderEvent,
   InputAccessoryView,
   Keyboard,
   Platform,
+  View as RNView,
   StyleSheet,
   TextInput,
   TextInputProps,
   TouchableOpacity,
   useColorScheme,
-  View as RNView,
 } from 'react-native';
 
 interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
@@ -34,7 +33,7 @@ const MOVE_THRESHOLD = 10;
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", ...props }, ref) => {
     const { currentTheme } = useTheme();
-    const colorScheme = useColorScheme();
+    const _colorScheme = useColorScheme();
     const inputRef = useRef<TextInput>(null);
     const inputAccessoryViewID = 'workoutNoteAccessory';
 
@@ -137,11 +136,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
         {/* Keyboard accessory with Done button - only when keyboard is enabled */}
         {Platform.OS === 'ios' && keyboardEnabled && (
           <InputAccessoryView nativeID={inputAccessoryViewID}>
-            <BlurView
-              intensity={80}
-              tint={colorScheme === 'dark' ? 'dark' : 'light'}
-              style={styles.accessoryBlur}
-            >
               <RNView style={[styles.accessoryContainer, { borderTopColor: currentTheme.colors.border }]}>
                 <RNView style={{ flex: 1 }} />
                 <TouchableOpacity
@@ -153,7 +147,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
                   </Text>
                 </TouchableOpacity>
               </RNView>
-            </BlurView>
           </InputAccessoryView>
         )}
       </>
