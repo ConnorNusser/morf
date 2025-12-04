@@ -2,7 +2,7 @@
   "expo": {
     "name": "Morf",
     "slug": "morfai",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "morfai",
@@ -44,7 +44,9 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-audio",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
@@ -55,7 +57,6 @@
         "projectId": "4f7ed05a-985e-4200-a577-ccc419b7ea77"
       }
     },
-    "sdkVersion": "53.0.0"
-  },
-  "name": "morfai"
+    "sdkVersion": "54.0.0"
+  }
 }

@@ -1,7 +1,7 @@
 import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as StoreReview from 'expo-store-review';
 import { ChevronDown, ChevronUp, Mail, Star } from 'lucide-react-native';
@@ -48,8 +48,7 @@ export default function AppInfoSection() {
         `Hi Morf Support Team,\n\n` +
         `I need help with:\n\n` +
         `Device: ${Platform.OS === 'ios' ? 'iOS' : 'Android'}\n` +
-        `App Version: ${Application.nativeApplicationVersion}\n` +
-        `Build: ${Application.nativeBuildVersion}\n\n` +
+        `App Version: ${Constants.expoConfig?.version}\n\n` +
         `Please describe your issue below:\n\n`
       );
       
@@ -79,7 +78,7 @@ export default function AppInfoSection() {
     }
   };
 
-  const appVersion = Application.nativeApplicationVersion;
+  const appVersion = Constants.expoConfig?.version;
 
   return (
     <Card style={styles.appInfoCard} variant="clean">

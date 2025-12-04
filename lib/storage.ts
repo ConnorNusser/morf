@@ -1,26 +1,23 @@
-import { ActiveWorkoutSession, CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserPreferences, UserProfile, UserProgress, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
+import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from './theme';
 
 // Storage keys
 const STORAGE_KEYS = {
   USER_PROFILE: 'user_profile',
-  USER_PROGRESS: 'user_progress',
   WORKOUT_HISTORY: 'workout_history',
-  USER_PREFERENCES: 'user_preferences',
-  ACTIVE_WORKOUT_SESSION: 'active_workout_session',
+  ACTIVE_NOTE_SESSION: 'active_note_session',
   THEME_PREFERENCE: 'theme_preference',
   LIFT_DISPLAY_FILTERS: 'lift_display_filters',
   ROUTINES: 'routines',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
-  APP_SHARED: 'app_shared', // Added for app share status
-  SHARE_COUNT: 'share_count', // Added for share count tracking
-  CUSTOM_EXERCISES: 'custom_exercises', // User-created exercises
-  WORKOUT_TEMPLATES: 'workout_templates', // User-saved workout templates
+  SHARE_COUNT: 'share_count',
+  CUSTOM_EXERCISES: 'custom_exercises',
+  WORKOUT_TEMPLATES: 'workout_templates',
 } as const;
 
-export { ExerciseMax, LiftDisplayFilters, ThemeLevel, UserPreferences };
+export { ExerciseMax, LiftDisplayFilters, ThemeLevel };
 
 class StorageService {
   // User Profile
@@ -39,25 +36,6 @@ class StorageService {
     } catch (error) {
       console.error('Error loading user profile:', error);
       return null;
-    }
-  }
-
-  // User Progress
-  async saveUserProgress(progress: UserProgress[]): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(progress));
-    } catch (error) {
-      console.error('Error saving user progress:', error);
-    }
-  }
-
-  async getUserProgress(): Promise<UserProgress[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROGRESS);
-      return data ? JSON.parse(data) : [];
-    } catch (error) {
-      console.error('Error loading user progress:', error);
-      return [];
     }
   }
 
@@ -108,37 +86,6 @@ class StorageService {
     }
   }
 
-  // User Preferences
-  async saveUserPreferences(preferences: UserPreferences): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_PREFERENCES, JSON.stringify(preferences));
-    } catch (error) {
-      console.error('Error saving user preferences:', error);
-    }
-  }
-
-  async getUserPreferences(): Promise<UserPreferences> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_PREFERENCES);
-      return data ? JSON.parse(data) : {
-        preferredEquipment: ['barbell', 'dumbbell', 'machine'],
-        workoutDuration: 60,
-        excludeBodyweight: false,
-        favoriteExercises: [],
-        notifications: true,
-      };
-    } catch (error) {
-      console.error('Error loading user preferences:', error);
-      return {
-        preferredEquipment: ['barbell', 'dumbbell', 'machine'],
-        workoutDuration: 60,
-        excludeBodyweight: false,
-        favoriteExercises: [],
-        notifications: true,
-      };
-    }
-  }
-
   // Theme Preference
   async saveThemePreference(themeLevel: ThemeLevel): Promise<void> {
     try {
@@ -167,26 +114,6 @@ class StorageService {
     } catch (error) {
       console.error('Error loading theme preference:', error);
       return null;
-    }
-  }
-
-  // App Share Status (for unlocking shareable themes)
-  async setAppShared(shared: boolean = true): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.APP_SHARED, JSON.stringify(shared));
-    } catch (error) {
-      console.error('Error saving app share status:', error);
-    }
-  }
-
-  async getAppShared(): Promise<boolean> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.APP_SHARED);
-      // Default to true for testing, change to false for production
-      return data ? JSON.parse(data) : true; 
-    } catch (error) {
-      console.error('Error loading app share status:', error);
-      return true; // Default to true for testing
     }
   }
 
@@ -237,41 +164,40 @@ class StorageService {
     }
   }
 
-  // Active workout session management
-  async saveActiveWorkoutSession(session: ActiveWorkoutSession): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_WORKOUT_SESSION, JSON.stringify(session));
+  // Note-based workout session (for the freeform notes workout screen)
+  async saveNoteSession(session: { noteText: string; startTime: Date }): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION, JSON.stringify({
+        noteText: session.noteText,
+        startTime: session.startTime.toISOString(),
+      }));
+    } catch (error) {
+      console.error('Error saving note session:', error);
+    }
   }
 
-  async getActiveWorkoutSession(): Promise<ActiveWorkoutSession | null> {
+  async getNoteSession(): Promise<{ noteText: string; startTime: Date } | null> {
     try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_WORKOUT_SESSION);
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION);
       if (!data) return null;
-      
+
       const session = JSON.parse(data);
-      // Convert date strings back to Date objects
-      session.startTime = new Date(session.startTime);
-      session.exercises.forEach((exercise: { completedSets: { restStartTime?: string | Date }[] }) => {
-        exercise.completedSets.forEach((set: { restStartTime?: string | Date }) => {
-          if (set.restStartTime) {
-            set.restStartTime = new Date(set.restStartTime);
-          }
-        });
-      });
-      
-      return session;
+      return {
+        noteText: session.noteText,
+        startTime: new Date(session.startTime),
+      };
     } catch (error) {
-      console.error('Error loading active workout session:', error);
+      console.error('Error loading note session:', error);
       return null;
     }
   }
 
-  async clearActiveWorkoutSession(): Promise<void> {
-    await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_WORKOUT_SESSION);
-  }
-
-  async hasActiveWorkoutSession(): Promise<boolean> {
-    const session = await this.getActiveWorkoutSession();
-    return session !== null && !session.isCompleted;
+  async clearNoteSession(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION);
+    } catch (error) {
+      console.error('Error clearing note session:', error);
+    }
   }
 
   // Utility functions
@@ -287,9 +213,7 @@ class StorageService {
     try {
       const data = {
         userProfile: await this.getUserProfile(),
-        userProgress: await this.getUserProgress(),
         workoutHistory: await this.getWorkoutHistory(),
-        userPreferences: await this.getUserPreferences(),
         exportDate: new Date().toISOString(),
       };
       return JSON.stringify(data, null, 2);

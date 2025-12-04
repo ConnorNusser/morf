@@ -1,6 +1,7 @@
 import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import OpenAI from 'openai';
 import { aiWorkoutGenerator } from './aiWorkoutGenerator';
+import { analyticsService } from './analytics';
 import { exerciseNameToId } from './exerciseUtils';
 import { buildWorkoutNoteParsingPrompt } from './prompts/workoutNoteParsing.prompt';
 import { storageService } from './storage';
@@ -148,7 +149,7 @@ class WorkoutNoteParser {
 
     try {
       const prompt = this.buildParsePrompt(text, defaultUnit);
-      const response = await this.callAI(prompt);
+      const response = await this.callAI(prompt, text);
 
       // Match exercises using algorithmic approach
       const exercises: ParsedExercise[] = [];
@@ -195,7 +196,7 @@ class WorkoutNoteParser {
   /**
    * Call the AI API
    */
-  private async callAI(prompt: string): Promise<AIParseResponse> {
+  private async callAI(prompt: string, inputText: string): Promise<AIParseResponse> {
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -220,7 +221,18 @@ class WorkoutNoteParser {
       cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
     }
 
-    return JSON.parse(cleanedContent);
+    const parsed = JSON.parse(cleanedContent);
+
+    // Track AI usage analytics
+    analyticsService.trackAIUsage({
+      requestType: 'note_parse',
+      inputText,
+      outputData: parsed,
+      tokensUsed: response.usage?.total_tokens,
+      model: 'gpt-4o',
+    });
+
+    return parsed;
   }
 
   /**

@@ -1,5 +1,6 @@
 import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, UserProfile, WorkoutCategory } from '@/types';
 import OpenAI from 'openai';
+import { analyticsService } from './analytics';
 import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
 import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
 import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
@@ -71,7 +72,7 @@ class AIWorkoutGeneratorService {
 
     try {
       const prompt = this.buildPrompt(userProfile, workoutHistory, customExercises, options);
-      const response = await this.callAI(prompt);
+      const response = await this.callAI(prompt, options.customRequest);
       return response;
     } catch (error) {
       console.error('AI workout generation failed, using fallback:', error);
@@ -110,7 +111,7 @@ class AIWorkoutGeneratorService {
         workoutHistory,
         customExercises
       );
-      const response = await this.callRefineAI(prompt);
+      const response = await this.callRefineAI(prompt, userMessage);
       return response;
     } catch (error) {
       console.error('AI plan refinement failed:', error);
@@ -170,7 +171,7 @@ class AIWorkoutGeneratorService {
     });
   }
 
-  private async callRefineAI(prompt: string): Promise<RefinePlanResponse> {
+  private async callRefineAI(prompt: string, userMessage: string): Promise<RefinePlanResponse> {
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -195,7 +196,18 @@ class AIWorkoutGeneratorService {
       cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
     }
 
-    return JSON.parse(cleanedContent);
+    const parsed = JSON.parse(cleanedContent);
+
+    // Track AI usage analytics
+    analyticsService.trackAIUsage({
+      requestType: 'plan_builder',
+      inputText: userMessage,
+      outputData: parsed,
+      tokensUsed: response.usage?.total_tokens,
+      model: 'gpt-4o',
+    });
+
+    return parsed;
   }
 
   private buildPrompt(
@@ -272,7 +284,7 @@ class AIWorkoutGeneratorService {
     });
   }
 
-  private async callAI(prompt: string): Promise<AIGeneratedWorkoutNote> {
+  private async callAI(prompt: string, customRequest?: string): Promise<AIGeneratedWorkoutNote> {
     // Note: GPT-5 models don't support temperature parameter
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
@@ -298,7 +310,18 @@ class AIWorkoutGeneratorService {
       cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
     }
 
-    return JSON.parse(cleanedContent);
+    const parsed = JSON.parse(cleanedContent);
+
+    // Track AI usage analytics
+    analyticsService.trackAIUsage({
+      requestType: 'routine_generate',
+      inputText: customRequest || 'auto-generated workout',
+      outputData: parsed,
+      tokensUsed: response.usage?.total_tokens,
+      model: 'gpt-4o',
+    });
+
+    return parsed;
   }
 
   private generateFallbackWorkout(

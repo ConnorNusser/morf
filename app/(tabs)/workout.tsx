@@ -6,18 +6,14 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/haptic';
 import { useRestTimer } from '@/hooks/useRestTimer';
-import { storageService } from '@/lib/storage';
-import { userService } from '@/lib/userService';
-import { ParsedExerciseSummary, ParsedWorkout , workoutNoteParser } from '@/lib/workoutNoteParser';
-import { isMainLift, WeightUnit, WorkoutTemplate } from '@/types';
+import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
+import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
-  Alert,
-  Keyboard,
+  KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
   SafeAreaView,
@@ -34,197 +30,55 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
-  const { refreshProfile } = useUser();
   const noteInputRef = useRef<WorkoutNoteInputRef>(null);
 
-  // Workout note state
-  const [noteText, setNoteText] = useState('');
-  const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
+  // Workout session hook (handles note, timer, persistence, saving)
+  const {
+    noteText,
+    setNoteText,
+    elapsedTime,
+    formatTime,
+    resetWorkoutTimer,
+    showSummary,
+    setShowSummary,
+    summaryLoading,
+    parsedExercises,
+    handleQuickSummary,
+    showFinishModal,
+    handleFinishWorkout,
+    handleSaveWorkout,
+    handleFinishComplete,
+    handleFinishCancel,
+    hasWorkoutStarted,
+    weightUnit,
+  } = useWorkoutNoteSession();
 
-  // Quick summary state
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [parsedExercises, setParsedExercises] = useState<ParsedExerciseSummary[]>([]);
+  // Rest timer hook
+  const {
+    isResting,
+    formattedTime: formattedRestTime,
+    startTimer: startRestTimer,
+    skipTimer: skipRestTimer,
+    addTime: addRestTime,
+  } = useRestTimer();
 
-  // Finish modal state
-  const [showFinishModal, setShowFinishModal] = useState(false);
-
-  // Plan builder modal state
-  const [showPlanBuilder, setShowPlanBuilder] = useState(false);
-
-  // Template library modal state
-  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
-
-  // Help modal state
-  const [showHelpModal, setShowHelpModal] = useState(false);
-
-  // Rest timer state
+  // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
-  const { isResting, remainingTime: _remainingTime, formattedTime: formattedRestTime, startTimer: startRestTimer, skipTimer: skipRestTimer, addTime: addRestTime } = useRestTimer();
-
-  // User preferences
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
-
-  // Load user preferences
-  useEffect(() => {
-    const loadUserPreferences = async () => {
-      try {
-        const profile = await userService.getRealUserProfile();
-        if (profile?.weightUnitPreference) {
-          setWeightUnit(profile.weightUnitPreference);
-        }
-      } catch (error) {
-        console.error('Error loading user preferences:', error);
-      }
-    };
-    loadUserPreferences();
-  }, []);
-
-  // Start timer when user starts typing, reset when text is cleared
-  useEffect(() => {
-    if (noteText.length > 0 && !workoutStartTime) {
-      setWorkoutStartTime(new Date());
-    } else if (noteText.length === 0 && workoutStartTime) {
-      // User backspaced all text - reset workout state
-      setWorkoutStartTime(null);
-      setElapsedTime(0);
-      setParsedExercises([]);
-    }
-  }, [noteText, workoutStartTime]);
-
-  // Timer tick
-  useEffect(() => {
-    if (!workoutStartTime) return;
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const elapsed = Math.floor((now.getTime() - workoutStartTime.getTime()) / 1000);
-      setElapsedTime(elapsed);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [workoutStartTime]);
-
-  // Format elapsed time
-  const formatTime = (seconds: number): string => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Handle quick summary
-  const handleQuickSummary = useCallback(async () => {
-    if (!noteText.trim()) {
-      Alert.alert('No workout data', 'Start typing your workout to see a summary.');
-      return;
-    }
-
-    Keyboard.dismiss();
-    setSummaryLoading(true);
-    setShowSummary(true);
-
-    try {
-      const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
-      const summary = workoutNoteParser.toSummary(parsed);
-      setParsedExercises(summary);
-    } catch (error) {
-      console.error('Error parsing workout:', error);
-      setParsedExercises([]);
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [noteText]);
-
-  // Handle finish workout - open finish modal
-  const handleFinishWorkout = useCallback(() => {
-    if (!noteText.trim()) {
-      Alert.alert('No workout data', 'Add some exercises before finishing your workout.');
-      return;
-    }
-    // Note: No tap sound here - the celebration sounds play when workout is saved
-    playHapticFeedback('medium', false);
-    Keyboard.dismiss();
-    setShowFinishModal(true);
-  }, [noteText]);
-
-  // Handle save from finish modal
-  const handleSaveWorkout = useCallback(async (parsedWorkout: ParsedWorkout) => {
-    // Convert to duration in minutes
-    const durationMinutes = Math.ceil(elapsedTime / 60);
-
-    // Convert to GeneratedWorkout format (also auto-creates custom exercises)
-    const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(parsedWorkout, durationMinutes);
-
-    // Save to workout history
-    await storageService.saveWorkout(generatedWorkout);
-
-    // Record lifts for progress tracking
-    for (const exercise of generatedWorkout.exercises) {
-      if (exercise.completedSets.length > 0) {
-        // Find the best set (highest estimated 1RM)
-        const bestSet = exercise.completedSets.reduce((best, current) => {
-          const bestOneRM = best.weight * (1 + best.reps / 30);
-          const currentOneRM = current.weight * (1 + current.reps / 30);
-          return currentOneRM > bestOneRM ? current : best;
-        });
-
-        // Only record lifts with actual weight
-        if (bestSet.weight > 0) {
-          // Use proper type guard to categorize lifts correctly
-          const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
-          await userService.recordLift({
-            parentId: generatedWorkout.id,
-            id: exercise.id,
-            weight: bestSet.weight,
-            reps: bestSet.reps,
-            unit: bestSet.unit,
-          }, liftType);
-        }
-      }
-    }
-
-    // Refresh user profile context so other screens get updated data
-    await refreshProfile();
-  }, [elapsedTime, refreshProfile]);
-
-  // Handle finish modal complete - reset workout state
-  const handleFinishComplete = useCallback(() => {
-    setShowFinishModal(false);
-    setNoteText('');
-    setWorkoutStartTime(null);
-    setElapsedTime(0);
-    setParsedExercises([]);
-  }, []);
-
-  // Handle cancel from finish modal
-  const handleFinishCancel = useCallback(() => {
-    setShowFinishModal(false);
-  }, []);
+  const [showPlanBuilder, setShowPlanBuilder] = useState(false);
+  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
     setNoteText(planText);
     setShowPlanBuilder(false);
-    // Timer will start automatically when noteText updates
-  }, []);
-
-  // Handle plan cancel
-  const handlePlanCancel = useCallback(() => {
-    setShowPlanBuilder(false);
-  }, []);
+  }, [setNoteText]);
 
   // Handle template selection
   const handleTemplateSelect = useCallback((template: WorkoutTemplate) => {
     setNoteText(template.noteText);
     setShowTemplateLibrary(false);
-    // Timer will start automatically when noteText updates
-  }, []);
+  }, [setNoteText]);
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -232,7 +86,6 @@ export default function WorkoutScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
     if (!isTimerExpanded) {
-      // Expanding - start rest timer if not already resting
       if (!isResting) {
         startRestTimer(120); // 2 minutes default
       }
@@ -244,9 +97,8 @@ export default function WorkoutScreen() {
 
   // Handle reset workout timer
   const handleResetWorkoutTimer = useCallback(() => {
-    setWorkoutStartTime(new Date());
-    setElapsedTime(0);
-  }, []);
+    resetWorkoutTimer();
+  }, [resetWorkoutTimer]);
 
   // Handle finish rest
   const handleFinishRest = useCallback(() => {
@@ -262,14 +114,19 @@ export default function WorkoutScreen() {
     addRestTime(seconds);
   }, [addRestTime]);
 
-
-
-  // Workout has started only if there's text
-  const hasWorkoutStarted = noteText.length > 0;
+  // Handle finish button press
+  const handleFinishPress = useCallback(() => {
+    playHapticFeedback('medium', false);
+    handleFinishWorkout();
+  }, [handleFinishWorkout]);
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-      <View style={styles.keyboardAvoid}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent' }]}>
           <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
@@ -343,7 +200,7 @@ export default function WorkoutScreen() {
             {hasWorkoutStarted ? (
               <TouchableOpacity
                 style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
-                onPress={handleFinishWorkout}
+                onPress={handleFinishPress}
               >
                 <Text style={[styles.finishButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
                   Finish
@@ -437,7 +294,7 @@ Bench 135x8, 155x6
 Squats 225 for 5 reps`}
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
       <WorkoutFinishModal
@@ -454,7 +311,7 @@ Squats 225 for 5 reps`}
       <PlanBuilderModal
         visible={showPlanBuilder}
         onComplete={handlePlanComplete}
-        onCancel={handlePlanCancel}
+        onCancel={() => setShowPlanBuilder(false)}
       />
 
       {/* Template Library Modal */}
