@@ -1,7 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
+import { analyticsService } from '@/lib/analytics';
 import playHapticFeedback from '@/lib/haptic';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -98,9 +100,26 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         },
       });
 
+      // Sync profile data to Supabase (fire and forget)
+      userSyncService.syncProfileData({
+        height,
+        weight,
+        gender,
+      }).catch(err => console.error('Error syncing profile to Supabase:', err));
+
+      // Log successful onboarding
+      analyticsService.logInfo('auth', 'onboarding_completed', 'User completed onboarding', {
+        heightUnit: height.unit,
+        weightUnit: weight.unit,
+        gender,
+        age,
+        equipmentCount: availableEquipment.length,
+      });
+
       onComplete();
     } catch (error) {
       console.error('Failed to create profile:', error);
+      analyticsService.logErr('auth', 'onboarding_failed', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsCreatingProfile(false);
     }

@@ -4,6 +4,17 @@ import { supabase } from './supabase';
 const DEVICE_ID_KEY = 'device_id';
 const USERNAME_KEY = 'username';
 
+export type LogLevel = 'info' | 'warn' | 'error';
+export type LogCategory = 'sync' | 'workout' | 'auth' | 'ai' | 'general';
+
+interface LogEntry {
+  level: LogLevel;
+  category: LogCategory;
+  event: string;
+  message?: string;
+  context?: Record<string, unknown>;
+}
+
 class AnalyticsService {
   private deviceId: string | null = null;
   private username: string | null = null;
@@ -99,9 +110,18 @@ class AnalyticsService {
 
       if (error) {
         console.error('Error tracking workout:', error);
+        this.logErr('workout', 'workout_track_failed', error.message, { code: error.code });
+      } else {
+        // Log successful workout completion
+        this.logInfo('workout', 'workout_completed', 'Workout completed successfully', {
+          exerciseCount: data.exerciseCount,
+          totalSets: data.totalSets,
+          durationMinutes: Math.round(data.durationSeconds / 60)
+        });
       }
     } catch (error) {
       console.error('Error tracking workout:', error);
+      this.logErr('workout', 'workout_track_error', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -131,41 +151,82 @@ class AnalyticsService {
 
       if (error) {
         console.error('Error tracking AI usage:', error);
+        this.logErr('ai', 'ai_usage_track_failed', error.message, {
+          code: error.code,
+          requestType: data.requestType
+        });
+      } else {
+        this.logInfo('ai', `ai_${data.requestType}`, `AI ${data.requestType} completed`, {
+          tokensUsed: data.tokensUsed,
+          model: data.model
+        });
       }
     } catch (error) {
       console.error('Error tracking AI usage:', error);
+      this.logErr('ai', 'ai_usage_track_error', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
   /**
    * Log an error to Supabase for debugging
+   * @deprecated Use log() with level='error' instead
    */
   async logError(data: {
     errorType: string;
     message: string;
     context?: Record<string, unknown>;
   }): Promise<void> {
+    await this.log({
+      level: 'error',
+      category: 'general',
+      event: data.errorType,
+      message: data.message,
+      context: data.context,
+    });
+  }
+
+  /**
+   * Unified logging method for all app events
+   */
+  async log(entry: LogEntry): Promise<void> {
     if (!supabase) return;
 
     try {
       const deviceId = await this.getDeviceId();
       const username = await this.getUsername();
 
-      const { error } = await supabase.from('error_logs').insert({
+      const { error } = await supabase.from('app_logs').insert({
         device_id: deviceId,
         username: username,
-        error_type: data.errorType,
-        message: data.message,
-        context: data.context ?? null,
+        level: entry.level,
+        category: entry.category,
+        event: entry.event,
+        message: entry.message ?? null,
+        context: entry.context ?? null,
       });
 
       if (error) {
         // Don't log this error to avoid infinite loop, just console
         console.error('Error logging to Supabase:', error);
       }
-    } catch (error) {
-      console.error('Error logging to Supabase:', error);
+    } catch (err) {
+      console.error('Error logging to Supabase:', err);
     }
+  }
+
+  /**
+   * Convenience methods for different log levels
+   */
+  async logInfo(category: LogCategory, event: string, message?: string, context?: Record<string, unknown>): Promise<void> {
+    await this.log({ level: 'info', category, event, message, context });
+  }
+
+  async logWarn(category: LogCategory, event: string, message?: string, context?: Record<string, unknown>): Promise<void> {
+    await this.log({ level: 'warn', category, event, message, context });
+  }
+
+  async logErr(category: LogCategory, event: string, message?: string, context?: Record<string, unknown>): Promise<void> {
+    await this.log({ level: 'error', category, event, message, context });
   }
 }
 

@@ -1,11 +1,57 @@
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
-import { RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData } from '@/types';
+import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData } from '@/types';
 import { getStrengthLevelName, OneRMCalculator } from './strengthStandards';
 import { calculateOverallPercentile, convertWeightToLbs } from './utils';
 import { userService } from './userService';
 import { getWorkoutById, ALL_WORKOUTS } from './workouts';
+
+// Workout summary for social viewing
+export interface WorkoutExerciseSummary {
+  name: string;
+  sets: number;
+  bestSet: string;  // e.g., "185x8"
+  isPR?: boolean;
+}
+
+export type ReactionType = 'kudos' | 'fire' | 'strong' | 'celebrate';
+
+export interface FeedReaction {
+  user_id: string;
+  username: string;
+  profile_picture_url?: string;
+  reaction_type: ReactionType;
+  created_at: string; // ISO string for jsonb storage
+}
+
+export interface FeedComment {
+  id: string; // UUID for deletion
+  user_id: string;
+  username: string;
+  profile_picture_url?: string;
+  text: string;
+  created_at: string; // ISO string for jsonb storage
+}
+
+export interface WorkoutFeedData {
+  strength_level?: string;  // e.g., "B+", "A-"
+  pr_count?: number;        // Number of PRs in this workout
+  reactions?: FeedReaction[];
+  comments?: FeedComment[];
+}
+
+export interface WorkoutSummary {
+  id: string;
+  title: string;
+  created_at: Date;
+  duration_seconds: number;
+  exercise_count: number;
+  set_count: number;
+  total_volume: number;
+  exercises: WorkoutExerciseSummary[];
+  feed_data?: WorkoutFeedData;
+}
 
 // Profanity filter - common offensive words (lowercase)
 const BLOCKED_WORDS = [
@@ -68,6 +114,7 @@ class UserSyncService {
       if (fetchError && fetchError.code !== 'PGRST116') {
         // PGRST116 = no rows returned, which is fine
         console.error('Error fetching user:', fetchError);
+        analyticsService.logErr('sync', 'user_fetch_failed', fetchError.message, { code: fetchError.code });
         return null;
       }
 
@@ -83,10 +130,12 @@ class UserSyncService {
 
           if (updateError) {
             console.error('Error updating user:', updateError);
+            analyticsService.logErr('sync', 'user_update_failed', updateError.message, { code: updateError.code });
             return null;
           }
 
           this.currentUserId = updatedUser.id;
+          analyticsService.logInfo('sync', 'user_updated', 'Username updated', { oldUsername: existingUser.username, newUsername: username });
           return updatedUser as RemoteUser;
         }
 
@@ -103,13 +152,16 @@ class UserSyncService {
 
       if (insertError) {
         console.error('Error creating user:', insertError);
+        analyticsService.logErr('sync', 'user_create_failed', insertError.message, { code: insertError.code });
         return null;
       }
 
       this.currentUserId = newUser.id;
+      analyticsService.logInfo('sync', 'user_created', 'New user created', { username });
       return newUser as RemoteUser;
     } catch (error) {
       console.error('Error syncing user:', error);
+      analyticsService.logErr('sync', 'user_sync_error', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
   }
@@ -502,6 +554,7 @@ class UserSyncService {
         user = await this.syncUser(username);
         if (!user) {
           console.error('Failed to create user for lift sync');
+          analyticsService.logErr('sync', 'lifts_sync_no_user', 'Failed to create user for lift sync');
           return;
         }
       }
@@ -524,9 +577,19 @@ class UserSyncService {
 
       if (error) {
         console.error('Error syncing lifts:', error);
+        analyticsService.logErr('sync', 'lifts_sync_failed', error.message, {
+          code: error.code,
+          liftCount: lifts.length
+        });
+      } else {
+        analyticsService.logInfo('sync', 'lifts_synced', `Synced ${lifts.length} lifts`, {
+          liftCount: lifts.length,
+          exerciseIds: lifts.map(l => l.id)
+        });
       }
     } catch (error) {
       console.error('Error syncing lifts:', error);
+      analyticsService.logErr('sync', 'lifts_sync_error', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -611,7 +674,10 @@ class UserSyncService {
         const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
         await analyticsService.setUsername(username);
         user = await this.syncUser(username);
-        if (!user) return false;
+        if (!user) {
+          analyticsService.logErr('sync', 'percentile_sync_no_user', 'Failed to get/create user for percentile sync');
+          return false;
+        }
       }
 
       // Upsert percentile data
@@ -630,12 +696,23 @@ class UserSyncService {
 
       if (error) {
         console.error('Error syncing percentile data:', error);
+        analyticsService.logErr('sync', 'percentile_sync_failed', error.message, {
+          code: error.code,
+          overallPercentile,
+          strengthLevel
+        });
         return false;
       }
 
+      analyticsService.logInfo('sync', 'percentile_synced', 'Percentile data synced', {
+        overallPercentile,
+        strengthLevel,
+        topContributionsCount: topContributions.length
+      });
       return true;
     } catch (error) {
       console.error('Error syncing percentile data:', error);
+      analyticsService.logErr('sync', 'percentile_sync_error', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   }
@@ -650,24 +727,21 @@ class UserSyncService {
       const lifts = await userService.getAllFeaturedLifts();
       if (lifts.length === 0) {
         // No lifts to sync - not an error, just early return
+        analyticsService.logInfo('sync', 'percentile_sync_skipped', 'No lifts to sync');
         return false;
       }
 
       // Calculate overall percentile
       const nonZeroPercentiles = lifts.map(l => l.percentileRanking).filter(p => p > 0);
       if (nonZeroPercentiles.length === 0) {
-        // Log this issue to Supabase for debugging
-        analyticsService.logError({
-          errorType: 'percentile_sync_failed',
-          message: 'All percentiles are 0 - likely missing body weight in profile',
-          context: {
-            liftsCount: lifts.length,
-            lifts: lifts.slice(0, 10).map(l => ({
-              id: l.workoutId,
-              pr: l.personalRecord,
-              pct: l.percentileRanking
-            })),
-          },
+        // Log this issue to Supabase for debugging - likely missing body weight
+        analyticsService.logErr('sync', 'percentile_sync_zero', 'All percentiles are 0 - likely missing body weight in profile', {
+          liftsCount: lifts.length,
+          lifts: lifts.slice(0, 10).map(l => ({
+            id: l.workoutId,
+            pr: l.personalRecord,
+            pct: l.percentileRanking
+          })),
         });
         return false;
       }
@@ -875,6 +949,446 @@ class UserSyncService {
       console.error('Error getting user percentile data:', error);
       return null;
     }
+  }
+
+  /**
+   * Sync a completed workout to Supabase for social viewing
+   */
+  async syncWorkout(workout: GeneratedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) {
+        analyticsService.logErr('sync', 'workout_sync_no_user', 'No user found for workout sync');
+        return false;
+      }
+
+      // Build exercise summaries
+      const exerciseSummaries: WorkoutExerciseSummary[] = workout.exercises
+        .filter(ex => ex.completedSets.length > 0)
+        .map(ex => {
+          const completedSets = ex.completedSets.filter(s => s.completed);
+          const bestSet = completedSets.reduce((best, current) => {
+            const bestVolume = best.weight * best.reps;
+            const currentVolume = current.weight * current.reps;
+            return currentVolume > bestVolume ? current : best;
+          }, completedSets[0]);
+
+          const exerciseInfo = getWorkoutById(ex.id);
+          return {
+            name: exerciseInfo?.name || ex.id.replace(/-/g, ' '),
+            sets: completedSets.length,
+            bestSet: bestSet ? `${bestSet.weight}x${bestSet.reps}` : '',
+          };
+        });
+
+      // Calculate totals
+      const totalSets = workout.exercises.reduce(
+        (sum, ex) => sum + ex.completedSets.filter(s => s.completed).length,
+        0
+      );
+      const totalVolume = workout.exercises.reduce((sum, ex) => {
+        return sum + ex.completedSets
+          .filter(s => s.completed)
+          .reduce((setSum, set) => {
+            const weightInLbs = set.unit === 'kg' ? set.weight * 2.205 : set.weight;
+            return setSum + (weightInLbs * set.reps);
+          }, 0);
+      }, 0);
+
+      // Get user's current strength level for feed display
+      const percentileData = await this.getUserPercentileData(user.id);
+      const feedData: WorkoutFeedData = {
+        strength_level: percentileData?.strength_level,
+        pr_count: prCount,
+      };
+
+      // Upsert workout
+      const { error } = await supabase
+        .from('user_workouts')
+        .upsert({
+          id: workout.id,
+          user_id: user.id,
+          title: workout.title,
+          created_at: workout.createdAt.toISOString(),
+          duration_seconds: durationSeconds,
+          exercise_count: exerciseSummaries.length,
+          set_count: totalSets,
+          total_volume: Math.round(totalVolume),
+          exercises: exerciseSummaries,
+          feed_data: feedData,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id',
+        });
+
+      if (error) {
+        console.error('Error syncing workout:', error);
+        analyticsService.logErr('sync', 'workout_sync_failed', error.message, {
+          code: error.code,
+          workoutId: workout.id
+        });
+        return false;
+      }
+
+      analyticsService.logInfo('sync', 'workout_synced', 'Workout synced to Supabase', {
+        workoutId: workout.id,
+        exerciseCount: exerciseSummaries.length,
+        totalSets,
+        totalVolume: Math.round(totalVolume),
+        strengthLevel: feedData.strength_level,
+        prCount
+      });
+      return true;
+    } catch (error) {
+      console.error('Error syncing workout:', error);
+      analyticsService.logErr('sync', 'workout_sync_error', error instanceof Error ? error.message : 'Unknown error');
+      return false;
+    }
+  }
+
+  /**
+   * Get a user's recent workouts
+   */
+  async getUserWorkouts(userId: string, limit: number = 10): Promise<WorkoutSummary[]> {
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('user_workouts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching user workouts:', error);
+        return [];
+      }
+
+      return (data || []).map(w => ({
+        id: w.id,
+        title: w.title,
+        created_at: new Date(w.created_at),
+        duration_seconds: w.duration_seconds,
+        exercise_count: w.exercise_count,
+        set_count: w.set_count,
+        total_volume: w.total_volume,
+        exercises: w.exercises as WorkoutExerciseSummary[],
+      }));
+    } catch (error) {
+      console.error('Error fetching user workouts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete a synced workout
+   */
+  async deleteWorkout(workoutId: string): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const { error } = await supabase
+        .from('user_workouts')
+        .delete()
+        .eq('id', workoutId);
+
+      if (error) {
+        console.error('Error deleting workout:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get friends' recent workouts for feed
+   */
+  async getFriendsWorkoutFeed(limit: number = 20): Promise<(WorkoutSummary & { username: string; profile_picture_url?: string; user_id: string })[]> {
+    if (!supabase) return [];
+
+    try {
+      const friends = await this.getFriends();
+      if (friends.length === 0) return [];
+
+      const friendIds = friends.map(f => f.user.id);
+
+      const { data, error } = await supabase
+        .from('user_workouts')
+        .select(`
+          *,
+          users!inner(username, profile_picture_url)
+        `)
+        .in('user_id', friendIds)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) {
+        console.error('Error fetching friends workout feed:', error);
+        return [];
+      }
+
+      return (data || []).map(w => ({
+        id: w.id,
+        user_id: w.user_id,
+        title: w.title,
+        created_at: new Date(w.created_at),
+        duration_seconds: w.duration_seconds,
+        exercise_count: w.exercise_count,
+        set_count: w.set_count,
+        total_volume: w.total_volume,
+        exercises: w.exercises as WorkoutExerciseSummary[],
+        username: (w.users as { username: string }).username,
+        profile_picture_url: (w.users as { profile_picture_url?: string }).profile_picture_url,
+      }));
+    } catch (error) {
+      console.error('Error fetching friends workout feed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get global workout feed (all users) with pagination
+   */
+  async getGlobalWorkoutFeed(limit: number = 20, offset: number = 0): Promise<(WorkoutSummary & { username: string; profile_picture_url?: string; user_id: string })[]> {
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('user_workouts')
+        .select(`
+          *,
+          users!inner(username, profile_picture_url)
+        `)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error('Error fetching global workout feed:', error);
+        return [];
+      }
+
+      return (data || []).map(w => ({
+        id: w.id,
+        user_id: w.user_id,
+        title: w.title,
+        created_at: new Date(w.created_at),
+        duration_seconds: w.duration_seconds,
+        exercise_count: w.exercise_count,
+        set_count: w.set_count,
+        total_volume: w.total_volume,
+        exercises: w.exercises as WorkoutExerciseSummary[],
+        feed_data: w.feed_data as WorkoutFeedData | undefined,
+        username: (w.users as { username: string }).username,
+        profile_picture_url: (w.users as { profile_picture_url?: string }).profile_picture_url,
+      }));
+    } catch (error) {
+      console.error('Error fetching global workout feed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Toggle reaction on a workout (add, change, or remove)
+   * If user already has same reaction, removes it. If different, updates it.
+   */
+  async toggleReaction(workoutId: string, reactionType: ReactionType): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return false;
+
+      // Get current workout feed_data
+      const { data: workout, error: fetchError } = await supabase
+        .from('user_workouts')
+        .select('feed_data')
+        .eq('id', workoutId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching workout for reaction:', fetchError);
+        return false;
+      }
+
+      const feedData: WorkoutFeedData = (workout?.feed_data as WorkoutFeedData) || {};
+      const reactions = feedData.reactions || [];
+
+      // Check if user already has a reaction
+      const existingIndex = reactions.findIndex(r => r.user_id === user.id);
+
+      if (existingIndex >= 0) {
+        if (reactions[existingIndex].reaction_type === reactionType) {
+          // Same reaction - remove it
+          reactions.splice(existingIndex, 1);
+        } else {
+          // Different reaction - update it
+          reactions[existingIndex] = {
+            user_id: user.id,
+            username: user.username,
+            profile_picture_url: user.profile_picture_url,
+            reaction_type: reactionType,
+            created_at: new Date().toISOString(),
+          };
+        }
+      } else {
+        // Add new reaction
+        reactions.push({
+          user_id: user.id,
+          username: user.username,
+          profile_picture_url: user.profile_picture_url,
+          reaction_type: reactionType,
+          created_at: new Date().toISOString(),
+        });
+      }
+
+      // Update feed_data
+      const { error: updateError } = await supabase
+        .from('user_workouts')
+        .update({ feed_data: { ...feedData, reactions } })
+        .eq('id', workoutId);
+
+      if (updateError) {
+        console.error('Error updating reaction:', updateError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error toggling reaction:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Add a comment to a workout
+   */
+  async addComment(workoutId: string, text: string): Promise<FeedComment | null> {
+    if (!supabase) return null;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return null;
+
+      // Basic profanity check on comment
+      if (containsProfanity(text)) {
+        console.warn('Comment contains profanity');
+        return null;
+      }
+
+      // Get current workout feed_data
+      const { data: workout, error: fetchError } = await supabase
+        .from('user_workouts')
+        .select('feed_data')
+        .eq('id', workoutId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching workout for comment:', fetchError);
+        return null;
+      }
+
+      const feedData: WorkoutFeedData = (workout?.feed_data as WorkoutFeedData) || {};
+      const comments = feedData.comments || [];
+
+      // Create new comment (generate simple UUID)
+      const newComment: FeedComment = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        user_id: user.id,
+        username: user.username,
+        profile_picture_url: user.profile_picture_url,
+        text: text.trim(),
+        created_at: new Date().toISOString(),
+      };
+
+      comments.push(newComment);
+
+      // Update feed_data
+      const { error: updateError } = await supabase
+        .from('user_workouts')
+        .update({ feed_data: { ...feedData, comments } })
+        .eq('id', workoutId);
+
+      if (updateError) {
+        console.error('Error adding comment:', updateError);
+        return null;
+      }
+
+      return newComment;
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete a comment from a workout (only comment author or workout owner can delete)
+   */
+  async deleteComment(workoutId: string, commentId: string): Promise<boolean> {
+    if (!supabase) return false;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return false;
+
+      // Get current workout
+      const { data: workout, error: fetchError } = await supabase
+        .from('user_workouts')
+        .select('feed_data, user_id')
+        .eq('id', workoutId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching workout for comment deletion:', fetchError);
+        return false;
+      }
+
+      const feedData: WorkoutFeedData = (workout?.feed_data as WorkoutFeedData) || {};
+      const comments = feedData.comments || [];
+
+      // Find comment
+      const commentIndex = comments.findIndex(c => c.id === commentId);
+      if (commentIndex < 0) return false;
+
+      // Check if user can delete (comment author or workout owner)
+      const comment = comments[commentIndex];
+      if (comment.user_id !== user.id && workout.user_id !== user.id) {
+        console.warn('User not authorized to delete this comment');
+        return false;
+      }
+
+      comments.splice(commentIndex, 1);
+
+      // Update feed_data
+      const { error: updateError } = await supabase
+        .from('user_workouts')
+        .update({ feed_data: { ...feedData, comments } })
+        .eq('id', workoutId);
+
+      if (updateError) {
+        console.error('Error deleting comment:', updateError);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get the current user's reaction on a workout (if any)
+   */
+  getUserReactionFromFeedData(feedData: WorkoutFeedData | undefined, userId: string): ReactionType | undefined {
+    if (!feedData?.reactions) return undefined;
+    const reaction = feedData.reactions.find(r => r.user_id === userId);
+    return reaction?.reaction_type;
   }
 }
 

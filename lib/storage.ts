@@ -16,7 +16,10 @@ const STORAGE_KEYS = {
   CUSTOM_EXERCISES: 'custom_exercises',
   WORKOUT_TEMPLATES: 'workout_templates',
   TUTORIAL_STATE: 'tutorial_state',
+  HOME_VIEW_MODE: 'home_view_mode',
 } as const;
+
+export type HomeViewMode = 'home' | 'feed';
 
 export interface TutorialState {
   hasCompletedAppTutorial: boolean;
@@ -504,6 +507,28 @@ class StorageService {
       await AsyncStorage.removeItem(STORAGE_KEYS.TUTORIAL_STATE);
     } catch (error) {
       console.error('Error clearing tutorial state:', error);
+    }
+  }
+
+  // Home View Mode
+  async saveHomeViewMode(mode: HomeViewMode): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.HOME_VIEW_MODE, mode);
+    } catch (error) {
+      console.error('Error saving home view mode:', error);
+    }
+  }
+
+  async getHomeViewMode(): Promise<HomeViewMode> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.HOME_VIEW_MODE);
+      if (data === 'home' || data === 'feed') {
+        return data;
+      }
+      return 'home'; // Default to home
+    } catch (error) {
+      console.error('Error loading home view mode:', error);
+      return 'home';
     }
   }
 }

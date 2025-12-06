@@ -29,11 +29,25 @@ class UserService {
   }
 
   // Add or update a user's lift
-  async recordLift(lift: Omit<UserLift, 'dateRecorded'>, liftType: 'main' | 'secondary'): Promise<void> {
+  // Returns true if this is a new personal record (PR)
+  async recordLift(lift: Omit<UserLift, 'dateRecorded'>, liftType: 'main' | 'secondary'): Promise<boolean> {
     const profile = await this.getRealUserProfile();
     if (!profile) throw new Error('No user profile found');
 
     const weightInLbs = convertWeightToLbs(lift.weight, lift.unit);
+
+    // Check if this is a new PR by finding existing best 1RM for this exercise
+    const existingLifts = liftType === 'main' ? profile.lifts : profile.secondaryLifts;
+    const existingForExercise = existingLifts.filter(l => l.id === lift.id);
+
+    // Calculate estimated 1RM for comparison (Epley formula)
+    const newEstimated1RM = weightInLbs * (1 + lift.reps / 30);
+    const existingBest1RM = existingForExercise.reduce((best, l) => {
+      const est1RM = l.weight * (1 + l.reps / 30);
+      return est1RM > best ? est1RM : best;
+    }, 0);
+
+    const isNewPR = newEstimated1RM > existingBest1RM;
 
     if (liftType === 'main') {
       profile.lifts.push({
@@ -52,6 +66,7 @@ class UserService {
     }
 
     await storageService.saveUserProfile(profile);
+    return isNewPR;
   }
 
   // Calculate real user progress from recorded lifts

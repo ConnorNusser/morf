@@ -5,7 +5,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryName } from '@/lib/geoService';
 import { supabase } from '@/lib/supabase';
-import { userSyncService } from '@/lib/userSyncService';
+import { userSyncService, WorkoutSummary } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
 import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,11 +36,36 @@ interface UserProfileModalProps {
 
 const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
 
+// Format relative time (e.g., "2d ago", "1w ago")
+const formatRelativeTime = (date: Date): string => {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffWeeks < 4) return `${diffWeeks}w ago`;
+  return date.toLocaleDateString();
+};
+
+// Format duration (e.g., "45min", "1h 15min")
+const formatDuration = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}min`;
+};
+
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserLiftData[]>([]);
   const [userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
+  const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [isFriendLoading, setIsFriendLoading] = useState(false);
@@ -75,8 +100,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
     setIsLoading(true);
     try {
-      // Get user data including profile info and percentile data
-      const [liftsResult, userResult, percentileResult] = await Promise.all([
+      // Get user data including profile info, percentile data, and workouts
+      const [liftsResult, userResult, percentileResult, workoutsResult] = await Promise.all([
         supabase
           .from('user_best_lifts')
           .select('exercise_id, estimated_1rm, recorded_at')
@@ -86,7 +111,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           .select('user_data, country_code')
           .eq('id', user.id)
           .single(),
-        userSyncService.getUserPercentileData(user.id)
+        userSyncService.getUserPercentileData(user.id),
+        userSyncService.getUserWorkouts(user.id, 5)
       ]);
 
       if (liftsResult.error) {
@@ -112,11 +138,15 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
       // Set percentile data
       setPercentileData(percentileResult);
+
+      // Set recent workouts
+      setRecentWorkouts(workoutsResult);
     } catch (error) {
       console.error('Error loading user data:', error);
       setLifts([]);
       setUserData(null);
       setPercentileData(null);
+      setRecentWorkouts([]);
     } finally {
       setIsLoading(false);
     }
@@ -380,6 +410,42 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 </View>
               )}
 
+              {/* Recent Workouts */}
+              {recentWorkouts.length > 0 && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    Recent Workouts
+                  </Text>
+                  <View style={styles.workoutsList}>
+                    {recentWorkouts.map((workout, index) => (
+                      <View
+                        key={workout.id}
+                        style={[
+                          styles.workoutRow,
+                          { backgroundColor: 'transparent' },
+                          index < recentWorkouts.length - 1 && {
+                            borderBottomWidth: StyleSheet.hairlineWidth,
+                            borderBottomColor: currentTheme.colors.border,
+                          }
+                        ]}
+                      >
+                        <View style={styles.workoutHeader}>
+                          <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                            {workout.title}
+                          </Text>
+                          <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                            {formatRelativeTime(workout.created_at)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+                          {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               {lifts.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="barbell-outline" size={32} color={currentTheme.colors.text + '30'} />
@@ -576,6 +642,28 @@ const styles = StyleSheet.create({
   },
   liftValue: {
     fontSize: 14,
+  },
+  workoutsList: {
+    gap: 0,
+  },
+  workoutRow: {
+    paddingVertical: 12,
+    gap: 4,
+  },
+  workoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  workoutTitle: {
+    fontSize: 15,
+    flex: 1,
+  },
+  workoutTime: {
+    fontSize: 13,
+  },
+  workoutStats: {
+    fontSize: 13,
   },
   emptyState: {
     alignItems: 'center',

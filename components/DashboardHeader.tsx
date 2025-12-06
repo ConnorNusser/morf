@@ -1,123 +1,183 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import React from 'react';
-import { Alert, Animated, Image, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+type ViewMode = 'home' | 'feed';
 
 interface DashboardHeaderProps {
-  onLogoPress?: () => void;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
-export default function DashboardHeader({ onLogoPress }: DashboardHeaderProps) {
+export default function DashboardHeader({ viewMode, onViewModeChange }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
-  const scaleAnim = new Animated.Value(1);
+  const [showDropdown, setShowDropdown] = useState(false);
 
-  const handleShareApp = async () => {
-    try {
-      const _result = await Share.share({
-        message: '🔥 Track your lifts with Morf! \n\nhttps://apps.apple.com/us/app/morf-your-ai-workout-tracker/id6747366819?platform=iphone 💪',
-        title: 'Morf - Transform Your Strength',
-      });
-    } catch (error) {
-      console.error('Error sharing app:', error);
-      Alert.alert(
-        'Share Error',
-        'Unable to share the app right now. Please try again later.',
-        [{ text: 'OK', style: 'default' }]
-      );
-    }
+  const handleViewSelect = (mode: ViewMode) => {
+    setShowDropdown(false);
+    onViewModeChange?.(mode);
   };
 
-  const handlePress = () => {
-    // Create a subtle bounce animation
-    Animated.sequence([
-      Animated.timing(scaleAnim, {
-        toValue: 0.95,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    // Handle sharing or custom action
-    if (onLogoPress) {
-      onLogoPress();
-    } else {
-      handleShareApp();
-    }
-  };
+  // If no view mode props, show original Morf text
+  const showViewSelector = viewMode !== undefined && onViewModeChange !== undefined;
 
   return (
-    <TouchableOpacity
-      style={styles.container}
-      onPress={handlePress}
-      activeOpacity={0.8}
-    >
-      <Animated.View
-        style={[
-          styles.logoContainer,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Image
-          source={require('@/assets/images/icon.png')}
-          style={styles.logoImage}
-          resizeMode="contain"
-        />
-      </Animated.View>
-      
-      <View style={styles.textContainer}>
+    <View style={styles.container}>
+      {showViewSelector ? (
+        <>
+          <View style={styles.headerRow}>
+            <Image
+              source={require('@/assets/images/icon.png')}
+              style={styles.logo}
+            />
+            <TouchableOpacity
+              style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
+              onPress={() => setShowDropdown(!showDropdown)}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.appName,
+                {
+                  color: currentTheme.colors.text,
+                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
+                }
+              ]}>
+                {viewMode === 'home' ? 'Morf' : 'Feed'}
+              </Text>
+              <Ionicons
+                name={showDropdown ? 'chevron-up' : 'chevron-down'}
+                size={24}
+                color={currentTheme.colors.text}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {showDropdown && (
+            <>
+              {/* Backdrop to close dropdown */}
+              <TouchableOpacity
+                style={styles.backdrop}
+                onPress={() => setShowDropdown(false)}
+                activeOpacity={1}
+              />
+              <View style={[styles.dropdown, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                <TouchableOpacity
+                  style={[styles.dropdownItem, viewMode === 'home' && { backgroundColor: currentTheme.colors.primary + '15' }]}
+                  onPress={() => handleViewSelect('home')}
+                >
+                  <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <View style={styles.dropdownTextContainer}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      Morf
+                    </Text>
+                    <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
+                      Your stats
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dropdownItem, viewMode === 'feed' && { backgroundColor: currentTheme.colors.primary + '15' }]}
+                  onPress={() => handleViewSelect('feed')}
+                >
+                  <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <View style={styles.dropdownTextContainer}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      Feed
+                    </Text>
+                    <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
+                      Community workouts
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+        </>
+      ) : (
         <Text style={[
-          styles.appName, 
-          { 
+          styles.appName,
+          {
             color: currentTheme.colors.text,
             fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
           }
         ]}>
           Morf
         </Text>
-      </View>
-    </TouchableOpacity>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 4,
+    zIndex: 1000,
   },
-  logoContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
+  headerRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
+    gap: 12,
   },
-  logoImage: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-  },
-  textContainer: {
-    flex: 1,
+  logo: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
   },
   appName: {
     fontSize: 32,
     fontWeight: '700',
     letterSpacing: -1,
+  },
+  viewSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingVertical: 8,
+    paddingLeft: 16,
+    paddingRight: 12,
+    borderRadius: 12,
+  },
+  backdrop: {
+    position: 'absolute',
+    top: -100,
+    left: -100,
+    right: -100,
+    bottom: -1000,
+    zIndex: 999,
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 64,
+    left: 56,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    minWidth: 200,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  dropdownTextContainer: {
+    flex: 1,
+  },
+  dropdownText: {
+    fontSize: 16,
+  },
+  dropdownSubtext: {
+    fontSize: 12,
+    fontFamily: 'Raleway_400Regular',
+    marginTop: 2,
   },
 }); 

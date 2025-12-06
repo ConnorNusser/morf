@@ -217,8 +217,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
-    // Record lifts for progress tracking
+    // Record lifts for progress tracking and count PRs
     const liftsToSync: UserLift[] = [];
+    let prCount = 0;
     for (const exercise of generatedWorkout.exercises) {
       if (exercise.completedSets.length > 0) {
         // Find the best set (highest estimated 1RM)
@@ -240,7 +241,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
             unit: bestSet.unit,
             dateRecorded: new Date(),
           };
-          await userService.recordLift(liftData, liftType);
+          const isNewPR = await userService.recordLift(liftData, liftType);
+          if (isNewPR) {
+            prCount++;
+          }
           liftsToSync.push(liftData);
         }
       }
@@ -257,6 +261,11 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Always sync overall percentile data (includes ALL user's lifts, not just this workout)
     userSyncService.calculateAndSyncPercentiles().catch(err => {
       console.error('Error syncing percentile data:', err);
+    });
+
+    // Sync workout to Supabase for social viewing (include PR count)
+    userSyncService.syncWorkout(generatedWorkout, elapsedTime, prCount).catch(err => {
+      console.error('Error syncing workout to Supabase:', err);
     });
 
     // Refresh user profile context so other screens get updated data

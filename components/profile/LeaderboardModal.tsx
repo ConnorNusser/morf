@@ -21,11 +21,13 @@ import {
 } from 'react-native';
 import UserProfileModal from './UserProfileModal';
 
-// Big 3 exercises to feature prominently
-const BIG_3_EXERCISES: string[] = [
+// Featured exercises to always show first (in order)
+const FEATURED_EXERCISES: string[] = [
   MAIN_LIFTS.BENCH_PRESS,
   MAIN_LIFTS.SQUAT,
   MAIN_LIFTS.DEADLIFT,
+  MAIN_LIFTS.OVERHEAD_PRESS,
+  'hip-thrust-barbell',
 ];
 
 type LeaderboardFilter = 'friends' | 'country' | 'global';
@@ -56,20 +58,28 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
   // Get all exercise IDs that the user has tracked (excluding custom exercises)
   const getTrackedExerciseIds = useCallback(() => {
-    if (!userProfile) return ['overall', ...BIG_3_EXERCISES];
+    if (!userProfile) return ['overall', ...FEATURED_EXERCISES];
+
     const allLifts = [...(userProfile.lifts || []), ...(userProfile.secondaryLifts || [])];
     // Filter out custom exercises (those not found in built-in workouts)
-    const uniqueIds = [...new Set(
+    const trackedIds = new Set(
       allLifts
         .filter(lift => getWorkoutById(lift.id) !== null)
         .map(lift => lift.id)
-    )];
-    // Always include Big 3 even if not tracked
-    BIG_3_EXERCISES.forEach(id => {
-      if (!uniqueIds.includes(id)) uniqueIds.unshift(id);
+    );
+
+    // Start with featured exercises (always in this order)
+    const orderedIds: string[] = [...FEATURED_EXERCISES];
+
+    // Add remaining tracked exercises that aren't in featured list
+    trackedIds.forEach(id => {
+      if (!FEATURED_EXERCISES.includes(id)) {
+        orderedIds.push(id);
+      }
     });
+
     // Add "Overall" as the first option
-    return ['overall', ...uniqueIds];
+    return ['overall', ...orderedIds];
   }, [userProfile]);
 
   const loadLeaderboard = useCallback(async () => {
@@ -290,7 +300,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               <View style={[styles.dropdownMenu, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                 <ScrollView style={styles.dropdownScroll} nestedScrollEnabled>
                   {availableExercises.map((exerciseId) => {
-                    const isBig3 = BIG_3_EXERCISES.includes(exerciseId);
+                    const isFeatured = FEATURED_EXERCISES.includes(exerciseId);
                     return (
                       <TouchableOpacity
                         key={exerciseId}
@@ -312,8 +322,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                         ]}>
                           {getExerciseName(exerciseId)}
                         </Text>
-                        {isBig3 && (
-                          <View style={[styles.big3Dot, { backgroundColor: currentTheme.colors.primary }]} />
+                        {isFeatured && (
+                          <View style={[styles.featuredDot, { backgroundColor: currentTheme.colors.primary }]} />
                         )}
                       </TouchableOpacity>
                     );
@@ -655,7 +665,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
   },
-  big3Dot: {
+  featuredDot: {
     width: 6,
     height: 6,
     borderRadius: 3,

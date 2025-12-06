@@ -184,12 +184,12 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   // Sync percentile data to Supabase when modal is visible and data is loaded
   useEffect(() => {
-    if (!visible || lifts.length === 0 || overallPercentile === 0) return;
+    if (!visible || lifts.length === 0) return;
 
     userSyncService.calculateAndSyncPercentiles().catch(err => {
       console.error('Error syncing percentile data:', err);
     });
-  }, [visible, lifts.length, overallPercentile]);
+  }, [visible, lifts.length]);
 
   const getNextTierInfo = (value: number) => {
     const currentTier = getStrengthTier(value);

@@ -1,25 +1,30 @@
 import DashboardHeader from '@/components/DashboardHeader';
+import { FeedView } from '@/components/feed';
 import LiftDisplayFilter from '@/components/LiftDisplayFilter';
 import OverallStatsCard from '@/components/OverallStatsCard';
 import LeaderboardModal from '@/components/profile/LeaderboardModal';
+import UserProfileModal from '@/components/profile/UserProfileModal';
 import SkeletonCard from '@/components/SkeletonCard';
 import Spacer from '@/components/Spacer';
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import WorkoutStatsCard from '@/components/WorkoutStatsCard';
 import { useTheme } from '@/contexts/ThemeContext';
-import { storageService } from '@/lib/storage';
+import { HomeViewMode, storageService } from '@/lib/storage';
 import { getStrengthLevelName } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { calculateOverallPercentile } from '@/lib/utils';
-import { LiftDisplayFilters, UserProgress } from '@/types';
+import { LiftDisplayFilters, RemoteUser, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+
+type ViewMode = HomeViewMode;
 
 export default function HomeScreen() {
   const { currentTheme } = useTheme();
+  const [viewMode, setViewMode] = useState<ViewMode>('home');
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [filteredProgress, setFilteredProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -29,7 +34,19 @@ export default function HomeScreen() {
     improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [feedRefreshTrigger, setFeedRefreshTrigger] = useState(0);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
+
+  // Load saved view mode on mount
+  useEffect(() => {
+    const loadViewMode = async () => {
+      const savedMode = await storageService.getHomeViewMode();
+      setViewMode(savedMode);
+    };
+    loadViewMode();
+  }, []);
 
   useEffect(() => {
     loadUserData();
@@ -37,28 +54,25 @@ export default function HomeScreen() {
 
   useEffect(() => {
     applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyFilters is stable, only re-run on data changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userProgress, liftFilters]);
 
-  // Update overall stats when filtered progress changes
   useEffect(() => {
     updateOverallStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateOverallStats is stable, only re-run on data changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredProgress]);
 
   const loadUserData = async () => {
     try {
-      // Ensure user profile exists (this will create default if needed)
       await userService.getUserProfileOrDefault();
-      
+
       const [userProgressData, savedFilters] = await Promise.all([
         userService.getAllFeaturedLifts(),
         storageService.getLiftDisplayFilters()
       ]);
-      
+
       setUserProgress(userProgressData);
       setLiftFilters(savedFilters);
-
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -67,7 +81,7 @@ export default function HomeScreen() {
   };
 
   const applyFilters = () => {
-    const filtered = userProgress.filter(progress => 
+    const filtered = userProgress.filter(progress =>
       !liftFilters.hiddenLiftIds.includes(progress.workoutId)
     );
     setFilteredProgress(filtered);
@@ -84,11 +98,29 @@ export default function HomeScreen() {
     });
   };
 
+  const handleViewModeChange = async (mode: ViewMode) => {
+    setViewMode(mode);
+    await storageService.saveHomeViewMode(mode);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    if (viewMode === 'feed') {
+      setFeedRefreshTrigger(prev => prev + 1);
+    } else {
+      await loadUserData();
+    }
+    setIsRefreshing(false);
+  };
+
   const handleFiltersChanged = (newFilters: LiftDisplayFilters) => {
     setLiftFilters(newFilters);
   };
 
-  // Refresh data when screen comes into focus
+  const handleUserPress = (user: RemoteUser) => {
+    setSelectedUser(user);
+  };
+
   useFocusEffect(
     useCallback(() => {
       loadUserData();
@@ -105,25 +137,60 @@ export default function HomeScreen() {
           <SkeletonCard variant="stats" />
           <SkeletonCard variant="stats" />
           <SkeletonCard variant="stats" />
-          <SkeletonCard variant="stats" />
-          <SkeletonCard variant="stats" />
         </View>
         <Spacer height={100} />
       </ScrollView>
     );
   }
 
+  // Feed mode uses its own FlatList for infinite scrolling
+  if (viewMode === 'feed') {
+    return (
+      <>
+        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+          <View style={[styles.feedHeader, { backgroundColor: 'transparent' }]}>
+            <DashboardHeader
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+            />
+          </View>
+          <FeedView
+            onUserPress={handleUserPress}
+            refreshTrigger={feedRefreshTrigger}
+          />
+        </View>
+
+        <UserProfileModal
+          visible={selectedUser !== null}
+          onClose={() => setSelectedUser(null)}
+          user={selectedUser}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: currentTheme.colors.background }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            tintColor={currentTheme.colors.primary}
+          />
+        }
+      >
         <View style={[styles.content, { backgroundColor: 'transparent' }]}>
-          <DashboardHeader />
+          <DashboardHeader
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+          />
 
           <TutorialTarget id="home-overall-stats">
             <OverallStatsCard stats={overallStats} />
           </TutorialTarget>
 
-          {/* Leaderboard Button */}
           <TutorialTarget id="home-leaderboard-button">
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
@@ -150,7 +217,6 @@ export default function HomeScreen() {
                 ]}>
                   Your Lifts
                 </Text>
-
                 <LiftDisplayFilter
                   availableLifts={userProgress}
                   onFiltersChanged={handleFiltersChanged}
@@ -170,10 +236,15 @@ export default function HomeScreen() {
         <Spacer height={100} />
       </ScrollView>
 
-      {/* Leaderboard Modal */}
       <LeaderboardModal
         visible={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
+      />
+
+      <UserProfileModal
+        visible={selectedUser !== null}
+        onClose={() => setSelectedUser(null)}
+        user={selectedUser}
       />
     </>
   );
@@ -188,32 +259,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     gap: 20,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
+  feedHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 10,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-  },
-  noDataCard: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  noDataTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  noDataText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   actionButton: {
     flexDirection: 'row',
