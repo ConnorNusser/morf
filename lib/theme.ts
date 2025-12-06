@@ -21,7 +21,7 @@ export interface Theme {
 }
 
 export const themes: Record<ThemeLevel, Theme> = {
-  // Studio Ghibli - Magical, warm, nature-inspired (now beginner!)
+  // E Tier Light - Studio Ghibli, magical, nature-inspired
   beginner: {
     name: 'beginner',
     colors: {
@@ -37,20 +37,20 @@ export const themes: Record<ThemeLevel, Theme> = {
       fontFamily: 'System',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 16,  // Rounded, organic feeling
+    borderRadius: 16,
   },
 
-  // Beginner Dark - Slack-inspired neutral gray theme
+  // E Tier Dark - Silver metallic theme
   beginner_dark: {
     name: 'beginner_dark',
     colors: {
-      background: '#1A1D21',    // Slack dark background
-      text: '#D1D2D3',          // Soft gray text
-      primary: '#36C5F0',       // Slack blue accent
-      secondary: '#222529',     // Slightly lighter gray
-      accent: '#2EB67D',        // Slack green
-      surface: '#27242C',       // Card surface
-      border: '#3F4147',        // Subtle gray border
+      background: '#121215',    // Dark charcoal
+      text: '#E4E4E7',          // Zinc 200
+      primary: '#A1A1AA',       // Zinc 400 (silver)
+      secondary: '#18181B',     // Zinc 900
+      accent: '#D4D4D8',        // Zinc 300 (bright silver)
+      surface: '#1C1C1F',       // Elevated dark
+      border: '#27272A',        // Zinc 800
     },
     properties: {
       fontFamily: 'System',
@@ -59,17 +59,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 12,
   },
 
-  // Clean Material Design - Soft, accessible (now intermediate)
+  // C Tier - Clean iOS-inspired light theme
   intermediate: {
     name: 'intermediate',
     colors: {
-      background: '#FAFAFA',    // Very light gray background
-      text: '#1D1D1F',          // Dark iOS-like text
+      background: '#F2F2F7',    // iOS system gray 6
+      text: '#1C1C1E',          // iOS label
       primary: '#007AFF',       // iOS blue
-      secondary: '#F5F5F5',     // Light gray cards
-      accent: '#34C759',        // iOS green accent
+      secondary: '#E5E5EA',     // iOS system gray 5
+      accent: '#34C759',        // iOS green
       surface: '#FFFFFF',       // White cards
-      border: '#D1D1D6',        // Separator color
+      border: '#C6C6C8',        // iOS separator
     },
     properties: {
       fontFamily: 'System',
@@ -77,100 +77,100 @@ export const themes: Record<ThemeLevel, Theme> = {
     },
     borderRadius: 10,
   },
-  
-  // iOS-inspired - Clean, minimal, professional (now advanced)
+
+  // B Tier - Deep ocean dark theme
   advanced: {
     name: 'advanced',
     colors: {
-      background: '#121212',     // Dark neutral background for contrast (from previous intermediate)
-      text: '#FFFFFF',          // Pure white text
-      primary: '#625AD8',       // Indigo-violet primary
-      secondary: '#7339AB',     // Deep purple secondary
-      accent: '#1F9CE4',        // Bright blue accent
-      surface: '#1F1F1F',       // Dark surface
-      border: '#2A2A2A',        // Subtle border
+      background: '#0F172A',    // Slate 900
+      text: '#F1F5F9',          // Slate 100
+      primary: '#3B82F6',       // Blue 500
+      secondary: '#1E293B',     // Slate 800
+      accent: '#22D3EE',        // Cyan 400
+      surface: '#1E293B',       // Slate 800
+      border: '#334155',        // Slate 700
     },
     properties: {
       fontFamily: 'System',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 12,  // Slightly larger radius for dark theme
+    borderRadius: 12,
   },
-  
-  // ARCTIC ICE - Frozen mastery with elite darkness (now elite)
+
+  // A Tier - Royal purple premium theme
   elite: {
     name: 'elite',
     colors: {
-      background: '#0A0F1C',    // Very dark arctic blue
-      text: '#E6F3FF',          // Soft ice white
-      primary: '#1E90FF',       // Dodger blue (bright ice accent)
-      secondary: '#0F1419',     // Almost black with blue tint
-      accent: '#40E0D0',        // Turquoise (ice crystal glow)
-      surface: '#111827',       // Dark blue-gray surface
-      border: '#1F2937',        // Dark gray-blue borders
+      background: '#13111C',    // Deep purple black
+      text: '#EEEEF0',          // Soft white
+      primary: '#A855F7',       // Purple 500
+      secondary: '#1E1B2E',     // Purple tinted dark
+      accent: '#F472B6',        // Pink 400
+      surface: '#221F2E',       // Elevated purple surface
+      border: '#2E2A3E',        // Subtle purple border
     },
     properties: {
-      fontFamily: 'Karla_400Regular', // Clean, calm Google Font - perfect for arctic elegance
-      headingFontFamily: 'Karla_700Bold', // Bold Karla for consistent font family
+      fontFamily: 'Karla_400Regular',
+      headingFontFamily: 'Karla_700Bold',
     },
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  
-  // Dark mode - Modern, sophisticated (now god)
+
+  // S Tier - Claude inspired dark theme
   god: {
     name: 'god',
     colors: {
-      background: '#0F0F0F',    // Very dark background
-      text: '#FFFFFF',          // Pure white text
-      primary: '#8B5CF6',       // Purple primary
-      secondary: '#1F1F1F',     // Dark card background
-      accent: '#06D6A0',        // Teal accent
-      surface: '#262626',       // Lighter dark for elevated cards
-      border: '#404040',        // Subtle dark borders
+      background: '#2C2724',    // Warm dark gray (not black)
+      text: '#FAF6F1',          // Claude warm cream
+      primary: '#C15F3C',       // Claude rust orange
+      secondary: '#3D3632',     // Slightly lighter warm gray
+      accent: '#E67D22',        // Claude bright orange
+      surface: '#38322E',       // Elevated warm gray
+      border: '#4A433E',        // Warm medium border
     },
     properties: {
       fontFamily: 'Karla_400Regular',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 8,
+    borderRadius: 12,
   },
 
-  // Shareable Cotton Candy - Soft pastel dreamland
+  // Rose - Soft pastel dreamscape
   share_warm: {
     name: 'share_warm',
     colors: {
-      background: '#FFF0F5',    // Soft lavender blush
-      text: '#8B4A8C',          // Soft purple text
-      primary: '#FF69B4',       // Hot pink primary
-      secondary: '#FFE4E1',     // Misty rose surface
-      accent: '#87CEEB',        // Sky blue accent
+      background: '#FDF4F5',    // Soft rose white
+      text: '#6B4C5A',          // Muted mauve text
+      primary: '#E879A9',       // Soft pink
+      secondary: '#FCE8EC',     // Light pink
+      accent: '#93C5FD',        // Soft blue
       surface: '#FFFFFF',       // Pure white cards
-      border: '#DDA0DD',        // Plum border
+      border: '#F5D0DC',        // Pink border
     },
     properties: {
       fontFamily: 'System',
       headingFontFamily: 'Raleway_600SemiBold',
     },
-    borderRadius: 20, // Extra rounded for soft aesthetic
+    borderRadius: 16,
   },
 
-  // Shareable Anime Night - Dark anime-inspired aesthetics
+  // Cyber - Cyberpunk anime aesthetics
   share_cool: {
     name: 'share_cool',
     colors: {
-      background: '#0D1421',    // Deep midnight blue
-      text: '#E8E8FF',          // Soft white with blue tint
-      primary: '#6366F1',       // Electric indigo primary
-      secondary: '#1E293B',     // Dark slate surface
-      accent: '#F59E0B',        // Bright amber accent
-      surface: '#1F2937',       // Dark gray cards
-      border: '#4F46E5',        // Electric purple border
+      background: '#0C0A1D',    // Deep midnight
+      text: '#E2E8F0',          // Soft white
+      primary: '#8B5CF6',       // Violet 500
+      secondary: '#1A1633',     // Dark violet
+      accent: '#FB923C',        // Orange 400
+      surface: '#16132D',       // Elevated violet
+      border: '#6D28D9',        // Violet 700
     },
     properties: {
       fontFamily: 'System',
-      headingFontFamily: 'Raleway_700Bold', // Bold for dramatic effect
+      headingFontFamily: 'Raleway_700Bold',
     },
-    borderRadius: 8, // Moderate rounding for modern anime feel
+    borderRadius: 8,
   },
 };
 

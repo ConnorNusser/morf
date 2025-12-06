@@ -393,45 +393,81 @@ export function calculateStrengthPercentile(
   }
 }
 
-// Anime-style tier system (F -> S)
-export type StrengthTier = 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
+// Anime-style tier system (E -> S++) with plus/minus modifiers
+export type StrengthTierBase = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+export type StrengthTier = 'S++' | 'S+' | 'S' | 'S-' | 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'D-' | 'E+' | 'E' | 'E-';
 
 export interface TierInfo {
   tier: StrengthTier;
+  baseTier: StrengthTierBase;
   color: string;
   label: string;
 }
 
-// Tier colors - vibrant anime style
-export const TIER_COLORS: Record<StrengthTier, string> = {
-  'S': '#FFD700', // Gold
-  'A': '#FF4500', // Orange Red
-  'B': '#9932CC', // Purple
-  'C': '#1E90FF', // Dodger Blue
-  'D': '#32CD32', // Lime Green
-  'E': '#808080', // Gray
-  'F': '#8B4513', // Brown
+// Tier colors - vibrant anime style (base colors for each tier)
+export const TIER_COLORS: Record<StrengthTierBase, string> = {
+  'S': '#FFD700', // Gold (Legendary)
+  'A': '#9932CC', // Purple (Epic)
+  'B': '#4169E1', // Royal Blue (Rare)
+  'C': '#2E8B57', // Sea Green (Uncommon)
+  'D': '#808080', // Gray (Common)
+  'E': '#808080', // Gray (Common)
 };
 
-// Helper function to get strength tier from percentile
+// Get the base tier (without +/-/++) for color lookup
+export function getBaseTier(tier: StrengthTier): StrengthTierBase {
+  return tier.charAt(0) as StrengthTierBase;
+}
+
+// Helper function to get strength tier from percentile (with +/- modifiers)
 export function getStrengthTier(percentile: number): StrengthTier {
+  // S tier: 85-100 (S++: 99-100, S+: 95-98, S: 90-94, S-: 85-89)
+  if (percentile >= 99) return 'S++';
+  if (percentile >= 95) return 'S+';
   if (percentile >= 90) return 'S';
+  if (percentile >= 85) return 'S-';
+
+  // A tier: 70-84 (A+: 80-84, A: 75-79, A-: 70-74)
+  if (percentile >= 80) return 'A+';
   if (percentile >= 75) return 'A';
-  if (percentile >= 50) return 'B';
-  if (percentile >= 25) return 'C';
-  if (percentile >= 10) return 'D';
-  if (percentile > 0) return 'E';
-  return 'F';
+  if (percentile >= 70) return 'A-';
+
+  // B tier: 47-69 (B+: 63-69, B: 55-62, B-: 47-54)
+  if (percentile >= 63) return 'B+';
+  if (percentile >= 55) return 'B';
+  if (percentile >= 47) return 'B-';
+
+  // C tier: 23-46 (C+: 39-46, C: 31-38, C-: 23-30)
+  if (percentile >= 39) return 'C+';
+  if (percentile >= 31) return 'C';
+  if (percentile >= 23) return 'C-';
+
+  // D tier: 6-22 (D+: 17-22, D: 11-16, D-: 6-10)
+  if (percentile >= 17) return 'D+';
+  if (percentile >= 11) return 'D';
+  if (percentile >= 6) return 'D-';
+
+  // E tier: 0-5 (E+: 3-5, E: 1-2, E-: 0)
+  if (percentile >= 3) return 'E+';
+  if (percentile >= 1) return 'E';
+  return 'E-';
 }
 
 // Helper function to get full tier info
 export function getTierInfo(percentile: number): TierInfo {
   const tier = getStrengthTier(percentile);
+  const baseTier = getBaseTier(tier);
   return {
     tier,
-    color: TIER_COLORS[tier],
+    baseTier,
+    color: TIER_COLORS[baseTier],
     label: `${tier} Tier`,
   };
+}
+
+// Helper function to get tier color
+export function getTierColor(tier: StrengthTier): string {
+  return TIER_COLORS[getBaseTier(tier)];
 }
 
 // Helper function to get strength level name using theme levels (legacy, returns tier)

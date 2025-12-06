@@ -4,6 +4,7 @@ import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import { Text, View } from '@/components/Themed';
+import { TutorialTarget } from '@/components/tutorial';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
@@ -482,7 +483,9 @@ export default function HistoryScreen() {
         {activeTab === 'workouts' ? (
           <>
             {/* Weekly Overview */}
-            <WeeklyOverview workoutHistory={workouts} />
+            <TutorialTarget id="history-content">
+              <WeeklyOverview workoutHistory={workouts} />
+            </TutorialTarget>
 
             {/* Quick Stats - Inline */}
             {workouts.length > 0 && (

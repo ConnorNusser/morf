@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
 import { OverallStats } from '@/lib/userProfile';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -13,10 +14,8 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   const { currentTheme } = useTheme();
 
   const getPercentileColor = (percentile: number) => {
-    if (percentile >= 90) return '#10B981'; // Green
-    if (percentile >= 75) return '#3B82F6'; // Blue
-    if (percentile >= 50) return '#F59E0B'; // Orange
-    return '#EF4444'; // Red
+    const tier = getStrengthTier(percentile);
+    return getTierColor(tier);
   };
   
   const percentile = Number.isNaN(stats.overallPercentile) ? 0 : stats.overallPercentile;
@@ -57,37 +56,38 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 
         <View style={styles.levelContainer}>
           <Text style={[
-            styles.strengthLevel, 
-            { 
-              color: currentTheme.colors.text,
+            styles.strengthLevel,
+            {
+              color: getTierColor(stats.strengthLevel as StrengthTier),
               fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             {stats.strengthLevel}
           </Text>
           <Text style={[
-            styles.levelDescription, 
-            { 
+            styles.levelDescription,
+            {
               color: currentTheme.colors.text,
               fontFamily: 'Raleway_400Regular',
             }
           ]}>
-            strength level
+            tier
           </Text>
         </View>
       </View>
 
       <View style={styles.progressContainer}>
-        <ProgressBar 
-          progress={percentile} 
+        <ProgressBar
+          progress={percentile}
           height={12}
           style={styles.progressBar}
           showTicks={true}
           exerciseName="Overall Strength"
+          color={getPercentileColor(percentile)}
         />
         <View style={styles.progressLabels}>
           <Text style={[styles.progressLabel, { color: currentTheme.colors.text }]}>
-            Progress to Elite
+            Progress to S Tier
           </Text>
         </View>
       </View>

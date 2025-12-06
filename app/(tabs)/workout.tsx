@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import QuickSummaryToast from '@/components/workout/QuickSummaryToast';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
@@ -128,35 +129,36 @@ export default function WorkoutScreen() {
         keyboardVerticalOffset={0}
       >
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-          <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
-            {hasWorkoutStarted ? (
-              <TouchableOpacity
-                style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface }]}
-                onPress={handleQuickSummary}
-              >
-                <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                  Summary
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
+        <TutorialTarget id="workout-header-buttons">
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
+            <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
+              {hasWorkoutStarted ? (
                 <TouchableOpacity
-                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                  onPress={() => setShowPlanBuilder(true)}
+                  style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface }]}
+                  onPress={handleQuickSummary}
                 >
-                  <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
+                  <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
+                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                    Summary
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
-                  onPress={() => setShowHelpModal(true)}
-                >
-                  <Ionicons name="information-circle-outline" size={20} color={currentTheme.colors.text} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+              ) : (
+                <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
+                  <TouchableOpacity
+                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                    onPress={() => setShowPlanBuilder(true)}
+                  >
+                    <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                    onPress={() => setShowHelpModal(true)}
+                  >
+                    <Ionicons name="information-circle-outline" size={20} color={currentTheme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
 
           <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
             {hasWorkoutStarted ? (
@@ -215,7 +217,8 @@ export default function WorkoutScreen() {
               </TouchableOpacity>
             )}
           </View>
-        </View>
+          </View>
+        </TutorialTarget>
 
         {/* Expanded Rest Timer */}
         {isTimerExpanded && hasWorkoutStarted && (
@@ -282,18 +285,20 @@ export default function WorkoutScreen() {
         />
 
         {/* Main Content - Notes Input */}
-        <View style={[styles.content, { backgroundColor: 'transparent' }]}>
-          <WorkoutNoteInput
-            ref={noteInputRef}
-            value={noteText}
-            onChangeText={setNoteText}
-            placeholder={`Start typing your workout...
+        <TutorialTarget id="workout-note-input">
+          <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+            <WorkoutNoteInput
+              ref={noteInputRef}
+              value={noteText}
+              onChangeText={setNoteText}
+              placeholder={`Start typing your workout...
 
 Examples:
 Bench 135x8, 155x6
 Squats 225 for 5 reps`}
-          />
-        </View>
+            />
+          </View>
+        </TutorialTarget>
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}

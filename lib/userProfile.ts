@@ -32,44 +32,44 @@ export const THEME_CONFIG: Record<ThemeLevel, {
   description: string;
 }> = {
   beginner: {
-    displayName: 'Beginner',
+    displayName: 'E Tier',
     requiredPercentile: 0,
     description: 'Available to everyone',
   },
   beginner_dark: {
-    displayName: 'Beginner Dark',
+    displayName: 'E Tier Dark',
     requiredPercentile: 0,
     description: 'Available to everyone',
   },
   intermediate: {
-    displayName: 'Intermediate',
+    displayName: 'C Tier',
     requiredPercentile: 25,
     description: 'Requires 25th percentile',
   },
   advanced: {
-    displayName: 'Advanced',
+    displayName: 'B Tier',
     requiredPercentile: 50,
     description: 'Requires 50th percentile',
   },
   elite: {
-    displayName: 'Elite',
+    displayName: 'A Tier',
     requiredPercentile: 75,
     description: 'Requires 75th percentile',
   },
   god: {
-    displayName: 'God',
+    displayName: 'S Tier',
     requiredPercentile: 90,
     description: 'Requires 90th percentile',
   },
   share_warm: {
-    displayName: 'Dream Land',
+    displayName: 'Rose',
     requiredPercentile: -1, // Special value for shareable themes
-    description: '🍭 Share to unlock (1 share needed)',
+    description: '🌸 Share to unlock (1 share needed)',
   },
   share_cool: {
-    displayName: 'Anime Night',
+    displayName: 'Cyber',
     requiredPercentile: -1, // Special value for shareable themes
-    description: '🌙 Share to unlock (3 shares needed)',
+    description: '⚡ Share to unlock (3 shares needed)',
   },
 };
 
@@ -92,10 +92,10 @@ export const getThemeRequiredPercentile = (level: ThemeLevel): number => {
 export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, shareCount: number = 0): boolean => {
   // For shareable themes, check share count milestones
   if (level === 'share_warm') {
-    return shareCount >= 1; // Bauhaus unlocks at 1 share
+    return shareCount >= 1; // Rose unlocks at 1 share
   }
   if (level === 'share_cool') {
-    return shareCount >= 3; // Uncle Iroh unlocks at 3 shares
+    return shareCount >= 3; // Cyber unlocks at 3 shares
   }
   // For fitness themes, check percentile
   return userPercentile >= getThemeRequiredPercentile(level);

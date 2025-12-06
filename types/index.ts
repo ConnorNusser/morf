@@ -154,7 +154,7 @@ export interface UserProgress {
   personalRecord: number; // in lbs
   lastUpdated: Date;
   percentileRanking: number; // 0-100 (calculated from real standards)
-  strengthLevel: string; // 'Beginner', 'Novice', 'Intermediate', etc.
+  strengthLevel: string; // 'E-', 'D', 'C+', 'B', 'A-', 'S', 'S++', etc.
 }
 
 // ===== WORKOUT SESSION TYPES =====
@@ -366,6 +366,7 @@ export interface RemoteUser {
   username: string;
   user_data?: RemoteUserData;
   country_code?: string;
+  profile_picture_url?: string;
   created_at?: Date;
   updated_at?: Date;
 }

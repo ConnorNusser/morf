@@ -227,9 +227,34 @@ class UserService {
       this.getUsersTopFeaturedSecondaryLifts()
     ]);
 
-    // Combine and sort by percentile ranking (highest first)
-    return [...mainLifts, ...secondaryLifts]
-      .sort((a, b) => b.percentileRanking - a.percentileRanking);
+    // Preferred lift order for dashboard (first 5 lifts)
+    const preferredOrder: string[] = [
+      'bench-press-barbell',
+      'squat-barbell',
+      'deadlift-barbell',
+      'overhead-press-barbell',
+      'hip-thrust-barbell',
+    ];
+
+    // Combine all lifts
+    const allLifts = [...mainLifts, ...secondaryLifts];
+
+    // Sort: preferred lifts first (in order), then rest by percentile
+    return allLifts.sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a.workoutId);
+      const bIndex = preferredOrder.indexOf(b.workoutId);
+
+      // Both are preferred lifts - sort by preferred order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      // Only a is preferred - a comes first
+      if (aIndex !== -1) return -1;
+      // Only b is preferred - b comes first
+      if (bIndex !== -1) return 1;
+      // Neither preferred - sort by percentile (highest first)
+      return b.percentileRanking - a.percentileRanking;
+    });
   }
 
   async getTopLiftById(liftId: MainLiftType | string): Promise<UserProgress | undefined> {

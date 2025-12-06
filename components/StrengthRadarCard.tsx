@@ -3,7 +3,7 @@ import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierInfo, TIER_COLORS, StrengthTier } from '@/lib/strengthStandards';
+import { getTierInfo, getTierColor, StrengthTier } from '@/lib/strengthStandards';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -27,18 +27,17 @@ export default function StrengthRadarCard({
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
 
   // Get tier info with color
-  const tierInfo = useMemo(() => getTierInfo(overallPercentile), [overallPercentile]);
-  const tierColor = TIER_COLORS[strengthLevel as StrengthTier] || tierInfo.color;
+  const _tierInfo = useMemo(() => getTierInfo(overallPercentile), [overallPercentile]);
+  const tierColor = getTierColor(strengthLevel as StrengthTier);
 
   const tiers = useMemo(
     () => [
-      { label: 'F', threshold: 0 },
-      { label: 'E', threshold: 10 },
-      { label: 'D', threshold: 25 },
-      { label: 'C', threshold: 50 },
-      { label: 'B', threshold: 75 },
-      { label: 'A', threshold: 90 },
-      { label: 'S', threshold: 95 },
+      { label: 'E', threshold: 0 },
+      { label: 'D', threshold: 6 },
+      { label: 'C', threshold: 23 },
+      { label: 'B', threshold: 47 },
+      { label: 'A', threshold: 70 },
+      { label: 'S', threshold: 85 },
     ],
     []
   );

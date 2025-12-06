@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/haptic';
+import { getStrengthTier, getTierColor } from '@/lib/strengthStandards';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
 import { getWorkoutById } from '@/lib/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
@@ -24,10 +25,8 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
   const getPercentileColor = (percentile: number) => {
-    if (percentile >= 90) return currentTheme.colors.accent;
-    if (percentile >= 75) return currentTheme.colors.primary;
-    if (percentile >= 50) return '#FFA500'; // Orange
-    return '#FF6B6B'; // Red
+    const tier = getStrengthTier(percentile);
+    return getTierColor(tier);
   };
 
   const { play: playForwardMinimal } = useSound('forwardMinimal');
@@ -88,9 +87,9 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                 Personal Record
               </Text>
               <Text style={[
-                styles.prValue, 
-                { 
-                  color: currentTheme.colors.primary,
+                styles.prValue,
+                {
+                  color: getPercentileColor(percentileRanking),
                   fontFamily: 'Raleway_700Bold',
                 }
               ]}>
@@ -121,12 +120,13 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
           </View>
 
           <View style={styles.progressSection}>
-            <ProgressBar 
-              progress={percentileRanking} 
+            <ProgressBar
+              progress={percentileRanking}
               height={8}
               style={styles.progressBar}
               currentWeight={personalRecord}
               exerciseName={workoutId}
+              color={getPercentileColor(percentileRanking)}
             />
             <Text style={[
               styles.progressText, 

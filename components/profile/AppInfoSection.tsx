@@ -1,19 +1,26 @@
 import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTutorial } from '@/contexts/TutorialContext';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as StoreReview from 'expo-store-review';
-import { ChevronDown, ChevronUp, Mail, Star } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, HelpCircle, Mail, Star } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Alert, Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function AppInfoSection() {
   const { currentTheme } = useTheme();
+  const { startTutorial, resetTutorials } = useTutorial();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleReplayTutorial = async () => {
+    await resetTutorials();
+    startTutorial();
   };
 
   const handleRateApp = async () => {
@@ -177,6 +184,25 @@ export default function AppInfoSection() {
                 }
               ]}>
                 Support
+              </Text>
+            </TouchableOpacity>
+
+            <View style={[styles.separator, { backgroundColor: currentTheme.colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleReplayTutorial}
+              activeOpacity={0.6}
+            >
+              <HelpCircle size={18} color={currentTheme.colors.text + '80'} />
+              <Text style={[
+                styles.actionText,
+                {
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_500Medium',
+                }
+              ]}>
+                Tutorial
               </Text>
             </TouchableOpacity>
           </View>

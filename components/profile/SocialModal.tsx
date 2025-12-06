@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
+import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { analyticsService } from '@/lib/analytics';
@@ -351,11 +352,18 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const renderSearchResult = ({ item }: { item: RemoteUser }) => (
     <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
       <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
-        <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-          <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-            {item.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {item.profile_picture_url ? (
+          <Image
+            source={{ uri: item.profile_picture_url }}
+            style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}
+          />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+            <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+              {item.username.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
           @{item.username}
         </Text>
@@ -381,11 +389,18 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         onPress={() => handleViewUserProfile(item.user)}
         activeOpacity={0.7}
       >
-        <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-          <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-            {item.user.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {item.user.profile_picture_url ? (
+          <Image
+            source={{ uri: item.user.profile_picture_url }}
+            style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}
+          />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+            <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+              {item.user.username.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
           @{item.user.username}
         </Text>
@@ -595,7 +610,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   </View>
 
                   {isLoadingFriends ? (
-                    <ActivityIndicator size="small" color={currentTheme.colors.primary} style={{ marginTop: 16 }} />
+                    <View style={{ marginTop: 16, gap: 4 }}>
+                      {[1, 2, 3].map((i) => (
+                        <SkeletonCard key={i} variant="leaderboard-row" />
+                      ))}
+                    </View>
                   ) : friends.length === 0 ? (
                     <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
                       <Ionicons name="people-outline" size={32} color={currentTheme.colors.text + '40'} />

@@ -347,6 +347,8 @@ class UserSyncService {
             id,
             device_id,
             username,
+            profile_picture_url,
+            country_code,
             created_at,
             updated_at
           )
@@ -559,6 +561,7 @@ class UserSyncService {
       return (data || []).map((row: {
         user_id: string;
         username: string;
+        profile_picture_url?: string;
         exercise_id: string;
         estimated_1rm: number;
         recorded_at: string;
@@ -568,6 +571,7 @@ class UserSyncService {
           id: row.user_id,
           device_id: '', // Not returned by function
           username: row.username,
+          profile_picture_url: row.profile_picture_url,
         },
         exercise_id: row.exercise_id,
         estimated_1rm: row.estimated_1rm,
@@ -732,6 +736,7 @@ class UserSyncService {
         user_id: string;
         username: string;
         country_code?: string;
+        profile_picture_url?: string;
         overall_percentile: number;
         strength_level: string;
         muscle_groups: MuscleGroupPercentiles;
@@ -743,6 +748,7 @@ class UserSyncService {
           device_id: '',
           username: row.username,
           country_code: row.country_code,
+          profile_picture_url: row.profile_picture_url,
         },
         overall_percentile: row.overall_percentile,
         strength_level: row.strength_level,
@@ -794,6 +800,7 @@ class UserSyncService {
         user_id: string;
         username: string;
         country_code?: string;
+        profile_picture_url?: string;
         overall_percentile: number;
         strength_level: string;
         muscle_groups: MuscleGroupPercentiles;
@@ -804,6 +811,7 @@ class UserSyncService {
           device_id: '',
           username: row.username,
           country_code: row.country_code,
+          profile_picture_url: row.profile_picture_url,
         },
         overall_percentile: row.overall_percentile,
         strength_level: row.strength_level,

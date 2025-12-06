@@ -2,8 +2,10 @@ import DashboardHeader from '@/components/DashboardHeader';
 import LiftDisplayFilter from '@/components/LiftDisplayFilter';
 import OverallStatsCard from '@/components/OverallStatsCard';
 import LeaderboardModal from '@/components/profile/LeaderboardModal';
+import SkeletonCard from '@/components/SkeletonCard';
 import Spacer from '@/components/Spacer';
 import { Text, View } from '@/components/Themed';
+import { TutorialTarget } from '@/components/tutorial';
 import WorkoutStatsCard from '@/components/WorkoutStatsCard';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage';
@@ -23,7 +25,7 @@ export default function HomeScreen() {
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
   const [overallStats, setOverallStats] = useState({
     overallPercentile: 0,
-    strengthLevel: 'Beginner',
+    strengthLevel: 'E-',
     improvementTrend: 'stable' as 'improving' | 'stable' | 'declining',
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function HomeScreen() {
   const updateOverallStats = () => {
     const percentiles = filteredProgress.map(p => p.percentileRanking);
     const calculatedPercentile = percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
-    const strengthLevel = calculatedPercentile > 0 ? getStrengthLevelName(calculatedPercentile) : 'Beginner';
+    const strengthLevel = calculatedPercentile > 0 ? getStrengthLevelName(calculatedPercentile) : 'E-';
     setOverallStats({
       overallPercentile: calculatedPercentile,
       strengthLevel,
@@ -95,11 +97,19 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.loadingContainer, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>Loading...</Text>
+      <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+          <DashboardHeader />
+          <SkeletonCard variant="overall" />
+          <SkeletonCard variant="button" />
+          <SkeletonCard variant="stats" />
+          <SkeletonCard variant="stats" />
+          <SkeletonCard variant="stats" />
+          <SkeletonCard variant="stats" />
+          <SkeletonCard variant="stats" />
         </View>
-      </View>
+        <Spacer height={100} />
+      </ScrollView>
     );
   }
 
@@ -109,26 +119,30 @@ export default function HomeScreen() {
         <View style={[styles.content, { backgroundColor: 'transparent' }]}>
           <DashboardHeader />
 
-          <OverallStatsCard stats={overallStats} />
+          <TutorialTarget id="home-overall-stats">
+            <OverallStatsCard stats={overallStats} />
+          </TutorialTarget>
 
           {/* Leaderboard Button */}
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-            onPress={() => setShowLeaderboard(true)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.actionButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-              View Leaderboards
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
-          </TouchableOpacity>
+          <TutorialTarget id="home-leaderboard-button">
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              onPress={() => setShowLeaderboard(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                View Leaderboards
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+            </TouchableOpacity>
+          </TutorialTarget>
 
           {userProgress.length > 0 && (
             <>
               <View>
                 <Text style={[
-                  styles.sectionTitle, 
-                  { 
+                  styles.sectionTitle,
+                  {
                     color: currentTheme.colors.text,
                     fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                     marginBottom: 0,
@@ -136,16 +150,20 @@ export default function HomeScreen() {
                 ]}>
                   Your Lifts
                 </Text>
-                
+
                 <LiftDisplayFilter
                   availableLifts={userProgress}
                   onFiltersChanged={handleFiltersChanged}
                 />
               </View>
-              
-              {filteredProgress.map((progress) => (
-                <WorkoutStatsCard key={progress.workoutId} stats={progress} />
-              ))}
+
+              <TutorialTarget id="home-lift-cards">
+                <View style={{ gap: 20 }}>
+                  {filteredProgress.map((progress) => (
+                    <WorkoutStatsCard key={progress.workoutId} stats={progress} />
+                  ))}
+                </View>
+              </TutorialTarget>
             </>
           )}
         </View>

@@ -1,9 +1,10 @@
 import IconButton from '@/components/IconButton';
+import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryFlag, getCountryName } from '@/lib/geoService';
-import { TIER_COLORS, StrengthTier } from '@/lib/strengthStandards';
+import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
 import { supabase } from '@/lib/supabase';
 import { userSyncService } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
@@ -16,6 +17,7 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 
 interface UserLiftData {
@@ -39,6 +41,32 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [_userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFriend, setIsFriend] = useState(false);
+  const [isFriendLoading, setIsFriendLoading] = useState(false);
+
+  const checkFriendStatus = useCallback(async () => {
+    if (!user) return;
+    const friendStatus = await userSyncService.isFriend(user.id);
+    setIsFriend(friendStatus);
+  }, [user]);
+
+  const handleToggleFriend = async () => {
+    if (!user) return;
+    setIsFriendLoading(true);
+    try {
+      if (isFriend) {
+        await userSyncService.removeFriend(user.id);
+        setIsFriend(false);
+      } else {
+        await userSyncService.addFriend(user.id);
+        setIsFriend(true);
+      }
+    } catch (error) {
+      console.error('Error toggling friend:', error);
+    } finally {
+      setIsFriendLoading(false);
+    }
+  };
 
   const loadUserData = useCallback(async () => {
     if (!user || !supabase) return;
@@ -95,8 +123,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   useEffect(() => {
     if (visible && user) {
       loadUserData();
+      checkFriendStatus();
     }
-  }, [visible, user, loadUserData]);
+  }, [visible, user, loadUserData, checkFriendStatus]);
 
   if (!user) return null;
 
@@ -140,12 +169,45 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Profile
           </Text>
-          <View style={styles.headerSpacer} />
+          <TouchableOpacity
+            style={[
+              styles.friendButton,
+              {
+                backgroundColor: isFriend ? currentTheme.colors.surface : currentTheme.colors.primary,
+                borderColor: isFriend ? currentTheme.colors.border : currentTheme.colors.primary,
+              }
+            ]}
+            onPress={handleToggleFriend}
+            disabled={isFriendLoading}
+            activeOpacity={0.7}
+          >
+            {isFriendLoading ? (
+              <ActivityIndicator size="small" color={isFriend ? currentTheme.colors.text : '#FFFFFF'} />
+            ) : (
+              <>
+                <Ionicons
+                  name={isFriend ? 'checkmark' : 'person-add'}
+                  size={16}
+                  color={isFriend ? currentTheme.colors.text : '#FFFFFF'}
+                />
+                <Text style={[
+                  styles.friendButtonText,
+                  { color: isFriend ? currentTheme.colors.text : '#FFFFFF' }
+                ]}>
+                  {isFriend ? 'Friends' : 'Add'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {isLoading ? (
-            <ActivityIndicator size="small" color={currentTheme.colors.primary} style={{ marginTop: 60 }} />
+            <View style={{ gap: 16 }}>
+              <SkeletonCard variant="profile-header" />
+              <SkeletonCard variant="stats" />
+              <SkeletonCard variant="stats" />
+            </View>
           ) : (
             <>
               {/* User Info */}
@@ -164,11 +226,11 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   )}
                   {strengthLevel && (
                     <View style={[styles.tierBadgeSmall, {
-                      backgroundColor: (TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary) + '20',
-                      borderColor: TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary
+                      backgroundColor: getTierColor(strengthLevel as StrengthTier) + '20',
+                      borderColor: getTierColor(strengthLevel as StrengthTier)
                     }]}>
                       <Text style={[styles.tierBadgeText, {
-                        color: TIER_COLORS[strengthLevel as StrengthTier] || currentTheme.colors.primary,
+                        color: getTierColor(strengthLevel as StrengthTier),
                         fontFamily: 'Raleway_700Bold'
                       }]}>
                         {strengthLevel} Tier
@@ -471,5 +533,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  friendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  friendButtonText: {
+    fontSize: 14,
+    fontFamily: 'Raleway_500Medium',
   },
 });

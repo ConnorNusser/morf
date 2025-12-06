@@ -160,12 +160,17 @@ select distinct on (user_id, exercise_id)
 from user_lifts
 order by user_id, exercise_id, estimated_1rm desc;
 
+-- Drop and recreate views to add profile_picture_url column
+DROP VIEW IF EXISTS exercise_leaderboard CASCADE;
+DROP VIEW IF EXISTS overall_leaderboard CASCADE;
+
 -- Leaderboard view (top lifters per exercise)
 create or replace view exercise_leaderboard as
 select
   u.id as user_id,
   u.username,
   u.country_code,
+  u.profile_picture_url,
   ubl.exercise_id,
   ubl.estimated_1rm,
   ubl.recorded_at,
@@ -179,6 +184,7 @@ select
   u.id as user_id,
   u.username,
   u.country_code,
+  u.profile_picture_url,
   up.overall_percentile,
   up.strength_level,
   up.muscle_groups,
@@ -192,10 +198,14 @@ where up.overall_percentile > 0;
 -- ============================================
 -- Function to get leaderboard for a user's friends
 -- ============================================
+-- Drop the function first to change return type
+DROP FUNCTION IF EXISTS get_friend_leaderboard(uuid, text[]);
+
 create or replace function get_friend_leaderboard(p_user_id uuid, p_exercise_ids text[])
 returns table (
   user_id uuid,
   username text,
+  profile_picture_url text,
   exercise_id text,
   estimated_1rm numeric,
   recorded_at timestamptz,
@@ -206,6 +216,7 @@ begin
   select
     el.user_id,
     el.username,
+    el.profile_picture_url,
     el.exercise_id,
     el.estimated_1rm,
     el.recorded_at,

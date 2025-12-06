@@ -1,9 +1,10 @@
 import IconButton from '@/components/IconButton';
+import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { getCountryFlag, geoService } from '@/lib/geoService';
-import { TIER_COLORS, StrengthTier } from '@/lib/strengthStandards';
+import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
 import { supabase } from '@/lib/supabase';
 import { userSyncService } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
@@ -11,7 +12,7 @@ import { LeaderboardEntry, MAIN_LIFTS, OverallLeaderboardEntry, RemoteUser } fro
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+  Image,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -37,9 +38,9 @@ interface LeaderboardModalProps {
 export default function LeaderboardModal({ visible, onClose }: LeaderboardModalProps) {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
-  const [filter, setFilter] = useState<LeaderboardFilter>('friends');
+  const [filter, setFilter] = useState<LeaderboardFilter>('global');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<string | null>('overall');
   const [showExerciseDropdown, setShowExerciseDropdown] = useState(false);
   const [userCountry, setUserCountry] = useState<string | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -148,6 +149,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           user_id: string;
           username: string;
           country_code?: string;
+          profile_picture_url?: string;
           exercise_id: string;
           estimated_1rm: number;
           recorded_at: string;
@@ -158,6 +160,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
             device_id: '',
             username: row.username,
             country_code: row.country_code,
+            profile_picture_url: row.profile_picture_url,
           },
           exercise_id: row.exercise_id,
           estimated_1rm: row.estimated_1rm,
@@ -196,6 +199,22 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   const handleUserPress = (user: RemoteUser) => {
     setSelectedUser(user);
     setShowUserProfile(true);
+  };
+
+  const renderAvatar = (user: RemoteUser, size: number = 32) => {
+    if (user.profile_picture_url) {
+      return (
+        <Image
+          source={{ uri: user.profile_picture_url }}
+          style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}
+        />
+      );
+    }
+    return (
+      <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: currentTheme.colors.surface }]}>
+        <Ionicons name="person" size={size * 0.6} color={currentTheme.colors.text + '40'} />
+      </View>
+    );
   };
 
   const closeAllDropdowns = () => {
@@ -408,7 +427,11 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           onScrollBeginDrag={closeAllDropdowns}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={currentTheme.colors.primary} style={{ marginTop: 60 }} />
+            <View style={styles.leaderboardList}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <SkeletonCard key={i} variant="leaderboard-row" />
+              ))}
+            </View>
           ) : isOverallSelected ? (
             // Overall Strength Leaderboard
             overallLeaderboardData.length === 0 ? (
@@ -441,6 +464,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                     activeOpacity={0.7}
                   >
                     {renderRank(index)}
+                    {renderAvatar(entry.user)}
                     <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
                       <View style={styles.usernameRow}>
                         <Text style={[
@@ -457,7 +481,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                         )}
                       </View>
                       <Text style={[styles.strengthLevel, {
-                        color: TIER_COLORS[entry.strength_level as StrengthTier] || currentTheme.colors.text + '60',
+                        color: getTierColor(entry.strength_level as StrengthTier),
                         fontFamily: 'Raleway_600SemiBold'
                       }]}>
                         {entry.strength_level} Tier
@@ -511,6 +535,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   activeOpacity={0.7}
                 >
                   {renderRank(index)}
+                  {renderAvatar(entry.user)}
                   <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
                     <View style={styles.usernameRow}>
                       <Text style={[
@@ -673,12 +698,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 4,
+    paddingHorizontal: 12,
     gap: 12,
+    marginHorizontal: -8,
   },
   topEntry: {
     borderRadius: 12,
-    paddingHorizontal: 12,
     marginBottom: 8,
   },
   rankBadge: {
@@ -728,5 +753,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 40,
+  },
+  avatar: {
+    backgroundColor: '#E5E5EA',
+  },
+  avatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

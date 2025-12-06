@@ -4,7 +4,7 @@ import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, MALE_STANDARDS } from '@/lib/strengthStandards';
+import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { userSyncService } from '@/lib/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils';
@@ -126,13 +126,41 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     }
   }, [selectedIdx, cardAnim]);
 
-  const tiers = useMemo(
+  // Simplified tiers for radar chart visualization (base tiers only)
+  const radarTiers = useMemo(
     () => [
-      { label: 'Beginner', threshold: 10 },
-      { label: 'Intermediate', threshold: 25 },
-      { label: 'Advanced', threshold: 50 },
-      { label: 'Elite', threshold: 75 },
-      { label: 'God', threshold: 90 },
+      { label: 'E', threshold: 0 },
+      { label: 'D', threshold: 6 },
+      { label: 'C', threshold: 23 },
+      { label: 'B', threshold: 47 },
+      { label: 'A', threshold: 70 },
+      { label: 'S', threshold: 85 },
+    ],
+    []
+  );
+
+  // Full tier thresholds for calculating next tier
+  const allTiers = useMemo(
+    () => [
+      { label: 'E-', threshold: 0 },
+      { label: 'E', threshold: 1 },
+      { label: 'E+', threshold: 3 },
+      { label: 'D-', threshold: 6 },
+      { label: 'D', threshold: 11 },
+      { label: 'D+', threshold: 17 },
+      { label: 'C-', threshold: 23 },
+      { label: 'C', threshold: 31 },
+      { label: 'C+', threshold: 39 },
+      { label: 'B-', threshold: 47 },
+      { label: 'B', threshold: 55 },
+      { label: 'B+', threshold: 63 },
+      { label: 'A-', threshold: 70 },
+      { label: 'A', threshold: 75 },
+      { label: 'A+', threshold: 80 },
+      { label: 'S-', threshold: 85 },
+      { label: 'S', threshold: 90 },
+      { label: 'S+', threshold: 95 },
+      { label: 'S++', threshold: 99 },
     ],
     []
   );
@@ -142,13 +170,11 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     const nonZero = lifts.map(l => l.percentileRanking).filter(p => p > 0);
     return calculateOverallPercentile(nonZero);
   }, [lifts]);
-  const overallLevel = getStrengthLevelName(overallPercentile);
+  const _overallLevel = getStrengthLevelName(overallPercentile);
 
   const getPercentileColor = (percentile: number) => {
-    if (percentile >= 90) return currentTheme.colors.accent;
-    if (percentile >= 75) return currentTheme.colors.primary;
-    if (percentile >= 50) return '#FFA500';
-    return '#FF6B6B';
+    const tier = getStrengthTier(percentile);
+    return getTierColor(tier);
   };
 
   const sortedLifts = useMemo(() => {
@@ -166,10 +192,11 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   }, [visible, lifts.length, overallPercentile]);
 
   const getNextTierInfo = (value: number) => {
-    const ordered = [...tiers].sort((a, b) => a.threshold - b.threshold);
+    const currentTier = getStrengthTier(value);
+    const ordered = [...allTiers].sort((a, b) => a.threshold - b.threshold);
     const next = ordered.find(t => t.threshold > value);
-    if (!next) return { label: 'Maxed', needed: 0 };
-    return { label: next.label, needed: next.threshold - value };
+    if (!next) return { current: currentTier, label: 'Maxed', needed: 0 };
+    return { current: currentTier, label: next.label, needed: next.threshold - Math.floor(value) };
   };
 
   const bestGroup = useMemo(() => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }), [chartData]);
@@ -224,10 +251,12 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 <ProgressBar progress={overallPercentile} height={10} style={{ flex: 1 }} exerciseName="overall" />
               </View>
               <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
-                {`Next: ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
+                {getNextTierInfo(overallPercentile).label === 'Maxed'
+                  ? `${getNextTierInfo(overallPercentile).current} Tier - Max Rank!`
+                  : `${getNextTierInfo(overallPercentile).current} → ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
               </Text>
             </View>
-            <RadarChart data={chartData} tiers={tiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
+            <RadarChart data={chartData} tiers={radarTiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
           </Card>
 
           {/* Selected group insight card */}
@@ -262,7 +291,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             <View style={[styles.questHeaderRow, { backgroundColor: 'transparent' }]}>
               <Text style={[styles.questTitle, { color: currentTheme.colors.text }]}>Next Tier Targets</Text>
               <Text style={[styles.questSubtitle, { color: currentTheme.colors.text + '90', backgroundColor: 'transparent' }]}>
-                {overallLevel} → {getNextTierInfo(overallPercentile).label}
+                {getNextTierInfo(overallPercentile).current} → {getNextTierInfo(overallPercentile).label}
               </Text>
             </View>
             {nextTargets.map(t => (

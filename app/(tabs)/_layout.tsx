@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTutorial } from '@/contexts/TutorialContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
 import { OnboardingModal } from '@/components/OnboardingModal';
+import { TutorialOverlay } from '@/components/tutorial';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { userService } from '@/lib/userService';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,6 +137,7 @@ function TabsContent() {
 export default function TabLayout() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+  const { startTutorial, tutorialState, isLoading: isTutorialLoading } = useTutorial();
 
   useEffect(() => {
     checkForFirstTimeUser();
@@ -143,7 +146,7 @@ export default function TabLayout() {
   const checkForFirstTimeUser = async () => {
     try {
       const existingProfile = await userService.getRealUserProfile();
-      
+
       if (!existingProfile) {
         // No profile exists - show onboarding
         setShowOnboarding(true);
@@ -157,10 +160,17 @@ export default function TabLayout() {
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
+    // Start the tutorial for first-time users after onboarding
+    if (!tutorialState.hasCompletedAppTutorial) {
+      // Small delay to let the onboarding modal close smoothly
+      setTimeout(() => {
+        startTutorial();
+      }, 500);
+    }
   };
 
   // Show loading state while checking profile
-  if (isCheckingProfile) {
+  if (isCheckingProfile || isTutorialLoading) {
     return null; // Could add a loading screen here
   }
 
@@ -173,6 +183,9 @@ export default function TabLayout() {
         visible={showOnboarding}
         onComplete={handleOnboardingComplete}
       />
+
+      {/* Tutorial Overlay - shown after onboarding */}
+      <TutorialOverlay />
     </UserProvider>
   );
 }

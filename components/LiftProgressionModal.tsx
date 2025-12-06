@@ -88,9 +88,9 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     // Define targets in order
     const targets = [
-      { name: 'Advanced', multiplier: standards.advanced, threshold: 50 },
-      { name: 'Elite', multiplier: standards.elite, threshold: 75 },
-      { name: 'God', multiplier: standards.god, threshold: 90 },
+      { name: 'B Tier', multiplier: standards.advanced, threshold: 50 },
+      { name: 'A Tier', multiplier: standards.elite, threshold: 75 },
+      { name: 'S Tier', multiplier: standards.god, threshold: 90 },
     ];
 
     // Find the next unachieved target
@@ -114,7 +114,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       }
     }
     
-    return null; // Already at God tier
+    return null; // Already at S Tier
   };
 
   // Asymptotic regression model for strength predictions

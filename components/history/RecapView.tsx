@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
   Dimensions,
   FlatList,
   NativeScrollEvent,
@@ -49,6 +49,52 @@ const CARD_TYPES: RecapCardData[] = [
   { id: 'muscles', type: 'muscles', title: 'Focus', icon: '🎯', gradient: ['#667eea', '#764ba2'] },
   { id: 'active', type: 'active', title: 'Days Active', icon: '✨', gradient: ['#a18cd1', '#fbc2eb'] },
 ];
+
+// Skeleton loading card for recap
+const SkeletonRecapCard = () => {
+  const shimmerAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shimmerAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(shimmerAnim, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [shimmerAnim]);
+
+  const opacity = shimmerAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.6],
+  });
+
+  return (
+    <RNView style={styles.skeletonCard}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View style={[styles.skeletonContent, { opacity }]}>
+        <RNView style={styles.skeletonIcon} />
+        <RNView style={styles.skeletonTitle} />
+        <RNView style={styles.skeletonValue} />
+        <RNView style={styles.skeletonSubtext} />
+      </Animated.View>
+    </RNView>
+  );
+};
 
 interface RecapViewProps {
   onClose: () => void;
@@ -314,10 +360,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
       {/* Cards */}
       {loading ? (
         <RNView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={currentTheme.colors.primary} />
-          <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>
-            Loading your recap...
-          </Text>
+          <SkeletonRecapCard />
         </RNView>
       ) : availableCards.length === 0 ? (
         <RNView style={styles.emptyContainer}>
@@ -599,5 +642,44 @@ const styles = StyleSheet.create({
     color: '#FFF',
     width: 35,
     textAlign: 'right',
+  },
+  skeletonCard: {
+    width: CARD_WIDTH,
+    height: SCREEN_HEIGHT * 0.6,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  skeletonContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  skeletonIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 24,
+  },
+  skeletonTitle: {
+    width: 120,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 24,
+  },
+  skeletonValue: {
+    width: 160,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginBottom: 12,
+  },
+  skeletonSubtext: {
+    width: 200,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
 });
