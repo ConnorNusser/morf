@@ -145,7 +145,7 @@ export default function Chart({
     const size = Math.min(height - (title ? 80 : 60), 140);
     const radius = size / 2;
     const strokeWidth = 20;
-    const circumference = 2 * Math.PI * (radius - strokeWidth / 2);
+    const _circumference = 2 * Math.PI * (radius - strokeWidth / 2);
     
     let cumulativePercentage = 0;
     
@@ -171,7 +171,7 @@ export default function Chart({
             const percentage = item.value / totalValue;
             const barColor = item.color || currentTheme.colors.accent;
             const rotation = cumulativePercentage * 360;
-            const segmentAngle = percentage * 360;
+            const _segmentAngle = percentage * 360;
             
             cumulativePercentage += percentage;
             

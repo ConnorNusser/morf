@@ -57,7 +57,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
     }
   };
 
-  const handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
+  const _handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
     Alert.alert(
       'Delete Template',
       `Are you sure you want to delete "${templateName}"?`,

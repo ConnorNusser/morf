@@ -94,7 +94,7 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
               activeOpacity={0.7}
             >
               <Ionicons
-                name={equipment.icon as any}
+                name={equipment.icon as React.ComponentProps<typeof Ionicons>["name"]}
                 size={24}
                 color={isSelected ? '#FFFFFF' : currentTheme.colors.text}
               />

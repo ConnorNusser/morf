@@ -69,7 +69,7 @@ export default function InteractiveProgressChart({
         return Math.round((baseVolume + (i * 100)) / 5) * 5;
       });
 
-  const maxValue = Math.max(...values);
+  const _maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   
   // Add prediction to values if provided

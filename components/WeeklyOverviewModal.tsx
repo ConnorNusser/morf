@@ -14,7 +14,7 @@ interface WeeklyOverviewModalProps {
   weekEndDate?: Date;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: _screenWidth, height: _screenHeight } = Dimensions.get('window');
 
 export default function WeeklyOverviewModal({
   visible,
@@ -22,8 +22,8 @@ export default function WeeklyOverviewModal({
   invocationType,
   workouts,
   selectedDate,
-  weekStartDate,
-  weekEndDate,
+  weekStartDate: _weekStartDate,
+  weekEndDate: _weekEndDate,
 }: WeeklyOverviewModalProps) {
   const { currentTheme } = useTheme();
 

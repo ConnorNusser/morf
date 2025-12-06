@@ -32,6 +32,7 @@ export default function ThemeEvolutionSection() {
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyFilters is stable, only re-run on data changes
   }, [userProgress, liftFilters]);
 
   const loadUserData = async () => {

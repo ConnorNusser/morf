@@ -12,6 +12,7 @@ interface ProgressBarProps {
   currentWeight?: number;
   targetWeight?: number;
   exerciseName?: string;
+  color?: string; // Custom color for the progress bar fill
 }
 
 export default function ProgressBar({
@@ -24,18 +25,20 @@ export default function ProgressBar({
   currentWeight,
   targetWeight,
   exerciseName,
+  color,
 }: ProgressBarProps) {
   const { currentTheme } = useTheme();
   const animatedProgress = useRef(new Animated.Value(0)).current;
-  const [showModal, setShowModal] = useState(false);
+  const [_showModal, setShowModal] = useState(false);
 
-  // Strength standard percentiles
+  // Strength tier percentiles
   const strengthTicks = [
-    { label: 'Beg', percentile: 10 },
-    { label: 'Int', percentile: 25 },
-    { label: 'Adv', percentile: 50 },
-    { label: 'Elite', percentile: 75 },
-    { label: 'God', percentile: 90 },
+    { label: 'E', percentile: 0 },
+    { label: 'D', percentile: 6 },
+    { label: 'C', percentile: 23 },
+    { label: 'B', percentile: 47 },
+    { label: 'A', percentile: 70 },
+    { label: 'S', percentile: 85 },
   ];
 
   const isInteractive = !!(currentWeight || targetWeight || exerciseName);
@@ -103,7 +106,7 @@ export default function ProgressBar({
             {
               height,
               borderRadius: height / 2,
-              backgroundColor: currentTheme.colors.primary,
+              backgroundColor: color || currentTheme.colors.primary,
               width: progressWidth,
             },
             glowStyle,
@@ -111,20 +114,36 @@ export default function ProgressBar({
         />
 
         {/* Tick marks */}
-        {showTicks && strengthTicks.map((tick, index) => (
-          <View key={index} style={[styles.tickContainer, { left: `${tick.percentile}%` }]}>
-            <View style={[styles.tick, { backgroundColor: currentTheme.colors.border }]} />
-            <Text style={[
-              styles.tickLabel, 
-              { 
-                color: currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
-              }
-            ]}>
-              {tick.label}
-            </Text>
-          </View>
-        ))}
+        {showTicks && strengthTicks.map((tick, index) => {
+          // First tick (E at 0%) should align left, last tick align right, others center
+          const isFirst = index === 0;
+          const isLast = index === strengthTicks.length - 1;
+          const translateX = isFirst ? 0 : isLast ? -20 : -10;
+
+          return (
+            <View
+              key={index}
+              style={[
+                styles.tickContainer,
+                {
+                  left: `${tick.percentile}%`,
+                  transform: [{ translateX }],
+                }
+              ]}
+            >
+              <View style={[styles.tick, { backgroundColor: currentTheme.colors.border }]} />
+              <Text style={[
+                styles.tickLabel,
+                {
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_500Medium',
+                }
+              ]}>
+                {tick.label}
+              </Text>
+            </View>
+          );
+        })}
       </Pressable>
 
       {/* <ProgressBarModal
@@ -160,7 +179,6 @@ const styles = StyleSheet.create({
   tickContainer: {
     position: 'absolute',
     alignItems: 'center',
-    transform: [{ translateX: -10 }],
     top: -2,
   },
   tick: {

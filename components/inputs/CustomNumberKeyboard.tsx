@@ -24,7 +24,7 @@ interface CustomNumberKeyboardProps {
   title?: string;
 }
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: _screenWidth, height: _screenHeight } = Dimensions.get('window');
 
 export default function CustomNumberKeyboard({
   visible,

@@ -1,14 +1,16 @@
 import Card from '@/components/Card';
+import IconButton from '@/components/IconButton';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, MALE_STANDARDS } from '@/lib/strengthStandards';
+import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils';
 import { UserProfile, UserProgress } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Animated, Easing, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface OverallStrengthModalProps {
   visible: boolean;
@@ -18,7 +20,7 @@ interface OverallStrengthModalProps {
 export default function OverallStrengthModal({ visible, onClose }: OverallStrengthModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserProgress[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState<boolean>(false);
@@ -46,8 +48,9 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const chartData = useMemo(() => {
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
     const liftToMuscles: Record<string, string[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { ALL_WORKOUTS } = require('@/lib/workouts');
-    ALL_WORKOUTS.forEach((w: any) => {
+    ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
       liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
     });
 
@@ -67,6 +70,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const tooltipDetails = useMemo(() => {
     const byGroup: Record<string, { name: string; pct: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -88,6 +92,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const groupInfos = useMemo(() => {
     const map: Record<string, { id: string; name: string; pct: number; oneRM: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -103,7 +108,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     return map;
   }, [lifts]);
 
-  const openGroupPanel = (index: number) => {
+  const _openGroupPanel = (index: number) => {
     setSelectedIdx(index);
     setIsGroupPanelOpen(true);
   };
@@ -121,13 +126,41 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     }
   }, [selectedIdx, cardAnim]);
 
-  const tiers = useMemo(
+  // Simplified tiers for radar chart visualization (base tiers only)
+  const radarTiers = useMemo(
     () => [
-      { label: 'Beginner', threshold: 10 },
-      { label: 'Intermediate', threshold: 25 },
-      { label: 'Advanced', threshold: 50 },
-      { label: 'Elite', threshold: 75 },
-      { label: 'God', threshold: 90 },
+      { label: 'E', threshold: 0 },
+      { label: 'D', threshold: 6 },
+      { label: 'C', threshold: 23 },
+      { label: 'B', threshold: 47 },
+      { label: 'A', threshold: 70 },
+      { label: 'S', threshold: 85 },
+    ],
+    []
+  );
+
+  // Full tier thresholds for calculating next tier
+  const allTiers = useMemo(
+    () => [
+      { label: 'E-', threshold: 0 },
+      { label: 'E', threshold: 1 },
+      { label: 'E+', threshold: 3 },
+      { label: 'D-', threshold: 6 },
+      { label: 'D', threshold: 11 },
+      { label: 'D+', threshold: 17 },
+      { label: 'C-', threshold: 23 },
+      { label: 'C', threshold: 31 },
+      { label: 'C+', threshold: 39 },
+      { label: 'B-', threshold: 47 },
+      { label: 'B', threshold: 55 },
+      { label: 'B+', threshold: 63 },
+      { label: 'A-', threshold: 70 },
+      { label: 'A', threshold: 75 },
+      { label: 'A+', threshold: 80 },
+      { label: 'S-', threshold: 85 },
+      { label: 'S', threshold: 90 },
+      { label: 'S+', threshold: 95 },
+      { label: 'S++', threshold: 99 },
     ],
     []
   );
@@ -137,13 +170,11 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     const nonZero = lifts.map(l => l.percentileRanking).filter(p => p > 0);
     return calculateOverallPercentile(nonZero);
   }, [lifts]);
-  const overallLevel = getStrengthLevelName(overallPercentile);
+  const _overallLevel = getStrengthLevelName(overallPercentile);
 
   const getPercentileColor = (percentile: number) => {
-    if (percentile >= 90) return currentTheme.colors.accent;
-    if (percentile >= 75) return currentTheme.colors.primary;
-    if (percentile >= 50) return '#FFA500';
-    return '#FF6B6B';
+    const tier = getStrengthTier(percentile);
+    return getTierColor(tier);
   };
 
   const sortedLifts = useMemo(() => {
@@ -151,11 +182,21 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
       .sort((a, b) => b.percentileRanking - a.percentileRanking);
   }, [lifts]);
 
+  // Sync percentile data to Supabase when modal is visible and data is loaded
+  useEffect(() => {
+    if (!visible || lifts.length === 0) return;
+
+    userSyncService.calculateAndSyncPercentiles().catch(err => {
+      console.error('Error syncing percentile data:', err);
+    });
+  }, [visible, lifts.length]);
+
   const getNextTierInfo = (value: number) => {
-    const ordered = [...tiers].sort((a, b) => a.threshold - b.threshold);
+    const currentTier = getStrengthTier(value);
+    const ordered = [...allTiers].sort((a, b) => a.threshold - b.threshold);
     const next = ordered.find(t => t.threshold > value);
-    if (!next) return { label: 'Maxed', needed: 0 };
-    return { label: next.label, needed: next.threshold - value };
+    if (!next) return { current: currentTier, label: 'Maxed', needed: 0 };
+    return { current: currentTier, label: next.label, needed: next.threshold - Math.floor(value) };
   };
 
   const bestGroup = useMemo(() => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }), [chartData]);
@@ -184,11 +225,19 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   }, [lifts, profile]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>        
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Header */}
+        <View style={[styles.modalHeader, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={styles.headerSpacer} />
+          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            Overall Strength
+          </Text>
+          <IconButton icon="close" onPress={onClose} />
+        </View>
+
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>            
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold' }]}>Overall Strength</Text>
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>Radar shows your percentile per main lift</Text>
           </View>
 
@@ -202,10 +251,12 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 <ProgressBar progress={overallPercentile} height={10} style={{ flex: 1 }} exerciseName="overall" />
               </View>
               <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
-                {`Next: ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
+                {getNextTierInfo(overallPercentile).label === 'Maxed'
+                  ? `${getNextTierInfo(overallPercentile).current} Tier - Max Rank!`
+                  : `${getNextTierInfo(overallPercentile).current} → ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
               </Text>
             </View>
-            <RadarChart data={chartData} tiers={tiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
+            <RadarChart data={chartData} tiers={radarTiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
           </Card>
 
           {/* Selected group insight card */}
@@ -240,7 +291,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             <View style={[styles.questHeaderRow, { backgroundColor: 'transparent' }]}>
               <Text style={[styles.questTitle, { color: currentTheme.colors.text }]}>Next Tier Targets</Text>
               <Text style={[styles.questSubtitle, { color: currentTheme.colors.text + '90', backgroundColor: 'transparent' }]}>
-                {overallLevel} → {getNextTierInfo(overallPercentile).label}
+                {getNextTierInfo(overallPercentile).current} → {getNextTierInfo(overallPercentile).label}
               </Text>
             </View>
             {nextTargets.map(t => (
@@ -271,7 +322,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 {`Strongest: ${bestGroup.label} • Weakest: ${weakGroup.label}`}
               </Text>
             </View>
-            {sortedLifts.map((l, i) => (
+            {sortedLifts.map((l, _i) => (
               <View key={l.workoutId} style={styles.liftRow}>
                 <Text style={[styles.liftName, { color: currentTheme.colors.text }]}>{l.workoutId.replace('-', ' ')}</Text>
                 <View style={styles.rowRight}>
@@ -284,10 +335,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             ))}
           </Card>
         </ScrollView>
-
-        <TouchableOpacity style={[styles.closeBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]} onPress={onClose}>
-          <Text style={[styles.closeText, { color: currentTheme.colors.text }]}>Close</Text>
-        </TouchableOpacity>
 
         {/* Group detail sheet */}
         {isGroupPanelOpen && selectedIdx >= 0 && chartData[selectedIdx] && (
@@ -311,17 +358,30 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             </View>
           </Modal>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingTop: 24 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalHeaderTitle: {
+    fontSize: 17,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  content: { padding: 20, paddingTop: 16 },
   header: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
-  title: { fontSize: 22,},
-  subtitle: { marginTop: 4, fontSize: 12, opacity: 0.7 },
+  subtitle: { fontSize: 12, opacity: 0.7 },
   chartCard: { marginTop: 8 },
   chartHeader: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
   headerStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -341,7 +401,6 @@ const styles = StyleSheet.create({
   liftValue: { width: 42, textAlign: 'right', fontVariant: ['tabular-nums'] },
   liftLevel: { width: 96, textAlign: 'right' },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'transparent' },
-  closeBar: { padding: 16, borderTopWidth: 1 },
   closeText: { textAlign: 'center', fontWeight: '600' },
   tierLegendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 12 },
   tierChip: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },

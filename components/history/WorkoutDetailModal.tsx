@@ -165,6 +165,7 @@ export default function WorkoutDetailModal({
     });
 
     return prList;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBestE1RM is stable
   }, [workout, exerciseStats, customExercises]);
 
   // Calculate stats

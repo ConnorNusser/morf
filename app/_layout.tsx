@@ -1,6 +1,7 @@
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
 import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { TutorialProvider } from '@/contexts/TutorialContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
 import {
     Raleway_400Regular,
@@ -91,16 +92,18 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <CustomExercisesProvider>
-          <RoutineProvider>
-            <WorkoutProvider>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
-            </WorkoutProvider>
-          </RoutineProvider>
-        </CustomExercisesProvider>
+        <TutorialProvider>
+          <CustomExercisesProvider>
+            <RoutineProvider>
+              <WorkoutProvider>
+                <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+                </Stack>
+              </WorkoutProvider>
+            </RoutineProvider>
+          </CustomExercisesProvider>
+        </TutorialProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

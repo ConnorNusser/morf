@@ -27,7 +27,7 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
   exercises,
   isLoading = false,
   onDismiss,
-  onPress,
+  onPress: _onPress,
 }) => {
   const { currentTheme } = useTheme();
   const slideAnim = useRef(new Animated.Value(-SCREEN_HEIGHT)).current;
@@ -114,7 +114,7 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
               No exercises detected
             </Text>
             <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
-              Try adding exercises like "Bench 135x8" or "Squats 225 for 5 reps"
+              {"Try adding exercises like \"Bench 135x8\" or \"Squats 225 for 5 reps\""}
             </Text>
           </View>
         ) : (

@@ -58,11 +58,11 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     }
   };
 
-  const getCategoryColor = (_category: string): string => {
+  const _getCategoryColor = (_category: string): string => {
     return currentTheme.colors.primary;
   };
 
-  const getMuscleGroupColor = (_muscle: MuscleGroup): string => {
+  const _getMuscleGroupColor = (_muscle: MuscleGroup): string => {
     return currentTheme.colors.primary;
   };
 
@@ -132,6 +132,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     };
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, uses workoutHistory via closure
   const weekData = useMemo(() => getWeekData(currentWeekOffset), [workoutHistory, currentWeekOffset]);
 
   // Calculate muscle groups trained this week
@@ -197,7 +198,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
     const startDay = startDate.getDate();
     const endDay = endDate.getDate();
-    const year = endDate.getFullYear().toString().slice(-2);
+    const _year = endDate.getFullYear().toString().slice(-2);
     
     if (startMonth === endMonth) {
       return `${startMonth} ${startDay}-${endDay}`;
