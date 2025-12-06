@@ -415,7 +415,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               <IconButton
                 icon="close"
                 onPress={() => setShowFullScreenPicture(false)}
-                variant="ghost"
+                variant="surface"
+                style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
                 iconColor="#FFFFFF"
               />
             </View>
