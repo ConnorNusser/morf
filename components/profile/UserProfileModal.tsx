@@ -44,6 +44,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [isLoading, setIsLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [isFriendLoading, setIsFriendLoading] = useState(false);
+  const [showFullScreenPicture, setShowFullScreenPicture] = useState(false);
 
   const checkFriendStatus = useCallback(async () => {
     if (!user) return;
@@ -248,10 +249,15 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   )}
                 </View>
                 {user.profile_picture_url ? (
-                  <Image
-                    source={{ uri: user.profile_picture_url }}
-                    style={styles.avatarImage}
-                  />
+                  <TouchableOpacity
+                    onPress={() => setShowFullScreenPicture(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Image
+                      source={{ uri: user.profile_picture_url }}
+                      style={styles.avatarImage}
+                    />
+                  </TouchableOpacity>
                 ) : (
                   <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
                     <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
@@ -386,6 +392,34 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           )}
         </ScrollView>
       </SafeAreaView>
+
+      {/* Full Screen Profile Picture Modal */}
+      {user?.profile_picture_url && (
+        <Modal
+          visible={showFullScreenPicture}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowFullScreenPicture(false)}
+        >
+          <TouchableOpacity
+            style={styles.fullScreenContainer}
+            activeOpacity={1}
+            onPress={() => setShowFullScreenPicture(false)}
+          >
+            <Image
+              source={{ uri: user.profile_picture_url }}
+              style={styles.fullScreenImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity
+              style={styles.fullScreenCloseButton}
+              onPress={() => setShowFullScreenPicture(false)}
+            >
+              <Ionicons name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
+      )}
     </Modal>
   );
 }
@@ -561,5 +595,26 @@ const styles = StyleSheet.create({
   friendButtonText: {
     fontSize: 14,
     fontFamily: 'Raleway_500Medium',
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
+  fullScreenCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
