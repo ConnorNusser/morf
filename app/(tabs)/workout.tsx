@@ -453,9 +453,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   finishButton: {
+    height: 40,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   finishButtonText: {
     color: '#fff',
