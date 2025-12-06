@@ -3,8 +3,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getCountryFlag, getCountryName } from '@/lib/geoService';
-import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
+import { getCountryName } from '@/lib/geoService';
 import { supabase } from '@/lib/supabase';
 import { userSyncService } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
@@ -220,25 +219,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     @{user.username}
                   </Text>
                   {user.country_code && (
-                    <View style={styles.countryRow}>
-                      <Text style={styles.countryFlag}>{getCountryFlag(user.country_code)}</Text>
-                      <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                        {getCountryName(user.country_code)}
-                      </Text>
-                    </View>
-                  )}
-                  {strengthLevel && (
-                    <View style={[styles.tierBadgeSmall, {
-                      backgroundColor: getTierColor(strengthLevel as StrengthTier) + '20',
-                      borderColor: getTierColor(strengthLevel as StrengthTier)
-                    }]}>
-                      <Text style={[styles.tierBadgeText, {
-                        color: getTierColor(strengthLevel as StrengthTier),
-                        fontFamily: 'Raleway_700Bold'
-                      }]}>
-                        {strengthLevel} Tier
-                      </Text>
-                    </View>
+                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      {getCountryName(user.country_code)}
+                    </Text>
                   )}
                   {/* Social Links */}
                   {(userData?.instagram_username || userData?.tiktok_username) && (
@@ -461,29 +444,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '600',
   },
-  countryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  countryFlag: {
-    fontSize: 18,
-  },
   username: {
     fontSize: 20,
   },
   countryName: {
-    fontSize: 14,
-  },
-  tierBadgeSmall: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  tierBadgeText: {
     fontSize: 14,
   },
   socialLinksRow: {
