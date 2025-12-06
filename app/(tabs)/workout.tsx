@@ -134,7 +134,7 @@ export default function WorkoutScreen() {
             <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted ? (
                 <TouchableOpacity
-                  style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface }]}
+                  style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
                   onPress={handleQuickSummary}
                 >
                   <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />

@@ -175,6 +175,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               styles.friendButton,
               {
                 backgroundColor: isFriend ? currentTheme.colors.surface : currentTheme.colors.primary,
+                borderColor: isFriend ? currentTheme.colors.border : currentTheme.colors.primary,
+                borderWidth: 1,
               }
             ]}
             onPress={handleToggleFriend}

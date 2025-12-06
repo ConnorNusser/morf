@@ -140,7 +140,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
                 <RNView style={{ flex: 1 }} />
                 <TouchableOpacity
                   onPress={() => Keyboard.dismiss()}
-                  style={[styles.doneButton, { backgroundColor: currentTheme.colors.surface }]}
+                  style={[styles.doneButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
                 >
                   <Text style={[styles.doneButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
                     Done
