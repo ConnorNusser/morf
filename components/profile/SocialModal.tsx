@@ -17,6 +17,7 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   SafeAreaView,
@@ -654,6 +655,41 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     disabled={isSavingSocials}
                     style={{ marginTop: 12 }}
                   />
+
+                  {/* Preview of your social links */}
+                  {(instagramUsername.trim() || tiktokUsername.trim()) && (
+                    <View style={styles.socialPreview}>
+                      <Text style={[styles.socialPreviewLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        Your links (tap to test):
+                      </Text>
+                      <View style={styles.socialPreviewButtons}>
+                        {instagramUsername.trim() && (
+                          <TouchableOpacity
+                            style={[styles.socialPreviewButton, { backgroundColor: '#E1306C20' }]}
+                            onPress={() => Linking.openURL(`https://instagram.com/${instagramUsername.trim()}`)}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                            <Text style={[styles.socialPreviewText, { color: '#E1306C', fontFamily: 'Raleway_500Medium' }]}>
+                              @{instagramUsername.trim()}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                        {tiktokUsername.trim() && (
+                          <TouchableOpacity
+                            style={[styles.socialPreviewButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                            onPress={() => Linking.openURL(`https://tiktok.com/@${tiktokUsername.trim()}`)}
+                            activeOpacity={0.7}
+                          >
+                            <Ionicons name="logo-tiktok" size={20} color={currentTheme.colors.text} />
+                            <Text style={[styles.socialPreviewText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                              @{tiktokUsername.trim()}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {/* Search Friends Section */}
@@ -987,5 +1023,28 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 14,
+  },
+  socialPreview: {
+    marginTop: 16,
+    gap: 8,
+  },
+  socialPreviewLabel: {
+    fontSize: 13,
+  },
+  socialPreviewButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  socialPreviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  socialPreviewText: {
+    fontSize: 14,
   },
 });
