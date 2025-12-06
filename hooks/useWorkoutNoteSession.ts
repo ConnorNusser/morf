@@ -252,11 +252,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
         console.error('Error syncing lifts to Supabase:', err);
       });
-      // Also sync overall percentile data
-      userSyncService.calculateAndSyncPercentiles().catch(err => {
-        console.error('Error syncing percentile data:', err);
-      });
     }
+
+    // Always sync overall percentile data (includes ALL user's lifts, not just this workout)
+    userSyncService.calculateAndSyncPercentiles().catch(err => {
+      console.error('Error syncing percentile data:', err);
+    });
 
     // Refresh user profile context so other screens get updated data
     await refreshProfile();
