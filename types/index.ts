@@ -357,6 +357,8 @@ export interface RemoteUserData {
     unit: WeightUnit;
   };
   gender?: Gender;
+  instagram_username?: string;
+  tiktok_username?: string;
 }
 
 // Remote user from Supabase

@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -39,7 +40,7 @@ const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserLiftData[]>([]);
-  const [_userData, setUserData] = useState<RemoteUserData | null>(null);
+  const [userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
@@ -237,6 +238,29 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       }]}>
                         {strengthLevel} Tier
                       </Text>
+                    </View>
+                  )}
+                  {/* Social Links */}
+                  {(userData?.instagram_username || userData?.tiktok_username) && (
+                    <View style={styles.socialLinksRow}>
+                      {userData?.instagram_username && (
+                        <TouchableOpacity
+                          style={[styles.socialButton, { backgroundColor: '#E1306C20' }]}
+                          onPress={() => Linking.openURL(`https://instagram.com/${userData.instagram_username}`)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="logo-instagram" size={18} color="#E1306C" />
+                        </TouchableOpacity>
+                      )}
+                      {userData?.tiktok_username && (
+                        <TouchableOpacity
+                          style={[styles.socialButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                          onPress={() => Linking.openURL(`https://tiktok.com/@${userData.tiktok_username}`)}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons name="logo-tiktok" size={18} color={currentTheme.colors.text} />
+                        </TouchableOpacity>
+                      )}
                     </View>
                   )}
                 </View>
@@ -461,6 +485,18 @@ const styles = StyleSheet.create({
   },
   tierBadgeText: {
     fontSize: 14,
+  },
+  socialLinksRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  socialButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
     borderRadius: 14,

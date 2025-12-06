@@ -60,6 +60,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
+  // Social links state
+  const [instagramUsername, setInstagramUsername] = useState('');
+  const [tiktokUsername, setTiktokUsername] = useState('');
+  const [isSavingSocials, setIsSavingSocials] = useState(false);
+
   const loadData = useCallback(async () => {
     setIsLoadingFriends(true);
     try {
@@ -76,16 +81,22 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       const friendsList = await userSyncService.getFriends();
       setFriends(friendsList);
 
-      // Load profile picture
+      // Load profile picture and social links
       const user = await userSyncService.getCurrentUser();
       if (user && supabase) {
         const { data: userData } = await supabase
           .from('users')
-          .select('profile_picture_url')
+          .select('profile_picture_url, user_data')
           .eq('id', user.id)
           .single();
         if (userData?.profile_picture_url) {
           setProfilePictureUrl(userData.profile_picture_url);
+        }
+        // Load social links from user_data
+        if (userData?.user_data) {
+          const data = userData.user_data as { instagram_username?: string; tiktok_username?: string };
+          setInstagramUsername(data.instagram_username || '');
+          setTiktokUsername(data.tiktok_username || '');
         }
       }
 
@@ -291,6 +302,45 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       Alert.alert('Error', 'Failed to save username.');
     } finally {
       setIsSavingUsername(false);
+    }
+  };
+
+  const handleSaveSocialLinks = async () => {
+    setIsSavingSocials(true);
+    try {
+      const user = await userSyncService.getCurrentUser();
+      if (!user || !supabase) {
+        Alert.alert('Error', 'Could not save social links');
+        return;
+      }
+
+      // Get current user_data
+      const { data: currentData } = await supabase
+        .from('users')
+        .select('user_data')
+        .eq('id', user.id)
+        .single();
+
+      const existingData = (currentData?.user_data || {}) as Record<string, unknown>;
+
+      // Update with new social links
+      const updatedData = {
+        ...existingData,
+        instagram_username: instagramUsername.trim() || null,
+        tiktok_username: tiktokUsername.trim() || null,
+      };
+
+      await supabase
+        .from('users')
+        .update({ user_data: updatedData })
+        .eq('id', user.id);
+
+      Alert.alert('Success', 'Social links updated!');
+    } catch (error) {
+      console.error('Error saving social links:', error);
+      Alert.alert('Error', 'Failed to save social links');
+    } finally {
+      setIsSavingSocials(false);
     }
   };
 
@@ -553,6 +603,57 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   <Text style={[styles.helperText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
                     Your username is how friends can find you.
                   </Text>
+                </View>
+
+                {/* Social Links Section */}
+                <View style={styles.section}>
+                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    Social Links
+                  </Text>
+                  <Text style={[styles.helperText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular', marginBottom: 12 }]}>
+                    Add your social media so friends can connect with you.
+                  </Text>
+
+                  {/* Instagram */}
+                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface }]}>
+                    <View style={[styles.socialIconContainer, { backgroundColor: '#E1306C20' }]}>
+                      <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                    </View>
+                    <TextInput
+                      style={[styles.socialInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}
+                      value={instagramUsername}
+                      onChangeText={setInstagramUsername}
+                      placeholder="Instagram username"
+                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  {/* TikTok */}
+                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: 8 }]}>
+                    <View style={[styles.socialIconContainer, { backgroundColor: '#00000015' }]}>
+                      <Ionicons name="logo-tiktok" size={20} color={currentTheme.colors.text} />
+                    </View>
+                    <TextInput
+                      style={[styles.socialInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}
+                      value={tiktokUsername}
+                      onChangeText={setTiktokUsername}
+                      placeholder="TikTok username"
+                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                  </View>
+
+                  <Button
+                    title={isSavingSocials ? 'Saving...' : 'Save Social Links'}
+                    onPress={handleSaveSocialLinks}
+                    variant="primary"
+                    size="medium"
+                    disabled={isSavingSocials}
+                    style={{ marginTop: 12 }}
+                  />
                 </View>
 
                 {/* Search Friends Section */}
@@ -867,5 +968,24 @@ const styles = StyleSheet.create({
   },
   profilePictureHint: {
     fontSize: 13,
+  },
+  socialInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingRight: 16,
+    gap: 12,
+  },
+  socialIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  socialInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 14,
   },
 });
