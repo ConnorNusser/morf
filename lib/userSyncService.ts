@@ -648,11 +648,29 @@ class UserSyncService {
     try {
       // Get all featured lifts with percentiles
       const lifts = await userService.getAllFeaturedLifts();
-      if (lifts.length === 0) return false;
+      if (lifts.length === 0) {
+        // No lifts to sync - not an error, just early return
+        return false;
+      }
 
       // Calculate overall percentile
       const nonZeroPercentiles = lifts.map(l => l.percentileRanking).filter(p => p > 0);
-      if (nonZeroPercentiles.length === 0) return false;
+      if (nonZeroPercentiles.length === 0) {
+        // Log this issue to Supabase for debugging
+        analyticsService.logError({
+          errorType: 'percentile_sync_failed',
+          message: 'All percentiles are 0 - likely missing body weight in profile',
+          context: {
+            liftsCount: lifts.length,
+            lifts: lifts.slice(0, 10).map(l => ({
+              id: l.workoutId,
+              pr: l.personalRecord,
+              pct: l.percentileRanking
+            })),
+          },
+        });
+        return false;
+      }
 
       const overallPercentile = calculateOverallPercentile(nonZeroPercentiles);
       const strengthLevel = getStrengthLevelName(overallPercentile);

@@ -136,6 +136,37 @@ class AnalyticsService {
       console.error('Error tracking AI usage:', error);
     }
   }
+
+  /**
+   * Log an error to Supabase for debugging
+   */
+  async logError(data: {
+    errorType: string;
+    message: string;
+    context?: Record<string, unknown>;
+  }): Promise<void> {
+    if (!supabase) return;
+
+    try {
+      const deviceId = await this.getDeviceId();
+      const username = await this.getUsername();
+
+      const { error } = await supabase.from('error_logs').insert({
+        device_id: deviceId,
+        username: username,
+        error_type: data.errorType,
+        message: data.message,
+        context: data.context ?? null,
+      });
+
+      if (error) {
+        // Don't log this error to avoid infinite loop, just console
+        console.error('Error logging to Supabase:', error);
+      }
+    } catch (error) {
+      console.error('Error logging to Supabase:', error);
+    }
+  }
 }
 
 export const analyticsService = new AnalyticsService();
