@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -174,7 +175,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               styles.friendButton,
               {
                 backgroundColor: isFriend ? currentTheme.colors.surface : currentTheme.colors.primary,
-                borderColor: isFriend ? currentTheme.colors.border : currentTheme.colors.primary,
               }
             ]}
             onPress={handleToggleFriend}
@@ -238,11 +238,18 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     </View>
                   )}
                 </View>
-                <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                  <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-                    {user.username.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
+                {user.profile_picture_url ? (
+                  <Image
+                    source={{ uri: user.profile_picture_url }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                    <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+                      {user.username.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* Strength Radar */}
@@ -418,6 +425,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 16,
   },
+  avatarImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    marginLeft: 16,
+  },
   avatarText: {
     fontSize: 28,
     fontWeight: '600',
@@ -537,11 +550,11 @@ const styles = StyleSheet.create({
   friendButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 8,
   },
   friendButtonText: {
     fontSize: 14,

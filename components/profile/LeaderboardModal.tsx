@@ -210,9 +210,13 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
         />
       );
     }
+    // Show first character of username instead of person icon
+    const initial = user.username ? user.username.charAt(0).toUpperCase() : '?';
     return (
-      <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: currentTheme.colors.surface }]}>
-        <Ionicons name="person" size={size * 0.6} color={currentTheme.colors.text + '40'} />
+      <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: currentTheme.colors.primary + '20' }]}>
+        <Text style={[styles.avatarInitial, { color: currentTheme.colors.primary, fontSize: size * 0.45 }]}>
+          {initial}
+        </Text>
       </View>
     );
   };
@@ -760,5 +764,8 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontFamily: 'Raleway_600SemiBold',
   },
 });

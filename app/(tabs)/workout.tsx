@@ -443,13 +443,14 @@ const styles = StyleSheet.create({
   summaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    justifyContent: 'center',
+    gap: 6,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 8,
   },
   summaryButtonText: {
-    fontSize: 13,
+    fontSize: 14,
   },
   finishButton: {
     paddingHorizontal: 16,
