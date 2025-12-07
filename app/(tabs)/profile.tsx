@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import { useAlert } from '@/components/CustomAlert';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
 import CustomExercisesSection from '@/components/profile/CustomExercisesSection';
@@ -20,10 +21,11 @@ import { userSyncService } from '@/lib/userSyncService';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const { userProfile, isLoading, refreshProfile } = useUser();
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [username, setUsername] = useState<string>('');
@@ -64,10 +66,11 @@ export default function ProfileScreen() {
 
   // Reset all workout stats
   const handleResetStats = () => {
-    Alert.alert(
-      'Reset All Workout Data',
-      'This will permanently delete all your workout history, lift records, and exercise data. Your profile information (name, age, weight) will be kept.\n\nThis action cannot be undone.',
-      [
+    showAlert({
+      title: 'Reset All Workout Data',
+      message: 'This will permanently delete all your workout history, lift records, and exercise data. Your profile information (name, age, weight) will be kept.\n\nThis action cannot be undone.',
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reset Everything',
@@ -94,15 +97,15 @@ export default function ProfileScreen() {
               await refreshProfile();
               await loadUserData();
 
-              Alert.alert('Reset Complete', 'All workout data has been cleared.');
+              showAlert({ title: 'Reset Complete', message: 'All workout data has been cleared.', type: 'success' });
             } catch (error) {
               console.error('Error resetting stats:', error);
-              Alert.alert('Error', 'Failed to reset data. Please try again.');
+              showAlert({ title: 'Error', message: 'Failed to reset data. Please try again.', type: 'error' });
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
 

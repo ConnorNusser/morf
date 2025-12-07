@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -10,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -71,6 +71,7 @@ const generateExerciseId = (name: string): string => {
 
 export default function CustomExercisesSection({ onExercisesUpdate }: CustomExercisesSectionProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const { play: playSound } = useSound('pop');
   const {
     customExercises,
@@ -205,7 +206,11 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
       setSelectedEquipment('machine');
     } catch (error) {
       console.error('Error updating exercise:', error);
-      Alert.alert('Error', 'Failed to update exercise');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to update exercise',
+        type: 'error',
+      });
     }
   };
 
@@ -217,7 +222,11 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     try {
       const existingCustom = getByName(fullName);
       if (existingCustom) {
-        Alert.alert('Exercise Exists', `An exercise named "${fullName}" already exists.`);
+        showAlert({
+          title: 'Exercise Exists',
+          message: `An exercise named "${fullName}" already exists.`,
+          type: 'warning',
+        });
         return;
       }
 
@@ -239,17 +248,22 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
       setSelectedEquipment('machine');
     } catch (error) {
       console.error('Error adding exercise:', error);
-      Alert.alert('Error', 'Failed to add exercise');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to add exercise',
+        type: 'error',
+      });
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handleDeleteExercise = (exercise: CustomExercise) => {
-    Alert.alert(
-      'Delete Custom Exercise',
-      `Are you sure you want to delete "${exercise.name}"?\n\nThis won't affect your workout history, but the exercise won't appear in AI suggestions anymore.`,
-      [
+    showAlert({
+      title: 'Delete Custom Exercise',
+      message: `Are you sure you want to delete "${exercise.name}"?\n\nThis won't affect your workout history, but the exercise won't appear in AI suggestions anymore.`,
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -264,21 +278,26 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               }
             } catch (error) {
               console.error('Error deleting custom exercise:', error);
-              Alert.alert('Error', 'Failed to delete exercise');
+              showAlert({
+                title: 'Error',
+                message: 'Failed to delete exercise',
+                type: 'error',
+              });
             }
           }
-        }
-      ]
-    );
+        },
+      ],
+    });
   };
 
   const handleClearAll = () => {
     if (customExercises.length === 0) return;
 
-    Alert.alert(
-      'Clear All Custom Exercises',
-      `This will delete all ${customExercises.length} custom exercises. This action cannot be undone.`,
-      [
+    showAlert({
+      title: 'Clear All Custom Exercises',
+      message: `This will delete all ${customExercises.length} custom exercises. This action cannot be undone.`,
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Clear All',
@@ -292,12 +311,16 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               }
             } catch (error) {
               console.error('Error clearing custom exercises:', error);
-              Alert.alert('Error', 'Failed to clear exercises');
+              showAlert({
+                title: 'Error',
+                message: 'Failed to clear exercises',
+                type: 'error',
+              });
             }
           }
-        }
-      ]
-    );
+        },
+      ],
+    });
   };
 
   const renderCustomExerciseItem = (exercise: CustomExercise) => {

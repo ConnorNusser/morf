@@ -2,18 +2,20 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useVideoControl } from '@/contexts/VideoPlayerContext';
 import playHapticFeedback from '@/lib/haptic';
 import { feedService, FeedPost } from '@/lib/feedService';
 import { userSyncService } from '@/lib/userSyncService';
 import { RemoteUser } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, TouchableOpacity, ViewToken } from 'react-native';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import CreatePostModal from './CreatePostModal';
 import FeedCard, { FeedWorkout } from './FeedCard';
 import FeedPostCard from './FeedPostCard';
+import CommentsModal from './CommentsModal';
 import WorkoutThreadModal from './WorkoutThreadModal';
 
 const PAGE_SIZE = 15;
@@ -31,6 +33,7 @@ interface FeedViewProps {
 export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps) {
   const { currentTheme } = useTheme();
   const { setTabBarVisible, setTabBarBackgroundVisible, tabBarVisible } = useTabBar();
+  const { resumeActive: resumeVideos } = useVideoControl();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -38,29 +41,41 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [hasMore, setHasMore] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedWorkout, setSelectedWorkout] = useState<FeedWorkout | null>(null);
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
+  const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
   // Scroll handling for tab bar visibility
   const lastScrollY = useRef(0);
-  const scrollEndTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Viewability config for auto-playing videos
+  const viewabilityConfig = useMemo(() => ({
+    itemVisiblePercentThreshold: 80,
+  }), []);
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    const visibleKeys = new Set(viewableItems.map(item => `${item.item.type}-${item.item.data.id}`));
+    setVisibleItems(visibleKeys);
+  }, []);
 
   // Hide tab bar background when feed is focused, show when unfocused
+  // Resume videos when returning to feed view
   useFocusEffect(
     useCallback(() => {
       setTabBarBackgroundVisible(false);
+      resumeVideos();
       return () => {
         setTabBarBackgroundVisible(true);
       };
-    }, [setTabBarBackgroundVisible])
+    }, [setTabBarBackgroundVisible, resumeVideos])
   );
 
   // Animated style for FAB that follows tab bar visibility
   const fabAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{
-        translateY: withSpring(tabBarVisible.value === 1 ? 0 : 100, {
-          damping: 20,
-          stiffness: 200,
+        translateY: withTiming(tabBarVisible.value === 1 ? 0 : 80, {
+          duration: 200,
         }),
       }],
     };
@@ -69,40 +84,18 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
     const isScrollingDown = currentScrollY > lastScrollY.current;
-    const scrollDelta = Math.abs(currentScrollY - lastScrollY.current);
 
-    // Only react to significant scroll movements (> 5px)
-    if (scrollDelta > 5) {
-      if (isScrollingDown && currentScrollY > 50) {
-        // Scrolling down - hide tab bar
-        setTabBarVisible(false);
-      } else if (!isScrollingDown) {
-        // Scrolling up - show tab bar
-        setTabBarVisible(true);
-      }
+    if (isScrollingDown && currentScrollY > 20) {
+      // Scrolling down - hide tab bar
+      setTabBarVisible(false);
+    } else if (!isScrollingDown && currentScrollY < lastScrollY.current - 10) {
+      // Scrolling up significantly - show tab bar
+      setTabBarVisible(true);
     }
 
     lastScrollY.current = currentScrollY;
-
-    // Clear any existing timeout
-    if (scrollEndTimeout.current) {
-      clearTimeout(scrollEndTimeout.current);
-    }
-
-    // Set timeout to show tab bar when scroll stops
-    scrollEndTimeout.current = setTimeout(() => {
-      setTabBarVisible(true);
-    }, 150);
   }, [setTabBarVisible]);
 
-  // Clean up timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (scrollEndTimeout.current) {
-        clearTimeout(scrollEndTimeout.current);
-      }
-    };
-  }, []);
 
   const loadFeed = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -192,6 +185,20 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     setSelectedWorkout(workout);
   };
 
+  const handlePostPress = (post: FeedPost) => {
+    setSelectedPost(post);
+  };
+
+  const updatePostInFeed = (updatedPost: FeedPost) => {
+    setFeedItems(prev => prev.map(item => {
+      if (item.type === 'post' && item.data.id === updatedPost.id) {
+        return { ...item, data: updatedPost };
+      }
+      return item;
+    }));
+    setSelectedPost(updatedPost);
+  };
+
   const updateWorkoutInFeed = (updatedWorkout: FeedWorkout) => {
     setFeedItems(prev => prev.map(item => {
       if (item.type === 'workout' && item.data.id === updatedWorkout.id) {
@@ -276,6 +283,9 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   };
 
   const renderItem = ({ item }: { item: FeedItem }) => {
+    const itemKey = `${item.type}-${item.data.id}`;
+    const isVisible = visibleItems.has(itemKey);
+
     if (item.type === 'workout') {
       const workout = item.data;
       return (
@@ -293,11 +303,11 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       return (
         <FeedPostCard
           post={post}
-          onPress={() => {}} // TODO: Open post detail modal
           onUserPress={() => handleUserPress(post.user_id, post.username, post.profile_picture_url)}
           onLike={() => handlePostLike(post.id)}
-          onComment={() => {}} // TODO: Open post detail modal
+          onComment={() => handlePostPress(post)}
           currentUserId={currentUserId}
+          isVisible={isVisible}
         />
       );
     }
@@ -347,6 +357,8 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         onEndReachedThreshold={0.3}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -375,12 +387,22 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         currentUserId={currentUserId}
         onLike={() => selectedWorkout && handleWorkoutLike(selectedWorkout.id)}
         onWorkoutUpdated={updateWorkoutInFeed}
+        onUserPress={handleUserPress}
       />
 
       <CreatePostModal
         visible={showCreatePost}
         onClose={() => setShowCreatePost(false)}
         onPostCreated={handlePostCreated}
+      />
+
+      <CommentsModal
+        visible={selectedPost !== null}
+        onClose={() => setSelectedPost(null)}
+        post={selectedPost}
+        currentUserId={currentUserId}
+        onPostUpdated={updatePostInFeed}
+        onUserPress={handleUserPress}
       />
     </>
   );

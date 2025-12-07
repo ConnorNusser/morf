@@ -1,4 +1,3 @@
-import { File } from 'expo-file-system/next';
 import {
   FeedComment,
   FeedPost,
@@ -78,6 +77,8 @@ class FeedApi {
     userId: string,
     body?: Record<string, unknown> | FormData
   ): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${path}`;
+
     try {
       const headers: Record<string, string> = {
         'x-user-id': userId,
@@ -88,22 +89,29 @@ class FeedApi {
         headers['Content-Type'] = 'application/json';
       }
 
-      const response = await fetch(`${this.baseUrl}${path}`, {
+      const response = await fetch(url, {
         method,
         headers,
         body: isFormData ? body : body ? JSON.stringify(body) : undefined,
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Request failed' }));
-        return { error: error.error || 'Request failed' };
+        const errorText = await response.text().catch(() => 'Unknown error');
+        console.error(`Feed API error: ${method} ${path} - Status ${response.status}: ${errorText}`);
+        try {
+          const errorJson = JSON.parse(errorText);
+          return { error: errorJson.error || 'Request failed' };
+        } catch {
+          return { error: `Request failed: ${response.status}` };
+        }
       }
 
       const data = await response.json();
       return { data };
     } catch (error) {
-      console.error(`Feed API error (${method} ${path}):`, error);
-      return { error: 'Network error' };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Feed API error: ${method} ${path}:`, errorMessage);
+      return { error: errorMessage };
     }
   }
 
@@ -199,28 +207,35 @@ class FeedApi {
     userId: string,
     username: string,
     text: string,
-    mediaItems?: MediaInput[]
+    mediaItems?: MediaInput[],
+    profilePictureUrl?: string
   ): Promise<boolean> {
     const formData = new FormData();
     formData.append('text', text);
+    formData.append('username', username);
+    if (profilePictureUrl) {
+      formData.append('profile_picture_url', profilePictureUrl);
+    }
 
     if (mediaItems && mediaItems.length > 0) {
       for (let i = 0; i < mediaItems.length; i++) {
         const item = mediaItems[i];
-        const file = new File(item.uri);
         const ext = item.type === 'video' ? 'mp4' : 'jpg';
         const mimeType = item.type === 'video' ? 'video/mp4' : 'image/jpeg';
 
-        // Read file as blob for upload
-        const base64 = await file.base64();
-        const response = await fetch(`data:${mimeType};base64,${base64}`);
-        const blob = await response.blob();
-
-        formData.append('media', blob, `upload_${i}.${ext}`);
+        // React Native FormData file format
+        formData.append('media', {
+          uri: item.uri,
+          type: mimeType,
+          name: `upload_${i}.${ext}`,
+        } as unknown as Blob);
       }
     }
 
     const { error } = await this.request<{ id: string }>('POST', '/api/posts', userId, formData);
+    if (error) {
+      console.error('createPost failed:', error);
+    }
     return !error;
   }
 
@@ -274,6 +289,25 @@ class FeedApi {
   }
 
   /**
+   * Toggle like on a post comment
+   */
+  async togglePostCommentLike(
+    postId: string,
+    commentId: string,
+    userId: string,
+    username: string,
+    profilePictureUrl?: string
+  ): Promise<boolean> {
+    const { data, error } = await this.request<{ success: boolean; liked: boolean }>(
+      'POST',
+      `/api/posts/${postId}/comment/${commentId}/like`,
+      userId,
+      { username, profile_picture_url: profilePictureUrl }
+    );
+    return !error && !!data?.success;
+  }
+
+  /**
    * Get workouts only
    */
   async getWorkouts(
@@ -317,10 +351,14 @@ class FeedApi {
       set_count: number;
       total_volume: number;
       exercises: WorkoutExerciseSummary[];
-    }
+    },
+    username: string,
+    profilePictureUrl?: string
   ): Promise<boolean> {
     const { error } = await this.request<{ id: string }>('POST', '/api/workouts', userId, {
       ...workout,
+      username,
+      profile_picture_url: profilePictureUrl,
       feed_data: { likes: [], comments: [] },
     });
     return !error;
@@ -375,6 +413,25 @@ class FeedApi {
       'DELETE',
       `/api/workouts/${workoutId}/comment/${commentId}`,
       userId
+    );
+    return !error && !!data?.success;
+  }
+
+  /**
+   * Toggle like on a workout comment
+   */
+  async toggleWorkoutCommentLike(
+    workoutId: string,
+    commentId: string,
+    userId: string,
+    username: string,
+    profilePictureUrl?: string
+  ): Promise<boolean> {
+    const { data, error } = await this.request<{ success: boolean; liked: boolean }>(
+      'POST',
+      `/api/workouts/${workoutId}/comment/${commentId}/like`,
+      userId,
+      { username, profile_picture_url: profilePictureUrl }
     );
     return !error && !!data?.success;
   }

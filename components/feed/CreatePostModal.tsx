@@ -1,6 +1,8 @@
+import { useAlert } from '@/components/CustomAlert';
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import playHapticFeedback from '@/lib/haptic';
 import { feedService } from '@/lib/feedService';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,22 +11,27 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   InputAccessoryView,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View as RNView,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const MAX_VIDEO_DURATION = 30; // seconds
+const MAX_VIDEO_SIZE_MB = 50; // megabytes
+const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+const MAX_IMAGES = 10;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IMAGE_PREVIEW_SIZE = (SCREEN_WIDTH - 60) / 3;
 
 interface CreatePostModalProps {
   visible: boolean;
@@ -32,7 +39,10 @@ interface CreatePostModalProps {
   onPostCreated?: () => void;
 }
 
-type MediaType = 'video' | 'image' | null;
+interface MediaItem {
+  uri: string;
+  type: 'video' | 'image';
+}
 
 export default function CreatePostModal({
   visible,
@@ -40,29 +50,34 @@ export default function CreatePostModal({
   onPostCreated,
 }: CreatePostModalProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
+  usePauseVideosWhileOpen(visible);
   const [text, setText] = useState('');
-  const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [mediaType, setMediaType] = useState<MediaType>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [isPickingMedia, setIsPickingMedia] = useState(false);
   const inputAccessoryViewID = 'createPostAccessory';
 
-  const player = useVideoPlayer(mediaUri && mediaType === 'video' ? mediaUri : null, player => {
+  // Get first video for player (if any)
+  const firstVideo = mediaItems.find(m => m.type === 'video');
+  const player = useVideoPlayer(firstVideo?.uri || null, player => {
     player.loop = false;
   });
 
+  const hasVideo = mediaItems.some(m => m.type === 'video');
+  const imageCount = mediaItems.filter(m => m.type === 'image').length;
+
   const resetForm = () => {
     setText('');
-    setMediaUri(null);
-    setMediaType(null);
+    setMediaItems([]);
   };
 
   const handleClose = () => {
-    if (text.trim() || mediaUri) {
-      Alert.alert(
-        'Discard Post?',
-        'You have unsaved changes. Are you sure you want to discard this post?',
-        [
+    if (text.trim() || mediaItems.length > 0) {
+      showAlert({
+        title: 'Discard Post?',
+        message: 'You have unsaved changes. Are you sure you want to discard this post?',
+        type: 'warning',
+        buttons: [
           { text: 'Keep Editing', style: 'cancel' },
           {
             text: 'Discard',
@@ -72,24 +87,71 @@ export default function CreatePostModal({
               onClose();
             },
           },
-        ]
-      );
+        ],
+      });
     } else {
       onClose();
     }
   };
 
-  const pickMedia = async (type: 'video' | 'image') => {
+  const pickImages = async () => {
+    if (hasVideo) {
+      showAlert({ title: 'Cannot Mix Media', message: 'Please remove the video first to add images.', type: 'warning' });
+      return;
+    }
+
+    if (imageCount >= MAX_IMAGES) {
+      showAlert({ title: 'Maximum Reached', message: `You can only add up to ${MAX_IMAGES} images.`, type: 'info' });
+      return;
+    }
+
     setIsPickingMedia(true);
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your media library to attach files.');
+        showAlert({ title: 'Permission Required', message: 'Please allow access to your media library to attach files.', type: 'warning' });
         return;
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: type === 'video' ? ['videos'] : ['images'],
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: MAX_IMAGES - imageCount,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const newItems: MediaItem[] = result.assets.map(asset => ({
+          uri: asset.uri,
+          type: 'image' as const,
+        }));
+        setMediaItems(prev => [...prev, ...newItems]);
+        playHapticFeedback('light', false);
+      }
+    } catch (error) {
+      console.error('Error picking images:', error);
+      showAlert({ title: 'Error', message: 'Failed to select images. Please try again.', type: 'error' });
+    } finally {
+      setIsPickingMedia(false);
+    }
+  };
+
+  const pickVideo = async () => {
+    if (mediaItems.length > 0) {
+      showAlert({ title: 'Cannot Mix Media', message: 'Please remove existing media first to add a video.', type: 'warning' });
+      return;
+    }
+
+    setIsPickingMedia(true);
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showAlert({ title: 'Permission Required', message: 'Please allow access to your media library to attach files.', type: 'warning' });
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
         allowsEditing: true,
         quality: 0.8,
         videoMaxDuration: MAX_VIDEO_DURATION,
@@ -98,62 +160,69 @@ export default function CreatePostModal({
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
 
-        // Check video duration
-        if (type === 'video' && asset.duration && asset.duration > MAX_VIDEO_DURATION * 1000) {
-          Alert.alert('Video Too Long', `Please select a video under ${MAX_VIDEO_DURATION} seconds.`);
+        // Check duration
+        if (asset.duration && asset.duration > MAX_VIDEO_DURATION * 1000) {
+          showAlert({ title: 'Video Too Long', message: `Please select a video under ${MAX_VIDEO_DURATION} seconds.`, type: 'warning' });
           return;
         }
 
-        setMediaUri(asset.uri);
-        setMediaType(type);
+        // Check file size
+        if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
+          const sizeMB = (asset.fileSize / (1024 * 1024)).toFixed(1);
+          showAlert({ title: 'Video Too Large', message: `Your video is ${sizeMB}MB. Please select a video under ${MAX_VIDEO_SIZE_MB}MB.`, type: 'warning' });
+          return;
+        }
+
+        setMediaItems([{ uri: asset.uri, type: 'video' }]);
         playHapticFeedback('light', false);
       }
     } catch (error) {
-      console.error('Error picking media:', error);
-      Alert.alert('Error', 'Failed to select media. Please try again.');
+      console.error('Error picking video:', error);
+      showAlert({ title: 'Error', message: 'Failed to select video. Please try again.', type: 'error' });
     } finally {
       setIsPickingMedia(false);
     }
   };
 
-  const removeMedia = () => {
+  const removeMedia = (index: number) => {
     playHapticFeedback('light', false);
-    setMediaUri(null);
-    setMediaType(null);
+    setMediaItems(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async () => {
-    if (!text.trim() && !mediaUri) {
-      Alert.alert('Empty Post', 'Please add some text or media to your post.');
+  const handleSubmit = () => {
+    if (!text.trim() && mediaItems.length === 0) {
+      showAlert({ title: 'Empty Post', message: 'Please add some text or media to your post.', type: 'info' });
       return;
     }
 
     Keyboard.dismiss();
-    setIsSubmitting(true);
 
-    try {
-      const success = await feedService.createPost({
-        text: text.trim(),
-        media: mediaUri && mediaType ? [{ uri: mediaUri, type: mediaType }] : undefined,
-      });
+    // Show immediate feedback and close
+    playHapticFeedback('success', false);
+    showAlert({ title: 'Uploaded!', message: 'Your post is being shared.', type: 'success' });
 
+    const postText = text.trim();
+    const postMedia = mediaItems.length > 0 ? [...mediaItems] : undefined;
+
+    resetForm();
+    onClose();
+
+    // Upload in background
+    feedService.createPost({
+      text: postText,
+      media: postMedia,
+    }).then(success => {
       if (success) {
-        playHapticFeedback('success', false);
-        resetForm();
         onPostCreated?.();
-        onClose();
       } else {
-        Alert.alert('Error', 'Failed to create post. Please try again.');
+        console.error('Failed to create post in background');
       }
-    } catch (error) {
+    }).catch(error => {
       console.error('Error creating post:', error);
-      Alert.alert('Error', 'Failed to create post. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
-  const canPost = text.trim().length > 0 || mediaUri;
+  const canPost = text.trim().length > 0 || mediaItems.length > 0;
 
   return (
     <Modal
@@ -162,7 +231,7 @@ export default function CreatePostModal({
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]} edges={['top', 'bottom']}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
@@ -173,21 +242,17 @@ export default function CreatePostModal({
             style={[
               styles.postButton,
               {
-                backgroundColor: canPost && !isSubmitting
+                backgroundColor: canPost
                   ? currentTheme.colors.primary
                   : currentTheme.colors.border,
               },
             ]}
             onPress={handleSubmit}
-            disabled={!canPost || isSubmitting}
+            disabled={!canPost}
           >
-            {isSubmitting ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={[styles.postButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
-                Post
-              </Text>
-            )}
+            <Text style={[styles.postButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+              Post
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -219,39 +284,72 @@ export default function CreatePostModal({
               inputAccessoryViewID={inputAccessoryViewID}
             />
 
-            {/* Media Preview */}
-            {mediaUri && (
-              <View style={styles.mediaPreviewContainer}>
-                <TouchableOpacity
-                  style={[styles.removeMediaButton, { backgroundColor: currentTheme.colors.background }]}
-                  onPress={removeMedia}
-                >
-                  <Ionicons name="close" size={18} color={currentTheme.colors.text} />
-                </TouchableOpacity>
+            {/* Media Preview Grid */}
+            {mediaItems.length > 0 && (
+              <View style={styles.mediaGrid}>
+                {mediaItems.map((item, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.mediaPreviewWrapper,
+                      hasVideo && styles.videoPreviewWrapper,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      style={[styles.removeMediaButton, { backgroundColor: currentTheme.colors.background }]}
+                      onPress={() => removeMedia(index)}
+                    >
+                      <Ionicons name="close" size={16} color={currentTheme.colors.text} />
+                    </TouchableOpacity>
 
-                {mediaType === 'video' ? (
-                  <VideoView
-                    player={player}
-                    style={styles.mediaPreview}
-                    contentFit="cover"
-                    nativeControls
-                  />
-                ) : (
-                  <Image
-                    source={{ uri: mediaUri }}
-                    style={styles.mediaPreview}
-                    resizeMode="cover"
-                  />
+                    {item.type === 'video' ? (
+                      <VideoView
+                        player={player}
+                        style={styles.videoPreview}
+                        contentFit="cover"
+                        nativeControls
+                      />
+                    ) : (
+                      <Image
+                        source={{ uri: item.uri }}
+                        style={[
+                          styles.imagePreview,
+                          mediaItems.length === 1 && styles.singleImagePreview,
+                        ]}
+                        resizeMode="cover"
+                      />
+                    )}
+                  </View>
+                ))}
+
+                {/* Add more images button */}
+                {!hasVideo && imageCount < MAX_IMAGES && (
+                  <TouchableOpacity
+                    style={[styles.addMoreButton, { backgroundColor: currentTheme.colors.surface }]}
+                    onPress={pickImages}
+                    disabled={isPickingMedia}
+                  >
+                    {isPickingMedia ? (
+                      <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                    ) : (
+                      <>
+                        <Ionicons name="add" size={32} color={currentTheme.colors.primary} />
+                        <Text style={[styles.addMoreText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                          {MAX_IMAGES - imageCount} left
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 )}
               </View>
             )}
 
             {/* Media Picker Buttons */}
-            {!mediaUri && (
+            {mediaItems.length === 0 && (
               <View style={styles.mediaButtons}>
                 <TouchableOpacity
                   style={[styles.mediaButton, { backgroundColor: currentTheme.colors.surface }]}
-                  onPress={() => pickMedia('video')}
+                  onPress={pickVideo}
                   disabled={isPickingMedia}
                 >
                   {isPickingMedia ? (
@@ -271,25 +369,22 @@ export default function CreatePostModal({
 
                 <TouchableOpacity
                   style={[styles.mediaButton, { backgroundColor: currentTheme.colors.surface }]}
-                  onPress={() => pickMedia('image')}
+                  onPress={pickImages}
                   disabled={isPickingMedia}
                 >
-                  <Ionicons name="image" size={24} color={currentTheme.colors.primary} />
+                  <Ionicons name="images" size={24} color={currentTheme.colors.primary} />
                   <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                    Photo
+                    Photos
+                  </Text>
+                  <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    Up to {MAX_IMAGES}
                   </Text>
                 </TouchableOpacity>
               </View>
             )}
           </ScrollView>
 
-          {/* Character count */}
-          <View style={[styles.footer, { borderTopColor: currentTheme.colors.border }]}>
-            <Text style={[styles.charCount, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-              {text.length}/500
-            </Text>
-          </View>
-
+          
           {/* Keyboard accessory with Done button */}
           {Platform.OS === 'ios' && (
             <InputAccessoryView nativeID={inputAccessoryViewID}>
@@ -351,27 +446,44 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: 18,
     lineHeight: 26,
-    minHeight: 120,
+    minHeight: 100,
     textAlignVertical: 'top',
   },
-  mediaPreviewContainer: {
+  mediaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  mediaPreviewWrapper: {
     position: 'relative',
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
   },
-  mediaPreview: {
+  videoPreviewWrapper: {
     width: '100%',
-    height: 300,
-    borderRadius: 16,
+  },
+  imagePreview: {
+    width: IMAGE_PREVIEW_SIZE,
+    height: IMAGE_PREVIEW_SIZE,
+    borderRadius: 12,
+  },
+  singleImagePreview: {
+    width: SCREEN_WIDTH - 40,
+    height: 250,
+  },
+  videoPreview: {
+    width: '100%',
+    height: 250,
+    borderRadius: 12,
   },
   removeMediaButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
+    top: 8,
+    right: 8,
     zIndex: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -379,6 +491,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+  },
+  addMoreButton: {
+    width: IMAGE_PREVIEW_SIZE,
+    height: IMAGE_PREVIEW_SIZE,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: 'rgba(128,128,128,0.3)',
+  },
+  addMoreText: {
+    fontSize: 12,
+    marginTop: 4,
   },
   mediaButtons: {
     flexDirection: 'row',
@@ -397,15 +523,6 @@ const styles = StyleSheet.create({
   },
   mediaButtonSubtext: {
     fontSize: 12,
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    alignItems: 'flex-end',
-  },
-  charCount: {
-    fontSize: 13,
   },
   accessoryContainer: {
     flexDirection: 'row',

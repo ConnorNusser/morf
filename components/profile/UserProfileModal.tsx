@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { userSyncService, WorkoutSummary } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
 import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData } from '@/types';
+import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -62,6 +63,7 @@ const formatDuration = (seconds: number): string => {
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();
+  usePauseVideosWhileOpen(visible);
   const [lifts, setLifts] = useState<UserLiftData[]>([]);
   const [userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);

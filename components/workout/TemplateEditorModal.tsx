@@ -1,3 +1,4 @@
+import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage';
@@ -5,7 +6,6 @@ import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   InputAccessoryView,
   Keyboard,
   KeyboardAvoidingView,
@@ -33,6 +33,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
   onSave,
 }) => {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const [name, setName] = useState('');
   const [noteText, setNoteText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -52,12 +53,20 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
-      Alert.alert('Name Required', 'Please enter a name for your template.');
+      showAlert({
+        title: 'Name Required',
+        message: 'Please enter a name for your template.',
+        type: 'warning',
+      });
       return;
     }
 
     if (!noteText.trim()) {
-      Alert.alert('Content Required', 'Please enter some workout notes for your template.');
+      showAlert({
+        title: 'Content Required',
+        message: 'Please enter some workout notes for your template.',
+        type: 'warning',
+      });
       return;
     }
 
@@ -77,26 +86,31 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error saving template:', error);
-      Alert.alert('Error', 'Failed to save template. Please try again.');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to save template. Please try again.',
+        type: 'error',
+      });
     } finally {
       setIsSaving(false);
     }
-  }, [name, noteText, template, onSave, onClose]);
+  }, [name, noteText, template, onSave, onClose, showAlert]);
 
   const handleClose = useCallback(() => {
     if (name.trim() || noteText.trim()) {
-      Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to discard them?',
-        [
+      showAlert({
+        title: 'Discard Changes?',
+        message: 'You have unsaved changes. Are you sure you want to discard them?',
+        type: 'warning',
+        buttons: [
           { text: 'Keep Editing', style: 'cancel' },
           { text: 'Discard', style: 'destructive', onPress: onClose },
-        ]
-      );
+        ],
+      });
     } else {
       onClose();
     }
-  }, [name, noteText, onClose]);
+  }, [name, noteText, onClose, showAlert]);
 
   const isEditing = !!template;
   const inputAccessoryViewID = 'templateEditorAccessory';

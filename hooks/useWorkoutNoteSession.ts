@@ -1,3 +1,4 @@
+import { useAlert } from '@/components/CustomAlert';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/analytics';
 import { storageService } from '@/lib/storage';
@@ -8,7 +9,7 @@ import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/w
 import { isMainLift, UserLift, WeightUnit } from '@/types';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, AppState, AppStateStatus, Keyboard } from 'react-native';
+import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
 export interface UseWorkoutNoteSessionReturn {
   // Note state
@@ -44,6 +45,7 @@ export interface UseWorkoutNoteSessionReturn {
 
 export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const { refreshProfile } = useUser();
+  const { showAlert } = useAlert();
 
   // Workout note state
   const [noteText, setNoteText] = useState('');
@@ -176,7 +178,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Handle quick summary
   const handleQuickSummary = useCallback(async () => {
     if (!noteText.trim()) {
-      Alert.alert('No workout data', 'Start typing your workout to see a summary.');
+      showAlert({ title: 'No workout data', message: 'Start typing your workout to see a summary.', type: 'info' });
       return;
     }
 
@@ -194,17 +196,17 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     } finally {
       setSummaryLoading(false);
     }
-  }, [noteText]);
+  }, [noteText, showAlert]);
 
   // Handle finish workout - open finish modal
   const handleFinishWorkout = useCallback(() => {
     if (!noteText.trim()) {
-      Alert.alert('No workout data', 'Add some exercises before finishing your workout.');
+      showAlert({ title: 'No workout data', message: 'Add some exercises before finishing your workout.', type: 'info' });
       return;
     }
     Keyboard.dismiss();
     setShowFinishModal(true);
-  }, [noteText]);
+  }, [noteText, showAlert]);
 
   // Handle save from finish modal
   const handleSaveWorkout = useCallback(async (parsedWorkout: ParsedWorkout) => {

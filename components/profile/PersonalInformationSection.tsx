@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import { useAlert } from '@/components/CustomAlert';
 import GenderInput from '@/components/inputs/GenderInput';
 import HeightInput from '@/components/inputs/HeightInput';
 import WeightInput from '@/components/inputs/WeightInput';
@@ -9,7 +10,7 @@ import { useUser } from '@/contexts/UserContext';
 import { UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface PersonalInformationSectionProps {
   userProfile: UserProfile | null;
@@ -21,6 +22,7 @@ export default function PersonalInformationSection({
   onProfileUpdate: _onProfileUpdate
 }: PersonalInformationSectionProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const { updateProfile } = useUser();
   const [isExpanded, setIsExpanded] = useState(false);
   const [localProfile, setLocalProfile] = useState(userProfile);
@@ -48,7 +50,11 @@ export default function PersonalInformationSection({
       ...localProfile,
       age: localProfile.age || 28,
     });
-    Alert.alert('Changes saved', 'Your profile has been updated');
+    showAlert({
+      title: 'Changes Saved',
+      message: 'Your profile has been updated',
+      type: 'success',
+    });
   };
 
   const handleHeightChange = async (height: UserProfile['height']) => {

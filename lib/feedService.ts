@@ -17,6 +17,7 @@ export interface FeedComment {
   profile_picture_url?: string;
   text: string;
   created_at: string;
+  likes?: FeedLike[];
 }
 
 export interface WorkoutFeedData {
@@ -178,7 +179,8 @@ class FeedService {
       return await feedApi.getWorkouts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching global workout feed:', error);
-      return [];
+      // Re-throw to allow UI to display the error
+      throw error;
     }
   }
 
@@ -244,6 +246,27 @@ class FeedService {
   }
 
   /**
+   * Toggle like on a workout comment
+   */
+  async toggleWorkoutCommentLike(workoutId: string, commentId: string): Promise<boolean> {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return false;
+
+      return await feedApi.toggleWorkoutCommentLike(
+        workoutId,
+        commentId,
+        user.id,
+        user.username,
+        user.profile_picture_url
+      );
+    } catch (error) {
+      console.error('Error toggling workout comment like:', error);
+      return false;
+    }
+  }
+
+  /**
    * Save a workout to the feed
    */
   async saveWorkoutToFeed(workout: {
@@ -258,7 +281,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.saveWorkout(user.id, workout);
+      return await feedApi.saveWorkout(user.id, workout, user.username, user.profile_picture_url);
     } catch (error) {
       console.error('Error saving workout to feed:', error);
       return false;
@@ -271,19 +294,25 @@ class FeedService {
   async createPost(input: CreatePostInput): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
-      if (!user) return false;
-
-      if (containsProfanity(input.text)) {
-        console.warn('Post contains profanity');
+      if (!user) {
+        console.error('createPost: No user found');
         return false;
       }
 
-      return await feedApi.createPost(
+      if (containsProfanity(input.text)) {
+        console.error('createPost: Post contains profanity');
+        return false;
+      }
+
+      const result = await feedApi.createPost(
         user.id,
         user.username,
         input.text,
-        input.media
+        input.media,
+        user.profile_picture_url
       );
+
+      return result;
     } catch (error) {
       console.error('Error creating post:', error);
       return false;
@@ -301,7 +330,8 @@ class FeedService {
       return await feedApi.getPosts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      return [];
+      // Re-throw to allow UI to display the error
+      throw error;
     }
   }
 
@@ -362,6 +392,27 @@ class FeedService {
       return await feedApi.deletePostComment(postId, commentId, user.id);
     } catch (error) {
       console.error('Error deleting post comment:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Toggle like on a post comment
+   */
+  async togglePostCommentLike(postId: string, commentId: string): Promise<boolean> {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return false;
+
+      return await feedApi.togglePostCommentLike(
+        postId,
+        commentId,
+        user.id,
+        user.username,
+        user.profile_picture_url
+      );
+    } catch (error) {
+      console.error('Error toggling post comment like:', error);
       return false;
     }
   }

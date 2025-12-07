@@ -1,6 +1,7 @@
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatDuration, formatRelativeTime } from '@/lib/formatters';
 import playHapticFeedback from '@/lib/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
@@ -11,20 +12,156 @@ import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
-  InputAccessoryView,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { FeedWorkout } from './FeedCard';
+
+interface WorkoutCommentItemProps {
+  comment: FeedComment;
+  workoutId: string;
+  currentUserId: string | null;
+  isAuthor: boolean;
+  onDelete: (commentId: string) => void;
+  onLike: (commentId: string) => void;
+  onUserPress: (userId: string, username: string, profilePictureUrl?: string) => void;
+}
+
+function WorkoutCommentItem({
+  comment,
+  workoutId: _workoutId,
+  currentUserId,
+  isAuthor,
+  onDelete,
+  onLike,
+  onUserPress,
+}: WorkoutCommentItemProps) {
+  const { currentTheme } = useTheme();
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const likes = comment.likes || [];
+  const likeCount = likes.length;
+  const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
+
+  const commentLikeScale = useSharedValue(1);
+  const commentLikeAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: commentLikeScale.value }],
+  }));
+
+  const handleLike = () => {
+    playHapticFeedback('light', false);
+    commentLikeScale.value = withSequence(
+      withTiming(1.3, { duration: 100 }),
+      withSpring(1, { damping: 12, stiffness: 200 })
+    );
+    onLike(comment.id);
+  };
+
+  const handleDelete = () => {
+    playHapticFeedback('medium', false);
+    swipeableRef.current?.close();
+    onDelete(comment.id);
+  };
+
+  const renderRightActions = () => {
+    if (!isAuthor) return null;
+    return (
+      <TouchableOpacity
+        style={[styles.commentDeleteAction, { backgroundColor: '#EF4444' }]}
+        onPress={handleDelete}
+      >
+        <Ionicons name="trash-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+    );
+  };
+
+  const commentContent = (
+    <View style={[styles.commentItem, { backgroundColor: currentTheme.colors.background }]}>
+      <TouchableOpacity
+        onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
+        activeOpacity={0.7}
+      >
+        {comment.profile_picture_url ? (
+          <Image source={{ uri: comment.profile_picture_url }} style={styles.commentAvatarImage} />
+        ) : (
+          <View style={[styles.commentAvatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+            <Text style={[styles.commentAvatarText, { color: currentTheme.colors.primary }]}>
+              {comment.username.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <View style={styles.commentContent}>
+        <View style={styles.commentHeader}>
+          <TouchableOpacity
+            onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              @{comment.username}
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+            {formatRelativeTime(new Date(comment.created_at))}
+          </Text>
+        </View>
+        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+          {comment.text}
+        </Text>
+      </View>
+      {/* Like button on right */}
+      <TouchableOpacity
+        style={styles.commentLikeButton}
+        onPress={handleLike}
+        activeOpacity={0.6}
+      >
+        <Animated.View style={commentLikeAnimatedStyle}>
+          <Ionicons
+            name={userHasLiked ? 'heart' : 'heart-outline'}
+            size={22}
+            color={userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
+          />
+        </Animated.View>
+        {likeCount > 0 && (
+          <Text style={[
+            styles.commentLikeCount,
+            {
+              color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
+              fontFamily: 'Raleway_500Medium'
+            }
+          ]}>
+            {likeCount}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (isAuthor) {
+    return (
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        overshootRight={false}
+        friction={2}
+      >
+        {commentContent}
+      </Swipeable>
+    );
+  }
+
+  return commentContent;
+}
 
 interface WorkoutThreadModalProps {
   visible: boolean;
@@ -33,6 +170,7 @@ interface WorkoutThreadModalProps {
   currentUserId: string | null;
   onLike?: () => void;
   onWorkoutUpdated?: (workout: FeedWorkout) => void;
+  onUserPress?: (userId: string, username: string, profilePictureUrl?: string) => void;
 }
 
 export default function WorkoutThreadModal({
@@ -42,12 +180,13 @@ export default function WorkoutThreadModal({
   currentUserId,
   onLike,
   onWorkoutUpdated,
+  onUserPress,
 }: WorkoutThreadModalProps) {
   const { currentTheme } = useTheme();
+  usePauseVideosWhileOpen(visible);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const inputAccessoryViewID = 'workoutThreadAccessory';
 
   // Smooth animation for like button using reanimated
   const likeScale = useSharedValue(1);
@@ -68,6 +207,11 @@ export default function WorkoutThreadModal({
       withSpring(1, { damping: 12, stiffness: 200 })
     );
     onLike?.();
+  };
+
+  const handleUserTap = (userId: string, username: string, profilePictureUrl?: string) => {
+    onClose(); // Close modal first
+    onUserPress?.(userId, username, profilePictureUrl);
   };
 
   if (!workout) return null;
@@ -121,40 +265,34 @@ export default function WorkoutThreadModal({
     }
   };
 
-  const renderComment = (comment: FeedComment) => {
-    const canDelete = comment.user_id === currentUserId || workout.user_id === currentUserId;
+  const handleLikeComment = async (commentId: string) => {
+    const success = await feedService.toggleWorkoutCommentLike(workout.id, commentId);
+    if (success) {
+      const updatedComments = comments.map(c => {
+        if (c.id !== commentId) return c;
 
-    return (
-      <View key={comment.id} style={styles.commentItem}>
-        <View style={[styles.commentAvatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-          <Text style={[styles.commentAvatarText, { color: currentTheme.colors.primary }]}>
-            {comment.username.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <View style={styles.commentContent}>
-          <View style={styles.commentHeader}>
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-              @{comment.username}
-            </Text>
-            <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-              {formatRelativeTime(new Date(comment.created_at))}
-            </Text>
-          </View>
-          <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
-            {comment.text}
-          </Text>
-        </View>
-        {canDelete && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteComment(comment.id)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={14} color={currentTheme.colors.text + '40'} />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
+        const commentLikes = [...(c.likes || [])];
+        const existingIndex = commentLikes.findIndex(l => l.user_id === currentUserId);
+
+        if (existingIndex >= 0) {
+          commentLikes.splice(existingIndex, 1);
+        } else if (currentUserId) {
+          commentLikes.push({
+            user_id: currentUserId,
+            username: '',
+            created_at: new Date().toISOString(),
+          });
+        }
+
+        return { ...c, likes: commentLikes };
+      });
+
+      const updatedWorkout: FeedWorkout = {
+        ...workout,
+        feed_data: { ...feedData, comments: updatedComments },
+      };
+      onWorkoutUpdated?.(updatedWorkout);
+    }
   };
 
   return (
@@ -164,7 +302,7 @@ export default function WorkoutThreadModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]} edges={['top', 'bottom']}>
         {/* Header with workout title */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
@@ -190,23 +328,29 @@ export default function WorkoutThreadModal({
           >
           {/* User info row */}
           <View style={styles.userRow}>
-            {workout.profile_picture_url ? (
-              <Image source={{ uri: workout.profile_picture_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-                  {workout.username.charAt(0).toUpperCase()}
+            <TouchableOpacity
+              onPress={() => handleUserTap(workout.user_id, workout.username, workout.profile_picture_url)}
+              activeOpacity={0.7}
+              style={styles.userTapArea}
+            >
+              {workout.profile_picture_url ? (
+                <Image source={{ uri: workout.profile_picture_url }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatarPlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                  <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+                    {workout.username.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.userInfo}>
+                <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  @{workout.username}
+                </Text>
+                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  {formatRelativeTime(workout.created_at)}
                 </Text>
               </View>
-            )}
-            <View style={styles.userInfo}>
-              <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                @{workout.username}
-              </Text>
-              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                {formatRelativeTime(workout.created_at)}
-              </Text>
-            </View>
+            </TouchableOpacity>
             {strengthLevel && (
               <View style={[
                 styles.tierBadge,
@@ -355,7 +499,18 @@ export default function WorkoutThreadModal({
               </Text>
             ) : (
               <View style={styles.commentsList}>
-                {comments.map(renderComment)}
+                {comments.map(comment => (
+                  <WorkoutCommentItem
+                    key={comment.id}
+                    comment={comment}
+                    workoutId={workout.id}
+                    currentUserId={currentUserId}
+                    isAuthor={comment.user_id === currentUserId}
+                    onDelete={handleDeleteComment}
+                    onLike={handleLikeComment}
+                    onUserPress={handleUserTap}
+                  />
+                ))}
               </View>
             )}
           </View>
@@ -379,7 +534,6 @@ export default function WorkoutThreadModal({
                 multiline
                 maxLength={500}
                 editable={!isSubmitting}
-                inputAccessoryViewID={inputAccessoryViewID}
               />
               <TouchableOpacity
                 style={[
@@ -406,22 +560,6 @@ export default function WorkoutThreadModal({
             </RNView>
           </View>
 
-          {/* Keyboard accessory with Done button */}
-          {Platform.OS === 'ios' && (
-            <InputAccessoryView nativeID={inputAccessoryViewID}>
-              <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>
-                <RNView style={{ flex: 1 }} />
-                <TouchableOpacity
-                  onPress={() => Keyboard.dismiss()}
-                  style={styles.doneButton}
-                >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </RNView>
-            </InputAccessoryView>
-          )}
         </KeyboardAvoidingView>
       </SafeAreaView>
     </Modal>
@@ -460,6 +598,11 @@ const styles = StyleSheet.create({
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  userTapArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   avatar: {
     width: 44,
@@ -628,6 +771,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  commentAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
   commentAvatarText: {
     fontSize: 14,
     fontFamily: 'Raleway_600SemiBold',
@@ -650,6 +798,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
     lineHeight: 20,
+  },
+  commentLikeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 8,
+    paddingTop: 8,
+    minWidth: 36,
+    gap: 2,
+  },
+  commentLikeCount: {
+    fontSize: 12,
+  },
+  commentDeleteAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 70,
+    marginLeft: 8,
+    borderRadius: 8,
   },
   deleteButton: {
     padding: 4,
@@ -679,19 +845,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  accessoryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  doneButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  doneButtonText: {
-    fontSize: 16,
   },
 });

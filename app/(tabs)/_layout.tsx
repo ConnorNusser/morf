@@ -6,7 +6,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
@@ -31,7 +31,7 @@ function TabBarIcon({ iconName, focused }: {
       case 'home':
         return <Ionicons name="home" size={20} color={color} />;
       case 'workout':
-        return <Ionicons name="add" size={28} color={color} />;
+        return <Ionicons name="add" size={28} color={color} style={{ marginTop: -4 }} />;
       case 'history':
         return <Ionicons name="time-outline" size={22} color={color} />;
       case 'profile':
@@ -62,9 +62,8 @@ function AnimatedTabBar(props: BottomTabBarProps) {
 
   const backgroundAnimatedStyle = useAnimatedStyle(() => {
     return {
-      opacity: withSpring(tabBarBackgroundVisible.value, {
-        damping: 20,
-        stiffness: 150,
+      opacity: withTiming(tabBarBackgroundVisible.value, {
+        duration: 200,
       }),
     };
   });

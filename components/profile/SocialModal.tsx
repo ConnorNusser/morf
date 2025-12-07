@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import { useAlert } from '@/components/CustomAlert';
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
@@ -13,7 +14,6 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -34,6 +34,7 @@ interface SocialModalProps {
 
 export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
 
   // Profile picture state
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
@@ -117,11 +118,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Please allow access to your photo library to upload a profile picture.',
-          [{ text: 'OK' }]
-        );
+        showAlert({
+          title: 'Permission Required',
+          message: 'Please allow access to your photo library to upload a profile picture.',
+          type: 'warning',
+        });
         return;
       }
 
@@ -143,7 +144,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       // Get current user
       const user = await userSyncService.getCurrentUser();
       if (!user || !supabase) {
-        Alert.alert('Error', 'Could not get user information');
+        showAlert({ title: 'Error', message: 'Could not get user information', type: 'error' });
         setIsUploadingPicture(false);
         return;
       }
@@ -173,7 +174,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        Alert.alert('Upload Failed', 'Could not upload profile picture. Please try again.');
+        showAlert({ title: 'Upload Failed', message: 'Could not upload profile picture. Please try again.', type: 'error' });
         setIsUploadingPicture(false);
         return;
       }
@@ -192,10 +193,10 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         .eq('id', user.id);
 
       setProfilePictureUrl(publicUrl);
-      Alert.alert('Success', 'Profile picture updated!');
+      showAlert({ title: 'Success', message: 'Profile picture updated!', type: 'success' });
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      Alert.alert('Error', 'Failed to upload profile picture');
+      showAlert({ title: 'Error', message: 'Failed to upload profile picture', type: 'error' });
     } finally {
       setIsUploadingPicture(false);
     }
@@ -284,7 +285,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
     // Final validation before saving
     const validationError = await userSyncService.validateUsername(trimmedUsername);
     if (validationError) {
-      Alert.alert('Invalid Username', validationError);
+      showAlert({ title: 'Invalid Username', message: validationError, type: 'warning' });
       return;
     }
     setIsSavingUsername(true);
@@ -296,11 +297,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         setIsEditingUsername(false);
         setUsernameError(null);
       } else {
-        Alert.alert('Error', 'Failed to sync username.');
+        showAlert({ title: 'Error', message: 'Failed to sync username.', type: 'error' });
       }
     } catch (error) {
       console.error('Error saving username:', error);
-      Alert.alert('Error', 'Failed to save username.');
+      showAlert({ title: 'Error', message: 'Failed to save username.', type: 'error' });
     } finally {
       setIsSavingUsername(false);
     }
@@ -311,7 +312,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
     try {
       const user = await userSyncService.getCurrentUser();
       if (!user || !supabase) {
-        Alert.alert('Error', 'Could not save social links');
+        showAlert({ title: 'Error', message: 'Could not save social links', type: 'error' });
         return;
       }
 
@@ -336,10 +337,10 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         .update({ user_data: updatedData })
         .eq('id', user.id);
 
-      Alert.alert('Success', 'Social links updated!');
+      showAlert({ title: 'Success', message: 'Social links updated!', type: 'success' });
     } catch (error) {
       console.error('Error saving social links:', error);
-      Alert.alert('Error', 'Failed to save social links');
+      showAlert({ title: 'Error', message: 'Failed to save social links', type: 'error' });
     } finally {
       setIsSavingSocials(false);
     }
@@ -358,11 +359,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         setSearchResults(prev => prev.filter(u => u.id !== user.id));
         setSearchQuery('');
       } else {
-        Alert.alert('Error', 'Failed to add friend.');
+        showAlert({ title: 'Error', message: 'Failed to add friend.', type: 'error' });
       }
     } catch (error) {
       console.error('Error adding friend:', error);
-      Alert.alert('Error', 'Failed to add friend.');
+      showAlert({ title: 'Error', message: 'Failed to add friend.', type: 'error' });
     } finally {
       setAddingFriendId(null);
     }
@@ -373,11 +374,12 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
     setShowUserProfile(true);
   };
 
-  const handleRemoveFriend = async (friend: Friend) => {
-    Alert.alert(
-      'Remove Friend',
-      `Remove @${friend.user.username} from your friends?`,
-      [
+  const handleRemoveFriend = (friend: Friend) => {
+    showAlert({
+      title: 'Remove Friend',
+      message: `Remove @${friend.user.username} from your friends?`,
+      type: 'confirm',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Remove',
@@ -396,8 +398,8 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
             }
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const renderSearchResult = ({ item }: { item: RemoteUser }) => (

@@ -6,7 +6,7 @@ import { getStrengthLevelName, OneRMCalculator } from './strengthStandards';
 import { calculateOverallPercentile, convertWeightToLbs } from './utils';
 import { userService } from './userService';
 import { getWorkoutById, ALL_WORKOUTS } from './workouts';
-import { WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
+import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
 // Re-export feed types and service for backwards compatibility
 export { feedService, type FeedLike, type FeedComment, type WorkoutFeedData, type WorkoutExerciseSummary, type WorkoutSummary, type PostFeedData, type FeedPost, type CreatePostInput, type FeedWorkout } from './feedService';
 
@@ -997,6 +997,20 @@ class UserSyncService {
         strengthLevel: feedData.strength_level,
         prCount
       });
+
+      // Also sync to feed server for social feed
+      feedService.saveWorkoutToFeed({
+        title: workout.title,
+        duration_seconds: durationSeconds,
+        exercise_count: exerciseSummaries.length,
+        set_count: totalSets,
+        total_volume: Math.round(totalVolume),
+        exercises: exerciseSummaries,
+      }).catch(err => {
+        console.error('Error syncing workout to feed server:', err);
+        analyticsService.logErr('sync', 'feed_workout_sync_failed', err instanceof Error ? err.message : 'Unknown error');
+      });
+
       return true;
     } catch (error) {
       console.error('Error syncing workout:', error);
