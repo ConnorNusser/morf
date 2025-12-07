@@ -42,7 +42,7 @@ export default function FeedPostCard({
   isVisible = false,
 }: FeedPostCardProps) {
   const { currentTheme } = useTheme();
-  const { registerPlayer, unregisterPlayer, setActiveVideo } = useVideoPlayerContext();
+  const { registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches } = useVideoPlayerContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [fullScreenInitialIndex, setFullScreenInitialIndex] = useState(0);
@@ -130,14 +130,10 @@ export default function FeedPostCard({
     if (isVisible && !showFullScreenVideo) {
       setActiveVideo(videoId);
     } else {
-      // Pause when not visible or fullscreen is open
-      try {
-        player.pause();
-      } catch {
-        // Player may not be ready
-      }
+      // Clear active video only if this video was active (prevents race conditions)
+      clearActiveIfMatches(videoId);
     }
-  }, [isVisible, showFullScreenVideo, player, hasVideo, videoId, setActiveVideo]);
+  }, [isVisible, showFullScreenVideo, player, hasVideo, videoId, setActiveVideo, clearActiveIfMatches]);
 
   // Smooth animation for like button
   const likeScale = useSharedValue(1);

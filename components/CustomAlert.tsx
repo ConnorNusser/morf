@@ -6,11 +6,12 @@ import { BlurView } from 'expo-blur';
 import React, { createContext, useCallback, useContext, useState } from 'react';
 import {
   Dimensions,
-  Modal,
+  Platform,
   Pressable,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+import { FullWindowOverlay } from 'react-native-screens';
 import * as Clipboard from 'expo-clipboard';
 import Animated, {
   FadeIn,
@@ -216,35 +217,37 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setAlertConfig(null), 200);
   }, []);
 
+  // FullWindowOverlay renders above all modals on iOS
+  const alertContent = visible ? (
+    <Animated.View
+      entering={FadeIn.duration(150)}
+      exiting={FadeOut.duration(100)}
+      style={styles.overlay}
+      pointerEvents="box-none"
+    >
+      <BlurView intensity={20} tint={currentTheme.colors.background.toLowerCase().startsWith('#0') || currentTheme.colors.background.toLowerCase().startsWith('#1') ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+      <Pressable style={styles.backdrop} onPress={hideAlert} />
+      {alertConfig && (
+        <AlertContent config={alertConfig} onDismiss={hideAlert} />
+      )}
+    </Animated.View>
+  ) : null;
+
   return (
     <AlertContext.Provider value={{ showAlert, hideAlert }}>
       {children}
-      <Modal
-        visible={visible}
-        transparent
-        animationType="none"
-        onRequestClose={hideAlert}
-        statusBarTranslucent
-      >
-        <Animated.View
-          entering={FadeIn.duration(150)}
-          exiting={FadeOut.duration(100)}
-          style={styles.overlay}
-        >
-          <BlurView intensity={20} tint={currentTheme.colors.background.toLowerCase().startsWith('#0') || currentTheme.colors.background.toLowerCase().startsWith('#1') ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-          <Pressable style={styles.backdrop} onPress={hideAlert} />
-          {alertConfig && (
-            <AlertContent config={alertConfig} onDismiss={hideAlert} />
-          )}
-        </Animated.View>
-      </Modal>
+      {Platform.OS === 'ios' ? (
+        <FullWindowOverlay>{alertContent}</FullWindowOverlay>
+      ) : (
+        alertContent
+      )}
     </AlertContext.Provider>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -5,6 +5,7 @@ interface VideoPlayerContextType {
   registerPlayer: (id: string, player: VideoPlayer) => void;
   unregisterPlayer: (id: string) => void;
   setActiveVideo: (id: string | null) => void;
+  clearActiveIfMatches: (id: string) => void;
   pauseAll: () => void;
   resumeActive: () => void;
   muteAll: () => void;
@@ -41,6 +42,21 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
       }
     });
     activeVideoRef.current = id;
+  }, []);
+
+  // Only clear active video if it matches the given id (prevents race conditions)
+  const clearActiveIfMatches = useCallback((id: string) => {
+    if (activeVideoRef.current === id) {
+      const player = playersRef.current.get(id);
+      if (player) {
+        try {
+          player.pause();
+        } catch {
+          // Player may not be ready
+        }
+      }
+      activeVideoRef.current = null;
+    }
   }, []);
 
   const pauseAll = useCallback(() => {
@@ -84,6 +100,7 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
         registerPlayer,
         unregisterPlayer,
         setActiveVideo,
+        clearActiveIfMatches,
         pauseAll,
         resumeActive,
         muteAll,

@@ -9,9 +9,8 @@ import { userSyncService } from '@/lib/userSyncService';
 import { RemoteUser } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, NativeScrollEvent, NativeSyntheticEvent, RefreshControl, StyleSheet, TouchableOpacity, ViewToken } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ViewToken } from 'react-native';
 import CreatePostModal from './CreatePostModal';
 import FeedCard, { FeedWorkout } from './FeedCard';
 import FeedPostCard from './FeedPostCard';
@@ -32,8 +31,8 @@ interface FeedViewProps {
 
 export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps) {
   const { currentTheme } = useTheme();
-  const { setTabBarVisible, setTabBarBackgroundVisible, tabBarVisible } = useTabBar();
-  const { resumeActive: resumeVideos } = useVideoControl();
+  const { setTabBarBackgroundVisible } = useTabBar();
+  const { pauseAll: pauseVideos } = useVideoControl();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -45,9 +44,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
 
-  // Scroll handling for tab bar visibility
-  const lastScrollY = useRef(0);
-
   // Viewability config for auto-playing videos
   const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 80,
@@ -58,43 +54,18 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     setVisibleItems(visibleKeys);
   }, []);
 
-  // Hide tab bar background when feed is focused, show when unfocused
-  // Resume videos when returning to feed view
+  // Make tab bar background transparent on feed, opaque elsewhere
+  // Pause videos when leaving tab
   useFocusEffect(
     useCallback(() => {
       setTabBarBackgroundVisible(false);
-      resumeVideos();
       return () => {
         setTabBarBackgroundVisible(true);
+        pauseVideos();
+        setVisibleItems(new Set()); // Clear visibility so videos don't auto-play on return
       };
-    }, [setTabBarBackgroundVisible, resumeVideos])
+    }, [setTabBarBackgroundVisible, pauseVideos])
   );
-
-  // Animated style for FAB that follows tab bar visibility
-  const fabAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{
-        translateY: withTiming(tabBarVisible.value === 1 ? 0 : 80, {
-          duration: 200,
-        }),
-      }],
-    };
-  });
-
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const currentScrollY = event.nativeEvent.contentOffset.y;
-    const isScrollingDown = currentScrollY > lastScrollY.current;
-
-    if (isScrollingDown && currentScrollY > 20) {
-      // Scrolling down - hide tab bar
-      setTabBarVisible(false);
-    } else if (!isScrollingDown && currentScrollY < lastScrollY.current - 10) {
-      // Scrolling up significantly - show tab bar
-      setTabBarVisible(true);
-    }
-
-    lastScrollY.current = currentScrollY;
-  }, [setTabBarVisible]);
 
 
   const loadFeed = useCallback(async (refresh = false) => {
@@ -355,8 +326,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         ListFooterComponent={renderFooter}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         viewabilityConfig={viewabilityConfig}
         onViewableItemsChanged={onViewableItemsChanged}
         refreshControl={
@@ -370,7 +339,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       />
 
       {/* Floating Action Button */}
-      <Animated.View style={[styles.fabContainer, fabAnimatedStyle]}>
+      <View style={styles.fabContainer}>
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: currentTheme.colors.primary }]}
           onPress={handleCreatePost}
@@ -378,7 +347,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         >
           <Ionicons name="add" size={28} color="#fff" />
         </TouchableOpacity>
-      </Animated.View>
+      </View>
 
       <WorkoutThreadModal
         visible={selectedWorkout !== null}

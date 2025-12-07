@@ -23,7 +23,7 @@ import {
   View as RNView,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { FeedWorkout } from './FeedCard';
 
@@ -183,6 +183,7 @@ export default function WorkoutThreadModal({
   onUserPress,
 }: WorkoutThreadModalProps) {
   const { currentTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   usePauseVideosWhileOpen(visible);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -302,7 +303,7 @@ export default function WorkoutThreadModal({
       presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         {/* Header with workout title */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
@@ -561,7 +562,7 @@ export default function WorkoutThreadModal({
           </View>
 
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

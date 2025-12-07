@@ -33,7 +33,6 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
@@ -63,7 +62,9 @@ export default function RootLayout() {
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors - can happen with FullWindowOverlay creating new view controllers
+      });
     }
   }, [loaded]);
 
@@ -102,7 +103,6 @@ export default function RootLayout() {
                   <WorkoutProvider>
                     <Stack>
                       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                      <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
                     </Stack>
                   </WorkoutProvider>
                 </RoutineProvider>

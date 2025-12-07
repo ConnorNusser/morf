@@ -5,15 +5,14 @@ import { formatRelativeTime } from '@/lib/formatters';
 import playHapticFeedback from '@/lib/haptic';
 import { feedService, FeedComment, FeedPost } from '@/lib/feedService';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
   Image,
+  InputAccessoryView,
   Keyboard,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const COMMENTS_INPUT_ACCESSORY_ID = 'commentsInputAccessory';
 
 interface CommentsModalProps {
   visible: boolean;
@@ -186,7 +186,34 @@ export default function CommentsModal({
   usePauseVideosWhileOpen(visible);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
+
+  // Listen for keyboard show/hide events
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardWillShow', () => {
+      setIsKeyboardVisible(true);
+    });
+    const hideSub = Keyboard.addListener('keyboardWillHide', () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // Cleanup keyboard state when modal closes
+  useEffect(() => {
+    if (!visible) {
+      // Dismiss keyboard and blur input when modal closes
+      Keyboard.dismiss();
+      inputRef.current?.blur();
+      setIsKeyboardVisible(false);
+    }
+  }, [visible]);
 
   if (!post) return null;
 
@@ -258,8 +285,20 @@ export default function CommentsModal({
   };
 
   const handleUserTap = (userId: string, username: string, profilePictureUrl?: string) => {
+    Keyboard.dismiss();
+    inputRef.current?.blur();
     onClose();
     onUserPress?.(userId, username, profilePictureUrl);
+  };
+
+  const focusInput = () => {
+    inputRef.current?.focus();
+  };
+
+  const handleClose = () => {
+    Keyboard.dismiss();
+    inputRef.current?.blur();
+    onClose();
   };
 
   return (
@@ -267,17 +306,18 @@ export default function CommentsModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <KeyboardAvoidingView
-        style={styles.modalWrapper}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <RNView style={styles.modalWrapper}>
         {/* Backdrop - tap to close */}
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Pressable style={styles.backdrop} onPress={handleClose} />
 
-        {/* Half-screen container */}
-        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Container - expands when keyboard open */}
+        <View style={[
+          styles.container,
+          { backgroundColor: currentTheme.colors.background },
+          isKeyboardVisible && styles.containerExpanded
+        ]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <View style={styles.handle} />
@@ -321,54 +361,83 @@ export default function CommentsModal({
             )}
           </ScrollView>
 
-          {/* Comment Input */}
-          <View style={[styles.inputContainer, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}>
-            <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
-                  }
-                ]}
-                placeholder="Add a comment..."
-                placeholderTextColor={currentTheme.colors.text + '40'}
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline
-                maxLength={500}
-                editable={!isSubmitting}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor: commentText.trim() && !isSubmitting
-                      ? currentTheme.colors.primary
-                      : 'transparent',
-                  }
-                ]}
-                onPress={handleSubmitComment}
-                disabled={!commentText.trim() || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color={currentTheme.colors.primary} />
-                ) : (
-                  <Ionicons
-                    name="arrow-up-circle"
-                    size={28}
-                    color={commentText.trim() ? '#fff' : currentTheme.colors.text + '30'}
-                  />
-                )}
-              </TouchableOpacity>
-            </RNView>
-          </View>
+          {/* Tap to focus placeholder - shown when keyboard closed */}
+          {!isKeyboardVisible && (
+            <TouchableOpacity
+              style={[styles.inputPlaceholder, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}
+              onPress={focusInput}
+              activeOpacity={0.7}
+            >
+              <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
+                <Text style={[styles.placeholderText, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                  Add a comment...
+                </Text>
+                <RNView style={styles.sendButtonPlaceholder}>
+                  <Ionicons name="arrow-up-circle" size={28} color={currentTheme.colors.text + '30'} />
+                </RNView>
+              </RNView>
+            </TouchableOpacity>
+          )}
 
-          {/* Bottom safe area padding */}
-          <View style={{ height: Platform.OS === 'ios' ? 34 : 16 }} />
+          {/* Hidden TextInput to trigger keyboard */}
+          <TextInput
+            ref={inputRef}
+            style={styles.hiddenInput}
+            value={commentText}
+            onChangeText={setCommentText}
+            inputAccessoryViewID={COMMENTS_INPUT_ACCESSORY_ID}
+          />
         </View>
-      </KeyboardAvoidingView>
+
+        {/* InputAccessoryView - appears above keyboard */}
+        {(
+          <InputAccessoryView nativeID={COMMENTS_INPUT_ACCESSORY_ID}>
+            <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}>
+              <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      color: currentTheme.colors.text,
+                      fontFamily: 'Raleway_400Regular',
+                    }
+                  ]}
+                  placeholder="Add a comment..."
+                  placeholderTextColor={currentTheme.colors.text + '40'}
+                  value={commentText}
+                  onChangeText={setCommentText}
+                  multiline
+                  maxLength={500}
+                  editable={!isSubmitting}
+                  autoFocus
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.sendButton,
+                    {
+                      backgroundColor: commentText.trim() && !isSubmitting
+                        ? currentTheme.colors.primary
+                        : 'transparent',
+                    }
+                  ]}
+                  onPress={handleSubmitComment}
+                  disabled={!commentText.trim() || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                  ) : (
+                    <Ionicons
+                      name="arrow-up-circle"
+                      size={28}
+                      color={commentText.trim() ? '#fff' : currentTheme.colors.text + '30'}
+                    />
+                  )}
+                </TouchableOpacity>
+              </RNView>
+            </RNView>
+          </InputAccessoryView>
+        )}
+      </RNView>
     </Modal>
   );
 }
@@ -387,6 +456,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',
+  },
+  containerExpanded: {
+    height: SCREEN_HEIGHT * 0.8,
   },
   header: {
     alignItems: 'center',
@@ -490,9 +562,30 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     borderRadius: 8,
   },
-  inputContainer: {
+  inputPlaceholder: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  placeholderText: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 8,
+  },
+  sendButtonPlaceholder: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+  },
+  accessoryContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   inputWrapper: {

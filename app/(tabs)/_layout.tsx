@@ -6,7 +6,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
@@ -44,21 +44,10 @@ function TabBarIcon({ iconName, focused }: {
   return getIcon();
 }
 
-// Animated tab bar wrapper that slides in/out based on scroll
+// Tab bar with transparent background on scroll
 function AnimatedTabBar(props: BottomTabBarProps) {
-  const { tabBarVisible, tabBarBackgroundVisible } = useTabBar();
+  const { tabBarBackgroundVisible } = useTabBar();
   const { currentTheme } = useTheme();
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{
-        translateY: withSpring(tabBarVisible.value === 1 ? 0 : 100, {
-          damping: 20,
-          stiffness: 200,
-        }),
-      }],
-    };
-  });
 
   const backgroundAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -72,7 +61,7 @@ function AnimatedTabBar(props: BottomTabBarProps) {
   const { state, descriptors, navigation } = props;
 
   return (
-    <Animated.View style={[styles.tabBarContainer, animatedStyle]}>
+    <Animated.View style={styles.tabBarContainer}>
       <Animated.View style={[styles.tabBarBackground, backgroundAnimatedStyle]}>
         <TabBarBackground />
       </Animated.View>
