@@ -159,8 +159,9 @@ WorkoutNoteInput.displayName = 'WorkoutNoteInput';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   input: {
     flex: 1,

@@ -285,7 +285,7 @@ export default function WorkoutScreen() {
         />
 
         {/* Main Content - Notes Input */}
-        <TutorialTarget id="workout-note-input">
+        <TutorialTarget id="workout-note-input" style={{ flex: 1 }}>
           <View style={[styles.content, { backgroundColor: 'transparent' }]}>
             <WorkoutNoteInput
               ref={noteInputRef}
