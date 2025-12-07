@@ -4,12 +4,11 @@ import { formatDuration, formatRelativeTime } from '@/lib/formatters';
 import playHapticFeedback from '@/lib/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
 import { getBaseTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
-import { ReactionType, WorkoutSummary } from '@/lib/userSyncService';
+import { WorkoutSummary } from '@/lib/userSyncService';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
-import ReactionPicker, { REACTIONS } from './ReactionPicker';
 
 export type FeedWorkout = WorkoutSummary & {
   username: string;
@@ -21,17 +20,16 @@ interface FeedCardProps {
   workout: FeedWorkout;
   onPress: () => void;
   onUserPress?: () => void;
-  onReaction?: (type: ReactionType) => void;
+  onLike?: () => void;
   onComment?: () => void;
   currentUserId?: string | null;
 }
 
 
-export default function FeedCard({ workout, onPress, onUserPress, onReaction, onComment, currentUserId }: FeedCardProps) {
+export default function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId }: FeedCardProps) {
   const { currentTheme } = useTheme();
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const feedData = workout.feed_data;
-  const hasPRs = feedData?.pr_count && feedData.pr_count > 0;
+  const hasPRs = (feedData?.pr_count ?? 0) > 0;
 
   // Smooth animation for like button using reanimated
   const likeScale = useSharedValue(1);
@@ -40,15 +38,15 @@ export default function FeedCard({ workout, onPress, onUserPress, onReaction, on
     transform: [{ scale: likeScale.value }],
   }));
 
-  const handleReaction = useCallback((type: ReactionType) => {
+  const handleLike = () => {
     playHapticFeedback('light', false);
     // Quick scale up, then smooth spring back
     likeScale.value = withSequence(
       withTiming(1.25, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
     );
-    onReaction?.(type);
-  }, [likeScale, onReaction]);
+    onLike?.();
+  };
 
   // Get tier color for the badge
   const strengthLevel = feedData?.strength_level as StrengthTier | undefined;
@@ -56,37 +54,10 @@ export default function FeedCard({ workout, onPress, onUserPress, onReaction, on
   const baseTier = strengthLevel ? getBaseTier(strengthLevel) : null;
   const isHighTier = baseTier === 'S' || baseTier === 'A';
 
-  // Reactions
-  const reactions = feedData?.reactions || [];
-  const reactionCount = reactions.length;
-  const userReaction = currentUserId
-    ? reactions.find(r => r.user_id === currentUserId)?.reaction_type
-    : undefined;
-
-  // Group reactions by type for display
-  const reactionsByType = useMemo(() => {
-    const grouped: Record<ReactionType, number> = { kudos: 0, fire: 0, strong: 0, celebrate: 0 };
-    const reactionList = feedData?.reactions || [];
-    reactionList.forEach(r => {
-      if (grouped[r.reaction_type] !== undefined) {
-        grouped[r.reaction_type]++;
-      }
-    });
-    return grouped;
-  }, [feedData?.reactions]);
-
-  const handleLongPress = useCallback(() => {
-    playHapticFeedback('medium', false);
-    setShowReactionPicker(true);
-  }, []);
-
-  const handleReactionSelect = useCallback((type: ReactionType) => {
-    likeScale.value = withSequence(
-      withTiming(1.25, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
-    onReaction?.(type);
-  }, [likeScale, onReaction]);
+  // Likes
+  const likes = feedData?.likes || [];
+  const likeCount = likes.length;
+  const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
   // Comments
   const comments = feedData?.comments || [];
@@ -157,7 +128,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onReaction, on
       </Text>
 
       {/* PR chips if any */}
-      {hasPRs && (
+      {hasPRs && feedData && (
         <View style={styles.prRow}>
           <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
             <Text style={styles.prChipText}>
@@ -215,44 +186,31 @@ export default function FeedCard({ workout, onPress, onUserPress, onReaction, on
         </View>
       )}
 
-      {/* Reaction bar */}
-      <View style={styles.reactionBar}>
-        <View style={styles.reactionLeft}>
-          {/* Animated like button - tap for quick kudos, long press for picker */}
+      {/* Like and comment bar */}
+      <View style={styles.actionBar}>
+        <View style={styles.actionLeft}>
+          {/* Animated like button */}
           <TouchableOpacity
             style={[
               styles.actionButton,
-              userReaction && { backgroundColor: currentTheme.colors.primary + '15' }
+              userHasLiked && { backgroundColor: currentTheme.colors.primary + '15' }
             ]}
-            onPress={() => handleReaction('kudos')}
-            onLongPress={handleLongPress}
-            delayLongPress={300}
+            onPress={handleLike}
             activeOpacity={0.6}
           >
             <Animated.View style={likeAnimatedStyle}>
               <Ionicons
-                name={userReaction ? 'heart' : 'heart-outline'}
+                name={userHasLiked ? 'heart' : 'heart-outline'}
                 size={22}
-                color={userReaction ? currentTheme.colors.primary : currentTheme.colors.text + '70'}
+                color={userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70'}
               />
             </Animated.View>
+            {likeCount > 0 && (
+              <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                {likeCount}
+              </Text>
+            )}
           </TouchableOpacity>
-
-          {/* Reaction counts by type */}
-          {reactionCount > 0 && (
-            <View style={styles.reactionCounts}>
-              {REACTIONS
-                .filter(r => reactionsByType[r.type] > 0)
-                .map(r => (
-                  <View key={r.type} style={styles.reactionCountItem}>
-                    <Text style={styles.reactionCountEmoji}>{r.emoji}</Text>
-                    <Text style={[styles.reactionCountText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
-                      {reactionsByType[r.type]}
-                    </Text>
-                  </View>
-                ))}
-            </View>
-          )}
 
           {/* Comment button */}
           <TouchableOpacity
@@ -273,14 +231,6 @@ export default function FeedCard({ workout, onPress, onUserPress, onReaction, on
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Reaction picker modal */}
-      <ReactionPicker
-        visible={showReactionPicker}
-        onClose={() => setShowReactionPicker(false)}
-        onSelect={handleReactionSelect}
-        currentReaction={userReaction}
-      />
     </TouchableOpacity>
   );
 }
@@ -412,13 +362,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 4,
   },
-  reactionBar: {
+  actionBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 12,
   },
-  reactionLeft: {
+  actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
@@ -433,24 +383,5 @@ const styles = StyleSheet.create({
   },
   actionCount: {
     fontSize: 14,
-  },
-  reactionEmoji: {
-    fontSize: 20,
-  },
-  reactionCounts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reactionCountItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  reactionCountEmoji: {
-    fontSize: 14,
-  },
-  reactionCountText: {
-    fontSize: 13,
   },
 });

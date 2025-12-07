@@ -1,9 +1,12 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { TabBarProvider, useTabBar } from '@/contexts/TabBarContext';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { UserProvider } from '@/contexts/UserContext';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
@@ -41,58 +44,100 @@ function TabBarIcon({ iconName, focused }: {
   return getIcon();
 }
 
+// Animated tab bar wrapper that slides in/out based on scroll
+function AnimatedTabBar(props: BottomTabBarProps) {
+  const { tabBarVisible, tabBarBackgroundVisible } = useTabBar();
+  const { currentTheme } = useTheme();
+
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{
+        translateY: withSpring(tabBarVisible.value === 1 ? 0 : 100, {
+          damping: 20,
+          stiffness: 200,
+        }),
+      }],
+    };
+  });
+
+  const backgroundAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: withSpring(tabBarBackgroundVisible.value, {
+        damping: 20,
+        stiffness: 150,
+      }),
+    };
+  });
+
+  // Get the default tab bar from navigation
+  const { state, descriptors, navigation } = props;
+
+  return (
+    <Animated.View style={[styles.tabBarContainer, animatedStyle]}>
+      <Animated.View style={[styles.tabBarBackground, backgroundAnimatedStyle]}>
+        <TabBarBackground />
+      </Animated.View>
+      <View style={styles.tabBarContent}>
+        {state.routes.map((route, index) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
+          return (
+            <HapticTab
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              style={[
+                styles.tabItem,
+                { backgroundColor: isFocused ? currentTheme.colors.primary + '15' : 'transparent' }
+              ]}
+            >
+              {options.tabBarIcon?.({ focused: isFocused, color: isFocused ? currentTheme.colors.primary : '#8E8E93', size: 24 })}
+            </HapticTab>
+          );
+        })}
+      </View>
+    </Animated.View>
+  );
+}
+
 function TabsContent() {
   const { currentTheme } = useTheme();
 
   return (
     <Tabs
+      tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: currentTheme.colors.primary,
         tabBarInactiveTintColor: '#8E8E93',
-        tabBarShowLabel: false, // Hide labels for minimalist look
-        tabBarItemStyle: {
-          paddingVertical: 12,
-          marginHorizontal: 8,
-          borderRadius: 16,
-        },
+        tabBarShowLabel: false,
         headerStyle: {
           backgroundColor: currentTheme.colors.background,
         },
         headerTintColor: currentTheme.colors.primary,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 85,
-            borderRadius: 0,
-            backgroundColor: 'transparent',
-            borderTopWidth: 0,
-            shadowColor: '#000',
-            shadowOffset: {
-              width: 0,
-              height: -4,
-            },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 10,
-          },
-          default: {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 85,
-            borderRadius: 0,
-            backgroundColor: 'transparent',
-            borderTopWidth: 0,
-            elevation: 10,
-          },
-        }),
       }}>
       <Tabs.Screen
         name="index"
@@ -175,18 +220,53 @@ export default function TabLayout() {
   }
 
   return (
-    <UserProvider>
-      <TabsContent />
+    <TabBarProvider>
+      <UserProvider>
+        <TabsContent />
 
-      {/* Onboarding Modal for first-time users */}
-      <OnboardingModal
-        visible={showOnboarding}
-        onComplete={handleOnboardingComplete}
-      />
+        {/* Onboarding Modal for first-time users */}
+        <OnboardingModal
+          visible={showOnboarding}
+          onComplete={handleOnboardingComplete}
+        />
 
-      {/* Tutorial Overlay - shown after onboarding */}
-      <TutorialOverlay />
-    </UserProvider>
+        {/* Tutorial Overlay - shown after onboarding */}
+        <TutorialOverlay />
+      </UserProvider>
+    </TabBarProvider>
   );
 }
 
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 85,
+  },
+  tabBarBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  tabBarContent: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+    paddingHorizontal: 16,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginHorizontal: 8,
+    borderRadius: 16,
+  },
+});

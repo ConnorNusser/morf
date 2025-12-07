@@ -5,7 +5,7 @@ import Card from './Card';
 
 interface SkeletonCardProps {
   style?: ViewStyle;
-  variant?: 'stats' | 'overall' | 'button' | 'leaderboard-row' | 'profile-header';
+  variant?: 'stats' | 'overall' | 'button' | 'leaderboard-row' | 'profile-header' | 'feed';
 }
 
 interface SkeletonLineProps {
@@ -94,6 +94,60 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         <View style={styles.profileInfo}>
           <SkeletonLine width={120} height={18} />
           <SkeletonLine width={80} height={14} style={{ marginTop: 6 }} />
+        </View>
+      </View>
+    );
+  }
+
+  if (variant === 'feed') {
+    return (
+      <View style={[styles.feedCard, { borderBottomColor: currentTheme.colors.border }, style]}>
+        {/* Header with avatar, username, time, and tier badge */}
+        <View style={styles.feedHeader}>
+          <View style={styles.feedUserInfo}>
+            <SkeletonLine width={44} height={44} style={{ borderRadius: 22 }} />
+            <View style={{ gap: 6 }}>
+              <SkeletonLine width={90} height={14} />
+              <SkeletonLine width={50} height={12} />
+            </View>
+          </View>
+          <SkeletonLine width={36} height={26} style={{ borderRadius: 10 }} />
+        </View>
+
+        {/* Workout title */}
+        <SkeletonLine width="75%" height={22} style={{ marginTop: 12 }} />
+
+        {/* Stats row */}
+        <SkeletonLine width="60%" height={14} style={{ marginTop: 10 }} />
+
+        {/* PPL chips */}
+        <View style={styles.feedChips}>
+          <SkeletonLine width={70} height={28} style={{ borderRadius: 16 }} />
+          <SkeletonLine width={60} height={28} style={{ borderRadius: 16 }} />
+        </View>
+
+        {/* Exercise rows */}
+        <View style={styles.feedExercises}>
+          <View style={styles.feedExerciseRow}>
+            <SkeletonLine width="50%" height={15} />
+            <SkeletonLine width={60} height={14} />
+          </View>
+          <View style={styles.feedExerciseRow}>
+            <SkeletonLine width="45%" height={15} />
+            <SkeletonLine width={55} height={14} />
+          </View>
+          <View style={styles.feedExerciseRow}>
+            <SkeletonLine width="55%" height={15} />
+            <SkeletonLine width={50} height={14} />
+          </View>
+        </View>
+
+        {/* Action bar */}
+        <View style={styles.feedActions}>
+          <View style={styles.feedActionButtons}>
+            <SkeletonLine width={50} height={32} style={{ borderRadius: 10 }} />
+            <SkeletonLine width={50} height={32} style={{ borderRadius: 10 }} />
+          </View>
         </View>
       </View>
     );
@@ -218,5 +272,41 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+  },
+  feedCard: {
+    paddingVertical: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  feedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  feedUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  feedChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  feedExercises: {
+    marginTop: 16,
+    gap: 12,
+  },
+  feedExerciseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  feedActions: {
+    marginTop: 16,
+  },
+  feedActionButtons: {
+    flexDirection: 'row',
+    gap: 20,
   },
 });

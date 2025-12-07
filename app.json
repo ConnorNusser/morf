@@ -59,7 +59,8 @@
         {
           "locationWhenInUsePermission": "Morf uses your location to show your country on leaderboards."
         }
-      ]
+      ],
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true

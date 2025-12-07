@@ -5,9 +5,9 @@ import { formatDuration, formatRelativeTime } from '@/lib/formatters';
 import playHapticFeedback from '@/lib/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
 import { getBaseTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
-import { FeedComment, ReactionType, userSyncService } from '@/lib/userSyncService';
+import { feedService, FeedComment } from '@/lib/feedService';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -25,14 +25,13 @@ import {
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { FeedWorkout } from './FeedCard';
-import ReactionPicker, { REACTIONS } from './ReactionPicker';
 
 interface WorkoutThreadModalProps {
   visible: boolean;
   onClose: () => void;
   workout: FeedWorkout | null;
   currentUserId: string | null;
-  onReaction?: (type: ReactionType) => void;
+  onLike?: () => void;
   onWorkoutUpdated?: (workout: FeedWorkout) => void;
 }
 
@@ -41,13 +40,12 @@ export default function WorkoutThreadModal({
   onClose,
   workout,
   currentUserId,
-  onReaction,
+  onLike,
   onWorkoutUpdated,
 }: WorkoutThreadModalProps) {
   const { currentTheme } = useTheme();
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const inputAccessoryViewID = 'workoutThreadAccessory';
 
@@ -63,47 +61,27 @@ export default function WorkoutThreadModal({
     return calculatePPLBreakdown(workout.exercises);
   }, [workout]);
 
-  // Group reactions by type for display (must be before early return)
-  const reactionsByType = useMemo(() => {
-    const grouped: Record<ReactionType, number> = { kudos: 0, fire: 0, strong: 0, celebrate: 0 };
-    const reactions = workout?.feed_data?.reactions || [];
-    reactions.forEach(r => {
-      if (grouped[r.reaction_type] !== undefined) {
-        grouped[r.reaction_type]++;
-      }
-    });
-    return grouped;
-  }, [workout?.feed_data?.reactions]);
-
-  const handleLongPress = useCallback(() => {
-    playHapticFeedback('medium', false);
-    setShowReactionPicker(true);
-  }, []);
-
-  const handleReactionSelect = useCallback((type: ReactionType) => {
+  const handleLike = () => {
     playHapticFeedback('light', false);
     likeScale.value = withSequence(
       withTiming(1.25, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
     );
-    onReaction?.(type);
-    setShowReactionPicker(false);
-  }, [likeScale, onReaction]);
+    onLike?.();
+  };
 
   if (!workout) return null;
 
   const feedData = workout.feed_data;
-  const hasPRs = feedData?.pr_count && feedData.pr_count > 0;
+  const hasPRs = (feedData?.pr_count ?? 0) > 0;
   const strengthLevel = feedData?.strength_level as StrengthTier | undefined;
   const tierColor = strengthLevel ? getTierColor(strengthLevel) : currentTheme.colors.primary;
   const baseTier = strengthLevel ? getBaseTier(strengthLevel) : null;
   const isHighTier = baseTier === 'S' || baseTier === 'A';
 
-  const reactions = feedData?.reactions || [];
-  const reactionCount = reactions.length;
-  const userReaction = currentUserId
-    ? reactions.find(r => r.user_id === currentUserId)?.reaction_type
-    : undefined;
+  const likes = feedData?.likes || [];
+  const likeCount = likes.length;
+  const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
   const comments = feedData?.comments || [];
 
@@ -112,7 +90,7 @@ export default function WorkoutThreadModal({
 
     Keyboard.dismiss();
     setIsSubmitting(true);
-    const newComment = await userSyncService.addComment(workout.id, commentText.trim());
+    const newComment = await feedService.addComment(workout.id, commentText.trim());
     setIsSubmitting(false);
 
     if (newComment) {
@@ -132,7 +110,7 @@ export default function WorkoutThreadModal({
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    const success = await userSyncService.deleteComment(workout.id, commentId);
+    const success = await feedService.deleteComment(workout.id, commentId);
     if (success) {
       const updatedComments = comments.filter(c => c.id !== commentId);
       const updatedWorkout: FeedWorkout = {
@@ -330,44 +308,31 @@ export default function WorkoutThreadModal({
             ))}
           </View>
 
-          {/* Reactions row */}
-          <View style={[styles.reactionsRow, { borderColor: currentTheme.colors.border }]}>
-            <View style={styles.reactionsLeft}>
-              {/* Animated like button - tap for quick kudos, long press for picker */}
+          {/* Like and comment row */}
+          <View style={[styles.actionsRow, { borderColor: currentTheme.colors.border }]}>
+            <View style={styles.actionsLeft}>
+              {/* Like button */}
               <TouchableOpacity
                 style={[
                   styles.likeButton,
-                  userReaction && { backgroundColor: currentTheme.colors.primary + '15' }
+                  userHasLiked && { backgroundColor: currentTheme.colors.primary + '15' }
                 ]}
-                onPress={() => handleReactionSelect('kudos')}
-                onLongPress={handleLongPress}
-                delayLongPress={300}
+                onPress={handleLike}
                 activeOpacity={0.6}
               >
                 <Animated.View style={likeAnimatedStyle}>
                   <Ionicons
-                    name={userReaction ? 'heart' : 'heart-outline'}
+                    name={userHasLiked ? 'heart' : 'heart-outline'}
                     size={22}
-                    color={userReaction ? currentTheme.colors.primary : currentTheme.colors.text + '70'}
+                    color={userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70'}
                   />
                 </Animated.View>
+                {likeCount > 0 && (
+                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                    {likeCount}
+                  </Text>
+                )}
               </TouchableOpacity>
-
-              {/* Reaction counts by type */}
-              {reactionCount > 0 && (
-                <View style={styles.reactionCounts}>
-                  {REACTIONS
-                    .filter(r => reactionsByType[r.type] > 0)
-                    .map(r => (
-                      <View key={r.type} style={styles.reactionCountItem}>
-                        <Text style={styles.reactionCountEmoji}>{r.emoji}</Text>
-                        <Text style={[styles.reactionCountText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
-                          {reactionsByType[r.type]}
-                        </Text>
-                      </View>
-                    ))}
-                </View>
-              )}
             </View>
 
             <View style={styles.commentCount}>
@@ -377,14 +342,6 @@ export default function WorkoutThreadModal({
               </Text>
             </View>
           </View>
-
-          {/* Reaction picker modal */}
-          <ReactionPicker
-            visible={showReactionPicker}
-            onClose={() => setShowReactionPicker(false)}
-            onSelect={handleReactionSelect}
-            currentReaction={userReaction}
-          />
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
@@ -577,7 +534,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Raleway_600SemiBold',
     color: '#FFFFFF',
   },
-  reactionsRow: {
+  actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -596,29 +553,10 @@ const styles = StyleSheet.create({
   likeCount: {
     fontSize: 14,
   },
-  reactionsLeft: {
+  actionsLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  reactionCounts: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reactionCountItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  reactionCountEmoji: {
-    fontSize: 14,
-  },
-  reactionCountText: {
-    fontSize: 13,
-  },
-  reactionEmoji: {
-    fontSize: 20,
   },
   commentCount: {
     flexDirection: 'row',
@@ -627,11 +565,6 @@ const styles = StyleSheet.create({
   },
   commentCountText: {
     fontSize: 14,
-  },
-  pplChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
   },
   pplChip: {
     flexDirection: 'row',
