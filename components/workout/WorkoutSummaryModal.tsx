@@ -1,8 +1,12 @@
 import { Text, View } from '@/components/Themed';
+import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import { useTheme } from '@/contexts/ThemeContext';
+import { OneRMCalculator } from '@/lib/strengthStandards';
+import { userService } from '@/lib/userService';
 import { ParsedExerciseSummary } from '@/lib/workoutNoteParser';
+import { UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Animated,
@@ -12,7 +16,7 @@ import {
   View as RNView,
 } from 'react-native';
 
-interface QuickSummaryToastProps {
+interface WorkoutSummaryModalProps {
   visible: boolean;
   exercises: ParsedExerciseSummary[];
   isLoading?: boolean;
@@ -22,16 +26,24 @@ interface QuickSummaryToastProps {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
+const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   visible,
   exercises,
   isLoading = false,
   onDismiss,
-  onPress,
+  onPress: _onPress,
 }) => {
   const { currentTheme } = useTheme();
   const slideAnim = useRef(new Animated.Value(-SCREEN_HEIGHT)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
+
+  // Fetch user lifts for badge display
+  useEffect(() => {
+    if (visible) {
+      userService.getAllFeaturedLifts().then(setUserLifts).catch(console.error);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
@@ -66,12 +78,15 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
     }
   }, [visible, slideAnim, opacityAnim]);
 
+  // Calculate total sets
+  const totalSets = useMemo(() =>
+    exercises.reduce((sum, ex) => sum + ex.setCount, 0),
+    [exercises]
+  );
+
   if (!visible) {
     return null;
   }
-
-  // Calculate total sets
-  const totalSets = exercises.reduce((sum, ex) => sum + ex.setCount, 0);
 
   return (
     <Animated.View
@@ -86,77 +101,88 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
     >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
-          <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
-            <Ionicons
-              name={isLoading ? 'hourglass-outline' : 'analytics'}
-              size={24}
-              color={currentTheme.colors.accent}
-            />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-              {isLoading ? 'Analyzing...' : 'Workout Summary'}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close" size={24} color={currentTheme.colors.text + '60'} />
-          </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+          {isLoading ? 'Analyzing...' : 'Workout Summary'}
+        </Text>
+        <TouchableOpacity onPress={onDismiss} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="close" size={24} color={currentTheme.colors.text + '60'} />
+        </TouchableOpacity>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+            Parsing your workout notes...
+          </Text>
         </View>
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <Text style={[styles.loadingText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-              Parsing your workout notes...
-            </Text>
-          </View>
-        ) : exercises.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Ionicons name="alert-circle-outline" size={48} color={currentTheme.colors.text + '30'} />
-            <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
-              No exercises detected
-            </Text>
-            <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
-              Try adding exercises like "Bench 135x8" or "Squats 225 for 5 reps"
-            </Text>
-          </View>
-        ) : (
-          <>
-            {/* Stats Banner */}
-            <View style={[styles.statsBanner, { backgroundColor: currentTheme.colors.surface }]}>
-              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.accent, fontFamily: 'Raleway_700Bold' }]}>
-                  {exercises.length}
-                </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                  Exercises
-                </Text>
-              </View>
-              <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.accent, fontFamily: 'Raleway_700Bold' }]}>
-                  {totalSets}
-                </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                  Total Sets
-                </Text>
-              </View>
+      ) : exercises.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={currentTheme.colors.text + '30'} />
+          <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+            No exercises detected
+          </Text>
+          <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+            {"Try adding exercises like \"Bench 135x8\" or \"Squats 225 for 5 reps\""}
+          </Text>
+        </View>
+      ) : (
+        <>
+          {/* Stats Banner - Two Stats */}
+          <View style={[styles.statsBanner, { backgroundColor: currentTheme.colors.surface }]}>
+            <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                {exercises.length}
+              </Text>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                Exercises
+              </Text>
             </View>
+            <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+            <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                {totalSets}
+              </Text>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                Total Sets
+              </Text>
+            </View>
+          </View>
 
-            {/* Exercise List */}
-            <ScrollView style={styles.exerciseList} contentContainerStyle={styles.exerciseListContent} showsVerticalScrollIndicator={false}>
-              {exercises.map((exercise, index) => (
+          {/* Exercise List */}
+          <ScrollView style={styles.exerciseList} contentContainerStyle={styles.exerciseListContent} showsVerticalScrollIndicator={false}>
+            {exercises.map((exercise, index) => {
+              // Calculate best 1RM estimate from sets
+              const best1RM = Math.max(
+                ...(exercise.sets || []).map(set =>
+                  set.weight > 0 && set.reps > 0
+                    ? OneRMCalculator.estimate(set.weight, set.reps)
+                    : 0
+                ),
+                0
+              );
+
+              return (
                 <View
                   key={index}
                   style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
                 >
                   <RNView style={styles.exerciseHeader}>
-                    <RNView style={[styles.exerciseIndex, { backgroundColor: currentTheme.colors.accent + '15' }]}>
-                      <Text style={[styles.exerciseIndexText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
-                        {index + 1}
+                    <RNView style={styles.exerciseNameContainer}>
+                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                        {exercise.name}
                       </Text>
+                      {best1RM > 0 && (
+                        <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                          ~{Math.round(best1RM)} 1RM
+                        </Text>
+                      )}
                     </RNView>
-                    <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                      {exercise.name}
-                    </Text>
-                    <Ionicons name="checkmark-circle" size={20} color={currentTheme.colors.accent} />
+                    <ExerciseBadge
+                      matchedExerciseId={exercise.matchedExerciseId}
+                      isCustom={exercise.isCustom}
+                      sets={exercise.sets || []}
+                      userLifts={userLifts}
+                    />
                   </RNView>
 
                   {/* Set Details */}
@@ -197,11 +223,12 @@ const QuickSummaryToast: React.FC<QuickSummaryToastProps> = ({
                     )}
                   </RNView>
                 </View>
-              ))}
-            </ScrollView>
-          </>
-        )}
-      </Animated.View>
+              );
+            })}
+          </ScrollView>
+        </>
+      )}
+    </Animated.View>
   );
 };
 
@@ -219,11 +246,6 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
     marginBottom: 24,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
   headerTitle: {
     fontSize: 20,
@@ -283,22 +305,19 @@ const styles = StyleSheet.create({
   },
   exerciseHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 10,
   },
-  exerciseIndex: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exerciseIndexText: {
-    fontSize: 13,
+  exerciseNameContainer: {
+    flex: 1,
+    gap: 2,
   },
   exerciseName: {
     fontSize: 16,
-    flex: 1,
+  },
+  estimated1RM: {
+    fontSize: 13,
   },
   setsContainer: {
     marginTop: 12,
@@ -330,4 +349,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default QuickSummaryToast;
+export default WorkoutSummaryModal;

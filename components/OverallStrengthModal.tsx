@@ -1,14 +1,17 @@
 import Card from '@/components/Card';
+import IconButton from '@/components/IconButton';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, MALE_STANDARDS } from '@/lib/strengthStandards';
+import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils';
 import { UserProfile, UserProgress } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Animated, Easing, Modal, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Animated, Easing, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface OverallStrengthModalProps {
   visible: boolean;
@@ -18,7 +21,7 @@ interface OverallStrengthModalProps {
 export default function OverallStrengthModal({ visible, onClose }: OverallStrengthModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserProgress[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState<boolean>(false);
@@ -46,8 +49,9 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const chartData = useMemo(() => {
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
     const liftToMuscles: Record<string, string[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { ALL_WORKOUTS } = require('@/lib/workouts');
-    ALL_WORKOUTS.forEach((w: any) => {
+    ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
       liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
     });
 
@@ -67,6 +71,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const tooltipDetails = useMemo(() => {
     const byGroup: Record<string, { name: string; pct: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -88,6 +93,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
   const groupInfos = useMemo(() => {
     const map: Record<string, { id: string; name: string; pct: number; oneRM: number }[]> = {};
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
     const { getWorkoutById } = require('@/lib/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
@@ -103,7 +109,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     return map;
   }, [lifts]);
 
-  const openGroupPanel = (index: number) => {
+  const _openGroupPanel = (index: number) => {
     setSelectedIdx(index);
     setIsGroupPanelOpen(true);
   };
@@ -121,29 +127,16 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     }
   }, [selectedIdx, cardAnim]);
 
-  const tiers = useMemo(
-    () => [
-      { label: 'Beginner', threshold: 10 },
-      { label: 'Intermediate', threshold: 25 },
-      { label: 'Advanced', threshold: 50 },
-      { label: 'Elite', threshold: 75 },
-      { label: 'God', threshold: 90 },
-    ],
-    []
-  );
-
   // Match overall calculation with the home screen: average of all non-zero lift percentiles
   const overallPercentile = useMemo(() => {
     const nonZero = lifts.map(l => l.percentileRanking).filter(p => p > 0);
     return calculateOverallPercentile(nonZero);
   }, [lifts]);
-  const overallLevel = getStrengthLevelName(overallPercentile);
+  const _overallLevel = getStrengthLevelName(overallPercentile);
 
   const getPercentileColor = (percentile: number) => {
-    if (percentile >= 90) return currentTheme.colors.accent;
-    if (percentile >= 75) return currentTheme.colors.primary;
-    if (percentile >= 50) return '#FFA500';
-    return '#FF6B6B';
+    const tier = getStrengthTier(percentile);
+    return getTierColor(tier);
   };
 
   const sortedLifts = useMemo(() => {
@@ -151,12 +144,14 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
       .sort((a, b) => b.percentileRanking - a.percentileRanking);
   }, [lifts]);
 
-  const getNextTierInfo = (value: number) => {
-    const ordered = [...tiers].sort((a, b) => a.threshold - b.threshold);
-    const next = ordered.find(t => t.threshold > value);
-    if (!next) return { label: 'Maxed', needed: 0 };
-    return { label: next.label, needed: next.threshold - value };
-  };
+  // Sync percentile data to Supabase when modal is visible and data is loaded
+  useEffect(() => {
+    if (!visible || lifts.length === 0) return;
+
+    userSyncService.calculateAndSyncPercentiles().catch(err => {
+      console.error('Error syncing percentile data:', err);
+    });
+  }, [visible, lifts.length]);
 
   const bestGroup = useMemo(() => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }), [chartData]);
   const weakGroup = useMemo(() => chartData.reduce((weak, cur) => (cur.value < weak.value ? cur : weak), chartData[0] || { label: '', value: 0 }), [chartData]);
@@ -184,28 +179,40 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   }, [lifts, profile]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>        
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Header */}
+        <View style={[styles.modalHeader, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={styles.headerSpacer} />
+          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            Overall Strength
+          </Text>
+          <IconButton icon="close" onPress={onClose} />
+        </View>
+
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>            
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold' }]}>Overall Strength</Text>
+          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>Radar shows your percentile per main lift</Text>
           </View>
 
           <Card variant="surface" style={styles.chartCard}>
             <View style={{ ...styles.chartHeader}}>
-              <View style={styles.heroRow}>
+              {/* Header with Tier Badge and Percentile */}
+              <View style={styles.tierHeaderRow}>
+                <TierBadge percentile={overallPercentile} size="large" />
                 <View style={styles.heroNumberBlock}>
-                  <Text style={[styles.heroNumber, { color: currentTheme.colors.primary }]}>{overallPercentile}</Text>
-                  <Text style={[styles.heroSub, { color: currentTheme.colors.text }]}>percentile</Text>
+                  <Text style={[styles.heroNumber, { color: currentTheme.colors.text }]}>{overallPercentile}</Text>
+                  <Text style={[styles.heroSub, { color: currentTheme.colors.text + '80' }]}>percentile</Text>
                 </View>
-                <ProgressBar progress={overallPercentile} height={10} style={{ flex: 1 }} exerciseName="overall" />
               </View>
+              <ProgressBar progress={overallPercentile} height={10} style={{ marginVertical: 12, width: '100%' }} exerciseName="overall" />
               <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
-                {`Next: ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
+                {!getNextTierInfo(overallPercentile).next
+                  ? `Maximum Tier Reached!`
+                  : `+${getNextTierInfo(overallPercentile).needed}% to ${getNextTierInfo(overallPercentile).next} Tier`}
               </Text>
             </View>
-            <RadarChart data={chartData} tiers={tiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
+            <RadarChart data={chartData} tiers={RADAR_TIER_THRESHOLDS} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
           </Card>
 
           {/* Selected group insight card */}
@@ -240,7 +247,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             <View style={[styles.questHeaderRow, { backgroundColor: 'transparent' }]}>
               <Text style={[styles.questTitle, { color: currentTheme.colors.text }]}>Next Tier Targets</Text>
               <Text style={[styles.questSubtitle, { color: currentTheme.colors.text + '90', backgroundColor: 'transparent' }]}>
-                {overallLevel} → {getNextTierInfo(overallPercentile).label}
+                {getNextTierInfo(overallPercentile).current} → {getNextTierInfo(overallPercentile).next || 'MAX'}
               </Text>
             </View>
             {nextTargets.map(t => (
@@ -271,7 +278,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 {`Strongest: ${bestGroup.label} • Weakest: ${weakGroup.label}`}
               </Text>
             </View>
-            {sortedLifts.map((l, i) => (
+            {sortedLifts.map((l, _i) => (
               <View key={l.workoutId} style={styles.liftRow}>
                 <Text style={[styles.liftName, { color: currentTheme.colors.text }]}>{l.workoutId.replace('-', ' ')}</Text>
                 <View style={styles.rowRight}>
@@ -284,10 +291,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             ))}
           </Card>
         </ScrollView>
-
-        <TouchableOpacity style={[styles.closeBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]} onPress={onClose}>
-          <Text style={[styles.closeText, { color: currentTheme.colors.text }]}>Close</Text>
-        </TouchableOpacity>
 
         {/* Group detail sheet */}
         {isGroupPanelOpen && selectedIdx >= 0 && chartData[selectedIdx] && (
@@ -311,17 +314,30 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             </View>
           </Modal>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingTop: 24 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalHeaderTitle: {
+    fontSize: 17,
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  content: { padding: 20, paddingTop: 16 },
   header: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
-  title: { fontSize: 22,},
-  subtitle: { marginTop: 4, fontSize: 12, opacity: 0.7 },
+  subtitle: { fontSize: 12, opacity: 0.7 },
   chartCard: { marginTop: 8 },
   chartHeader: { alignItems: 'center', marginBottom: 8, backgroundColor: 'transparent' },
   headerStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -330,7 +346,8 @@ const styles = StyleSheet.create({
   overallLabel: { fontSize: 12, opacity: 0.7 },
   heroTitle: { fontSize: 18, fontWeight: '700', opacity: 0.9, marginBottom: 6, letterSpacing: 0.3 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', backgroundColor: 'transparent' },
-  heroNumberBlock: { alignItems: 'center', minWidth: 72, backgroundColor: 'transparent' },
+  tierHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: 'transparent' },
+  heroNumberBlock: { alignItems: 'flex-end', backgroundColor: 'transparent' },
   heroNumber: { fontSize: 36, fontWeight: '800' },
   heroSub: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7 },
   heroHint: { marginTop: 6, fontSize: 12, opacity: 0.8 },
@@ -341,7 +358,6 @@ const styles = StyleSheet.create({
   liftValue: { width: 42, textAlign: 'right', fontVariant: ['tabular-nums'] },
   liftLevel: { width: 96, textAlign: 'right' },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'transparent' },
-  closeBar: { padding: 16, borderTopWidth: 1 },
   closeText: { textAlign: 'center', fontWeight: '600' },
   tierLegendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 12 },
   tierChip: { flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },

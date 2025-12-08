@@ -1,7 +1,11 @@
+import { AlertProvider } from '@/components/CustomAlert';
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
 import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { TutorialProvider } from '@/contexts/TutorialContext';
+import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
+import { notificationService } from '@/lib/notificationService';
 import {
     Raleway_400Regular,
     Raleway_500Medium,
@@ -19,9 +23,10 @@ import {
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AudioModule } from 'expo-audio';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import * as Notifications from 'expo-notifications';
+import { useEffect, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
@@ -30,7 +35,6 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
@@ -60,7 +64,9 @@ export default function RootLayout() {
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      SplashScreen.hideAsync().catch(() => {
+        // Ignore errors - can happen with FullWindowOverlay creating new view controllers
+      });
     }
   }, [loaded]);
 
@@ -84,6 +90,42 @@ export default function RootLayout() {
     configureAudio();
   }, []);
 
+  // Register for push notifications
+  const notificationListener = useRef<Notifications.Subscription | null>(null);
+  const responseListener = useRef<Notifications.Subscription | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    // Register for push notifications
+    notificationService.registerForPushNotifications().catch(err => {
+      console.warn('Push notification registration skipped:', err);
+    });
+
+    // Listen for notifications received while app is foregrounded
+    notificationListener.current = notificationService.addNotificationReceivedListener(_notification => {
+      // Notification received while app is foregrounded
+    });
+
+    // Listen for notification taps
+    responseListener.current = notificationService.addNotificationResponseListener(response => {
+      const data = response.notification.request.content.data;
+      // Navigate based on notification type
+      if (data?.type === 'friend_pr') {
+        // Could navigate to friend's profile or leaderboard
+        router.push('/(tabs)');
+      }
+    });
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, [router]);
+
   if (!loaded) {
     return null;
   }
@@ -91,16 +133,21 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
-        <CustomExercisesProvider>
-          <RoutineProvider>
-            <WorkoutProvider>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-              </Stack>
-            </WorkoutProvider>
-          </RoutineProvider>
-        </CustomExercisesProvider>
+        <AlertProvider>
+          <VideoPlayerProvider>
+            <TutorialProvider>
+              <CustomExercisesProvider>
+                <RoutineProvider>
+                  <WorkoutProvider>
+                    <Stack>
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    </Stack>
+                  </WorkoutProvider>
+                </RoutineProvider>
+              </CustomExercisesProvider>
+            </TutorialProvider>
+          </VideoPlayerProvider>
+        </AlertProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

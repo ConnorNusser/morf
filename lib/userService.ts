@@ -29,11 +29,25 @@ class UserService {
   }
 
   // Add or update a user's lift
-  async recordLift(lift: Omit<UserLift, 'dateRecorded'>, liftType: 'main' | 'secondary'): Promise<void> {
+  // Returns true if this is a new personal record (PR)
+  async recordLift(lift: Omit<UserLift, 'dateRecorded'>, liftType: 'main' | 'secondary'): Promise<boolean> {
     const profile = await this.getRealUserProfile();
     if (!profile) throw new Error('No user profile found');
 
     const weightInLbs = convertWeightToLbs(lift.weight, lift.unit);
+
+    // Check if this is a new PR by finding existing best 1RM for this exercise
+    const existingLifts = liftType === 'main' ? profile.lifts : profile.secondaryLifts;
+    const existingForExercise = existingLifts.filter(l => l.id === lift.id);
+
+    // Calculate estimated 1RM for comparison (Epley formula)
+    const newEstimated1RM = weightInLbs * (1 + lift.reps / 30);
+    const existingBest1RM = existingForExercise.reduce((best, l) => {
+      const est1RM = l.weight * (1 + l.reps / 30);
+      return est1RM > best ? est1RM : best;
+    }, 0);
+
+    const isNewPR = newEstimated1RM > existingBest1RM;
 
     if (liftType === 'main') {
       profile.lifts.push({
@@ -52,6 +66,7 @@ class UserService {
     }
 
     await storageService.saveUserProfile(profile);
+    return isNewPR;
   }
 
   // Calculate real user progress from recorded lifts
@@ -66,33 +81,27 @@ class UserService {
     for (const lift of profile.lifts) {
       // Skip lifts with zero weight to avoid meaningless progress calculations
       if (lift.weight <= 0) continue;
-      
-      let maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-      const percentile = calculateStrengthPercentile(
-        maxEstimatedLift,
-        bodyWeightInLbs,
-        profile.gender,
-        lift.id,
-        profile.age
-      );
-      if (lift.id in allLifts && maxEstimatedLift > allLifts[lift.id].personalRecord) {
+
+      const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
+
+      // Only update if this is a new exercise or a new personal record
+      if (!(lift.id in allLifts) || maxEstimatedLift > allLifts[lift.id].personalRecord) {
+        const percentile = calculateStrengthPercentile(
+          maxEstimatedLift,
+          bodyWeightInLbs,
+          profile.gender,
+          lift.id,
+          profile.age
+        );
         allLifts[lift.id] = {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
           percentileRanking: Math.round(percentile),
           strengthLevel: getStrengthLevelName(percentile),
-        }
-        
-      } else {
-        allLifts[lift.id] = {
-          workoutId: lift.id,
-          personalRecord: maxEstimatedLift,
-          lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
-          strengthLevel: getStrengthLevelName(percentile),
-        }
+        };
       }
+      // Else: keep the existing better record
     }
 
     return Object.values(allLifts);
@@ -227,9 +236,34 @@ class UserService {
       this.getUsersTopFeaturedSecondaryLifts()
     ]);
 
-    // Combine and sort by percentile ranking (highest first)
-    return [...mainLifts, ...secondaryLifts]
-      .sort((a, b) => b.percentileRanking - a.percentileRanking);
+    // Preferred lift order for dashboard (first 5 lifts)
+    const preferredOrder: string[] = [
+      'bench-press-barbell',
+      'squat-barbell',
+      'deadlift-barbell',
+      'overhead-press-barbell',
+      'hip-thrust-barbell',
+    ];
+
+    // Combine all lifts
+    const allLifts = [...mainLifts, ...secondaryLifts];
+
+    // Sort: preferred lifts first (in order), then rest by percentile
+    return allLifts.sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a.workoutId);
+      const bIndex = preferredOrder.indexOf(b.workoutId);
+
+      // Both are preferred lifts - sort by preferred order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      // Only a is preferred - a comes first
+      if (aIndex !== -1) return -1;
+      // Only b is preferred - b comes first
+      if (bIndex !== -1) return 1;
+      // Neither preferred - sort by percentile (highest first)
+      return b.percentileRanking - a.percentileRanking;
+    });
   }
 
   async getTopLiftById(liftId: MainLiftType | string): Promise<UserProgress | undefined> {

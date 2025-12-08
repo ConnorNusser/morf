@@ -1,6 +1,7 @@
-import { CustomExercise, GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
+import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import OpenAI from 'openai';
 import { aiWorkoutGenerator } from './aiWorkoutGenerator';
+import { analyticsService } from './analytics';
 import { exerciseNameToId } from './exerciseUtils';
 import { buildWorkoutNoteParsingPrompt } from './prompts/workoutNoteParsing.prompt';
 import { storageService } from './storage';
@@ -32,6 +33,8 @@ export interface ParsedExerciseSummary {
   setCount: number;
   sets: ParsedSet[]; // Actual working sets
   recommendedSets?: ParsedSet[]; // Template/target sets
+  matchedExerciseId?: string; // ID of the matched exercise from database
+  isCustom?: boolean; // Whether this is a custom exercise
 }
 
 // AI response structure
@@ -148,7 +151,7 @@ class WorkoutNoteParser {
 
     try {
       const prompt = this.buildParsePrompt(text, defaultUnit);
-      const response = await this.callAI(prompt);
+      const response = await this.callAI(prompt, text);
 
       // Match exercises using algorithmic approach
       const exercises: ParsedExercise[] = [];
@@ -161,7 +164,7 @@ class WorkoutNoteParser {
           name: ex.name,
           matchedExerciseId: match?.id,
           isCustom: match ? match.isCustom : true,
-          sets: ex.sets.map(s => ({
+          sets: (ex.sets || []).map(s => ({
             weight: s.weight,
             reps: s.reps,
             unit: s.unit as WeightUnit,
@@ -195,7 +198,7 @@ class WorkoutNoteParser {
   /**
    * Call the AI API
    */
-  private async callAI(prompt: string): Promise<AIParseResponse> {
+  private async callAI(prompt: string, inputText: string): Promise<AIParseResponse> {
     const response = await this.openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
@@ -220,7 +223,18 @@ class WorkoutNoteParser {
       cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
     }
 
-    return JSON.parse(cleanedContent);
+    const parsed = JSON.parse(cleanedContent);
+
+    // Track AI usage analytics
+    analyticsService.trackAIUsage({
+      requestType: 'note_parse',
+      inputText,
+      outputData: parsed,
+      tokensUsed: response.usage?.total_tokens,
+      model: 'gpt-4o',
+    });
+
+    return parsed;
   }
 
   /**
@@ -341,6 +355,8 @@ class WorkoutNoteParser {
           setCount: ex.sets.length,
           sets: [...ex.sets],
           recommendedSets: ex.recommendedSets ? [...ex.recommendedSets] : undefined,
+          matchedExerciseId: ex.matchedExerciseId,
+          isCustom: ex.isCustom,
         });
       }
     }
@@ -362,7 +378,7 @@ class WorkoutNoteParser {
       // If no match, create custom exercise
       if (!exerciseId) {
         // Generate the expected ID from the name
-        const expectedId = exerciseNameToId(ex.name);
+        const _expectedId = exerciseNameToId(ex.name);
 
         // Check if custom exercise already exists by ID
         const existingCustom = await storageService.getCustomExerciseByName(ex.name);

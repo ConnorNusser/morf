@@ -1,4 +1,5 @@
 import { userService } from '@/lib/userService';
+import { userSyncService } from '@/lib/userSyncService';
 import { UserProfile } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
@@ -34,6 +35,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       await userService.createUserProfile(profile);
       // Set the profile directly instead of refreshing to avoid unnecessary re-renders
       setUserProfile(profile as UserProfile);
+
+      // Sync profile data to Supabase (fire and forget)
+      userSyncService.syncProfileData({
+        height: profile.height,
+        weight: profile.weight,
+        gender: profile.gender,
+      }).catch(err => console.error('Error syncing profile to Supabase:', err));
     } catch (error) {
       console.error('Error updating user profile:', error);
       // If update failed, refresh to ensure we have correct state

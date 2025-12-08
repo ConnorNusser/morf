@@ -1,9 +1,11 @@
+import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import { Text, View } from '@/components/Themed';
+import { TutorialTarget } from '@/components/tutorial';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import TemplateEditorModal from '@/components/workout/TemplateEditorModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
@@ -20,7 +22,6 @@ import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Modal,
   RefreshControl,
   SafeAreaView,
@@ -35,6 +36,7 @@ type TabType = 'workouts' | 'exercises' | 'templates';
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const { userProfile } = useUser();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
@@ -220,10 +222,11 @@ export default function HistoryScreen() {
   };
 
   const handleDeleteWorkout = (workout: GeneratedWorkout) => {
-    Alert.alert(
-      'Delete Workout',
-      `Delete "${workout.title}"?`,
-      [
+    showAlert({
+      title: 'Delete Workout',
+      message: `Delete "${workout.title}"?`,
+      type: 'confirm',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -235,8 +238,8 @@ export default function HistoryScreen() {
             await loadExerciseStats();
           },
         },
-      ]
-    );
+      ],
+    });
   };
 
   const formatRelativeDate = (date: Date): string => {
@@ -252,20 +255,21 @@ export default function HistoryScreen() {
 
   const handleTemplateSelect = useCallback(async (template: WorkoutTemplate) => {
     await storageService.updateTemplateLastUsed(template.id);
-    Alert.alert(
-      'Use Template',
-      `"${template.name}" has been copied to your clipboard. Go to the Workout tab to paste it.`,
-      [{ text: 'OK' }]
-    );
+    showAlert({
+      title: 'Use Template',
+      message: `"${template.name}" has been copied to your clipboard. Go to the Workout tab to paste it.`,
+      type: 'success',
+    });
     // Note: In a real implementation, you might want to navigate to the workout tab
     // and auto-fill the template
-  }, []);
+  }, [showAlert]);
 
-  const handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${templateName}"?`,
-      [
+  const handleDeleteTemplate = useCallback((templateId: string, templateName: string) => {
+    showAlert({
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${templateName}"?`,
+      type: 'confirm',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -275,9 +279,9 @@ export default function HistoryScreen() {
             await loadTemplates();
           },
         },
-      ]
-    );
-  }, [loadTemplates]);
+      ],
+    });
+  }, [loadTemplates, showAlert]);
 
   const handleCreateTemplate = useCallback(() => {
     setEditingTemplate(null);
@@ -300,8 +304,8 @@ export default function HistoryScreen() {
 
   const handleCopyTemplate = useCallback(async (template: WorkoutTemplate) => {
     await Clipboard.setStringAsync(template.noteText);
-    Alert.alert('Copied!', `"${template.name}" copied to clipboard. Paste it in your workout notes.`);
-  }, []);
+    showAlert({ title: 'Copied!', message: `"${template.name}" copied to clipboard. Paste it in your workout notes.`, type: 'success' });
+  }, [showAlert]);
 
   const renderRightActions = useCallback((templateId: string, templateName: string) => {
     return (
@@ -482,7 +486,9 @@ export default function HistoryScreen() {
         {activeTab === 'workouts' ? (
           <>
             {/* Weekly Overview */}
-            <WeeklyOverview workoutHistory={workouts} />
+            <TutorialTarget id="history-content">
+              <WeeklyOverview workoutHistory={workouts} />
+            </TutorialTarget>
 
             {/* Quick Stats - Inline */}
             {workouts.length > 0 && (
@@ -713,7 +719,7 @@ export default function HistoryScreen() {
                   No notes yet
                 </Text>
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: 'Raleway_400Regular' }]}>
-                  Tap "Create New Note" above to get started
+                  Tap &quot;Create New Note&quot; above to get started
                 </Text>
               </View>
             )}

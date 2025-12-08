@@ -1,3 +1,4 @@
+import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage';
@@ -5,7 +6,6 @@ import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -26,6 +26,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
   onSelectTemplate,
 }) => {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const [templates, setTemplates] = useState<WorkoutTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -57,11 +58,12 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
     }
   };
 
-  const handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
-    Alert.alert(
-      'Delete Template',
-      `Are you sure you want to delete "${templateName}"?`,
-      [
+  const _handleDeleteTemplate = useCallback(async (templateId: string, templateName: string) => {
+    showAlert({
+      title: 'Delete Template',
+      message: `Are you sure you want to delete "${templateName}"?`,
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -71,9 +73,9 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
             await loadTemplates();
           },
         },
-      ]
-    );
-  }, []);
+      ],
+    });
+  }, [showAlert]);
 
   const handleSelectTemplate = useCallback(async (template: WorkoutTemplate) => {
     await storageService.updateTemplateLastUsed(template.id);

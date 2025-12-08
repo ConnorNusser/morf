@@ -2,7 +2,7 @@
   "expo": {
     "name": "Morf",
     "slug": "morfai",
-    "version": "1.0.9",
+    "version": "1.4.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "morfai",
@@ -16,7 +16,8 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you add photos to your workout logs and profile."
+        "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you upload a profile picture.",
+        "NSLocationWhenInUseUsageDescription": "Morf uses your location to show your country on leaderboards and connect you with nearby lifters."
       }
     },
     "android": {
@@ -44,7 +45,28 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-audio",
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Morf needs access to your photo library to let you upload a profile picture."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Morf uses your location to show your country on leaderboards."
+        }
+      ],
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#6366F1"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -55,7 +77,6 @@
         "projectId": "4f7ed05a-985e-4200-a577-ccc419b7ea77"
       }
     },
-    "sdkVersion": "53.0.0"
-  },
-  "name": "morfai"
+    "sdkVersion": "54.0.0"
+  }
 }

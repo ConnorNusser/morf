@@ -64,7 +64,7 @@ export const getDayIndexFromInternal = (dayName: DayOfWeek): number => {
  * Get day index from display day name
  */
 export const getDayIndexFromDisplay = (dayName: string): number => {
-  return DAY_NAMES_DISPLAY.indexOf(dayName as any);
+  return DAY_NAMES_DISPLAY.indexOf(dayName as typeof DAY_NAMES_DISPLAY[number]);
 };
 
 /**

@@ -1,7 +1,10 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import React, { useMemo } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
-import Svg, { Circle, G, Line, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { Dimensions, GestureResponderEvent, StyleSheet, View } from 'react-native';
+import Svg, { Circle, G, Line, Polygon, Text as SvgText } from 'react-native-svg';
+
+const FOCUS_DELAY_MS = 75;
+const MOVE_THRESHOLD = 10;
 
 interface RadarDatum {
   label: string;
@@ -32,6 +35,65 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
 
   const angleStep = (Math.PI * 2) / Math.max(1, data.length);
 
+  // Deliberate tap handling refs
+  const pressStartPosition = useRef<{ x: number; y: number; layoutX: number; layoutY: number } | null>(null);
+  const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTapTimeout = useCallback(() => {
+    if (tapTimeoutRef.current) {
+      clearTimeout(tapTimeoutRef.current);
+      tapTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleTouchStart = useCallback((event: GestureResponderEvent) => {
+    if (!onPointPress || data.length === 0) return;
+
+    const { pageX, pageY, locationX, locationY } = event.nativeEvent;
+    pressStartPosition.current = {
+      x: pageX,
+      y: pageY,
+      layoutX: locationX,
+      layoutY: locationY,
+    };
+
+    // Start timeout for deliberate tap
+    tapTimeoutRef.current = setTimeout(() => {
+      if (pressStartPosition.current) {
+        const { layoutX, layoutY } = pressStartPosition.current;
+        const dx = layoutX - center;
+        const dy = layoutY - center;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > radius + 24) return; // ignore far outside taps
+
+        const rawAngle = Math.atan2(dy, dx);
+        const angleFromTop = rawAngle + Math.PI / 2;
+        const normalized = (angleFromTop + Math.PI * 2) % (Math.PI * 2);
+        const idx = Math.round(normalized / angleStep) % data.length;
+
+        onPointPress(idx, { x: layoutX, y: layoutY });
+        pressStartPosition.current = null;
+      }
+    }, FOCUS_DELAY_MS);
+  }, [onPointPress, data.length, center, radius, angleStep]);
+
+  const handleTouchMove = useCallback((event: GestureResponderEvent) => {
+    if (pressStartPosition.current) {
+      const dx = Math.abs(event.nativeEvent.pageX - pressStartPosition.current.x);
+      const dy = Math.abs(event.nativeEvent.pageY - pressStartPosition.current.y);
+      if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+        // User is scrolling, cancel tap
+        clearTapTimeout();
+        pressStartPosition.current = null;
+      }
+    }
+  }, [clearTapTimeout]);
+
+  const handleTouchEnd = useCallback(() => {
+    clearTapTimeout();
+    pressStartPosition.current = null;
+  }, [clearTapTimeout]);
+
   const axisPoints = useMemo(() => {
     return data.map((_, index) => {
       const angle = -Math.PI / 2 + angleStep * index;
@@ -39,6 +101,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       const y = center + Math.sin(angle) * radius;
       return { x, y, angle } as const;
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- data dependency covered by data.length
   }, [data.length, center, radius, angleStep]);
 
   const valuePointCoords = useMemo(() => {
@@ -67,7 +130,12 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
   const text = currentTheme.colors.text;
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <Svg width={chartSize} height={chartSize}>
         <G>
           {ringRadii.map((ring, i) => (
@@ -102,7 +170,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
                     dy={dy}
                     fill={text}
                     fontSize="11"
-                    textAnchor={anchor as any}
+                    textAnchor={anchor as "start" | "middle" | "end"}
                   >
                     {data[i].label}
                   </SvgText>
@@ -124,13 +192,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
               <Circle
                 cx={p.x}
                 cy={p.y}
-                r={28}
-                fill="rgba(0,0,0,0.001)"
-                onPressIn={() => onPointPress && onPointPress(i, { x: p.x, y: p.y })}
-              />
-              <Circle
-                cx={p.x}
-                cy={p.y}
                 r={i === selectedIndex ? 5 : 3.5}
                 fill={primary}
                 stroke={i === selectedIndex ? '#FFFFFF' : 'transparent'}
@@ -138,29 +199,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
               />
             </G>
           ))}
-
-          <Rect
-            x={0}
-            y={0}
-            width={chartSize}
-            height={chartSize}
-            fill="rgba(0,0,0,0.001)"
-            onPressIn={(e) => {
-              if (!onPointPress || data.length === 0) return;
-              // @ts-ignore react-native-svg provides locationX/Y
-              const { locationX, locationY } = e.nativeEvent;
-              const dx = locationX - center;
-              const dy = locationY - center;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist > radius + 24) return; // ignore far outside taps
-              const rawAngle = Math.atan2(dy, dx); // -PI..PI (0 at +x)
-              const angleFromTop = rawAngle + Math.PI / 2; // 0 at top
-              const normalized = (angleFromTop + Math.PI * 2) % (Math.PI * 2);
-              let idx = Math.round(normalized / angleStep) % data.length;
-              const target = valuePointCoords[idx];
-              onPointPress(idx, { x: target.x, y: target.y });
-            }}
-          />
 
           {inlineTooltip && selectedIndex >= 0 && valuePointCoords[selectedIndex] && (
             (() => {

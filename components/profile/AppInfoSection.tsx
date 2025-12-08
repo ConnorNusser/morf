@@ -1,19 +1,28 @@
 import Card from '@/components/Card';
+import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import * as Application from 'expo-application';
+import { useTutorial } from '@/contexts/TutorialContext';
+import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as StoreReview from 'expo-store-review';
-import { ChevronDown, ChevronUp, Mail, Star } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, HelpCircle, Mail, Star } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function AppInfoSection() {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
+  const { startTutorial, resetTutorials } = useTutorial();
   const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleReplayTutorial = async () => {
+    await resetTutorials();
+    startTutorial();
   };
 
   const handleRateApp = async () => {
@@ -34,10 +43,11 @@ export default function AppInfoSection() {
       }
     } catch (error) {
       console.error('Error opening app store:', error);
-      Alert.alert(
-        'Unable to Open Store',
-        'Please visit the App Store or Google Play to rate our app.'
-      );
+      showAlert({
+        title: 'Unable to Open Store',
+        message: 'Please visit the App Store or Google Play to rate our app.',
+        type: 'info',
+      });
     }
   };
 
@@ -48,38 +58,35 @@ export default function AppInfoSection() {
         `Hi Morf Support Team,\n\n` +
         `I need help with:\n\n` +
         `Device: ${Platform.OS === 'ios' ? 'iOS' : 'Android'}\n` +
-        `App Version: ${Application.nativeApplicationVersion}\n` +
-        `Build: ${Application.nativeBuildVersion}\n\n` +
+        `App Version: ${Constants.expoConfig?.version}\n\n` +
         `Please describe your issue below:\n\n`
       );
-      
+
       const emailUrl = `mailto:connornusser@gmail.com?subject=${subject}&body=${body}`;
-      
+
       const canOpen = await Linking.canOpenURL(emailUrl);
       if (canOpen) {
         await Linking.openURL(emailUrl);
       } else {
-        Alert.alert(
-          'Contact Support',
-          'Please email us at: connornusser@gmail.com',
-          [
-            { text: 'Copy Email', onPress: () => {
-              Alert.alert('Email Address', 'connornusser@gmail.com');
-            }},
-            { text: 'OK', style: 'cancel' }
-          ]
-        );
+        showAlert({
+          title: 'Contact Support',
+          message: 'Please email us at:',
+          type: 'info',
+          copyableText: 'connornusser@gmail.com',
+        });
       }
     } catch (error) {
       console.error('Error opening email:', error);
-      Alert.alert(
-        'Contact Support',
-        'Please email us at: connornusser@gmail.com'
-      );
+      showAlert({
+        title: 'Contact Support',
+        message: 'Please email us at:',
+        type: 'info',
+        copyableText: 'connornusser@gmail.com',
+      });
     }
   };
 
-  const appVersion = Application.nativeApplicationVersion;
+  const appVersion = Constants.expoConfig?.version;
 
   return (
     <Card style={styles.appInfoCard} variant="clean">
@@ -178,6 +185,25 @@ export default function AppInfoSection() {
                 }
               ]}>
                 Support
+              </Text>
+            </TouchableOpacity>
+
+            <View style={[styles.separator, { backgroundColor: currentTheme.colors.border }]} />
+
+            <TouchableOpacity
+              style={styles.actionItem}
+              onPress={handleReplayTutorial}
+              activeOpacity={0.6}
+            >
+              <HelpCircle size={18} color={currentTheme.colors.text + '80'} />
+              <Text style={[
+                styles.actionText,
+                {
+                  color: currentTheme.colors.text,
+                  fontFamily: 'Raleway_500Medium',
+                }
+              ]}>
+                Tutorial
               </Text>
             </TouchableOpacity>
           </View>

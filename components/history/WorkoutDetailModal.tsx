@@ -1,3 +1,4 @@
+import { useAlert } from '@/components/CustomAlert';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/haptic';
@@ -8,7 +9,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Alert,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -35,6 +35,7 @@ export default function WorkoutDetailModal({
   onDelete,
 }: WorkoutDetailModalProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const [copied, setCopied] = useState(false);
 
   // Convert workout to copyable text format
@@ -100,18 +101,19 @@ export default function WorkoutDetailModal({
 
   const handleDelete = () => {
     if (!workout) return;
-    Alert.alert(
-      'Delete Workout',
-      `Are you sure you want to delete "${workout.title}"? This cannot be undone.`,
-      [
+    showAlert({
+      title: 'Delete Workout',
+      message: `Are you sure you want to delete "${workout.title}"? This cannot be undone.`,
+      type: 'confirm',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => onDelete(workout),
         },
-      ]
-    );
+      ],
+    });
   };
 
   // Calculate estimated 1RM for a set
@@ -165,6 +167,7 @@ export default function WorkoutDetailModal({
     });
 
     return prList;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBestE1RM is stable
   }, [workout, exerciseStats, customExercises]);
 
   // Calculate stats

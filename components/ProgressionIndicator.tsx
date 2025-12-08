@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { FEMALE_STANDARDS, MALE_STANDARDS } from '@/lib/strengthStandards';
+import { FEMALE_STANDARDS, MALE_STANDARDS, TIER_COLORS } from '@/lib/strengthStandards';
 import { convertWeightForPreference } from '@/lib/utils';
 import { FeaturedLiftType, Gender } from '@/types';
 import React, { useEffect, useState } from 'react';
@@ -14,11 +14,11 @@ interface ProgressionIndicatorProps {
   weightUnit: 'lbs' | 'kg';
 }
 
-// Clean strength targets with colorful theming
+// Strength tier targets with tier-based theming
 const STRENGTH_TARGETS = [
-  { key: 'advanced', name: 'Advanced', level: '50th percentile', color: '#3B82F6' }, // Blue
-  { key: 'elite', name: 'Elite', level: '75th percentile', color: '#8B5CF6' }, // Purple  
-  { key: 'god', name: 'God', level: '90th percentile', color: '#F59E0B' }, // Amber/Gold
+  { key: 'advanced', name: 'B Tier', level: '~50th percentile', color: TIER_COLORS.B },
+  { key: 'elite', name: 'A Tier', level: '~75th percentile', color: TIER_COLORS.A },
+  { key: 'god', name: 'S Tier', level: '~90th percentile', color: TIER_COLORS.S },
 ] as const;
 
 interface ProgressTarget {
@@ -36,13 +36,13 @@ const roundToIncrement = (value: number, unit: 'lbs' | 'kg'): number => {
   return Math.round(value / increment) * increment;
 };
 
-export default function ProgressionIndicator({ 
-  currentOneRM, 
-  bodyWeight, 
-  gender, 
-  age, 
-  liftId, 
-  weightUnit 
+export default function ProgressionIndicator({
+  currentOneRM,
+  bodyWeight,
+  gender,
+  age: _age,
+  liftId,
+  weightUnit
 }: ProgressionIndicatorProps) {
   const { currentTheme } = useTheme();
   const [slideAnim] = useState(new Animated.Value(0));
@@ -147,7 +147,7 @@ export default function ProgressionIndicator({
         </View>
 
         {/* Data rows with individual colors */}
-        {targets.map((target, index) => {
+        {targets.map((target, _index) => {
           return (
             <View key={target.name} style={styles.gridRow}>
               {/* Level info */}

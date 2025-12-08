@@ -42,7 +42,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
     >
       <RNView style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-          This Week's Focus
+          {"This Week's Focus"}
         </Text>
         <Text style={[styles.topMuscle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
           {topMuscle.group}

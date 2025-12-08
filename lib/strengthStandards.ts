@@ -349,14 +349,19 @@ export function calculateStrengthPercentile(
   exercise: MainLiftType | string,
   age?: number
 ): number {
+  // Safety check: if body weight is 0 or invalid, return 0 percentile
+  if (!bodyWeight || bodyWeight <= 0 || !liftWeight || liftWeight <= 0) {
+    return 0;
+  }
+
   // Get the appropriate standards based on gender
   const standards = gender === 'male' ? MALE_STANDARDS[exercise] : FEMALE_STANDARDS[exercise];
-  
+
   // If no standards exist for this exercise (e.g., secondary lifts), return a default percentile
   if (!standards) {
     return 50; // Default to 50th percentile for exercises without standards
   }
-  
+
   // Calculate the ratio (lift weight / body weight)
   let ratio = liftWeight / bodyWeight;
   
@@ -393,14 +398,139 @@ export function calculateStrengthPercentile(
   }
 }
 
-// Helper function to get strength level name using theme levels
+// Anime-style tier system (E -> S++) with plus/minus modifiers
+export type StrengthTierBase = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+export type StrengthTier = 'S++' | 'S+' | 'S' | 'S-' | 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'D-' | 'E+' | 'E' | 'E-';
+
+export interface TierInfo {
+  tier: StrengthTier;
+  baseTier: StrengthTierBase;
+  color: string;
+  label: string;
+}
+
+// Tier colors - vibrant anime style (base colors for each tier)
+export const TIER_COLORS: Record<StrengthTierBase, string> = {
+  'S': '#FFD700', // Gold (Legendary)
+  'A': '#9932CC', // Purple (Epic)
+  'B': '#4169E1', // Royal Blue (Rare)
+  'C': '#2E8B57', // Sea Green (Uncommon)
+  'D': '#808080', // Gray (Common)
+  'E': '#808080', // Gray (Common)
+};
+
+// Get the base tier (without +/-/++) for color lookup
+export function getBaseTier(tier: StrengthTier): StrengthTierBase {
+  return tier.charAt(0) as StrengthTierBase;
+}
+
+// Helper function to get strength tier from percentile (with +/- modifiers)
+export function getStrengthTier(percentile: number): StrengthTier {
+  // S tier: 85-100 (S++: 99-100, S+: 95-98, S: 90-94, S-: 85-89)
+  if (percentile >= 99) return 'S++';
+  if (percentile >= 95) return 'S+';
+  if (percentile >= 90) return 'S';
+  if (percentile >= 85) return 'S-';
+
+  // A tier: 70-84 (A+: 80-84, A: 75-79, A-: 70-74)
+  if (percentile >= 80) return 'A+';
+  if (percentile >= 75) return 'A';
+  if (percentile >= 70) return 'A-';
+
+  // B tier: 47-69 (B+: 63-69, B: 55-62, B-: 47-54)
+  if (percentile >= 63) return 'B+';
+  if (percentile >= 55) return 'B';
+  if (percentile >= 47) return 'B-';
+
+  // C tier: 23-46 (C+: 39-46, C: 31-38, C-: 23-30)
+  if (percentile >= 39) return 'C+';
+  if (percentile >= 31) return 'C';
+  if (percentile >= 23) return 'C-';
+
+  // D tier: 6-22 (D+: 17-22, D: 11-16, D-: 6-10)
+  if (percentile >= 17) return 'D+';
+  if (percentile >= 11) return 'D';
+  if (percentile >= 6) return 'D-';
+
+  // E tier: 0-5 (E+: 3-5, E: 1-2, E-: 0)
+  if (percentile >= 3) return 'E+';
+  if (percentile >= 1) return 'E';
+  return 'E-';
+}
+
+// Helper function to get full tier info
+export function getTierInfo(percentile: number): TierInfo {
+  const tier = getStrengthTier(percentile);
+  const baseTier = getBaseTier(tier);
+  return {
+    tier,
+    baseTier,
+    color: TIER_COLORS[baseTier],
+    label: `${tier} Tier`,
+  };
+}
+
+// Helper function to get tier color
+export function getTierColor(tier: StrengthTier): string {
+  return TIER_COLORS[getBaseTier(tier)];
+}
+
+// Helper function to get strength level name using theme levels (legacy, returns tier)
 export function getStrengthLevelName(percentile: number): string {
-  if (percentile >= 90) return 'God';
-  if (percentile >= 75) return 'Elite';
-  if (percentile >= 50) return 'Advanced';
-  if (percentile >= 25) return 'Intermediate';
-  if (percentile >= 10) return 'Beginner';
-  return 'Untrained';
+  return getStrengthTier(percentile);
+}
+
+// Simplified tier thresholds for radar chart visualization (base tiers only)
+export const RADAR_TIER_THRESHOLDS: { label: StrengthTierBase; threshold: number }[] = [
+  { label: 'E', threshold: 0 },
+  { label: 'D', threshold: 6 },
+  { label: 'C', threshold: 23 },
+  { label: 'B', threshold: 47 },
+  { label: 'A', threshold: 70 },
+  { label: 'S', threshold: 85 },
+];
+
+// Full tier thresholds for next tier calculations (exported for reuse)
+export const TIER_THRESHOLDS: { label: StrengthTier; threshold: number }[] = [
+  { label: 'E-', threshold: 0 },
+  { label: 'E', threshold: 1 },
+  { label: 'E+', threshold: 3 },
+  { label: 'D-', threshold: 6 },
+  { label: 'D', threshold: 11 },
+  { label: 'D+', threshold: 17 },
+  { label: 'C-', threshold: 23 },
+  { label: 'C', threshold: 31 },
+  { label: 'C+', threshold: 39 },
+  { label: 'B-', threshold: 47 },
+  { label: 'B', threshold: 55 },
+  { label: 'B+', threshold: 63 },
+  { label: 'A-', threshold: 70 },
+  { label: 'A', threshold: 75 },
+  { label: 'A+', threshold: 80 },
+  { label: 'S-', threshold: 85 },
+  { label: 'S', threshold: 90 },
+  { label: 'S+', threshold: 95 },
+  { label: 'S++', threshold: 99 },
+];
+
+// Get info about current tier and next tier progression
+export function getNextTierInfo(percentile: number): {
+  current: StrengthTier;
+  next: StrengthTier | null;
+  needed: number;
+} {
+  const current = getStrengthTier(percentile);
+  const nextTier = TIER_THRESHOLDS.find(t => t.threshold > percentile);
+
+  if (!nextTier) {
+    return { current, next: null, needed: 0 };
+  }
+
+  return {
+    current,
+    next: nextTier.label,
+    needed: nextTier.threshold - Math.floor(percentile),
+  };
 }
 
 

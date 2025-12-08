@@ -1,14 +1,20 @@
 import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
+import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
+import { storageService } from '@/lib/storage';
+import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/strengthStandards';
+import { userService } from '@/lib/userService';
 import { ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workouts';
-import { convertWeight, WeightUnit } from '@/types';
+import { convertWeight, WeightUnit, WorkoutTemplate, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   Modal,
@@ -21,7 +27,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
-  SlideInDown,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -44,48 +49,6 @@ interface WorkoutFinishModalProps {
   onCancel: () => void;
   onComplete: () => void;
 }
-
-// Animated dot for loading indicator
-const PulsingDot = ({ delay, color }: { delay: number; color: string }) => {
-  const scale = useSharedValue(0.6);
-  const opacity = useSharedValue(0.4);
-
-  useEffect(() => {
-    scale.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 400 }),
-          withTiming(0.6, { duration: 400 })
-        ),
-        -1,
-        true
-      )
-    );
-    opacity.value = withDelay(
-      delay,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 400 }),
-          withTiming(0.4, { duration: 400 })
-        ),
-        -1,
-        true
-      )
-    );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View
-      style={[styles.pulsingDot, { backgroundColor: color }, animatedStyle]}
-    />
-  );
-};
 
 // Static Morph logo
 const Logo = () => (
@@ -117,6 +80,7 @@ const Particle = ({ delay, startX, color }: { delay: number; startX: number; col
       withRepeat(withTiming(360, { duration: 1000 }), -1, false)
     );
     opacity.value = withDelay(delay + 2000, withTiming(0, { duration: 1000 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once on mount
   }, []);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -150,15 +114,15 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   // Sound effects
   const { play: playSuccess } = useSound('selectionComplete');
-  const { play: playConfirm } = useSound('confirmUp');
   const { play: playTap } = useSound('tapVariant1');
-  const { play: playWhoosh } = useSound('whoosh');
   const { play: playUnlock } = useSound('unlock');
 
   const [modalState, setModalState] = useState<ModalState>('parsing');
   const [parsedWorkout, setParsedWorkout] = useState<ParsedWorkout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
 
   // Celebration animation values
   const checkScale = useSharedValue(0);
@@ -190,11 +154,16 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
+      setTemplateSaved(false);
 
       const parseWorkout = async () => {
         try {
-          const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
+          const [parsed, lifts] = await Promise.all([
+            workoutNoteParser.parseWorkoutNote(noteText),
+            userService.getAllFeaturedLifts(),
+          ]);
           setParsedWorkout(parsed);
+          setUserLifts(lifts);
           setModalState('confirmation');
         } catch (err) {
           console.error('Error parsing workout:', err);
@@ -208,13 +177,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   // Start celebration animations
   const startCelebration = useCallback(() => {
-    // Play layered celebration sounds for more impact
-    playWhoosh(); // Transition whoosh
-    setTimeout(() => {
-      playUnlock(); // Achievement unlock sound
-      playSuccess(); // Then celebration fanfare
-    }, 150);
-    playHapticFeedback('success', false);
+    playUnlock();
+    playHapticFeedback('medium', false);
 
     checkScale.value = 0;
     ringScale.value = 0;
@@ -241,16 +205,14 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         true
       )
     );
-  }, [playWhoosh, playUnlock, playSuccess]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once, sound hooks are stable
+  }, [playUnlock]);
 
   // Handle save
   const handleSave = useCallback(async () => {
     if (!parsedWorkout) return;
 
-    // Play confirm sound and haptic when starting save
-    playConfirm();
-    playHapticFeedback('medium', false);
-
+    playHapticFeedback('light', false);
     setIsSaving(true);
     try {
       await onSave(parsedWorkout);
@@ -263,7 +225,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [parsedWorkout, onSave, startCelebration, playConfirm]);
+  }, [parsedWorkout, onSave, startCelebration]);
 
   // Handle cancel with haptic
   const handleCancel = useCallback(() => {
@@ -278,6 +240,65 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     playHapticFeedback('light', false);
     onComplete();
   }, [onComplete, playTap]);
+
+  // Handle save as template
+  const handleSaveAsTemplate = useCallback(async () => {
+    if (templateSaved) return;
+
+    playTap();
+    playHapticFeedback('medium', false);
+
+    // Generate a name based on date and exercises
+    const date = new Date();
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const exerciseNames = parsedWorkout?.exercises.slice(0, 2).map(e => {
+      const info = e.matchedExerciseId ? getWorkoutById(e.matchedExerciseId) : null;
+      return info?.name || e.name;
+    }).join(', ') || 'Workout';
+    const suffix = (parsedWorkout?.exercises.length || 0) > 2 ? '...' : '';
+
+    const template: WorkoutTemplate = {
+      id: `template_${Date.now()}`,
+      name: `${exerciseNames}${suffix} - ${dateStr}`,
+      noteText: noteText,
+      createdAt: new Date(),
+    };
+
+    try {
+      await storageService.saveWorkoutTemplate(template);
+      setTemplateSaved(true);
+      playSuccess();
+    } catch (err) {
+      console.error('Error saving template:', err);
+      playHapticFeedback('error', false);
+    }
+  }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
+
+  // Calculate overall tier from exercises in this session
+  const overallTierInfo = useMemo(() => {
+    if (!parsedWorkout || userLifts.length === 0) return null;
+
+    // Get percentiles for exercises in this workout that have tracked data
+    const sessionPercentiles: number[] = [];
+    for (const exercise of parsedWorkout.exercises) {
+      if (exercise.matchedExerciseId && !exercise.isCustom) {
+        const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
+        if (userLift && userLift.percentileRanking > 0) {
+          sessionPercentiles.push(userLift.percentileRanking);
+        }
+      }
+    }
+
+    if (sessionPercentiles.length === 0) return null;
+
+    // Calculate average percentile for this session
+    const avgPercentile = Math.round(
+      sessionPercentiles.reduce((sum, p) => sum + p, 0) / sessionPercentiles.length
+    );
+    const tier = getStrengthTier(avgPercentile);
+    const tierColor = getTierColor(tier);
+    return { tier, tierColor, percentile: avgPercentile };
+  }, [parsedWorkout, userLifts]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -318,16 +339,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const renderParsing = () => (
     <View style={[styles.centerContainer, { backgroundColor: 'transparent' }]}>
       <Logo />
-      <View style={styles.dotsContainer}>
-        <PulsingDot delay={0} color={currentTheme.colors.primary} />
-        <PulsingDot delay={150} color={currentTheme.colors.primary} />
-        <PulsingDot delay={300} color={currentTheme.colors.primary} />
-      </View>
+      <ActivityIndicator
+        size="large"
+        color={currentTheme.colors.primary}
+        style={styles.loadingIndicator}
+      />
       <Text style={[styles.parsingText, { color: '#fff', fontFamily: 'Raleway_600SemiBold' }]}>
         Analyzing your workout...
-      </Text>
-      <Text style={[styles.parsingSubtext, { color: 'rgba(255,255,255,0.6)', fontFamily: 'Raleway_400Regular' }]}>
-        Parsing exercises and sets
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
@@ -349,8 +367,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   // Render confirmation state
   const renderConfirmation = () => (
-    <Animated.View
-      entering={SlideInDown.springify().damping(15)}
+    <View
       style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}
     >
       {/* Header */}
@@ -364,66 +381,50 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         <View style={styles.headerButton} />
       </View>
 
-      {/* Stats Section */}
-      <View style={[
-        styles.statsContainer,
-        { backgroundColor: currentTheme.colors.surface },
-        isSmallScreen && styles.statsContainerSmall
-      ]}>
-        <View style={styles.statItem}>
-          <Ionicons name="time-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.durationStr}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Duration
-          </Text>
+      {/* Stats Section - Two Tiered */}
+      <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.durationStr}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Duration
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.exercises}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Exercises
+            </Text>
+          </View>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="barbell-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.exercises}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Exercises
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="repeat-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.sets}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Sets
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="trending-up-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.volume.toLocaleString()}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            {weightUnit}
-          </Text>
+        <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.sets}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Sets
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={styles.statItem}>
+            {overallTierInfo ? (
+              <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
+            ) : (
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                --
+              </Text>
+            )}
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Overall Tier
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -434,23 +435,39 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             ? getWorkoutById(exercise.matchedExerciseId)
             : null;
 
+          // Calculate best 1RM estimate from sets
+          const best1RM = Math.max(
+            ...exercise.sets.map(set =>
+              set.weight > 0 && set.reps > 0
+                ? OneRMCalculator.estimate(set.weight, set.reps)
+                : 0
+            ),
+            0
+          );
+
           return (
-            <Animated.View
+            <View
               key={index}
-              entering={FadeIn.delay(index * 50)}
               style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
             >
               <View style={styles.exerciseHeader}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                  {exerciseInfo?.name || exercise.name}
-                </Text>
-                {exercise.isCustom && (
-                  <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
-                    <Text style={[styles.customBadgeText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' }]}>
-                      Custom
+                <View style={styles.exerciseNameContainer}>
+                  <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    {exerciseInfo?.name || exercise.name}
+                  </Text>
+                  {best1RM > 0 && (
+                    <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                      ~{Math.round(best1RM)} {weightUnit} 1RM
                     </Text>
-                  </View>
-                )}
+                  )}
+                </View>
+                <ExerciseBadge
+                  matchedExerciseId={exercise.matchedExerciseId}
+                  isCustom={exercise.isCustom}
+                  sets={exercise.sets}
+                  userLifts={userLifts}
+                  weightUnit={weightUnit}
+                />
               </View>
               <View style={styles.setsContainer}>
                 {exercise.sets.map((set, setIndex) => (
@@ -464,7 +481,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   </View>
                 ))}
               </View>
-            </Animated.View>
+            </View>
           );
         })}
       </ScrollView>
@@ -483,7 +500,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
           disabled={isSaving}
         />
       </View>
-    </Animated.View>
+    </View>
   );
 
   // Render celebration state
@@ -558,8 +575,42 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
           </View>
         </Animated.View>
 
-        {/* Done button */}
+        {/* Action buttons */}
         <Animated.View entering={FadeIn.delay(700)} style={styles.celebrationButtonContainer}>
+          {/* Save as Template button */}
+          <TouchableOpacity
+            style={[
+              styles.saveTemplateButton,
+              {
+                backgroundColor: templateSaved
+                  ? currentTheme.colors.accent + '20'
+                  : 'rgba(255,255,255,0.15)',
+                borderColor: templateSaved
+                  ? currentTheme.colors.accent
+                  : 'rgba(255,255,255,0.3)',
+              }
+            ]}
+            onPress={handleSaveAsTemplate}
+            activeOpacity={0.8}
+            disabled={templateSaved}
+          >
+            <Ionicons
+              name={templateSaved ? "checkmark-circle" : "bookmark-outline"}
+              size={20}
+              color={templateSaved ? currentTheme.colors.accent : '#fff'}
+            />
+            <Text style={[
+              styles.saveTemplateButtonText,
+              {
+                fontFamily: 'Raleway_500Medium',
+                color: templateSaved ? currentTheme.colors.accent : '#fff',
+              }
+            ]}>
+              {templateSaved ? 'Saved to Templates' : 'Save as Template'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Done button */}
           <TouchableOpacity
             style={[styles.doneButton, { backgroundColor: currentTheme.colors.primary }]}
             onPress={handleDone}
@@ -580,14 +631,12 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     <Modal
       visible={visible}
       animationType="fade"
-      presentationStyle={modalState === 'confirmation' ? 'pageSheet' : 'overFullScreen'}
-      transparent={modalState !== 'confirmation'}
+      presentationStyle="fullScreen"
       onRequestClose={onCancel}
     >
       <View style={[
         styles.modalContainer,
-        modalState !== 'confirmation' && { backgroundColor: 'rgba(0,0,0,0.9)' },
-        modalState === 'confirmation' && { backgroundColor: currentTheme.colors.background },
+        { backgroundColor: modalState === 'confirmation' ? currentTheme.colors.background : 'rgba(0,0,0,0.95)' },
       ]}>
         {modalState === 'parsing' && renderParsing()}
         {modalState === 'confirmation' && renderConfirmation()}
@@ -607,25 +656,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  pulsingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  loadingIndicator: {
+    marginVertical: 24,
   },
   parsingText: {
     fontSize: 20,
     textAlign: 'center',
-  },
-  parsingSubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
   },
   errorContainer: {
     marginTop: 24,
@@ -667,13 +703,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
+    paddingVertical: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statsRowDivider: {
+    height: 1,
+    marginVertical: 12,
+    marginHorizontal: 20,
   },
   statItem: {
     alignItems: 'center',
@@ -681,7 +724,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
@@ -689,7 +731,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 36,
   },
   exercisesList: {
     flex: 1,
@@ -706,21 +748,20 @@ const styles = StyleSheet.create({
   },
   exerciseHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 12,
+    gap: 12,
+  },
+  exerciseNameContainer: {
+    flex: 1,
+    gap: 2,
   },
   exerciseName: {
     fontSize: 16,
-    flex: 1,
   },
-  customBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  customBadgeText: {
-    fontSize: 11,
+  estimated1RM: {
+    fontSize: 13,
   },
   setsContainer: {
     gap: 6,
@@ -818,6 +859,20 @@ const styles = StyleSheet.create({
   },
   celebrationButtonContainer: {
     width: '100%',
+    gap: 12,
+  },
+  saveTemplateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  saveTemplateButtonText: {
+    fontSize: 16,
   },
   doneButton: {
     paddingVertical: 16,

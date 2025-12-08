@@ -1,5 +1,6 @@
 import Button from '@/components/Button';
 import Card from '@/components/Card';
+import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
@@ -10,7 +11,7 @@ import { getWorkoutById } from '@/lib/workouts';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface LiftDisplayPreferencesSectionProps {
   onPreferencesUpdate?: () => Promise<void>;
@@ -18,6 +19,7 @@ interface LiftDisplayPreferencesSectionProps {
 
 export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: LiftDisplayPreferencesSectionProps) {
   const { currentTheme } = useTheme();
+  const { showAlert } = useAlert();
   const { play: playSound } = useSound('pop');
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -91,18 +93,27 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
       if (onPreferencesUpdate) {
         await onPreferencesUpdate();
       }
-      Alert.alert('Preferences Saved', 'Your lift display preferences have been updated');
+      showAlert({
+        title: 'Preferences Saved',
+        message: 'Your lift display preferences have been updated',
+        type: 'success',
+      });
     } catch (error) {
       console.error('Error saving lift display preferences:', error);
-      Alert.alert('Error', 'Failed to save preferences');
+      showAlert({
+        title: 'Error',
+        message: 'Failed to save preferences',
+        type: 'error',
+      });
     }
   };
 
   const resetToDefaults = () => {
-    Alert.alert(
-      'Reset Preferences',
-      'This will show all lifts. Are you sure?',
-      [
+    showAlert({
+      title: 'Reset Preferences',
+      message: 'This will show all lifts. Are you sure?',
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Reset',
@@ -111,9 +122,9 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
             setFilters({ hiddenLiftIds: [] });
             setHasUnsavedChanges(true);
           }
-        }
-      ]
-    );
+        },
+      ],
+    });
   };
 
   return (
@@ -161,7 +172,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
               fontFamily: 'Raleway_400Regular',
             }
           ]}>
-            Choose which lifts to display in your "Your Lifts" section on the main dashboard.
+            {"Choose which lifts to display in your \"Your Lifts\" section on the main dashboard."}
           </Text>
 
           <View style={styles.quickActions}>

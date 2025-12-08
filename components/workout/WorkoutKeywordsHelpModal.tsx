@@ -1,3 +1,4 @@
+import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +8,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 
 interface WorkoutKeywordsHelpModalProps {
@@ -27,17 +27,12 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-          <View style={{ width: 40 }} />
+        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={styles.headerSpacer} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
             Workout Note Guide
           </Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
-          >
-            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView
@@ -49,7 +44,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
           <View style={[styles.importantNote, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary }]}>
             <Ionicons name="information-circle" size={20} color={currentTheme.colors.primary} />
             <Text style={[styles.importantNoteText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-              If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata.
+              {"If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata."}
             </Text>
           </View>
 
@@ -83,7 +78,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
                 <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>Target</Text>
               </View>
               <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
-                Marks sets as target/template sets (what you're aiming for). These won't count as completed.
+                {"Marks sets as target/template sets (what you're aiming for). These won't count as completed."}
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
                 <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
@@ -223,16 +218,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 17,
   },
-  closeButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSpacer: {
+    width: 40,
   },
   scrollView: {
     flex: 1,

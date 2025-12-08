@@ -132,6 +132,7 @@ export interface UserProfile {
   secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
   equipmentFilter?: EquipmentFilter;
+  username?: string;
 }
 
 // ===== WORKOUT TYPES =====
@@ -153,7 +154,7 @@ export interface UserProgress {
   personalRecord: number; // in lbs
   lastUpdated: Date;
   percentileRanking: number; // 0-100 (calculated from real standards)
-  strengthLevel: string; // 'Beginner', 'Novice', 'Intermediate', etc.
+  strengthLevel: string; // 'E-', 'D', 'C+', 'B', 'A-', 'S', 'S++', etc.
 }
 
 // ===== WORKOUT SESSION TYPES =====
@@ -341,6 +342,110 @@ export interface StrengthStandard {
   advanced: number;    // ~50th percentile
   elite: number;       // ~75th percentile
   god: number;         // ~90th percentile
+}
+
+// ===== SOCIAL TYPES =====
+
+// User profile data stored in Supabase
+export interface RemoteUserData {
+  height?: {
+    value: number;
+    unit: HeightUnit;
+  };
+  weight?: {
+    value: number;
+    unit: WeightUnit;
+  };
+  gender?: Gender;
+  instagram_username?: string;
+  tiktok_username?: string;
+}
+
+// Remote user from Supabase
+export interface RemoteUser {
+  id: string;
+  device_id: string;
+  username: string;
+  user_data?: RemoteUserData;
+  country_code?: string;
+  profile_picture_url?: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+// Friend relationship
+export interface Friend {
+  id: string;
+  user: RemoteUser;
+  created_at: Date;
+}
+
+// Leaderboard entry for comparing lifts
+export interface LeaderboardEntry {
+  user: RemoteUser;
+  exercise_id: string;
+  estimated_1rm: number;
+  weight: number;
+  reps: number;
+  recorded_at: Date;
+  rank?: number;
+}
+
+// Muscle group percentiles
+export interface MuscleGroupPercentiles {
+  chest: number;
+  back: number;
+  shoulders: number;
+  arms: number;
+  legs: number;
+  glutes: number;
+}
+
+// Top contribution for overall strength
+export interface TopContribution {
+  exercise_id: string;
+  name: string;
+  percentile: number;
+}
+
+// User percentile data for overall strength leaderboard
+export interface UserPercentileData {
+  user_id: string;
+  overall_percentile: number;
+  strength_level: string;
+  muscle_groups: MuscleGroupPercentiles;
+  top_contributions: TopContribution[];
+  updated_at?: Date;
+}
+
+// Overall leaderboard entry
+export interface OverallLeaderboardEntry {
+  user: RemoteUser;
+  overall_percentile: number;
+  strength_level: string;
+  muscle_groups: MuscleGroupPercentiles;
+  top_contributions: TopContribution[];
+  rank?: number;
+}
+
+// Notification types
+export type NotificationType = 'friend_pr' | 'friend_workout';
+
+export interface NotificationData {
+  exercise_id?: string;
+  exercise_name?: string;
+  weight?: number;
+  previous_pr?: number;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  from_user: RemoteUser;
+  data: NotificationData;
+  read: boolean;
+  created_at: Date;
 }
 
 // ===== UTILITY FUNCTIONS =====

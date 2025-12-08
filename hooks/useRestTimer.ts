@@ -15,6 +15,7 @@ export const useRestTimer = () => {
   // Load any existing rest timer on mount
   useEffect(() => {
     loadExistingTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
   }, []);
 
   // Update timer every second when resting
@@ -28,6 +29,7 @@ export const useRestTimer = () => {
     }
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- updateTimer is stable, only re-run when isResting changes
   }, [isResting]);
 
   const loadExistingTimer = async () => {
@@ -93,6 +95,37 @@ export const useRestTimer = () => {
     await endTimer();
   };
 
+  const addTime = async (seconds: number) => {
+    try {
+      const data = await AsyncStorage.getItem(REST_TIMER_KEY);
+      if (data) {
+        const timerData: RestTimerData = JSON.parse(data);
+        // Calculate new duration by adding seconds to current remaining + elapsed
+        const now = new Date();
+        const startTime = new Date(timerData.startTime);
+        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const currentRemaining = Math.max(0, timerData.duration - elapsed);
+        const newRemaining = Math.max(0, currentRemaining + seconds);
+
+        // Update the timer with new duration (keeping same start time)
+        const newTimerData: RestTimerData = {
+          startTime: timerData.startTime,
+          duration: elapsed + newRemaining,
+        };
+
+        await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(newTimerData));
+        setRemainingTime(newRemaining);
+
+        // If we subtracted all time, end the timer
+        if (newRemaining <= 0) {
+          await endTimer();
+        }
+      }
+    } catch (error) {
+      console.error('Error adding time to rest timer:', error);
+    }
+  };
+
   const endTimer = async () => {
     await clearTimer();
     setIsResting(false);
@@ -120,5 +153,6 @@ export const useRestTimer = () => {
     formattedTime: formattedTime(),
     startTimer,
     skipTimer,
+    addTime,
   };
 }; 

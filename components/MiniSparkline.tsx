@@ -17,7 +17,7 @@ export default function MiniSparkline({
   barWidth = 6,
   gap = 3,
 }: MiniSparklineProps) {
-  const { currentTheme } = useTheme();
+  const { currentTheme: _currentTheme } = useTheme();
 
   if (!data || data.length === 0) {
     return null;
