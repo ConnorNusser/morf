@@ -60,7 +60,13 @@
           "locationWhenInUsePermission": "Morf uses your location to show your country on leaderboards."
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "color": "#6366F1"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

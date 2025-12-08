@@ -1,11 +1,12 @@
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatDuration, formatRelativeTime } from '@/lib/formatters';
 import playHapticFeedback from '@/lib/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
-import { getBaseTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
+import { StrengthTier } from '@/lib/strengthStandards';
 import { feedService, FeedComment } from '@/lib/feedService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
@@ -219,10 +220,8 @@ export default function WorkoutThreadModal({
 
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
-  const strengthLevel = feedData?.strength_level as StrengthTier | undefined;
-  const tierColor = strengthLevel ? getTierColor(strengthLevel) : currentTheme.colors.primary;
-  const baseTier = strengthLevel ? getBaseTier(strengthLevel) : null;
-  const isHighTier = baseTier === 'S' || baseTier === 'A';
+  // Only show tier for workouts with tracked lifts (indicated by pr_count > 0)
+  const strengthLevel = hasPRs ? (feedData?.strength_level as StrengthTier | undefined) : undefined;
 
   const likes = feedData?.likes || [];
   const likeCount = likes.length;
@@ -353,24 +352,7 @@ export default function WorkoutThreadModal({
               </View>
             </TouchableOpacity>
             {strengthLevel && (
-              <View style={[
-                styles.tierBadge,
-                {
-                  backgroundColor: tierColor + '20',
-                  borderColor: tierColor,
-                  borderWidth: isHighTier ? 1.5 : 1,
-                }
-              ]}>
-                <Text style={[
-                  styles.tierBadgeText,
-                  {
-                    color: tierColor,
-                    fontFamily: isHighTier ? 'Raleway_700Bold' : 'Raleway_600SemiBold',
-                  }
-                ]}>
-                  {strengthLevel}
-                </Text>
-              </View>
+              <TierBadge tier={strengthLevel} size="small" />
             )}
           </View>
 
@@ -631,15 +613,6 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 13,
     marginTop: 2,
-  },
-  tierBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  tierBadgeText: {
-    fontSize: 14,
-    letterSpacing: 0.5,
   },
   statsGrid: {
     flexDirection: 'row',

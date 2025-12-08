@@ -3,8 +3,9 @@ import IconButton from '@/components/IconButton';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS } from '@/lib/strengthStandards';
+import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
 import { userSyncService } from '@/lib/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils';
@@ -126,45 +127,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     }
   }, [selectedIdx, cardAnim]);
 
-  // Simplified tiers for radar chart visualization (base tiers only)
-  const radarTiers = useMemo(
-    () => [
-      { label: 'E', threshold: 0 },
-      { label: 'D', threshold: 6 },
-      { label: 'C', threshold: 23 },
-      { label: 'B', threshold: 47 },
-      { label: 'A', threshold: 70 },
-      { label: 'S', threshold: 85 },
-    ],
-    []
-  );
-
-  // Full tier thresholds for calculating next tier
-  const allTiers = useMemo(
-    () => [
-      { label: 'E-', threshold: 0 },
-      { label: 'E', threshold: 1 },
-      { label: 'E+', threshold: 3 },
-      { label: 'D-', threshold: 6 },
-      { label: 'D', threshold: 11 },
-      { label: 'D+', threshold: 17 },
-      { label: 'C-', threshold: 23 },
-      { label: 'C', threshold: 31 },
-      { label: 'C+', threshold: 39 },
-      { label: 'B-', threshold: 47 },
-      { label: 'B', threshold: 55 },
-      { label: 'B+', threshold: 63 },
-      { label: 'A-', threshold: 70 },
-      { label: 'A', threshold: 75 },
-      { label: 'A+', threshold: 80 },
-      { label: 'S-', threshold: 85 },
-      { label: 'S', threshold: 90 },
-      { label: 'S+', threshold: 95 },
-      { label: 'S++', threshold: 99 },
-    ],
-    []
-  );
-
   // Match overall calculation with the home screen: average of all non-zero lift percentiles
   const overallPercentile = useMemo(() => {
     const nonZero = lifts.map(l => l.percentileRanking).filter(p => p > 0);
@@ -190,14 +152,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
       console.error('Error syncing percentile data:', err);
     });
   }, [visible, lifts.length]);
-
-  const getNextTierInfo = (value: number) => {
-    const currentTier = getStrengthTier(value);
-    const ordered = [...allTiers].sort((a, b) => a.threshold - b.threshold);
-    const next = ordered.find(t => t.threshold > value);
-    if (!next) return { current: currentTier, label: 'Maxed', needed: 0 };
-    return { current: currentTier, label: next.label, needed: next.threshold - Math.floor(value) };
-  };
 
   const bestGroup = useMemo(() => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }), [chartData]);
   const weakGroup = useMemo(() => chartData.reduce((weak, cur) => (cur.value < weak.value ? cur : weak), chartData[0] || { label: '', value: 0 }), [chartData]);
@@ -243,20 +197,22 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
 
           <Card variant="surface" style={styles.chartCard}>
             <View style={{ ...styles.chartHeader}}>
-              <View style={styles.heroRow}>
+              {/* Header with Tier Badge and Percentile */}
+              <View style={styles.tierHeaderRow}>
+                <TierBadge percentile={overallPercentile} size="large" />
                 <View style={styles.heroNumberBlock}>
-                  <Text style={[styles.heroNumber, { color: currentTheme.colors.primary }]}>{overallPercentile}</Text>
-                  <Text style={[styles.heroSub, { color: currentTheme.colors.text }]}>percentile</Text>
+                  <Text style={[styles.heroNumber, { color: currentTheme.colors.text }]}>{overallPercentile}</Text>
+                  <Text style={[styles.heroSub, { color: currentTheme.colors.text + '80' }]}>percentile</Text>
                 </View>
-                <ProgressBar progress={overallPercentile} height={10} style={{ flex: 1 }} exerciseName="overall" />
               </View>
+              <ProgressBar progress={overallPercentile} height={10} style={{ marginVertical: 12, width: '100%' }} exerciseName="overall" />
               <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
-                {getNextTierInfo(overallPercentile).label === 'Maxed'
-                  ? `${getNextTierInfo(overallPercentile).current} Tier - Max Rank!`
-                  : `${getNextTierInfo(overallPercentile).current} → ${getNextTierInfo(overallPercentile).label} (+${getNextTierInfo(overallPercentile).needed}%)`}
+                {!getNextTierInfo(overallPercentile).next
+                  ? `Maximum Tier Reached!`
+                  : `+${getNextTierInfo(overallPercentile).needed}% to ${getNextTierInfo(overallPercentile).next} Tier`}
               </Text>
             </View>
-            <RadarChart data={chartData} tiers={radarTiers} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
+            <RadarChart data={chartData} tiers={RADAR_TIER_THRESHOLDS} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
           </Card>
 
           {/* Selected group insight card */}
@@ -291,7 +247,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             <View style={[styles.questHeaderRow, { backgroundColor: 'transparent' }]}>
               <Text style={[styles.questTitle, { color: currentTheme.colors.text }]}>Next Tier Targets</Text>
               <Text style={[styles.questSubtitle, { color: currentTheme.colors.text + '90', backgroundColor: 'transparent' }]}>
-                {getNextTierInfo(overallPercentile).current} → {getNextTierInfo(overallPercentile).label}
+                {getNextTierInfo(overallPercentile).current} → {getNextTierInfo(overallPercentile).next || 'MAX'}
               </Text>
             </View>
             {nextTargets.map(t => (
@@ -390,7 +346,8 @@ const styles = StyleSheet.create({
   overallLabel: { fontSize: 12, opacity: 0.7 },
   heroTitle: { fontSize: 18, fontWeight: '700', opacity: 0.9, marginBottom: 6, letterSpacing: 0.3 },
   heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12, width: '100%', backgroundColor: 'transparent' },
-  heroNumberBlock: { alignItems: 'center', minWidth: 72, backgroundColor: 'transparent' },
+  tierHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', backgroundColor: 'transparent' },
+  heroNumberBlock: { alignItems: 'flex-end', backgroundColor: 'transparent' },
   heroNumber: { fontSize: 36, fontWeight: '800' },
   heroSub: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7 },
   heroHint: { marginTop: 6, fontSize: 12, opacity: 0.8 },

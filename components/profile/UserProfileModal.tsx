@@ -178,9 +178,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   // Calculate total volume (sum of all 1RMs as a rough proxy)
   const totalVolume = lifts.reduce((sum, lift) => sum + lift.estimated_1rm, 0);
 
-  // Get overall percentile and strength level from synced data
+  // Get overall percentile from synced data
   const overallPercentile = percentileData?.overall_percentile ?? null;
-  const strengthLevel = percentileData?.strength_level ?? null;
 
   // Get top lifts (excluding Big 3)
   const otherLifts = lifts
@@ -303,7 +302,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {percentileData && overallPercentile !== null && (
                 <StrengthRadarCard
                   overallPercentile={Math.round(overallPercentile)}
-                  strengthLevel={strengthLevel || 'F'}
                   muscleGroups={percentileData.muscle_groups}
                   topContributions={percentileData.top_contributions}
                 />

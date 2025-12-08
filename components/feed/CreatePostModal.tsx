@@ -24,7 +24,7 @@ import {
   View as RNView,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const MAX_VIDEO_DURATION = 30; // seconds
 const MAX_VIDEO_SIZE_MB = 50; // megabytes
@@ -51,6 +51,7 @@ export default function CreatePostModal({
 }: CreatePostModalProps) {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
+  const insets = useSafeAreaInsets();
   usePauseVideosWhileOpen(visible);
   const [text, setText] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -231,7 +232,7 @@ export default function CreatePostModal({
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
@@ -402,7 +403,7 @@ export default function CreatePostModal({
             </InputAccessoryView>
           )}
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

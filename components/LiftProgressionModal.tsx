@@ -1,9 +1,10 @@
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import ProgressionIndicator from '@/components/ProgressionIndicator';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/strengthStandards';
 import { userService } from '@/lib/userService';
-import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
+import { convertWeightForPreference } from '@/lib/utils';
 import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -231,12 +232,12 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
   const renderCurrentStats = () => {
     if (liftData.length === 0) return null;
-    
+
     const currentData = liftData[liftData.length - 1];
     const nextRank = getNextRankInfo();
-    
+
     // Calculate 3-month prediction average
-    const avg3MonthPrediction = Object.keys(predictions).length > 0 
+    const avg3MonthPrediction = Object.keys(predictions).length > 0
       ? Math.round(predictionModels.reduce((sum, model) => {
           return sum + (predictions[`${model.name}_90`] || topLift?.personalRecord || 0);
         }, 0) / predictionModels.length)
@@ -244,6 +245,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     return (
       <View style={styles.statsContainer}>
+        {/* Current 1RM at top */}
         <View style={styles.mainStat}>
           <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80' }]}>
             Current 1RM
@@ -256,35 +258,41 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
               {nextRank.deficit} {weightUnit} to {nextRank.level}
             </Text>
           )}
-          {avg3MonthPrediction > 0 && (
-            <View style={styles.predictionContainer}>
-              <Text style={[styles.predictionLabel, { color: currentTheme.colors.text + '70' }]}>
-                3-month prediction
-              </Text>
-              <Text style={[styles.predictionText, { color: currentTheme.colors.primary }]}>
-                {Math.round(convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit) * 100) / 100} {weightUnit}
-              </Text>
-            </View>
-          )}
         </View>
-        
-        <View style={styles.quickStats}>
-          <View style={styles.quickStat}>
-            <Text style={[styles.quickStatValue, { color: currentTheme.colors.text }]}>
-              {liftData.length}
+
+        {/* Tier Badge and Percentile */}
+        <View style={styles.tierHeader}>
+          <TierBadge percentile={currentData.percentileRanking} size="large" />
+          <View style={styles.percentileBlock}>
+            <Text style={[styles.percentileNumber, { color: currentTheme.colors.text }]}>
+              {currentData.percentileRanking}
             </Text>
-            <Text style={[styles.quickStatLabel, { color: currentTheme.colors.text + '70' }]}>
-              Sessions
-            </Text>
-          </View>
-          <View style={styles.quickStat}>
-            <Text style={[styles.quickStatValue, { color: currentTheme.colors.text }]}>
-              {currentData.percentileRanking}{getPercentileSuffix(currentData.percentileRanking)}
-            </Text>
-            <Text style={[styles.quickStatLabel, { color: currentTheme.colors.text + '70' }]}>
-              Percentile
+            <Text style={[styles.percentileSub, { color: currentTheme.colors.text + '80' }]}>
+              percentile
             </Text>
           </View>
+        </View>
+
+        {/* 3-month prediction - left aligned */}
+        {avg3MonthPrediction > 0 && (
+          <View style={styles.staggeredStatLeft}>
+            <Text style={[styles.bottomStatLabel, { color: currentTheme.colors.text + '70' }]}>
+              3-month prediction
+            </Text>
+            <Text style={[styles.bottomStatValue, { color: currentTheme.colors.text }]}>
+              {Math.round(convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit) * 100) / 100} {weightUnit}
+            </Text>
+          </View>
+        )}
+
+        {/* Sessions - right aligned */}
+        <View style={styles.staggeredStatRight}>
+          <Text style={[styles.bottomStatLabel, { color: currentTheme.colors.text + '70' }]}>
+            Sessions
+          </Text>
+          <Text style={[styles.bottomStatValue, { color: currentTheme.colors.text }]}>
+            {liftData.length}
+          </Text>
         </View>
       </View>
     );
@@ -461,7 +469,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
   if (isLoading) {
     return (
-      <Modal visible={visible} animationType="slide" presentationStyle="formSheet">
+      <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
         <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.loadingContainer}>
             <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>
@@ -474,17 +482,16 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   }
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="formSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}>
-            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
             {workoutName} Progression
           </Text>
-          <View style={styles.headerSpacer} />
+          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}>
+            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -553,7 +560,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeButton: {
@@ -585,11 +592,30 @@ const styles = StyleSheet.create({
     fontFamily: 'Raleway_500Medium',
   },
   statsContainer: {
-    paddingVertical: 24,
+    paddingVertical: 20,
+  },
+  tierHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  percentileBlock: {
+    alignItems: 'flex-end',
+  },
+  percentileNumber: {
+    fontSize: 42,
+    fontWeight: '800',
+    fontFamily: 'Raleway_800ExtraBold',
+  },
+  percentileSub: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   mainStat: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
   },
   statLabel: {
     fontSize: 14,
@@ -622,32 +648,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Raleway_400Regular',
   },
-  predictionContainer: {
-    alignItems: 'center',
-    marginTop: 8,
+  staggeredStatLeft: {
+    alignItems: 'flex-start',
+    marginTop: 16,
   },
-  predictionText: {
+  staggeredStatRight: {
+    alignItems: 'flex-end',
+    marginTop: 12,
+  },
+  bottomStatLabel: {
+    fontSize: 12,
+    fontFamily: 'Raleway_400Regular',
+    marginBottom: 4,
+  },
+  bottomStatValue: {
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'Raleway_600SemiBold',
-  },
-  quickStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  quickStat: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  quickStatValue: {
-    fontSize: 20,
-    fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
-    marginBottom: 4,
-  },
-  quickStatLabel: {
-    fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
   },
   selectorContainer: {
     paddingVertical: 16,

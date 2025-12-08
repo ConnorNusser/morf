@@ -81,33 +81,27 @@ class UserService {
     for (const lift of profile.lifts) {
       // Skip lifts with zero weight to avoid meaningless progress calculations
       if (lift.weight <= 0) continue;
-      
-      let maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-      const percentile = calculateStrengthPercentile(
-        maxEstimatedLift,
-        bodyWeightInLbs,
-        profile.gender,
-        lift.id,
-        profile.age
-      );
-      if (lift.id in allLifts && maxEstimatedLift > allLifts[lift.id].personalRecord) {
+
+      const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
+
+      // Only update if this is a new exercise or a new personal record
+      if (!(lift.id in allLifts) || maxEstimatedLift > allLifts[lift.id].personalRecord) {
+        const percentile = calculateStrengthPercentile(
+          maxEstimatedLift,
+          bodyWeightInLbs,
+          profile.gender,
+          lift.id,
+          profile.age
+        );
         allLifts[lift.id] = {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
           percentileRanking: Math.round(percentile),
           strengthLevel: getStrengthLevelName(percentile),
-        }
-        
-      } else {
-        allLifts[lift.id] = {
-          workoutId: lift.id,
-          personalRecord: maxEstimatedLift,
-          lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
-          strengthLevel: getStrengthLevelName(percentile),
-        }
+        };
       }
+      // Else: keep the existing better record
     }
 
     return Object.values(allLifts);

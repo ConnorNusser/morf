@@ -2,15 +2,15 @@ import Card from '@/components/Card';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierInfo, getTierColor, StrengthTier } from '@/lib/strengthStandards';
+import { getTierInfo, getNextTierInfo, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface StrengthRadarCardProps {
   overallPercentile: number;
-  strengthLevel: string;
   muscleGroups: MuscleGroupPercentiles;
   topContributions: TopContribution[];
   showContributions?: boolean;
@@ -18,7 +18,6 @@ interface StrengthRadarCardProps {
 
 export default function StrengthRadarCard({
   overallPercentile,
-  strengthLevel,
   muscleGroups,
   topContributions,
   showContributions = true,
@@ -26,21 +25,8 @@ export default function StrengthRadarCard({
   const { currentTheme } = useTheme();
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
 
-  // Get tier info with color
+  // Get tier info
   const _tierInfo = useMemo(() => getTierInfo(overallPercentile), [overallPercentile]);
-  const tierColor = getTierColor(strengthLevel as StrengthTier);
-
-  const tiers = useMemo(
-    () => [
-      { label: 'E', threshold: 0 },
-      { label: 'D', threshold: 6 },
-      { label: 'C', threshold: 23 },
-      { label: 'B', threshold: 47 },
-      { label: 'A', threshold: 70 },
-      { label: 'S', threshold: 85 },
-    ],
-    []
-  );
 
   const chartData = useMemo(() => {
     const groups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
@@ -63,20 +49,6 @@ export default function StrengthRadarCard({
     }));
   }, [chartData, topContributions]);
 
-  const getNextTierInfo = (value: number) => {
-    const thresholds = [
-      { label: 'E', threshold: 10 },
-      { label: 'D', threshold: 25 },
-      { label: 'C', threshold: 50 },
-      { label: 'B', threshold: 75 },
-      { label: 'A', threshold: 90 },
-      { label: 'S', threshold: 95 },
-    ];
-    const next = thresholds.find(t => t.threshold > value);
-    if (!next) return { label: 'MAX', needed: 0 };
-    return { label: next.label, needed: next.threshold - value };
-  };
-
   const bestGroup = useMemo(
     () => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }),
     [chartData]
@@ -94,11 +66,7 @@ export default function StrengthRadarCard({
       {/* Header with Tier and Percentile */}
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
         {/* Tier Badge */}
-        <View style={[styles.tierBadge, { backgroundColor: tierColor + '20', borderColor: tierColor }]}>
-          <Text style={[styles.tierText, { color: tierColor }]}>
-            {strengthLevel}
-          </Text>
-        </View>
+        <TierBadge percentile={overallPercentile} size="large" />
 
         {/* Percentile */}
         <View style={[styles.percentileBlock, { backgroundColor: 'transparent' }]}>
@@ -116,13 +84,13 @@ export default function StrengthRadarCard({
 
       {/* Next Tier Hint */}
       <Text style={[styles.nextTierHint, { color: currentTheme.colors.text + '70' }]}>
-        {nextTier.needed > 0 ? `+${nextTier.needed}% to ${nextTier.label} Tier` : 'Maximum Tier Reached!'}
+        {nextTier.next ? `+${nextTier.needed}% to ${nextTier.next} Tier` : 'Maximum Tier Reached!'}
       </Text>
 
       {/* Radar Chart */}
       <RadarChart
         data={chartData}
-        tiers={tiers}
+        tiers={RADAR_TIER_THRESHOLDS}
         selectedIndex={selectedIdx}
         onPointPress={(i) => setSelectedIdx(i)}
         details={tooltipDetails}
@@ -181,17 +149,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  tierBadge: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 2,
-  },
-  tierText: {
-    fontSize: 32,
-    fontWeight: '900',
-    fontFamily: 'Raleway_800ExtraBold',
   },
   percentileBlock: {
     alignItems: 'flex-end',

@@ -147,15 +147,14 @@ class FeedService {
       if (!user) return [];
 
       // Get friend IDs from Supabase
-      const { data: friendships } = await supabase
-        .from('friendships')
+      const { data: friends } = await supabase
+        .from('friends')
         .select('friend_id')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted');
+        .eq('user_id', user.id);
 
-      if (!friendships || friendships.length === 0) return [];
+      if (!friends || friends.length === 0) return [];
 
-      const friendIds = friendships.map(f => f.friend_id);
+      const friendIds = friends.map(f => f.friend_id);
 
       // Get workouts from self-hosted API and filter by friends
       const allWorkouts = await feedApi.getWorkouts(user.id, 100, 0);

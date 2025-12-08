@@ -108,8 +108,6 @@ export default function ProfileScreen() {
     });
   };
 
-
-
   // Show loading or create profile if no user exists
   if (isLoading) {
     return (

@@ -1,12 +1,13 @@
 import { useAlert } from '@/components/CustomAlert';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/analytics';
+import { notificationService } from '@/lib/notificationService';
 import { storageService } from '@/lib/storage';
 import { userService } from '@/lib/userService';
 import { userSyncService } from '@/lib/userSyncService';
 import { getWorkoutById } from '@/lib/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
-import { isMainLift, UserLift, WeightUnit } from '@/types';
+import { FEATURED_SECONDARY_LIFTS, isMainLift, UserLift, WeightUnit } from '@/types';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -219,8 +220,16 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
+    // Get current progress (PRs) before recording new lifts - for notifications
+    const currentProgress = await userService.calculateRealUserProgress();
+    const currentPRMap: Record<string, number> = {};
+    currentProgress.forEach(p => {
+      currentPRMap[p.workoutId] = p.personalRecord;
+    });
+
     // Record lifts for progress tracking and count PRs
     const liftsToSync: UserLift[] = [];
+    const newPRs: { exerciseId: string; exerciseName: string; newPR: number; previousPR: number }[] = [];
     let prCount = 0;
     for (const exercise of generatedWorkout.exercises) {
       if (exercise.completedSets.length > 0) {
@@ -243,12 +252,35 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
             unit: bestSet.unit,
             dateRecorded: new Date(),
           };
+          const previousPR = currentPRMap[exercise.id] || 0;
           const isNewPR = await userService.recordLift(liftData, liftType);
           if (isNewPR) {
             prCount++;
+            // Get exercise name for notification
+            const workoutInfo = getWorkoutById(exercise.id);
+            if (workoutInfo) {
+              // Calculate new 1RM
+              const newPR = bestSet.weight * (1 + bestSet.reps / 30);
+              newPRs.push({
+                exerciseId: exercise.id,
+                exerciseName: workoutInfo.name,
+                newPR: Math.round(newPR),
+                previousPR: Math.round(previousPR),
+              });
+            }
           }
           liftsToSync.push(liftData);
         }
+      }
+    }
+
+    // Notify friends about PRs for main lifts + hip thrust only (fire and forget)
+    for (const pr of newPRs) {
+      const isNotificationWorthy = isMainLift(pr.exerciseId) || pr.exerciseId === FEATURED_SECONDARY_LIFTS.HIP_THRUST_BARBELL;
+      if (isNotificationWorthy) {
+        notificationService.notifyFriendsOfPR(pr.exerciseId, pr.exerciseName, pr.newPR, pr.previousPR).catch(err => {
+          console.error('Error notifying friends of PR:', err);
+        });
       }
     }
 

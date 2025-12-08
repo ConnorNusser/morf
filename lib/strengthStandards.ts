@@ -480,6 +480,59 @@ export function getStrengthLevelName(percentile: number): string {
   return getStrengthTier(percentile);
 }
 
+// Simplified tier thresholds for radar chart visualization (base tiers only)
+export const RADAR_TIER_THRESHOLDS: { label: StrengthTierBase; threshold: number }[] = [
+  { label: 'E', threshold: 0 },
+  { label: 'D', threshold: 6 },
+  { label: 'C', threshold: 23 },
+  { label: 'B', threshold: 47 },
+  { label: 'A', threshold: 70 },
+  { label: 'S', threshold: 85 },
+];
+
+// Full tier thresholds for next tier calculations (exported for reuse)
+export const TIER_THRESHOLDS: { label: StrengthTier; threshold: number }[] = [
+  { label: 'E-', threshold: 0 },
+  { label: 'E', threshold: 1 },
+  { label: 'E+', threshold: 3 },
+  { label: 'D-', threshold: 6 },
+  { label: 'D', threshold: 11 },
+  { label: 'D+', threshold: 17 },
+  { label: 'C-', threshold: 23 },
+  { label: 'C', threshold: 31 },
+  { label: 'C+', threshold: 39 },
+  { label: 'B-', threshold: 47 },
+  { label: 'B', threshold: 55 },
+  { label: 'B+', threshold: 63 },
+  { label: 'A-', threshold: 70 },
+  { label: 'A', threshold: 75 },
+  { label: 'A+', threshold: 80 },
+  { label: 'S-', threshold: 85 },
+  { label: 'S', threshold: 90 },
+  { label: 'S+', threshold: 95 },
+  { label: 'S++', threshold: 99 },
+];
+
+// Get info about current tier and next tier progression
+export function getNextTierInfo(percentile: number): {
+  current: StrengthTier;
+  next: StrengthTier | null;
+  needed: number;
+} {
+  const current = getStrengthTier(percentile);
+  const nextTier = TIER_THRESHOLDS.find(t => t.threshold > percentile);
+
+  if (!nextTier) {
+    return { current, next: null, needed: 0 };
+  }
+
+  return {
+    current,
+    next: nextTier.label,
+    needed: nextTier.threshold - Math.floor(percentile),
+  };
+}
+
 
 // Mathematical calculations for 1RM estimation
 export class OneRMCalculator {

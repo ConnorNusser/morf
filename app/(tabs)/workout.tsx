@@ -1,7 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
-import QuickSummaryToast from '@/components/workout/QuickSummaryToast';
+import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
@@ -277,7 +277,7 @@ export default function WorkoutScreen() {
         )}
 
         {/* Quick Summary Toast */}
-        <QuickSummaryToast
+        <WorkoutSummaryModal
           visible={showSummary}
           exercises={parsedExercises}
           isLoading={summaryLoading}

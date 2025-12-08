@@ -33,6 +33,8 @@ export interface ParsedExerciseSummary {
   setCount: number;
   sets: ParsedSet[]; // Actual working sets
   recommendedSets?: ParsedSet[]; // Template/target sets
+  matchedExerciseId?: string; // ID of the matched exercise from database
+  isCustom?: boolean; // Whether this is a custom exercise
 }
 
 // AI response structure
@@ -353,6 +355,8 @@ class WorkoutNoteParser {
           setCount: ex.sets.length,
           sets: [...ex.sets],
           recommendedSets: ex.recommendedSets ? [...ex.recommendedSets] : undefined,
+          matchedExerciseId: ex.matchedExerciseId,
+          isCustom: ex.isCustom,
         });
       }
     }

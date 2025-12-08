@@ -1,6 +1,7 @@
 import Card from '@/components/Card';
 import LiftProgressionModal from '@/components/LiftProgressionModal';
 import ProgressBar from '@/components/ProgressBar';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
@@ -19,7 +20,7 @@ interface WorkoutStatsCardProps {
 export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
-  const { workoutId, personalRecord, percentileRanking, strengthLevel } = stats;
+  const { workoutId, personalRecord, percentileRanking } = stats;
   const [modalVisible, setModalVisible] = useState(false);
 
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -55,23 +56,11 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
             ]}>
               {workout?.name}
             </Text>
-            <View style={styles.headerRight}>
-              <View style={[styles.percentileBadge, { backgroundColor: getPercentileColor(percentileRanking) }]}>
-                <Text style={[
-                  styles.percentileText, 
-                  { 
-                    color: currentTheme.colors.background,
-                    fontFamily: 'Raleway_600SemiBold',
-                  }
-                ]}>
-                  {strengthLevel}
-                </Text>
-              </View>
-              {isFeaturedLift(workoutId) && (
-                <Text style={[styles.tapHint, { color: currentTheme.colors.text + '60' }]}>
-                  Tap for details
-                </Text>
-              )}
+            <View style={styles.tierBlock}>
+              <TierBadge percentile={percentileRanking} size="medium" variant="text" />
+              <Text style={[styles.tierLabel, { color: currentTheme.colors.text + '70' }]}>
+                tier
+              </Text>
             </View>
           </View>
 
@@ -168,22 +157,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  headerRight: {
-    alignItems: 'flex-end',
+  tierBlock: {
+    alignItems: 'center',
+    minWidth: 40,
   },
-  percentileBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 2,
-  },
-  tapHint: {
-    fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
-  },
-  percentileText: {
+  tierLabel: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: 'Raleway_500Medium',
+    opacity: 0.7,
   },
   statsRow: {
     flexDirection: 'row',

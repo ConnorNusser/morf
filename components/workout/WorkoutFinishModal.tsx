@@ -1,12 +1,16 @@
 import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
+import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/haptic';
 import { storageService } from '@/lib/storage';
+import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/strengthStandards';
+import { userService } from '@/lib/userService';
 import { ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workouts';
-import { convertWeight, WeightUnit, WorkoutTemplate } from '@/types';
+import { convertWeight, WeightUnit, WorkoutTemplate, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -118,6 +122,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [templateSaved, setTemplateSaved] = useState(false);
+  const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
 
   // Celebration animation values
   const checkScale = useSharedValue(0);
@@ -153,8 +158,12 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
-          const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
+          const [parsed, lifts] = await Promise.all([
+            workoutNoteParser.parseWorkoutNote(noteText),
+            userService.getAllFeaturedLifts(),
+          ]);
           setParsedWorkout(parsed);
+          setUserLifts(lifts);
           setModalState('confirmation');
         } catch (err) {
           console.error('Error parsing workout:', err);
@@ -265,6 +274,32 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     }
   }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
 
+  // Calculate overall tier from exercises in this session
+  const overallTierInfo = useMemo(() => {
+    if (!parsedWorkout || userLifts.length === 0) return null;
+
+    // Get percentiles for exercises in this workout that have tracked data
+    const sessionPercentiles: number[] = [];
+    for (const exercise of parsedWorkout.exercises) {
+      if (exercise.matchedExerciseId && !exercise.isCustom) {
+        const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
+        if (userLift && userLift.percentileRanking > 0) {
+          sessionPercentiles.push(userLift.percentileRanking);
+        }
+      }
+    }
+
+    if (sessionPercentiles.length === 0) return null;
+
+    // Calculate average percentile for this session
+    const avgPercentile = Math.round(
+      sessionPercentiles.reduce((sum, p) => sum + p, 0) / sessionPercentiles.length
+    );
+    const tier = getStrengthTier(avgPercentile);
+    const tierColor = getTierColor(tier);
+    return { tier, tierColor, percentile: avgPercentile };
+  }, [parsedWorkout, userLifts]);
+
   // Calculate stats
   const stats = useMemo(() => {
     if (!parsedWorkout) {
@@ -346,66 +381,50 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         <View style={styles.headerButton} />
       </View>
 
-      {/* Stats Section */}
-      <View style={[
-        styles.statsContainer,
-        { backgroundColor: currentTheme.colors.surface },
-        isSmallScreen && styles.statsContainerSmall
-      ]}>
-        <View style={styles.statItem}>
-          <Ionicons name="time-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.durationStr}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Duration
-          </Text>
+      {/* Stats Section - Two Tiered */}
+      <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.durationStr}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Duration
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.exercises}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Exercises
+            </Text>
+          </View>
         </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="barbell-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.exercises}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Exercises
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="repeat-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.sets}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            Sets
-          </Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statItem}>
-          <Ionicons name="trending-up-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.accent} />
-          <Text style={[
-            styles.statValue,
-            { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
-            isSmallScreen && styles.statValueSmall
-          ]}>
-            {stats.volume.toLocaleString()}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-            {weightUnit}
-          </Text>
+        <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              {stats.sets}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Sets
+            </Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={styles.statItem}>
+            {overallTierInfo ? (
+              <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
+            ) : (
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                --
+              </Text>
+            )}
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+              Overall Tier
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -416,22 +435,39 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             ? getWorkoutById(exercise.matchedExerciseId)
             : null;
 
+          // Calculate best 1RM estimate from sets
+          const best1RM = Math.max(
+            ...exercise.sets.map(set =>
+              set.weight > 0 && set.reps > 0
+                ? OneRMCalculator.estimate(set.weight, set.reps)
+                : 0
+            ),
+            0
+          );
+
           return (
             <View
               key={index}
               style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
             >
               <View style={styles.exerciseHeader}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                  {exerciseInfo?.name || exercise.name}
-                </Text>
-                {exercise.isCustom && (
-                  <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
-                    <Text style={[styles.customBadgeText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' }]}>
-                      Custom
+                <View style={styles.exerciseNameContainer}>
+                  <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    {exerciseInfo?.name || exercise.name}
+                  </Text>
+                  {best1RM > 0 && (
+                    <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                      ~{Math.round(best1RM)} {weightUnit} 1RM
                     </Text>
-                  </View>
-                )}
+                  )}
+                </View>
+                <ExerciseBadge
+                  matchedExerciseId={exercise.matchedExerciseId}
+                  isCustom={exercise.isCustom}
+                  sets={exercise.sets}
+                  userLifts={userLifts}
+                  weightUnit={weightUnit}
+                />
               </View>
               <View style={styles.setsContainer}>
                 {exercise.sets.map((set, setIndex) => (
@@ -667,13 +703,20 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   statsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
+    paddingVertical: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statsRowDivider: {
+    height: 1,
+    marginVertical: 12,
+    marginHorizontal: 20,
   },
   statItem: {
     alignItems: 'center',
@@ -681,7 +724,6 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 24,
-    marginTop: 8,
   },
   statLabel: {
     fontSize: 12,
@@ -689,7 +731,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     width: 1,
-    height: 40,
+    height: 36,
   },
   exercisesList: {
     flex: 1,
@@ -706,21 +748,20 @@ const styles = StyleSheet.create({
   },
   exerciseHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 12,
+    gap: 12,
+  },
+  exerciseNameContainer: {
+    flex: 1,
+    gap: 2,
   },
   exerciseName: {
     fontSize: 16,
-    flex: 1,
   },
-  customBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  customBadgeText: {
-    fontSize: 11,
+  estimated1RM: {
+    fontSize: 13,
   },
   setsContainer: {
     gap: 6,

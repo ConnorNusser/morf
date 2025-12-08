@@ -289,17 +289,22 @@ class UserSyncService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      // Add bidirectional friendship (both directions)
-      const { error } = await supabase.from('friends').insert([
+      // Add bidirectional friendship - insert each direction separately
+      // to handle case where one direction already exists
+      const insertions = [
         { user_id: user.id, friend_id: friendId },
         { user_id: friendId, friend_id: user.id },
-      ]);
+      ];
 
-      if (error) {
-        // Ignore duplicate key errors (already friends)
-        if (error.code === '23505') return true;
-        console.error('Error adding friend:', error);
-        return false;
+      for (const insertion of insertions) {
+        const { error } = await supabase
+          .from('friends')
+          .upsert(insertion, { onConflict: 'user_id,friend_id', ignoreDuplicates: true });
+
+        if (error && error.code !== '23505') {
+          console.error('Error adding friend:', error);
+          return false;
+        }
       }
 
       return true;

@@ -1,10 +1,11 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
+import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
 import { OverallStats } from '@/lib/userProfile';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
+import TierBadge from './TierBadge';
 
 interface OverallStatsCardProps {
   stats: OverallStats;
@@ -13,12 +14,8 @@ interface OverallStatsCardProps {
 export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   const { currentTheme } = useTheme();
 
-  const getPercentileColor = (percentile: number) => {
-    const tier = getStrengthTier(percentile);
-    return getTierColor(tier);
-  };
-  
   const percentile = Number.isNaN(stats.overallPercentile) ? 0 : stats.overallPercentile;
+  const tierColor = getTierColor(stats.strengthLevel as StrengthTier);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
@@ -39,38 +36,18 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
       </View>
 
       <View style={styles.statsContainer}>
-        <View style={styles.percentileContainer}>
-          <Text style={[styles.percentileValue, { color: getPercentileColor(percentile) }]}>
+        <View style={styles.statBlock}>
+          <Text style={[styles.statValue, { color: tierColor }]}>
             {percentile}
           </Text>
-          <Text style={[
-            styles.percentileLabel, 
-            { 
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_500Medium',
-            }
-          ]}>
+          <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
             percentile
           </Text>
         </View>
 
-        <View style={styles.levelContainer}>
-          <Text style={[
-            styles.strengthLevel,
-            {
-              color: getTierColor(stats.strengthLevel as StrengthTier),
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
-            }
-          ]}>
-            {stats.strengthLevel}
-          </Text>
-          <Text style={[
-            styles.levelDescription,
-            {
-              color: currentTheme.colors.text,
-              fontFamily: 'Raleway_400Regular',
-            }
-          ]}>
+        <View style={styles.statBlock}>
+          <TierBadge tier={stats.strengthLevel as StrengthTier} size="large" variant="text" />
+          <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
             tier
           </Text>
         </View>
@@ -83,17 +60,14 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
           style={styles.progressBar}
           showTicks={true}
           exerciseName="Overall Strength"
-          color={getPercentileColor(percentile)}
+          color={tierColor}
         />
-        <View style={styles.progressLabels}>
-          <Text style={[styles.progressLabel, { color: currentTheme.colors.text }]}>
-            Progress to S Tier
-          </Text>
-        </View>
+        <Text style={[styles.progressLabel, { color: currentTheme.colors.text }]}>
+          Progress to S Tier
+        </Text>
       </View>
     </Card>
     </TouchableOpacity>
-    {/* Lazy import to avoid circular deps in native fast refresh */}
     {isModalOpen && (
       // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
       React.createElement(require('./OverallStrengthModal').default, { visible: isModalOpen, onClose: () => setIsModalOpen(false) })
@@ -103,8 +77,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-  },
+  container: {},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -121,31 +94,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
-  percentileContainer: {
+  statBlock: {
     alignItems: 'center',
   },
-  percentileValue: {
+  statValue: {
     fontSize: 36,
     fontWeight: 'bold',
     lineHeight: 40,
+    fontFamily: 'Raleway_700Bold',
   },
-  percentileLabel: {
+  statLabel: {
     fontSize: 14,
-    fontWeight: '500',
     opacity: 0.7,
-  },
-  levelContainer: {
-    alignItems: 'center',
-  },
-  strengthLevel: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  levelDescription: {
-    fontSize: 14,
-    fontWeight: '500',
-    opacity: 0.7,
+    fontFamily: 'Raleway_500Medium',
   },
   progressContainer: {
     marginTop: 8,
@@ -153,13 +114,10 @@ const styles = StyleSheet.create({
   progressBar: {
     marginBottom: 8,
   },
-  progressLabels: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
   progressLabel: {
     fontSize: 12,
     opacity: 0.6,
     fontFamily: 'Raleway_500Medium',
+    textAlign: 'center',
   },
-}); 
+});

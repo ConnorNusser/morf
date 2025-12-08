@@ -428,6 +428,26 @@ export interface OverallLeaderboardEntry {
   rank?: number;
 }
 
+// Notification types
+export type NotificationType = 'friend_pr' | 'friend_workout';
+
+export interface NotificationData {
+  exercise_id?: string;
+  exercise_name?: string;
+  weight?: number;
+  previous_pr?: number;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  from_user: RemoteUser;
+  data: NotificationData;
+  read: boolean;
+  created_at: Date;
+}
+
 // ===== UTILITY FUNCTIONS =====
 
 // Convert height between units
