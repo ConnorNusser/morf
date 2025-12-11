@@ -1,6 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
-import { OverallStats } from '@/lib/userProfile';
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { OverallStats } from '@/lib/storage/userProfile';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';

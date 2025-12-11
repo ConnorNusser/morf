@@ -10,9 +10,10 @@ import {
   UserProfile,
   UserProgress
 } from '@/types';
-import { storageService } from './storage';
-import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } from './strengthStandards';
-import { convertWeightToLbs } from './utils';
+import { storageService } from '@/lib/storage/storage';
+import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { userSyncService } from './userSyncService';
+import { convertWeightToLbs } from '@/lib/utils/utils';
 class UserService {
   // Initialize new user with profile or update existing profile
   async createUserProfile(profile: Omit<UserProfile, 'age'> & { age: number }): Promise<void> {
@@ -442,26 +443,29 @@ class UserService {
   // Delete a workout and all associated lifts with matching parentId
   async deleteWorkoutAndLifts(workoutId: string): Promise<void> {
     try {
-      // Delete the workout from storage
+      // Delete the workout from local storage
       await storageService.deleteWorkout(workoutId);
-      
+
+      // Delete the workout from Supabase (for feed/social features)
+      await userSyncService.deleteWorkout(workoutId);
+
       // Get current user profile
       const profile = await this.getRealUserProfile();
       if (!profile) return;
-      
+
       // Filter out lifts with matching parentId from main lifts
       const filteredMainLifts = profile.lifts.filter(lift => lift.parentId !== workoutId);
-      
+
       // Filter out lifts with matching parentId from secondary lifts
       const filteredSecondaryLifts = profile.secondaryLifts.filter(lift => lift.parentId !== workoutId);
-      
+
       // Update the profile with filtered lifts
       const updatedProfile = {
         ...profile,
         lifts: filteredMainLifts,
         secondaryLifts: filteredSecondaryLifts,
       };
-      
+
       // Save the updated profile
       await storageService.saveUserProfile(updatedProfile);
     } catch (error) {

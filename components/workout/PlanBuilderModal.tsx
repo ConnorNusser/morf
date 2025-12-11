@@ -1,7 +1,7 @@
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
+import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {

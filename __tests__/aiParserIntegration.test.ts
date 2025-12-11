@@ -3,8 +3,8 @@
  * Tests raw AI output with real workout inputs
  */
 
-import { exerciseNameToId } from '../lib/exerciseUtils';
-import { ALL_WORKOUTS } from '../lib/workouts';
+import { exerciseNameToId } from '../lib/data/exerciseUtils';
+import { ALL_WORKOUTS } from '../lib/workout/workouts';
 
 // Skip in CI - requires API key
 const describeIfApi = process.env.EXPO_PUBLIC_AI_API_KEY ? describe : describe.skip;
@@ -379,7 +379,7 @@ describeIfApi('AI Parser Integration', () => {
     '$name',
     async ({ input, expected }) => {
       const OpenAI = (await import('openai')).default;
-      const { buildWorkoutNoteParsingPrompt } = await import('../lib/prompts/workoutNoteParsing.prompt');
+      const { buildWorkoutNoteParsingPrompt } = await import('../lib/ai/prompts/workoutNoteParsing.prompt');
 
       const openai = new OpenAI({
         apiKey: process.env.EXPO_PUBLIC_AI_API_KEY,
@@ -495,7 +495,7 @@ describeIfApi('AI Parser Integration', () => {
 
 describe('WorkoutNoteParser.toSummary', () => {
   it('should only count actual sets, not recommendedSets, in setCount', async () => {
-    const { workoutNoteParser } = await import('../lib/workoutNoteParser');
+    const { workoutNoteParser } = await import('../lib/workout/workoutNoteParser');
 
     // Create a mock parsed workout with both sets and recommendedSets
     const mockParsedWorkout = {
@@ -546,7 +546,7 @@ describe('WorkoutNoteParser.toSummary', () => {
   });
 
   it('should preserve recommendedSets in summary output', async () => {
-    const { workoutNoteParser } = await import('../lib/workoutNoteParser');
+    const { workoutNoteParser } = await import('../lib/workout/workoutNoteParser');
 
     const mockParsedWorkout = {
       exercises: [
@@ -575,7 +575,7 @@ describe('WorkoutNoteParser.toSummary', () => {
   });
 
   it('should consolidate same exercise with both sets and recommendedSets', async () => {
-    const { workoutNoteParser } = await import('../lib/workoutNoteParser');
+    const { workoutNoteParser } = await import('../lib/workout/workoutNoteParser');
 
     // Simulate logging the same exercise twice in one note
     const mockParsedWorkout = {

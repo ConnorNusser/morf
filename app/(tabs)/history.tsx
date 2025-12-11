@@ -12,10 +12,11 @@ import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
-import { storageService } from '@/lib/storage';
-import { OneRMCalculator } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { ALL_WORKOUTS } from '@/lib/workouts';
+import { storageService } from '@/lib/storage/storage';
+import { layout } from '@/lib/ui/styles';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -415,7 +416,7 @@ export default function HistoryScreen() {
   }, [templates, notesSearchQuery]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
         <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
@@ -477,7 +478,7 @@ export default function HistoryScreen() {
 
       {/* Content */}
       <ScrollView
-        style={styles.scrollView}
+        style={layout.flex1}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={currentTheme.colors.primary} />}
         showsVerticalScrollIndicator={false}
@@ -769,7 +770,7 @@ export default function HistoryScreen() {
 
       {/* Exercise History Modal */}
       <Modal visible={!!selectedExercise} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
+        <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
             <TouchableOpacity onPress={() => setSelectedExercise(null)}>
               <Ionicons name="close" size={28} color={currentTheme.colors.text} />
@@ -857,9 +858,6 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -884,9 +882,6 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontSize: 15,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -948,9 +943,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  liftMain: {
-    flex: 1,
-  },
   liftNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1008,9 +1000,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Exercise history modal
-  modalContainer: {
-    flex: 1,
-  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',

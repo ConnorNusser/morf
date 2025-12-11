@@ -4,7 +4,7 @@ import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierInfo, getNextTierInfo, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
+import { getTierInfo, getNextTierInfo, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';

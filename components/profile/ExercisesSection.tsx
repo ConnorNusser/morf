@@ -1,9 +1,9 @@
 import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
-import { userService } from '@/lib/userService';
-import { ALL_WORKOUTS } from '@/lib/workouts';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { userService } from '@/lib/services/userService';
+import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { Equipment, UserLift, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';

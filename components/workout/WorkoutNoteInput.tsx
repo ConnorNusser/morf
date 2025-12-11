@@ -1,6 +1,6 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 import {
   GestureResponderEvent,

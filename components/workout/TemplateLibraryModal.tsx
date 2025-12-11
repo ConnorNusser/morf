@@ -1,7 +1,7 @@
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { storageService } from '@/lib/storage';
+import { storageService } from '@/lib/storage/storage';
 import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';

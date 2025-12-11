@@ -20,13 +20,13 @@ import {
   getPreviousPeriod,
   getNextPeriod,
   canGoNext,
-} from '@/lib/recapStats';
+} from '@/lib/workout/recapStats';
 import {
   formatLargeNumber,
   getVolumeComparison,
   getWorkoutCountComparison,
-} from '@/lib/funComparisons';
-import { captureAndShare } from '@/lib/shareUtils';
+} from '@/lib/workout/funComparisons';
+import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

@@ -5,10 +5,10 @@ import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { userSyncService } from '@/lib/userSyncService';
-import { calculateOverallPercentile } from '@/lib/utils';
+import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { UserProfile, UserProgress } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
@@ -50,7 +50,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
     const liftToMuscles: Record<string, string[]> = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { ALL_WORKOUTS } = require('@/lib/workouts');
+    const { ALL_WORKOUTS } = require('@/lib/workout/workouts');
     ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
       liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
     });
@@ -72,7 +72,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const tooltipDetails = useMemo(() => {
     const byGroup: Record<string, { name: string; pct: number }[]> = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { getWorkoutById } = require('@/lib/workouts');
+    const { getWorkoutById } = require('@/lib/workout/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
       if (!w) return;
@@ -94,7 +94,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const groupInfos = useMemo(() => {
     const map: Record<string, { id: string; name: string; pct: number; oneRM: number }[]> = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { getWorkoutById } = require('@/lib/workouts');
+    const { getWorkoutById } = require('@/lib/workout/workouts');
     lifts.forEach(l => {
       const w = getWorkoutById(l.workoutId);
       if (!w) return;

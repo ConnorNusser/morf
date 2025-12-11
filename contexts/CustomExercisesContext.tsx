@@ -1,4 +1,4 @@
-import { storageService } from '@/lib/storage';
+import { storageService } from '@/lib/storage/storage';
 import { CustomExercise } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 

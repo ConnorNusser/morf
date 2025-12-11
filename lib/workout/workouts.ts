@@ -7,9 +7,9 @@ import {
   Workout,
   WorkoutCategory,
 } from '@/types';
-import exercisesData from './exercises.json';
-import { storageService } from './storage';
-import { getThemeRequiredPercentile } from './userProfile';
+import exercisesData from '@/lib/data/exercises.json';
+import { storageService } from '@/lib/storage/storage';
+import { getThemeRequiredPercentile } from '@/lib/storage/userProfile';
 
 export {
   Equipment, MuscleGroup, UserProgress, Workout, WorkoutCategory

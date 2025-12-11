@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { WeightUnit, convertWeight } from '@/lib/userProfile';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { WeightUnit, convertWeight } from '@/lib/storage/userProfile';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';

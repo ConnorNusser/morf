@@ -1,13 +1,15 @@
 import IconButton from '@/components/IconButton';
+import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getCountryName } from '@/lib/geoService';
-import { supabase } from '@/lib/supabase';
-import { userSyncService, WorkoutSummary } from '@/lib/userSyncService';
-import { getWorkoutById } from '@/lib/workouts';
-import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData } from '@/types';
+import { getCountryName } from '@/lib/services/geoService';
+import { gap, layout } from '@/lib/ui/styles';
+import { supabase } from '@/lib/services/supabase';
+import { userSyncService, WorkoutSummary } from '@/lib/services/userSyncService';
+import { getWorkoutById } from '@/lib/workout/workouts';
+import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -72,12 +74,50 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [isFriend, setIsFriend] = useState(false);
   const [isFriendLoading, setIsFriendLoading] = useState(false);
   const [showFullScreenPicture, setShowFullScreenPicture] = useState(false);
+  const [selectedLiftId, setSelectedLiftId] = useState<string | null>(null);
+  const [liftHistory, setLiftHistory] = useState<UserProgress[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
   const checkFriendStatus = useCallback(async () => {
     if (!user) return;
     const friendStatus = await userSyncService.isFriend(user.id);
     setIsFriend(friendStatus);
   }, [user]);
+
+  const loadLiftHistory = useCallback(async (exerciseId: string) => {
+    if (!user) return;
+
+    // Toggle off if same lift selected
+    if (selectedLiftId === exerciseId) {
+      setSelectedLiftId(null);
+      setLiftHistory([]);
+      return;
+    }
+
+    setSelectedLiftId(exerciseId);
+    setIsLoadingHistory(true);
+
+    try {
+      const history = await userSyncService.getUserLiftHistory(user.id, exerciseId);
+
+      // Convert to UserProgress format for InteractiveProgressChart
+      const progressData: UserProgress[] = history.map(lift => ({
+        workoutId: exerciseId,
+        personalRecord: lift.estimated_1rm,
+        lastUpdated: lift.recorded_at,
+        percentileRanking: 0, // Not needed for chart display
+        strengthLevel: '',    // Not needed for chart display
+      }));
+
+      setLiftHistory(progressData);
+    } catch (error) {
+      console.error('Error loading lift history:', error);
+      setLiftHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [user, selectedLiftId]);
 
   const handleToggleFriend = async () => {
     if (!user) return;
@@ -195,7 +235,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
@@ -235,9 +275,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={layout.flex1} contentContainerStyle={styles.scrollContent}>
           {isLoading ? (
-            <View style={{ gap: 16 }}>
+            <View style={gap.gap16}>
               <SkeletonCard variant="profile-header" />
               <SkeletonCard variant="stats" />
               <SkeletonCard variant="stats" />
@@ -335,33 +375,90 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
                 {/* Big 3 Breakdown */}
                 <View style={styles.big3Container}>
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.BENCH_PRESS ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.BENCH_PRESS ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => benchMax ? loadLiftHistory(MAIN_LIFTS.BENCH_PRESS) : null}
+                    activeOpacity={benchMax ? 0.7 : 1}
+                    disabled={!benchMax}
+                  >
                     <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
                       Bench
                     </Text>
                     <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                       {benchMax || '-'}
                     </Text>
-                  </View>
-                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.SQUAT ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.SQUAT ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => squatMax ? loadLiftHistory(MAIN_LIFTS.SQUAT) : null}
+                    activeOpacity={squatMax ? 0.7 : 1}
+                    disabled={!squatMax}
+                  >
                     <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
                       Squat
                     </Text>
                     <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                       {squatMax || '-'}
                     </Text>
-                  </View>
-                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.DEADLIFT ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.DEADLIFT ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => deadliftMax ? loadLiftHistory(MAIN_LIFTS.DEADLIFT) : null}
+                    activeOpacity={deadliftMax ? 0.7 : 1}
+                    disabled={!deadliftMax}
+                  >
                     <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
                       Deadlift
                     </Text>
                     <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                       {deadliftMax || '-'}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
+
+                {/* Big 3 Progression Chart */}
+                {selectedLiftId && BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
+                  <View style={styles.chartContainer}>
+                    {isLoadingHistory ? (
+                      <View style={styles.chartLoading}>
+                        <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                      </View>
+                    ) : liftHistory.length >= 2 ? (
+                      <InteractiveProgressChart
+                        data={liftHistory}
+                        selectedMetric="oneRM"
+                        weightUnit="lbs"
+                        title={`${getExerciseName(selectedLiftId)} Progression`}
+                        description="Tap points to see exact values"
+                      />
+                    ) : (
+                      <View style={styles.noHistoryContainer}>
+                        <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
+                        <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                          Not enough data for progression chart
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Stats Card */}
@@ -396,17 +493,67 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
-                    {otherLifts.map((lift) => (
-                      <View key={lift.exercise_id} style={[styles.liftRow, { backgroundColor: 'transparent' }]}>
-                        <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                          {getExerciseName(lift.exercise_id)}
-                        </Text>
-                        <Text style={[styles.liftValue, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }]}>
-                          {Math.round(lift.estimated_1rm)} lbs
-                        </Text>
-                      </View>
-                    ))}
+                    {otherLifts.map((lift, index) => {
+                      const isSelected = selectedLiftId === lift.exercise_id && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS);
+                      return (
+                        <TouchableOpacity
+                          key={lift.exercise_id}
+                          style={[
+                            styles.liftRowInteractive,
+                            {
+                              backgroundColor: currentTheme.colors.background,
+                              borderColor: isSelected ? currentTheme.colors.primary : currentTheme.colors.border,
+                              borderWidth: isSelected ? 1.5 : 1,
+                            },
+                          ]}
+                          onPress={() => loadLiftHistory(lift.exercise_id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.liftRowLeft}>
+                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                              {getExerciseName(lift.exercise_id)}
+                            </Text>
+                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_600SemiBold' }]}>
+                              {Math.round(lift.estimated_1rm)} lbs
+                            </Text>
+                          </View>
+                          <View style={[styles.liftChevron, { backgroundColor: isSelected ? currentTheme.colors.primary + '20' : currentTheme.colors.border + '50' }]}>
+                            <Ionicons
+                              name={isSelected ? 'chevron-up' : 'chevron-forward'}
+                              size={16}
+                              color={isSelected ? currentTheme.colors.primary : currentTheme.colors.text + '60'}
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
+
+                  {/* Progression Chart for selected lift (only for non-Big3 lifts) */}
+                  {selectedLiftId && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
+                    <View style={styles.chartContainer}>
+                      {isLoadingHistory ? (
+                        <View style={styles.chartLoading}>
+                          <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                        </View>
+                      ) : liftHistory.length >= 2 ? (
+                        <InteractiveProgressChart
+                          data={liftHistory}
+                          selectedMetric="oneRM"
+                          weightUnit="lbs"
+                          title={`${getExerciseName(selectedLiftId)} Progression`}
+                          description="Tap points to see exact values"
+                        />
+                      ) : (
+                        <View style={styles.noHistoryContainer}>
+                          <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
+                          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                            Not enough data for progression chart
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </View>
               )}
 
@@ -417,31 +564,89 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     Recent Workouts
                   </Text>
                   <View style={styles.workoutsList}>
-                    {recentWorkouts.map((workout, index) => (
-                      <View
-                        key={workout.id}
-                        style={[
-                          styles.workoutRow,
-                          { backgroundColor: 'transparent' },
-                          index < recentWorkouts.length - 1 && {
-                            borderBottomWidth: StyleSheet.hairlineWidth,
-                            borderBottomColor: currentTheme.colors.border,
-                          }
-                        ]}
-                      >
-                        <View style={styles.workoutHeader}>
-                          <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                            {workout.title}
-                          </Text>
-                          <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                            {formatRelativeTime(workout.created_at)}
-                          </Text>
+                    {recentWorkouts.map((workout) => {
+                      const isExpanded = expandedWorkoutId === workout.id;
+                      return (
+                        <View key={workout.id}>
+                          <TouchableOpacity
+                            style={[
+                              styles.workoutRowInteractive,
+                              {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: isExpanded ? currentTheme.colors.primary : currentTheme.colors.border,
+                                borderWidth: isExpanded ? 1.5 : 1,
+                              }
+                            ]}
+                            onPress={() => setExpandedWorkoutId(isExpanded ? null : workout.id)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.workoutRowContent}>
+                              <View style={styles.workoutRowTop}>
+                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                                  {workout.title}
+                                </Text>
+                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                                  {formatRelativeTime(workout.created_at)}
+                                </Text>
+                              </View>
+                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+                                {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
+                              </Text>
+                            </View>
+                            <View style={[styles.workoutChevron, { backgroundColor: isExpanded ? currentTheme.colors.primary + '20' : currentTheme.colors.border + '50' }]}>
+                              <Ionicons
+                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={16}
+                                color={isExpanded ? currentTheme.colors.primary : currentTheme.colors.text + '60'}
+                              />
+                            </View>
+                          </TouchableOpacity>
+
+                          {/* Expanded exercise details */}
+                          {isExpanded && workout.exercises && workout.exercises.length > 0 && (
+                            <View style={[
+                              styles.workoutExercisesExpanded,
+                              {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: currentTheme.colors.primary,
+                              }
+                            ]}>
+                              {workout.exercises.map((exercise, exIndex) => (
+                                <View
+                                  key={exIndex}
+                                  style={[
+                                    styles.workoutExerciseRow,
+                                    exIndex < workout.exercises.length - 1 && {
+                                      borderBottomWidth: StyleSheet.hairlineWidth,
+                                      borderBottomColor: currentTheme.colors.border + '50',
+                                    }
+                                  ]}
+                                >
+                                  <View style={styles.workoutExerciseLeft}>
+                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                                      {exercise.name}
+                                    </Text>
+                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                                      {exercise.sets} sets
+                                    </Text>
+                                  </View>
+                                  <View style={styles.workoutExerciseRight}>
+                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }]}>
+                                      {exercise.bestSet}
+                                    </Text>
+                                    {exercise.isPR && (
+                                      <View style={[styles.prBadge, { backgroundColor: '#FFD700' }]}>
+                                        <Text style={styles.prBadgeText}>PR</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                         </View>
-                        <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-                          {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
-                        </Text>
-                      </View>
-                    ))}
+                      );
+                    })}
                   </View>
                 </View>
               )}
@@ -494,9 +699,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -510,9 +712,6 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     padding: 16,
@@ -578,6 +777,10 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
   },
+  cardSubtitle: {
+    fontSize: 12,
+    marginTop: -4,
+  },
   cardValue: {
     fontSize: 18,
   },
@@ -597,21 +800,22 @@ const styles = StyleSheet.create({
   big3Container: {
     flexDirection: 'row',
     marginTop: 4,
+    gap: 8,
   },
   big3Item: {
     flex: 1,
     alignItems: 'center',
     gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   big3Label: {
     fontSize: 12,
   },
   big3Value: {
     fontSize: 16,
-  },
-  big3Divider: {
-    width: 1,
-    height: '100%',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -629,28 +833,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   liftsList: {
-    gap: 10,
+    gap: 8,
   },
-  liftRow: {
+  liftRowInteractive: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  liftRowLeft: {
+    flex: 1,
+    gap: 2,
   },
   liftName: {
     fontSize: 14,
-    flex: 1,
   },
   liftValue: {
-    fontSize: 14,
+    fontSize: 13,
+  },
+  liftChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartContainer: {
+    marginTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 8,
+  },
+  chartLoading: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noHistoryContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  noHistoryText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   workoutsList: {
-    gap: 0,
+    gap: 8,
   },
-  workoutRow: {
+  workoutRowInteractive: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+    borderRadius: 10,
+  },
+  workoutRowContent: {
+    flex: 1,
     gap: 4,
   },
-  workoutHeader: {
+  workoutRowTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -660,10 +905,63 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   workoutTime: {
-    fontSize: 13,
+    fontSize: 12,
   },
   workoutStats: {
-    fontSize: 13,
+    fontSize: 12,
+  },
+  workoutChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  workoutExercisesExpanded: {
+    marginTop: -4,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  workoutExerciseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  workoutExerciseLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  workoutExerciseRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  workoutExerciseName: {
+    fontSize: 14,
+  },
+  workoutExerciseSets: {
+    fontSize: 12,
+  },
+  workoutExerciseBest: {
+    fontSize: 14,
+  },
+  prBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  prBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#000',
   },
   emptyState: {
     alignItems: 'center',

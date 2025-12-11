@@ -1,12 +1,12 @@
 import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, UserProfile, WorkoutCategory } from '@/types';
 import OpenAI from 'openai';
-import { analyticsService } from './analytics';
+import { analyticsService } from '@/lib/services/analytics';
 import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
 import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
 import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
-import { storageService } from './storage';
-import { userService } from './userService';
-import { getAvailableWorkouts, getWorkoutById, getWorkoutsByEquipment } from './workouts';
+import { storageService } from '@/lib/storage/storage';
+import { userService } from '@/lib/services/userService';
+import { getAvailableWorkouts, getWorkoutById, getWorkoutsByEquipment } from '@/lib/workout/workouts';
 
 interface GenerateWorkoutOptions {
   focusArea?: string;

@@ -1,10 +1,11 @@
 import { Text, View } from '@/components/Themed';
 import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { OneRMCalculator } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { ParsedExerciseSummary } from '@/lib/workoutNoteParser';
-import { UserProgress } from '@/types';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { convertWeightToLbs } from '@/lib/utils/utils';
+import { ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
+import { UserProgress, UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -37,11 +38,18 @@ const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
   const slideAnim = useRef(new Animated.Value(-SCREEN_HEIGHT)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Fetch user lifts for badge display
+  // Fetch user lifts and profile for badge display
   useEffect(() => {
     if (visible) {
-      userService.getAllFeaturedLifts().then(setUserLifts).catch(console.error);
+      Promise.all([
+        userService.getAllFeaturedLifts(),
+        userService.getUserProfileOrDefault()
+      ]).then(([lifts, profile]) => {
+        setUserLifts(lifts);
+        setUserProfile(profile);
+      }).catch(console.error);
     }
   }, [visible]);
 
@@ -182,6 +190,8 @@ const WorkoutSummaryModal: React.FC<WorkoutSummaryModalProps> = ({
                       isCustom={exercise.isCustom}
                       sets={exercise.sets || []}
                       userLifts={userLifts}
+                      bodyWeightLbs={userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined}
+                      gender={userProfile?.gender}
                     />
                   </RNView>
 

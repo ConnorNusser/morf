@@ -4,13 +4,14 @@ import TierBadge from '@/components/TierBadge';
 import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
-import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { ParsedWorkout, workoutNoteParser } from '@/lib/workoutNoteParser';
-import { getWorkoutById } from '@/lib/workouts';
-import { convertWeight, WeightUnit, WorkoutTemplate, UserProgress } from '@/types';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { storageService } from '@/lib/storage/storage';
+import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { getWorkoutById } from '@/lib/workout/workouts';
+import { convertWeightToLbs } from '@/lib/utils/utils';
+import { convertWeight, WeightUnit, WorkoutTemplate, UserProgress, UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -123,6 +124,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [templateSaved, setTemplateSaved] = useState(false);
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   // Celebration animation values
   const checkScale = useSharedValue(0);
@@ -158,12 +160,14 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
-          const [parsed, lifts] = await Promise.all([
+          const [parsed, lifts, profile] = await Promise.all([
             workoutNoteParser.parseWorkoutNote(noteText),
             userService.getAllFeaturedLifts(),
+            userService.getUserProfileOrDefault(),
           ]);
           setParsedWorkout(parsed);
           setUserLifts(lifts);
+          setUserProfile(profile);
           setModalState('confirmation');
         } catch (err) {
           console.error('Error parsing workout:', err);
@@ -467,6 +471,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   sets={exercise.sets}
                   userLifts={userLifts}
                   weightUnit={weightUnit}
+                  bodyWeightLbs={userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined}
+                  gender={userProfile?.gender}
                 />
               </View>
               <View style={styles.setsContainer}>

@@ -1,4 +1,4 @@
-import { getSound, type SoundName } from '@/lib/sounds';
+import { getSound, type SoundName } from '@/lib/utils/sounds';
 import { useAudioPlayer } from 'expo-audio';
 
 /**

@@ -20,7 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Text } from '@/components/Themed';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 

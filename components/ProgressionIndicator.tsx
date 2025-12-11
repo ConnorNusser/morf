@@ -1,6 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { FEMALE_STANDARDS, MALE_STANDARDS, TIER_COLORS } from '@/lib/strengthStandards';
-import { convertWeightForPreference } from '@/lib/utils';
+import { FEMALE_STANDARDS, MALE_STANDARDS, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { convertWeightForPreference } from '@/lib/utils/utils';
 import { FeaturedLiftType, Gender } from '@/types';
 import React, { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';

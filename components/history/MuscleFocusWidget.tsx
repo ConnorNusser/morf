@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { calculateRecapStats, MuscleDistribution } from '@/lib/recapStats';
+import { calculateRecapStats, MuscleDistribution } from '@/lib/workout/recapStats';
 
 interface MuscleFocusWidgetProps {
   onPress?: () => void;

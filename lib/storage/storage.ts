@@ -1,6 +1,6 @@
 import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemeLevel } from './theme';
+import { ThemeLevel } from '@/lib/ui/theme';
 
 // Storage keys
 const STORAGE_KEYS = {

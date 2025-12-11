@@ -7,7 +7,8 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { WorkoutTemplate } from '@/types';
@@ -122,9 +123,9 @@ export default function WorkoutScreen() {
   }, [handleFinishWorkout]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
+        style={layout.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
@@ -285,8 +286,8 @@ export default function WorkoutScreen() {
         />
 
         {/* Main Content - Notes Input */}
-        <TutorialTarget id="workout-note-input" style={{ flex: 1 }}>
-          <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+        <TutorialTarget id="workout-note-input" style={layout.flex1}>
+          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
             <WorkoutNoteInput
               ref={noteInputRef}
               value={noteText}
@@ -336,12 +337,6 @@ Squats 225 for 5 reps`}
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -469,9 +464,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
   },
   headerButtonGroup: {
     flexDirection: 'row',

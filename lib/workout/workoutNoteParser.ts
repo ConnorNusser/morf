@@ -1,10 +1,10 @@
 import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import OpenAI from 'openai';
-import { aiWorkoutGenerator } from './aiWorkoutGenerator';
-import { analyticsService } from './analytics';
-import { exerciseNameToId } from './exerciseUtils';
-import { buildWorkoutNoteParsingPrompt } from './prompts/workoutNoteParsing.prompt';
-import { storageService } from './storage';
+import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
+import { analyticsService } from '@/lib/services/analytics';
+import { exerciseNameToId } from '@/lib/data/exerciseUtils';
+import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
+import { storageService } from '@/lib/storage/storage';
 import { getAvailableWorkouts, getWorkoutById } from './workouts';
 
 // Types for parsed workout data

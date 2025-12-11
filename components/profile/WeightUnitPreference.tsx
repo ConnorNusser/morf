@@ -1,7 +1,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/UserContext";
-import playHapticFeedback from "@/lib/haptic";
+import playHapticFeedback from "@/lib/utils/haptic";
 import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";

@@ -1,6 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React, { createContext, useCallback, useContext, useState } from 'react';

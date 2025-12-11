@@ -1,7 +1,7 @@
 import { useTutorial } from '@/contexts/TutorialContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Href } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';

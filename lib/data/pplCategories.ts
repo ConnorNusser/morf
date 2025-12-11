@@ -1,5 +1,5 @@
 import { MuscleGroup } from '@/types';
-import { ALL_WORKOUTS } from './workouts';
+import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 
 // PPL category definitions
 export type PPLCategory = 'push' | 'pull' | 'legs';

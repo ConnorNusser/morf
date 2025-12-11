@@ -1,6 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback, { type HapticType } from '@/lib/haptic';
-import { getSound, type SoundName } from '@/lib/sounds';
+import playHapticFeedback, { type HapticType } from '@/lib/utils/haptic';
+import { getSound, type SoundName } from '@/lib/utils/sounds';
 import { useAudioPlayer } from 'expo-audio';
 import React from 'react';
 import { Text, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';

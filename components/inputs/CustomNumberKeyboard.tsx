@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {

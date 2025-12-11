@@ -10,10 +10,11 @@ import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import WorkoutStatsCard from '@/components/WorkoutStatsCard';
 import { useTheme } from '@/contexts/ThemeContext';
-import { HomeViewMode, storageService } from '@/lib/storage';
-import { getStrengthLevelName } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { calculateOverallPercentile } from '@/lib/utils';
+import { gap, layout } from '@/lib/ui/styles';
+import { HomeViewMode, storageService } from '@/lib/storage/storage';
+import { getStrengthLevelName } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, RemoteUser, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -129,7 +130,7 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.content, { backgroundColor: 'transparent' }]}>
           <DashboardHeader />
           <SkeletonCard variant="overall" />
@@ -147,7 +148,7 @@ export default function HomeScreen() {
   if (viewMode === 'feed') {
     return (
       <>
-        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
           <View style={[styles.feedHeader, { backgroundColor: 'transparent' }]}>
             <DashboardHeader
               viewMode={viewMode}
@@ -172,7 +173,7 @@ export default function HomeScreen() {
   return (
     <>
       <ScrollView
-        style={[styles.container, { backgroundColor: currentTheme.colors.background }]}
+        style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -224,7 +225,7 @@ export default function HomeScreen() {
               </View>
 
               <TutorialTarget id="home-lift-cards">
-                <View style={{ gap: 20 }}>
+                <View style={gap.gap20}>
                   {filteredProgress.map((progress) => (
                     <WorkoutStatsCard key={progress.workoutId} stats={progress} />
                   ))}
@@ -251,9 +252,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     padding: 20,
     paddingTop: 60,

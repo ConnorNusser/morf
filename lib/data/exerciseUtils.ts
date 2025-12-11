@@ -6,7 +6,7 @@
  * - ID: "exercise-name-equipment" e.g., "bench-press-barbell"
  */
 
-import { getAvailableWorkouts } from './workouts';
+import { getAvailableWorkouts } from '@/lib/workout/workouts';
 
 /**
  * Valid equipment types for exercises

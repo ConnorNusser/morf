@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { feedApi } from './feedApi';
+import { containsProfanity } from '@/lib/utils/moderation';
 
 // Feed types
 export interface FeedLike {
@@ -27,11 +28,23 @@ export interface WorkoutFeedData {
   comments?: FeedComment[];
 }
 
+// Individual set data for detailed workout viewing
+export interface WorkoutSetData {
+  setNumber: number;
+  weight: number;
+  reps: number;
+  unit: 'lbs' | 'kg';
+  isPersonalRecord?: boolean;
+}
+
 export interface WorkoutExerciseSummary {
   name: string;
   sets: number;
   bestSet: string;
   isPR?: boolean;
+  exerciseId?: string; // For tier lookup on feed display
+  percentile?: number; // Calculated strength percentile for this exercise
+  allSets?: WorkoutSetData[]; // Full set breakdown for detailed view
 }
 
 export interface WorkoutSummary {
@@ -42,6 +55,7 @@ export interface WorkoutSummary {
   exercise_count: number;
   set_count: number;
   total_volume: number;
+  volume_unit?: 'lbs' | 'kg'; // User's preferred unit for display
   exercises: WorkoutExerciseSummary[];
   feed_data?: WorkoutFeedData;
 }
@@ -82,37 +96,6 @@ export type FeedWorkout = WorkoutSummary & {
   profile_picture_url?: string;
   user_id: string;
 };
-
-// Profanity filter
-const BLOCKED_WORDS = [
-  'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'chink', 'spic', 'kike', 'wetback', 'beaner', 'gook', 'tranny', 'coon',
-  'fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'cock', 'pussy', 'whore', 'slut', 'bastard', 'damn', 'piss',
-  'penis', 'vagina', 'boob', 'tits', 'anal', 'porn', 'xxx', 'sex', 'nude', 'naked',
-  'kill', 'murder', 'rape', 'terrorist', 'nazi', 'hitler',
-  'pedo', 'molest', 'incest',
-];
-
-function containsProfanity(text: string): boolean {
-  const lower = text.toLowerCase();
-  for (const word of BLOCKED_WORDS) {
-    if (lower.includes(word)) {
-      return true;
-    }
-  }
-  const leetMap: Record<string, string> = {
-    '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's',
-  };
-  let normalized = lower;
-  for (const [leet, char] of Object.entries(leetMap)) {
-    normalized = normalized.split(leet).join(char);
-  }
-  for (const word of BLOCKED_WORDS) {
-    if (normalized.includes(word)) {
-      return true;
-    }
-  }
-  return false;
-}
 
 class FeedService {
   /**

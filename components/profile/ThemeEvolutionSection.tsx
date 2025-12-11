@@ -2,16 +2,16 @@ import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { storageService } from '@/lib/storage/storage';
 import {
   getThemeDisplayName,
   getThemeRequirement,
   isThemeUnlocked,
   ThemeLevel
-} from '@/lib/userProfile';
-import { userService } from '@/lib/userService';
-import { calculateOverallPercentile } from '@/lib/utils';
+} from '@/lib/storage/userProfile';
+import { userService } from '@/lib/services/userService';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';

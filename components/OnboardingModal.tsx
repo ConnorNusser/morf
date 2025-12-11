@@ -1,9 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import { analyticsService } from '@/lib/analytics';
-import playHapticFeedback from '@/lib/haptic';
-import { userService } from '@/lib/userService';
-import { userSyncService } from '@/lib/userSyncService';
+import { analyticsService } from '@/lib/services/analytics';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';

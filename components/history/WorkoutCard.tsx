@@ -1,6 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutByIdWithCustom } from '@/lib/workouts';
+import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';

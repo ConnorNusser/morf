@@ -1,4 +1,4 @@
-import { storageService, TutorialState } from '@/lib/storage';
+import { storageService, TutorialState } from '@/lib/storage/storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 export type { TutorialState };

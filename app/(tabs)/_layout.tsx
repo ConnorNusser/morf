@@ -13,7 +13,7 @@ import ProfileIcon from '@/components/icons/ProfileIcon';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import { TutorialOverlay } from '@/components/tutorial';
 import TabBarBackground from '@/components/ui/TabBarBackground';
-import { userService } from '@/lib/userService';
+import { userService } from '@/lib/services/userService';
 import { Ionicons } from '@expo/vector-icons';
 
 

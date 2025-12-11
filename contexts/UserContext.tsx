@@ -1,5 +1,5 @@
-import { userService } from '@/lib/userService';
-import { userSyncService } from '@/lib/userSyncService';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
 import { UserProfile } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 

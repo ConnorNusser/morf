@@ -1,53 +1,15 @@
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
-import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData } from '@/types';
-import { getStrengthLevelName, OneRMCalculator } from './strengthStandards';
-import { calculateOverallPercentile, convertWeightToLbs } from './utils';
+import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
+import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateOverallPercentile, convertWeightToLbs } from '@/lib/utils/utils';
 import { userService } from './userService';
-import { getWorkoutById, ALL_WORKOUTS } from './workouts';
+import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
+import { containsProfanity } from '@/lib/utils/moderation';
 // Re-export feed types and service for backwards compatibility
-export { feedService, type FeedLike, type FeedComment, type WorkoutFeedData, type WorkoutExerciseSummary, type WorkoutSummary, type PostFeedData, type FeedPost, type CreatePostInput, type FeedWorkout } from './feedService';
-
-// Profanity filter - common offensive words (lowercase)
-const BLOCKED_WORDS = [
-  // Slurs and hate speech
-  'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'chink', 'spic', 'kike', 'wetback', 'beaner', 'gook', 'tranny', 'coon',
-  // Profanity
-  'fuck', 'shit', 'ass', 'bitch', 'cunt', 'dick', 'cock', 'pussy', 'whore', 'slut', 'bastard', 'damn', 'piss',
-  // Sexual
-  'penis', 'vagina', 'boob', 'tits', 'anal', 'porn', 'xxx', 'sex', 'nude', 'naked',
-  // Violence
-  'kill', 'murder', 'rape', 'terrorist', 'nazi', 'hitler',
-  // Other offensive
-  'pedo', 'molest', 'incest',
-];
-
-// Check if username contains profanity
-function containsProfanity(username: string): boolean {
-  const lower = username.toLowerCase();
-  // Check for exact matches and substrings
-  for (const word of BLOCKED_WORDS) {
-    if (lower.includes(word)) {
-      return true;
-    }
-  }
-  // Check for leet speak variations (basic)
-  const leetMap: Record<string, string> = {
-    '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's',
-  };
-  let normalized = lower;
-  for (const [leet, char] of Object.entries(leetMap)) {
-    normalized = normalized.split(leet).join(char);
-  }
-  for (const word of BLOCKED_WORDS) {
-    if (normalized.includes(word)) {
-      return true;
-    }
-  }
-  return false;
-}
+export { feedService, type FeedLike, type FeedComment, type WorkoutFeedData, type WorkoutExerciseSummary, type WorkoutSummary, type PostFeedData, type FeedPost, type CreatePostInput, type FeedWorkout, type WorkoutSetData } from './feedService';
 
 class UserSyncService {
   private currentUserId: string | null = null;
@@ -926,10 +888,15 @@ class UserSyncService {
         return false;
       }
 
-      // Build exercise summaries
-      const exerciseSummaries: WorkoutExerciseSummary[] = workout.exercises
-        .filter(ex => ex.completedSets.length > 0)
-        .map(ex => {
+      // Get user profile for percentile calculations
+      const userProfile = await userService.getUserProfileOrDefault();
+      const bodyWeightLbs = convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit);
+      const gender = userProfile.gender || 'male';
+
+      // Build exercise summaries (async to support custom exercise lookup)
+      const exercisesWithSets = workout.exercises.filter(ex => ex.completedSets.length > 0);
+      const exerciseSummaries: WorkoutExerciseSummary[] = await Promise.all(
+        exercisesWithSets.map(async ex => {
           const completedSets = ex.completedSets.filter(s => s.completed);
           const bestSet = completedSets.reduce((best, current) => {
             const bestVolume = best.weight * best.reps;
@@ -937,13 +904,37 @@ class UserSyncService {
             return currentVolume > bestVolume ? current : best;
           }, completedSets[0]);
 
-          const exerciseInfo = getWorkoutById(ex.id);
+          // Calculate estimated 1RM and percentile for featured exercises
+          let percentile: number | undefined;
+          if (bestSet && isFeaturedLift(ex.id) && bodyWeightLbs > 0) {
+            const weightLbs = bestSet.unit === 'kg' ? bestSet.weight * 2.205 : bestSet.weight;
+            const estimated1RM = OneRMCalculator.estimate(weightLbs, bestSet.reps);
+            percentile = calculateStrengthPercentile(estimated1RM, bodyWeightLbs, gender, ex.id);
+            if (percentile <= 0) percentile = undefined;
+          }
+
+          // Build all sets data for detailed view
+          const allSets = completedSets.map((set, index) => ({
+            setNumber: index + 1,
+            weight: set.weight,
+            reps: set.reps,
+            unit: set.unit as 'lbs' | 'kg',
+            // Mark the best set as a potential PR indicator
+            isPersonalRecord: bestSet && set.weight === bestSet.weight && set.reps === bestSet.reps,
+          }));
+
+          // Use async lookup to support custom exercises
+          const exerciseInfo = await getExerciseById(ex.id);
           return {
-            name: exerciseInfo?.name || ex.id.replace(/-/g, ' '),
+            name: exerciseInfo?.name || ex.id.replace(/-/g, ' ').replace(/_/g, ' '),
             sets: completedSets.length,
-            bestSet: bestSet ? `${bestSet.weight}x${bestSet.reps}` : '',
+            bestSet: bestSet ? `${bestSet.weight}×${bestSet.reps}` : '',
+            exerciseId: ex.id,
+            percentile,
+            allSets,
           };
-        });
+        })
+      );
 
       // Calculate totals
       const totalSets = workout.exercises.reduce(
@@ -1055,6 +1046,36 @@ class UserSyncService {
       }));
     } catch (error) {
       console.error('Error fetching user workouts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get lift history for a specific user and exercise
+   * Returns historical lift data for progression charts
+   */
+  async getUserLiftHistory(userId: string, exerciseId: string): Promise<{ estimated_1rm: number; recorded_at: Date }[]> {
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('user_lifts')
+        .select('estimated_1rm, recorded_at')
+        .eq('user_id', userId)
+        .eq('exercise_id', exerciseId)
+        .order('recorded_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching lift history:', error);
+        return [];
+      }
+
+      return (data || []).map(lift => ({
+        estimated_1rm: lift.estimated_1rm,
+        recorded_at: new Date(lift.recorded_at),
+      }));
+    } catch (error) {
+      console.error('Error fetching lift history:', error);
       return [];
     }
   }

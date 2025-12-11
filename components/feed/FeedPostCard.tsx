@@ -1,9 +1,9 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoPlayerContext } from '@/contexts/VideoPlayerContext';
-import { formatRelativeTime } from '@/lib/formatters';
-import playHapticFeedback from '@/lib/haptic';
-import { FeedPost } from '@/lib/feedService';
+import { formatRelativeTime } from '@/lib/ui/formatters';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { FeedPost } from '@/lib/services/feedService';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState, useEffect } from 'react';

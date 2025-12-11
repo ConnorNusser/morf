@@ -5,7 +5,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { TutorialProvider } from '@/contexts/TutorialContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
-import { notificationService } from '@/lib/notificationService';
+import { notificationService } from '@/lib/services/notificationService';
+import { layout } from '@/lib/ui/styles';
 import {
     Raleway_400Regular,
     Raleway_500Medium,
@@ -131,7 +132,7 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={layout.flex1}>
       <ThemeProvider>
         <AlertProvider>
           <VideoPlayerProvider>

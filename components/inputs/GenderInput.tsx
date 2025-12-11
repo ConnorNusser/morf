@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { Gender } from '@/lib/userProfile';
+import { gap } from '@/lib/ui/styles';
+import { Gender } from '@/lib/storage/userProfile';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
 
@@ -31,7 +32,7 @@ export default function GenderInput({ value, onChange, style }: GenderInputProps
         Gender
       </Text>
       
-      <View style={styles.optionsContainer}>
+      <View style={gap.gap8}>
         {GENDER_OPTIONS.map((option) => (
           <TouchableOpacity
             key={option.value}
@@ -68,9 +69,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 12,
-  },
-  optionsContainer: {
-    gap: 8,
   },
   optionButton: {
     paddingVertical: 12,

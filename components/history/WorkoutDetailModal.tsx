@@ -1,9 +1,9 @@
 import { useAlert } from '@/components/CustomAlert';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
-import { OneRMCalculator } from '@/lib/strengthStandards';
-import { getWorkoutByIdWithCustom } from '@/lib/workouts';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';

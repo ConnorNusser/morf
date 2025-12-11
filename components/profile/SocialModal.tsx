@@ -4,9 +4,10 @@ import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { analyticsService } from '@/lib/analytics';
-import { supabase } from '@/lib/supabase';
-import { userSyncService } from '@/lib/userSyncService';
+import { analyticsService } from '@/lib/services/analytics';
+import { gap, layout } from '@/lib/ui/styles';
+import { supabase } from '@/lib/services/supabase';
+import { userSyncService } from '@/lib/services/userSyncService';
 import { Friend, RemoteUser } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { File } from 'expo-file-system/next';
@@ -475,9 +476,9 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <KeyboardAvoidingView
-          style={styles.keyboardView}
+          style={layout.flex1}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           {/* Header */}
@@ -495,7 +496,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
             ListHeaderComponent={
               <View style={styles.content}>
                 {/* Profile Picture Section */}
-                <View style={styles.section}>
+                <View style={gap.gap12}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     Profile Picture
                   </Text>
@@ -533,13 +534,13 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Username Section */}
-                <View style={styles.section}>
+                <View style={gap.gap12}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     Your Username
                   </Text>
 
                   {isEditingUsername ? (
-                    <View style={styles.usernameEditContainer}>
+                    <View style={gap.gap12}>
                       <View style={[styles.usernameInputContainer, { backgroundColor: currentTheme.colors.surface }]}>
                         <Text style={[styles.atSymbol, { color: currentTheme.colors.primary }]}>@</Text>
                         <TextInput
@@ -588,7 +589,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                           variant="primary"
                           size="medium"
                           disabled={isSavingUsername || (!usernameAvailable && editedUsername !== username)}
-                          style={styles.saveButton}
+                          style={layout.flex1}
                         />
                       </View>
                     </View>
@@ -609,7 +610,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Social Links Section */}
-                <View style={styles.section}>
+                <View style={gap.gap12}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     Social Links
                   </Text>
@@ -695,7 +696,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Search Friends Section */}
-                <View style={styles.section}>
+                <View style={gap.gap12}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                     Add Friends
                   </Text>
@@ -717,7 +718,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
                   {/* Search Results */}
                   {searchResults.length > 0 && (
-                    <View style={styles.resultsList}>
+                    <View style={gap.gap8}>
                       {searchResults.map(user => (
                         <View key={user.id}>
                           {renderSearchResult({ item: user })}
@@ -734,7 +735,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Friends List Section */}
-                <View style={styles.section}>
+                <View style={gap.gap12}>
                   <View style={[styles.sectionHeader, { backgroundColor: 'transparent' }]}>
                     <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
                       Your Friends
@@ -762,7 +763,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       </Text>
                     </View>
                   ) : (
-                    <View style={styles.friendsList}>
+                    <View style={gap.gap8}>
                       {friends.map(friend => (
                         <View key={friend.id}>
                           {renderFriend({ item: friend })}
@@ -789,12 +790,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -813,9 +808,6 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 24,
   },
-  section: {
-    gap: 12,
-  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -832,9 +824,6 @@ const styles = StyleSheet.create({
   badgeText: {
     color: '#FFFFFF',
     fontSize: 12,
-  },
-  usernameEditContainer: {
-    gap: 12,
   },
   usernameInputContainer: {
     flexDirection: 'row',
@@ -867,9 +856,6 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 15,
   },
-  saveButton: {
-    flex: 1,
-  },
   usernameDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -901,12 +887,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     paddingVertical: 0,
-  },
-  resultsList: {
-    gap: 8,
-  },
-  friendsList: {
-    gap: 8,
   },
   noResults: {
     fontSize: 14,

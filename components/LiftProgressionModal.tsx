@@ -2,9 +2,10 @@ import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import ProgressionIndicator from '@/components/ProgressionIndicator';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { convertWeightForPreference } from '@/lib/utils';
+import { calculateAllPredictions, predictionModels } from '@/lib/data/predictionModels';
+import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { convertWeightForPreference } from '@/lib/utils/utils';
 import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -15,12 +16,6 @@ interface LiftProgressionModalProps {
   onClose: () => void;
   liftId: FeaturedLiftType;
   workoutName: string;
-}
-
-interface PredictionModel {
-  name: string;
-  description: string;
-  predict: (data: UserProgress[], days: number) => number;
 }
 
 export default function LiftProgressionModal({ visible, onClose, liftId, workoutName }: LiftProgressionModalProps) {
@@ -62,7 +57,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       setTopLift(topLift);
       
       if (data && data.length > 0) {
-        calculatePredictions(data);
+        runPredictions(data);
       }
     } catch (error) {
       console.error('Error loading lift data:', error);
@@ -73,15 +68,15 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
   // Calculate next rank target
   const getNextRankInfo = () => {
-    if (!userProfile || liftData.length === 0) return null;
+    if (!userProfile || !topLift) return null;
 
     const strengthGender = userProfile.gender === 'female' ? 'female' : 'male';
     const standards = strengthGender === 'male' ? MALE_STANDARDS[liftId] : FEMALE_STANDARDS[liftId];
-    
+
     if (!standards) return null;
 
-    const currentData = liftData[liftData.length - 1];
-    const currentPercentile = currentData.percentileRanking;
+    // Use topLift (best lift) for percentile, not most recent
+    const currentPercentile = topLift.percentileRanking;
 
     // Convert body weight to lbs for calculation
     const bodyWeightLbs = convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs');
@@ -118,80 +113,9 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     return null; // Already at S Tier
   };
 
-  // Asymptotic regression model for strength predictions
-  const asymptoticRegression = (data: UserProgress[], targetDays: number): number => {
-    if (data.length === 0) return 0;
-    if (data.length < 3) {
-      // Use simple linear extrapolation for insufficient data
-      const currentValue = data[data.length - 1].personalRecord;
-      if (data.length === 1) return currentValue; // No progression data
-      const firstValue = data[0].personalRecord;
-      const timeSpan = data.length;
-      const growthRate = (currentValue - firstValue) / timeSpan;
-      return Math.max(currentValue, currentValue + (growthRate * targetDays / 7));
-    }
-    
-    const values = data.map(d => d.personalRecord);
-    const lastValue = values[values.length - 1];
-    const firstValue = values[0];
-    const growthRate = Math.log(lastValue / firstValue) / data.length;
-    
-    // Asymptotic approach - assumes growth slows as we approach genetic potential
-    const geneticPotential = lastValue * 1.3; // Assume 30% more potential
-    const _currentProgress = (lastValue - firstValue) / (geneticPotential - firstValue);
-    const remainingPotential = geneticPotential - lastValue;
-    
-    // Exponential decay model for remaining growth
-    const futureGrowth = remainingPotential * (1 - Math.exp(-growthRate * targetDays / 30));
-    return lastValue + futureGrowth;
-  };
-
-
-
-  // Exponential smoothing model
-  const exponentialSmoothing = (data: UserProgress[], targetDays: number): number => {
-    if (data.length === 0) return 0;
-    if (data.length === 1) return data[0].personalRecord; // No trend data
-    
-    const alpha = 0.3; // Smoothing factor
-    let smoothedValue = data[0].personalRecord;
-    
-    for (let i = 1; i < data.length; i++) {
-      smoothedValue = alpha * data[i].personalRecord + (1 - alpha) * smoothedValue;
-    }
-    
-    // Project forward with trend
-    const trend = (data[data.length - 1].personalRecord - smoothedValue) / data.length;
-    return Math.max(data[data.length - 1].personalRecord, smoothedValue + (trend * targetDays / 7)); // Weekly trend
-  };
-
-  const predictionModels: PredictionModel[] = [
-    {
-      name: 'Asymptotic Regression',
-      description: 'Accounts for diminishing returns as you approach genetic potential',
-      predict: asymptoticRegression
-    },
-    {
-      name: 'Exponential Smoothing',
-      description: 'Weighted recent performance with trend analysis',
-      predict: exponentialSmoothing
-    }
-  ];
-
-  const calculatePredictions = (data: UserProgress[]) => {
+  const runPredictions = (data: UserProgress[]) => {
     if (data.length === 0) return;
-    
-    const newPredictions: { [key: string]: number } = {};
-    const timeframes = [30, 90, 180, 365]; // 1M, 3M, 6M, 1Y
-    
-    predictionModels.forEach(model => {
-      timeframes.forEach(days => {
-        const key = `${model.name}_${days}`;
-        newPredictions[key] = model.predict(data, days);
-      });
-    });
-    
-    setPredictions(newPredictions);
+    setPredictions(calculateAllPredictions(data));
   };
 
   const getFilteredData = () => {
@@ -231,9 +155,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   };
 
   const renderCurrentStats = () => {
-    if (liftData.length === 0) return null;
+    if (!topLift) return null;
 
-    const currentData = liftData[liftData.length - 1];
     const nextRank = getNextRankInfo();
 
     // Calculate 3-month prediction average
@@ -262,10 +185,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
         {/* Tier Badge and Percentile */}
         <View style={styles.tierHeader}>
-          <TierBadge percentile={currentData.percentileRanking} size="large" />
+          <TierBadge percentile={topLift.percentileRanking} size="large" />
           <View style={styles.percentileBlock}>
             <Text style={[styles.percentileNumber, { color: currentTheme.colors.text }]}>
-              {currentData.percentileRanking}
+              {topLift.percentileRanking}
             </Text>
             <Text style={[styles.percentileSub, { color: currentTheme.colors.text + '80' }]}>
               percentile
@@ -502,17 +425,14 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
               
               {/* Interactive Chart */}
               <InteractiveProgressChart
-                data={getFilteredData()}
+                data={liftData}
                 selectedMetric={selectedMetric}
                 weightUnit={weightUnit}
                 predictionValue={getAveragePrediction()}
                 title={selectedMetric === 'oneRM' ? 'One Rep Max' : 'Training Volume' + ' Progression'}
                 description="Tap points to see exact values"
               />
-              
-              {/* Timeframe Selector */}
-              {renderTimeframeSelector()}
-              
+
               {/* Predictions */}
               {renderPredictions()}
               

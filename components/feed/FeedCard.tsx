@@ -1,11 +1,13 @@
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatDuration, formatRelativeTime } from '@/lib/formatters';
-import playHapticFeedback from '@/lib/haptic';
-import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
-import { StrengthTier } from '@/lib/strengthStandards';
-import { WorkoutSummary } from '@/lib/userSyncService';
+import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
+import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
+import { WorkoutSummary } from '@/lib/services/userSyncService';
+import { formatVolume } from '@/lib/utils/utils';
+import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
@@ -24,10 +26,11 @@ interface FeedCardProps {
   onLike?: () => void;
   onComment?: () => void;
   currentUserId?: string | null;
+  weightUnit?: WeightUnit;
 }
 
 
-export default function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId }: FeedCardProps) {
+export default function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs' }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -121,7 +124,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
 
       {/* Stats row */}
       <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
-        {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
+        {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {formatVolume(workout.total_volume, weightUnit)}
       </Text>
 
       {/* PPL chips */}
@@ -151,9 +154,14 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
         <View style={styles.exercises}>
           {workout.exercises.slice(0, 3).map((ex, i) => (
             <View key={i} style={styles.exerciseRow}>
-              <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                {ex.name}
-              </Text>
+              <View style={styles.exerciseNameContainer}>
+                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  {ex.name}
+                </Text>
+                {ex.percentile && ex.percentile > 0 && (
+                  <TierBadge tier={getStrengthTier(ex.percentile)} size="tiny" />
+                )}
+              </View>
               <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
                 {ex.bestSet}
               </Text>
@@ -321,9 +329,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
   },
+  exerciseNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   exerciseName: {
     fontSize: 15,
-    flex: 1,
   },
   exerciseSets: {
     fontSize: 14,
