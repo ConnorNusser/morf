@@ -1,7 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
-import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal';
 import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
@@ -139,7 +138,7 @@ export default function WorkoutScreen() {
                   onPress={handleQuickSummary}
                 >
                   <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     Summary
                   </Text>
                 </TouchableOpacity>
@@ -180,20 +179,20 @@ export default function WorkoutScreen() {
                     styles.timerText,
                     {
                       color: isResting ? '#fff' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_600SemiBold'
+                      fontFamily: currentTheme.fonts.semiBold
                     }
                   ]}>
                     {isResting ? formattedRestTime : formatTime(elapsedTime)}
                   </Text>
                   {isResting && (
-                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
                       REST
                     </Text>
                   )}
                 </RNView>
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 Workout
               </Text>
             )}
@@ -205,7 +204,7 @@ export default function WorkoutScreen() {
                 style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishPress}
               >
-                <Text style={[styles.finishButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                   Finish
                 </Text>
               </TouchableOpacity>
@@ -235,10 +234,10 @@ export default function WorkoutScreen() {
 
               {/* Rest timer display */}
               <RNView style={styles.expandedTimerCenter}>
-                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                   {formattedRestTime}
                 </Text>
-                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   rest remaining
                 </Text>
               </RNView>
@@ -259,7 +258,7 @@ export default function WorkoutScreen() {
                 style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                 onPress={handleResetWorkoutTimer}
               >
-                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                   Restart Workout ({formatTime(elapsedTime)})
                 </Text>
               </TouchableOpacity>
@@ -269,7 +268,7 @@ export default function WorkoutScreen() {
                 style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishRest}
               >
-                <Text style={[styles.doneRestButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.doneRestButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -277,9 +276,12 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Quick Summary Toast */}
-        <WorkoutSummaryModal
+        {/* Quick Summary Preview */}
+        <WorkoutFinishModal
           visible={showSummary}
+          noteText={noteText}
+          duration={elapsedTime}
+          isPreviewMode={true}
           exercises={parsedExercises}
           isLoading={summaryLoading}
           onDismiss={() => setShowSummary(false)}

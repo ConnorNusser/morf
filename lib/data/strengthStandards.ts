@@ -162,7 +162,211 @@ export const MALE_STANDARDS: Record<string, StrengthStandard> = {
     advanced: 1.00,       // 50th percentile
     elite: 1.50,          // 75th percentile
     god: 2.00,           // 90th percentile (from study)
-  }
+  },
+  // Additional exercises from strengthlevel.com
+  'tricep-pushdown-cables': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.00,          // 75th percentile
+    god: 1.50,            // 90th percentile
+  },
+  'hammer-curl-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.45,          // 75th percentile
+    god: 0.60,            // 90th percentile
+  },
+  'bicep-curl-cables': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.65,       // 50th percentile
+    elite: 1.05,          // 75th percentile
+    god: 1.50,            // 90th percentile
+  },
+  'row-dumbbells': {
+    beginner: 0.20,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.80,          // 75th percentile
+    god: 1.05,            // 90th percentile
+  },
+  'seated-row-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.00,       // 50th percentile
+    elite: 1.50,          // 75th percentile
+    god: 2.00,            // 90th percentile
+  },
+  'leg-curl-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.00,       // 50th percentile
+    elite: 1.50,          // 75th percentile
+    god: 2.00,            // 90th percentile
+  },
+  'calf-raise-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.75,       // 50th percentile
+    elite: 2.75,          // 75th percentile
+    god: 4.00,            // 90th percentile
+  },
+  'chest-fly-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.50,       // 50th percentile
+    elite: 0.85,          // 75th percentile
+    god: 1.35,            // 90th percentile
+  },
+  'flyes-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.15,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.50,          // 75th percentile
+    god: 0.70,            // 90th percentile
+  },
+  'sumo-deadlift-barbell': {
+    beginner: 1.25,       // 10th percentile
+    intermediate: 1.50,   // 25th percentile
+    advanced: 2.25,       // 50th percentile
+    elite: 2.75,          // 75th percentile
+    god: 3.50,            // 90th percentile
+  },
+  'bench-press-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.25,       // 50th percentile
+    elite: 1.75,          // 75th percentile
+    god: 2.25,            // 90th percentile
+  },
+  'bench-press-smith-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.25,       // 50th percentile
+    elite: 1.75,          // 75th percentile
+    god: 2.25,            // 90th percentile
+  },
+  'squat-smith-machine': {
+    beginner: 0.75,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.50,       // 50th percentile
+    elite: 2.25,          // 75th percentile
+    god: 3.00,            // 90th percentile
+  },
+  'tricep-extension-dumbbells': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.65,       // 50th percentile
+    elite: 1.00,          // 75th percentile
+    god: 1.40,            // 90th percentile
+  },
+  'walking-lunge-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.40,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.85,            // 90th percentile
+  },
+  'lunges-barbell': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.00,       // 50th percentile
+    elite: 1.50,          // 75th percentile
+    god: 2.00,            // 90th percentile
+  },
+  'romanian-deadlift-dumbbells': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.30,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.80,          // 75th percentile
+    god: 1.10,            // 90th percentile
+  },
+  'goblet-squat-dumbbells': {
+    beginner: 0.20,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.85,          // 75th percentile
+    god: 1.15,            // 90th percentile
+  },
+  'goblet-squat-kettlebell': {
+    beginner: 0.20,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.85,          // 75th percentile
+    god: 1.15,            // 90th percentile
+  },
+  'bulgarian-split-squat-dumbbells': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.25,          // 75th percentile
+    god: 1.75,            // 90th percentile
+  },
+  'rear-delt-fly-dumbbells': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.25,       // 50th percentile
+    elite: 0.40,          // 75th percentile
+    god: 0.60,            // 90th percentile
+  },
+  'rear-delt-fly-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.25,       // 50th percentile
+    elite: 0.40,          // 75th percentile
+    god: 0.60,            // 90th percentile
+  },
+  'arnold-press-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.45,          // 75th percentile
+    god: 0.65,            // 90th percentile
+  },
+  'lateral-raise-cables': {
+    beginner: 0.00,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.25,       // 50th percentile
+    elite: 0.45,          // 75th percentile
+    god: 0.75,            // 90th percentile
+  },
+  'skull-crushers-dumbbells': {
+    beginner: 0.20,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.80,          // 75th percentile
+    god: 1.10,            // 90th percentile
+  },
+  'overhead-tricep-extension-cables': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.35,   // 25th percentile
+    advanced: 0.65,       // 50th percentile
+    elite: 1.00,          // 75th percentile
+    god: 1.40,            // 90th percentile
+  },
+  'crossover-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.50,       // 50th percentile
+    elite: 0.85,          // 75th percentile
+    god: 1.35,            // 90th percentile
+  },
+  'chest-fly-machine': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.85,       // 50th percentile
+    elite: 1.25,          // 75th percentile
+    god: 1.75,            // 90th percentile
+  },
+  'hip-thrust-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.75,       // 50th percentile
+    elite: 2.50,          // 75th percentile
+    god: 3.50,            // 90th percentile
+  },
 };
 
 export const FEMALE_STANDARDS: Record<string, StrengthStandard> = {
@@ -319,7 +523,211 @@ export const FEMALE_STANDARDS: Record<string, StrengthStandard> = {
     advanced: 0.50,       // 50th percentile
     elite: 0.85,          // 75th percentile
     god: 1.20,           // 90th percentile (from study)
-  }
+  },
+  // Additional exercises from strengthlevel.com
+  'tricep-pushdown-cables': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.50,       // 50th percentile
+    elite: 0.75,          // 75th percentile
+    god: 1.05,            // 90th percentile
+  },
+  'hammer-curl-dumbbells': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.15,   // 25th percentile
+    advanced: 0.20,       // 50th percentile
+    elite: 0.30,          // 75th percentile
+    god: 0.40,            // 90th percentile
+  },
+  'bicep-curl-cables': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.40,       // 50th percentile
+    elite: 0.70,          // 75th percentile
+    god: 1.00,            // 90th percentile
+  },
+  'row-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.35,       // 50th percentile
+    elite: 0.50,          // 75th percentile
+    god: 0.65,            // 90th percentile
+  },
+  'seated-row-machine': {
+    beginner: 0.30,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.00,          // 75th percentile
+    god: 1.35,            // 90th percentile
+  },
+  'leg-curl-machine': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.45,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.05,          // 75th percentile
+    god: 1.45,            // 90th percentile
+  },
+  'calf-raise-machine': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.25,       // 50th percentile
+    elite: 2.25,          // 75th percentile
+    god: 3.25,            // 90th percentile
+  },
+  'chest-fly-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.15,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.55,          // 75th percentile
+    god: 0.80,            // 90th percentile
+  },
+  'flyes-dumbbells': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.20,       // 50th percentile
+    elite: 0.30,          // 75th percentile
+    god: 0.45,            // 90th percentile
+  },
+  'sumo-deadlift-barbell': {
+    beginner: 0.75,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.50,       // 50th percentile
+    elite: 2.00,          // 75th percentile
+    god: 2.50,            // 90th percentile
+  },
+  'bench-press-machine': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.30,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.90,          // 75th percentile
+    god: 1.25,            // 90th percentile
+  },
+  'bench-press-smith-machine': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.25,          // 75th percentile
+    god: 1.50,            // 90th percentile
+  },
+  'squat-smith-machine': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.75,   // 25th percentile
+    advanced: 1.00,       // 50th percentile
+    elite: 1.50,          // 75th percentile
+    god: 2.25,            // 90th percentile
+  },
+  'tricep-extension-dumbbells': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.35,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.85,            // 90th percentile
+  },
+  'walking-lunge-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.45,          // 75th percentile
+    god: 0.65,            // 90th percentile
+  },
+  'lunges-barbell': {
+    beginner: 0.25,       // 10th percentile
+    intermediate: 0.50,   // 25th percentile
+    advanced: 0.75,       // 50th percentile
+    elite: 1.25,          // 75th percentile
+    god: 1.50,            // 90th percentile
+  },
+  'romanian-deadlift-dumbbells': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.40,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.80,            // 90th percentile
+  },
+  'goblet-squat-dumbbells': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.40,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.85,            // 90th percentile
+  },
+  'goblet-squat-kettlebell': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.40,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.85,            // 90th percentile
+  },
+  'bulgarian-split-squat-dumbbells': {
+    beginner: 0.15,       // 10th percentile
+    intermediate: 0.30,   // 25th percentile
+    advanced: 0.55,       // 50th percentile
+    elite: 0.85,          // 75th percentile
+    god: 1.25,            // 90th percentile
+  },
+  'rear-delt-fly-dumbbells': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.15,       // 50th percentile
+    elite: 0.25,          // 75th percentile
+    god: 0.40,            // 90th percentile
+  },
+  'rear-delt-fly-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.15,       // 50th percentile
+    elite: 0.25,          // 75th percentile
+    god: 0.40,            // 90th percentile
+  },
+  'arnold-press-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.15,   // 25th percentile
+    advanced: 0.20,       // 50th percentile
+    elite: 0.30,          // 75th percentile
+    god: 0.35,            // 90th percentile
+  },
+  'lateral-raise-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.10,   // 25th percentile
+    advanced: 0.15,       // 50th percentile
+    elite: 0.25,          // 75th percentile
+    god: 0.35,            // 90th percentile
+  },
+  'skull-crushers-dumbbells': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.35,       // 50th percentile
+    elite: 0.55,          // 75th percentile
+    god: 0.75,            // 90th percentile
+  },
+  'overhead-tricep-extension-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.20,   // 25th percentile
+    advanced: 0.35,       // 50th percentile
+    elite: 0.60,          // 75th percentile
+    god: 0.85,            // 90th percentile
+  },
+  'crossover-cables': {
+    beginner: 0.05,       // 10th percentile
+    intermediate: 0.15,   // 25th percentile
+    advanced: 0.30,       // 50th percentile
+    elite: 0.55,          // 75th percentile
+    god: 0.80,            // 90th percentile
+  },
+  'chest-fly-machine': {
+    beginner: 0.10,       // 10th percentile
+    intermediate: 0.25,   // 25th percentile
+    advanced: 0.50,       // 50th percentile
+    elite: 0.80,          // 75th percentile
+    god: 1.15,            // 90th percentile
+  },
+  'hip-thrust-machine': {
+    beginner: 0.50,       // 10th percentile
+    intermediate: 1.00,   // 25th percentile
+    advanced: 1.50,       // 50th percentile
+    elite: 2.25,          // 75th percentile
+    god: 3.00,            // 90th percentile
+  },
 };
 
 // Age adjustment factors (strength typically peaks in 20s-30s)
@@ -413,7 +821,7 @@ export interface TierInfo {
 export const TIER_COLORS: Record<StrengthTierBase, string> = {
   'S': '#FFD700', // Gold (Legendary)
   'A': '#9932CC', // Purple (Epic)
-  'B': '#4169E1', // Royal Blue (Rare)
+  'B': '#3558C0', // Deep Royal Blue (Rare)
   'C': '#2E8B57', // Sea Green (Uncommon)
   'D': '#808080', // Gray (Common)
   'E': '#808080', // Gray (Common)

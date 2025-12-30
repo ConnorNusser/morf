@@ -12,12 +12,16 @@ export interface ParsedSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
+  // For timed/cardio exercises
+  duration?: number;  // Duration in seconds
+  distance?: number;  // Distance in meters
 }
 
 export interface ParsedExercise {
   name: string;
   matchedExerciseId?: string;
   isCustom: boolean;
+  trackingType?: 'reps' | 'timed' | 'cardio';
   sets: ParsedSet[]; // Actual working sets performed
   recommendedSets?: ParsedSet[]; // Template/target sets (what they should aim for)
 }
@@ -35,21 +39,27 @@ export interface ParsedExerciseSummary {
   recommendedSets?: ParsedSet[]; // Template/target sets
   matchedExerciseId?: string; // ID of the matched exercise from database
   isCustom?: boolean; // Whether this is a custom exercise
+  trackingType?: 'reps' | 'timed' | 'cardio';
 }
 
 // AI response structure
 interface AIParseResponse {
   exercises: {
     name: string;
+    trackingType?: 'reps' | 'timed' | 'cardio';
     sets: {
       weight: number;
       reps: number;
       unit: 'lbs' | 'kg';
+      duration?: number;  // seconds
+      distance?: number;  // meters
     }[];
     recommendedSets?: {
       weight: number;
       reps: number;
       unit: 'lbs' | 'kg';
+      duration?: number;
+      distance?: number;
     }[];
   }[];
   confidence: number;
@@ -164,15 +174,20 @@ class WorkoutNoteParser {
           name: ex.name,
           matchedExerciseId: match?.id,
           isCustom: match ? match.isCustom : true,
+          trackingType: ex.trackingType,
           sets: (ex.sets || []).map(s => ({
             weight: s.weight,
             reps: s.reps,
             unit: s.unit as WeightUnit,
+            duration: s.duration,
+            distance: s.distance,
           })),
           recommendedSets: ex.recommendedSets?.map(s => ({
             weight: s.weight,
             reps: s.reps,
             unit: s.unit as WeightUnit,
+            duration: s.duration,
+            distance: s.distance,
           })),
         });
       }
@@ -357,6 +372,7 @@ class WorkoutNoteParser {
           recommendedSets: ex.recommendedSets ? [...ex.recommendedSets] : undefined,
           matchedExerciseId: ex.matchedExerciseId,
           isCustom: ex.isCustom,
+          trackingType: ex.trackingType,
         });
       }
     }
@@ -400,6 +416,8 @@ class WorkoutNoteParser {
         reps: set.reps,
         unit: set.unit,
         completed: true,
+        duration: set.duration,
+        distance: set.distance,
       }));
 
       // Use matched ID or generate from name as final fallback
@@ -446,6 +464,8 @@ class WorkoutNoteParser {
         reps: set.reps,
         unit: set.unit,
         completed: true,
+        duration: set.duration,
+        distance: set.distance,
       }));
 
       // Use matched ID or generate from name

@@ -52,7 +52,8 @@
     "equipment": ["bodyweight"],
     "description": "Isometric core strengthening exercise.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "trackingType": "timed"
   },
   {
     "id": "squat-barbell",
@@ -669,5 +670,89 @@
     "description": "Squat holding kettlebell at chest level for core engagement.",
     "isMainLift": false,
     "themeLevel": "beginner"
+  },
+  {
+    "id": "rowing-machine",
+    "name": "Rowing Machine",
+    "category": "cardio",
+    "primaryMuscles": ["back", "legs"],
+    "secondaryMuscles": ["arms", "core"],
+    "equipment": ["machine"],
+    "description": "Full-body cardio exercise using a rowing ergometer. Track time and distance.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "cardio"
+  },
+  {
+    "id": "stationary-bike",
+    "name": "Stationary Bike",
+    "category": "cardio",
+    "primaryMuscles": ["legs"],
+    "secondaryMuscles": ["core"],
+    "equipment": ["machine"],
+    "description": "Low-impact cardio exercise on a stationary bicycle. Track time and distance.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "cardio"
+  },
+  {
+    "id": "treadmill",
+    "name": "Treadmill",
+    "category": "cardio",
+    "primaryMuscles": ["legs"],
+    "secondaryMuscles": ["core"],
+    "equipment": ["machine"],
+    "description": "Running or walking on a treadmill. Track time and distance.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "cardio"
+  },
+  {
+    "id": "elliptical",
+    "name": "Elliptical",
+    "category": "cardio",
+    "primaryMuscles": ["legs"],
+    "secondaryMuscles": ["arms", "core"],
+    "equipment": ["machine"],
+    "description": "Low-impact cardio machine combining running and stair climbing motions.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "cardio"
+  },
+  {
+    "id": "stair-climber",
+    "name": "Stair Climber",
+    "category": "cardio",
+    "primaryMuscles": ["legs", "glutes"],
+    "secondaryMuscles": ["core"],
+    "equipment": ["machine"],
+    "description": "Cardio machine simulating stair climbing. Track time and floors.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "cardio"
+  },
+  {
+    "id": "dead-hang-bodyweight",
+    "name": "Dead Hang (Bodyweight)",
+    "category": "flexibility",
+    "primaryMuscles": ["back", "arms"],
+    "secondaryMuscles": ["shoulders", "core"],
+    "equipment": ["bodyweight"],
+    "description": "Hanging from a bar to decompress spine and build grip strength.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed"
+  },
+  {
+    "id": "wall-sit-bodyweight",
+    "name": "Wall Sit (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": ["legs"],
+    "secondaryMuscles": ["core"],
+    "equipment": ["bodyweight"],
+    "description": "Isometric leg exercise holding a seated position against a wall.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed"
   }
 ]

@@ -24,6 +24,15 @@ export const tutorialSteps: TutorialStep[] = [
     screen: 'home',
   },
   {
+    id: 'home-feed',
+    title: 'Community Feed',
+    description: 'Switch to Feed to see what others are lifting! Share your workouts and connect with the community.',
+    targetId: 'home-view-selector',
+    tooltipPosition: 'bottom',
+    pointerDirection: 'up',
+    screen: 'home',
+  },
+  {
     id: 'home-stats',
     title: 'Your Strength Stats',
     description: 'This card shows your overall strength level compared to other lifters. Track your progress as you get stronger!',

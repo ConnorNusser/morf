@@ -26,7 +26,6 @@ export default function GenderInput({ value, onChange, style }: GenderInputProps
         styles.label, 
         { 
           color: currentTheme.colors.text,
-          fontFamily: 'Raleway_600SemiBold',
         }
       ]}>
         Gender
@@ -49,7 +48,6 @@ export default function GenderInput({ value, onChange, style }: GenderInputProps
               styles.optionText,
               {
                 color: value === option.value ? '#FFFFFF' : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               },
             ]}>
               {option.label}

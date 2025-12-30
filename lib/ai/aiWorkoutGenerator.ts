@@ -1,4 +1,4 @@
-import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, UserProfile, WorkoutCategory } from '@/types';
+import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
 import OpenAI from 'openai';
 import { analyticsService } from '@/lib/services/analytics';
 import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
@@ -518,6 +518,19 @@ class AIWorkoutGeneratorService {
     else if (nameLower.includes('cable')) equipment = ['cable'];
     else if (nameLower.includes('kettlebell') || nameLower.includes('kb ')) equipment = ['kettlebell'];
 
+    // Infer tracking type from name
+    let trackingType: TrackingType = 'reps';
+    if (nameLower.includes('plank') || nameLower.includes('hold') || nameLower.includes('hang') ||
+        nameLower.includes('wall sit') || nameLower.includes('isometric')) {
+      trackingType = 'timed';
+    } else if (nameLower.includes('row machine') || nameLower.includes('rowing') ||
+               nameLower.includes('treadmill') || nameLower.includes('bike') ||
+               nameLower.includes('elliptical') || nameLower.includes('stair') ||
+               nameLower.includes('run') || nameLower.includes('jog') ||
+               nameLower.includes('cycle') || nameLower.includes('cardio')) {
+      trackingType = 'cardio';
+    }
+
     // Infer primary muscle from common exercise patterns
     let primaryMuscles: MuscleGroup[] = ['chest'];
     let secondaryMuscles: MuscleGroup[] = [];
@@ -559,6 +572,11 @@ class AIWorkoutGeneratorService {
       primaryMuscles = ['glutes'];
       secondaryMuscles = ['legs'];
       category = 'isolation';
+    } else if (trackingType === 'cardio') {
+      // Cardio exercises typically target legs and full-body
+      primaryMuscles = ['legs'];
+      secondaryMuscles = ['core'];
+      category = 'cardio';
     }
 
     return {
@@ -571,6 +589,7 @@ class AIWorkoutGeneratorService {
       description: `Custom exercise: ${exerciseName}`,
       isMainLift: false,
       themeLevel: 'beginner',
+      trackingType,
       isCustom: true,
       createdAt: new Date(),
     };

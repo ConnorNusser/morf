@@ -55,7 +55,6 @@ const WeightUnitPreferenceSection = () => {
             styles.sectionTitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             Weight Units
@@ -65,7 +64,6 @@ const WeightUnitPreferenceSection = () => {
               styles.weightUnitSubtitle, 
               { 
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {getWeightUnitSummary()}
@@ -76,7 +74,6 @@ const WeightUnitPreferenceSection = () => {
               styles.weightUnitDescription, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_400Regular',
               }
             ]}>
               Choose your preferred unit system for weights and exercises
@@ -108,7 +105,6 @@ const WeightUnitPreferenceSection = () => {
                 styles.unitButtonText,
                 { 
                   color: weightUnit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
                 }
               ]}>
                 lbs
@@ -117,7 +113,6 @@ const WeightUnitPreferenceSection = () => {
                 styles.unitButtonSubtext,
                 { 
                   color: weightUnit === 'lbs' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                  fontFamily: 'Raleway_400Regular',
                 }
               ]}>
                 Imperial
@@ -139,7 +134,6 @@ const WeightUnitPreferenceSection = () => {
                 styles.unitButtonText,
                 { 
                   color: weightUnit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
-                  fontFamily: 'Raleway_600SemiBold',
                 }
               ]}>
                 kg
@@ -148,7 +142,6 @@ const WeightUnitPreferenceSection = () => {
                 styles.unitButtonSubtext,
                 { 
                   color: weightUnit === 'kg' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                  fontFamily: 'Raleway_400Regular',
                 }
               ]}>
                 Metric

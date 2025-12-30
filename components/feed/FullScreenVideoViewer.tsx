@@ -305,7 +305,6 @@ const styles = StyleSheet.create({
   timeText: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
   },
   bottomControls: {
     flexDirection: 'row',
@@ -328,7 +327,6 @@ const styles = StyleSheet.create({
   likeCount: {
     color: '#fff',
     fontSize: 14,
-    fontFamily: 'Raleway_600SemiBold',
   },
   likeCountActive: {
     color: '#ff4757',

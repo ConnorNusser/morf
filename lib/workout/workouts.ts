@@ -40,6 +40,7 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
     god: 5,
     share_warm: 5,
     share_cool: 5,
+    christmas_theme_2025: 5,
   };
 
   const userThemeOrder = themeOrder[userThemeLevel];
@@ -120,7 +121,7 @@ export const analyzeWeakPoints = (
 };
 
 // Sync version - only checks built-in exercises
-export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null => {
+export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null => {
   const allWorkouts = getAvailableWorkouts(100);
   const workout = allWorkouts.find(w => w.id === exerciseId);
 
@@ -139,11 +140,12 @@ export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' 
     category: workout.category,
     primaryMuscles: workout.primaryMuscles,
     equipment: workout.equipment,
+    trackingType: workout.trackingType,
   };
 };
 
 // Async version - checks both built-in and custom exercises
-export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null> => {
+export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null> => {
   // First try built-in exercises
   const builtInWorkout = getWorkoutById(exerciseId);
   if (builtInWorkout) {
@@ -163,6 +165,7 @@ export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout,
         category: customExercise.category,
         primaryMuscles: customExercise.primaryMuscles,
         equipment: customExercise.equipment,
+        trackingType: customExercise.trackingType,
       };
     }
   } catch (error) {
@@ -177,7 +180,7 @@ export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout,
 export const getWorkoutByIdWithCustom = (
   exerciseId: string,
   customExercises: CustomExercise[]
-): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment'> | null => {
+): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null => {
   // First try built-in exercises
   const builtInWorkout = getWorkoutById(exerciseId);
   if (builtInWorkout) {
@@ -194,6 +197,7 @@ export const getWorkoutByIdWithCustom = (
       category: customExercise.category,
       primaryMuscles: customExercise.primaryMuscles,
       equipment: customExercise.equipment,
+      trackingType: customExercise.trackingType,
     };
   }
 

@@ -1,7 +1,7 @@
 {
   "name": "morfai",
   "main": "expo-router/entry",
-  "version": "1.4.1",
+  "version": "1.4.8",
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -14,8 +14,13 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@expo-google-fonts/arimo": "^0.4.2",
+    "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/karla": "^0.4.1",
+    "@expo-google-fonts/outfit": "^0.4.3",
+    "@expo-google-fonts/poppins": "^0.4.1",
     "@expo-google-fonts/raleway": "^0.4.1",
+    "@expo-google-fonts/rubik": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/cli": "^18.0.0",

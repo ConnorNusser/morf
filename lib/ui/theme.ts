@@ -2,6 +2,13 @@ import { ThemeLevel } from '@/types';
 
 export { ThemeLevel };
 
+export interface ThemeFonts {
+  regular: string;
+  medium: string;
+  semiBold: string;
+  bold: string;
+}
+
 export interface Theme {
   name: ThemeLevel;
   colors: {
@@ -13,10 +20,7 @@ export interface Theme {
     surface: string;
     border: string;
   };
-  properties: {
-    fontFamily?: string;
-    headingFontFamily?: string;
-  };
+  fonts: ThemeFonts;
   borderRadius: number;
 }
 
@@ -33,9 +37,11 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#FFFFFF',       // Pure white for cards (clean contrast)
       border: '#D4C4A8',        // Soft tan borders
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 16,
   },
@@ -52,28 +58,32 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#1C1C1F',       // Elevated dark
       border: '#27272A',        // Zinc 800
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 12,
   },
 
-  // C Tier - Clean iOS-inspired light theme
+  // C Tier - Modern light theme (iOS/Discord inspired)
   intermediate: {
     name: 'intermediate',
     colors: {
-      background: '#F2F2F7',    // iOS system gray 6
-      text: '#1C1C1E',          // iOS label
-      primary: '#007AFF',       // iOS blue
-      secondary: '#E5E5EA',     // iOS system gray 5
+      background: '#EFEEF3',    // Cool light gray (more contrast)
+      text: '#1A1A1A',          // Near black for readability
+      primary: '#5856D6',       // iOS purple
+      secondary: '#E5E4E9',     // Subtle gray
       accent: '#34C759',        // iOS green
-      surface: '#FFFFFF',       // White cards
-      border: '#C6C6C8',        // iOS separator
+      surface: '#FFFFFF',       // Pure white cards (contrast!)
+      border: '#D1D1D6',        // iOS separator gray
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 10,
   },
@@ -90,9 +100,11 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#1E293B',       // Slate 800
       border: '#334155',        // Slate 700
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 12,
   },
@@ -109,9 +121,11 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#221F2E',       // Elevated purple surface
       border: '#2E2A3E',        // Subtle purple border
     },
-    properties: {
-      fontFamily: 'Karla_400Regular',
-      headingFontFamily: 'Karla_700Bold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 10,
   },
@@ -128,9 +142,11 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#38322E',       // Elevated warm gray
       border: '#4A433E',        // Warm medium border
     },
-    properties: {
-      fontFamily: 'Karla_400Regular',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Karla_700Bold',
+      bold: 'Karla_700Bold',
     },
     borderRadius: 12,
   },
@@ -147,9 +163,11 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#FFFFFF',       // Pure white cards
       border: '#F5D0DC',        // Pink border
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_600SemiBold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 16,
   },
@@ -166,11 +184,34 @@ export const themes: Record<ThemeLevel, Theme> = {
       surface: '#16132D',       // Elevated violet
       border: '#6D28D9',        // Violet 700
     },
-    properties: {
-      fontFamily: 'System',
-      headingFontFamily: 'Raleway_700Bold',
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
     },
     borderRadius: 8,
+  },
+
+  // Christmas 2025 - Evergreen theme (Dec 1 - Jan 15)
+  christmas_theme_2025: {
+    name: 'christmas_theme_2025',
+    colors: {
+      background: '#1a3a2a',    // Deep forest green
+      text: '#F5F5F0',          // Warm white
+      primary: '#DC2626',       // Classic Christmas red
+      secondary: '#15803d',     // Lighter pine green
+      accent: '#FBBF24',        // Warm gold
+      surface: '#234536',       // Lighter forest surface
+      border: '#2d5a42',        // Muted green border
+    },
+    fonts: {
+      regular: 'Raleway_400Regular',
+      medium: 'Raleway_500Medium',
+      semiBold: 'Raleway_600SemiBold',
+      bold: 'Raleway_700Bold',
+    },
+    borderRadius: 14,
   },
 };
 
@@ -182,4 +223,19 @@ export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
   const normalizedTheme = currentTheme.startsWith('beginner') ? 'beginner' : currentTheme;
   const currentIndex = themeOrder.indexOf(normalizedTheme);
   return themeOrder[Math.min(currentIndex + 1, themeOrder.length - 1)];
+};
+
+// Check if a seasonal theme is currently available based on date
+export const isSeasonalThemeAvailable = (theme: ThemeLevel): boolean => {
+  const now = new Date();
+  const month = now.getMonth(); // 0-11
+  const day = now.getDate();
+
+  if (theme === 'christmas_theme_2025') {
+    // Available Dec 1 - Jan 15
+    return month === 11 || (month === 0 && day <= 15);
+  }
+
+  // Non-seasonal themes are always available
+  return true;
 }; 

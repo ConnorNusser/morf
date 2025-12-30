@@ -35,6 +35,9 @@ export interface WorkoutSetData {
   reps: number;
   unit: 'lbs' | 'kg';
   isPersonalRecord?: boolean;
+  // For timed/cardio exercises
+  duration?: number;  // seconds
+  distance?: number;  // meters
 }
 
 export interface WorkoutExerciseSummary {
@@ -45,6 +48,7 @@ export interface WorkoutExerciseSummary {
   exerciseId?: string; // For tier lookup on feed display
   percentile?: number; // Calculated strength percentile for this exercise
   allSets?: WorkoutSetData[]; // Full set breakdown for detailed view
+  trackingType?: 'reps' | 'timed' | 'cardio';
 }
 
 export interface WorkoutSummary {
@@ -58,6 +62,9 @@ export interface WorkoutSummary {
   volume_unit?: 'lbs' | 'kg'; // User's preferred unit for display
   exercises: WorkoutExerciseSummary[];
   feed_data?: WorkoutFeedData;
+  // Cardio stats
+  total_distance_meters?: number;
+  total_cardio_seconds?: number;
 }
 
 export interface PostFeedData {
@@ -257,6 +264,8 @@ class FeedService {
     exercise_count: number;
     set_count: number;
     total_volume: number;
+    total_distance_meters?: number;
+    total_cardio_seconds?: number;
     exercises: WorkoutExerciseSummary[];
   }): Promise<boolean> {
     try {

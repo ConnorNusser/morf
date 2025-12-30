@@ -5,7 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { calculateAllPredictions, predictionModels } from '@/lib/data/predictionModels';
 import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
-import { convertWeightForPreference } from '@/lib/utils/utils';
+import { convertWeightForPreference, formatSet } from '@/lib/utils/utils';
 import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -254,7 +254,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 </View>
                 <View style={styles.historyValue}>
                   <Text style={[styles.historyValueText, { color: currentTheme.colors.primary }]}>
-                    {convertedWeight} × {lift.reps}
+                    {formatSet({ weight: convertedWeight, reps: lift.reps, unit: weightUnit }, { showUnit: false })}
                   </Text>
                   <Text style={[styles.historyEstimate, { color: currentTheme.colors.text + '60' }]}>
                     {isMaxAttempt ? '1RM attempt' : `~${convertedEstimate} ${weightUnit} 1RM`}
@@ -430,7 +430,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 weightUnit={weightUnit}
                 predictionValue={getAveragePrediction()}
                 title={selectedMetric === 'oneRM' ? 'One Rep Max' : 'Training Volume' + ' Progression'}
-                description="Tap points to see exact values"
+                description="Estimated from your workout sessions"
               />
 
               {/* Predictions */}
@@ -493,7 +493,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   headerSpacer: {
     width: 32,
@@ -509,7 +508,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
   },
   statsContainer: {
     paddingVertical: 20,
@@ -526,7 +524,6 @@ const styles = StyleSheet.create({
   percentileNumber: {
     fontSize: 42,
     fontWeight: '800',
-    fontFamily: 'Raleway_800ExtraBold',
   },
   percentileSub: {
     fontSize: 12,
@@ -539,19 +536,16 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
     marginBottom: 8,
   },
   currentValue: {
     fontSize: 48,
     fontWeight: '300',
-    fontFamily: 'Raleway_300Light',
     marginBottom: 4,
   },
   nextRankSubtitle: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 8,
   },
   changeContainer: {
@@ -562,11 +556,9 @@ const styles = StyleSheet.create({
   changePercent: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   changeLabel: {
     fontSize: 16,
-    fontFamily: 'Raleway_400Regular',
   },
   staggeredStatLeft: {
     alignItems: 'flex-start',
@@ -578,13 +570,11 @@ const styles = StyleSheet.create({
   },
   bottomStatLabel: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     marginBottom: 4,
   },
   bottomStatValue: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   selectorContainer: {
     paddingVertical: 16,
@@ -592,7 +582,6 @@ const styles = StyleSheet.create({
   selectorTitle: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 12,
   },
   timeframeContainer: {
@@ -609,7 +598,6 @@ const styles = StyleSheet.create({
   timeframeText: {
     fontSize: 14,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
   },
   metricContainer: {
     gap: 8,
@@ -623,12 +611,10 @@ const styles = StyleSheet.create({
   metricLabel: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 4,
   },
   metricDescription: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     lineHeight: 16,
   },
   predictionsContainer: {
@@ -637,12 +623,10 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
     marginBottom: 16,
   },
   predictionCard: {
@@ -656,12 +640,10 @@ const styles = StyleSheet.create({
   predictionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 4,
   },
   predictionDescription: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     lineHeight: 16,
   },
   predictionValues: {
@@ -674,19 +656,16 @@ const styles = StyleSheet.create({
   },
   predictionLabel: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     marginBottom: 4,
   },
   predictionValue: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 2,
   },
   predictionGain: {
     fontSize: 12,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
   },
   noDataContainer: {
     flex: 1,
@@ -697,13 +676,11 @@ const styles = StyleSheet.create({
   noDataTitle: {
     fontSize: 20,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginTop: 16,
     marginBottom: 8,
   },
   noDataText: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 40,
@@ -727,7 +704,6 @@ const styles = StyleSheet.create({
   },
   historyDateText: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
   },
   historyValue: {
     alignItems: 'flex-end',
@@ -735,10 +711,8 @@ const styles = StyleSheet.create({
   historyValueText: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   historyEstimate: {
     fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
   },
 }); 

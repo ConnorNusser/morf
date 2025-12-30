@@ -241,7 +241,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 8,
     letterSpacing: -0.3,
   },
@@ -260,12 +259,10 @@ const styles = StyleSheet.create({
   currentLabel: {
     fontSize: 14,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
   },
   currentValue: {
     fontSize: 18,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     letterSpacing: -0.2,
   },
   grid: {
@@ -301,31 +298,26 @@ const styles = StyleSheet.create({
   columnLabel: {
     fontSize: 12,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
     letterSpacing: 0.3,
   },
   levelName: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 2,
     letterSpacing: -0.2,
   },
   levelDescription: {
     fontSize: 12,
     fontWeight: '400',
-    fontFamily: 'Raleway_400Regular',
   },
   targetWeight: {
     fontSize: 18,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
     lineHeight: 20,
   },
   targetUnit: {
     fontSize: 12,
     fontWeight: '400',
-    fontFamily: 'Raleway_400Regular',
     marginTop: 2,
   },
   achievedStatus: {
@@ -334,7 +326,6 @@ const styles = StyleSheet.create({
   achievedText: {
     fontSize: 13,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   pendingStatus: {
     alignItems: 'flex-end',
@@ -342,12 +333,10 @@ const styles = StyleSheet.create({
   toGoText: {
     fontSize: 13,
     fontWeight: '500',
-    fontFamily: 'Raleway_500Medium',
   },
   progressText: {
     fontSize: 11,
     fontWeight: '400',
-    fontFamily: 'Raleway_400Regular',
     marginTop: 2,
   },
   progressContainer: {
@@ -375,7 +364,6 @@ const styles = StyleSheet.create({
   footnote: {
     fontSize: 11,
     fontWeight: '400',
-    fontFamily: 'Raleway_400Regular',
     textAlign: 'center',
     lineHeight: 16,
   },

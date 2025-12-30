@@ -9,10 +9,13 @@ import { gap, layout } from '@/lib/ui/styles';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService, WorkoutSummary } from '@/lib/services/userSyncService';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress } from '@/types';
+import { calculateStrengthPercentile } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { convertWeightToLbs } from '@/lib/utils/utils';
+import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, isFeaturedLift } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -70,6 +73,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSummary[]>([]);
+  const [workoutCount, setWorkoutCount] = useState<number>(0);
+  const [myLifts, setMyLifts] = useState<UserLiftData[]>([]);
+  const [myUserData, setMyUserData] = useState<RemoteUserData | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [memberSince, setMemberSince] = useState<Date | null>(null);
+  const [comparisonMode, setComparisonMode] = useState<'weight' | 'percentile'>('weight');
+  const [showAllComparisons, setShowAllComparisons] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [isFriendLoading, setIsFriendLoading] = useState(false);
@@ -142,19 +152,27 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
     setIsLoading(true);
     try {
+      // Get current user for comparison
+      const currentUser = await userSyncService.getCurrentUser();
+      setCurrentUserId(currentUser?.id || null);
+
       // Get user data including profile info, percentile data, and workouts
-      const [liftsResult, userResult, percentileResult, workoutsResult] = await Promise.all([
+      const [liftsResult, userResult, percentileResult, workoutsResult, workoutCountResult] = await Promise.all([
         supabase
           .from('user_best_lifts')
           .select('exercise_id, estimated_1rm, recorded_at')
           .eq('user_id', user.id),
         supabase
           .from('users')
-          .select('user_data, country_code')
+          .select('user_data, country_code, created_at')
           .eq('id', user.id)
           .single(),
         userSyncService.getUserPercentileData(user.id),
-        userSyncService.getUserWorkouts(user.id, 5)
+        userSyncService.getUserWorkouts(user.id, 5),
+        supabase
+          .from('user_workouts')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
       ]);
 
       if (liftsResult.error) {
@@ -174,8 +192,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         if (userResult.data.country_code && user) {
           user.country_code = userResult.data.country_code;
         }
+        // Set member since date
+        if (userResult.data.created_at) {
+          setMemberSince(new Date(userResult.data.created_at));
+        }
       } else {
         setUserData(null);
+        setMemberSince(null);
       }
 
       // Set percentile data
@@ -183,12 +206,37 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
       // Set recent workouts
       setRecentWorkouts(workoutsResult);
+
+      // Set workout count
+      setWorkoutCount(workoutCountResult.count || 0);
+
+      // Fetch current user's lifts and profile for comparison (separate query)
+      if (currentUser && currentUser.id !== user.id) {
+        const [myLiftsResult, myProfile] = await Promise.all([
+          supabase
+            .from('user_best_lifts')
+            .select('exercise_id, estimated_1rm, recorded_at')
+            .eq('user_id', currentUser.id),
+          userService.getUserProfileOrDefault()
+        ]);
+        setMyLifts(myLiftsResult.data || []);
+        setMyUserData({
+          height: myProfile.height,
+          weight: myProfile.weight,
+          gender: myProfile.gender,
+        });
+      } else {
+        setMyLifts([]);
+        setMyUserData(null);
+      }
     } catch (error) {
       console.error('Error loading user data:', error);
       setLifts([]);
       setUserData(null);
       setPercentileData(null);
       setRecentWorkouts([]);
+      setWorkoutCount(0);
+      setMyLifts([]);
     } finally {
       setIsLoading(false);
     }
@@ -200,6 +248,103 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       checkFriendStatus();
     }
   }, [visible, user, loadUserData, checkFriendStatus]);
+
+  // Enhance topContributions with weight data from lifts
+  // Must be before early return to maintain consistent hook order
+  const enhancedTopContributions = useMemo(() => {
+    if (!percentileData?.top_contributions) return [];
+
+    // Create a map of exercise_id -> estimated_1rm from lifts
+    const liftWeightMap: Record<string, number> = {};
+    lifts.forEach(lift => {
+      liftWeightMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    // Merge weight into topContributions
+    return percentileData.top_contributions.map(c => ({
+      ...c,
+      weight: c.weight || liftWeightMap[c.exercise_id] || undefined,
+    }));
+  }, [percentileData?.top_contributions, lifts]);
+
+  // Compute "You vs Them" comparison data
+  // Must be before early return to maintain consistent hook order
+  const liftComparison = useMemo(() => {
+    // Only show comparison when viewing someone else's profile
+    if (!currentUserId || currentUserId === user?.id || myLifts.length === 0 || lifts.length === 0) {
+      return null;
+    }
+
+    // Get body weights for percentile calculation
+    const myBodyWeight = myUserData?.weight ? convertWeightToLbs(myUserData.weight.value, myUserData.weight.unit) : 0;
+    const myGender = myUserData?.gender === 'male' || myUserData?.gender === 'female' ? myUserData.gender : 'male';
+    const theirBodyWeight = userData?.weight ? convertWeightToLbs(userData.weight.value, userData.weight.unit) : 0;
+    const theirGender = userData?.gender === 'male' || userData?.gender === 'female' ? userData.gender : 'male';
+
+    // Create maps for quick lookup
+    const myLiftMap: Record<string, number> = {};
+    myLifts.forEach(lift => {
+      myLiftMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    const theirLiftMap: Record<string, number> = {};
+    lifts.forEach(lift => {
+      theirLiftMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    // Find common exercises (only featured lifts for percentile mode)
+    let commonExercises = Object.keys(myLiftMap).filter(id => id in theirLiftMap);
+    if (comparisonMode === 'percentile') {
+      commonExercises = commonExercises.filter(id => isFeaturedLift(id));
+    }
+    if (commonExercises.length === 0) return null;
+
+    // Build comparison array
+    const comparisons = commonExercises
+      .map(exerciseId => {
+        const myWeight = myLiftMap[exerciseId];
+        const theirWeight = theirLiftMap[exerciseId];
+
+        // Calculate percentiles if in percentile mode
+        const myPercentile = myBodyWeight > 0 && isFeaturedLift(exerciseId)
+          ? Math.round(calculateStrengthPercentile(myWeight, myBodyWeight, myGender, exerciseId))
+          : 0;
+        const theirPercentile = theirBodyWeight > 0 && isFeaturedLift(exerciseId)
+          ? Math.round(calculateStrengthPercentile(theirWeight, theirBodyWeight, theirGender, exerciseId))
+          : 0;
+
+        const usePercentile = comparisonMode === 'percentile';
+        const myValue = usePercentile ? myPercentile : Math.round(myWeight);
+        const theirValue = usePercentile ? theirPercentile : Math.round(theirWeight);
+
+        return {
+          exerciseId,
+          name: getWorkoutById(exerciseId)?.name || exerciseId,
+          myValue,
+          theirValue,
+          myWeight: Math.round(myWeight),
+          theirWeight: Math.round(theirWeight),
+          myPercentile,
+          theirPercentile,
+          iWin: myValue > theirValue,
+          isTie: myValue === theirValue,
+        };
+      })
+      .filter(c => comparisonMode !== 'percentile' || (c.myPercentile > 0 && c.theirPercentile > 0))
+      .sort((a, b) => b.theirValue - a.theirValue);
+
+    if (comparisons.length === 0) return null;
+
+    const myWins = comparisons.filter(c => c.iWin && !c.isTie).length;
+    const theirWins = comparisons.filter(c => !c.iWin && !c.isTie).length;
+
+    return {
+      comparisons,
+      myWins,
+      theirWins,
+      ties: comparisons.length - myWins - theirWins,
+    };
+  }, [currentUserId, user?.id, myLifts, lifts, comparisonMode, myUserData, userData]);
 
   if (!user) return null;
 
@@ -239,7 +384,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Profile
           </Text>
           <TouchableOpacity
@@ -287,16 +432,32 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* User Info */}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
-                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     @{user.username}
                   </Text>
                   {user.country_code && (
-                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                       {getCountryName(user.country_code)}
                     </Text>
                   )}
+                  {/* Last workout & Member since */}
+                  <View style={styles.metaRow}>
+                    {recentWorkouts.length > 0 && (
+                      <Text style={[styles.metaText, { color: currentTheme.colors.text + '50' }]}>
+                        Last workout {formatRelativeTime(recentWorkouts[0].created_at)}
+                      </Text>
+                    )}
+                    {recentWorkouts.length > 0 && memberSince && (
+                      <Text style={[styles.metaDot, { color: currentTheme.colors.text + '50' }]}>·</Text>
+                    )}
+                    {memberSince && (
+                      <Text style={[styles.metaText, { color: currentTheme.colors.text + '50' }]}>
+                        Joined {memberSince.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </Text>
+                    )}
+                  </View>
                   {/* Social Links */}
-                  {(userData?.instagram_username || userData?.tiktok_username) && (
+                  {(userData?.instagram_username || userData?.tiktok_username || userData?.discord_username) && (
                     <View style={styles.socialLinksRow}>
                       {userData?.instagram_username && (
                         <TouchableOpacity
@@ -315,6 +476,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         >
                           <Ionicons name="logo-tiktok" size={18} color={currentTheme.colors.text} />
                         </TouchableOpacity>
+                      )}
+                      {userData?.discord_username && (
+                        <View
+                          style={[styles.socialButton, { backgroundColor: '#5865F220' }]}
+                        >
+                          <Ionicons name="logo-discord" size={18} color="#5865F2" />
+                        </View>
                       )}
                     </View>
                   )}
@@ -343,17 +511,17 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 <StrengthRadarCard
                   overallPercentile={Math.round(overallPercentile)}
                   muscleGroups={percentileData.muscle_groups}
-                  topContributions={percentileData.top_contributions}
+                  topContributions={enhancedTopContributions}
                 />
               )}
 
               {/* 1000lb Club Progress */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                 <View style={[styles.cardHeader, { backgroundColor: 'transparent' }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     1000lb Club
                   </Text>
-                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                     {big3Total} lbs
                   </Text>
                 </View>
@@ -369,7 +537,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     ]}
                   />
                 </View>
-                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   {thousandPoundProgress >= 100 ? 'Member!' : `${thousandPoundProgress}% to 1000lbs`}
                 </Text>
 
@@ -387,10 +555,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={benchMax ? 0.7 : 1}
                     disabled={!benchMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Bench
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {benchMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -406,10 +574,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={squatMax ? 0.7 : 1}
                     disabled={!squatMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Squat
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {squatMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -425,10 +593,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={deadliftMax ? 0.7 : 1}
                     disabled={!deadliftMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Deadlift
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {deadliftMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -447,12 +615,12 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         selectedMetric="oneRM"
                         weightUnit="lbs"
                         title={`${getExerciseName(selectedLiftId)} Progression`}
-                        description="Tap points to see exact values"
+                        description="Estimated from your workout sessions"
                       />
                     ) : (
                       <View style={styles.noHistoryContainer}>
                         <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
-                        <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                           Not enough data for progression chart
                         </Text>
                       </View>
@@ -463,33 +631,178 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
               {/* Stats Card */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   Stats
                 </Text>
                 <View style={styles.statsGrid}>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                      {workoutCount}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                      Workouts
+                    </Text>
+                  </View>
+                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                       {lifts.length}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Exercises
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                       {Math.round(totalVolume).toLocaleString()}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Total 1RM lbs
                     </Text>
                   </View>
                 </View>
               </View>
 
+              {/* You vs Them Comparison */}
+              {liftComparison && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={styles.comparisonHeader}>
+                    <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                      You vs @{user.username}
+                    </Text>
+                    <View style={styles.comparisonSummary}>
+                      <Text style={[
+                        styles.comparisonScore,
+                        {
+                          color: liftComparison.myWins > liftComparison.theirWins
+                            ? '#22C55E'
+                            : liftComparison.myWins < liftComparison.theirWins
+                              ? '#EF4444'
+                              : currentTheme.colors.text + '60'
+                        }
+                      ]}>
+                        {liftComparison.myWins}-{liftComparison.theirWins}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Mode toggle chips */}
+                  <View style={styles.comparisonChips}>
+                    <TouchableOpacity
+                      style={[
+                        styles.comparisonChip,
+                        {
+                          backgroundColor: comparisonMode === 'weight' ? currentTheme.colors.primary : currentTheme.colors.background,
+                          borderColor: comparisonMode === 'weight' ? currentTheme.colors.primary : currentTheme.colors.border,
+                        }
+                      ]}
+                      onPress={() => { setComparisonMode('weight'); setShowAllComparisons(false); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.comparisonChipText,
+                        { color: comparisonMode === 'weight' ? '#FFFFFF' : currentTheme.colors.text + '80' }
+                      ]}>
+                        By Weight
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.comparisonChip,
+                        {
+                          backgroundColor: comparisonMode === 'percentile' ? currentTheme.colors.primary : currentTheme.colors.background,
+                          borderColor: comparisonMode === 'percentile' ? currentTheme.colors.primary : currentTheme.colors.border,
+                        }
+                      ]}
+                      onPress={() => { setComparisonMode('percentile'); setShowAllComparisons(false); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.comparisonChipText,
+                        { color: comparisonMode === 'percentile' ? '#FFFFFF' : currentTheme.colors.text + '80' }
+                      ]}>
+                        By Percentile
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Column headers */}
+                  <View style={[styles.comparisonHeaderRow, { borderBottomColor: currentTheme.colors.border }]}>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60' }]}>You</Text>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60', flex: 1, textAlign: 'center' }]}>Exercise</Text>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60' }]}>Them</Text>
+                  </View>
+                  <View style={styles.comparisonList}>
+                    {(showAllComparisons ? liftComparison.comparisons : liftComparison.comparisons.slice(0, 4)).map((comp) => {
+                      const diff = comp.myValue - comp.theirValue;
+                      const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+                      return (
+                        <View key={comp.exerciseId} style={styles.comparisonRow}>
+                          <View style={[
+                            styles.comparisonValuePill,
+                            comp.iWin && !comp.isTie && { backgroundColor: '#22C55E15' }
+                          ]}>
+                            <Text style={[
+                              styles.comparisonNumber,
+                              {
+                                color: comp.iWin && !comp.isTie ? '#22C55E' : currentTheme.colors.text,
+                                fontFamily: currentTheme.fonts.semiBold,
+                              }
+                            ]}>
+                              {comp.myValue}{comparisonMode === 'percentile' ? '%' : ''}
+                            </Text>
+                          </View>
+                          <View style={styles.comparisonMiddle}>
+                            <Text style={[styles.comparisonExercise, { color: currentTheme.colors.text + '80' }]} numberOfLines={1}>
+                              {comp.name}
+                            </Text>
+                            {!comp.isTie && (
+                              <Text style={[
+                                styles.comparisonDiff,
+                                { color: diff > 0 ? '#22C55E' : '#EF4444' }
+                              ]}>
+                                {diffText}{comparisonMode === 'percentile' ? '%' : ''}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.comparisonValuePill}>
+                            <Text style={[
+                              styles.comparisonNumber,
+                              {
+                                color: currentTheme.colors.text,
+                                fontFamily: currentTheme.fonts.semiBold,
+                              }
+                            ]}>
+                              {comp.theirValue}{comparisonMode === 'percentile' ? '%' : ''}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {liftComparison.comparisons.length > 4 && (
+                    <TouchableOpacity
+                      style={[styles.showMoreButton, { borderColor: currentTheme.colors.border }]}
+                      onPress={() => setShowAllComparisons(!showAllComparisons)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.showMoreText, { color: currentTheme.colors.primary }]}>
+                        {showAllComparisons ? 'Show less' : `Show ${liftComparison.comparisons.length - 4} more`}
+                      </Text>
+                      <Ionicons
+                        name={showAllComparisons ? 'chevron-up' : 'chevron-down'}
+                        size={14}
+                        color={currentTheme.colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <Text style={[styles.comparisonFooter, { color: currentTheme.colors.text + '40' }]}>
+                    Comparing {liftComparison.comparisons.length} shared exercises ({comparisonMode === 'percentile' ? 'percentile' : '1RM lbs'})
+                  </Text>
+                </View>
+              )}
+
               {/* Other Top Lifts */}
               {otherLifts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
@@ -510,10 +823,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                           activeOpacity={0.7}
                         >
                           <View style={styles.liftRowLeft}>
-                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                               {getExerciseName(lift.exercise_id)}
                             </Text>
-                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_600SemiBold' }]}>
+                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.semiBold }]}>
                               {Math.round(lift.estimated_1rm)} lbs
                             </Text>
                           </View>
@@ -547,7 +860,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       ) : (
                         <View style={styles.noHistoryContainer}>
                           <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
-                          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                             Not enough data for progression chart
                           </Text>
                         </View>
@@ -560,7 +873,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* Recent Workouts */}
               {recentWorkouts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     Recent Workouts
                   </Text>
                   <View style={styles.workoutsList}>
@@ -582,14 +895,14 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                           >
                             <View style={styles.workoutRowContent}>
                               <View style={styles.workoutRowTop}>
-                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                                   {workout.title}
                                 </Text>
-                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                                   {formatRelativeTime(workout.created_at)}
                                 </Text>
                               </View>
-                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
                                 {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
                               </Text>
                             </View>
@@ -623,15 +936,15 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                                   ]}
                                 >
                                   <View style={styles.workoutExerciseLeft}>
-                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                                       {exercise.name}
                                     </Text>
-                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                                       {exercise.sets} sets
                                     </Text>
                                   </View>
                                   <View style={styles.workoutExerciseRight}>
-                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }]}>
+                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
                                       {exercise.bestSet}
                                     </Text>
                                     {exercise.isPR && (
@@ -654,7 +967,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {lifts.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="barbell-outline" size={32} color={currentTheme.colors.text + '30'} />
-                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                     No lift data available yet
                   </Text>
                 </View>
@@ -983,7 +1296,6 @@ const styles = StyleSheet.create({
   },
   friendButtonText: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
   },
   fullScreenContainer: {
     flex: 1,
@@ -999,5 +1311,113 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 20,
+  },
+  // Meta info styles (member since, last workout)
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  metaText: {
+    fontSize: 12,
+  },
+  metaDot: {
+    marginHorizontal: 6,
+    fontSize: 12,
+  },
+  // Comparison styles
+  comparisonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  comparisonSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  comparisonScore: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  comparisonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 8,
+    marginBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  comparisonColumnHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    width: 56,
+  },
+  comparisonList: {
+    gap: 6,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  comparisonValuePill: {
+    width: 56,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  comparisonNumber: {
+    fontSize: 14,
+  },
+  comparisonMiddle: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  comparisonExercise: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  comparisonDiff: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  comparisonFooter: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    marginTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  showMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  comparisonChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  comparisonChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  comparisonChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

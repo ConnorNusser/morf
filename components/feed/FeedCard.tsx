@@ -6,7 +6,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
 import { WorkoutSummary } from '@/lib/services/userSyncService';
-import { formatVolume } from '@/lib/utils/utils';
+import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -89,10 +89,10 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
             </View>
           )}
           <View>
-            <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               @{workout.username}
             </Text>
-            <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
               {formatRelativeTime(workout.created_at)}
             </Text>
           </View>
@@ -107,7 +107,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
       </View>
 
       {/* Workout title - larger */}
-      <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+      <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
         {workout.title}
       </Text>
 
@@ -123,8 +123,11 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
       )}
 
       {/* Stats row */}
-      <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
-        {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {formatVolume(workout.total_volume, weightUnit)}
+      <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+        {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)}
+        {workout.total_volume > 0 && ` · ${formatVolume(workout.total_volume, weightUnit)}`}
+        {(workout.total_distance_meters ?? 0) > 0 && ` · ${formatDistance(workout.total_distance_meters ?? 0)}`}
+        {(workout.total_cardio_seconds ?? 0) > 0 && ` · ${formatCardioDuration(workout.total_cardio_seconds ?? 0)} cardio`}
       </Text>
 
       {/* PPL chips */}
@@ -138,10 +141,10 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
                 style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
               >
                 <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                   {PPL_LABELS[category]}
                 </Text>
-                <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: 'Raleway_700Bold' }]}>
+                <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
                   {pplBreakdown.counts[category]}
                 </Text>
               </View>
@@ -155,20 +158,20 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
           {workout.exercises.slice(0, 3).map((ex, i) => (
             <View key={i} style={styles.exerciseRow}>
               <View style={styles.exerciseNameContainer}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                   {ex.name}
                 </Text>
                 {ex.percentile && ex.percentile > 0 && (
                   <TierBadge tier={getStrengthTier(ex.percentile)} size="tiny" />
                 )}
               </View>
-              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 {ex.bestSet}
               </Text>
             </View>
           ))}
           {workout.exercises.length > 3 && (
-            <Text style={[styles.moreExercises, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.moreExercises, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
               +{workout.exercises.length - 3} more
             </Text>
           )}
@@ -195,7 +198,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
               />
             </Animated.View>
             {likeCount > 0 && (
-              <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                 {likeCount}
               </Text>
             )}
@@ -213,7 +216,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
               color={currentTheme.colors.text + '70'}
             />
             {commentCount > 0 && (
-              <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                 {commentCount}
               </Text>
             )}
@@ -256,7 +259,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Raleway_600SemiBold',
   },
   username: {
     fontSize: 15,
@@ -287,7 +289,6 @@ const styles = StyleSheet.create({
   },
   prChipText: {
     fontSize: 13,
-    fontFamily: 'Raleway_600SemiBold',
     color: '#FFFFFF',
   },
   stats: {

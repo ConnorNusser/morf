@@ -87,17 +87,17 @@ export default function CustomNumberKeyboard({
     if (key === 'backspace') {
       keyContent = <Ionicons name="backspace-outline" size={24} color={currentTheme.colors.text} />;
     } else if (key === 'done') {
-      keyContent = <Text style={[styles.keyText, { color: '#FFFFFF', fontFamily: 'Raleway_600SemiBold' }]}>Done</Text>;
+      keyContent = <Text style={[styles.keyText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>;
       onPress = onDone;
     } else if (key === 'to') {
       keyContent = (
         <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.keyText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>to</Text>
+          <Text style={[styles.keyText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>to</Text>
           <Text style={[styles.rangeSubtext, { color: currentTheme.colors.primary, marginTop: 2 }]}>range</Text>
         </View>
       );
     } else {
-      keyContent = <Text style={[styles.keyText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>{key}</Text>;
+      keyContent = <Text style={[styles.keyText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{key}</Text>;
     }
 
     return (
@@ -138,12 +138,12 @@ export default function CustomNumberKeyboard({
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onCancel} style={styles.cancelButtonContainer}>
-              <Text style={[styles.cancelButton, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.cancelButton, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 Cancel
               </Text>
             </TouchableOpacity>
             
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               {title}
             </Text>
             
@@ -156,7 +156,6 @@ export default function CustomNumberKeyboard({
               styles.displayText, 
               { 
                 color: value ? currentTheme.colors.text : currentTheme.colors.text + '60',
-                fontFamily: 'Raleway_600SemiBold',
               }
             ]}>
               {formattedDisplayValue}

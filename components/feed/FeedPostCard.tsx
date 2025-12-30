@@ -188,10 +188,10 @@ export default function FeedPostCard({
               </View>
             )}
             <View>
-              <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 @{post.username}
               </Text>
-              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 {formatRelativeTime(post.created_at)}
               </Text>
             </View>
@@ -200,7 +200,7 @@ export default function FeedPostCard({
 
         {/* Post text */}
         {post.text && (
-          <Text style={[styles.postText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.postText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
             {post.text}
           </Text>
         )}
@@ -328,7 +328,7 @@ export default function FeedPostCard({
                 />
               </Animated.View>
               {likeCount > 0 && (
-                <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {likeCount}
                 </Text>
               )}
@@ -346,7 +346,7 @@ export default function FeedPostCard({
                 color={currentTheme.colors.text + '70'}
               />
               {commentCount > 0 && (
-                <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {commentCount}
                 </Text>
               )}
@@ -411,7 +411,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Raleway_600SemiBold',
   },
   username: {
     fontSize: 15,
@@ -476,7 +475,6 @@ const styles = StyleSheet.create({
   counterText: {
     color: '#fff',
     fontSize: 12,
-    fontFamily: 'Raleway_500Medium',
   },
   actionBar: {
     flexDirection: 'row',

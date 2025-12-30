@@ -97,7 +97,6 @@ export default function Button({
     const baseTextStyle = {
       fontWeight: '600' as const,
       textAlign: 'center' as const,
-      fontFamily: 'Raleway_600SemiBold',
     };
 
     const sizeTextStyles = {

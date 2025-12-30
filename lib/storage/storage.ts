@@ -17,7 +17,16 @@ const STORAGE_KEYS = {
   WORKOUT_TEMPLATES: 'workout_templates',
   TUTORIAL_STATE: 'tutorial_state',
   HOME_VIEW_MODE: 'home_view_mode',
+  PENDING_STRENGTH_PROGRESS: 'pending_strength_progress',
+  SHOWN_NOTIFICATIONS: 'shown_notifications',
 } as const;
+
+// Strength progress data for post-workout celebration
+export interface PendingStrengthProgress {
+  previousPercentile: number;
+  newPercentile: number;
+  timestamp: number;
+}
 
 export type HomeViewMode = 'home' | 'feed';
 
@@ -115,7 +124,7 @@ class StorageService {
       if (!data) return null;
 
       // Migrate old themes that no longer exist
-      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool'];
+      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool', 'christmas_theme_2025'];
       if (!validThemes.includes(data as ThemeLevel)) {
         // Map removed themes to their closest equivalent
         if (data === 'beginner_ocean') {
@@ -529,6 +538,78 @@ class StorageService {
     } catch (error) {
       console.error('Error loading home view mode:', error);
       return 'home';
+    }
+  }
+
+  // Pending Strength Progress (for post-workout celebration)
+  async savePendingStrengthProgress(progress: PendingStrengthProgress): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.PENDING_STRENGTH_PROGRESS,
+        JSON.stringify(progress)
+      );
+    } catch (error) {
+      console.error('Error saving pending strength progress:', error);
+    }
+  }
+
+  async getPendingStrengthProgress(): Promise<PendingStrengthProgress | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_STRENGTH_PROGRESS);
+      if (data) {
+        const progress = JSON.parse(data) as PendingStrengthProgress;
+        // Only return if less than 24 hours old
+        if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
+          return progress;
+        }
+        // Clear stale data
+        await this.clearPendingStrengthProgress();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading pending strength progress:', error);
+      return null;
+    }
+  }
+
+  async clearPendingStrengthProgress(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEYS.PENDING_STRENGTH_PROGRESS);
+    } catch (error) {
+      console.error('Error clearing pending strength progress:', error);
+    }
+  }
+
+  // Shown Notifications (for one-time unlock notifications)
+  async getShownNotifications(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.SHOWN_NOTIFICATIONS);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error loading shown notifications:', error);
+      return [];
+    }
+  }
+
+  async markNotificationShown(notificationId: string): Promise<void> {
+    try {
+      const shown = await this.getShownNotifications();
+      if (!shown.includes(notificationId)) {
+        shown.push(notificationId);
+        await AsyncStorage.setItem(STORAGE_KEYS.SHOWN_NOTIFICATIONS, JSON.stringify(shown));
+      }
+    } catch (error) {
+      console.error('Error marking notification as shown:', error);
+    }
+  }
+
+  async hasNotificationBeenShown(notificationId: string): Promise<boolean> {
+    try {
+      const shown = await this.getShownNotifications();
+      return shown.includes(notificationId);
+    } catch (error) {
+      console.error('Error checking notification status:', error);
+      return false;
     }
   }
 }

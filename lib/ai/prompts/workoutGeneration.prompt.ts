@@ -84,16 +84,32 @@ CRITICAL - EQUIPMENT CONSTRAINTS:
   * "home gym" = typically dumbbells, maybe a barbell, no cables/machines
 
 EXAMPLES of noteText format (with blank lines between exercises):
-"Bench Press (Barbell) 135x10, 145x8, 155x6
+"
+Target: Bench Press (Barbell) 135x10, 145x8, 155x6
 Actual
 
-Incline Chest Press (Dumbbells) 40x12, 45x10, 45x10
+Target: Incline Chest Press (Dumbbells) 40x12, 45x10, 45x10
 Actual
 
-Chest Fly (Cables) 30x15, 30x12, 35x10
+Target: Chest Fly (Cables) 30x15, 30x12, 35x10
 Actual
 
-Tricep Pushdown (Cables) 50x12, 55x10, 55x10
+Target: Tricep Pushdown (Cables) 50x12, 55x10, 55x10
+Actual"
+
+CARDIO & TIMED EXERCISES:
+- When user requests cardio, include cardio exercises in the plan
+- For cardio (rowing, treadmill, bike, elliptical): format as "Exercise 20:00 5000m" (duration and/or distance)
+- For timed holds (plank, wall sit, dead hang): format as "Exercise 60s, 45s, 45s" (duration per set)
+
+EXAMPLE with cardio/timed:
+"Target: Rowing Machine 20:00 5000m
+Actual
+
+Target: Plank (Bodyweight) 60s, 45s, 30s
+Actual
+
+Target: Bench Press (Barbell) 135x8, 145x6, 155x4
 Actual"
 
 NOTE: Each exercise MUST have "Actual" on the line below it (for users to fill in their completed sets). Separate each exercise block with a blank line.

@@ -32,11 +32,16 @@ VALID VALUES:
 - secondaryMuscles: Array of 0-3 from ["chest", "back", "shoulders", "arms", "legs", "glutes", "core"]
 - equipment: Array from ["barbell", "dumbbell", "machine", "smith-machine", "cable", "kettlebell", "bodyweight"]
 - description: Short 1-sentence description of the exercise
+- trackingType: "reps" | "timed" | "cardio"
+  * "reps" (default) = weight-based or bodyweight rep exercises (bench press, curls, squats, pull-ups)
+  * "timed" = isometric holds where you track duration (plank, wall sit, dead hang)
+  * "cardio" = duration/distance based cardio (rowing, running, cycling, treadmill)
 
 RETURN ONLY VALID JSON:
 {
   "displayName": "Exercise Name (Equipment)",
   "category": "compound",
+  "trackingType": "reps",
   "primaryMuscles": ["chest"],
   "secondaryMuscles": ["shoulders", "arms"],
   "equipment": ["machine"],

@@ -13,17 +13,30 @@ const describeIfApi = process.env.EXPO_PUBLIC_AI_API_KEY ? describe : describe.s
 // TEST DATA
 // ============================================================================
 
-interface ExpectedSet {
+// Set types for different tracking modes
+interface RepsSet {
   weight: number;
   reps: number;
   unit: 'lbs' | 'kg';
 }
 
+interface CardioSet {
+  duration: number;  // seconds
+  distance?: number; // meters
+}
+
+interface TimedSet {
+  duration: number;  // seconds
+}
+
+type ExpectedSet = RepsSet | CardioSet | TimedSet;
+
 interface ExpectedExercise {
   name: string;
   exerciseId: string;
+  trackingType?: 'reps' | 'cardio' | 'timed';
   sets: ExpectedSet[];
-  recommendedSets?: ExpectedSet[];
+  recommendedSets?: RepsSet[];
   allowCustom?: boolean;
 }
 
@@ -362,6 +375,166 @@ Actual
 ];
 
 // ============================================================================
+// CARDIO & TIMED EXERCISE TEST CASES
+// ============================================================================
+
+const AI_PARSE_TEST_CASES_CARDIO_TIMED: TestCase[] = [
+  {
+    name: 'Cardio exercises with duration and distance',
+    input: `
+Rowing Machine 20:00 5000m
+Treadmill 30min 5km
+Stationary Bike 45:00
+    `.trim(),
+    expected: [
+      {
+        name: 'Rowing Machine',
+        exerciseId: 'rowing-machine',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 1200, distance: 5000 },
+        ],
+      },
+      {
+        name: 'Treadmill',
+        exerciseId: 'treadmill',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 1800, distance: 5000 },
+        ],
+      },
+      {
+        name: 'Stationary Bike',
+        exerciseId: 'stationary-bike',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 2700 },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Timed/isometric exercises with multiple sets',
+    input: `
+Plank (Bodyweight) 60s, 45s, 30s
+Wall Sit (Bodyweight) 90s, 60s
+Dead Hang (Bodyweight) 45s, 40s, 35s
+    `.trim(),
+    expected: [
+      {
+        name: 'Plank (Bodyweight)',
+        exerciseId: 'plank-bodyweight',
+        trackingType: 'timed',
+        sets: [
+          { duration: 60 },
+          { duration: 45 },
+          { duration: 30 },
+        ],
+      },
+      {
+        name: 'Wall Sit (Bodyweight)',
+        exerciseId: 'wall-sit-bodyweight',
+        trackingType: 'timed',
+        sets: [
+          { duration: 90 },
+          { duration: 60 },
+        ],
+      },
+      {
+        name: 'Dead Hang (Bodyweight)',
+        exerciseId: 'dead-hang-bodyweight',
+        trackingType: 'timed',
+        sets: [
+          { duration: 45 },
+          { duration: 40 },
+          { duration: 35 },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Mixed workout with reps, cardio, and timed exercises',
+    input: `
+Bench Press (Barbell) 135x8, 145x6
+Rowing Machine 15:00 3500m
+Plank (Bodyweight) 60s, 60s
+Bicep Curl (Dumbbells) 25x12, 30x10
+    `.trim(),
+    expected: [
+      {
+        name: 'Bench Press (Barbell)',
+        exerciseId: 'bench-press-barbell',
+        trackingType: 'reps',
+        sets: [
+          { weight: 135, reps: 8, unit: 'lbs' },
+          { weight: 145, reps: 6, unit: 'lbs' },
+        ],
+      },
+      {
+        name: 'Rowing Machine',
+        exerciseId: 'rowing-machine',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 900, distance: 3500 },
+        ],
+      },
+      {
+        name: 'Plank (Bodyweight)',
+        exerciseId: 'plank-bodyweight',
+        trackingType: 'timed',
+        sets: [
+          { duration: 60 },
+          { duration: 60 },
+        ],
+      },
+      {
+        name: 'Bicep Curl (Dumbbells)',
+        exerciseId: 'bicep-curl-dumbbells',
+        trackingType: 'reps',
+        sets: [
+          { weight: 25, reps: 12, unit: 'lbs' },
+          { weight: 30, reps: 10, unit: 'lbs' },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Cardio with various time/distance formats',
+    input: `
+Rowing 5k in 22:30
+Treadmill 2 miles 25min
+Elliptical 20 minutes
+    `.trim(),
+    expected: [
+      {
+        name: 'Rowing Machine',
+        exerciseId: 'rowing-machine',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 1350, distance: 5000 },
+        ],
+      },
+      {
+        name: 'Treadmill',
+        exerciseId: 'treadmill',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 1500, distance: 3218 }, // 2 miles ≈ 3218m
+        ],
+      },
+      {
+        name: 'Elliptical',
+        exerciseId: 'elliptical',
+        trackingType: 'cardio',
+        sets: [
+          { duration: 1200 },
+        ],
+      },
+    ],
+  },
+];
+
+// ============================================================================
 // TESTS
 // ============================================================================
 
@@ -370,6 +543,7 @@ const ALL_TEST_CASES: TestCase[] = [
   ...AI_PARSE_TEST_CASES,
   ...AI_PARSE_TEST_CASES_TARGET,
   ...AI_PARSE_TEST_CASES_TARGET_ONLY,
+  ...AI_PARSE_TEST_CASES_CARDIO_TIMED,
 ];
 
 describeIfApi('AI Parser Integration', () => {
@@ -447,11 +621,20 @@ describeIfApi('AI Parser Integration', () => {
           logDiff(`Exercise ${i + 1} recommendedSets`, aiExercise.recommendedSets, expectedExercise.recommendedSets);
         }
 
-        // Check name format (should end with equipment in parentheses)
-        expect(aiExercise.name).toMatch(/\([^)]+\)$/);
+        // Check name format (should end with equipment in parentheses for non-cardio)
+        // Cardio exercises like "Rowing Machine" don't have equipment suffix
+        if (expectedExercise.trackingType !== 'cardio' || aiExercise.name.includes('(')) {
+          expect(aiExercise.name).toMatch(/\([^)]+\)$|^(Rowing Machine|Treadmill|Stationary Bike|Elliptical|Stair Climber)$/);
+        }
 
         // Check exercise name matches expected
         expect(aiExercise.name).toBe(expectedExercise.name);
+
+        // Check trackingType if expected
+        if (expectedExercise.trackingType) {
+          logDiff(`Exercise ${i + 1} trackingType`, aiExercise.trackingType, expectedExercise.trackingType);
+          expect(aiExercise.trackingType).toBe(expectedExercise.trackingType);
+        }
 
         // Check ID generation works correctly
         const generatedId = exerciseNameToId(aiExercise.name);
@@ -467,13 +650,32 @@ describeIfApi('AI Parser Integration', () => {
         // Check sets count matches
         expect(aiExercise.sets?.length ?? 0).toBe(expectedExercise.sets.length);
 
-        // Check each set's weight and reps
+        // Check each set based on tracking type
+        const trackingType = expectedExercise.trackingType || 'reps';
         for (let j = 0; j < expectedExercise.sets.length; j++) {
-          expect(aiExercise.sets[j].weight).toBe(expectedExercise.sets[j].weight);
-          expect(aiExercise.sets[j].reps).toBe(expectedExercise.sets[j].reps);
+          const aiSet = aiExercise.sets[j];
+          const expectedSet = expectedExercise.sets[j];
+
+          if (trackingType === 'reps') {
+            // Reps-based exercise: check weight and reps
+            expect(aiSet.weight).toBe((expectedSet as RepsSet).weight);
+            expect(aiSet.reps).toBe((expectedSet as RepsSet).reps);
+          } else if (trackingType === 'cardio') {
+            // Cardio exercise: check duration and optionally distance
+            expect(aiSet.duration).toBe((expectedSet as CardioSet).duration);
+            if ((expectedSet as CardioSet).distance !== undefined) {
+              // Allow 5% tolerance for distance conversions (miles to meters)
+              const expectedDistance = (expectedSet as CardioSet).distance!;
+              expect(aiSet.distance).toBeGreaterThanOrEqual(expectedDistance * 0.95);
+              expect(aiSet.distance).toBeLessThanOrEqual(expectedDistance * 1.05);
+            }
+          } else if (trackingType === 'timed') {
+            // Timed exercise: check duration only
+            expect(aiSet.duration).toBe((expectedSet as TimedSet).duration);
+          }
         }
 
-        // Check recommendedSets if expected
+        // Check recommendedSets if expected (only for reps-based exercises)
         if (expectedExercise.recommendedSets) {
           expect(aiExercise.recommendedSets).toBeDefined();
           expect(aiExercise.recommendedSets.length).toBe(expectedExercise.recommendedSets.length);

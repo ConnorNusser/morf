@@ -107,7 +107,7 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
           <TouchableOpacity onPress={onClose} style={[styles.backButton, { backgroundColor: currentTheme.colors.surface }]}>
             <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Import Notes
           </Text>
           <RNView style={styles.headerRight} />
@@ -117,17 +117,17 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
         <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
           {isLoading ? (
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 Loading templates...
               </Text>
             </View>
           ) : templates.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Ionicons name="bookmark-outline" size={64} color={currentTheme.colors.text + '20'} />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 No Templates Yet
               </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 Save your workout notes as templates to reuse them later
               </Text>
             </View>
@@ -141,24 +141,24 @@ const TemplateLibraryModal: React.FC<TemplateLibraryModalProps> = ({
               >
                 <RNView style={styles.templateHeader}>
                   <Ionicons name="document-text" size={20} color={currentTheme.colors.primary} />
-                  <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     {template.name}
                   </Text>
                 </RNView>
 
                 <Text
-                  style={[styles.templatePreview, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}
+                  style={[styles.templatePreview, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}
                   numberOfLines={3}
                 >
                   {template.noteText}
                 </Text>
 
                 <RNView style={styles.templateFooter}>
-                  <Text style={[styles.templateDate, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.templateDate, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                     Created {formatDate(template.createdAt)}
                   </Text>
                   {template.lastUsed && (
-                    <Text style={[styles.templateDate, { color: currentTheme.colors.primary + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.templateDate, { color: currentTheme.colors.primary + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Last used {formatDate(template.lastUsed)}
                     </Text>
                   )}

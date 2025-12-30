@@ -178,15 +178,15 @@ export default function PostThreadModal({
               onPress={() => handleUserTap(comment.user_id, comment.username, comment.profile_picture_url)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 @{comment.username}
               </Text>
             </TouchableOpacity>
-            <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
               {formatRelativeTime(new Date(comment.created_at))}
             </Text>
           </View>
-          <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
             {comment.text}
           </Text>
         </View>
@@ -215,7 +215,7 @@ export default function PostThreadModal({
           {/* Header */}
           <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
             <IconButton icon="close" onPress={onClose} />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Post
             </Text>
             <RNView style={styles.headerSpacer} />
@@ -248,10 +248,10 @@ export default function PostThreadModal({
                   </View>
                 )}
                 <View style={styles.userInfo}>
-                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     @{post.username}
                   </Text>
-                  <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                     {formatRelativeTime(post.created_at)}
                   </Text>
                 </View>
@@ -259,7 +259,7 @@ export default function PostThreadModal({
 
               {/* Post text */}
               {post.text && (
-                <Text style={[styles.postText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.postText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                   {post.text}
                 </Text>
               )}
@@ -357,7 +357,7 @@ export default function PostThreadModal({
                       />
                     </Animated.View>
                     {likeCount > 0 && (
-                      <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                      <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                         {likeCount}
                       </Text>
                     )}
@@ -366,7 +366,7 @@ export default function PostThreadModal({
 
                 <View style={styles.commentCount}>
                   <Ionicons name="chatbubble-outline" size={18} color={currentTheme.colors.text + '60'} />
-                  <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
                     {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
                   </Text>
                 </View>
@@ -374,12 +374,12 @@ export default function PostThreadModal({
 
               {/* Comments Section */}
               <View style={styles.commentsSection}>
-                <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   Comments {comments.length > 0 && `(${comments.length})`}
                 </Text>
 
                 {comments.length === 0 ? (
-                  <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                     No comments yet. Be the first!
                   </Text>
                 ) : (
@@ -398,7 +398,6 @@ export default function PostThreadModal({
                     styles.input,
                     {
                       color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_400Regular',
                     }
                   ]}
                   placeholder="Add a comment..."
@@ -494,7 +493,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Raleway_600SemiBold',
   },
   userInfo: {
     flex: 1,
@@ -607,7 +605,6 @@ const styles = StyleSheet.create({
   },
   commentAvatarText: {
     fontSize: 14,
-    fontFamily: 'Raleway_600SemiBold',
   },
   commentAvatarImage: {
     width: 32,

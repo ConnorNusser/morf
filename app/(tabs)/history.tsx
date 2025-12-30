@@ -15,6 +15,7 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { formatSet } from '@/lib/utils/utils';
 import { userService } from '@/lib/services/userService';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit, WorkoutTemplate } from '@/types';
@@ -419,7 +420,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
           History
         </Text>
 
@@ -436,7 +437,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'workouts' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'workouts' ? 'Raleway_600SemiBold' : 'Raleway_400Regular' }
+                { fontFamily: activeTab === 'workouts' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
               ]}>
                 Workouts
               </Text>
@@ -452,7 +453,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'exercises' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'exercises' ? 'Raleway_600SemiBold' : 'Raleway_400Regular' }
+                { fontFamily: activeTab === 'exercises' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
               ]}>
                 Exercises
               </Text>
@@ -468,7 +469,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'templates' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'templates' ? 'Raleway_600SemiBold' : 'Raleway_400Regular' }
+                { fontFamily: activeTab === 'templates' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
               ]}>
                 Notes
               </Text>
@@ -496,7 +497,7 @@ export default function HistoryScreen() {
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
                 {quickStats.streak > 0 ? (
                   <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                       {quickStats.streak} day streak
                     </Text>
                     <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
@@ -504,20 +505,20 @@ export default function HistoryScreen() {
                 ) : null}
                 {quickStats.thisWeek > 0 ? (
                   <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                       {quickStats.thisWeek} workout{quickStats.thisWeek !== 1 ? 's' : ''} this week
                     </Text>
                     {quickStats.weekVolume > 0 && (
                       <>
                         <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
-                        <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                        <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                           {quickStats.weekVolume > 1000 ? `${(quickStats.weekVolume / 1000).toFixed(1)}k` : quickStats.weekVolume} {weightUnit}
                         </Text>
                       </>
                     )}
                   </>
                 ) : (
-                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                     {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
                   </Text>
                 )}
@@ -540,7 +541,7 @@ export default function HistoryScreen() {
               >
                 <View style={styles.monthlyTrendsContent}>
                   <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     View Monthly Trends
                   </Text>
                 </View>
@@ -568,7 +569,7 @@ export default function HistoryScreen() {
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(true)}
                   >
-                    <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
                       View all {workouts.length} workouts
                     </Text>
                   </TouchableOpacity>
@@ -578,7 +579,7 @@ export default function HistoryScreen() {
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(false)}
                   >
-                    <Text style={[styles.viewAllText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.viewAllText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Show less
                     </Text>
                   </TouchableOpacity>
@@ -590,10 +591,10 @@ export default function HistoryScreen() {
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
                   No workouts yet
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Start logging to track your progress
                 </Text>
               </View>
@@ -616,10 +617,10 @@ export default function HistoryScreen() {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
                   No exercises tracked
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Complete workouts to build your exercise history
                 </Text>
               </View>
@@ -634,7 +635,7 @@ export default function HistoryScreen() {
               onPress={handleCreateTemplate}
               activeOpacity={0.8}
             >
-              <Text style={[styles.createTemplateButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.createTemplateButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                 Create New Note
               </Text>
             </TouchableOpacity>
@@ -645,7 +646,7 @@ export default function HistoryScreen() {
                 <View style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '50'} />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
                     placeholder="Search notes..."
                     placeholderTextColor={currentTheme.colors.text + '40'}
                     value={notesSearchQuery}
@@ -674,7 +675,7 @@ export default function HistoryScreen() {
                           <View style={[styles.templateHeader, { backgroundColor: 'transparent' }]}>
                             <View style={[styles.templateHeaderLeft, { backgroundColor: 'transparent' }]}>
                               <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
-                              <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                              <Text style={[styles.templateName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                                 {template.name}
                               </Text>
                             </View>
@@ -687,18 +688,18 @@ export default function HistoryScreen() {
                               activeOpacity={0.8}
                             >
                               <Ionicons name="copy-outline" size={14} color="#fff" />
-                              <Text style={[styles.copyButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                              <Text style={[styles.copyButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                                 Copy
                               </Text>
                             </TouchableOpacity>
                           </View>
                           <Text
-                            style={[styles.templatePreview, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}
+                            style={[styles.templatePreview, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}
                             numberOfLines={2}
                           >
                             {template.noteText}
                           </Text>
-                          <Text style={[styles.templateDate, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                          <Text style={[styles.templateDate, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                             {formatRelativeDate(template.createdAt)}
                           </Text>
                         </TouchableOpacity>
@@ -706,7 +707,7 @@ export default function HistoryScreen() {
                     ))
                   ) : (
                     <View style={styles.emptyState}>
-                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_500Medium' }]}>
+                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
                         No matching notes
                       </Text>
                     </View>
@@ -716,10 +717,10 @@ export default function HistoryScreen() {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="document-text-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
                   No notes yet
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Tap &quot;Create New Note&quot; above to get started
                 </Text>
               </View>
@@ -775,52 +776,52 @@ export default function HistoryScreen() {
             <TouchableOpacity onPress={() => setSelectedExercise(null)}>
               <Ionicons name="close" size={28} color={currentTheme.colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Exercise History
             </Text>
             <View style={{ width: 28 }} />
           </View>
           {selectedExercise && (
             <ScrollView style={styles.modalContent}>
-              <Text style={[styles.modalWorkoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              <Text style={[styles.modalWorkoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                 {selectedExercise.name}
               </Text>
 
               {selectedExercise.estimated1RM > 0 && (
                 <View style={[styles.exerciseStatsBanner, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                       {selectedExercise.estimated1RM}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                       Est. 1RM
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                       {selectedExercise.maxWeight}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                       Best Weight
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                       {selectedExercise.history.length}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                       Total Sets
                     </Text>
                   </View>
                 </View>
               )}
 
-              <Text style={[styles.historyHeader, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.historyHeader, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
                 SET HISTORY
               </Text>
 
               {selectedExercise.history.length === 0 ? (
-                <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
                   No history recorded yet
                 </Text>
               ) : (
@@ -836,13 +837,13 @@ export default function HistoryScreen() {
 
                   return (
                     <View key={idx} style={[styles.historyRow, { borderBottomColor: currentTheme.colors.border }]}>
-                      <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                         {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </Text>
-                      <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                        {displayWeight} {weightUnit} × {entry.reps}
+                      <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                        {formatSet({ weight: displayWeight, reps: entry.reps, unit: weightUnit }, { showUnit: true })}
                       </Text>
-                      <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
                         ~{displayOneRM} 1RM
                       </Text>
                     </View>

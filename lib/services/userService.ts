@@ -98,7 +98,7 @@ class UserService {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
+          percentileRanking: Math.floor(percentile),
           strengthLevel: getStrengthLevelName(percentile),
         };
       }
@@ -170,7 +170,7 @@ class UserService {
         workoutId: lift.id,
         personalRecord: maxEstimatedLift,
         lastUpdated: lift.dateRecorded,
-        percentileRanking: Math.round(percentile),
+        percentileRanking: Math.floor(percentile),
         strengthLevel: getStrengthLevelName(percentile),
       };
     });
@@ -224,7 +224,7 @@ class UserService {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
+          percentileRanking: Math.floor(percentile),
           strengthLevel: getStrengthLevelName(percentile),
         };
       });
@@ -289,7 +289,7 @@ class UserService {
         workoutId: lift.id,
         personalRecord: OneRMCalculator.estimate(lift.weight, lift.reps),
         lastUpdated: lift.dateRecorded,
-        percentileRanking: Math.round(percentile),
+        percentileRanking: Math.floor(percentile),
         strengthLevel: getStrengthLevelName(percentile),
       };
     }
@@ -358,7 +358,7 @@ class UserService {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
+          percentileRanking: Math.floor(percentile),
           strengthLevel: getStrengthLevelName(percentile),
         };
       });
@@ -395,7 +395,7 @@ class UserService {
           workoutId: lift.id,
           personalRecord: maxEstimatedLift,
           lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.round(percentile),
+          percentileRanking: Math.floor(percentile),
           strengthLevel: getStrengthLevelName(percentile),
         };
       });

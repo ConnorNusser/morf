@@ -113,7 +113,6 @@ export default function ExercisesSection() {
             styles.exerciseName,
             {
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }
           ]}>
             {exercise.name}
@@ -122,21 +121,21 @@ export default function ExercisesSection() {
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.category}
                 </Text>
               </View>
@@ -146,7 +145,7 @@ export default function ExercisesSection() {
           {liftRecord && (
             <View style={[styles.liftRecordRow, { backgroundColor: currentTheme.colors.accent + '15' }]}>
               <Ionicons name="trophy" size={12} color={currentTheme.colors.accent} />
-              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>
                 PR: {liftRecord.weight} {liftRecord.unit} x {liftRecord.reps}
               </Text>
             </View>
@@ -156,7 +155,6 @@ export default function ExercisesSection() {
             styles.exerciseId,
             {
               color: currentTheme.colors.text + '50',
-              fontFamily: 'Raleway_400Regular',
             }
           ]} numberOfLines={1}>
             ID: {exercise.id}
@@ -180,7 +178,6 @@ export default function ExercisesSection() {
                 styles.sectionTitle,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                 }
               ]}>
                 Exercises
@@ -195,7 +192,6 @@ export default function ExercisesSection() {
               styles.subtitle,
               {
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {ALL_WORKOUTS.length} built-in exercises
@@ -218,7 +214,7 @@ export default function ExercisesSection() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.modalHeader}>
             <View style={{ width: 40 }} />
-            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Exercises
             </Text>
             <TouchableOpacity
@@ -233,7 +229,7 @@ export default function ExercisesSection() {
             <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
               <TextInput
-                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
+                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
                 placeholder="Search by name, muscle, equipment..."
                 placeholderTextColor={currentTheme.colors.text + '40'}
                 value={searchQuery}
@@ -273,7 +269,6 @@ export default function ExercisesSection() {
                 styles.filterChipText,
                 {
                   color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 All
@@ -299,7 +294,6 @@ export default function ExercisesSection() {
                   styles.filterChipText,
                   {
                     color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                    fontFamily: 'Raleway_500Medium',
                   }
                 ]}>
                   {eq.label}
@@ -323,13 +317,13 @@ export default function ExercisesSection() {
                 />
                 <Text style={[
                   styles.emptyText,
-                  { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }
+                  { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }
                 ]}>
                   No exercises found
                 </Text>
                 <Text style={[
                   styles.emptySubtext,
-                  { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }
+                  { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }
                 ]}>
                   Try a different search term
                 </Text>
@@ -337,7 +331,7 @@ export default function ExercisesSection() {
             ) : (
               <>
                 {searchQuery && (
-                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                     {filteredExercises.length} result{filteredExercises.length !== 1 ? 's' : ''}
                   </Text>
                 )}
@@ -380,7 +374,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
   },
   subtitle: {
     fontSize: 14,

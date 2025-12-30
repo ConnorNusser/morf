@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
   counterText: {
     color: '#fff',
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
   },
   scrollView: {
     flex: 1,
@@ -277,7 +276,6 @@ const styles = StyleSheet.create({
   actionCount: {
     color: '#fff',
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
   },
   actionCountActive: {
     color: '#ff4757',

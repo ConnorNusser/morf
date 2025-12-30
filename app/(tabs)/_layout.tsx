@@ -6,7 +6,13 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
@@ -44,10 +50,41 @@ function TabBarIcon({ iconName, focused }: {
   return getIcon();
 }
 
+// Pulsing glow indicator for tutorial
+function TutorialTabIndicator({ color }: { color: string }) {
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 600 }),
+        withTiming(0.3, { duration: 600 })
+      ),
+      -1,
+      true
+    );
+  }, [opacity]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        styles.tutorialIndicator,
+        { backgroundColor: color },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
 // Tab bar with transparent background on scroll
 function AnimatedTabBar(props: BottomTabBarProps) {
   const { tabBarBackgroundVisible } = useTabBar();
   const { currentTheme } = useTheme();
+  const { showTutorial } = useTutorial();
 
   const backgroundAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -102,6 +139,10 @@ function AnimatedTabBar(props: BottomTabBarProps) {
                 { backgroundColor: isFocused ? currentTheme.colors.primary + '15' : 'transparent' }
               ]}
             >
+              {/* Pulsing indicator during tutorial */}
+              {showTutorial && isFocused && (
+                <TutorialTabIndicator color={currentTheme.colors.primary} />
+              )}
               {options.tabBarIcon?.({ focused: isFocused, color: isFocused ? currentTheme.colors.primary : '#8E8E93', size: 24 })}
             </HapticTab>
           );
@@ -256,5 +297,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginHorizontal: 8,
     borderRadius: 16,
+  },
+  tutorialIndicator: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
 });

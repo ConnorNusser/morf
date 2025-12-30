@@ -301,10 +301,10 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const renderEmpty = () => (
     <View style={styles.emptyFeed}>
       <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '30'} />
-      <Text style={[styles.emptyFeedTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+      <Text style={[styles.emptyFeedTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
         No posts yet
       </Text>
-      <Text style={[styles.emptyFeedText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+      <Text style={[styles.emptyFeedText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
         Be the first to share something!
       </Text>
     </View>

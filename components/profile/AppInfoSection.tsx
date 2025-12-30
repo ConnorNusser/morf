@@ -100,7 +100,6 @@ export default function AppInfoSection() {
             styles.sectionTitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             App Info
@@ -110,7 +109,6 @@ export default function AppInfoSection() {
               styles.versionSubtitle, 
               { 
                 color: currentTheme.colors.text + '70',
-                fontFamily: 'Raleway_400Regular',
               }
             ]}>
               Version {appVersion}
@@ -133,7 +131,6 @@ export default function AppInfoSection() {
                 styles.infoLabel,
                 { 
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Version
@@ -142,7 +139,6 @@ export default function AppInfoSection() {
                 styles.infoValue,
                 { 
                   color: currentTheme.colors.text + '70',
-                  fontFamily: 'Raleway_400Regular',
                 }
               ]}>
                 {appVersion}
@@ -162,7 +158,6 @@ export default function AppInfoSection() {
                 styles.actionText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Rate App
@@ -181,7 +176,6 @@ export default function AppInfoSection() {
                 styles.actionText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Support
@@ -200,7 +194,6 @@ export default function AppInfoSection() {
                 styles.actionText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Tutorial

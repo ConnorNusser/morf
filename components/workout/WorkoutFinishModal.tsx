@@ -1,22 +1,23 @@
 import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import ExerciseBadge from '@/components/workout/ExerciseBadge';
+import WorkoutCompleteScreen from '@/components/workout/WorkoutCompleteScreen';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/utils/haptic';
-import { storageService } from '@/lib/storage/storage';
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
-import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { storageService } from '@/lib/storage/storage';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
+import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { convertWeightToLbs } from '@/lib/utils/utils';
-import { convertWeight, WeightUnit, WorkoutTemplate, UserProgress, UserProfile } from '@/types';
+import { convertWeight, UserProfile, UserProgress, WeightUnit, WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   Image,
   Modal,
   ScrollView,
@@ -24,89 +25,50 @@ import {
   TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
-  Easing,
   FadeIn,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
 } from 'react-native-reanimated';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ModalState = 'parsing' | 'confirmation' | 'celebration';
 
 interface WorkoutFinishModalProps {
   visible: boolean;
   noteText: string;
-  duration: number; // in seconds
-  weightUnit: WeightUnit;
-  onSave: (parsedWorkout: ParsedWorkout) => Promise<void>;
-  onCancel: () => void;
-  onComplete: () => void;
+  duration?: number; // in seconds (optional for preview mode)
+  weightUnit?: WeightUnit;
+  onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
+  onCancel?: () => void;
+  onComplete?: () => void;
+  // Preview mode props
+  isPreviewMode?: boolean;
+  exercises?: ParsedExerciseSummary[]; // Pre-parsed exercises for preview mode
+  isLoading?: boolean;
+  onDismiss?: () => void;
 }
 
 // Static Morph logo
-const Logo = () => (
+const Logo = ({ size = 80 }: { size?: number }) => (
   <Image
-    source={require('@/assets/images/icon.png')}
-    style={styles.logoImage}
+    source={require('@/assets/images/icon-original.png')}
+    style={[styles.logoImage, { width: size, height: size }]}
     resizeMode="contain"
   />
 );
 
-// Confetti particle
-const Particle = ({ delay, startX, color }: { delay: number; startX: number; color: string }) => {
-  const translateY = useSharedValue(-50);
-  const translateX = useSharedValue(startX);
-  const rotate = useSharedValue(0);
-  const opacity = useSharedValue(1);
-  const scale = useSharedValue(0);
-
-  useEffect(() => {
-    scale.value = withDelay(delay, withSpring(1, { damping: 8 }));
-    translateY.value = withDelay(
-      delay,
-      withTiming(SCREEN_HEIGHT + 100, { duration: 3000, easing: Easing.out(Easing.quad) })
-    );
-    const drift = (Math.random() - 0.5) * 100;
-    translateX.value = withDelay(delay, withTiming(startX + drift, { duration: 3000 }));
-    rotate.value = withDelay(
-      delay,
-      withRepeat(withTiming(360, { duration: 1000 }), -1, false)
-    );
-    opacity.value = withDelay(delay + 2000, withTiming(0, { duration: 1000 }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once on mount
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { rotate: `${rotate.value}deg` },
-      { scale: scale.value },
-    ],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View style={[styles.particle, { backgroundColor: color }, animatedStyle]} />
-  );
-};
-
 const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   visible,
   noteText,
-  duration,
-  weightUnit,
+  duration = 0,
+  weightUnit = 'lbs',
   onSave,
   onCancel,
   onComplete,
+  // Preview mode props
+  isPreviewMode = false,
+  exercises: previewExercises,
+  isLoading: previewLoading = false,
+  onDismiss,
 }) => {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -126,33 +88,22 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  // Celebration animation values
-  const checkScale = useSharedValue(0);
-  const ringScale = useSharedValue(0);
-  const ringOpacity = useSharedValue(0);
-  const pulseScale = useSharedValue(1);
-
-  // Generate confetti particles
-  const particles = useMemo(() => {
-    const colors = [
-      currentTheme.colors.primary,
-      currentTheme.colors.accent,
-      '#FFD700',
-      '#FF6B6B',
-      '#4ECDC4',
-      '#A78BFA',
-    ];
-    return Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      delay: Math.random() * 500,
-      startX: Math.random() * SCREEN_WIDTH,
-      color: colors[Math.floor(Math.random() * colors.length)],
-    }));
-  }, [currentTheme]);
-
-  // Parse workout when modal opens
+  // Fetch user lifts for preview mode
   useEffect(() => {
-    if (visible && noteText.trim()) {
+    if (isPreviewMode && visible) {
+      Promise.all([
+        userService.getAllFeaturedLifts(),
+        userService.getUserProfileOrDefault()
+      ]).then(([lifts, profile]) => {
+        setUserLifts(lifts);
+        setUserProfile(profile);
+      }).catch(console.error);
+    }
+  }, [isPreviewMode, visible]);
+
+  // Parse workout when modal opens (finish mode only)
+  useEffect(() => {
+    if (!isPreviewMode && visible && noteText.trim()) {
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
@@ -177,51 +128,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       parseWorkout();
     }
-  }, [visible, noteText]);
-
-  // Start celebration animations
-  const startCelebration = useCallback(() => {
-    playUnlock();
-    playHapticFeedback('medium', false);
-
-    checkScale.value = 0;
-    ringScale.value = 0;
-    ringOpacity.value = 0;
-
-    ringScale.value = withSequence(
-      withTiming(0, { duration: 0 }),
-      withSpring(1.5, { damping: 8 }),
-      withTiming(2, { duration: 300 })
-    );
-    ringOpacity.value = withSequence(
-      withTiming(0.8, { duration: 200 }),
-      withDelay(200, withTiming(0, { duration: 300 }))
-    );
-    checkScale.value = withDelay(100, withSpring(1, { damping: 6, stiffness: 100 }));
-    pulseScale.value = withDelay(
-      500,
-      withRepeat(
-        withSequence(
-          withTiming(1.05, { duration: 1000 }),
-          withTiming(1, { duration: 1000 })
-        ),
-        -1,
-        true
-      )
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once, sound hooks are stable
-  }, [playUnlock]);
+  }, [visible, noteText, isPreviewMode]);
 
   // Handle save
   const handleSave = useCallback(async () => {
-    if (!parsedWorkout) return;
+    if (!parsedWorkout || !onSave) return;
 
     playHapticFeedback('light', false);
     setIsSaving(true);
     try {
       await onSave(parsedWorkout);
+      playUnlock();
+      playHapticFeedback('medium', false);
       setModalState('celebration');
-      startCelebration();
     } catch (err) {
       console.error('Error saving workout:', err);
       setError('Failed to save workout. Please try again.');
@@ -229,20 +148,20 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [parsedWorkout, onSave, startCelebration]);
+  }, [parsedWorkout, onSave, playUnlock]);
 
   // Handle cancel with haptic
   const handleCancel = useCallback(() => {
     playTap();
     playHapticFeedback('light', false);
-    onCancel();
+    onCancel?.();
   }, [onCancel, playTap]);
 
   // Handle done with haptic
   const handleDone = useCallback(() => {
     playTap();
     playHapticFeedback('light', false);
-    onComplete();
+    onComplete?.();
   }, [onComplete, playTap]);
 
   // Handle save as template
@@ -278,13 +197,21 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     }
   }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
 
+  // Get the exercises to display (from parsed workout or preview mode)
+  const displayExercises = useMemo(() => {
+    if (isPreviewMode && previewExercises) {
+      return previewExercises;
+    }
+    return parsedWorkout?.exercises || [];
+  }, [isPreviewMode, previewExercises, parsedWorkout]);
+
   // Calculate overall tier from exercises in this session
   const overallTierInfo = useMemo(() => {
-    if (!parsedWorkout || userLifts.length === 0) return null;
+    if (displayExercises.length === 0 || userLifts.length === 0) return null;
 
     // Get percentiles for exercises in this workout that have tracked data
     const sessionPercentiles: number[] = [];
-    for (const exercise of parsedWorkout.exercises) {
+    for (const exercise of displayExercises) {
       if (exercise.matchedExerciseId && !exercise.isCustom) {
         const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
         if (userLift && userLift.percentileRanking > 0) {
@@ -302,42 +229,43 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     const tier = getStrengthTier(avgPercentile);
     const tierColor = getTierColor(tier);
     return { tier, tierColor, percentile: avgPercentile };
-  }, [parsedWorkout, userLifts]);
+  }, [displayExercises, userLifts]);
 
-  // Calculate stats
+  // Calculate stats using the universal utility
   const stats = useMemo(() => {
-    if (!parsedWorkout) {
-      return { exercises: 0, sets: 0, volume: 0, durationStr: '' };
-    }
+    const exerciseCount = displayExercises.length;
 
-    const exercises = parsedWorkout.exercises.length;
-    const sets = parsedWorkout.exercises.reduce((total, ex) => total + ex.sets.length, 0);
-    const volume = parsedWorkout.exercises.reduce((total, ex) => {
-      return total + ex.sets.reduce((setTotal, set) => {
-        const weightInPreferredUnit = convertWeight(set.weight, set.unit, weightUnit);
-        return setTotal + (weightInPreferredUnit * set.reps);
-      }, 0);
-    }, 0);
+    // Convert displayExercises to format expected by calculateWorkoutStats
+    const exercisesForStats = displayExercises.map(ex => ({
+      id: ex.matchedExerciseId || ex.name,
+      trackingType: ex.trackingType,
+      completedSets: ex.sets?.map(set => ({
+        weight: set.weight,
+        reps: set.reps,
+        unit: set.unit,
+        duration: set.duration,
+        distance: set.distance,
+        completed: true,
+      })),
+    }));
+
+    const workoutStats: WorkoutStats = calculateWorkoutStats(exercisesForStats);
 
     const hrs = Math.floor(duration / 3600);
     const mins = Math.floor((duration % 3600) / 60);
     const durationStr = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
 
-    return { exercises, sets, volume: Math.round(volume), durationStr };
-  }, [parsedWorkout, weightUnit, duration]);
-
-  const checkAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-  }));
-
-  const ringAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: ringScale.value }],
-    opacity: ringOpacity.value,
-  }));
-
-  const pulseAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulseScale.value }],
-  }));
+    return {
+      exercises: exerciseCount,
+      sets: workoutStats.totalSets,
+      volume: workoutStats.totalVolumeLbs,
+      durationStr,
+      // Cardio-specific stats
+      hasCardio: workoutStats.hasCardioExercises,
+      totalDistanceMeters: workoutStats.totalDistanceMeters,
+      totalCardioDurationSeconds: workoutStats.totalCardioDurationSeconds,
+    };
+  }, [displayExercises, duration]);
 
   // Render parsing state
   const renderParsing = () => (
@@ -348,19 +276,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         color={currentTheme.colors.primary}
         style={styles.loadingIndicator}
       />
-      <Text style={[styles.parsingText, { color: '#fff', fontFamily: 'Raleway_600SemiBold' }]}>
+      <Text style={[styles.parsingText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
         Analyzing your workout...
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: '#FF6B6B', fontFamily: 'Raleway_500Medium' }]}>
+          <Text style={[styles.errorText, { color: '#FF6B6B', fontFamily: currentTheme.fonts.medium }]}>
             {error}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: currentTheme.colors.primary }]}
             onPress={onCancel}
           >
-            <Text style={[styles.retryButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.retryButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -369,284 +297,294 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     </View>
   );
 
-  // Render confirmation state
-  const renderConfirmation = () => (
-    <View
-      style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}
-    >
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(16, insets.top) }]}>
-        <TouchableOpacity onPress={handleCancel} style={styles.headerButton}>
-          <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-          Workout Summary
-        </Text>
-        <View style={styles.headerButton} />
-      </View>
-
-      {/* Stats Section - Two Tiered */}
-      <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-              {stats.durationStr}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-              Duration
-            </Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-              {stats.exercises}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-              Exercises
-            </Text>
-          </View>
-        </View>
-        <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-              {stats.sets}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-              Sets
-            </Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-          <View style={styles.statItem}>
-            {overallTierInfo ? (
-              <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
-            ) : (
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-                --
-              </Text>
-            )}
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-              Overall Tier
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Exercises List */}
-      <ScrollView style={styles.exercisesList} contentContainerStyle={styles.exercisesContent}>
-        {parsedWorkout?.exercises.map((exercise, index) => {
-          const exerciseInfo = exercise.matchedExerciseId
-            ? getWorkoutById(exercise.matchedExerciseId)
-            : null;
-
-          // Calculate best 1RM estimate from sets
-          const best1RM = Math.max(
-            ...exercise.sets.map(set =>
-              set.weight > 0 && set.reps > 0
-                ? OneRMCalculator.estimate(set.weight, set.reps)
-                : 0
-            ),
-            0
-          );
-
-          return (
-            <View
-              key={index}
-              style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-            >
-              <View style={styles.exerciseHeader}>
-                <View style={styles.exerciseNameContainer}>
-                  <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                    {exerciseInfo?.name || exercise.name}
-                  </Text>
-                  {best1RM > 0 && (
-                    <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
-                      ~{Math.round(best1RM)} {weightUnit} 1RM
-                    </Text>
-                  )}
-                </View>
-                <ExerciseBadge
-                  matchedExerciseId={exercise.matchedExerciseId}
-                  isCustom={exercise.isCustom}
-                  sets={exercise.sets}
-                  userLifts={userLifts}
-                  weightUnit={weightUnit}
-                  bodyWeightLbs={userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined}
-                  gender={userProfile?.gender}
-                />
-              </View>
-              <View style={styles.setsContainer}>
-                {exercise.sets.map((set, setIndex) => (
-                  <View key={setIndex} style={styles.setRow}>
-                    <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
-                      Set {setIndex + 1}
-                    </Text>
-                    <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                      {set.weight > 0 ? `${set.weight} ${set.unit} × ${set.reps}` : `${set.reps} reps`}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-
-      {/* Action Buttons */}
-      <View style={[
-        styles.actionsContainer,
-        { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(16, insets.bottom) }
-      ]}>
-        <Button
-          title={isSaving ? "Saving..." : "Finish Workout"}
-          onPress={handleSave}
-          variant="primary"
-          size="large"
-          style={styles.confirmButton}
-          disabled={isSaving}
-        />
-      </View>
+  // Render preview loading state
+  const renderPreviewLoading = () => (
+    <View style={styles.loadingContainer}>
+      <Text style={[styles.loadingText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+        Parsing your workout notes...
+      </Text>
     </View>
   );
 
-  // Render celebration state
-  const renderCelebration = () => (
-    <Animated.View entering={FadeIn} style={[styles.celebrationContainer, { backgroundColor: 'transparent' }]}>
-      {/* Confetti particles */}
-      {particles.map((particle) => (
-        <Particle
-          key={particle.id}
-          delay={particle.delay}
-          startX={particle.startX}
-          color={particle.color}
-        />
-      ))}
+  // Render preview empty state
+  const renderPreviewEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="alert-circle-outline" size={48} color={currentTheme.colors.text + '30'} />
+      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
+        No exercises detected
+      </Text>
+      <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+        {"Try adding exercises like \"Bench 135x8\" or \"Squats 225 for 5 reps\""}
+      </Text>
+    </View>
+  );
 
-      <View style={styles.celebrationContent}>
-        {/* Success icon with ring burst */}
-        <View style={styles.iconContainer}>
-          <Animated.View
-            style={[styles.ring, { borderColor: currentTheme.colors.primary }, ringAnimatedStyle]}
-          />
-          <Animated.View style={pulseAnimatedStyle}>
-            <Animated.View
-              style={[styles.checkCircle, { backgroundColor: currentTheme.colors.primary }, checkAnimatedStyle]}
-            >
-              <Ionicons name="checkmark" size={48} color="#fff" />
-            </Animated.View>
-          </Animated.View>
+  // Render confirmation/summary state (used by both preview and finish mode)
+  const renderConfirmation = () => {
+    const handleClose = isPreviewMode ? (onDismiss ?? (() => {})) : handleCancel;
+    const isLoading = isPreviewMode && previewLoading;
+    const isEmpty = isPreviewMode && !previewLoading && displayExercises.length === 0;
+
+    const getTitle = () => {
+      if (isLoading) return 'Analyzing...';
+      if (isPreviewMode) return 'Summary';
+      return '';
+    };
+
+    return (
+      <View style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Header */}
+        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(16, insets.top) }]}>
+          <View style={styles.headerLeft}>
+            <Image
+              source={require('@/assets/images/icon-original.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              morf
+            </Text>
+          </View>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            {getTitle()}
+          </Text>
+          <IconButton icon="close" onPress={handleClose} variant="surface" />
         </View>
 
-        <Animated.Text
-          entering={FadeIn.delay(300)}
-          style={[styles.celebrationTitle, { color: '#fff', fontFamily: 'Raleway_700Bold' }]}
-        >
-          Workout Complete!
-        </Animated.Text>
-        <Animated.Text
-          entering={FadeIn.delay(400)}
-          style={[styles.celebrationSubtitle, { color: 'rgba(255,255,255,0.7)', fontFamily: 'Raleway_400Regular' }]}
-        >
-          Great job crushing it today
-        </Animated.Text>
+        {/* Loading State */}
+        {isLoading && renderPreviewLoading()}
 
-        {/* Stats */}
-        <Animated.View entering={FadeIn.delay(500)} style={[styles.celebrationStats, isSmallScreen && styles.celebrationStatsSmall]}>
-          <View style={[styles.celebrationStatItem, { backgroundColor: 'rgba(255,255,255,0.1)' }, isSmallScreen && styles.celebrationStatItemSmall]}>
-            <Ionicons name="time-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.primary} />
-            <Text style={[styles.celebrationStatValue, { color: '#fff', fontFamily: 'Raleway_700Bold' }, isSmallScreen && styles.celebrationStatValueSmall]}>
-              {stats.durationStr}
-            </Text>
-            <Text style={[styles.celebrationStatLabel, { color: 'rgba(255,255,255,0.6)', fontFamily: 'Raleway_400Regular' }]}>
-              Duration
-            </Text>
-          </View>
-          <View style={[styles.celebrationStatItem, { backgroundColor: 'rgba(255,255,255,0.1)' }, isSmallScreen && styles.celebrationStatItemSmall]}>
-            <Ionicons name="barbell-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.primary} />
-            <Text style={[styles.celebrationStatValue, { color: '#fff', fontFamily: 'Raleway_700Bold' }, isSmallScreen && styles.celebrationStatValueSmall]}>
-              {stats.exercises}
-            </Text>
-            <Text style={[styles.celebrationStatLabel, { color: 'rgba(255,255,255,0.6)', fontFamily: 'Raleway_400Regular' }]}>
-              Exercises
-            </Text>
-          </View>
-          <View style={[styles.celebrationStatItem, { backgroundColor: 'rgba(255,255,255,0.1)' }, isSmallScreen && styles.celebrationStatItemSmall]}>
-            <Ionicons name="flame-outline" size={isSmallScreen ? 20 : 24} color={currentTheme.colors.primary} />
-            <Text style={[styles.celebrationStatValue, { color: '#fff', fontFamily: 'Raleway_700Bold' }, isSmallScreen && styles.celebrationStatValueSmall]}>
-              {stats.sets}
-            </Text>
-            <Text style={[styles.celebrationStatLabel, { color: 'rgba(255,255,255,0.6)', fontFamily: 'Raleway_400Regular' }]}>
-              Sets
-            </Text>
-          </View>
-        </Animated.View>
+        {/* Empty State */}
+        {isEmpty && renderPreviewEmpty()}
 
-        {/* Action buttons */}
-        <Animated.View entering={FadeIn.delay(700)} style={styles.celebrationButtonContainer}>
-          {/* Save as Template button */}
-          <TouchableOpacity
-            style={[
-              styles.saveTemplateButton,
-              {
-                backgroundColor: templateSaved
-                  ? currentTheme.colors.accent + '20'
-                  : 'rgba(255,255,255,0.15)',
-                borderColor: templateSaved
-                  ? currentTheme.colors.accent
-                  : 'rgba(255,255,255,0.3)',
-              }
-            ]}
-            onPress={handleSaveAsTemplate}
-            activeOpacity={0.8}
-            disabled={templateSaved}
-          >
-            <Ionicons
-              name={templateSaved ? "checkmark-circle" : "bookmark-outline"}
-              size={20}
-              color={templateSaved ? currentTheme.colors.accent : '#fff'}
-            />
-            <Text style={[
-              styles.saveTemplateButtonText,
-              {
-                fontFamily: 'Raleway_500Medium',
-                color: templateSaved ? currentTheme.colors.accent : '#fff',
-              }
-            ]}>
-              {templateSaved ? 'Saved to Templates' : 'Save as Template'}
-            </Text>
-          </TouchableOpacity>
+        {/* Content - only show when not loading and has exercises */}
+        {!isLoading && !isEmpty && (
+          <>
+            {/* Stats Section */}
+            <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    {stats.durationStr || '--'}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                    Duration
+                  </Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    {stats.exercises}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                    Exercises
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    {stats.sets}
+                  </Text>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                    Sets
+                  </Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+                <View style={styles.statItem}>
+                  {overallTierInfo ? (
+                    <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
+                  ) : (
+                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      --
+                    </Text>
+                  )}
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                    Overall Tier
+                  </Text>
+                </View>
+              </View>
 
-          {/* Done button */}
-          <TouchableOpacity
-            style={[styles.doneButton, { backgroundColor: currentTheme.colors.primary }]}
-            onPress={handleDone}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.doneButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
-              Done
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+              {/* Cardio stats row - only show if workout has cardio exercises */}
+              {stats.hasCardio && (stats.totalDistanceMeters > 0 || stats.totalCardioDurationSeconds > 0) && (
+                <>
+                  <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
+                  <View style={styles.statsRow}>
+                    {stats.totalDistanceMeters > 0 && (
+                      <>
+                        <View style={styles.statItem}>
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                            {formatDistance(stats.totalDistanceMeters)}
+                          </Text>
+                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                            Distance
+                          </Text>
+                        </View>
+                        {stats.totalCardioDurationSeconds > 0 && (
+                          <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
+                        )}
+                      </>
+                    )}
+                    {stats.totalCardioDurationSeconds > 0 && (
+                      <View style={styles.statItem}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                          {formatDuration(stats.totalCardioDurationSeconds)}
+                        </Text>
+                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                          Cardio Time
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+            </View>
+
+            {/* Exercises List */}
+            <ScrollView style={styles.exercisesList} contentContainerStyle={styles.exercisesContent} showsVerticalScrollIndicator={false}>
+              {displayExercises.map((exercise, index) => {
+                const exerciseInfo = exercise.matchedExerciseId
+                  ? getWorkoutById(exercise.matchedExerciseId)
+                  : null;
+
+                const best1RM = exercise.sets ? Math.max(
+                  ...exercise.sets.map(set =>
+                    set.weight > 0 && set.reps > 0
+                      ? OneRMCalculator.estimate(set.weight, set.reps)
+                      : 0
+                  ),
+                  0
+                ) : 0;
+
+                return (
+                  <View
+                    key={index}
+                    style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                  >
+                    <View style={styles.exerciseHeader}>
+                      <View style={styles.exerciseNameContainer}>
+                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                          {exerciseInfo?.name || exercise.name}
+                        </Text>
+                        {best1RM > 0 && (
+                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                            ~{Math.round(best1RM)} {weightUnit} 1RM
+                          </Text>
+                        )}
+                      </View>
+                      <ExerciseBadge
+                        matchedExerciseId={exercise.matchedExerciseId}
+                        isCustom={exercise.isCustom}
+                        sets={exercise.sets || []}
+                        userLifts={userLifts}
+                        weightUnit={weightUnit}
+                        bodyWeightLbs={userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined}
+                        gender={userProfile?.gender}
+                      />
+                    </View>
+
+                    <View style={styles.setsContainer}>
+                      {exercise.recommendedSets && exercise.recommendedSets.length > 0 && (
+                        <View style={styles.setsSection}>
+                          <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
+                            Target
+                          </Text>
+                          {exercise.recommendedSets.map((set, setIndex) => (
+                            <View key={setIndex} style={styles.setRow}>
+                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                                Set {setIndex + 1}
+                              </Text>
+                              <Text style={[styles.setDetails, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                                {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      {exercise.sets && exercise.sets.length > 0 && (
+                        <View style={styles.setsSection}>
+                          {exercise.sets.map((set, setIndex) => (
+                            <View key={setIndex} style={styles.setRow}>
+                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
+                                Set {setIndex + 1}
+                              </Text>
+                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                                {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+
+            </ScrollView>
+
+            {/* Action Buttons - Only show in finish mode */}
+            {!isPreviewMode && (
+              <View style={[
+                styles.actionsContainer,
+                { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(16, insets.bottom) }
+              ]}>
+                <Button
+                  title={isSaving ? "Saving..." : "Finish Workout"}
+                  onPress={handleSave}
+                  variant="primary"
+                  size="large"
+                  style={styles.confirmButton}
+                  disabled={isSaving}
+                />
+              </View>
+            )}
+          </>
+        )}
       </View>
-    </Animated.View>
+    );
+  };
+
+  // Render celebration state using the new WorkoutCompleteScreen component
+  const renderCelebration = () => (
+    <WorkoutCompleteScreen
+      stats={stats}
+      exercises={displayExercises}
+      userLifts={userLifts}
+      userProfile={userProfile}
+      weightUnit={weightUnit}
+      templateSaved={templateSaved}
+      onSaveAsTemplate={handleSaveAsTemplate}
+      onDone={handleDone}
+      isSmallScreen={isSmallScreen}
+    />
   );
 
   if (!visible) return null;
+
+  // For finish mode: parsing and celebration have dark background
+  const showDarkBackground = !isPreviewMode && (modalState === 'parsing' || modalState === 'celebration');
+
+  // Determine what content to show
+  const renderContent = () => {
+    if (!isPreviewMode) {
+      if (modalState === 'parsing') return renderParsing();
+      if (modalState === 'celebration') return renderCelebration();
+    }
+    // Both preview and finish confirmation use renderConfirmation
+    return renderConfirmation();
+  };
 
   return (
     <Modal
       visible={visible}
       animationType="fade"
       presentationStyle="fullScreen"
-      onRequestClose={onCancel}
+      onRequestClose={isPreviewMode ? onDismiss : onCancel}
     >
-      <View style={[
-        styles.modalContainer,
-        { backgroundColor: modalState === 'confirmation' ? currentTheme.colors.background : 'rgba(0,0,0,0.95)' },
-      ]}>
-        {modalState === 'parsing' && renderParsing()}
-        {modalState === 'confirmation' && renderConfirmation()}
-        {modalState === 'celebration' && renderCelebration()}
+      <View style={[styles.modalContainer, { backgroundColor: showDarkBackground ? 'rgba(0,0,0,0.95)' : currentTheme.colors.background }]}>
+        {renderContent()}
       </View>
     </Modal>
   );
@@ -696,17 +634,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerButton: {
-    width: 44,
-    height: 44,
+  headerSpacer: {
+    width: 40,
+  },
+  headerLeft: {
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 2,
+    minWidth: 50,
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  headerLogoText: {
+    fontSize: 12,
+    letterSpacing: 0.5,
   },
   headerTitle: {
     fontSize: 18,
+    flex: 1,
+    textAlign: 'center',
   },
   statsContainer: {
     marginHorizontal: 16,
@@ -791,124 +743,40 @@ const styles = StyleSheet.create({
   confirmButton: {
     width: '100%',
   },
-  celebrationContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  celebrationContent: {
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  ring: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-  },
-  checkCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  celebrationTitle: {
-    fontSize: 28,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  celebrationSubtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-  },
-  celebrationStats: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 32,
-  },
-  celebrationStatsSmall: {
-    gap: 8,
-  },
-  celebrationStatItem: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    minWidth: 90,
-  },
-  celebrationStatItemSmall: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    minWidth: 75,
-  },
-  celebrationStatValue: {
-    fontSize: 24,
-    marginTop: 8,
-  },
-  celebrationStatValueSmall: {
-    fontSize: 20,
-    marginTop: 6,
-  },
-  celebrationStatLabel: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  celebrationButtonContainer: {
-    width: '100%',
-    gap: 12,
-  },
-  saveTemplateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  saveTemplateButtonText: {
-    fontSize: 16,
-  },
-  doneButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    fontSize: 18,
-    color: '#fff',
-  },
-  particle: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-  },
-  // Logo image style
+  // Logo image style (used in parsing state)
   logoImage: {
     width: 80,
     height: 80,
   },
-  // Responsive styles for small screens
-  statsContainerSmall: {
-    paddingVertical: 14,
-    marginHorizontal: 12,
+  // Preview mode styles
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
   },
-  statValueSmall: {
-    fontSize: 18,
-    marginTop: 6,
+  loadingText: {
+    fontSize: 15,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  emptyText: {
+    fontSize: 17,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  setsSection: {
+    gap: 4,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
 });
 

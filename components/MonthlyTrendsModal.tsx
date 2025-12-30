@@ -3,8 +3,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { GeneratedWorkout, MuscleGroup, WeightUnit } from '@/types';
+import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -63,6 +64,10 @@ interface MonthData {
   totalTime: number;
   pplCounts: Record<PPLCategory, number>;
   totalExercises: number;
+  // Cardio stats
+  hasCardio: boolean;
+  totalDistanceMeters: number;
+  totalCardioDurationSeconds: number;
 }
 
 export default function MonthlyTrendsModal({
@@ -77,6 +82,12 @@ export default function MonthlyTrendsModal({
 
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
   const [pageOffset, setPageOffset] = useState(0);
+
+  // Helper to get tracking type for an exercise
+  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
+    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    return exerciseInfo?.trackingType;
+  };
 
   // Calculate data for all available months (up to 24 months back)
   const allMonthlyData = useMemo(() => {
@@ -97,7 +108,6 @@ export default function MonthlyTrendsModal({
         push: 0, pull: 0, legs: 0
       };
 
-      let totalVolume = 0;
       let totalTime = 0;
       let totalExercises = 0;
 
@@ -115,26 +125,32 @@ export default function MonthlyTrendsModal({
               pplCounts[pplCategory]++;
             }
           }
-
-          exercise.completedSets.forEach(set => {
-            totalVolume += set.weight * set.reps;
-          });
         });
       });
+
+      // Calculate combined stats using the utility for cardio support
+      const workoutStatsList: WorkoutStats[] = monthWorkouts.map(workout =>
+        calculateWorkoutStats(workout.exercises, getTrackingType)
+      );
+      const combinedStats = combineWorkoutStats(workoutStatsList);
 
       data.push({
         month: targetDate.toLocaleDateString('en-US', { month: 'long' }),
         shortMonth: targetDate.toLocaleDateString('en-US', { month: 'short' }),
         year: targetDate.getFullYear(),
         workoutCount: monthWorkouts.length,
-        totalVolume: Math.round(totalVolume),
+        totalVolume: combinedStats.totalVolumeLbs,
         totalTime,
         pplCounts,
         totalExercises,
+        hasCardio: combinedStats.hasCardioExercises,
+        totalDistanceMeters: combinedStats.totalDistanceMeters,
+        totalCardioDurationSeconds: combinedStats.totalCardioDurationSeconds,
       });
     }
 
     return data;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
   }, [workoutHistory, customExercises]);
 
   // Get the current 6 months based on page offset
@@ -204,7 +220,7 @@ export default function MonthlyTrendsModal({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Monthly Trends
           </Text>
           <View style={styles.closeButton} />
@@ -229,7 +245,7 @@ export default function MonthlyTrendsModal({
               />
             </TouchableOpacity>
 
-            <Text style={[styles.dateRangeLabel, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.dateRangeLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               {dateRangeLabel}
             </Text>
 
@@ -249,7 +265,7 @@ export default function MonthlyTrendsModal({
           {/* PPL Stacked Chart */}
           <Animated.View entering={FadeInDown.delay(150)} style={styles.chartSection}>
             <View style={styles.chartHeader}>
-              <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 Training Focus
               </Text>
               {/* Legend */}
@@ -257,7 +273,7 @@ export default function MonthlyTrendsModal({
                 {(['push', 'pull', 'legs'] as PPLCategory[]).map(category => (
                   <View key={category} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       {PPL_LABELS[category]}
                     </Text>
                   </View>
@@ -280,7 +296,7 @@ export default function MonthlyTrendsModal({
                   <View key={index} style={styles.barColumn}>
                     <Text style={[
                       styles.barValue,
-                      { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }
+                      { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }
                     ]}>
                       {total || '-'}
                     </Text>
@@ -305,7 +321,7 @@ export default function MonthlyTrendsModal({
                       styles.barLabel,
                       {
                         color: isCurrentMonth ? currentTheme.colors.primary : currentTheme.colors.text + '60',
-                        fontFamily: isCurrentMonth ? 'Raleway_600SemiBold' : 'Raleway_500Medium',
+                        fontFamily: isCurrentMonth ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
                       }
                     ]}>
                       {month.shortMonth}
@@ -318,7 +334,7 @@ export default function MonthlyTrendsModal({
 
           {/* Monthly Cards */}
           <Animated.View entering={FadeInDown.delay(250)} style={styles.cardsSection}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Details
             </Text>
 
@@ -333,18 +349,18 @@ export default function MonthlyTrendsModal({
                   {/* Month Header */}
                   <View style={styles.monthHeader}>
                     <View>
-                      <Text style={[styles.monthName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                      <Text style={[styles.monthName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                         {month.month}
                       </Text>
-                      <Text style={[styles.monthYear, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.monthYear, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                         {month.year}
                       </Text>
                     </View>
                     <View style={[styles.workoutsBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                      <Text style={[styles.workoutsCount, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                      <Text style={[styles.workoutsCount, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                         {month.workoutCount}
                       </Text>
-                      <Text style={[styles.workoutsLabel, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                      <Text style={[styles.workoutsLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
                         workouts
                       </Text>
                     </View>
@@ -355,22 +371,44 @@ export default function MonthlyTrendsModal({
                     <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border }]}>
                       <View style={styles.statItem}>
                         <Ionicons name="fitness-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                           {month.totalExercises} exercises
                         </Text>
                       </View>
                       <View style={styles.statItem}>
                         <Ionicons name="barbell-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                           {formatVolume(month.totalVolume)} {weightUnit}
                         </Text>
                       </View>
                       <View style={styles.statItem}>
                         <Ionicons name="time-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                           {formatTime(month.totalTime)}
                         </Text>
                       </View>
+                    </View>
+                  )}
+
+                  {/* Cardio Stats Row */}
+                  {month.hasCardio && (month.totalDistanceMeters > 0 || month.totalCardioDurationSeconds > 0) && (
+                    <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border, marginTop: 0, paddingTop: 12 }]}>
+                      {month.totalDistanceMeters > 0 && (
+                        <View style={styles.statItem}>
+                          <Ionicons name="navigate-outline" size={16} color={currentTheme.colors.text + '60'} />
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                            {formatDistance(month.totalDistanceMeters)}
+                          </Text>
+                        </View>
+                      )}
+                      {month.totalCardioDurationSeconds > 0 && (
+                        <View style={styles.statItem}>
+                          <Ionicons name="heart-outline" size={16} color={currentTheme.colors.text + '60'} />
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                            {formatDuration(month.totalCardioDurationSeconds)} cardio
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   )}
 
@@ -385,10 +423,10 @@ export default function MonthlyTrendsModal({
                               style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
                             >
                               <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                              <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                              <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                                 {PPL_LABELS[category]}
                               </Text>
-                              <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: 'Raleway_700Bold' }]}>
+                              <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
                                 {month.pplCounts[category]}
                               </Text>
                             </View>
@@ -401,7 +439,7 @@ export default function MonthlyTrendsModal({
                   {/* Empty State */}
                   {month.workoutCount === 0 && (
                     <View style={styles.emptyMonth}>
-                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
                         No workouts recorded
                       </Text>
                     </View>

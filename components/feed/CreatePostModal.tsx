@@ -236,7 +236,7 @@ export default function CreatePostModal({
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             New Post
           </Text>
           <TouchableOpacity
@@ -251,7 +251,7 @@ export default function CreatePostModal({
             onPress={handleSubmit}
             disabled={!canPost}
           >
-            <Text style={[styles.postButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.postButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
               Post
             </Text>
           </TouchableOpacity>
@@ -272,7 +272,6 @@ export default function CreatePostModal({
                 styles.textInput,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_400Regular',
                 },
               ]}
               placeholder="What's on your mind?"
@@ -335,7 +334,7 @@ export default function CreatePostModal({
                     ) : (
                       <>
                         <Ionicons name="add" size={32} color={currentTheme.colors.primary} />
-                        <Text style={[styles.addMoreText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                        <Text style={[styles.addMoreText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                           {MAX_IMAGES - imageCount} left
                         </Text>
                       </>
@@ -358,10 +357,10 @@ export default function CreatePostModal({
                   ) : (
                     <>
                       <Ionicons name="videocam" size={24} color={currentTheme.colors.primary} />
-                      <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                      <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                         Video
                       </Text>
-                      <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                         Max {MAX_VIDEO_DURATION}s
                       </Text>
                     </>
@@ -374,10 +373,10 @@ export default function CreatePostModal({
                   disabled={isPickingMedia}
                 >
                   <Ionicons name="images" size={24} color={currentTheme.colors.primary} />
-                  <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     Photos
                   </Text>
-                  <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                     Up to {MAX_IMAGES}
                   </Text>
                 </TouchableOpacity>
@@ -395,7 +394,7 @@ export default function CreatePostModal({
                   onPress={() => Keyboard.dismiss()}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                     Done
                   </Text>
                 </TouchableOpacity>

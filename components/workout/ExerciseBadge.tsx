@@ -116,7 +116,7 @@ export default function ExerciseBadge({
       <View style={[styles.badgeRow, { backgroundColor: 'transparent' }]}>
         {badgeInfo.isPR && (
           <View style={[styles.prBadge, { backgroundColor: '#22C55E20' }]}>
-            <Text style={[styles.prBadgeText, { color: '#22C55E', fontFamily: 'Raleway_700Bold' }]}>
+            <Text style={[styles.prBadgeText, { color: '#22C55E', fontFamily: currentTheme.fonts.bold }]}>
               PR
             </Text>
           </View>
@@ -133,7 +133,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.newBadgeText,
-            { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' },
+            { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold },
           ]}
         >
           New
@@ -148,7 +148,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.customBadgeText,
-            { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' },
+            { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.medium },
           ]}
         >
           Custom
@@ -164,7 +164,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.volumeBadgeText,
-            { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' },
+            { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.semiBold },
           ]}
         >
           {badgeInfo.label} {weightUnit}

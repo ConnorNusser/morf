@@ -2,9 +2,10 @@ import { useAlert } from '@/components/CustomAlert';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -170,23 +171,22 @@ export default function WorkoutDetailModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getBestE1RM is stable
   }, [workout, exerciseStats, customExercises]);
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    if (!workout) return { sets: 0, volume: 0 };
-    let sets = 0;
-    let volume = 0;
-    workout.exercises.forEach(ex => {
-      ex.completedSets?.forEach(set => {
-        sets++;
-        // Convert weight to user's preferred unit before calculating volume
-        // Default to 'lbs' for legacy data without unit field
-        const setUnit = set.unit || 'lbs';
-        const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
-        volume += weightInPreferredUnit * set.reps;
-      });
-    });
-    return { sets, volume: Math.round(volume) };
-  }, [workout, weightUnit]);
+  // Helper to get tracking type for an exercise
+  const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
+    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    return exerciseInfo?.trackingType;
+  }, [customExercises]);
+
+  // Calculate stats using the universal utility
+  const workoutStats = useMemo(() => {
+    if (!workout) return { totalSets: 0, totalVolumeLbs: 0, totalDistanceMeters: 0, totalCardioDurationSeconds: 0, hasWeightedExercises: false, hasCardioExercises: false };
+    return calculateWorkoutStats(workout.exercises, getTrackingType);
+  }, [workout, getTrackingType]);
+
+  // Format the summary stats line
+  const statsLine = useMemo(() => {
+    return formatWorkoutStatsLine(workoutStats, { unit: weightUnit, includeExerciseCount: workout?.exercises.length });
+  }, [workoutStats, weightUnit, workout?.exercises.length]);
 
   return (
     <Modal visible={!!workout} animationType="slide" presentationStyle="fullScreen">
@@ -203,7 +203,7 @@ export default function WorkoutDetailModal({
               color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
             />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Workout
           </Text>
           <TouchableOpacity
@@ -223,10 +223,10 @@ export default function WorkoutDetailModal({
             >
               {/* Hero section with title */}
               <View style={styles.hero}>
-                <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+                <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                   {workout.title}
                 </Text>
-                <Text style={[styles.date, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.date, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                   {formatFullDate(workout.createdAt)}
                 </Text>
               </View>
@@ -237,13 +237,13 @@ export default function WorkoutDetailModal({
                   <View style={styles.prChipsRow}>
                     {prs.map((pr, idx) => (
                       <View key={idx} style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-                        <Text style={[styles.prChipText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                        <Text style={[styles.prChipText, { fontFamily: currentTheme.fonts.semiBold }]}>
                           {pr.name}
                         </Text>
                       </View>
                     ))}
                   </View>
-                  <Text style={[styles.prLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.prLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                     Personal Records
                   </Text>
                 </View>
@@ -251,8 +251,8 @@ export default function WorkoutDetailModal({
 
               {/* Summary stats - horizontal inline */}
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
-                  {workout.exercises.length} exercises · {stats.sets} sets · {stats.volume > 1000 ? `${(stats.volume / 1000).toFixed(1)}k` : stats.volume} {weightUnit}
+                <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                  {statsLine}
                 </Text>
               </View>
 
@@ -261,40 +261,45 @@ export default function WorkoutDetailModal({
                 {workout.exercises.map((exercise, idx) => {
                   const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
                   const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
-                  const bestE1RM = getBestE1RM(exercise.completedSets || []);
+                  const trackingType = exerciseInfo?.trackingType || 'reps';
+                  const isRepsExercise = trackingType === 'reps';
+                  const bestE1RM = isRepsExercise ? getBestE1RM(exercise.completedSets || []) : null;
                   const isPR = prs.some(pr => pr.name === name);
 
                   return (
                     <View key={idx} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
                       <View style={styles.exerciseHeader}>
                         <View style={styles.exerciseNameRow}>
-                          <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                          <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                             {name}
                           </Text>
                           {isPR && (
                             <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                              <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                              <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                                 PR
                               </Text>
                             </View>
                           )}
                         </View>
                         {bestE1RM && (
-                          <Text style={[styles.exerciseBest, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                          <Text style={[styles.exerciseBest, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                             e1RM: {bestE1RM.e1rm} {weightUnit}
                           </Text>
                         )}
                       </View>
                       <View style={styles.setsGrid}>
                         {exercise.completedSets?.map((set, setIdx) => {
-                          // Convert weight to user's preferred unit
-                          // Default to 'lbs' for legacy data without unit field
+                          // Convert weight to user's preferred unit for reps-based exercises
                           const setUnit = set.unit || 'lbs';
                           const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
+
                           return (
                             <View key={setIdx} style={styles.setPill}>
-                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                                {displayWeight} x {set.reps}
+                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                                {formatSet(
+                                  { weight: displayWeight, reps: set.reps, unit: weightUnit, duration: set.duration, distance: set.distance },
+                                  { trackingType, compact: true }
+                                )}
                               </Text>
                             </View>
                           );
@@ -312,7 +317,7 @@ export default function WorkoutDetailModal({
                 onPress={handleDelete}
                 style={styles.deleteButton}
               >
-                <Text style={[styles.deleteButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.deleteButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                   Delete Workout
                 </Text>
               </TouchableOpacity>

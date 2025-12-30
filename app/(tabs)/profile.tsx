@@ -133,7 +133,6 @@ export default function ProfileScreen() {
             styles.title, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
             }
           ]}>
             Profile Settings
@@ -142,7 +141,6 @@ export default function ProfileScreen() {
             styles.subtitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_400Regular',
             }
           ]}>
             Customize your experience
@@ -158,10 +156,10 @@ export default function ProfileScreen() {
           <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
             <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
             <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 {username ? `@${username}` : 'Set Username'}
               </Text>
-              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -206,7 +204,7 @@ export default function ProfileScreen() {
           onPress={handleResetStats}
           activeOpacity={0.7}
         >
-          <Text style={[styles.resetButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.resetButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
             Reset All Data
           </Text>
         </TouchableOpacity>

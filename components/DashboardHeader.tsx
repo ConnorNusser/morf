@@ -1,6 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTutorial } from '@/contexts/TutorialContext';
+import { TutorialTarget } from '@/components/tutorial';
+import { getStepsByIndex } from '@/components/tutorial/tutorialSteps';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type ViewMode = 'home' | 'feed';
@@ -12,7 +15,22 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ viewMode, onViewModeChange }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
+  const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
+
+  // Auto-open dropdown during the feed tutorial step
+  useEffect(() => {
+    if (showTutorial) {
+      const currentStepData = getStepsByIndex(currentStep);
+      if (currentStepData?.targetId === 'home-view-selector') {
+        // Delay to let the spotlight position first
+        const timer = setTimeout(() => setShowDropdown(true), 400);
+        return () => clearTimeout(timer);
+      } else {
+        setShowDropdown(false);
+      }
+    }
+  }, [showTutorial, currentStep]);
 
   const handleViewSelect = (mode: ViewMode) => {
     setShowDropdown(false);
@@ -28,29 +46,30 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
         <>
           <View style={styles.headerRow}>
             <Image
-              source={require('@/assets/images/icon.png')}
+              source={require('@/assets/images/icon-original.png')}
               style={styles.logo}
             />
-            <TouchableOpacity
-              style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
-              onPress={() => setShowDropdown(!showDropdown)}
-              activeOpacity={0.7}
-            >
-              <Text style={[
-                styles.appName,
-                {
-                  color: currentTheme.colors.text,
-                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
-                }
-              ]}>
-                {viewMode === 'home' ? 'Morf' : 'Feed'}
-              </Text>
-              <Ionicons
-                name={showDropdown ? 'chevron-up' : 'chevron-down'}
-                size={24}
-                color={currentTheme.colors.text}
-              />
-            </TouchableOpacity>
+            <TutorialTarget id="home-view-selector">
+              <TouchableOpacity
+                style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
+                onPress={() => !showTutorial && setShowDropdown(!showDropdown)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.appName,
+                  {
+                    color: currentTheme.colors.text,
+                  }
+                ]}>
+                  {viewMode === 'home' ? 'Morf' : 'Feed'}
+                </Text>
+                <Ionicons
+                  name={showDropdown ? 'chevron-up' : 'chevron-down'}
+                  size={24}
+                  color={currentTheme.colors.text}
+                />
+              </TouchableOpacity>
+            </TutorialTarget>
           </View>
 
           {showDropdown && (
@@ -68,7 +87,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
                 >
                   <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       Morf
                     </Text>
                     <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
@@ -82,7 +101,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
                 >
                   <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       Feed
                     </Text>
                     <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
@@ -99,7 +118,6 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
           styles.appName,
           {
             color: currentTheme.colors.text,
-            fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
           }
         ]}>
           Morf
@@ -177,7 +195,6 @@ const styles = StyleSheet.create({
   },
   dropdownSubtext: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     marginTop: 2,
   },
 }); 

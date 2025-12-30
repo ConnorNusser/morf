@@ -23,6 +23,8 @@ interface ApiFeedItem {
   exercise_count?: number;
   set_count?: number;
   total_volume?: number;
+  total_distance_meters?: number;
+  total_cardio_seconds?: number;
   exercises?: WorkoutExerciseSummary[];
   media?: { url: string; type: 'video' | 'image' }[];
   feed_data?: WorkoutFeedData | PostFeedData;
@@ -50,6 +52,8 @@ interface ApiWorkoutItem {
   exercise_count: number;
   set_count: number;
   total_volume: number;
+  total_distance_meters?: number;
+  total_cardio_seconds?: number;
   exercises: WorkoutExerciseSummary[];
   feed_data?: WorkoutFeedData;
   username: string;
@@ -142,6 +146,8 @@ class FeedApi {
           exercise_count: item.exercise_count,
           set_count: item.set_count,
           total_volume: item.total_volume,
+          total_distance_meters: item.total_distance_meters,
+          total_cardio_seconds: item.total_cardio_seconds,
           exercises: item.exercises as WorkoutExerciseSummary[],
           feed_data: item.feed_data as WorkoutFeedData | undefined,
           username: item.username,
@@ -332,6 +338,8 @@ class FeedApi {
       exercise_count: w.exercise_count,
       set_count: w.set_count,
       total_volume: w.total_volume,
+      total_distance_meters: w.total_distance_meters,
+      total_cardio_seconds: w.total_cardio_seconds,
       exercises: w.exercises as WorkoutExerciseSummary[],
       feed_data: w.feed_data as WorkoutFeedData | undefined,
       username: w.username,
@@ -350,6 +358,8 @@ class FeedApi {
       exercise_count: number;
       set_count: number;
       total_volume: number;
+      total_distance_meters?: number;
+      total_cardio_seconds?: number;
       exercises: WorkoutExerciseSummary[];
     },
     username: string,

@@ -71,6 +71,11 @@ export const THEME_CONFIG: Record<ThemeLevel, {
     requiredPercentile: -1, // Special value for shareable themes
     description: '⚡ Share to unlock (3 shares needed)',
   },
+  christmas_theme_2025: {
+    displayName: 'Christmas 2025',
+    requiredPercentile: -2, // Special value for seasonal themes
+    description: '🎄 Dec 1 - Jan 15',
+  },
 };
 
 // Get theme display name
@@ -88,7 +93,7 @@ export const getThemeRequiredPercentile = (level: ThemeLevel): number => {
   return THEME_CONFIG[level]?.requiredPercentile ?? 0;
 };
 
-// Check if theme is unlocked based on user's percentile or share status
+// Check if theme is unlocked based on user's percentile, share status, or date
 export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, shareCount: number = 0): boolean => {
   // For shareable themes, check share count milestones
   if (level === 'share_warm') {
@@ -96,6 +101,14 @@ export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, share
   }
   if (level === 'share_cool') {
     return shareCount >= 3; // Cyber unlocks at 3 shares
+  }
+  // For seasonal themes, check date
+  if (level === 'christmas_theme_2025') {
+    const now = new Date();
+    const month = now.getMonth();
+    const day = now.getDate();
+    // Available Dec 1 - Jan 15
+    return month === 11 || (month === 0 && day <= 15);
   }
   // For fitness themes, check percentile
   return userPercentile >= getThemeRequiredPercentile(level);
@@ -112,6 +125,7 @@ export const getThemeOrder = (level: ThemeLevel): number => {
     god: 5,
     share_warm: 6,  // Shareable themes come after fitness themes
     share_cool: 7,
+    christmas_theme_2025: 8,   // Seasonal themes at the end
   };
   return order[level];
 };

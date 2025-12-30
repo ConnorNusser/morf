@@ -1,6 +1,9 @@
 import Chart from '@/components/Chart'; // Added import for Chart component
+import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { GeneratedWorkout } from '@/types';
+import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo } from 'react';
 import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -26,6 +29,13 @@ export default function WeeklyOverviewModal({
   weekEndDate: _weekEndDate,
 }: WeeklyOverviewModalProps) {
   const { currentTheme } = useTheme();
+  const { customExercises } = useCustomExercises();
+
+  // Helper to get tracking type for an exercise
+  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
+    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    return exerciseInfo?.trackingType;
+  };
 
   const getWorkoutCategory = (workout: GeneratedWorkout): string => {
     const title = workout.title.toLowerCase();
@@ -63,24 +73,19 @@ export default function WeeklyOverviewModal({
   };
 
   const analyticsData = useMemo(() => {
-    const totalVolume = workouts.reduce((sum, workout) => {
-      return sum + workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.reduce((setSum, set) => {
-          return setSum + (set.weight * set.reps);
-        }, 0);
-      }, 0);
-    }, 0);
+    // Calculate combined workout stats using the utility for cardio support
+    const workoutStatsList: WorkoutStats[] = workouts.map(workout =>
+      calculateWorkoutStats(workout.exercises, getTrackingType)
+    );
+    const combinedStats = combineWorkoutStats(workoutStatsList);
 
+    const totalVolume = combinedStats.totalVolumeLbs;
     const totalTime = workouts.reduce((sum, workout) => sum + workout.estimatedDuration, 0);
-    const totalSets = workouts.reduce((sum, workout) => {
-      return sum + workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.length;
-      }, 0);
-    }, 0);
+    const totalSets = combinedStats.totalSets;
 
     const totalReps = workouts.reduce((sum, workout) => {
       return sum + workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.reduce((setSum, set) => setSum + set.reps, 0);
+        return exerciseSum + exercise.completedSets.reduce((setSum, set) => setSum + (set.reps || 0), 0);
       }, 0);
     }, 0);
 
@@ -176,8 +181,13 @@ export default function WeeklyOverviewModal({
       dailyBreakdown,
       avgWorkoutDuration: workouts.length > 0 ? totalTime / workouts.length : 0,
       avgVolumePerWorkout: workouts.length > 0 ? totalVolume / workouts.length : 0,
+      // Cardio stats
+      hasCardio: combinedStats.hasCardioExercises,
+      totalDistanceMeters: combinedStats.totalDistanceMeters,
+      totalCardioDurationSeconds: combinedStats.totalCardioDurationSeconds,
     };
-  }, [workouts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
+  }, [workouts, customExercises]);
 
   const formatVolume = (volume: number) => {
     if (volume >= 1000) {
@@ -266,6 +276,31 @@ export default function WeeklyOverviewModal({
                 </Text>
               </View>
             </View>
+            {/* Cardio stats row */}
+            {analyticsData.hasCardio && (analyticsData.totalDistanceMeters > 0 || analyticsData.totalCardioDurationSeconds > 0) && (
+              <View style={[styles.summaryGrid, { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}>
+                {analyticsData.totalDistanceMeters > 0 && (
+                  <View style={styles.summaryItem}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
+                      {formatDistance(analyticsData.totalDistanceMeters)}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
+                      Distance
+                    </Text>
+                  </View>
+                )}
+                {analyticsData.totalCardioDurationSeconds > 0 && (
+                  <View style={styles.summaryItem}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
+                      {formatDuration(analyticsData.totalCardioDurationSeconds)}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
+                      Cardio Time
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Workout Details */}
@@ -362,6 +397,31 @@ export default function WeeklyOverviewModal({
             </Text>
           </View>
         </View>
+        {/* Cardio stats row */}
+        {analyticsData.hasCardio && (analyticsData.totalDistanceMeters > 0 || analyticsData.totalCardioDurationSeconds > 0) && (
+          <View style={[styles.summaryGrid, { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}>
+            {analyticsData.totalDistanceMeters > 0 && (
+              <View style={styles.summaryItem}>
+                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
+                  {formatDistance(analyticsData.totalDistanceMeters)}
+                </Text>
+                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
+                  Distance
+                </Text>
+              </View>
+            )}
+            {analyticsData.totalCardioDurationSeconds > 0 && (
+              <View style={styles.summaryItem}>
+                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
+                  {formatDuration(analyticsData.totalCardioDurationSeconds)}
+                </Text>
+                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
+                  Cardio Time
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       {/* Workout Category Distribution */}
@@ -868,7 +928,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
   },
   closeButton: {
     padding: 8,
@@ -876,7 +935,6 @@ const styles = StyleSheet.create({
   closeText: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   scrollView: {
     flex: 1,
@@ -908,23 +966,19 @@ const styles = StyleSheet.create({
   workoutTitle: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     flex: 1,
   },
   workoutDate: {
     fontSize: 14,
     marginBottom: 4,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
   workoutTime: {
     fontSize: 24,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
   },
   workoutExercises: {
     fontSize: 24,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
     marginTop: 4,
   },
@@ -941,7 +995,6 @@ const styles = StyleSheet.create({
   summaryTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginBottom: 12,
   },
   summaryRow: {
@@ -952,12 +1005,10 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 18,
-    fontFamily: 'Raleway_500Medium',
   },
   summaryValue: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   categoryCard: {
     padding: 16,
@@ -977,7 +1028,6 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   categoryStats: {
     flexDirection: 'row',
@@ -989,12 +1039,10 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
   emptyState: {
@@ -1003,12 +1051,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.6,
   },
   emptySubtext: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
     marginTop: 8,
   },
@@ -1028,7 +1074,6 @@ const styles = StyleSheet.create({
   },
   workoutStatText: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.8,
   },
   exerciseBreakdown: {
@@ -1037,7 +1082,6 @@ const styles = StyleSheet.create({
   breakdownTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginBottom: 8,
   },
   exerciseRow: {
@@ -1048,16 +1092,13 @@ const styles = StyleSheet.create({
   },
   exerciseName: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
   },
   exerciseVolume: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
     color: '#FF6B6B', // Example color for volume
   },
   moreExercises: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
     marginTop: 4,
   },
@@ -1072,7 +1113,6 @@ const styles = StyleSheet.create({
   },
   dayName: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
   },
   dailyStats: {
     flexDirection: 'row',
@@ -1080,7 +1120,6 @@ const styles = StyleSheet.create({
   },
   dailyStat: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     marginLeft: 15,
   },
   exerciseRankRow: {
@@ -1099,7 +1138,6 @@ const styles = StyleSheet.create({
   rankNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginRight: 8,
   },
   exerciseRankStats: {
@@ -1108,13 +1146,11 @@ const styles = StyleSheet.create({
   },
   exerciseRankStat: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
     marginLeft: 15,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginTop: 20,
     marginBottom: 12,
   },
@@ -1129,12 +1165,10 @@ const styles = StyleSheet.create({
   },
   categoryDetailLabel: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
   },
   categoryDetailValue: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   exerciseDetailCard: {
     padding: 16,
@@ -1154,7 +1188,6 @@ const styles = StyleSheet.create({
   exerciseDetailName: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   exerciseMetrics: {
     flexDirection: 'row',
@@ -1169,12 +1202,10 @@ const styles = StyleSheet.create({
   exerciseMetricValue: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginBottom: 4,
   },
   exerciseMetricLabel: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
   dailyTimeRow: {
@@ -1192,7 +1223,6 @@ const styles = StyleSheet.create({
   },
   dailyTimeStat: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     marginLeft: 15,
   },
   chartCard: {
@@ -1224,7 +1254,6 @@ const styles = StyleSheet.create({
   exerciseBreakdownName: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     flex: 1,
   },
   exerciseRankBadge: {
@@ -1235,7 +1264,6 @@ const styles = StyleSheet.create({
   exerciseRankText: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
   },
   exerciseMetricsGrid: {
     flexDirection: 'row',

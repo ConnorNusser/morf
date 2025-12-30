@@ -2,8 +2,8 @@ import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
 import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
-import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } from '@/lib/data/strengthStandards';
-import { calculateOverallPercentile, convertWeightToLbs } from '@/lib/utils/utils';
+import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
 import { userService } from './userService';
 import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
@@ -483,18 +483,42 @@ class UserSyncService {
         }
       }
 
+      // Get user profile for tier calculation
+      const userProfile = await userService.getUserProfileOrDefault();
+      const bodyWeightLbs = convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit);
+      const gender = userProfile.gender === 'male' || userProfile.gender === 'female' ? userProfile.gender : 'male';
+      const age = userProfile.age;
+
       // Convert lifts to the format Supabase expects
-      const liftRecords = lifts.map((lift) => ({
-        user_id: user.id,
-        exercise_id: lift.id,
-        weight: convertWeightToLbs(lift.weight, lift.unit),
-        reps: lift.reps,
-        estimated_1rm: OneRMCalculator.estimate(
-          convertWeightToLbs(lift.weight, lift.unit),
-          lift.reps
-        ),
-        recorded_at: lift.dateRecorded,
-      }));
+      const liftRecords = lifts.map((lift) => {
+        const weightLbs = convertWeightToLbs(lift.weight, lift.unit);
+        const estimated1rm = OneRMCalculator.estimate(weightLbs, lift.reps);
+
+        // Calculate strength tier for this lift
+        let strengthTier: string | null = null;
+        if (bodyWeightLbs > 0 && isFeaturedLift(lift.id)) {
+          const percentile = calculateStrengthPercentile(
+            estimated1rm,
+            bodyWeightLbs,
+            gender,
+            lift.id,
+            age
+          );
+          if (percentile > 0) {
+            strengthTier = getStrengthTier(percentile);
+          }
+        }
+
+        return {
+          user_id: user.id,
+          exercise_id: lift.id,
+          weight: weightLbs,
+          reps: lift.reps,
+          estimated_1rm: estimated1rm,
+          strength_tier: strengthTier,
+          recorded_at: lift.dateRecorded,
+        };
+      });
 
       // Upsert lifts (insert or update if already exists)
       const { error } = await supabase.from('user_lifts').insert(liftRecords);
@@ -713,6 +737,7 @@ class UserSyncService {
             exercise_id: l.workoutId,
             name: workout?.name || l.workoutId.replace('-', ' '),
             percentile: l.percentileRanking,
+            weight: l.personalRecord,
           };
         });
 
@@ -895,46 +920,80 @@ class UserSyncService {
 
       // Build exercise summaries (async to support custom exercise lookup)
       const exercisesWithSets = workout.exercises.filter(ex => ex.completedSets.length > 0);
-      const exerciseSummaries: WorkoutExerciseSummary[] = await Promise.all(
+      const exerciseSummariesRaw = await Promise.all(
         exercisesWithSets.map(async ex => {
           const completedSets = ex.completedSets.filter(s => s.completed);
-          const bestSet = completedSets.reduce((best, current) => {
-            const bestVolume = best.weight * best.reps;
-            const currentVolume = current.weight * current.reps;
-            return currentVolume > bestVolume ? current : best;
-          }, completedSets[0]);
+          // Skip exercises with no completed sets
+          if (completedSets.length === 0) {
+            return null;
+          }
 
-          // Calculate estimated 1RM and percentile for featured exercises
+          // Use async lookup to support custom exercises (do this first to get trackingType)
+          const exerciseInfo = await getExerciseById(ex.id);
+          const trackingType = exerciseInfo?.trackingType || 'reps';
+
+          // Find best set based on tracking type
+          let bestSet = completedSets[0];
+          if (trackingType === 'reps' && completedSets.length > 1) {
+            // Find best set by estimated 1RM (consistent with summary and history cards)
+            bestSet = completedSets.reduce((best, current) => {
+              const bestWeightLbs = best.unit === 'kg' ? best.weight * 2.205 : best.weight;
+              const currentWeightLbs = current.unit === 'kg' ? current.weight * 2.205 : current.weight;
+              const best1RM = OneRMCalculator.estimate(bestWeightLbs, best.reps);
+              const current1RM = OneRMCalculator.estimate(currentWeightLbs, current.reps);
+              return current1RM > best1RM ? current : best;
+            }, completedSets[0]);
+          } else if (trackingType === 'cardio' && completedSets.length > 1) {
+            // For cardio, best is longest distance or duration
+            bestSet = completedSets.reduce((best, current) => {
+              const bestScore = (best.distance || 0) + (best.duration || 0);
+              const currentScore = (current.distance || 0) + (current.duration || 0);
+              return currentScore > bestScore ? current : best;
+            }, completedSets[0]);
+          } else if (trackingType === 'timed' && completedSets.length > 1) {
+            // For timed, best is longest duration
+            bestSet = completedSets.reduce((best, current) => {
+              return (current.duration || 0) > (best.duration || 0) ? current : best;
+            }, completedSets[0]);
+          }
+
+          // Calculate estimated 1RM and percentile for featured exercises (reps only)
           let percentile: number | undefined;
-          if (bestSet && isFeaturedLift(ex.id) && bodyWeightLbs > 0) {
+          if (trackingType === 'reps' && bestSet && isFeaturedLift(ex.id) && bodyWeightLbs > 0) {
             const weightLbs = bestSet.unit === 'kg' ? bestSet.weight * 2.205 : bestSet.weight;
             const estimated1RM = OneRMCalculator.estimate(weightLbs, bestSet.reps);
             percentile = calculateStrengthPercentile(estimated1RM, bodyWeightLbs, gender, ex.id);
             if (percentile <= 0) percentile = undefined;
           }
 
-          // Build all sets data for detailed view
+          // Build all sets data for detailed view (include duration/distance for cardio)
           const allSets = completedSets.map((set, index) => ({
             setNumber: index + 1,
             weight: set.weight,
             reps: set.reps,
             unit: set.unit as 'lbs' | 'kg',
+            duration: set.duration,
+            distance: set.distance,
             // Mark the best set as a potential PR indicator
-            isPersonalRecord: bestSet && set.weight === bestSet.weight && set.reps === bestSet.reps,
+            isPersonalRecord: bestSet && set === bestSet,
           }));
 
-          // Use async lookup to support custom exercises
-          const exerciseInfo = await getExerciseById(ex.id);
           return {
             name: exerciseInfo?.name || ex.id.replace(/-/g, ' ').replace(/_/g, ' '),
             sets: completedSets.length,
-            bestSet: bestSet ? `${bestSet.weight}×${bestSet.reps}` : '',
+            bestSet: bestSet ? formatBestSet(bestSet, trackingType) : '',
             exerciseId: ex.id,
             percentile,
             allSets,
+            trackingType,
           };
         })
       );
+
+      // Filter out null results from exercises with no completed sets
+      const exerciseSummaries = exerciseSummariesRaw.filter(
+        (ex): ex is NonNullable<typeof ex> => ex !== null
+      ) as WorkoutExerciseSummary[];
 
       // Calculate totals
       const totalSets = workout.exercises.reduce(
@@ -945,10 +1004,24 @@ class UserSyncService {
         return sum + ex.completedSets
           .filter(s => s.completed)
           .reduce((setSum, set) => {
-            const weightInLbs = set.unit === 'kg' ? set.weight * 2.205 : set.weight;
-            return setSum + (weightInLbs * set.reps);
+            const weight = set.weight || 0;
+            const weightInLbs = set.unit === 'kg' ? weight * 2.205 : weight;
+            return setSum + (weightInLbs * (set.reps || 0));
           }, 0);
       }, 0);
+
+      // Calculate cardio totals - iterate through exercise summaries which have trackingType
+      let totalDistanceMeters = 0;
+      let totalCardioSeconds = 0;
+      workout.exercises.forEach((ex, index) => {
+        const trackingType = exerciseSummaries[index]?.trackingType || 'reps';
+        if (trackingType === 'cardio') {
+          ex.completedSets.filter(s => s.completed).forEach(set => {
+            totalDistanceMeters += set.distance || 0;
+            totalCardioSeconds += set.duration || 0;
+          });
+        }
+      });
 
       // Get user's current strength level for feed display
       const percentileData = await this.getUserPercentileData(user.id);
@@ -969,6 +1042,8 @@ class UserSyncService {
           exercise_count: exerciseSummaries.length,
           set_count: totalSets,
           total_volume: Math.round(totalVolume),
+          total_distance_meters: Math.round(totalDistanceMeters),
+          total_cardio_seconds: Math.round(totalCardioSeconds),
           exercises: exerciseSummaries,
           feed_data: feedData,
           synced_at: new Date().toISOString(),
@@ -1001,6 +1076,8 @@ class UserSyncService {
         exercise_count: exerciseSummaries.length,
         set_count: totalSets,
         total_volume: Math.round(totalVolume),
+        total_distance_meters: Math.round(totalDistanceMeters),
+        total_cardio_seconds: Math.round(totalCardioSeconds),
         exercises: exerciseSummaries,
       }).catch(err => {
         console.error('Error syncing workout to feed server:', err);

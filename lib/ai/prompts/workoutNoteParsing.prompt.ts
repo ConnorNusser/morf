@@ -27,8 +27,36 @@ IMPORTANT RULES:
    - "Pullups bodyweight x 10, 8, 6" = 3 sets
    - "DB curls 25s 3x12" = 3 sets of 25x12
 
+CARDIO & TIMED EXERCISES:
+8. For cardio exercises (rowing, treadmill, bike, elliptical, stair climber):
+   - Parse duration in seconds and distance in meters
+   - "Rowing 20min 5000m" or "Row 5k in 22:30" = duration + distance
+   - "Rowing 20:00" = duration only (1200 seconds)
+   - "Rowing 5000m" = distance only (5000 meters)
+   - "Treadmill 30min" = 1800 seconds duration
+   - Convert: km to meters (5k = 5000m), miles to meters (1 mile = 1609m)
+   - Set trackingType: "cardio" for these exercises
+   - IMPORTANT: Cardio machine names do NOT use parentheses format. Use these exact names:
+     * "Rowing Machine" (NOT "Rowing (Machine)")
+     * "Treadmill" (NOT "Treadmill (Machine)")
+     * "Stationary Bike" (NOT "Stationary Bike (Machine)")
+     * "Elliptical" (NOT "Elliptical (Machine)")
+     * "Stair Climber" (NOT "Stair Climber (Machine)")
+
+9. For timed/isometric exercises (plank, wall sit, dead hang):
+   - Parse duration in seconds
+   - "Plank 60s" or "Plank 1:00" = 60 seconds
+   - "Plank 60s, 45s, 30s" = 3 sets of different durations
+   - "Wall sit 2min" = 120 seconds
+   - Set trackingType: "timed" for these exercises
+
+10. Cardio/timed set format (use duration/distance instead of weight/reps):
+    { "duration": 1200, "distance": 5000 }  // 20 min, 5km row
+    { "duration": 60 }  // 60 second plank hold
+
 EXERCISE NAMING - MANDATORY FORMAT:
 Every exercise MUST end with equipment type in parentheses: "Exercise Name (Equipment)"
+EXCEPTION: Cardio exercises use plain names without parentheses (see rule 8 above for exact names)
 
 Equipment types: Barbell, Dumbbells, Cables, Machine, Smith Machine, Kettlebell, Bodyweight
 
@@ -86,6 +114,7 @@ Return ONLY valid JSON in this exact format (no markdown, no backticks):
     {
       "name": "Exercise Name (Equipment)",
       "id": "exercise-name-equipment",
+      "trackingType": "reps",
       "sets": [
         { "weight": 145, "reps": 8, "unit": "lbs" },
         { "weight": 155, "reps": 6, "unit": "lbs" }
@@ -93,10 +122,32 @@ Return ONLY valid JSON in this exact format (no markdown, no backticks):
       "recommendedSets": [
         { "weight": 135, "reps": 8, "unit": "lbs" }
       ]
+    },
+    {
+      "name": "Rowing Machine",
+      "id": "rowing-machine",
+      "trackingType": "cardio",
+      "sets": [
+        { "duration": 1200, "distance": 5000 }
+      ]
+    },
+    {
+      "name": "Plank (Bodyweight)",
+      "id": "plank-bodyweight",
+      "trackingType": "timed",
+      "sets": [
+        { "duration": 60 },
+        { "duration": 45 }
+      ]
     }
   ],
   "confidence": 0.95
 }
+
+TRACKING TYPE RULES:
+- trackingType: "reps" (default) - for weight/rep exercises, sets have { weight, reps, unit }
+- trackingType: "cardio" - for cardio machines, sets have { duration, distance? } (duration in seconds, distance in meters)
+- trackingType: "timed" - for isometric holds, sets have { duration } (duration in seconds)
 
 NOTE: "recommendedSets" is optional - only include it if the input explicitly mentions recommended/target/planned sets.
 The "sets" array should ONLY contain actual working sets that were performed.

@@ -5,6 +5,8 @@ import { notificationService } from '@/lib/services/notificationService';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { FEATURED_SECONDARY_LIFTS, isMainLift, UserLift, WeightUnit } from '@/types';
@@ -152,17 +154,31 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }, [workoutStartTime, calculateElapsedTime])
   );
 
-  // Update timer when app comes back to foreground
+  // Update timer and recover state when app comes back to foreground
   useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active' && workoutStartTime) {
-        setElapsedTime(calculateElapsedTime(workoutStartTime));
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        // Always update elapsed time if workout is active
+        if (workoutStartTime) {
+          setElapsedTime(calculateElapsedTime(workoutStartTime));
+        }
+
+        // Check if state was lost during background transition and recover from storage
+        // This handles the edge case where component state gets reset but storage still has data
+        if (!noteText && isSessionLoaded) {
+          const savedSession = await storageService.getNoteSession();
+          if (savedSession?.noteText) {
+            setNoteText(savedSession.noteText);
+            setWorkoutStartTime(savedSession.startTime);
+            setElapsedTime(calculateElapsedTime(savedSession.startTime));
+          }
+        }
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [workoutStartTime, calculateElapsedTime]);
+  }, [workoutStartTime, noteText, isSessionLoaded, calculateElapsedTime]);
 
   // Format elapsed time
   const formatTime = useCallback((seconds: number): string => {
@@ -220,8 +236,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
-    // Get current progress (PRs) before recording new lifts - for notifications
+    // Get current progress (PRs) before recording new lifts - for notifications AND strength animation
     const currentProgress = await userService.calculateRealUserProgress();
+
+    // Capture the BEFORE overall percentile for post-workout animation
+    const beforePercentiles = currentProgress.map(p => p.percentileRanking).filter(p => p > 0);
+    const beforeOverallPercentile = beforePercentiles.length > 0 ? calculateOverallPercentile(beforePercentiles) : 0;
     const currentPRMap: Record<string, number> = {};
     currentProgress.forEach(p => {
       currentPRMap[p.workoutId] = p.personalRecord;
@@ -235,8 +255,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       if (exercise.completedSets.length > 0) {
         // Find the best set (highest estimated 1RM)
         const bestSet = exercise.completedSets.reduce((best, current) => {
-          const bestOneRM = best.weight * (1 + best.reps / 30);
-          const currentOneRM = current.weight * (1 + current.reps / 30);
+          const bestOneRM = OneRMCalculator.estimate(best.weight, best.reps);
+          const currentOneRM = OneRMCalculator.estimate(current.weight, current.reps);
           return currentOneRM > bestOneRM ? current : best;
         });
 
@@ -259,12 +279,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
             // Get exercise name for notification
             const workoutInfo = getWorkoutById(exercise.id);
             if (workoutInfo) {
-              // Calculate new 1RM
-              const newPR = bestSet.weight * (1 + bestSet.reps / 30);
+              // Calculate new 1RM using same formula as userService (averages Epley, Brzycki, Lombardi)
+              const newPR = OneRMCalculator.estimate(bestSet.weight, bestSet.reps);
               newPRs.push({
                 exerciseId: exercise.id,
                 exerciseName: workoutInfo.name,
-                newPR: Math.round(newPR),
+                newPR,
                 previousPR: Math.round(previousPR),
               });
             }
@@ -304,6 +324,25 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     // Refresh user profile context so other screens get updated data
     await refreshProfile();
+
+    // Calculate NEW percentile after recording lifts
+    const afterProgress = await userService.calculateRealUserProgress();
+    const afterPercentiles = afterProgress.map(p => p.percentileRanking).filter(p => p > 0);
+    const afterOverallPercentile = afterPercentiles.length > 0 ? calculateOverallPercentile(afterPercentiles) : 0;
+
+    // Save strength progress to storage for home screen celebration
+    // Only save if there's an actual change
+    if (afterOverallPercentile !== beforeOverallPercentile) {
+      console.log('[useWorkoutNoteSession] Saving strength progress:', {
+        before: beforeOverallPercentile,
+        after: afterOverallPercentile,
+      });
+      await storageService.savePendingStrengthProgress({
+        previousPercentile: beforeOverallPercentile,
+        newPercentile: afterOverallPercentile,
+        timestamp: Date.now(),
+      });
+    }
 
     // Track workout completion analytics
     const totalSets = generatedWorkout.exercises.reduce(

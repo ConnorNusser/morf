@@ -10,6 +10,7 @@ import {
   isThemeUnlocked,
   ThemeLevel
 } from '@/lib/storage/userProfile';
+import { isSeasonalThemeAvailable } from '@/lib/ui/theme';
 import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
@@ -112,7 +113,6 @@ export default function ThemeEvolutionSection() {
             styles.themeEvolutionTitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
             }
           ]}>
             Theme Evolution
@@ -122,7 +122,6 @@ export default function ThemeEvolutionSection() {
               styles.currentThemeText, 
               { 
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
                 marginTop: 2,
               }
             ]}>
@@ -134,7 +133,6 @@ export default function ThemeEvolutionSection() {
               styles.themeEvolutionSubtitle, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_400Regular',
               }
             ]}>
               Unlock new themes as you progress
@@ -156,7 +154,6 @@ export default function ThemeEvolutionSection() {
               styles.subsectionTitle,
               {
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
               }
             ]}>
               Fitness Progression Themes
@@ -165,7 +162,6 @@ export default function ThemeEvolutionSection() {
               styles.subsectionDescription,
               {
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_400Regular',
                 opacity: 0.7,
               }
             ]}>
@@ -173,7 +169,7 @@ export default function ThemeEvolutionSection() {
             </Text>
             <View style={styles.themeGrid}>
               {themeEntries
-                .filter(([themeKey]) => !themeKey.startsWith('share_'))
+                .filter(([themeKey]) => !themeKey.startsWith('share_') && themeKey !== 'christmas_theme_2025')
                 .map(([themeKey, theme]) => (
                 <TouchableOpacity
                   key={themeKey}
@@ -198,7 +194,6 @@ export default function ThemeEvolutionSection() {
                         styles.themeName, 
                         { 
                           color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
-                          fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                         }
                       ]}>
                         {getThemeDisplayName(themeKey)}
@@ -207,7 +202,6 @@ export default function ThemeEvolutionSection() {
                         styles.themeRequirement, 
                         { 
                           color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
-                          fontFamily: 'Raleway_400Regular',
                         }
                       ]}>
                         {getThemeRequirement(themeKey)}
@@ -240,7 +234,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.primary,
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             ✓ Current Theme
@@ -251,7 +244,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.text + '60',
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             🔒 Locked
@@ -262,7 +254,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.text + '80',
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             Tap to activate
@@ -288,7 +279,6 @@ export default function ThemeEvolutionSection() {
                   styles.subsectionTitle,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_600SemiBold',
                   }
                 ]}>
                   Special Themes
@@ -297,7 +287,6 @@ export default function ThemeEvolutionSection() {
                   styles.subsectionDescription,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
                     opacity: 0.7,
                   }
                 ]}>
@@ -322,7 +311,10 @@ export default function ThemeEvolutionSection() {
             {/* Shareable Theme Grid */}
             <View style={styles.themeGrid}>
               {themeEntries
-                .filter(([themeKey]) => themeKey.startsWith('share_'))
+                .filter(([themeKey]) =>
+                  themeKey.startsWith('share_') ||
+                  (themeKey === 'christmas_theme_2025' && isSeasonalThemeAvailable('christmas_theme_2025'))
+                )
                 .map(([themeKey, theme]) => (
                 <TouchableOpacity
                   key={themeKey}
@@ -347,7 +339,6 @@ export default function ThemeEvolutionSection() {
                         styles.themeName, 
                         { 
                           color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
-                          fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                         }
                       ]}>
                         {getThemeDisplayName(themeKey)}
@@ -356,7 +347,6 @@ export default function ThemeEvolutionSection() {
                         styles.themeRequirement, 
                         { 
                           color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
-                          fontFamily: 'Raleway_400Regular',
                         }
                       ]}>
                         {getThemeRequirement(themeKey)}
@@ -389,7 +379,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.primary,
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             ✓ Current Theme
@@ -400,7 +389,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.text + '60',
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             🔒 Locked
@@ -411,7 +399,6 @@ export default function ThemeEvolutionSection() {
                             styles.statusText, 
                             { 
                               color: currentTheme.colors.text + '80',
-                              fontFamily: 'Raleway_500Medium',
                             }
                           ]}>
                             Tap to activate

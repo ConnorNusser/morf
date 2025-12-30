@@ -72,7 +72,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
           styles.label, 
           { 
             color: currentTheme.colors.text,
-            fontFamily: 'Raleway_600SemiBold',
           }
         ]}>
           Weight
@@ -94,7 +93,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
               styles.unitButtonText,
               { 
                 color: value.unit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               lbs
@@ -115,7 +113,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
               styles.unitButtonText,
               { 
                 color: value.unit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               kg
@@ -141,7 +138,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
                 styles.inputText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 },
               ]}
               value={inputValue}
@@ -155,7 +151,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
             styles.inputLabel, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_500Medium',
             }
           ]}>
             {value.unit}

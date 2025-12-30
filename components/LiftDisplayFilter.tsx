@@ -97,7 +97,6 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
             styles.filterSummary, 
             { 
               color: currentTheme.colors.text + '70',
-              fontFamily: 'Raleway_500Medium',
             }
           ]}>
             {getFilterSummary()}
@@ -144,7 +143,6 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
                     color: isHidden 
                       ? currentTheme.colors.text + '60'
                       : currentTheme.colors.primary,
-                    fontFamily: 'Raleway_500Medium',
                   }
                 ]}>
                   {workout?.name || lift.workoutId}

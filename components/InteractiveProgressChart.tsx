@@ -36,7 +36,7 @@ export default function InteractiveProgressChart({
   predictionValue,
   showPrediction = true,
   title = "One Rep Max Progression",
-  description = "Tap points to see exact values",
+  description = "Estimated from your workout sessions",
   showTimePeriodSelector = true
 }: InteractiveProgressChartProps) {
   const { currentTheme } = useTheme();
@@ -303,27 +303,13 @@ export default function InteractiveProgressChart({
 
   const xAxisLabels = getXAxisLabels();
 
-  // Get current 1RM (most recent value from deduplicated data)
-  const current1RM = dedupedData.length > 0
-    ? Math.round(convertWeightForPreference(dedupedData[dedupedData.length - 1].personalRecord, 'lbs', weightUnit) / 5) * 5
-    : null;
-
   return (
     <TouchableWithoutFeedback onPress={handleBackgroundPress}>
       <View style={styles.chartContainer}>
         <View style={styles.chartHeader}>
-          <View style={styles.chartTitleRow}>
-            <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>
-              {title}
-            </Text>
-            {selectedMetric === 'oneRM' && current1RM && (
-              <View style={[styles.current1RMBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.current1RMText, { color: currentTheme.colors.primary }]}>
-                  {current1RM} {weightUnit}
-                </Text>
-              </View>
-            )}
-          </View>
+          <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>
+            {title}
+          </Text>
           <Text style={[styles.chartDescription, { color: currentTheme.colors.text + '70' }]}>
             {description}
           </Text>
@@ -503,30 +489,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: 'center',
   },
-  chartTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
   chartTitle: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
-  },
-  current1RMBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-  },
-  current1RMText: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
+    marginBottom: 4,
   },
   chartDescription: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
   },
   timePeriodSelector: {
     flexDirection: 'row',
@@ -541,7 +510,6 @@ const styles = StyleSheet.create({
   },
   timePeriodText: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
   },
   noDataContainer: {
     height: 150,
@@ -550,7 +518,6 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
   },
   chart: {
     position: 'relative',
@@ -575,7 +542,6 @@ const styles = StyleSheet.create({
   },
   axisLabel: {
     fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
   },
   gridLine: {
     position: 'absolute',
@@ -635,11 +601,9 @@ const styles = StyleSheet.create({
   tooltipValue: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 2,
   },
   tooltipDate: {
     fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
   },
 }); 

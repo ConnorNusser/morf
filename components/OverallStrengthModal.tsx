@@ -184,7 +184,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
         {/* Header */}
         <View style={[styles.modalHeader, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Overall Strength
           </Text>
           <IconButton icon="close" onPress={onClose} />
