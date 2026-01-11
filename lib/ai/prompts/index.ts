@@ -7,6 +7,7 @@ export * from './workoutGeneration.prompt';
 export * from './workoutRefinement.prompt';
 export * from './customExercise.prompt';
 export * from './workoutNoteParsing.prompt';
+export * from './routineGeneration.prompt';
 
 /**
  * Standard exercise naming format documentation

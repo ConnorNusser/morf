@@ -237,7 +237,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     await storageService.saveWorkout(generatedWorkout);
 
     // Get current progress (PRs) before recording new lifts - for notifications AND strength animation
-    const currentProgress = await userService.calculateRealUserProgress();
+    // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
+    const currentProgress = await userService.getAllFeaturedLifts();
 
     // Capture the BEFORE overall percentile for post-workout animation
     const beforePercentiles = currentProgress.map(p => p.percentileRanking).filter(p => p > 0);
@@ -326,7 +327,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     await refreshProfile();
 
     // Calculate NEW percentile after recording lifts
-    const afterProgress = await userService.calculateRealUserProgress();
+    // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
+    const afterProgress = await userService.getAllFeaturedLifts();
     const afterPercentiles = afterProgress.map(p => p.percentileRanking).filter(p => p > 0);
     const afterOverallPercentile = afterPercentiles.length > 0 ? calculateOverallPercentile(afterPercentiles) : 0;
 

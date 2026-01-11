@@ -1,17 +1,18 @@
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
-import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
+import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
+import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
-import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -66,7 +67,7 @@ export default function WorkoutScreen() {
   // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
-  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Handle plan completion from modal
@@ -75,11 +76,21 @@ export default function WorkoutScreen() {
     setShowPlanBuilder(false);
   }, [setNoteText]);
 
-  // Handle template selection
-  const handleTemplateSelect = useCallback((template: WorkoutTemplate) => {
-    setNoteText(template.noteText);
-    setShowTemplateLibrary(false);
+  // Handle routine import
+  const handleRoutineImport = useCallback((text: string, _routineId: string) => {
+    setNoteText(text);
+    setShowRoutineImport(false);
   }, [setNoteText]);
+
+  // Check for pending routine text from Routines tab
+  useFocusEffect(
+    useCallback(() => {
+      const text = getPendingRoutine();
+      if (text) {
+        setNoteText(text);
+      }
+    }, [setNoteText])
+  );
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -211,7 +222,7 @@ export default function WorkoutScreen() {
             ) : (
               <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                onPress={() => setShowTemplateLibrary(true)}
+                onPress={() => setShowRoutineImport(true)}
               >
                 <Ionicons name="download-outline" size={20} color={currentTheme.colors.primary} />
               </TouchableOpacity>
@@ -322,11 +333,11 @@ Squats 225 for 5 reps`}
         onCancel={() => setShowPlanBuilder(false)}
       />
 
-      {/* Template Library Modal */}
-      <TemplateLibraryModal
-        visible={showTemplateLibrary}
-        onClose={() => setShowTemplateLibrary(false)}
-        onSelectTemplate={handleTemplateSelect}
+      {/* Routine Import Modal */}
+      <RoutineImportModal
+        visible={showRoutineImport}
+        onClose={() => setShowRoutineImport(false)}
+        onImport={handleRoutineImport}
       />
 
       {/* Help Modal */}

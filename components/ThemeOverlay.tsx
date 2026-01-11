@@ -2,11 +2,15 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ThemeLevel } from '@/types';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SnowEffect } from './effects';
+import { SnowEffect, SpringEffect } from './effects';
+
+// ============ TEST MODE ============
+// Set to 'snow' or 'spring' to force that effect, or null for normal behavior
+const TEST_EFFECT: 'snow' | 'spring' | null = null;
 
 // ============ EFFECT CONFIGURATION ============
 
-type EffectType = 'snow' | 'none';
+type EffectType = 'snow' | 'spring' | 'none';
 // Future effect types: 'spooky' | 'hearts' | 'fireworks' | 'confetti'
 
 interface ThemeEffectConfig {
@@ -15,30 +19,59 @@ interface ThemeEffectConfig {
   isActive: () => boolean; // Function to check if effect should be active (e.g., date range)
 }
 
-// Configuration for each theme's overlay effect
-const THEME_EFFECTS: Partial<Record<ThemeLevel, ThemeEffectConfig>> = {
-  christmas_theme_2025: {
-    effect: 'snow',
-    intervalMs: 2 * 60 * 1000, // 2 minutes
-    isActive: () => {
-      // Active Dec 1 - Jan 15
-      const now = new Date();
-      const month = now.getMonth();
-      const day = now.getDate();
-      return month === 11 || (month === 0 && day <= 15);
-    },
-  },
-  // Add more theme effects here:
-  // halloween_2025: {
-  //   effect: 'spooky',
-  //   intervalMs: 30 * 60 * 1000,
-  //   isActive: () => { /* Oct 1 - Nov 1 */ },
-  // },
-  // valentines_2026: {
-  //   effect: 'hearts',
-  //   intervalMs: 30 * 60 * 1000,
-  //   isActive: () => { /* Feb 1 - Feb 15 */ },
-  // },
+// Check if we're in winter season (Dec 1 - March 20)
+const isWinterSeason = (): boolean => {
+  const now = new Date();
+  const month = now.getMonth();
+  const day = now.getDate();
+  // Dec (11), Jan (0), Feb (1), or March 1-20 (2)
+  return month === 11 || month === 0 || month === 1 || (month === 2 && day <= 20);
+};
+
+// Check if we're in spring season (March 21 - June 20)
+const isSpringSeason = (): boolean => {
+  const now = new Date();
+  const month = now.getMonth();
+  const day = now.getDate();
+  // March 21+ (2), April (3), May (4), or June 1-20 (5)
+  return (month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20);
+};
+
+// Default snow effect for all themes during winter
+const DEFAULT_SNOW_CONFIG: ThemeEffectConfig = {
+  effect: 'snow',
+  intervalMs: 2 * 60 * 1000, // 2 minutes
+  isActive: isWinterSeason,
+};
+
+// Default spring effect for all themes during spring
+const DEFAULT_SPRING_CONFIG: ThemeEffectConfig = {
+  effect: 'spring',
+  intervalMs: 90 * 1000, // 90 seconds
+  isActive: isSpringSeason,
+};
+
+// Get seasonal effect config for a theme
+const getSeasonalConfig = (theme: ThemeLevel): ThemeEffectConfig | null => {
+  // Christmas theme gets more frequent snow in winter
+  if (theme === 'christmas_theme_2025' && isWinterSeason()) {
+    return {
+      effect: 'snow',
+      intervalMs: 25 * 1000, // 25 seconds - frequent snowfall
+      isActive: () => true,
+    };
+  }
+
+  // Check winter first, then spring
+  if (isWinterSeason()) {
+    return { ...DEFAULT_SNOW_CONFIG, isActive: () => true };
+  }
+
+  if (isSpringSeason()) {
+    return { ...DEFAULT_SPRING_CONFIG, isActive: () => true };
+  }
+
+  return null;
 };
 
 // ============ EFFECT RENDERER ============
@@ -52,6 +85,8 @@ function EffectRenderer({ effect, intervalMs }: EffectRendererProps) {
   switch (effect) {
     case 'snow':
       return <SnowEffect intervalMs={intervalMs} />;
+    case 'spring':
+      return <SpringEffect intervalMs={intervalMs} />;
     // Add more effect components here:
     // case 'spooky':
     //   return <SpookyEffect intervalMs={intervalMs} />;
@@ -68,14 +103,21 @@ function EffectRenderer({ effect, intervalMs }: EffectRendererProps) {
 export default function ThemeOverlay() {
   const { currentThemeLevel } = useTheme();
 
-  // Get effect config for current theme
-  const config = THEME_EFFECTS[currentThemeLevel];
+  // TEST MODE: Force a specific effect for testing
+  if (TEST_EFFECT) {
+    const testIntervalMs = TEST_EFFECT === 'snow' ? 25 * 1000 : 45 * 1000;
+    return (
+      <View style={styles.container} pointerEvents="none">
+        <EffectRenderer effect={TEST_EFFECT} intervalMs={testIntervalMs} />
+      </View>
+    );
+  }
 
-  // No effect configured for this theme
+  // Get seasonal effect config for current theme
+  const config = getSeasonalConfig(currentThemeLevel);
+
+  // No seasonal effect active
   if (!config) return null;
-
-  // Effect exists but is not active (e.g., outside date range)
-  if (!config.isActive()) return null;
 
   return (
     <View style={styles.container} pointerEvents="none">

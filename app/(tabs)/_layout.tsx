@@ -25,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 // You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon({ iconName, focused }: {
-  iconName: 'home' | 'workout' | 'history' | 'profile';
+  iconName: 'home' | 'workout' | 'history' | 'notes' | 'profile';
   focused: boolean;
 }) {
   const { currentTheme } = useTheme();
@@ -40,6 +40,8 @@ function TabBarIcon({ iconName, focused }: {
         return <Ionicons name="add" size={28} color={color} style={{ marginTop: -4 }} />;
       case 'history':
         return <Ionicons name="time-outline" size={22} color={color} />;
+      case 'notes':
+        return <Ionicons name="document-text-outline" size={20} color={color} />;
       case 'profile':
         return <ProfileIcon color={color} size={size} />;
       default:
@@ -192,6 +194,15 @@ function TabsContent() {
           title: 'Workout',
           tabBarIcon: ({ focused }) => (
             <TabBarIcon iconName="workout" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: 'Notes',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon iconName="notes" focused={focused} />
           ),
         }}
       />

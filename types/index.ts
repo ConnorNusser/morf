@@ -243,12 +243,92 @@ export interface ExerciseSet {
 }
 
 // ===== ROUTINE TYPES =====
+
+// Intensity modifier affects what percentage of working weight to use
+export type IntensityModifier = 'heavy' | 'moderate' | 'light';
+
+// A single set in a routine exercise
+export interface RoutineSet {
+  reps: number;
+  isWarmup?: boolean;  // Warmup sets use lower percentage (~50-60%)
+}
+
+// A single exercise in a routine (just structure, weights calculated dynamically)
+export interface RoutineExercise {
+  exerciseId: string;
+  sets: RoutineSet[];  // Array of individual sets
+  intensityModifier?: IntensityModifier;
+  notes?: string;
+}
+
+// Common workout split types
+export type SplitType =
+  | 'push'
+  | 'pull'
+  | 'legs'
+  | 'upper'
+  | 'lower'
+  | 'full_body'
+  | 'chest'
+  | 'back'
+  | 'shoulders'
+  | 'arms'
+  | 'core'
+  | 'cardio'
+  | 'custom';
+
+export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
+  push: 'Push',
+  pull: 'Pull',
+  legs: 'Legs',
+  upper: 'Upper',
+  lower: 'Lower',
+  full_body: 'Full Body',
+  chest: 'Chest',
+  back: 'Back',
+  shoulders: 'Shoulders',
+  arms: 'Arms',
+  core: 'Core',
+  cardio: 'Cardio',
+  custom: 'Custom',
+};
+
+// The routine itself - stores structure only, no weights
 export interface Routine {
   id: string;
   name: string;
-  description: string;
-  exercises: GeneratedWorkout[];
+  description?: string;
+  splitType?: SplitType;
+  exercises: RoutineExercise[];
   createdAt: Date;
+  lastUsed?: Date;
+  isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
+}
+
+// Calculated set with weight
+export interface CalculatedSet extends RoutineSet {
+  targetWeight: number;
+}
+
+// Calculated values when displaying/using a routine
+export interface CalculatedRoutineExercise extends Omit<RoutineExercise, 'sets'> {
+  exerciseName: string;
+  sets: CalculatedSet[];  // Sets with calculated weights
+  workingWeight: number;  // The main working weight (for display)
+  lastPerformed?: {
+    weight: number;
+    reps: number;
+    date: Date;
+    completed: boolean;  // Did they hit all sets at target?
+  };
+  progression: 'increase' | 'maintain' | 'decrease';
+  unit: WeightUnit;
+  estimated1RM?: number;
+}
+
+// Full calculated routine ready for display
+export interface CalculatedRoutine extends Omit<Routine, 'exercises'> {
+  exercises: CalculatedRoutineExercise[];
 }
 
 // Simplified workout using existing types

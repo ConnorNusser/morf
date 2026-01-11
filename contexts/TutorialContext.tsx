@@ -7,14 +7,14 @@ interface TutorialContextType {
   tutorialState: TutorialState;
   isLoading: boolean;
   showTutorial: boolean;
-  currentScreen: 'home' | 'workout' | 'history' | 'profile' | null;
+  currentScreen: 'home' | 'workout' | 'history' | 'profile' | 'notes' | null;
   currentStep: number;
   startTutorial: () => void;
   nextStep: () => void;
   previousStep: () => void;
   skipTutorial: () => void;
   completeTutorial: () => void;
-  setCurrentScreen: (screen: 'home' | 'workout' | 'history' | 'profile') => void;
+  setCurrentScreen: (screen: 'home' | 'workout' | 'history' | 'profile' | 'notes') => void;
   resetTutorials: () => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const [tutorialState, setTutorialState] = useState<TutorialState>(defaultTutorialState);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'workout' | 'history' | 'profile' | null>(null);
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'workout' | 'history' | 'profile' | 'notes' | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
   // Load tutorial state on mount

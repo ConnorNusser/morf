@@ -152,6 +152,7 @@ export function TutorialOverlay() {
           workout: '/workout',
           history: '/history',
           profile: '/profile',
+          notes: '/notes',
         };
 
         const route = screenRoutes[step.screen];

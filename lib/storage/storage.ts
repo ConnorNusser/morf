@@ -257,28 +257,62 @@ class StorageService {
   };
 
   async getRoutines(): Promise<Routine[]> {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
-    const routines = data ? JSON.parse(data) : [];
-    return routines;
-  };
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
+      if (!data) return [];
+
+      const routines = JSON.parse(data) as (Omit<Routine, 'createdAt' | 'lastUsed'> & { createdAt: string; lastUsed?: string })[];
+      // Convert date strings back to Date objects
+      return routines.map((r) => ({
+        ...r,
+        createdAt: new Date(r.createdAt),
+        lastUsed: r.lastUsed ? new Date(r.lastUsed) : undefined,
+      }));
+    } catch (error) {
+      console.error('Error loading routines:', error);
+      return [];
+    }
+  }
 
   async saveRoutine(routine: Routine): Promise<void> {
-    routine.createdAt = new Date();
-    const routines = await this.getRoutines();
-    
-    // Check if routine with same ID already exists
-    const existingIndex = routines.findIndex(r => r.id === routine.id);
-    
-    if (existingIndex >= 0) {
-      // Update existing routine
-      routines[existingIndex] = routine;
-    } else {
-      // Add new routine
-      routines.push(routine);
-    }
+    try {
+      const routines = await this.getRoutines();
 
-    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
-  };
+      // Check if routine with same ID already exists
+      const existingIndex = routines.findIndex(r => r.id === routine.id);
+
+      if (existingIndex >= 0) {
+        // Update existing routine, preserve createdAt
+        routines[existingIndex] = {
+          ...routine,
+          createdAt: routines[existingIndex].createdAt,
+        };
+      } else {
+        // Add new routine with current timestamp
+        routines.push({
+          ...routine,
+          createdAt: routine.createdAt || new Date(),
+        });
+      }
+
+      await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+    } catch (error) {
+      console.error('Error saving routine:', error);
+    }
+  }
+
+  async updateRoutineLastUsed(routineId: string): Promise<void> {
+    try {
+      const routines = await this.getRoutines();
+      const routine = routines.find(r => r.id === routineId);
+      if (routine) {
+        routine.lastUsed = new Date();
+        await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+      }
+    } catch (error) {
+      console.error('Error updating routine last used:', error);
+    }
+  }
 
   async deleteRoutine(routineId: string): Promise<void> {
     const routines = await this.getRoutines();

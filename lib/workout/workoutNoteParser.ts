@@ -442,9 +442,16 @@ class WorkoutNoteParser {
       return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
     }, 0);
 
+    // Extract title from raw text if it starts with # (e.g., "# Push Day")
+    let title = `Workout - ${new Date().toLocaleDateString()}`;
+    const firstLine = parsed.rawText?.trim().split('\n')[0];
+    if (firstLine?.startsWith('#')) {
+      title = firstLine.replace(/^#\s*/, '').trim() || title;
+    }
+
     return {
       id: `notes_workout_${Date.now()}`,
-      title: `Workout - ${new Date().toLocaleDateString()}`,
+      title,
       description: `Logged via notes. Total volume: ${totalVolume.toLocaleString()} lbs`,
       exercises,
       estimatedDuration: duration,
@@ -484,9 +491,16 @@ class WorkoutNoteParser {
       return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
     }, 0);
 
+    // Extract title from raw text if it starts with # (e.g., "# Push Day")
+    let title = `Workout - ${new Date().toLocaleDateString()}`;
+    const firstLine = parsed.rawText?.trim().split('\n')[0];
+    if (firstLine?.startsWith('#')) {
+      title = firstLine.replace(/^#\s*/, '').trim() || title;
+    }
+
     return {
       id: `notes_workout_${Date.now()}`,
-      title: `Workout - ${new Date().toLocaleDateString()}`,
+      title,
       description: `Logged via notes. Total volume: ${totalVolume.toLocaleString()} lbs`,
       exercises,
       estimatedDuration: duration,

@@ -122,6 +122,8 @@ export const analyzeWeakPoints = (
 
 // Sync version - only checks built-in exercises
 export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null => {
+  if (!exerciseId) return null;
+
   const allWorkouts = getAvailableWorkouts(100);
   const workout = allWorkouts.find(w => w.id === exerciseId);
 
