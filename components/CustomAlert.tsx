@@ -1,6 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import React, { createContext, useCallback, useContext, useState } from 'react';
@@ -121,7 +121,7 @@ function AlertContent({
       <Text
         style={[
           styles.title,
-          { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' },
+          { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold },
         ]}
       >
         {config.title}
@@ -132,7 +132,7 @@ function AlertContent({
         <Text
           style={[
             styles.message,
-            { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' },
+            { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular },
           ]}
         >
           {config.message}
@@ -151,7 +151,7 @@ function AlertContent({
             size={16}
             color={copied ? '#22C55E' : currentTheme.colors.text + '70'}
           />
-          <Text style={[styles.copyButtonText, { color: copied ? '#22C55E' : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+          <Text style={[styles.copyButtonText, { color: copied ? '#22C55E' : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
             {copied ? 'Copied!' : 'Copy'}
           </Text>
         </TouchableOpacity>
@@ -181,7 +181,7 @@ function AlertContent({
               <Text
                 style={[
                   styles.buttonText,
-                  { fontFamily: 'Raleway_600SemiBold' },
+                  { fontFamily: currentTheme.fonts.semiBold },
                   isCancel && { color: currentTheme.colors.text },
                   (isDestructive || isPrimary || buttons.length === 1) && { color: '#fff' },
                 ]}

@@ -1,5 +1,5 @@
-import { storageService } from '@/lib/storage';
-import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/theme';
+import { storageService } from '@/lib/storage/storage';
+import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/ui/theme';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 

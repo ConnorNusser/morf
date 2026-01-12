@@ -87,27 +87,27 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
     >
       <View style={[styles.liftMain, { backgroundColor: 'transparent' }]}>
         <View style={[styles.liftNameRow, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             {exercise.name}
           </Text>
           {exercise.isCustom && (
             <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
                 Custom
               </Text>
             </View>
           )}
         </View>
         <View style={[styles.liftStats, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+          <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
             {exercise.estimated1RM}
           </Text>
-          <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
             {' '}est. 1RM
           </Text>
           {delta && (
             <View style={[styles.deltaContainer, { backgroundColor: delta.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>
-              <Text style={[styles.deltaText, { color: delta.isPositive ? '#00C85C' : '#FF6B6B', fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.deltaText, { color: delta.isPositive ? '#00C85C' : '#FF6B6B', fontFamily: currentTheme.fonts.semiBold }]}>
                 {delta.isPositive ? '+' : '-'}{delta.value}
               </Text>
             </View>

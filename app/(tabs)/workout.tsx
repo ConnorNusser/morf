@@ -1,17 +1,18 @@
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
-import WorkoutSummaryModal from '@/components/workout/WorkoutSummaryModal';
-import TemplateLibraryModal from '@/components/workout/TemplateLibraryModal';
+import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
+import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
-import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -66,7 +67,7 @@ export default function WorkoutScreen() {
   // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
-  const [showTemplateLibrary, setShowTemplateLibrary] = useState(false);
+  const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Handle plan completion from modal
@@ -75,11 +76,21 @@ export default function WorkoutScreen() {
     setShowPlanBuilder(false);
   }, [setNoteText]);
 
-  // Handle template selection
-  const handleTemplateSelect = useCallback((template: WorkoutTemplate) => {
-    setNoteText(template.noteText);
-    setShowTemplateLibrary(false);
+  // Handle routine import
+  const handleRoutineImport = useCallback((text: string, _routineId: string) => {
+    setNoteText(text);
+    setShowRoutineImport(false);
   }, [setNoteText]);
+
+  // Check for pending routine text from Routines tab
+  useFocusEffect(
+    useCallback(() => {
+      const text = getPendingRoutine();
+      if (text) {
+        setNoteText(text);
+      }
+    }, [setNoteText])
+  );
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -122,9 +133,9 @@ export default function WorkoutScreen() {
   }, [handleFinishWorkout]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
+        style={layout.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
@@ -138,7 +149,7 @@ export default function WorkoutScreen() {
                   onPress={handleQuickSummary}
                 >
                   <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     Summary
                   </Text>
                 </TouchableOpacity>
@@ -179,20 +190,20 @@ export default function WorkoutScreen() {
                     styles.timerText,
                     {
                       color: isResting ? '#fff' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_600SemiBold'
+                      fontFamily: currentTheme.fonts.semiBold
                     }
                   ]}>
                     {isResting ? formattedRestTime : formatTime(elapsedTime)}
                   </Text>
                   {isResting && (
-                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
                       REST
                     </Text>
                   )}
                 </RNView>
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 Workout
               </Text>
             )}
@@ -204,14 +215,14 @@ export default function WorkoutScreen() {
                 style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishPress}
               >
-                <Text style={[styles.finishButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                   Finish
                 </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
                 style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                onPress={() => setShowTemplateLibrary(true)}
+                onPress={() => setShowRoutineImport(true)}
               >
                 <Ionicons name="download-outline" size={20} color={currentTheme.colors.primary} />
               </TouchableOpacity>
@@ -234,10 +245,10 @@ export default function WorkoutScreen() {
 
               {/* Rest timer display */}
               <RNView style={styles.expandedTimerCenter}>
-                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                   {formattedRestTime}
                 </Text>
-                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   rest remaining
                 </Text>
               </RNView>
@@ -258,7 +269,7 @@ export default function WorkoutScreen() {
                 style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                 onPress={handleResetWorkoutTimer}
               >
-                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                   Restart Workout ({formatTime(elapsedTime)})
                 </Text>
               </TouchableOpacity>
@@ -268,7 +279,7 @@ export default function WorkoutScreen() {
                 style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishRest}
               >
-                <Text style={[styles.doneRestButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.doneRestButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -276,17 +287,20 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Quick Summary Toast */}
-        <WorkoutSummaryModal
+        {/* Quick Summary Preview */}
+        <WorkoutFinishModal
           visible={showSummary}
+          noteText={noteText}
+          duration={elapsedTime}
+          isPreviewMode={true}
           exercises={parsedExercises}
           isLoading={summaryLoading}
           onDismiss={() => setShowSummary(false)}
         />
 
         {/* Main Content - Notes Input */}
-        <TutorialTarget id="workout-note-input" style={{ flex: 1 }}>
-          <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+        <TutorialTarget id="workout-note-input" style={layout.flex1}>
+          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
             <WorkoutNoteInput
               ref={noteInputRef}
               value={noteText}
@@ -319,11 +333,11 @@ Squats 225 for 5 reps`}
         onCancel={() => setShowPlanBuilder(false)}
       />
 
-      {/* Template Library Modal */}
-      <TemplateLibraryModal
-        visible={showTemplateLibrary}
-        onClose={() => setShowTemplateLibrary(false)}
-        onSelectTemplate={handleTemplateSelect}
+      {/* Routine Import Modal */}
+      <RoutineImportModal
+        visible={showRoutineImport}
+        onClose={() => setShowRoutineImport(false)}
+        onImport={handleRoutineImport}
       />
 
       {/* Help Modal */}
@@ -336,12 +350,6 @@ Squats 225 for 5 reps`}
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  keyboardAvoid: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -469,9 +477,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
   },
   headerButtonGroup: {
     flexDirection: 'row',

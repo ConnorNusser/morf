@@ -1,7 +1,9 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
+import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
@@ -35,21 +37,14 @@ export default function WorkoutCard({
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const getWorkoutStats = () => {
-    let totalSets = 0;
-    let totalVolume = 0;
-    workout.exercises.forEach(ex => {
-      ex.completedSets?.forEach(set => {
-        totalSets++;
-        // Convert weight to user's preferred unit before calculating volume
-        // Default to 'lbs' for legacy data without unit field
-        const setUnit = set.unit || 'lbs';
-        const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
-        totalVolume += weightInPreferredUnit * set.reps;
-      });
-    });
-    return { totalSets, totalVolume: Math.round(totalVolume) };
+  // Helper to get tracking type for an exercise
+  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
+    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    return exerciseInfo?.trackingType;
   };
+
+  // Calculate stats using the universal utility
+  const workoutStats = calculateWorkoutStats(workout.exercises, getTrackingType);
 
   const getWorkoutExercises = (): { name: string; sets: string[]; isPR: boolean }[] => {
     const exercises: { name: string; sets: string[]; isPR: boolean; volume: number }[] = [];
@@ -57,37 +52,48 @@ export default function WorkoutCard({
     workout.exercises.forEach(ex => {
       const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
       const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+      const trackingType = exerciseInfo?.trackingType || 'reps';
 
       if (ex.completedSets && ex.completedSets.length > 0) {
-        // Convert weights to user's preferred unit for display
-        // Default to 'lbs' for legacy data without unit field
+        // Format sets using universal formatter
         const sets = ex.completedSets.map(set => {
           const setUnit = set.unit || 'lbs';
-          const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
-          return `${displayWeight}×${set.reps}`;
+          const displayWeight = set.weight != null ? Math.round(convertWeight(set.weight, setUnit, weightUnit)) : 0;
+          return formatSet(
+            { weight: displayWeight, reps: set.reps, unit: weightUnit, duration: set.duration, distance: set.distance },
+            { trackingType, compact: true }
+          );
         });
 
-        // Find best set by converting to same unit for comparison
-        const bestSet = ex.completedSets.reduce((best, current) => {
-          const bestUnit = best.unit || 'lbs';
-          const currentUnit = current.unit || 'lbs';
-          const bestInLbs = convertWeight(best.weight, bestUnit, 'lbs');
-          const currentInLbs = convertWeight(current.weight, currentUnit, 'lbs');
-          return currentInLbs > bestInLbs ? current : best;
-        }, ex.completedSets[0]);
+        // For reps-based exercises, find best set by estimated 1RM
+        let isPR = false;
+        let volume = 0;
 
-        // Calculate volume in user's preferred unit
-        const volume = ex.completedSets.reduce((sum, set) => {
-          const setUnit = set.unit || 'lbs';
-          const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
-          return sum + weightInPreferredUnit * set.reps;
-        }, 0);
+        if (trackingType === 'reps') {
+          const bestSet = ex.completedSets.reduce((best, current) => {
+            const bestUnit = best.unit || 'lbs';
+            const currentUnit = current.unit || 'lbs';
+            const bestInLbs = convertWeight(best.weight || 0, bestUnit, 'lbs');
+            const currentInLbs = convertWeight(current.weight || 0, currentUnit, 'lbs');
+            const best1RM = OneRMCalculator.estimate(bestInLbs, best.reps || 0);
+            const current1RM = OneRMCalculator.estimate(currentInLbs, current.reps || 0);
+            return current1RM > best1RM ? current : best;
+          }, ex.completedSets[0]);
 
-        // Compare best set to exercise stats (stats are in lbs)
-        const exerciseStat = exerciseStats.find(s => s.id === ex.id);
-        const bestSetUnit = bestSet.unit || 'lbs';
-        const bestSetInLbs = convertWeight(bestSet.weight, bestSetUnit, 'lbs');
-        const isPR = exerciseStat ? bestSetInLbs >= exerciseStat.maxWeight : false;
+          // Calculate volume in user's preferred unit
+          volume = ex.completedSets.reduce((sum, set) => {
+            const setUnit = set.unit || 'lbs';
+            const weightInPreferredUnit = convertWeight(set.weight || 0, setUnit, weightUnit);
+            return sum + weightInPreferredUnit * (set.reps || 0);
+          }, 0);
+
+          // Compare best set 1RM to exercise stats (use estimated1RM for consistency)
+          const exerciseStat = exerciseStats.find(s => s.id === ex.id);
+          const bestSetUnit = bestSet.unit || 'lbs';
+          const bestSetInLbs = convertWeight(bestSet.weight || 0, bestSetUnit, 'lbs');
+          const bestSet1RM = OneRMCalculator.estimate(bestSetInLbs, bestSet.reps || 0);
+          isPR = exerciseStat ? bestSet1RM >= exerciseStat.estimated1RM : false;
+        }
 
         exercises.push({ name, sets, isPR, volume });
       }
@@ -96,8 +102,8 @@ export default function WorkoutCard({
     return exercises.sort((a, b) => b.volume - a.volume);
   };
 
-  const stats = getWorkoutStats();
   const exercises = getWorkoutExercises();
+  const statsLine = formatWorkoutStatsLine(workoutStats, { unit: weightUnit });
 
   return (
     <TouchableOpacity
@@ -108,11 +114,11 @@ export default function WorkoutCard({
     >
       {/* Header */}
       <View style={[styles.workoutHeader, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
           {workout.title}
         </Text>
-        <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
-          {formatRelativeDate(workout.createdAt)} • {stats.totalSets} sets • {stats.totalVolume > 1000 ? `${(stats.totalVolume / 1000).toFixed(1)}k` : stats.totalVolume} {weightUnit}
+        <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+          {formatRelativeDate(workout.createdAt)} • {statsLine}
         </Text>
       </View>
 
@@ -122,16 +128,16 @@ export default function WorkoutCard({
           {exercises.map((ex, idx) => (
             <RNView key={idx} style={[styles.exerciseRow, { backgroundColor: currentTheme.colors.surface }]}>
               <RNView style={styles.exerciseContent}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                   {ex.name}
                 </Text>
-                <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                   {ex.sets.join(' · ')}
                 </Text>
               </RNView>
               {ex.isPR && (
                 <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                  <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                     PR
                   </Text>
                 </RNView>

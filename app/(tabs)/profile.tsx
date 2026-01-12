@@ -14,10 +14,11 @@ import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
-import { analyticsService } from '@/lib/analytics';
-import { storageService } from '@/lib/storage';
-import { userService } from '@/lib/userService';
-import { userSyncService } from '@/lib/userSyncService';
+import { analyticsService } from '@/lib/services/analytics';
+import { storageService } from '@/lib/storage/storage';
+import { layout } from '@/lib/ui/styles';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -111,7 +112,7 @@ export default function ProfileScreen() {
   // Show loading or create profile if no user exists
   if (isLoading) {
     return (
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.loadingContainer, { backgroundColor: 'transparent' }]}>
           <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>Loading...</Text>
         </View>
@@ -121,7 +122,7 @@ export default function ProfileScreen() {
 
   return (
     <>
-    <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+    <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
         {/* Morf Logo and Brand */}
         <DashboardHeader />
@@ -132,7 +133,6 @@ export default function ProfileScreen() {
             styles.title, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
             }
           ]}>
             Profile Settings
@@ -141,7 +141,6 @@ export default function ProfileScreen() {
             styles.subtitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_400Regular',
             }
           ]}>
             Customize your experience
@@ -157,10 +156,10 @@ export default function ProfileScreen() {
           <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
             <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
             <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 {username ? `@${username}` : 'Set Username'}
               </Text>
-              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -205,7 +204,7 @@ export default function ProfileScreen() {
           onPress={handleResetStats}
           activeOpacity={0.7}
         >
-          <Text style={[styles.resetButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.resetButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
             Reset All Data
           </Text>
         </TouchableOpacity>
@@ -226,9 +225,6 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     padding: 16,
     gap: 16,

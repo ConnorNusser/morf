@@ -91,7 +91,6 @@ export default function PersonalInformationSection({
             styles.sectionTitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             Personal Information
@@ -101,7 +100,6 @@ export default function PersonalInformationSection({
               styles.personalInfoSubtitle, 
               { 
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {getPersonalInfoSummary()}

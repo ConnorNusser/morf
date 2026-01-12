@@ -11,7 +11,7 @@ export interface TutorialStep {
   // Direction the pointing hand should face
   pointerDirection?: PointerDirection;
   // Screen this step belongs to
-  screen: 'home' | 'workout' | 'history' | 'profile';
+  screen: 'home' | 'workout' | 'history' | 'profile' | 'notes';
 }
 
 export const tutorialSteps: TutorialStep[] = [
@@ -21,6 +21,15 @@ export const tutorialSteps: TutorialStep[] = [
     title: 'Welcome to Morf!',
     description: 'Let me show you around the app. This quick tour will help you get started.',
     tooltipPosition: 'center',
+    screen: 'home',
+  },
+  {
+    id: 'home-feed',
+    title: 'Community Feed',
+    description: 'Switch to Feed to see what others are lifting! Share your workouts and connect with the community.',
+    targetId: 'home-view-selector',
+    tooltipPosition: 'bottom',
+    pointerDirection: 'up',
     screen: 'home',
   },
   {
@@ -66,6 +75,32 @@ export const tutorialSteps: TutorialStep[] = [
     tooltipPosition: 'bottom',
     pointerDirection: 'up',
     screen: 'workout',
+  },
+  // Routines Screen Steps
+  {
+    id: 'notes-intro',
+    title: 'Your Routines',
+    description: 'Create and manage your workout routines here. The app suggests which routine to do next based on when you last did each one.',
+    tooltipPosition: 'center',
+    screen: 'notes',
+  },
+  {
+    id: 'notes-routine-card',
+    title: 'Routine Cards',
+    description: 'Tap a card to see exercise details and weights. Hit "Start" to load the routine into your workout!',
+    targetId: 'notes-routine-card',
+    tooltipPosition: 'bottom',
+    pointerDirection: 'up',
+    screen: 'notes',
+  },
+  {
+    id: 'notes-ai-generate',
+    title: 'AI Routine Generator',
+    description: 'Tap the sparkle icon to have AI create a personalized workout program based on your goals and experience level.',
+    targetId: 'notes-ai-button',
+    tooltipPosition: 'bottom',
+    pointerDirection: 'up',
+    screen: 'notes',
   },
   // History Screen Steps
   {

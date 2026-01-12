@@ -69,7 +69,6 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
           styles.selectAllText,
           {
             color: allSelected ? currentTheme.colors.primary : currentTheme.colors.text,
-            fontFamily: 'Raleway_500Medium',
           }
         ]}>
           Select All Equipment
@@ -102,7 +101,6 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
                 styles.equipmentLabel,
                 {
                   color: isSelected ? '#FFFFFF' : currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 {equipment.label}
@@ -112,7 +110,7 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
         })}
       </View>
 
-      <Text style={[styles.hint, { color: currentTheme.colors.secondary, fontFamily: 'Raleway_400Regular' }]}>
+      <Text style={[styles.hint, { color: currentTheme.colors.secondary, fontFamily: currentTheme.fonts.regular }]}>
         Select the equipment you have access to
       </Text>
     </View>

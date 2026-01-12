@@ -1,8 +1,8 @@
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/strengthStandards';
-import { UserProgress, WeightUnit } from '@/types';
+import { calculateStrengthPercentile, getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { Gender, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
@@ -19,6 +19,8 @@ interface ExerciseBadgeProps {
   sets: ExerciseSet[];
   userLifts: UserProgress[];
   weightUnit?: WeightUnit;
+  bodyWeightLbs?: number;
+  gender?: Gender;
 }
 
 export type BadgeInfo =
@@ -32,7 +34,9 @@ export function getExerciseBadgeInfo(
   matchedExerciseId: string | null | undefined,
   isCustom: boolean | undefined,
   sets: ExerciseSet[],
-  userLifts: UserProgress[]
+  userLifts: UserProgress[],
+  bodyWeightLbs?: number,
+  gender?: Gender
 ): BadgeInfo {
   // For custom exercises, check if it's a PR based on weight
   if (isCustom || !matchedExerciseId) {
@@ -43,7 +47,7 @@ export function getExerciseBadgeInfo(
     return { type: 'custom', label: 'Custom', icon: 'create' };
   }
 
-  // For featured exercises, get the tier from user's current data
+  // For featured exercises, get the user's existing data for PR comparison
   const userLift = userLifts.find(l => l.workoutId === matchedExerciseId);
 
   // Calculate the best 1RM from this workout's sets
@@ -55,10 +59,28 @@ export function getExerciseBadgeInfo(
     0
   );
 
+  // Calculate percentile based on THIS workout's lift, not user's all-time best
+  if (best1RM > 0 && bodyWeightLbs && gender) {
+    const workoutPercentile = calculateStrengthPercentile(
+      best1RM,
+      bodyWeightLbs,
+      gender,
+      matchedExerciseId
+    );
+
+    if (workoutPercentile > 0) {
+      const tier = getStrengthTier(workoutPercentile);
+      const tierColor = getTierColor(tier);
+      // Check if this is a PR compared to user's existing best
+      const isPR = userLift ? best1RM > userLift.personalRecord : true;
+      return { type: 'tier', tier, tierColor, isPR, percentile: workoutPercentile };
+    }
+  }
+
+  // Fallback: use user's existing percentile if we couldn't calculate from workout
   if (userLift && userLift.percentileRanking > 0) {
     const tier = getStrengthTier(userLift.percentileRanking);
     const tierColor = getTierColor(tier);
-    // Check if this is a PR
     const isPR = best1RM > userLift.personalRecord;
     return { type: 'tier', tier, tierColor, isPR, percentile: userLift.percentileRanking };
   }
@@ -77,12 +99,14 @@ export default function ExerciseBadge({
   sets,
   userLifts,
   weightUnit = 'lbs',
+  bodyWeightLbs,
+  gender,
 }: ExerciseBadgeProps) {
   const { currentTheme } = useTheme();
 
   const badgeInfo = useMemo(
-    () => getExerciseBadgeInfo(matchedExerciseId, isCustom, sets, userLifts),
-    [matchedExerciseId, isCustom, sets, userLifts]
+    () => getExerciseBadgeInfo(matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender),
+    [matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender]
   );
 
   if (!badgeInfo) return null;
@@ -92,7 +116,7 @@ export default function ExerciseBadge({
       <View style={[styles.badgeRow, { backgroundColor: 'transparent' }]}>
         {badgeInfo.isPR && (
           <View style={[styles.prBadge, { backgroundColor: '#22C55E20' }]}>
-            <Text style={[styles.prBadgeText, { color: '#22C55E', fontFamily: 'Raleway_700Bold' }]}>
+            <Text style={[styles.prBadgeText, { color: '#22C55E', fontFamily: currentTheme.fonts.bold }]}>
               PR
             </Text>
           </View>
@@ -109,7 +133,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.newBadgeText,
-            { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' },
+            { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold },
           ]}
         >
           New
@@ -124,7 +148,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.customBadgeText,
-            { color: currentTheme.colors.accent, fontFamily: 'Raleway_500Medium' },
+            { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.medium },
           ]}
         >
           Custom
@@ -140,7 +164,7 @@ export default function ExerciseBadge({
         <Text
           style={[
             styles.volumeBadgeText,
-            { color: currentTheme.colors.accent, fontFamily: 'Raleway_600SemiBold' },
+            { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.semiBold },
           ]}
         >
           {badgeInfo.label} {weightUnit}

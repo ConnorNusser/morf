@@ -3,11 +3,14 @@ import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
-import { formatDuration, formatRelativeTime } from '@/lib/formatters';
-import playHapticFeedback from '@/lib/haptic';
-import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/pplCategories';
-import { StrengthTier } from '@/lib/strengthStandards';
-import { feedService, FeedComment } from '@/lib/feedService';
+import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { calculatePPLBreakdown, MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
+import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
+import { feedService, FeedComment } from '@/lib/services/feedService';
+import { formatVolumeNumber, formatSet } from '@/lib/utils/utils';
+import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
 import {
@@ -108,15 +111,15 @@ function WorkoutCommentItem({
             onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               @{comment.username}
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
             {formatRelativeTime(new Date(comment.created_at))}
           </Text>
         </View>
-        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
           {comment.text}
         </Text>
       </View>
@@ -138,7 +141,7 @@ function WorkoutCommentItem({
             styles.commentLikeCount,
             {
               color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
-              fontFamily: 'Raleway_500Medium'
+              fontFamily: currentTheme.fonts.medium
             }
           ]}>
             {likeCount}
@@ -172,6 +175,7 @@ interface WorkoutThreadModalProps {
   onLike?: () => void;
   onWorkoutUpdated?: (workout: FeedWorkout) => void;
   onUserPress?: (userId: string, username: string, profilePictureUrl?: string) => void;
+  weightUnit?: WeightUnit;
 }
 
 export default function WorkoutThreadModal({
@@ -182,13 +186,31 @@ export default function WorkoutThreadModal({
   onLike,
   onWorkoutUpdated,
   onUserPress,
+  weightUnit = 'lbs',
 }: WorkoutThreadModalProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
   usePauseVideosWhileOpen(visible);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set());
+  const [pplModalVisible, setPplModalVisible] = useState(false);
+  const [selectedPplCategory, setSelectedPplCategory] = useState<PPLCategory | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Toggle exercise expansion to show all sets
+  const toggleExerciseExpanded = (index: number) => {
+    playHapticFeedback('light', false);
+    setExpandedExercises(prev => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  };
 
   // Smooth animation for like button using reanimated
   const likeScale = useSharedValue(1);
@@ -201,6 +223,46 @@ export default function WorkoutThreadModal({
     if (!workout) return { counts: { push: 0, pull: 0, legs: 0 }, total: 0 };
     return calculatePPLBreakdown(workout.exercises);
   }, [workout]);
+
+  // Calculate exercises grouped by PPL category for the modal
+  const pplExercises = useMemo((): Record<PPLCategory, { name: string; sets: number }[]> => {
+    const result: Record<PPLCategory, { name: string; sets: number }[]> = {
+      push: [],
+      pull: [],
+      legs: [],
+    };
+
+    if (!workout) return result;
+
+    workout.exercises.forEach(exercise => {
+      const exerciseInfo = ALL_WORKOUTS.find(
+        w => w.name.toLowerCase() === exercise.name.toLowerCase()
+      );
+      if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {
+        const primaryMuscle = exerciseInfo.primaryMuscles[0];
+        const pplCategory = MUSCLE_TO_PPL[primaryMuscle];
+        if (pplCategory) {
+          result[pplCategory].push({
+            name: exercise.name,
+            sets: exercise.sets,
+          });
+        }
+      }
+    });
+
+    return result;
+  }, [workout]);
+
+  const handlePplChipPress = (category: PPLCategory) => {
+    playHapticFeedback('light', false);
+    setSelectedPplCategory(category);
+    setPplModalVisible(true);
+  };
+
+  const handleClosePplModal = () => {
+    setPplModalVisible(false);
+    setSelectedPplCategory(null);
+  };
 
   const handleLike = () => {
     playHapticFeedback('light', false);
@@ -307,7 +369,7 @@ export default function WorkoutThreadModal({
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
           <Text
-            style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}
+            style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}
             numberOfLines={1}
           >
             {workout.title}
@@ -343,10 +405,10 @@ export default function WorkoutThreadModal({
                 </View>
               )}
               <View style={styles.userInfo}>
-                <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   @{workout.username}
                 </Text>
-                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   {formatRelativeTime(workout.created_at)}
                 </Text>
               </View>
@@ -359,29 +421,29 @@ export default function WorkoutThreadModal({
           {/* Stats grid */}
           <View style={[styles.statsGrid, { backgroundColor: currentTheme.colors.surface }]}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                 {workout.exercise_count}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 exercises
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
                 {formatDuration(workout.duration_seconds)}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 duration
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_700Bold' }]}>
-                {workout.total_volume >= 1000 ? `${(workout.total_volume / 1000).toFixed(1)}k` : workout.total_volume}
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                {formatVolumeNumber(workout.total_volume, weightUnit)}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                lbs
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                {weightUnit}
               </Text>
             </View>
           </View>
@@ -399,40 +461,106 @@ export default function WorkoutThreadModal({
               {(['push', 'pull', 'legs'] as const)
                 .filter(category => pplBreakdown.counts[category] > 0)
                 .map(category => (
-                  <View
+                  <TouchableOpacity
                     key={category}
                     style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
+                    onPress={() => handlePplChipPress(category)}
+                    activeOpacity={0.7}
                   >
                     <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                       {PPL_LABELS[category]}
                     </Text>
-                    <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
                       {pplBreakdown.counts[category]}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ))}
             </View>
           )}
 
           {/* Exercise List */}
           <View style={styles.exerciseList}>
-            {workout.exercises.map((ex, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.exerciseRow,
-                  i < workout.exercises.length - 1 && { borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
-                ]}
-              >
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                  {ex.name}
-                </Text>
-                <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
-                  {ex.bestSet}
-                </Text>
-              </View>
-            ))}
+            {workout.exercises.map((ex, i) => {
+              const isExpanded = expandedExercises.has(i);
+              const hasDetailedSets = ex.allSets && ex.allSets.length > 0;
+
+              return (
+                <View key={i}>
+                  <TouchableOpacity
+                    activeOpacity={hasDetailedSets ? 0.7 : 1}
+                    onPress={() => hasDetailedSets && toggleExerciseExpanded(i)}
+                    style={[
+                      styles.exerciseRow,
+                      !isExpanded && i < workout.exercises.length - 1 && { borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
+                    ]}
+                  >
+                    <View style={styles.exerciseNameContainer}>
+                      {hasDetailedSets && (
+                        <Ionicons
+                          name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+                          size={16}
+                          color={currentTheme.colors.text + '50'}
+                          style={{ marginRight: 6 }}
+                        />
+                      )}
+                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        {ex.name}
+                      </Text>
+                      {ex.percentile && ex.percentile > 0 && (
+                        <TierBadge tier={getStrengthTier(ex.percentile)} size="tiny" showTooltip={false} />
+                      )}
+                    </View>
+                    <View style={styles.exerciseRight}>
+                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                        {ex.bestSet}
+                      </Text>
+                      {hasDetailedSets && (
+                        <Text style={[styles.setCount, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                          {ex.sets} sets
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Expanded sets view */}
+                  {isExpanded && hasDetailedSets && (
+                    <View style={[styles.setsExpanded, { backgroundColor: currentTheme.colors.surface + '50' }]}>
+                      {ex.allSets!.map((set, setIndex) => (
+                        <View
+                          key={setIndex}
+                          style={[
+                            styles.setRow,
+                            setIndex < ex.allSets!.length - 1 && { borderBottomColor: currentTheme.colors.border + '30', borderBottomWidth: StyleSheet.hairlineWidth }
+                          ]}
+                        >
+                          <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                            Set {set.setNumber}
+                          </Text>
+                          <View style={styles.setDetails}>
+                            <Text style={[styles.setWeight, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                              {formatSet(set, { trackingType: ex.trackingType, showUnit: true })}
+                            </Text>
+                            {set.isPersonalRecord && (
+                              <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                                <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                                  Best
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Border after expanded section */}
+                  {isExpanded && i < workout.exercises.length - 1 && (
+                    <View style={{ borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }} />
+                  )}
+                </View>
+              );
+            })}
           </View>
 
           {/* Like and comment row */}
@@ -455,7 +583,7 @@ export default function WorkoutThreadModal({
                   />
                 </Animated.View>
                 {likeCount > 0 && (
-                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                     {likeCount}
                   </Text>
                 )}
@@ -464,7 +592,7 @@ export default function WorkoutThreadModal({
 
             <View style={styles.commentCount}>
               <Ionicons name="chatbubble-outline" size={18} color={currentTheme.colors.text + '60'} />
-              <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
                 {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
               </Text>
             </View>
@@ -472,12 +600,12 @@ export default function WorkoutThreadModal({
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
-            <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Comments {comments.length > 0 && `(${comments.length})`}
             </Text>
 
             {comments.length === 0 ? (
-              <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                 No comments yet. Be the first!
               </Text>
             ) : (
@@ -507,7 +635,6 @@ export default function WorkoutThreadModal({
                   styles.input,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
                   }
                 ]}
                 placeholder="Add a comment..."
@@ -545,6 +672,63 @@ export default function WorkoutThreadModal({
 
         </KeyboardAvoidingView>
       </View>
+
+      {/* PPL Exercise Detail Modal */}
+      <Modal
+        visible={pplModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={handleClosePplModal}
+      >
+        <View style={[styles.pplModalContainer, { backgroundColor: currentTheme.colors.background }]}>
+          {/* Header */}
+          <View style={[styles.pplModalHeader, { borderBottomColor: currentTheme.colors.border }]}>
+            <TouchableOpacity onPress={handleClosePplModal} style={styles.pplModalCloseButton}>
+              <Ionicons name="close" size={24} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+            <View style={styles.pplModalTitleContainer}>
+              {selectedPplCategory && (
+                <View style={[styles.pplModalTitleChip, { backgroundColor: PPL_COLORS[selectedPplCategory] + '20' }]}>
+                  <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[selectedPplCategory] }]} />
+                  <Text style={[styles.pplModalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    {PPL_LABELS[selectedPplCategory]}
+                  </Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.pplModalCloseButton} />
+          </View>
+
+          {/* Content */}
+          <ScrollView style={styles.pplModalContent} contentContainerStyle={styles.pplModalContentContainer}>
+            {selectedPplCategory && (
+              <>
+                <Text style={[styles.pplModalExerciseCount, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                  {pplExercises[selectedPplCategory].length} exercise{pplExercises[selectedPplCategory].length !== 1 ? 's' : ''}
+                </Text>
+
+                <View style={styles.pplModalExerciseList}>
+                  {pplExercises[selectedPplCategory].map((exercise, index) => (
+                    <View
+                      key={index}
+                      style={[styles.pplModalExerciseRow, { borderBottomColor: currentTheme.colors.border }]}
+                    >
+                      <Text style={[styles.pplModalExerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        {exercise.name}
+                      </Text>
+                      <View style={[styles.pplModalSetsBadge, { backgroundColor: selectedPplCategory ? PPL_COLORS[selectedPplCategory] + '15' : currentTheme.colors.primary + '15' }]}>
+                        <Text style={[styles.pplModalSetsText, { color: selectedPplCategory ? PPL_COLORS[selectedPplCategory] : currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                          {exercise.sets} sets
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
     </Modal>
   );
 }
@@ -601,7 +785,6 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontFamily: 'Raleway_600SemiBold',
   },
   userInfo: {
     flex: 1,
@@ -648,7 +831,6 @@ const styles = StyleSheet.create({
   },
   prChipText: {
     fontSize: 13,
-    fontFamily: 'Raleway_600SemiBold',
     color: '#FFFFFF',
   },
   actionsRow: {
@@ -711,13 +893,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
   },
+  exerciseNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
   exerciseName: {
     fontSize: 15,
-    flex: 1,
   },
   exerciseSets: {
     fontSize: 14,
-    marginLeft: 12,
+  },
+  exerciseRight: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  setCount: {
+    fontSize: 11,
+  },
+  setsExpanded: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: -4,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  setRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  setNumber: {
+    fontSize: 13,
+    width: 50,
+  },
+  setDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  setWeight: {
+    fontSize: 14,
+  },
+  setReps: {
+    fontSize: 14,
+  },
+  prBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 8,
+  },
+  prBadgeText: {
+    fontSize: 10,
   },
   commentsSection: {
     gap: 12,
@@ -752,7 +982,6 @@ const styles = StyleSheet.create({
   },
   commentAvatarText: {
     fontSize: 14,
-    fontFamily: 'Raleway_600SemiBold',
   },
   commentContent: {
     flex: 1,
@@ -819,5 +1048,74 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // PPL Modal styles
+  pplModalContainer: {
+    flex: 1,
+  },
+  pplModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pplModalCloseButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pplModalTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  pplModalTitleChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
+  pplModalTitle: {
+    fontSize: 17,
+    lineHeight: 22,
+  },
+  pplModalContent: {
+    flex: 1,
+  },
+  pplModalContentContainer: {
+    padding: 16,
+  },
+  pplModalExerciseCount: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  pplModalExerciseList: {
+    gap: 0,
+  },
+  pplModalExerciseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pplModalExerciseName: {
+    fontSize: 15,
+    lineHeight: 20,
+    flex: 1,
+  },
+  pplModalSetsBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 12,
+  },
+  pplModalSetsText: {
+    fontSize: 13,
   },
 });

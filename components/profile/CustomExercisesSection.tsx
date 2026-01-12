@@ -4,8 +4,8 @@ import { Text, View } from '@/components/Themed';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
-import playHapticFeedback from '@/lib/haptic';
+import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { CustomExercise, Equipment } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -345,7 +345,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           ]}
         >
           <View style={styles.editForm}>
-            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
               Exercise Name (without equipment)
             </Text>
             <TextInput
@@ -355,7 +355,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   backgroundColor: currentTheme.colors.background,
                   color: currentTheme.colors.text,
                   borderColor: currentTheme.colors.border,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}
               value={editedName}
@@ -365,7 +364,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               autoFocus
             />
 
-            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium', marginTop: 12 }]}>
+            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
               Equipment Type
             </Text>
             <View style={styles.equipmentRow}>
@@ -389,7 +388,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     styles.equipmentChipText,
                     {
                       color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     }
                   ]}>
                     {eq.label}
@@ -400,16 +398,16 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
             {fullNamePreview && (
               <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                   Full Name:
                 </Text>
-                <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   {fullNamePreview}
                 </Text>
-                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular', marginTop: 4 }]}>
+                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
                   ID:
                 </Text>
-                <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
                   {previewId}
                 </Text>
               </View>
@@ -420,7 +418,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
                 onPress={handleCancelEditAdd}
               >
-                <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -433,7 +431,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 onPress={handleSaveEdit}
                 disabled={!editedName.trim()}
               >
-                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
                   Save
                 </Text>
               </TouchableOpacity>
@@ -459,7 +457,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             styles.exerciseName,
             {
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }
           ]}>
             {exercise.name}
@@ -468,21 +465,21 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
                   {exercise.category}
                 </Text>
               </View>
@@ -493,7 +490,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             styles.exerciseId,
             {
               color: currentTheme.colors.text + '50',
-              fontFamily: 'Raleway_400Regular',
             }
           ]} numberOfLines={1}>
             ID: {exercise.id}
@@ -502,7 +498,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             styles.exerciseDate,
             {
               color: currentTheme.colors.text + '40',
-              fontFamily: 'Raleway_400Regular',
             }
           ]}>
             Created {formatDate(exercise.createdAt)}
@@ -549,7 +544,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         ]}
       >
         <View style={styles.editForm}>
-          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium' }]}>
+          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
             Exercise Name (without equipment)
           </Text>
           <TextInput
@@ -559,7 +554,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 backgroundColor: currentTheme.colors.background,
                 color: currentTheme.colors.text,
                 borderColor: currentTheme.colors.border,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}
             value={editedName}
@@ -569,7 +563,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             autoFocus
           />
 
-          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_500Medium', marginTop: 12 }]}>
+          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
             Equipment Type
           </Text>
           <View style={styles.equipmentRow}>
@@ -593,7 +587,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   styles.equipmentChipText,
                   {
                     color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                    fontFamily: 'Raleway_500Medium',
                   }
                 ]}>
                   {eq.label}
@@ -604,22 +597,22 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
           {fullNamePreview && (
             <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                 Full Name:
               </Text>
-              <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 {fullNamePreview}
               </Text>
-              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular', marginTop: 4 }]}>
+              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
                 ID:
               </Text>
-              <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
                 {previewId}
               </Text>
             </View>
           )}
 
-          <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
             AI will generate muscle group metadata
           </Text>
 
@@ -629,7 +622,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               onPress={handleCancelEditAdd}
               disabled={isGenerating}
             >
-              <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -645,7 +638,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               {isGenerating ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
                   Add
                 </Text>
               )}
@@ -670,7 +663,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 styles.sectionTitle,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                 }
               ]}>
                 Custom Exercises
@@ -687,7 +679,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
               styles.subtitle,
               {
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {getCustomSummary()}
@@ -716,7 +707,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             >
               <View style={styles.modalHeader}>
                 <View style={{ width: 40 }} />
-                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   Custom Exercises
                 </Text>
                 <TouchableOpacity
@@ -729,7 +720,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
               <View style={[styles.disclaimerBanner, { backgroundColor: currentTheme.colors.primary + '10', borderColor: currentTheme.colors.primary + '30' }]}>
                 <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
-                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
                   Custom exercises are auto-created when you log workouts with new exercises. You can also add them manually here.
                 </Text>
               </View>
@@ -738,7 +729,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
                     placeholder="Search exercises..."
                     placeholderTextColor={currentTheme.colors.text + '40'}
                     value={searchQuery}
@@ -778,7 +769,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     styles.filterChipText,
                     {
                       color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     }
                   ]}>
                     All
@@ -804,7 +794,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                       styles.filterChipText,
                       {
                         color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                        fontFamily: 'Raleway_500Medium',
                       }
                     ]}>
                       {eq.label}
@@ -821,7 +810,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     activeOpacity={0.7}
                   >
                     <Ionicons name="add" size={18} color="#FFFFFF" />
-                    <Text style={[styles.addButtonText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.addButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                       Add Custom Exercise
                     </Text>
                   </TouchableOpacity>
@@ -845,13 +834,13 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     />
                     <Text style={[
                       styles.emptyText,
-                      { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }
+                      { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }
                     ]}>
                       {searchQuery ? 'No exercises found' : 'No custom exercises yet'}
                     </Text>
                     <Text style={[
                       styles.emptySubtext,
-                      { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }
+                      { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }
                     ]}>
                       {searchQuery
                         ? 'Try a different search term'
@@ -861,7 +850,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 ) : (
                   <>
                     {searchQuery && (
-                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                         {filteredCustomExercises.length} result{filteredCustomExercises.length !== 1 ? 's' : ''}
                       </Text>
                     )}
@@ -874,7 +863,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                         onPress={handleClearAll}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.clearAllText, { fontFamily: 'Raleway_600SemiBold' }]}>
+                        <Text style={[styles.clearAllText, { fontFamily: currentTheme.fonts.semiBold }]}>
                           Clear All Custom Exercises
                         </Text>
                       </TouchableOpacity>
@@ -919,7 +908,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
   },
   subtitle: {
     fontSize: 14,

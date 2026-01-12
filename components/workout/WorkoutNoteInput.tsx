@@ -1,8 +1,10 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import playHapticFeedback from '@/lib/haptic';
-import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import playHapticFeedback from '@/lib/utils/haptic';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
+  AppState,
+  AppStateStatus,
   GestureResponderEvent,
   InputAccessoryView,
   Keyboard,
@@ -37,15 +39,44 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     const inputRef = useRef<TextInput>(null);
     const inputAccessoryViewID = 'workoutNoteAccessory';
 
-    // Control keyboard visibility
-    const [keyboardEnabled, setKeyboardEnabled] = useState(false);
+    // Track actual keyboard visibility via event listeners (not local state that can get corrupted)
+    const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const pressStartPosition = useRef<{ x: number; y: number } | null>(null);
     const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // Listen for actual keyboard show/hide events - this is the source of truth
+    useEffect(() => {
+      const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
+      const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
+      return () => {
+        showSub.remove();
+        hideSub.remove();
+      };
+    }, []);
+
+    const clearFocusTimeout = useCallback(() => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
+    }, []);
+
+    // Reset touch state when app goes to background to prevent stale state
+    useEffect(() => {
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        if (nextAppState !== 'active') {
+          clearFocusTimeout();
+          pressStartPosition.current = null;
+        }
+      };
+
+      const subscription = AppState.addEventListener('change', handleAppStateChange);
+      return () => subscription.remove();
+    }, [clearFocusTimeout]);
+
     useImperativeHandle(ref, () => ({
       focus: () => {
-        setKeyboardEnabled(true);
-        setTimeout(() => inputRef.current?.focus(), 0);
+        inputRef.current?.focus();
       },
       blur: () => {
         inputRef.current?.blur();
@@ -56,31 +87,23 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
       },
     }));
 
-    const clearFocusTimeout = useCallback(() => {
-      if (focusTimeoutRef.current) {
-        clearTimeout(focusTimeoutRef.current);
-        focusTimeoutRef.current = null;
-      }
-    }, []);
-
     const handleTouchStart = useCallback((event: GestureResponderEvent) => {
-      // Only track for deliberate tap if keyboard isn't already enabled
-      if (keyboardEnabled) return;
+      // If keyboard is already visible, let normal touch handling work
+      if (isKeyboardVisible) return;
 
       pressStartPosition.current = {
         x: event.nativeEvent.pageX,
         y: event.nativeEvent.pageY,
       };
 
-      // Start timeout for deliberate tap
+      // Start timeout for deliberate tap (distinguishes from scroll)
       focusTimeoutRef.current = setTimeout(() => {
         if (pressStartPosition.current) {
           playHapticFeedback('light', false);
-          setKeyboardEnabled(true);
-          setTimeout(() => inputRef.current?.focus(), 0);
+          inputRef.current?.focus();
         }
       }, FOCUS_DELAY_MS);
-    }, [keyboardEnabled]);
+    }, [isKeyboardVisible]);
 
     const handleTouchMove = useCallback((event: GestureResponderEvent) => {
       if (pressStartPosition.current) {
@@ -99,10 +122,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
       pressStartPosition.current = null;
     }, [clearFocusTimeout]);
 
-    const handleBlur = useCallback(() => {
-      setKeyboardEnabled(false);
-    }, []);
-
     return (
       <>
         <RNView style={styles.container}>
@@ -112,7 +131,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
               styles.input,
               {
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_400Regular',
               }
             ]}
             value={value}
@@ -124,17 +142,16 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
             textAlignVertical="top"
             autoCapitalize="sentences"
             autoCorrect={false}
-            showSoftInputOnFocus={keyboardEnabled}
+            showSoftInputOnFocus={true}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            onBlur={handleBlur}
             inputAccessoryViewID={inputAccessoryViewID}
             {...props}
           />
         </RNView>
-        {/* Keyboard accessory with Done button - only when keyboard is enabled */}
-        {Platform.OS === 'ios' && keyboardEnabled && (
+        {/* Keyboard accessory with Done button - only when keyboard is visible */}
+        {Platform.OS === 'ios' && isKeyboardVisible && (
           <InputAccessoryView nativeID={inputAccessoryViewID}>
               <RNView style={[styles.accessoryContainer, { borderTopColor: currentTheme.colors.border }]}>
                 <RNView style={{ flex: 1 }} />
@@ -142,7 +159,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
                   onPress={() => Keyboard.dismiss()}
                   style={[styles.doneButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     Done
                   </Text>
                 </TouchableOpacity>

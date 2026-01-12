@@ -1,9 +1,9 @@
 import { useAlert } from '@/components/CustomAlert';
-import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/strengthStandards';
+import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type TierBadgeSize = 'small' | 'medium' | 'large';
+type TierBadgeSize = 'tiny' | 'small' | 'medium' | 'large';
 type TierBadgeVariant = 'badge' | 'text';
 
 interface TierBadgeProps {
@@ -137,6 +137,18 @@ export default function TierBadge({
 }
 
 const SIZE_STYLES = {
+  tiny: StyleSheet.create({
+    badge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+      borderWidth: 1,
+    },
+    text: {
+      fontSize: 10,
+      fontWeight: '700',
+    },
+  }),
   small: StyleSheet.create({
     badge: {
       paddingHorizontal: 10,
@@ -147,7 +159,6 @@ const SIZE_STYLES = {
     text: {
       fontSize: 14,
       fontWeight: '700',
-      fontFamily: 'Raleway_700Bold',
     },
   }),
   medium: StyleSheet.create({
@@ -160,7 +171,6 @@ const SIZE_STYLES = {
     text: {
       fontSize: 18,
       fontWeight: '800',
-      fontFamily: 'Raleway_800ExtraBold',
     },
   }),
   large: StyleSheet.create({
@@ -174,7 +184,6 @@ const SIZE_STYLES = {
       fontSize: 36,
       fontWeight: 'bold',
       lineHeight: 40,
-      fontFamily: 'Raleway_700Bold',
     },
   }),
 };

@@ -1,9 +1,9 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
-import { formatRelativeTime } from '@/lib/formatters';
-import playHapticFeedback from '@/lib/haptic';
-import { feedService, FeedComment, FeedPost } from '@/lib/feedService';
+import { formatRelativeTime } from '@/lib/ui/formatters';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { feedService, FeedComment, FeedPost } from '@/lib/services/feedService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -117,15 +117,15 @@ function CommentItem({
             onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               @{comment.username}
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
             {formatRelativeTime(new Date(comment.created_at))}
           </Text>
         </View>
-        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
           {comment.text}
         </Text>
       </View>
@@ -147,7 +147,7 @@ function CommentItem({
             styles.commentLikeCount,
             {
               color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
-              fontFamily: 'Raleway_500Medium'
+              fontFamily: currentTheme.fonts.medium
             }
           ]}>
             {likeCount}
@@ -321,7 +321,7 @@ export default function CommentsModal({
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <View style={styles.handle} />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               Comments {comments.length > 0 && `(${comments.length})`}
             </Text>
           </View>
@@ -336,10 +336,10 @@ export default function CommentsModal({
             {comments.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubble-outline" size={40} color={currentTheme.colors.text + '30'} />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   No comments yet
                 </Text>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   Be the first to comment!
                 </Text>
               </View>
@@ -369,7 +369,7 @@ export default function CommentsModal({
               activeOpacity={0.7}
             >
               <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text style={[styles.placeholderText, { color: currentTheme.colors.text + '40', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.placeholderText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
                   Add a comment...
                 </Text>
                 <RNView style={styles.sendButtonPlaceholder}>
@@ -399,7 +399,6 @@ export default function CommentsModal({
                     styles.input,
                     {
                       color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_400Regular',
                     }
                   ]}
                   placeholder="Add a comment..."
@@ -518,7 +517,6 @@ const styles = StyleSheet.create({
   },
   commentAvatarText: {
     fontSize: 15,
-    fontFamily: 'Raleway_600SemiBold',
   },
   commentAvatarImage: {
     width: 36,

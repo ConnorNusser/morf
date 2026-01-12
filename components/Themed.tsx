@@ -13,7 +13,6 @@ export function Text(props: TextProps) {
       style={[
         { 
           color: currentTheme.colors.primary,
-          fontFamily: currentTheme.properties.fontFamily,
         }, 
         style
       ]} 

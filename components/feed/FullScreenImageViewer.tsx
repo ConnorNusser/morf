@@ -20,7 +20,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Text } from '@/components/Themed';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -229,7 +229,6 @@ const styles = StyleSheet.create({
   counterText: {
     color: '#fff',
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
   },
   scrollView: {
     flex: 1,
@@ -277,7 +276,6 @@ const styles = StyleSheet.create({
   actionCount: {
     color: '#fff',
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
   },
   actionCountActive: {
     color: '#ff4757',

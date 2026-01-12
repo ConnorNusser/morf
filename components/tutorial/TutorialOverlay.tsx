@@ -1,7 +1,7 @@
 import { useTutorial } from '@/contexts/TutorialContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
+import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, Href } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -152,6 +152,7 @@ export function TutorialOverlay() {
           workout: '/workout',
           history: '/history',
           profile: '/profile',
+          notes: '/notes',
         };
 
         const route = screenRoutes[step.screen];
@@ -211,16 +212,6 @@ export function TutorialOverlay() {
   if (!showTutorial || !step) return null;
 
   const getTooltipPosition = () => {
-    // If we have a target, position tooltip relative to it
-    if (targetPosition && step.tooltipPosition === 'bottom') {
-      const tooltipTop = targetPosition.y + targetPosition.height + 60;
-      // Make sure tooltip doesn't go off screen
-      if (tooltipTop + 250 > SCREEN_HEIGHT) {
-        return { bottom: 120 };
-      }
-      return { top: tooltipTop };
-    }
-
     switch (step.tooltipPosition) {
       case 'top':
         return { top: insets.top + 100 };
@@ -294,6 +285,37 @@ export function TutorialOverlay() {
           </Animated.View>
         )}
 
+        {/* Mock dropdown for feed tutorial step */}
+        {step.id === 'home-feed' && targetPosition && (
+          <Animated.View
+            entering={FadeIn.duration(300).delay(400)}
+            style={[
+              styles.mockDropdown,
+              {
+                top: targetPosition.y + targetPosition.height + 8,
+                left: targetPosition.x,
+                backgroundColor: currentTheme.colors.surface,
+                borderColor: currentTheme.colors.border,
+              }
+            ]}
+          >
+            <View style={[styles.mockDropdownItem, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+              <Ionicons name="home" size={18} color={currentTheme.colors.primary} />
+              <View style={styles.mockDropdownTextContainer}>
+                <Text style={[styles.mockDropdownText, { color: currentTheme.colors.primary }]}>Morf</Text>
+                <Text style={[styles.mockDropdownSubtext, { color: currentTheme.colors.text + '50' }]}>Your stats</Text>
+              </View>
+            </View>
+            <View style={styles.mockDropdownItem}>
+              <Ionicons name="people" size={18} color={currentTheme.colors.text + '80'} />
+              <View style={styles.mockDropdownTextContainer}>
+                <Text style={[styles.mockDropdownText, { color: currentTheme.colors.text }]}>Feed</Text>
+                <Text style={[styles.mockDropdownSubtext, { color: currentTheme.colors.text + '50' }]}>Community workouts</Text>
+              </View>
+            </View>
+          </Animated.View>
+        )}
+
         {/* Tooltip card */}
         <Animated.View
           key={currentStep}
@@ -333,7 +355,6 @@ export function TutorialOverlay() {
           {/* Title */}
           <Text style={[styles.title, {
             color: currentTheme.colors.text,
-            fontFamily: 'Raleway_700Bold',
           }]}>
             {step.title}
           </Text>
@@ -341,7 +362,6 @@ export function TutorialOverlay() {
           {/* Description */}
           <Text style={[styles.description, {
             color: currentTheme.colors.text + '90',
-            fontFamily: 'Raleway_400Regular',
           }]}>
             {step.description}
           </Text>
@@ -357,7 +377,6 @@ export function TutorialOverlay() {
                 <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
                 <Text style={[styles.backButtonText, {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }]}>Back</Text>
               </TouchableOpacity>
             ) : (
@@ -368,7 +387,6 @@ export function TutorialOverlay() {
               >
                 <Text style={[styles.skipButtonText, {
                   color: currentTheme.colors.text + '80',
-                  fontFamily: 'Raleway_500Medium',
                 }]}>Skip Tour</Text>
               </TouchableOpacity>
             )}
@@ -380,7 +398,6 @@ export function TutorialOverlay() {
             >
               <Text style={[styles.nextButtonText, {
                 color: '#FFFFFF',
-                fontFamily: 'Raleway_600SemiBold',
               }]}>
                 {isLastStep ? 'Get Started' : 'Next'}
               </Text>
@@ -470,7 +487,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     marginBottom: 8,
-    fontFamily: 'Raleway_500Medium',
   },
   title: {
     fontSize: 24,
@@ -533,7 +549,36 @@ const styles = StyleSheet.create({
   },
   cornerSkipText: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
+  },
+  mockDropdown: {
+    position: 'absolute',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 12,
+    minWidth: 200,
+    zIndex: 100,
+  },
+  mockDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  mockDropdownTextContainer: {
+    flex: 1,
+  },
+  mockDropdownText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  mockDropdownSubtext: {
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 

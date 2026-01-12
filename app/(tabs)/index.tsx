@@ -6,14 +6,20 @@ import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import SkeletonCard from '@/components/SkeletonCard';
 import Spacer from '@/components/Spacer';
+import StrengthProgressOverlay from '@/components/StrengthProgressOverlay';
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
+import UnlockNotificationModal, { NotificationType } from '@/components/UnlockNotificationModal';
 import WorkoutStatsCard from '@/components/WorkoutStatsCard';
 import { useTheme } from '@/contexts/ThemeContext';
-import { HomeViewMode, storageService } from '@/lib/storage';
-import { getStrengthLevelName } from '@/lib/strengthStandards';
-import { userService } from '@/lib/userService';
-import { calculateOverallPercentile } from '@/lib/utils';
+import { useTutorial } from '@/contexts/TutorialContext';
+import { useUser } from '@/contexts/UserContext';
+import { gap, layout } from '@/lib/ui/styles';
+import { HomeViewMode, PendingStrengthProgress, storageService } from '@/lib/storage/storage';
+import { getStrengthLevelName } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { isSeasonalThemeAvailable } from '@/lib/ui/theme';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, RemoteUser, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,8 +29,12 @@ import { RefreshControl, ScrollView, StyleSheet, TouchableOpacity } from 'react-
 type ViewMode = HomeViewMode;
 
 export default function HomeScreen() {
-  const { currentTheme } = useTheme();
+  const { currentTheme, setThemeLevel } = useTheme();
+  const { tutorialState } = useTutorial();
+  const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>('home');
+  const [pendingProgress, setPendingProgress] = useState<PendingStrengthProgress | null>(null);
+  const [unlockNotification, setUnlockNotification] = useState<NotificationType | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [filteredProgress, setFilteredProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -121,15 +131,59 @@ export default function HomeScreen() {
     setSelectedUser(user);
   };
 
+  // Check for pending strength progress on focus
+  const checkPendingProgress = useCallback(async () => {
+    const progress = await storageService.getPendingStrengthProgress();
+    if (progress) {
+      setPendingProgress(progress);
+    }
+  }, []);
+
+  const handleDismissProgress = useCallback(async () => {
+    setPendingProgress(null);
+    await storageService.clearPendingStrengthProgress();
+  }, []);
+
+  // Check for unlock notifications (seasonal themes, etc.)
+  const checkUnlockNotifications = useCallback(async () => {
+    // Only show to logged-in users who completed tutorial
+    if (!userProfile) return;
+    if (!tutorialState.hasCompletedAppTutorial) return;
+
+    // Check Christmas theme (Dec 1 - Jan 15)
+    if (isSeasonalThemeAvailable('christmas_theme_2025')) {
+      const shown = await storageService.hasNotificationBeenShown('christmas_theme_2025');
+      if (!shown) {
+        setUnlockNotification('christmas_theme');
+        return;
+      }
+    }
+  }, [userProfile, tutorialState.hasCompletedAppTutorial]);
+
+  const handleDismissUnlock = useCallback(async () => {
+    if (unlockNotification === 'christmas_theme') {
+      await storageService.markNotificationShown('christmas_theme_2025');
+    }
+    setUnlockNotification(null);
+  }, [unlockNotification]);
+
+  const handleActivateUnlock = useCallback(() => {
+    if (unlockNotification === 'christmas_theme') {
+      setThemeLevel('christmas_theme_2025');
+    }
+  }, [unlockNotification, setThemeLevel]);
+
   useFocusEffect(
     useCallback(() => {
       loadUserData();
-    }, [])
+      checkPendingProgress();
+      checkUnlockNotifications();
+    }, [checkPendingProgress, checkUnlockNotifications])
   );
 
   if (isLoading) {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.content, { backgroundColor: 'transparent' }]}>
           <DashboardHeader />
           <SkeletonCard variant="overall" />
@@ -147,7 +201,7 @@ export default function HomeScreen() {
   if (viewMode === 'feed') {
     return (
       <>
-        <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+        <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
           <View style={[styles.feedHeader, { backgroundColor: 'transparent' }]}>
             <DashboardHeader
               viewMode={viewMode}
@@ -172,7 +226,7 @@ export default function HomeScreen() {
   return (
     <>
       <ScrollView
-        style={[styles.container, { backgroundColor: currentTheme.colors.background }]}
+        style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -197,7 +251,7 @@ export default function HomeScreen() {
               onPress={() => setShowLeaderboard(true)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.actionButtonText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.actionButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 View Leaderboards
               </Text>
               <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
@@ -211,7 +265,6 @@ export default function HomeScreen() {
                   styles.sectionTitle,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
                     marginBottom: 0,
                   }
                 ]}>
@@ -224,7 +277,7 @@ export default function HomeScreen() {
               </View>
 
               <TutorialTarget id="home-lift-cards">
-                <View style={{ gap: 20 }}>
+                <View style={gap.gap20}>
                   {filteredProgress.map((progress) => (
                     <WorkoutStatsCard key={progress.workoutId} stats={progress} />
                   ))}
@@ -246,14 +299,26 @@ export default function HomeScreen() {
         onClose={() => setSelectedUser(null)}
         user={selectedUser}
       />
+
+      {pendingProgress && (
+        <StrengthProgressOverlay
+          progress={pendingProgress}
+          visible={pendingProgress !== null}
+          onDismiss={handleDismissProgress}
+        />
+      )}
+
+      <UnlockNotificationModal
+        visible={unlockNotification !== null}
+        notificationType={unlockNotification}
+        onDismiss={handleDismissUnlock}
+        onActivate={handleActivateUnlock}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
     padding: 20,
     paddingTop: 60,

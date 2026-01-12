@@ -9,7 +9,7 @@ export type WeightUnit = 'lbs' | 'kg';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Theme progression levels
-export type ThemeLevel = 'beginner' | 'beginner_dark' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool';
+export type ThemeLevel = 'beginner' | 'beginner_dark' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool' | 'christmas_theme_2025';
 
 // ===== EXERCISE TYPES =====
 
@@ -23,6 +23,12 @@ export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'gl
 
 // Equipment types
 export type Equipment = 'barbell' | 'dumbbell' | 'machine' | 'smith-machine' | 'bodyweight' | 'cable' | 'kettlebell';
+
+// Tracking type - determines how exercise sets are logged
+// 'reps' = weight + reps (default for most exercises)
+// 'timed' = duration only (planks, wall sits, dead hangs)
+// 'cardio' = duration + distance (rowing, running, cycling)
+export type TrackingType = 'reps' | 'timed' | 'cardio';
 
 // Equipment filter mode
 export type EquipmentFilterMode = 'all' | 'bodyweight-only' | 'custom';
@@ -56,7 +62,19 @@ export type FeaturedSecondaryLiftType =
   | 'row-cables'
   | 'hack-squat-machine'
   | 'preacher-curl-dumbbells'
-  | 'overhead-press-machine';
+  | 'overhead-press-machine'
+  // Additional arm exercises
+  | 'tricep-pushdown-cables'
+  | 'hammer-curl-dumbbells'
+  | 'bicep-curl-cables'
+  | 'tricep-extension-dumbbells'
+  | 'skull-crushers-dumbbells'
+  | 'overhead-tricep-extension-cables'
+  // Additional shoulder exercises
+  | 'rear-delt-fly-dumbbells'
+  | 'rear-delt-fly-cables'
+  | 'arnold-press-dumbbells'
+  | 'lateral-raise-cables';
 
 // All featured lifts (main + secondary)
 export type FeaturedLiftType = MainLiftType | FeaturedSecondaryLiftType;
@@ -89,6 +107,18 @@ export const FEATURED_SECONDARY_LIFTS = {
   HACK_SQUAT_MACHINE: 'hack-squat-machine' as const,
   PREACHER_CURL_DUMBBELLS: 'preacher-curl-dumbbells' as const,
   OVERHEAD_PRESS_MACHINE: 'overhead-press-machine' as const,
+  // Additional arm exercises
+  TRICEP_PUSHDOWN_CABLES: 'tricep-pushdown-cables' as const,
+  HAMMER_CURL_DUMBBELLS: 'hammer-curl-dumbbells' as const,
+  BICEP_CURL_CABLES: 'bicep-curl-cables' as const,
+  TRICEP_EXTENSION_DUMBBELLS: 'tricep-extension-dumbbells' as const,
+  SKULL_CRUSHERS_DUMBBELLS: 'skull-crushers-dumbbells' as const,
+  OVERHEAD_TRICEP_EXTENSION_CABLES: 'overhead-tricep-extension-cables' as const,
+  // Additional shoulder exercises
+  REAR_DELT_FLY_DUMBBELLS: 'rear-delt-fly-dumbbells' as const,
+  REAR_DELT_FLY_CABLES: 'rear-delt-fly-cables' as const,
+  ARNOLD_PRESS_DUMBBELLS: 'arnold-press-dumbbells' as const,
+  LATERAL_RAISE_CABLES: 'lateral-raise-cables' as const,
 } as const;
 
 // Array of all main lifts for iteration
@@ -128,11 +158,24 @@ export interface UserProfile {
   };
   gender: Gender;
   age?: number;
+  trainingYears?: number;  // Self-reported years of consistent strength training
   lifts: UserLift[];
   secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
   equipmentFilter?: EquipmentFilter;
   username?: string;
+}
+
+// ===== TRAINING ADVANCEMENT TYPES =====
+
+export type TrainingAdvancement = 'beginner' | 'intermediate' | 'advanced';
+
+export interface TrainingAdvancementResult {
+  level: TrainingAdvancement;
+  source: 'percentile' | 'training_years' | 'default';
+  confidence: 'high' | 'medium' | 'low';
+  percentile?: number;
+  trainingYears?: number;
 }
 
 // ===== WORKOUT TYPES =====
@@ -147,6 +190,7 @@ export interface Workout {
   description: string;
   isMainLift: boolean;
   themeLevel: ThemeLevel;
+  trackingType?: TrackingType; // How sets are logged: 'reps' (default), 'timed', or 'cardio'
 }
 
 export interface UserProgress {
@@ -166,6 +210,9 @@ export interface WorkoutSetCompletion {
   unit: WeightUnit;
   completed: boolean;
   restStartTime?: Date;
+  // For timed/cardio exercises
+  duration?: number;  // Duration in seconds (for 'timed' and 'cardio' tracking types)
+  distance?: number;  // Distance in meters (for 'cardio' tracking type)
 }
 
 export interface WorkoutExerciseSession extends ExerciseSet {
@@ -209,12 +256,93 @@ export interface ExerciseSet {
 }
 
 // ===== ROUTINE TYPES =====
+
+// Intensity modifier affects what percentage of working weight to use
+export type IntensityModifier = 'heavy' | 'moderate' | 'light';
+
+// A single set in a routine exercise
+export interface RoutineSet {
+  reps: number;
+  isWarmup?: boolean;  // Warmup sets use lower percentage (~50-60%)
+}
+
+// A single exercise in a routine (just structure, weights calculated dynamically)
+export interface RoutineExercise {
+  exerciseId: string;
+  exerciseName?: string;  // Stored at creation time for display (avoids lookups, supports custom exercises)
+  sets: RoutineSet[];  // Array of individual sets
+  intensityModifier?: IntensityModifier;
+  notes?: string;
+}
+
+// Common workout split types
+export type SplitType =
+  | 'push'
+  | 'pull'
+  | 'legs'
+  | 'upper'
+  | 'lower'
+  | 'full_body'
+  | 'chest'
+  | 'back'
+  | 'shoulders'
+  | 'arms'
+  | 'core'
+  | 'cardio'
+  | 'custom';
+
+export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
+  push: 'Push',
+  pull: 'Pull',
+  legs: 'Legs',
+  upper: 'Upper',
+  lower: 'Lower',
+  full_body: 'Full Body',
+  chest: 'Chest',
+  back: 'Back',
+  shoulders: 'Shoulders',
+  arms: 'Arms',
+  core: 'Core',
+  cardio: 'Cardio',
+  custom: 'Custom',
+};
+
+// The routine itself - stores structure only, no weights
 export interface Routine {
   id: string;
   name: string;
-  description: string;
-  exercises: GeneratedWorkout[];
+  description?: string;
+  splitType?: SplitType;
+  exercises: RoutineExercise[];
   createdAt: Date;
+  lastUsed?: Date;
+  isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
+}
+
+// Calculated set with weight
+export interface CalculatedSet extends RoutineSet {
+  targetWeight: number;
+}
+
+// Calculated values when displaying/using a routine
+export interface CalculatedRoutineExercise extends Omit<RoutineExercise, 'sets'> {
+  exerciseName: string;
+  sets: CalculatedSet[];  // Sets with calculated weights
+  workingWeight: number;  // The main working weight (for display)
+  lastPerformed?: {
+    weight: number;
+    reps: number;
+    date: Date;
+    completed: boolean;  // Did they hit all sets at target?
+  };
+  progression: 'increase' | 'maintain' | 'decrease';
+  unit: WeightUnit;
+  estimated1RM?: number;
+}
+
+// Full calculated routine ready for display
+export interface CalculatedRoutine extends Omit<Routine, 'exercises'> {
+  exercises: CalculatedRoutineExercise[];
 }
 
 // Simplified workout using existing types
@@ -359,6 +487,7 @@ export interface RemoteUserData {
   gender?: Gender;
   instagram_username?: string;
   tiktok_username?: string;
+  discord_username?: string;
 }
 
 // Remote user from Supabase
@@ -389,6 +518,7 @@ export interface LeaderboardEntry {
   reps: number;
   recorded_at: Date;
   rank?: number;
+  strength_tier?: string; // e.g., "S+", "A-", "B"
 }
 
 // Muscle group percentiles
@@ -406,6 +536,7 @@ export interface TopContribution {
   exercise_id: string;
   name: string;
   percentile: number;
+  weight?: number; // 1RM in lbs
 }
 
 // User percentile data for overall strength leaderboard

@@ -1,8 +1,8 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
-import { getWorkoutById } from '@/lib/workouts';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { storageService } from '@/lib/storage/storage';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -97,7 +97,6 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
             styles.filterSummary, 
             { 
               color: currentTheme.colors.text + '70',
-              fontFamily: 'Raleway_500Medium',
             }
           ]}>
             {getFilterSummary()}
@@ -144,7 +143,6 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
                     color: isHidden 
                       ? currentTheme.colors.text + '60'
                       : currentTheme.colors.primary,
-                    fontFamily: 'Raleway_500Medium',
                   }
                 ]}>
                   {workout?.name || lift.workoutId}

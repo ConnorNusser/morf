@@ -20,13 +20,13 @@ import {
   getPreviousPeriod,
   getNextPeriod,
   canGoNext,
-} from '@/lib/recapStats';
+} from '@/lib/workout/recapStats';
 import {
   formatLargeNumber,
   getVolumeComparison,
   getWorkoutCountComparison,
-} from '@/lib/funComparisons';
-import { captureAndShare } from '@/lib/shareUtils';
+} from '@/lib/workout/funComparisons';
+import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -448,7 +448,6 @@ const styles = StyleSheet.create({
   },
   periodButtonText: {
     fontSize: 14,
-    fontFamily: 'Raleway_600SemiBold',
   },
   periodNav: {
     flexDirection: 'row',
@@ -465,11 +464,9 @@ const styles = StyleSheet.create({
   },
   periodNavLabel: {
     fontSize: 20,
-    fontFamily: 'Raleway_700Bold',
   },
   periodNavSubtitle: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
     marginTop: 2,
   },
   loadingContainer: {
@@ -480,7 +477,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
   },
   emptyContainer: {
     flex: 1,
@@ -494,12 +490,10 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 20,
-    fontFamily: 'Raleway_600SemiBold',
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 16,
-    fontFamily: 'Raleway_400Regular',
     textAlign: 'center',
     marginTop: 8,
   },
@@ -532,7 +526,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 14,
-    fontFamily: 'Raleway_700Bold',
     color: '#FFF',
     letterSpacing: 2,
   },
@@ -543,20 +536,17 @@ const styles = StyleSheet.create({
   },
   cardMainValue: {
     fontSize: 72,
-    fontFamily: 'Raleway_700Bold',
     color: '#FFF',
     textAlign: 'center',
   },
   cardSubtitle: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
     color: 'rgba(255,255,255,0.8)',
     letterSpacing: 2,
     marginTop: 8,
   },
   cardFunFact: {
     fontSize: 16,
-    fontFamily: 'Raleway_500Medium',
     color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     marginTop: 20,
@@ -567,12 +557,10 @@ const styles = StyleSheet.create({
   },
   periodLabel: {
     fontSize: 14,
-    fontFamily: 'Raleway_600SemiBold',
     color: 'rgba(255,255,255,0.7)',
   },
   periodSubtitle: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
     color: 'rgba(255,255,255,0.5)',
     marginTop: 2,
   },
@@ -587,7 +575,6 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     fontSize: 16,
-    fontFamily: 'Raleway_600SemiBold',
   },
   pageIndicator: {
     flexDirection: 'row',
@@ -603,7 +590,6 @@ const styles = StyleSheet.create({
   swipeHint: {
     textAlign: 'center',
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
     marginTop: 16,
     marginBottom: 40,
   },
@@ -631,14 +617,12 @@ const styles = StyleSheet.create({
   },
   muscleName: {
     fontSize: 12,
-    fontFamily: 'Raleway_500Medium',
     color: 'rgba(255,255,255,0.9)',
     width: 70,
     textTransform: 'capitalize',
   },
   musclePercent: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
     color: '#FFF',
     width: 35,
     textAlign: 'right',

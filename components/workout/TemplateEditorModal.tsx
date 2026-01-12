@@ -1,7 +1,7 @@
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { storageService } from '@/lib/storage';
+import { storageService } from '@/lib/storage/storage';
 import { WorkoutTemplate } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -128,7 +128,7 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
           <TouchableOpacity onPress={handleClose} style={styles.headerButton}>
             <Ionicons name="close" size={24} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             {isEditing ? 'Edit Template' : 'New Template'}
           </Text>
           <TouchableOpacity
@@ -143,7 +143,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
                   color: (name.trim() && noteText.trim() && !isSaving)
                     ? currentTheme.colors.accent
                     : currentTheme.colors.text + '40',
-                  fontFamily: 'Raleway_600SemiBold',
                 },
               ]}
             >
@@ -171,7 +170,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
                   {
                     color: currentTheme.colors.text,
                     borderBottomColor: currentTheme.colors.border,
-                    fontFamily: 'Raleway_600SemiBold',
                   },
                 ]}
                 value={name}
@@ -191,7 +189,6 @@ const TemplateEditorModal: React.FC<TemplateEditorModalProps> = ({
                   styles.notesInput,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
                   },
                 ]}
                 value={noteText}
@@ -223,7 +220,7 @@ Dumbbell Rows 50x12, 55x10`}
                 onPress={() => Keyboard.dismiss()}
                 style={styles.doneButton}
               >
-                <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                   Done
                 </Text>
               </TouchableOpacity>

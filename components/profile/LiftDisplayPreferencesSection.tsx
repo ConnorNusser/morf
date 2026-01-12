@@ -4,10 +4,10 @@ import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { storageService } from '@/lib/storage';
-import { userService } from '@/lib/userService';
-import { getWorkoutById } from '@/lib/workouts';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { storageService } from '@/lib/storage/storage';
+import { userService } from '@/lib/services/userService';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -139,7 +139,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
             styles.sectionTitle, 
             { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             Lift Display Preferences
@@ -149,7 +148,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
               styles.subtitle, 
               { 
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {getPreferencesSummary()}
@@ -169,7 +167,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
             styles.description,
             {
               color: currentTheme.colors.text + '70',
-              fontFamily: 'Raleway_400Regular',
             }
           ]}>
             {"Choose which lifts to display in your \"Your Lifts\" section on the main dashboard."}
@@ -226,7 +223,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                         color: isHidden 
                           ? currentTheme.colors.text + '50'
                           : currentTheme.colors.text,
-                        fontFamily: 'Raleway_600SemiBold',
                       }
                     ]}>
                       {workout?.name || lift.workoutId}
@@ -237,7 +233,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                         color: isHidden 
                           ? currentTheme.colors.text + '40'
                           : currentTheme.colors.text + '70',
-                        fontFamily: 'Raleway_400Regular',
                       }
                     ]}>
                       {lift.strengthLevel} • {lift.percentileRanking}th percentile
@@ -329,7 +324,6 @@ const styles = StyleSheet.create({
   },
   quickActionText: {
     fontSize: 13,
-    fontFamily: 'Raleway_500Medium',
   },
   liftsList: {
     maxHeight: 280,

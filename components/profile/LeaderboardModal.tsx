@@ -3,11 +3,11 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
-import { getCountryFlag, geoService } from '@/lib/geoService';
-import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
-import { supabase } from '@/lib/supabase';
-import { userSyncService } from '@/lib/userSyncService';
-import { getWorkoutById } from '@/lib/workouts';
+import { getCountryFlag, geoService } from '@/lib/services/geoService';
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { supabase } from '@/lib/services/supabase';
+import { userSyncService } from '@/lib/services/userSyncService';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { LeaderboardEntry, MAIN_LIFTS, OverallLeaderboardEntry, RemoteUser } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -164,6 +164,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           estimated_1rm: number;
           recorded_at: string;
           rank: number;
+          strength_tier?: string;
         }) => ({
           user: {
             id: row.user_id,
@@ -178,6 +179,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           reps: 0,
           recorded_at: new Date(row.recorded_at),
           rank: row.rank,
+          strength_tier: row.strength_tier,
         }));
 
         setLeaderboardData(entries);
@@ -251,10 +253,23 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           styles.rankText,
           {
             color: isTop3 ? currentTheme.colors.primary : currentTheme.colors.text + '60',
-            fontFamily: 'Raleway_600SemiBold',
           }
         ]}>
           {index + 1}
+        </Text>
+      </View>
+    );
+  };
+
+  const renderTierBadge = (tier?: string) => {
+    if (!tier) return null;
+    // Extract base tier (first character) for color lookup
+    const baseTier = tier.charAt(0) as StrengthTier;
+    const color = getTierColor(baseTier);
+    return (
+      <View style={[styles.tierBadge, { backgroundColor: color + '20' }]}>
+        <Text style={[styles.tierBadgeText, { color, fontFamily: currentTheme.fonts.semiBold }]}>
+          {tier}
         </Text>
       </View>
     );
@@ -266,7 +281,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Leaderboard
           </Text>
           <View style={styles.headerSpacer} />
@@ -284,7 +299,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               }}
             >
               <Text
-                style={[styles.dropdownText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}
+                style={[styles.dropdownText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}
                 numberOfLines={1}
               >
                 {selectedExercise ? getExerciseName(selectedExercise) : 'All Exercises'}
@@ -317,7 +332,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                           styles.dropdownItemText,
                           {
                             color: selectedExercise === exerciseId ? currentTheme.colors.primary : currentTheme.colors.text,
-                            fontFamily: 'Raleway_500Medium',
                           }
                         ]}>
                           {getExerciseName(exerciseId)}
@@ -351,7 +365,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   color={currentTheme.colors.primary}
                 />
               )}
-              <Text style={[styles.filterDropdownText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.filterDropdownText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 {filter === 'friends' ? 'Friends' : filter === 'country' ? 'Country' : 'Global'}
               </Text>
               <Ionicons
@@ -378,7 +392,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                     styles.dropdownItemText,
                     {
                       color: filter === 'friends' ? currentTheme.colors.primary : currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     }
                   ]}>
                     Friends
@@ -400,7 +413,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                       styles.dropdownItemText,
                       {
                         color: filter === 'country' ? currentTheme.colors.primary : currentTheme.colors.text,
-                        fontFamily: 'Raleway_500Medium',
                       }
                     ]}>
                       Country
@@ -422,7 +434,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                     styles.dropdownItemText,
                     {
                       color: filter === 'global' ? currentTheme.colors.primary : currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     }
                   ]}>
                     Global
@@ -455,10 +466,10 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   size={32}
                   color={currentTheme.colors.text + '30'}
                 />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                   {filter === 'friends' && !hasFriends ? 'No friends yet' : 'No overall data yet'}
                 </Text>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                   {filter === 'friends' && !hasFriends
                     ? 'Add friends from your profile to compare strength'
                     : 'Users need to track workouts to appear here'}
@@ -485,7 +496,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                           styles.username,
                           {
                             color: currentTheme.colors.text,
-                            fontFamily: index === 0 ? 'Raleway_600SemiBold' : 'Raleway_500Medium',
+                            fontFamily: index === 0 ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
                           }
                         ]}>
                           {entry.user.username}
@@ -496,7 +507,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                       </View>
                       <Text style={[styles.strengthLevel, {
                         color: getTierColor(entry.strength_level as StrengthTier),
-                        fontFamily: 'Raleway_600SemiBold'
+                        fontFamily: currentTheme.fonts.semiBold
                       }]}>
                         {entry.strength_level} Tier
                       </Text>
@@ -505,11 +516,10 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                       styles.liftValue,
                       {
                         color: index === 0 ? currentTheme.colors.primary : currentTheme.colors.text,
-                        fontFamily: 'Raleway_600SemiBold',
                       }
                     ]}>
                       {Math.round(entry.overall_percentile)}
-                      <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                      <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                         %
                       </Text>
                     </Text>
@@ -524,10 +534,10 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 size={32}
                 color={currentTheme.colors.text + '30'}
               />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                 {filter === 'friends' && !hasFriends ? 'No friends yet' : filter === 'country' ? 'No lifters in your country yet' : 'No entries yet'}
               </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                 {filter === 'friends' && !hasFriends
                   ? 'Add friends from your profile to compare lifts'
                   : filter === 'country'
@@ -552,11 +562,12 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   {renderAvatar(entry.user)}
                   <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
                     <View style={styles.usernameRow}>
+                      {renderTierBadge(entry.strength_tier)}
                       <Text style={[
                         styles.username,
                         {
                           color: currentTheme.colors.text,
-                          fontFamily: index === 0 ? 'Raleway_600SemiBold' : 'Raleway_500Medium',
+                          fontFamily: index === 0 ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
                         }
                       ]}>
                         {entry.user.username}
@@ -570,11 +581,10 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                     styles.liftValue,
                     {
                       color: index === 0 ? currentTheme.colors.primary : currentTheme.colors.text,
-                      fontFamily: 'Raleway_600SemiBold',
                     }
                   ]}>
                     {Math.round(entry.estimated_1rm)}
-                    <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                       {' '}lbs
                     </Text>
                   </Text>
@@ -744,6 +754,14 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 15,
   },
+  tierBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  tierBadgeText: {
+    fontSize: 11,
+  },
   strengthLevel: {
     fontSize: 12,
     marginTop: 2,
@@ -776,6 +794,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitial: {
-    fontFamily: 'Raleway_600SemiBold',
   },
 });

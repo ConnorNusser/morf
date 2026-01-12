@@ -1,7 +1,7 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/UserContext";
-import playHapticFeedback from "@/lib/haptic";
+import playHapticFeedback from "@/lib/utils/haptic";
 import { Equipment } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
@@ -111,7 +111,6 @@ const EquipmentFilterSection = () => {
             styles.sectionTitle,
             {
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
             }
           ]}>
             Available Equipment
@@ -121,7 +120,6 @@ const EquipmentFilterSection = () => {
               styles.subtitle,
               {
                 color: currentTheme.colors.primary,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               {getEquipmentSummary()}
@@ -132,7 +130,6 @@ const EquipmentFilterSection = () => {
               styles.description,
               {
                 color: currentTheme.colors.text + '70',
-                fontFamily: 'Raleway_400Regular',
               }
             ]}>
               Select the equipment you have access to for AI workout generation
@@ -169,7 +166,6 @@ const EquipmentFilterSection = () => {
               styles.selectAllText,
               {
                 color: allSelected ? currentTheme.colors.primary : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               Select All Equipment
@@ -202,7 +198,6 @@ const EquipmentFilterSection = () => {
                     styles.equipmentLabel,
                     {
                       color: isSelected ? '#FFFFFF' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     }
                   ]}>
                     {equipment.label}
@@ -214,7 +209,7 @@ const EquipmentFilterSection = () => {
 
           <Text style={[
             styles.hint,
-            { color: currentTheme.colors.secondary, fontFamily: 'Raleway_400Regular' }
+            { color: currentTheme.colors.secondary, fontFamily: currentTheme.fonts.regular }
           ]}>
             AI will only suggest exercises using your selected equipment
           </Text>

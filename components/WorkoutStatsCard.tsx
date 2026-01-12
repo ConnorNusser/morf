@@ -5,10 +5,10 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
-import playHapticFeedback from '@/lib/haptic';
-import { getStrengthTier, getTierColor } from '@/lib/strengthStandards';
-import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils';
-import { getWorkoutById } from '@/lib/workouts';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
+import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -51,7 +51,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
               styles.workoutName, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
               }
             ]}>
               {workout?.name}
@@ -70,7 +69,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                 styles.prLabel, 
                 { 
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Personal Record
@@ -79,7 +77,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                 styles.prValue,
                 {
                   color: getPercentileColor(percentileRanking),
-                  fontFamily: 'Raleway_700Bold',
                 }
               ]}>
                 {convertWeightForPreference(personalRecord, 'lbs', weightUnit)} {weightUnit}
@@ -91,7 +88,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                 styles.percentileLabel, 
                 { 
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 Percentile Ranking
@@ -100,7 +96,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
                 styles.percentileValue, 
                 { 
                   color: getPercentileColor(percentileRanking),
-                  fontFamily: 'Raleway_700Bold',
                 }
               ]}>
                 {percentileRanking}{getPercentileSuffix(percentileRanking)}
@@ -121,7 +116,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
               styles.progressText, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               Better than {percentileRanking}% of lifters
@@ -163,7 +157,6 @@ const styles = StyleSheet.create({
   },
   tierLabel: {
     fontSize: 12,
-    fontFamily: 'Raleway_500Medium',
     opacity: 0.7,
   },
   statsRow: {

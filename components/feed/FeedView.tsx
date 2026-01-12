@@ -3,10 +3,11 @@ import { Text, View } from '@/components/Themed';
 import { useTabBar } from '@/contexts/TabBarContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoControl } from '@/contexts/VideoPlayerContext';
-import playHapticFeedback from '@/lib/haptic';
-import { feedService, FeedPost } from '@/lib/feedService';
-import { userSyncService } from '@/lib/userSyncService';
-import { RemoteUser } from '@/types';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { feedService, FeedPost } from '@/lib/services/feedService';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
+import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -43,6 +44,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
 
   // Viewability config for auto-playing videos
   const viewabilityConfig = useMemo(() => ({
@@ -76,10 +78,11 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     }
 
     try {
-      const [workouts, posts, user] = await Promise.all([
+      const [workouts, posts, user, profile] = await Promise.all([
         feedService.getGlobalWorkoutFeed(PAGE_SIZE, 0),
         feedService.getPosts(PAGE_SIZE, 0),
         userSyncService.getCurrentUser(),
+        userService.getUserProfileOrDefault(),
       ]);
 
       // Combine and sort by date
@@ -94,6 +97,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
       setFeedItems(combined);
       setCurrentUserId(user?.id || null);
+      setWeightUnit(profile.weightUnitPreference || 'lbs');
       setHasMore(workouts.length >= PAGE_SIZE || posts.length >= PAGE_SIZE);
     } catch (error) {
       console.error('Error loading feed:', error);
@@ -267,6 +271,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           onLike={() => handleWorkoutLike(workout.id)}
           onComment={() => handleWorkoutPress(workout)}
           currentUserId={currentUserId}
+          weightUnit={weightUnit}
         />
       );
     } else {
@@ -296,10 +301,10 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const renderEmpty = () => (
     <View style={styles.emptyFeed}>
       <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '30'} />
-      <Text style={[styles.emptyFeedTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+      <Text style={[styles.emptyFeedTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
         No posts yet
       </Text>
-      <Text style={[styles.emptyFeedText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+      <Text style={[styles.emptyFeedText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
         Be the first to share something!
       </Text>
     </View>
@@ -357,6 +362,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         onLike={() => selectedWorkout && handleWorkoutLike(selectedWorkout.id)}
         onWorkoutUpdated={updateWorkoutInFeed}
         onUserPress={handleUserPress}
+        weightUnit={weightUnit}
       />
 
       <CreatePostModal

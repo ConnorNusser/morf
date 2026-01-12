@@ -1,9 +1,9 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import { analyticsService } from '@/lib/analytics';
-import playHapticFeedback from '@/lib/haptic';
-import { userService } from '@/lib/userService';
-import { userSyncService } from '@/lib/userSyncService';
+import { analyticsService } from '@/lib/services/analytics';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { userService } from '@/lib/services/userService';
+import { userSyncService } from '@/lib/services/userSyncService';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -131,25 +131,22 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         return (
           <View style={styles.stepContent}>
             <Image
-              source={require('@/assets/images/icon.png')}
+              source={require('@/assets/images/icon-original.png')}
               style={styles.logo}
               resizeMode="contain"
             />
             <Text style={[styles.welcomeTitle, { 
               color: currentTheme.colors.text,
-              fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_700Bold',
             }]}>
               Welcome to Morf!
             </Text>
             <Text style={[styles.welcomeSubtitle, { 
               color: currentTheme.colors.text + '90',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               {"Let's set up your profile to create personalized workouts just for you."}
             </Text>
             <Text style={[styles.stepIndicator, { 
               color: currentTheme.colors.text + '60',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               This will take about 1 minute
             </Text>
@@ -161,11 +158,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>{"What's your height?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               This helps us calculate your strength percentiles and track progress.
             </Text>
@@ -180,11 +175,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>{"What's your weight?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               We use this to personalize your workout recommendations.
             </Text>
@@ -199,11 +192,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>{"What's your gender?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               This helps us provide more accurate strength standards.
             </Text>
@@ -218,11 +209,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>{"What's your age?"}</Text>
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               This helps us provide more accurate strength standards.
             </Text>
@@ -255,11 +244,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>What equipment do you have?</Text>
             <Text style={[styles.stepSubtitle, {
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_400Regular',
             }]}>
               This helps us generate workouts with exercises you can actually do.
             </Text>
@@ -278,7 +265,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           <View style={styles.stepContent}>
             <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_600SemiBold',
             }]}>Choose your weight units</Text>
             
             <View style={styles.unitSelectionContainer}>
@@ -298,7 +284,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
                     styles.unitButtonText,
                     { 
                       color: weightUnit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_600SemiBold',
                     }
                   ]}>
                     lbs
@@ -307,7 +292,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
                     styles.unitButtonSubtext,
                     { 
                       color: weightUnit === 'lbs' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                      fontFamily: 'Raleway_400Regular',
                     }
                   ]}>
                     Imperial
@@ -329,7 +313,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
                     styles.unitButtonText,
                     { 
                       color: weightUnit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
-                      fontFamily: 'Raleway_600SemiBold',
                     }
                   ]}>
                     kg
@@ -338,7 +321,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
                     styles.unitButtonSubtext,
                     { 
                       color: weightUnit === 'kg' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                      fontFamily: 'Raleway_400Regular',
                     }
                   ]}>
                     Metric
@@ -348,7 +330,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
               
               <Text style={[styles.unitHint, { 
                 color: currentTheme.colors.text + '60',
-                fontFamily: 'Raleway_400Regular',
               }]}>
                 You can change this later in your profile settings
               </Text>
@@ -376,7 +357,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       </View>
       <Text style={[styles.progressText, { 
         color: currentTheme.colors.text + '70',
-        fontFamily: 'Raleway_500Medium',
       }]}>
         {currentStep + 1} of {totalSteps}
       </Text>
@@ -399,7 +379,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text} />
             <Text style={[styles.backButtonText, { 
               color: currentTheme.colors.text,
-              fontFamily: 'Raleway_500Medium',
             }]}>Back</Text>
           </>
         )}
@@ -421,7 +400,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         >
           <Text style={[styles.nextButtonText, { 
             color: currentTheme.colors.background,
-            fontFamily: 'Raleway_600SemiBold',
           }]}>Next</Text>
           <Ionicons name="chevron-forward" size={20} color={currentTheme.colors.background} />
         </TouchableOpacity>
@@ -445,7 +423,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <>
               <Text style={[styles.nextButtonText, { 
                 color: currentTheme.colors.background,
-                fontFamily: 'Raleway_600SemiBold',
               }]}>Complete</Text>
               <Ionicons name="checkmark" size={20} color={currentTheme.colors.background} />
             </>
@@ -552,7 +529,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 24,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 12,

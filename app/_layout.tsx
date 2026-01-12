@@ -1,11 +1,14 @@
 import { AlertProvider } from '@/components/CustomAlert';
+import ThemeOverlay from '@/components/ThemeOverlay';
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
 import { RoutineProvider } from '@/contexts/RoutineContext';
-import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { TutorialProvider } from '@/contexts/TutorialContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
-import { notificationService } from '@/lib/notificationService';
+import { notificationService } from '@/lib/services/notificationService';
+import { layout } from '@/lib/ui/styles';
+import { View } from 'react-native';
 import {
     Raleway_400Regular,
     Raleway_500Medium,
@@ -19,6 +22,46 @@ import {
     Karla_700Bold,
     useFonts as useKarlaFonts
 } from '@expo-google-fonts/karla';
+
+import {
+    Arimo_400Regular,
+    Arimo_500Medium,
+    Arimo_600SemiBold,
+    Arimo_700Bold,
+    useFonts as useArimoFonts
+} from '@expo-google-fonts/arimo';
+
+import {
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+    useFonts as useOutfitFonts
+} from '@expo-google-fonts/outfit';
+
+import {
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+    useFonts as usePoppinsFonts
+} from '@expo-google-fonts/poppins';
+
+import {
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    useFonts as useInterFonts
+} from '@expo-google-fonts/inter';
+
+import {
+    Rubik_400Regular,
+    Rubik_500Medium,
+    Rubik_600SemiBold,
+    Rubik_700Bold,
+    useFonts as useRubikFonts
+} from '@expo-google-fonts/rubik';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { AudioModule } from 'expo-audio';
@@ -59,7 +102,42 @@ export default function RootLayout() {
     Karla_700Bold,
   });
 
-  const loaded = fontsLoaded && ralewayLoaded && karlaLoaded;
+  const [arimoLoaded] = useArimoFonts({
+    Arimo_400Regular,
+    Arimo_500Medium,
+    Arimo_600SemiBold,
+    Arimo_700Bold,
+  });
+
+  const [outfitLoaded] = useOutfitFonts({
+    Outfit_400Regular,
+    Outfit_500Medium,
+    Outfit_600SemiBold,
+    Outfit_700Bold,
+  });
+
+  const [poppinsLoaded] = usePoppinsFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
+  const [interLoaded] = useInterFonts({
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  const [rubikLoaded] = useRubikFonts({
+    Rubik_400Regular,
+    Rubik_500Medium,
+    Rubik_600SemiBold,
+    Rubik_700Bold,
+  });
+
+  const loaded = fontsLoaded && ralewayLoaded && karlaLoaded && arimoLoaded && outfitLoaded && poppinsLoaded && interLoaded && rubikLoaded;
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -131,24 +209,44 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={layout.flex1}>
       <ThemeProvider>
-        <AlertProvider>
-          <VideoPlayerProvider>
-            <TutorialProvider>
-              <CustomExercisesProvider>
-                <RoutineProvider>
-                  <WorkoutProvider>
-                    <Stack>
-                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    </Stack>
-                  </WorkoutProvider>
-                </RoutineProvider>
-              </CustomExercisesProvider>
-            </TutorialProvider>
-          </VideoPlayerProvider>
-        </AlertProvider>
+        <ThemedApp />
       </ThemeProvider>
     </GestureHandlerRootView>
+  );
+}
+
+// Separate component that can access theme context
+function ThemedApp() {
+  const { currentTheme } = useTheme();
+
+  return (
+    <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+      <AlertProvider>
+        <VideoPlayerProvider>
+          <TutorialProvider>
+            <CustomExercisesProvider>
+              <RoutineProvider>
+                <WorkoutProvider>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: currentTheme.colors.background },
+                      animation: 'fade',
+                    }}
+                  >
+                    <Stack.Screen name="(tabs)" />
+                  </Stack>
+                </WorkoutProvider>
+              </RoutineProvider>
+            </CustomExercisesProvider>
+          </TutorialProvider>
+        </VideoPlayerProvider>
+      </AlertProvider>
+
+      {/* Theme-specific overlay effects (snow, etc.) */}
+      <ThemeOverlay />
+    </View>
   );
 }

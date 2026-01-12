@@ -29,7 +29,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Workout Note Guide
           </Text>
           <IconButton icon="close" onPress={onClose} />
@@ -43,30 +43,30 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
           {/* Important Note */}
           <View style={[styles.importantNote, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary }]}>
             <Ionicons name="information-circle" size={20} color={currentTheme.colors.primary} />
-            <Text style={[styles.importantNoteText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+            <Text style={[styles.importantNoteText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
               {"If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata."}
             </Text>
           </View>
 
           {/* Special Keywords Section - Most Important */}
           <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
               Special Keywords
             </Text>
-            <Text style={[styles.sectionDescription, { color: currentTheme.colors.secondary, fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.sectionDescription, { color: currentTheme.colors.secondary, fontFamily: currentTheme.fonts.regular }]}>
               Use these keywords on a new line after an exercise to track different types of sets:
             </Text>
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>Actual</Text>
+                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Actual</Text>
                 <Text style={[styles.keywordBadge, { color: '#fff', backgroundColor: currentTheme.colors.accent }]}>Recommended</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                 Marks sets as actually completed. Use this after your template sets to log what you actually did.
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                   Bench Press 135x10, 145x8{'\n'}
                   <Text style={{ color: currentTheme.colors.primary }}>Actual</Text> 135x10, 145x8, 155x6
                 </Text>
@@ -75,13 +75,13 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>Target</Text>
+                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Target</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                 {"Marks sets as target/template sets (what you're aiming for). These won't count as completed."}
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                   <Text style={{ color: currentTheme.colors.primary }}>Target</Text> Squat 185x8, 205x6, 225x4
                 </Text>
               </View>
@@ -89,13 +89,13 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>Custom</Text>
+                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Custom</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                 Forces an exercise to be saved as a custom exercise, even if a similar name exists.
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                   <Text style={{ color: currentTheme.colors.primary }}>Custom</Text> My Special Press 95x12
                 </Text>
               </View>
@@ -104,7 +104,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
           {/* Equipment Keywords */}
           <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
               Equipment Keywords
             </Text>
             <View style={[styles.keywordGroup, { backgroundColor: 'transparent' }]}>
@@ -139,7 +139,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
           {/* Variation Keywords */}
           <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
               Variation Keywords
             </Text>
             <View style={[styles.keywordGroup, { backgroundColor: 'transparent' }]}>
@@ -161,7 +161,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
           {/* Format Examples */}
           <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
               Format Examples
             </Text>
             <View style={[styles.examples, { backgroundColor: currentTheme.colors.surface, borderRadius: 12, padding: 16 }]}>
@@ -188,7 +188,7 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
 
           {/* Common Abbreviations */}
           <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
               Common Abbreviations
             </Text>
             <View style={[styles.abbreviations, { backgroundColor: currentTheme.colors.surface, borderRadius: 12, padding: 16 }]}>
@@ -279,7 +279,6 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 10,
     overflow: 'hidden',
-    fontFamily: 'Raleway_600SemiBold',
   },
   keywordDesc: {
     fontSize: 13,
@@ -307,7 +306,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 8,
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
     overflow: 'hidden',
   },
   examples: {
@@ -315,13 +313,11 @@ const styles = StyleSheet.create({
   },
   example: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
   },
   abbreviations: {
     gap: 6,
   },
   abbreviation: {
     fontSize: 14,
-    fontFamily: 'Raleway_400Regular',
   },
 });

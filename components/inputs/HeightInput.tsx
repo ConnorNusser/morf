@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
-import playHapticFeedback from '@/lib/haptic';
-import { HeightUnit, convertHeight, formatHeight } from '@/lib/userProfile';
+import playHapticFeedback from '@/lib/utils/haptic';
+import { HeightUnit, convertHeight, formatHeight } from '@/lib/storage/userProfile';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
@@ -108,7 +108,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
           styles.label, 
           { 
             color: currentTheme.colors.text,
-            fontFamily: 'Raleway_600SemiBold',
           }
         ]}>
           Height
@@ -130,7 +129,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
               styles.unitButtonText,
               { 
                 color: value.unit === 'feet' ? '#FFFFFF' : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               ft/in
@@ -151,7 +149,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
               styles.unitButtonText,
               { 
                 color: value.unit === 'cm' ? '#FFFFFF' : currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>
               cm
@@ -179,7 +176,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
                     styles.inputText,
                     {
                       color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     },
                   ]}
                   value={feet.toString()}
@@ -193,7 +189,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
                 styles.inputLabel, 
                 { 
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>ft</Text>
             </View>
@@ -215,7 +210,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
                     styles.inputText,
                     {
                       color: currentTheme.colors.text,
-                      fontFamily: 'Raleway_500Medium',
                     },
                   ]}
                   value={inches.toString()}
@@ -229,7 +223,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
                 styles.inputLabel, 
                 { 
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>in</Text>
             </View>
@@ -253,7 +246,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
                   styles.inputText,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_500Medium',
                   },
                 ]}
                 value={cm.toString()}
@@ -267,7 +259,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
               styles.inputLabel, 
               { 
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_500Medium',
               }
             ]}>cm</Text>
           </View>
@@ -279,7 +270,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
             styles.heightText, 
             { 
               color: currentTheme.colors.text + '80',
-              fontFamily: 'Raleway_500Medium',
             }
           ]}>
             {formatHeight(value)}

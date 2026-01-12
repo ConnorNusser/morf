@@ -136,7 +136,6 @@ export default function ProgressBar({
                 styles.tickLabel,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: 'Raleway_500Medium',
                 }
               ]}>
                 {tick.label}

@@ -1,16 +1,21 @@
 import IconButton from '@/components/IconButton';
+import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getCountryName } from '@/lib/geoService';
-import { supabase } from '@/lib/supabase';
-import { userSyncService, WorkoutSummary } from '@/lib/userSyncService';
-import { getWorkoutById } from '@/lib/workouts';
-import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData } from '@/types';
+import { getCountryName } from '@/lib/services/geoService';
+import { gap, layout } from '@/lib/ui/styles';
+import { supabase } from '@/lib/services/supabase';
+import { userSyncService, WorkoutSummary } from '@/lib/services/userSyncService';
+import { getWorkoutById } from '@/lib/workout/workouts';
+import { calculateStrengthPercentile } from '@/lib/data/strengthStandards';
+import { userService } from '@/lib/services/userService';
+import { convertWeightToLbs } from '@/lib/utils/utils';
+import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, isFeaturedLift } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -68,16 +73,61 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [userData, setUserData] = useState<RemoteUserData | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSummary[]>([]);
+  const [workoutCount, setWorkoutCount] = useState<number>(0);
+  const [myLifts, setMyLifts] = useState<UserLiftData[]>([]);
+  const [myUserData, setMyUserData] = useState<RemoteUserData | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [memberSince, setMemberSince] = useState<Date | null>(null);
+  const [comparisonMode, setComparisonMode] = useState<'weight' | 'percentile'>('weight');
+  const [showAllComparisons, setShowAllComparisons] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFriend, setIsFriend] = useState(false);
   const [isFriendLoading, setIsFriendLoading] = useState(false);
   const [showFullScreenPicture, setShowFullScreenPicture] = useState(false);
+  const [selectedLiftId, setSelectedLiftId] = useState<string | null>(null);
+  const [liftHistory, setLiftHistory] = useState<UserProgress[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
 
   const checkFriendStatus = useCallback(async () => {
     if (!user) return;
     const friendStatus = await userSyncService.isFriend(user.id);
     setIsFriend(friendStatus);
   }, [user]);
+
+  const loadLiftHistory = useCallback(async (exerciseId: string) => {
+    if (!user) return;
+
+    // Toggle off if same lift selected
+    if (selectedLiftId === exerciseId) {
+      setSelectedLiftId(null);
+      setLiftHistory([]);
+      return;
+    }
+
+    setSelectedLiftId(exerciseId);
+    setIsLoadingHistory(true);
+
+    try {
+      const history = await userSyncService.getUserLiftHistory(user.id, exerciseId);
+
+      // Convert to UserProgress format for InteractiveProgressChart
+      const progressData: UserProgress[] = history.map(lift => ({
+        workoutId: exerciseId,
+        personalRecord: lift.estimated_1rm,
+        lastUpdated: lift.recorded_at,
+        percentileRanking: 0, // Not needed for chart display
+        strengthLevel: '',    // Not needed for chart display
+      }));
+
+      setLiftHistory(progressData);
+    } catch (error) {
+      console.error('Error loading lift history:', error);
+      setLiftHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, [user, selectedLiftId]);
 
   const handleToggleFriend = async () => {
     if (!user) return;
@@ -102,19 +152,27 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
     setIsLoading(true);
     try {
+      // Get current user for comparison
+      const currentUser = await userSyncService.getCurrentUser();
+      setCurrentUserId(currentUser?.id || null);
+
       // Get user data including profile info, percentile data, and workouts
-      const [liftsResult, userResult, percentileResult, workoutsResult] = await Promise.all([
+      const [liftsResult, userResult, percentileResult, workoutsResult, workoutCountResult] = await Promise.all([
         supabase
           .from('user_best_lifts')
           .select('exercise_id, estimated_1rm, recorded_at')
           .eq('user_id', user.id),
         supabase
           .from('users')
-          .select('user_data, country_code')
+          .select('user_data, country_code, created_at')
           .eq('id', user.id)
           .single(),
         userSyncService.getUserPercentileData(user.id),
-        userSyncService.getUserWorkouts(user.id, 5)
+        userSyncService.getUserWorkouts(user.id, 5),
+        supabase
+          .from('user_workouts')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
       ]);
 
       if (liftsResult.error) {
@@ -134,8 +192,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         if (userResult.data.country_code && user) {
           user.country_code = userResult.data.country_code;
         }
+        // Set member since date
+        if (userResult.data.created_at) {
+          setMemberSince(new Date(userResult.data.created_at));
+        }
       } else {
         setUserData(null);
+        setMemberSince(null);
       }
 
       // Set percentile data
@@ -143,12 +206,37 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
       // Set recent workouts
       setRecentWorkouts(workoutsResult);
+
+      // Set workout count
+      setWorkoutCount(workoutCountResult.count || 0);
+
+      // Fetch current user's lifts and profile for comparison (separate query)
+      if (currentUser && currentUser.id !== user.id) {
+        const [myLiftsResult, myProfile] = await Promise.all([
+          supabase
+            .from('user_best_lifts')
+            .select('exercise_id, estimated_1rm, recorded_at')
+            .eq('user_id', currentUser.id),
+          userService.getUserProfileOrDefault()
+        ]);
+        setMyLifts(myLiftsResult.data || []);
+        setMyUserData({
+          height: myProfile.height,
+          weight: myProfile.weight,
+          gender: myProfile.gender,
+        });
+      } else {
+        setMyLifts([]);
+        setMyUserData(null);
+      }
     } catch (error) {
       console.error('Error loading user data:', error);
       setLifts([]);
       setUserData(null);
       setPercentileData(null);
       setRecentWorkouts([]);
+      setWorkoutCount(0);
+      setMyLifts([]);
     } finally {
       setIsLoading(false);
     }
@@ -160,6 +248,103 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       checkFriendStatus();
     }
   }, [visible, user, loadUserData, checkFriendStatus]);
+
+  // Enhance topContributions with weight data from lifts
+  // Must be before early return to maintain consistent hook order
+  const enhancedTopContributions = useMemo(() => {
+    if (!percentileData?.top_contributions) return [];
+
+    // Create a map of exercise_id -> estimated_1rm from lifts
+    const liftWeightMap: Record<string, number> = {};
+    lifts.forEach(lift => {
+      liftWeightMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    // Merge weight into topContributions
+    return percentileData.top_contributions.map(c => ({
+      ...c,
+      weight: c.weight || liftWeightMap[c.exercise_id] || undefined,
+    }));
+  }, [percentileData?.top_contributions, lifts]);
+
+  // Compute "You vs Them" comparison data
+  // Must be before early return to maintain consistent hook order
+  const liftComparison = useMemo(() => {
+    // Only show comparison when viewing someone else's profile
+    if (!currentUserId || currentUserId === user?.id || myLifts.length === 0 || lifts.length === 0) {
+      return null;
+    }
+
+    // Get body weights for percentile calculation
+    const myBodyWeight = myUserData?.weight ? convertWeightToLbs(myUserData.weight.value, myUserData.weight.unit) : 0;
+    const myGender = myUserData?.gender === 'male' || myUserData?.gender === 'female' ? myUserData.gender : 'male';
+    const theirBodyWeight = userData?.weight ? convertWeightToLbs(userData.weight.value, userData.weight.unit) : 0;
+    const theirGender = userData?.gender === 'male' || userData?.gender === 'female' ? userData.gender : 'male';
+
+    // Create maps for quick lookup
+    const myLiftMap: Record<string, number> = {};
+    myLifts.forEach(lift => {
+      myLiftMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    const theirLiftMap: Record<string, number> = {};
+    lifts.forEach(lift => {
+      theirLiftMap[lift.exercise_id] = lift.estimated_1rm;
+    });
+
+    // Find common exercises (only featured lifts for percentile mode)
+    let commonExercises = Object.keys(myLiftMap).filter(id => id in theirLiftMap);
+    if (comparisonMode === 'percentile') {
+      commonExercises = commonExercises.filter(id => isFeaturedLift(id));
+    }
+    if (commonExercises.length === 0) return null;
+
+    // Build comparison array
+    const comparisons = commonExercises
+      .map(exerciseId => {
+        const myWeight = myLiftMap[exerciseId];
+        const theirWeight = theirLiftMap[exerciseId];
+
+        // Calculate percentiles if in percentile mode
+        const myPercentile = myBodyWeight > 0 && isFeaturedLift(exerciseId)
+          ? Math.round(calculateStrengthPercentile(myWeight, myBodyWeight, myGender, exerciseId))
+          : 0;
+        const theirPercentile = theirBodyWeight > 0 && isFeaturedLift(exerciseId)
+          ? Math.round(calculateStrengthPercentile(theirWeight, theirBodyWeight, theirGender, exerciseId))
+          : 0;
+
+        const usePercentile = comparisonMode === 'percentile';
+        const myValue = usePercentile ? myPercentile : Math.round(myWeight);
+        const theirValue = usePercentile ? theirPercentile : Math.round(theirWeight);
+
+        return {
+          exerciseId,
+          name: getWorkoutById(exerciseId)?.name || exerciseId,
+          myValue,
+          theirValue,
+          myWeight: Math.round(myWeight),
+          theirWeight: Math.round(theirWeight),
+          myPercentile,
+          theirPercentile,
+          iWin: myValue > theirValue,
+          isTie: myValue === theirValue,
+        };
+      })
+      .filter(c => comparisonMode !== 'percentile' || (c.myPercentile > 0 && c.theirPercentile > 0))
+      .sort((a, b) => b.theirValue - a.theirValue);
+
+    if (comparisons.length === 0) return null;
+
+    const myWins = comparisons.filter(c => c.iWin && !c.isTie).length;
+    const theirWins = comparisons.filter(c => !c.iWin && !c.isTie).length;
+
+    return {
+      comparisons,
+      myWins,
+      theirWins,
+      ties: comparisons.length - myWins - theirWins,
+    };
+  }, [currentUserId, user?.id, myLifts, lifts, comparisonMode, myUserData, userData]);
 
   if (!user) return null;
 
@@ -195,11 +380,11 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Profile
           </Text>
           <TouchableOpacity
@@ -235,9 +420,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={layout.flex1} contentContainerStyle={styles.scrollContent}>
           {isLoading ? (
-            <View style={{ gap: 16 }}>
+            <View style={gap.gap16}>
               <SkeletonCard variant="profile-header" />
               <SkeletonCard variant="stats" />
               <SkeletonCard variant="stats" />
@@ -247,16 +432,32 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* User Info */}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
-                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     @{user.username}
                   </Text>
                   {user.country_code && (
-                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                       {getCountryName(user.country_code)}
                     </Text>
                   )}
+                  {/* Last workout & Member since */}
+                  <View style={styles.metaRow}>
+                    {recentWorkouts.length > 0 && (
+                      <Text style={[styles.metaText, { color: currentTheme.colors.text + '50' }]}>
+                        Last workout {formatRelativeTime(recentWorkouts[0].created_at)}
+                      </Text>
+                    )}
+                    {recentWorkouts.length > 0 && memberSince && (
+                      <Text style={[styles.metaDot, { color: currentTheme.colors.text + '50' }]}>·</Text>
+                    )}
+                    {memberSince && (
+                      <Text style={[styles.metaText, { color: currentTheme.colors.text + '50' }]}>
+                        Joined {memberSince.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </Text>
+                    )}
+                  </View>
                   {/* Social Links */}
-                  {(userData?.instagram_username || userData?.tiktok_username) && (
+                  {(userData?.instagram_username || userData?.tiktok_username || userData?.discord_username) && (
                     <View style={styles.socialLinksRow}>
                       {userData?.instagram_username && (
                         <TouchableOpacity
@@ -275,6 +476,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         >
                           <Ionicons name="logo-tiktok" size={18} color={currentTheme.colors.text} />
                         </TouchableOpacity>
+                      )}
+                      {userData?.discord_username && (
+                        <View
+                          style={[styles.socialButton, { backgroundColor: '#5865F220' }]}
+                        >
+                          <Ionicons name="logo-discord" size={18} color="#5865F2" />
+                        </View>
                       )}
                     </View>
                   )}
@@ -303,17 +511,17 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 <StrengthRadarCard
                   overallPercentile={Math.round(overallPercentile)}
                   muscleGroups={percentileData.muscle_groups}
-                  topContributions={percentileData.top_contributions}
+                  topContributions={enhancedTopContributions}
                 />
               )}
 
               {/* 1000lb Club Progress */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                 <View style={[styles.cardHeader, { backgroundColor: 'transparent' }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     1000lb Club
                   </Text>
-                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                     {big3Total} lbs
                   </Text>
                 </View>
@@ -329,119 +537,429 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     ]}
                   />
                 </View>
-                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   {thousandPoundProgress >= 100 ? 'Member!' : `${thousandPoundProgress}% to 1000lbs`}
                 </Text>
 
                 {/* Big 3 Breakdown */}
                 <View style={styles.big3Container}>
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.BENCH_PRESS ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.BENCH_PRESS ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => benchMax ? loadLiftHistory(MAIN_LIFTS.BENCH_PRESS) : null}
+                    activeOpacity={benchMax ? 0.7 : 1}
+                    disabled={!benchMax}
+                  >
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Bench
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {benchMax || '-'}
                     </Text>
-                  </View>
-                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.SQUAT ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.SQUAT ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => squatMax ? loadLiftHistory(MAIN_LIFTS.SQUAT) : null}
+                    activeOpacity={squatMax ? 0.7 : 1}
+                    disabled={!squatMax}
+                  >
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Squat
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {squatMax || '-'}
                     </Text>
-                  </View>
-                  <View style={[styles.big3Divider, { backgroundColor: currentTheme.colors.border }]} />
-                  <View style={[styles.big3Item, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.big3Item,
+                      {
+                        backgroundColor: selectedLiftId === MAIN_LIFTS.DEADLIFT ? currentTheme.colors.primary + '15' : currentTheme.colors.background,
+                        borderColor: selectedLiftId === MAIN_LIFTS.DEADLIFT ? currentTheme.colors.primary : currentTheme.colors.border,
+                      }
+                    ]}
+                    onPress={() => deadliftMax ? loadLiftHistory(MAIN_LIFTS.DEADLIFT) : null}
+                    activeOpacity={deadliftMax ? 0.7 : 1}
+                    disabled={!deadliftMax}
+                  >
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Deadlift
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                       {deadliftMax || '-'}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
+
+                {/* Big 3 Progression Chart */}
+                {selectedLiftId && BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
+                  <View style={styles.chartContainer}>
+                    {isLoadingHistory ? (
+                      <View style={styles.chartLoading}>
+                        <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                      </View>
+                    ) : liftHistory.length >= 2 ? (
+                      <InteractiveProgressChart
+                        data={liftHistory}
+                        selectedMetric="oneRM"
+                        weightUnit="lbs"
+                        title={`${getExerciseName(selectedLiftId)} Progression`}
+                        description="Estimated from your workout sessions"
+                      />
+                    ) : (
+                      <View style={styles.noHistoryContainer}>
+                        <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
+                        <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                          Not enough data for progression chart
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
 
               {/* Stats Card */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                   Stats
                 </Text>
                 <View style={styles.statsGrid}>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                      {workoutCount}
+                    </Text>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                      Workouts
+                    </Text>
+                  </View>
+                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                       {lifts.length}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Exercises
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: 'Raleway_700Bold' }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
                       {Math.round(totalVolume).toLocaleString()}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_500Medium' }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
                       Total 1RM lbs
                     </Text>
                   </View>
                 </View>
               </View>
 
+              {/* You vs Them Comparison */}
+              {liftComparison && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={styles.comparisonHeader}>
+                    <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                      You vs @{user.username}
+                    </Text>
+                    <View style={styles.comparisonSummary}>
+                      <Text style={[
+                        styles.comparisonScore,
+                        {
+                          color: liftComparison.myWins > liftComparison.theirWins
+                            ? '#22C55E'
+                            : liftComparison.myWins < liftComparison.theirWins
+                              ? '#EF4444'
+                              : currentTheme.colors.text + '60'
+                        }
+                      ]}>
+                        {liftComparison.myWins}-{liftComparison.theirWins}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Mode toggle chips */}
+                  <View style={styles.comparisonChips}>
+                    <TouchableOpacity
+                      style={[
+                        styles.comparisonChip,
+                        {
+                          backgroundColor: comparisonMode === 'weight' ? currentTheme.colors.primary : currentTheme.colors.background,
+                          borderColor: comparisonMode === 'weight' ? currentTheme.colors.primary : currentTheme.colors.border,
+                        }
+                      ]}
+                      onPress={() => { setComparisonMode('weight'); setShowAllComparisons(false); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.comparisonChipText,
+                        { color: comparisonMode === 'weight' ? '#FFFFFF' : currentTheme.colors.text + '80' }
+                      ]}>
+                        By Weight
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.comparisonChip,
+                        {
+                          backgroundColor: comparisonMode === 'percentile' ? currentTheme.colors.primary : currentTheme.colors.background,
+                          borderColor: comparisonMode === 'percentile' ? currentTheme.colors.primary : currentTheme.colors.border,
+                        }
+                      ]}
+                      onPress={() => { setComparisonMode('percentile'); setShowAllComparisons(false); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[
+                        styles.comparisonChipText,
+                        { color: comparisonMode === 'percentile' ? '#FFFFFF' : currentTheme.colors.text + '80' }
+                      ]}>
+                        By Percentile
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                  {/* Column headers */}
+                  <View style={[styles.comparisonHeaderRow, { borderBottomColor: currentTheme.colors.border }]}>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60' }]}>You</Text>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60', flex: 1, textAlign: 'center' }]}>Exercise</Text>
+                    <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60' }]}>Them</Text>
+                  </View>
+                  <View style={styles.comparisonList}>
+                    {(showAllComparisons ? liftComparison.comparisons : liftComparison.comparisons.slice(0, 4)).map((comp) => {
+                      const diff = comp.myValue - comp.theirValue;
+                      const diffText = diff > 0 ? `+${diff}` : `${diff}`;
+                      return (
+                        <View key={comp.exerciseId} style={styles.comparisonRow}>
+                          <View style={[
+                            styles.comparisonValuePill,
+                            comp.iWin && !comp.isTie && { backgroundColor: '#22C55E15' }
+                          ]}>
+                            <Text style={[
+                              styles.comparisonNumber,
+                              {
+                                color: comp.iWin && !comp.isTie ? '#22C55E' : currentTheme.colors.text,
+                                fontFamily: currentTheme.fonts.semiBold,
+                              }
+                            ]}>
+                              {comp.myValue}{comparisonMode === 'percentile' ? '%' : ''}
+                            </Text>
+                          </View>
+                          <View style={styles.comparisonMiddle}>
+                            <Text style={[styles.comparisonExercise, { color: currentTheme.colors.text + '80' }]} numberOfLines={1}>
+                              {comp.name}
+                            </Text>
+                            {!comp.isTie && (
+                              <Text style={[
+                                styles.comparisonDiff,
+                                { color: diff > 0 ? '#22C55E' : '#EF4444' }
+                              ]}>
+                                {diffText}{comparisonMode === 'percentile' ? '%' : ''}
+                              </Text>
+                            )}
+                          </View>
+                          <View style={styles.comparisonValuePill}>
+                            <Text style={[
+                              styles.comparisonNumber,
+                              {
+                                color: currentTheme.colors.text,
+                                fontFamily: currentTheme.fonts.semiBold,
+                              }
+                            ]}>
+                              {comp.theirValue}{comparisonMode === 'percentile' ? '%' : ''}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {liftComparison.comparisons.length > 4 && (
+                    <TouchableOpacity
+                      style={[styles.showMoreButton, { borderColor: currentTheme.colors.border }]}
+                      onPress={() => setShowAllComparisons(!showAllComparisons)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.showMoreText, { color: currentTheme.colors.primary }]}>
+                        {showAllComparisons ? 'Show less' : `Show ${liftComparison.comparisons.length - 4} more`}
+                      </Text>
+                      <Ionicons
+                        name={showAllComparisons ? 'chevron-up' : 'chevron-down'}
+                        size={14}
+                        color={currentTheme.colors.primary}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  <Text style={[styles.comparisonFooter, { color: currentTheme.colors.text + '40' }]}>
+                    Comparing {liftComparison.comparisons.length} shared exercises ({comparisonMode === 'percentile' ? 'percentile' : '1RM lbs'})
+                  </Text>
+                </View>
+              )}
+
               {/* Other Top Lifts */}
               {otherLifts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
-                    {otherLifts.map((lift) => (
-                      <View key={lift.exercise_id} style={[styles.liftRow, { backgroundColor: 'transparent' }]}>
-                        <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
-                          {getExerciseName(lift.exercise_id)}
-                        </Text>
-                        <Text style={[styles.liftValue, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_600SemiBold' }]}>
-                          {Math.round(lift.estimated_1rm)} lbs
-                        </Text>
-                      </View>
-                    ))}
+                    {otherLifts.map((lift, index) => {
+                      const isSelected = selectedLiftId === lift.exercise_id && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS);
+                      return (
+                        <TouchableOpacity
+                          key={lift.exercise_id}
+                          style={[
+                            styles.liftRowInteractive,
+                            {
+                              backgroundColor: currentTheme.colors.background,
+                              borderColor: isSelected ? currentTheme.colors.primary : currentTheme.colors.border,
+                              borderWidth: isSelected ? 1.5 : 1,
+                            },
+                          ]}
+                          onPress={() => loadLiftHistory(lift.exercise_id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.liftRowLeft}>
+                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                              {getExerciseName(lift.exercise_id)}
+                            </Text>
+                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.semiBold }]}>
+                              {Math.round(lift.estimated_1rm)} lbs
+                            </Text>
+                          </View>
+                          <View style={[styles.liftChevron, { backgroundColor: isSelected ? currentTheme.colors.primary + '20' : currentTheme.colors.border + '50' }]}>
+                            <Ionicons
+                              name={isSelected ? 'chevron-up' : 'chevron-forward'}
+                              size={16}
+                              color={isSelected ? currentTheme.colors.primary : currentTheme.colors.text + '60'}
+                            />
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
+
+                  {/* Progression Chart for selected lift (only for non-Big3 lifts) */}
+                  {selectedLiftId && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
+                    <View style={styles.chartContainer}>
+                      {isLoadingHistory ? (
+                        <View style={styles.chartLoading}>
+                          <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+                        </View>
+                      ) : liftHistory.length >= 2 ? (
+                        <InteractiveProgressChart
+                          data={liftHistory}
+                          selectedMetric="oneRM"
+                          weightUnit="lbs"
+                          title={`${getExerciseName(selectedLiftId)} Progression`}
+                          description="Tap points to see exact values"
+                        />
+                      ) : (
+                        <View style={styles.noHistoryContainer}>
+                          <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
+                          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                            Not enough data for progression chart
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </View>
               )}
 
               {/* Recent Workouts */}
               {recentWorkouts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     Recent Workouts
                   </Text>
                   <View style={styles.workoutsList}>
-                    {recentWorkouts.map((workout, index) => (
-                      <View
-                        key={workout.id}
-                        style={[
-                          styles.workoutRow,
-                          { backgroundColor: 'transparent' },
-                          index < recentWorkouts.length - 1 && {
-                            borderBottomWidth: StyleSheet.hairlineWidth,
-                            borderBottomColor: currentTheme.colors.border,
-                          }
-                        ]}
-                      >
-                        <View style={styles.workoutHeader}>
-                          <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-                            {workout.title}
-                          </Text>
-                          <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
-                            {formatRelativeTime(workout.created_at)}
-                          </Text>
+                    {recentWorkouts.map((workout) => {
+                      const isExpanded = expandedWorkoutId === workout.id;
+                      return (
+                        <View key={workout.id}>
+                          <TouchableOpacity
+                            style={[
+                              styles.workoutRowInteractive,
+                              {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: isExpanded ? currentTheme.colors.primary : currentTheme.colors.border,
+                                borderWidth: isExpanded ? 1.5 : 1,
+                              }
+                            ]}
+                            onPress={() => setExpandedWorkoutId(isExpanded ? null : workout.id)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={styles.workoutRowContent}>
+                              <View style={styles.workoutRowTop}>
+                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                                  {workout.title}
+                                </Text>
+                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                                  {formatRelativeTime(workout.created_at)}
+                                </Text>
+                              </View>
+                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                                {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
+                              </Text>
+                            </View>
+                            <View style={[styles.workoutChevron, { backgroundColor: isExpanded ? currentTheme.colors.primary + '20' : currentTheme.colors.border + '50' }]}>
+                              <Ionicons
+                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                size={16}
+                                color={isExpanded ? currentTheme.colors.primary : currentTheme.colors.text + '60'}
+                              />
+                            </View>
+                          </TouchableOpacity>
+
+                          {/* Expanded exercise details */}
+                          {isExpanded && workout.exercises && workout.exercises.length > 0 && (
+                            <View style={[
+                              styles.workoutExercisesExpanded,
+                              {
+                                backgroundColor: currentTheme.colors.background,
+                                borderColor: currentTheme.colors.primary,
+                              }
+                            ]}>
+                              {workout.exercises.map((exercise, exIndex) => (
+                                <View
+                                  key={exIndex}
+                                  style={[
+                                    styles.workoutExerciseRow,
+                                    exIndex < workout.exercises.length - 1 && {
+                                      borderBottomWidth: StyleSheet.hairlineWidth,
+                                      borderBottomColor: currentTheme.colors.border + '50',
+                                    }
+                                  ]}
+                                >
+                                  <View style={styles.workoutExerciseLeft}>
+                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                                      {exercise.name}
+                                    </Text>
+                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                                      {exercise.sets} sets
+                                    </Text>
+                                  </View>
+                                  <View style={styles.workoutExerciseRight}>
+                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
+                                      {exercise.bestSet}
+                                    </Text>
+                                    {exercise.isPR && (
+                                      <View style={[styles.prBadge, { backgroundColor: '#FFD700' }]}>
+                                        <Text style={styles.prBadgeText}>PR</Text>
+                                      </View>
+                                    )}
+                                  </View>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                         </View>
-                        <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '80', fontFamily: 'Raleway_400Regular' }]}>
-                          {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
-                        </Text>
-                      </View>
-                    ))}
+                      );
+                    })}
                   </View>
                 </View>
               )}
@@ -449,7 +967,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {lifts.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="barbell-outline" size={32} color={currentTheme.colors.text + '30'} />
-                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                     No lift data available yet
                   </Text>
                 </View>
@@ -494,9 +1012,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -510,9 +1025,6 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
-  },
-  scrollView: {
-    flex: 1,
   },
   scrollContent: {
     padding: 16,
@@ -578,6 +1090,10 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 15,
   },
+  cardSubtitle: {
+    fontSize: 12,
+    marginTop: -4,
+  },
   cardValue: {
     fontSize: 18,
   },
@@ -597,21 +1113,22 @@ const styles = StyleSheet.create({
   big3Container: {
     flexDirection: 'row',
     marginTop: 4,
+    gap: 8,
   },
   big3Item: {
     flex: 1,
     alignItems: 'center',
     gap: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   big3Label: {
     fontSize: 12,
   },
   big3Value: {
     fontSize: 16,
-  },
-  big3Divider: {
-    width: 1,
-    height: '100%',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -629,28 +1146,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   liftsList: {
-    gap: 10,
+    gap: 8,
   },
-  liftRow: {
+  liftRowInteractive: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  liftRowLeft: {
+    flex: 1,
+    gap: 2,
   },
   liftName: {
     fontSize: 14,
-    flex: 1,
   },
   liftValue: {
-    fontSize: 14,
+    fontSize: 13,
+  },
+  liftChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  chartContainer: {
+    marginTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 8,
+  },
+  chartLoading: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noHistoryContainer: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  noHistoryText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   workoutsList: {
-    gap: 0,
+    gap: 8,
   },
-  workoutRow: {
+  workoutRowInteractive: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 12,
+    paddingLeft: 14,
+    paddingRight: 10,
+    borderRadius: 10,
+  },
+  workoutRowContent: {
+    flex: 1,
     gap: 4,
   },
-  workoutHeader: {
+  workoutRowTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -660,10 +1218,63 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   workoutTime: {
-    fontSize: 13,
+    fontSize: 12,
   },
   workoutStats: {
-    fontSize: 13,
+    fontSize: 12,
+  },
+  workoutChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  workoutExercisesExpanded: {
+    marginTop: -4,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderTopWidth: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
+  workoutExerciseRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  workoutExerciseLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  workoutExerciseRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  workoutExerciseName: {
+    fontSize: 14,
+  },
+  workoutExerciseSets: {
+    fontSize: 12,
+  },
+  workoutExerciseBest: {
+    fontSize: 14,
+  },
+  prBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  prBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#000',
   },
   emptyState: {
     alignItems: 'center',
@@ -685,7 +1296,6 @@ const styles = StyleSheet.create({
   },
   friendButtonText: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
   },
   fullScreenContainer: {
     flex: 1,
@@ -701,5 +1311,113 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 20,
+  },
+  // Meta info styles (member since, last workout)
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  metaText: {
+    fontSize: 12,
+  },
+  metaDot: {
+    marginHorizontal: 6,
+    fontSize: 12,
+  },
+  // Comparison styles
+  comparisonHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  comparisonSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  comparisonScore: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  comparisonHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 8,
+    marginBottom: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  comparisonColumnHeader: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    width: 56,
+  },
+  comparisonList: {
+    gap: 6,
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  comparisonValuePill: {
+    width: 56,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  comparisonNumber: {
+    fontSize: 14,
+  },
+  comparisonMiddle: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  comparisonExercise: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  comparisonDiff: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  comparisonFooter: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    marginTop: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  showMoreText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  comparisonChips: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  comparisonChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  comparisonChipText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -1,11 +1,13 @@
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutByIdWithCustom } from '@/lib/workouts';
-import { GeneratedWorkout, MuscleGroup } from '@/types';
+import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
+import MuscleFocusChips, { MuscleGroupData } from './MuscleFocusChips';
 import WeeklyOverviewModal from './WeeklyOverviewModal';
 
 // All trackable muscle groups
@@ -66,19 +68,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     return currentTheme.colors.primary;
   };
 
-  const getMuscleGroupLabel = (muscle: MuscleGroup): string => {
-    switch (muscle) {
-      case 'chest': return 'Chest';
-      case 'back': return 'Back';
-      case 'shoulders': return 'Shoulders';
-      case 'arms': return 'Arms';
-      case 'legs': return 'Legs';
-      case 'glutes': return 'Glutes';
-      case 'core': return 'Core';
-      default: return muscle;
-    }
-  };
-
   const getWeekData = (weekOffset: number = 0): WeekData => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -135,10 +124,17 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, uses workoutHistory via closure
   const weekData = useMemo(() => getWeekData(currentWeekOffset), [workoutHistory, currentWeekOffset]);
 
-  // Calculate muscle groups trained this week
-  const muscleGroupStats = useMemo(() => {
-    const trainedMuscles: Record<MuscleGroup, number> = {
-      chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0
+  // Calculate muscle groups trained this week with exercise details
+  const muscleGroupData = useMemo((): MuscleGroupData[] => {
+    const muscleMap: Record<MuscleGroup, { count: number; exercises: Record<string, { id: string; name: string; count: number }> }> = {
+      chest: { count: 0, exercises: {} },
+      back: { count: 0, exercises: {} },
+      shoulders: { count: 0, exercises: {} },
+      arms: { count: 0, exercises: {} },
+      legs: { count: 0, exercises: {} },
+      glutes: { count: 0, exercises: {} },
+      core: { count: 0, exercises: {} },
+      'full-body': { count: 0, exercises: {} },
     };
 
     weekData.workouts.forEach(workout => {
@@ -146,28 +142,42 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
         if (exerciseInfo) {
           exerciseInfo.primaryMuscles.forEach(muscle => {
-            trainedMuscles[muscle] = (trainedMuscles[muscle] || 0) + 1;
+            muscleMap[muscle].count++;
+            if (!muscleMap[muscle].exercises[exercise.id]) {
+              muscleMap[muscle].exercises[exercise.id] = {
+                id: exercise.id,
+                name: exerciseInfo.name,
+                count: 0,
+              };
+            }
+            muscleMap[muscle].exercises[exercise.id].count++;
           });
         }
       });
     });
 
-    const trained = ALL_MUSCLE_GROUPS.filter(m => trainedMuscles[m] > 0);
-    const missed = ALL_MUSCLE_GROUPS.filter(m => trainedMuscles[m] === 0);
-
-    return { trainedMuscles, trained, missed };
+    return ALL_MUSCLE_GROUPS.map(muscle => ({
+      muscle,
+      count: muscleMap[muscle].count,
+      exercises: Object.values(muscleMap[muscle].exercises),
+    }));
   }, [weekData.workouts, customExercises]);
+
+  // Helper to get tracking type for an exercise
+  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
+    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    return exerciseInfo?.trackingType;
+  };
 
   const weekStats = useMemo(() => {
     const totalWorkouts = weekData.workouts.length;
     const totalTime = weekData.workouts.reduce((sum, workout) => sum + workout.estimatedDuration, 0);
-    const totalVolume = weekData.workouts.reduce((sum, workout) => {
-      return sum + workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.reduce((setSum, set) => {
-          return setSum + (set.weight * set.reps);
-        }, 0);
-      }, 0);
-    }, 0);
+
+    // Calculate combined workout stats using the utility
+    const workoutStatsList: WorkoutStats[] = weekData.workouts.map(workout =>
+      calculateWorkoutStats(workout.exercises, getTrackingType)
+    );
+    const combinedStats = combineWorkoutStats(workoutStatsList);
 
     const formatTime = (minutes: number) => {
       const hours = Math.floor(minutes / 60);
@@ -188,10 +198,15 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     return {
       totalWorkouts,
       totalTime: formatTime(totalTime),
-      totalVolume: formatVolume(Math.round(totalVolume)),
-      rawVolume: Math.round(totalVolume),
+      totalVolume: formatVolume(combinedStats.totalVolumeLbs),
+      rawVolume: combinedStats.totalVolumeLbs,
+      // Cardio stats
+      hasCardio: combinedStats.hasCardioExercises,
+      totalDistanceMeters: combinedStats.totalDistanceMeters,
+      totalCardioDurationSeconds: combinedStats.totalCardioDurationSeconds,
     };
-  }, [weekData.workouts]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
+  }, [weekData.workouts, customExercises]);
 
   const formatDateRange = (startDate: Date, endDate: Date) => {
     const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
@@ -261,7 +276,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               styles.title,
               {
                 color: currentTheme.colors.text,
-                fontFamily: 'Raleway_600SemiBold',
               }
             ]}>
               Weekly Overview
@@ -270,7 +284,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               styles.dateRange,
               {
                 color: currentTheme.colors.text + '99',
-                fontFamily: 'Raleway_400Regular',
               }
             ]}>
               {formatDateRange(weekData.startDate, weekData.endDate)}
@@ -310,7 +323,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                   styles.dayLabel,
                   {
                     color: day.hasWorkout ? currentTheme.colors.text + '99' : currentTheme.colors.text + '4D',
-                    fontFamily: 'Raleway_400Regular',
                   }
                 ]}>
                   {day.dayLetter}
@@ -335,10 +347,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleWeekPress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               {weekStats.totalWorkouts}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Workouts
             </Text>
           </TouchableOpacity>
@@ -348,10 +360,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleTimePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               {weekStats.totalTime}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Time
             </Text>
           </TouchableOpacity>
@@ -361,66 +373,44 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleVolumePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
               {weekStats.totalVolume}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_400Regular' }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Volume
             </Text>
           </TouchableOpacity>
         </View>
 
+        {/* Cardio Stats - only show if week has cardio exercises */}
+        {weekStats.hasCardio && (weekStats.totalDistanceMeters > 0 || weekStats.totalCardioDurationSeconds > 0) && (
+          <View style={[styles.statsContainer, styles.cardioStatsContainer]}>
+            {weekStats.totalDistanceMeters > 0 && (
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  {formatDistance(weekStats.totalDistanceMeters)}
+                </Text>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                  Distance
+                </Text>
+              </View>
+            )}
+            {weekStats.totalCardioDurationSeconds > 0 && (
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  {formatDuration(weekStats.totalCardioDurationSeconds)}
+                </Text>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                  Cardio
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Muscle Groups Focus */}
         <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
-          <Text style={[styles.muscleSectionTitle, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_500Medium' }]}>
-            Muscle Focus
-          </Text>
-          <View style={styles.muscleChips}>
-            {ALL_MUSCLE_GROUPS.map(muscle => {
-              const isTrained = muscleGroupStats.trained.includes(muscle);
-              const count = muscleGroupStats.trainedMuscles[muscle];
-              return (
-                <View
-                  key={muscle}
-                  style={[
-                    styles.muscleChip,
-                    {
-                      backgroundColor: isTrained
-                        ? currentTheme.colors.primary + '1A' // 10%
-                        : 'transparent',
-                      borderColor: isTrained
-                        ? currentTheme.colors.primary + '4D' // 30%
-                        : currentTheme.colors.border,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.muscleChipText,
-                      {
-                        color: isTrained
-                          ? currentTheme.colors.primary
-                          : currentTheme.colors.text + '4D', // 30%
-                        fontFamily: isTrained ? 'Raleway_500Medium' : 'Raleway_400Regular',
-                      },
-                    ]}
-                  >
-                    {getMuscleGroupLabel(muscle)}
-                  </Text>
-                  {isTrained && count > 1 && (
-                    <View style={[styles.muscleCount, { backgroundColor: currentTheme.colors.primary }]}>
-                      <Text style={styles.muscleCountText}>{count}</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-          {muscleGroupStats.missed.length > 0 && muscleGroupStats.trained.length > 0 && (
-            <Text style={[styles.missedHint, { color: currentTheme.colors.text + '4D', fontFamily: 'Raleway_400Regular' }]}>
-              Missing: {muscleGroupStats.missed.map(m => getMuscleGroupLabel(m)).join(', ')}
-            </Text>
-          )}
+          <MuscleFocusChips muscleData={muscleGroupData} showMissing={true} />
         </View>
       </Card>
 
@@ -513,6 +503,10 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(128, 128, 128, 0.2)',
   },
+  cardioStatsContainer: {
+    borderTopWidth: 0,
+    paddingTop: 12,
+  },
   statItem: {
     alignItems: 'center',
     flex: 1,
@@ -531,46 +525,5 @@ const styles = StyleSheet.create({
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  muscleSectionTitle: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-    marginBottom: 12,
-  },
-  muscleChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  muscleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    gap: 4,
-  },
-  muscleChipText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  muscleCount: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  muscleCountText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  missedHint: {
-    fontSize: 12,
-    lineHeight: 16,
-    marginTop: 12,
   },
 }); 

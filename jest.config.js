@@ -18,7 +18,7 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(openai)/)',
+    'node_modules/(?!(openai|expo-location|expo-modules-core)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
 };

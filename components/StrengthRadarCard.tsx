@@ -4,10 +4,12 @@ import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierInfo, getNextTierInfo, RADAR_TIER_THRESHOLDS } from '@/lib/strengthStandards';
+import { getTierInfo, getNextTierInfo, getStrengthTier, getTierColor, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+
 
 interface StrengthRadarCardProps {
   overallPercentile: number;
@@ -36,51 +38,97 @@ export default function StrengthRadarCard({
     }));
   }, [muscleGroups]);
 
-  const tooltipDetails = useMemo(() => {
-    // Group top contributions by muscle group
-    const byGroup: Record<string, { name: string; pct: number }[]> = {};
+  // Get contributions filtered by muscle group (matches OverallStrengthModal logic)
+  const getContributionsByMuscleGroup = useMemo(() => {
+    const map: Record<string, TopContribution[]> = {};
+
     topContributions.forEach(c => {
-      if (!byGroup['all']) byGroup['all'] = [];
-      byGroup['all'].push({ name: c.name, pct: c.percentile });
+      const workout = getWorkoutById(c.exercise_id);
+      if (!workout) return;
+
+      // Add contribution to each matching primary muscle group (same as OverallStrengthModal)
+      const groups = workout.primaryMuscles || [];
+      groups.forEach((g: string) => {
+        const key = g.toLowerCase();
+        if (!map[key]) map[key] = [];
+        map[key].push(c);
+      });
     });
 
-    return chartData.map(() => ({
-      lines: byGroup['all']?.slice(0, 3).map(i => `${i.name}: ${i.pct}%`) || ['No data'],
-    }));
-  }, [chartData, topContributions]);
+    // Sort each group by percentile descending
+    Object.keys(map).forEach(k => map[k].sort((a, b) => b.percentile - a.percentile));
+    return map;
+  }, [topContributions]);
 
-  const bestGroup = useMemo(
-    () => chartData.reduce((best, cur) => (cur.value > best.value ? cur : best), chartData[0] || { label: '', value: 0 }),
-    [chartData]
-  );
+  const tooltipDetails = useMemo(() => {
+    return chartData.map((group) => {
+      const groupContributions = getContributionsByMuscleGroup[group.label.toLowerCase()] || [];
+      return {
+        lines: groupContributions.slice(0, 3).map(c => `${c.name}: ${c.percentile}%`) || ['No data'],
+      };
+    });
+  }, [chartData, getContributionsByMuscleGroup]);
 
-  const weakGroup = useMemo(
-    () => chartData.reduce((weak, cur) => (cur.value < weak.value && cur.value > 0 ? cur : weak), chartData[0] || { label: '', value: 0 }),
-    [chartData]
-  );
+  // Filter contributions based on selected muscle group (using lowercase like OverallStrengthModal)
+  const filteredContributions = useMemo(() => {
+    if (selectedIdx < 0 || !chartData[selectedIdx]) {
+      return topContributions;
+    }
+    const selectedLabel = chartData[selectedIdx].label.toLowerCase();
+    return getContributionsByMuscleGroup[selectedLabel] || [];
+  }, [selectedIdx, chartData, topContributions, getContributionsByMuscleGroup]);
 
   const nextTier = getNextTierInfo(overallPercentile);
 
+  // Get the current displayed percentile and its tier color
+  const displayedPercentile = selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].value : overallPercentile;
+  const displayedTierColor = getTierColor(getStrengthTier(displayedPercentile));
+
   return (
     <Card variant="surface" style={styles.card}>
-      {/* Header with Tier and Percentile */}
+      {/* Header with Tier and Percentile - changes based on selection */}
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
-        {/* Tier Badge */}
-        <TierBadge percentile={overallPercentile} size="large" />
+        {/* Tier Badge - shows selected muscle group or overall */}
+        <View style={[styles.tierSection, { backgroundColor: 'transparent' }]}>
+          <TierBadge
+            percentile={selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].value : overallPercentile}
+            size="large"
+          />
+          {selectedIdx >= 0 && chartData[selectedIdx] && (
+            <Text style={[styles.selectedLabel, { color: currentTheme.colors.text + '90' }]}>
+              {chartData[selectedIdx].label}
+            </Text>
+          )}
+        </View>
 
-        {/* Percentile */}
+        {/* Percentile + Clear button */}
         <View style={[styles.percentileBlock, { backgroundColor: 'transparent' }]}>
+          {selectedIdx >= 0 ? (
+            <TouchableOpacity
+              onPress={() => setSelectedIdx(-1)}
+              style={[styles.clearButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={[styles.clearButtonText, { color: currentTheme.colors.primary }]}>× Clear</Text>
+            </TouchableOpacity>
+          ) : null}
           <Text style={[styles.percentileNumber, { color: currentTheme.colors.text }]}>
-            {overallPercentile}
+            {selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].value : overallPercentile}
           </Text>
           <Text style={[styles.percentileSub, { color: currentTheme.colors.text + '80' }]}>
-            percentile
+            {selectedIdx >= 0 ? 'group %' : 'percentile'}
           </Text>
         </View>
       </View>
 
-      {/* Progress Bar */}
-      <ProgressBar progress={overallPercentile} height={8} style={{ marginVertical: 12 }} exerciseName="overall" />
+      {/* Progress Bar - changes based on selection with tier color */}
+      <ProgressBar
+        progress={displayedPercentile}
+        height={8}
+        style={{ marginVertical: 12 }}
+        exerciseName={selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].label.toLowerCase() : 'overall'}
+        color={displayedTierColor}
+      />
 
       {/* Next Tier Hint */}
       <Text style={[styles.nextTierHint, { color: currentTheme.colors.text + '70' }]}>
@@ -97,44 +145,38 @@ export default function StrengthRadarCard({
         inlineTooltip={false}
       />
 
-      {/* Selected group insight */}
-      {selectedIdx >= 0 && chartData[selectedIdx] && (
-        <View style={[styles.selectedGroup, { backgroundColor: currentTheme.colors.background }]}>
-          <View style={[styles.selectedHeader, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.selectedTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-              {chartData[selectedIdx].label}
-            </Text>
-            <TouchableOpacity onPress={() => setSelectedIdx(-1)}>
-              <Text style={[styles.clearText, { color: currentTheme.colors.text + '60' }]}>Clear</Text>
-            </TouchableOpacity>
-          </View>
-          <Text style={[styles.selectedPercent, { color: currentTheme.colors.primary }]}>
-            {chartData[selectedIdx].value}%
-          </Text>
-        </View>
-      )}
-
-      {/* Insights */}
-      {bestGroup.value > 0 && (
-        <View style={[styles.insightRow, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.insightText, { color: currentTheme.colors.text + '80' }]}>
-            {`Strongest: ${bestGroup.label} • Weakest: ${weakGroup.label}`}
-          </Text>
-        </View>
-      )}
 
       {/* Top Contributions */}
-      {showContributions && topContributions.length > 0 && (
+      {showContributions && filteredContributions.length > 0 && (
         <View style={[styles.contributionsSection, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.contributionsTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
-            Top Contributions
+          <Text style={[styles.contributionsTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            {selectedIdx >= 0 && chartData[selectedIdx] ? `${chartData[selectedIdx].label} Lifts` : 'Top Contributions'}
           </Text>
-          {topContributions.slice(0, 5).map((c, i) => (
-            <View key={c.exercise_id || i} style={[styles.contributionRow, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.contributionName, { color: currentTheme.colors.text }]}>{c.name}</Text>
-              <Text style={[styles.contributionPercent, { color: currentTheme.colors.primary }]}>{c.percentile}%</Text>
-            </View>
-          ))}
+          {filteredContributions.slice(0, 5).map((c, i) => {
+            const tier = getStrengthTier(c.percentile);
+            const tierColor = getTierColor(tier);
+            return (
+              <View
+                key={c.exercise_id || i}
+                style={[styles.contributionRow, { backgroundColor: 'transparent' }]}
+              >
+                <View style={[styles.contributionLeft, { backgroundColor: 'transparent' }]}>
+                  <Text style={[styles.contributionName, { color: currentTheme.colors.text }]}>{c.name}</Text>
+                  {c.weight && (
+                    <Text style={[styles.contributionWeight, { color: currentTheme.colors.text + '60' }]}>
+                      1RM: {c.weight} lbs
+                    </Text>
+                  )}
+                </View>
+                <View style={[styles.contributionRight, { backgroundColor: 'transparent' }]}>
+                  <View style={[styles.tierBadgeSmall, { backgroundColor: tierColor + '20' }]}>
+                    <Text style={[styles.contributionTier, { color: tierColor }]}>{tier}</Text>
+                  </View>
+                  <Text style={[styles.contributionPercent, { color: currentTheme.colors.text + '60' }]}>{c.percentile}%</Text>
+                </View>
+              </View>
+            );
+          })}
         </View>
       )}
     </Card>
@@ -150,51 +192,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  tierSection: {
+    alignItems: 'flex-start',
+  },
+  selectedLabel: {
+    fontSize: 12,
+    marginTop: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: '600',
+  },
   percentileBlock: {
     alignItems: 'flex-end',
+  },
+  clearButton: {
+    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   percentileNumber: {
     fontSize: 42,
     fontWeight: '800',
-    fontFamily: 'Raleway_800ExtraBold',
   },
   percentileSub: {
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginTop: 6,
   },
   nextTierHint: {
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 8,
-  },
-  selectedGroup: {
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 10,
-  },
-  selectedHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  selectedTitle: {
-    fontSize: 14,
-  },
-  clearText: {
-    fontSize: 12,
-  },
-  selectedPercent: {
-    fontSize: 24,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  insightRow: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  insightText: {
-    fontSize: 12,
   },
   contributionsSection: {
     marginTop: 16,
@@ -209,14 +243,34 @@ const styles = StyleSheet.create({
   contributionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  contributionLeft: {
+    flex: 1,
+  },
+  contributionRight: {
+    alignItems: 'flex-end',
+    gap: 2,
   },
   contributionName: {
     fontSize: 13,
-    textTransform: 'capitalize',
+  },
+  contributionWeight: {
+    fontSize: 11,
+    marginTop: 1,
+  },
+  tierBadgeSmall: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  contributionTier: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   contributionPercent: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 10,
+    marginTop: 2,
   },
 });

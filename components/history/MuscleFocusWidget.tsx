@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { calculateRecapStats, MuscleDistribution } from '@/lib/recapStats';
+import { calculateRecapStats, MuscleDistribution } from '@/lib/workout/recapStats';
 
 interface MuscleFocusWidgetProps {
   onPress?: () => void;
@@ -41,10 +41,10 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
       activeOpacity={0.7}
     >
       <RNView style={styles.header}>
-        <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+        <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
           {"This Week's Focus"}
         </Text>
-        <Text style={[styles.topMuscle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+        <Text style={[styles.topMuscle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
           {topMuscle.group}
         </Text>
       </RNView>
@@ -52,7 +52,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
       <RNView style={styles.barsContainer}>
         {muscles.map((muscle, index) => (
           <RNView key={index} style={styles.barRow}>
-            <Text style={[styles.muscleName, { color: currentTheme.colors.text + '99', fontFamily: 'Raleway_500Medium' }]}>
+            <Text style={[styles.muscleName, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
               {muscle.group}
             </Text>
             <RNView style={[styles.barBackground, { backgroundColor: currentTheme.colors.border }]}>
@@ -66,7 +66,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
                 ]}
               />
             </RNView>
-            <Text style={[styles.percentage, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_500Medium' }]}>
+            <Text style={[styles.percentage, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
               {muscle.percentage}%
             </Text>
           </RNView>

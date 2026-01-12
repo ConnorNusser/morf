@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { convertWeightForPreference } from '@/lib/utils';
+import { calculateAveragePrediction } from '@/lib/data/predictionModels';
+import { convertWeightForPreference } from '@/lib/utils/utils';
 import { UserProgress } from '@/types';
 import React, { useEffect, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -10,9 +11,11 @@ interface InteractiveProgressChartProps {
   data: UserProgress[];
   selectedMetric: 'oneRM' | 'volume';
   weightUnit: 'lbs' | 'kg';
-  predictionValue?: number;
+  predictionValue?: number; // If not provided, will be calculated internally
+  showPrediction?: boolean; // Enable/disable prediction point (default: true)
   title?: string;
   description?: string;
+  showTimePeriodSelector?: boolean;
 }
 
 interface DataPoint {
@@ -24,21 +27,80 @@ interface DataPoint {
   isPrediction: boolean;
 }
 
-export default function InteractiveProgressChart({ 
-  data, 
-  selectedMetric, 
-  weightUnit, 
+type TimePeriod = '1M' | '3M' | '6M' | '1Y' | 'ALL';
+
+export default function InteractiveProgressChart({
+  data,
+  selectedMetric,
+  weightUnit,
   predictionValue,
+  showPrediction = true,
   title = "One Rep Max Progression",
-  description = "Tap points to see exact values"
+  description = "Estimated from your workout sessions",
+  showTimePeriodSelector = true
 }: InteractiveProgressChartProps) {
   const { currentTheme } = useTheme();
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
   const [blinkAnim] = useState(new Animated.Value(1));
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('ALL');
+
+  // Filter data based on time period
+  const getFilteredData = () => {
+    if (timePeriod === 'ALL') return data;
+
+    const now = new Date();
+    const cutoff = new Date();
+
+    switch (timePeriod) {
+      case '1M':
+        cutoff.setMonth(now.getMonth() - 1);
+        break;
+      case '3M':
+        cutoff.setMonth(now.getMonth() - 3);
+        break;
+      case '6M':
+        cutoff.setMonth(now.getMonth() - 6);
+        break;
+      case '1Y':
+        cutoff.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+
+    return data.filter(d => new Date(d.lastUpdated) >= cutoff);
+  };
+
+  const filteredData = getFilteredData();
+
+  // Deduplicate: keep only the highest record per day
+  const deduplicateByDay = (records: UserProgress[]): UserProgress[] => {
+    const byDay = new Map<string, UserProgress>();
+
+    for (const record of records) {
+      const date = new Date(record.lastUpdated);
+      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+      const existing = byDay.get(dayKey);
+      if (!existing || record.personalRecord > existing.personalRecord) {
+        byDay.set(dayKey, record);
+      }
+    }
+
+    // Return sorted by date
+    return Array.from(byDay.values()).sort(
+      (a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
+    );
+  };
+
+  const dedupedData = deduplicateByDay(filteredData);
+
+  // Calculate prediction if not provided and showPrediction is true
+  const effectivePrediction = showPrediction
+    ? (predictionValue ?? calculateAveragePrediction(dedupedData))
+    : undefined;
 
   // Blinking animation for prediction point
   useEffect(() => {
-    if (predictionValue) {
+    if (effectivePrediction) {
       const blinkAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(blinkAnim, {
@@ -57,48 +119,130 @@ export default function InteractiveProgressChart({
       
       return () => blinkAnimation.stop();
     }
-  }, [predictionValue, blinkAnim]);
+  }, [effectivePrediction, blinkAnim]);
+
+  // Clear selected point when time period changes
+  useEffect(() => {
+    setSelectedPoint(null);
+  }, [timePeriod]);
 
   if (data.length === 0) return null;
+  if (dedupedData.length === 0) {
+    // Show message if no data in selected period
+    return (
+      <View style={styles.chartContainer}>
+        <View style={styles.chartHeader}>
+          <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>{title}</Text>
+        </View>
+        {showTimePeriodSelector && (
+          <View style={styles.timePeriodSelector}>
+            {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
+              <TouchableOpacity
+                key={period}
+                style={[
+                  styles.timePeriodButton,
+                  timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
+                ]}
+                onPress={() => setTimePeriod(period)}
+              >
+                <Text style={[
+                  styles.timePeriodText,
+                  { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
+                ]}>
+                  {period}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        <View style={styles.noDataContainer}>
+          <Text style={[styles.noDataText, { color: currentTheme.colors.text + '60' }]}>
+            No data in this time period
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
-  // Convert and round values to nearest 5s
-  const values = selectedMetric === 'oneRM' 
-    ? data.map(d => Math.round(convertWeightForPreference(d.personalRecord, 'lbs', weightUnit) / 5) * 5)
-    : data.map((d, i) => {
+  // Convert and round values to nearest 5s (using deduplicated data)
+  const values = selectedMetric === 'oneRM'
+    ? dedupedData.map(d => Math.round(convertWeightForPreference(d.personalRecord, 'lbs', weightUnit) / 5) * 5)
+    : dedupedData.map((d, i) => {
         const baseVolume = convertWeightForPreference(d.personalRecord * 0.8 * 15, 'lbs', weightUnit);
         return Math.round((baseVolume + (i * 100)) / 5) * 5;
       });
 
-  const _maxValue = Math.max(...values);
   const minValue = Math.min(...values);
-  
-  // Add prediction to values if provided
-  const extendedValues = predictionValue ? [...values, Math.round(convertWeightForPreference(predictionValue, 'lbs', weightUnit) / 5) * 5] : values;
+  const maxValue = Math.max(...values);
+
+  // Add prediction to values if available
+  const extendedValues = effectivePrediction ? [...values, Math.round(convertWeightForPreference(effectivePrediction, 'lbs', weightUnit) / 5) * 5] : values;
   const extendedMaxValue = Math.max(...extendedValues);
-  const range = extendedMaxValue - minValue || 1;
+  const extendedMinValue = Math.min(...extendedValues);
+
+  // Add 10% padding to the range so points don't sit on edges
+  const rawRange = extendedMaxValue - extendedMinValue || 1;
+  const padding = rawRange * 0.1;
+  const paddedMin = extendedMinValue - padding;
+  const paddedMax = extendedMaxValue + padding;
+  const range = paddedMax - paddedMin;
 
   const chartWidth = screenWidth - 80;
   const chartHeight = 200;
+  const chartAreaWidth = chartWidth - 40; // Area after y-axis
 
-  // Calculate data points
+  // Calculate time range for x-axis (from period start to today)
+  const now = new Date();
+  const getTimeRangeStart = (): Date => {
+    if (timePeriod === 'ALL' && dedupedData.length > 0) {
+      // For ALL, start from first data point
+      return new Date(dedupedData[0].lastUpdated);
+    }
+    const start = new Date();
+    switch (timePeriod) {
+      case '1M':
+        start.setMonth(now.getMonth() - 1);
+        break;
+      case '3M':
+        start.setMonth(now.getMonth() - 3);
+        break;
+      case '6M':
+        start.setMonth(now.getMonth() - 6);
+        break;
+      case '1Y':
+        start.setFullYear(now.getFullYear() - 1);
+        break;
+      default:
+        return new Date(dedupedData[0]?.lastUpdated || now);
+    }
+    return start;
+  };
+
+  const timeRangeStart = getTimeRangeStart();
+  const timeRangeEnd = now;
+  const totalTimeMs = timeRangeEnd.getTime() - timeRangeStart.getTime();
+
+  // Calculate data points positioned within the full time range (using deduplicated data)
   const dataPoints: DataPoint[] = values.map((value, index) => {
-    const x = (index / Math.max(values.length - 1, 1)) * (chartWidth - 40);
-    const y = chartHeight - ((value - minValue) / range) * chartHeight;
+    const pointDate = new Date(dedupedData[index].lastUpdated);
+    const timeOffset = pointDate.getTime() - timeRangeStart.getTime();
+    const x = totalTimeMs > 0 ? (timeOffset / totalTimeMs) * chartAreaWidth : 0;
+    const y = chartHeight - ((value - paddedMin) / range) * chartHeight;
     return {
-      x,
+      x: Math.max(0, Math.min(x, chartAreaWidth)), // Clamp to chart bounds
       y,
       value,
-      date: new Date(data[index].lastUpdated),
+      date: pointDate,
       isHistorical: true,
       isPrediction: false
     };
   });
 
-  // Add prediction point if provided
-  if (predictionValue) {
-    const convertedPrediction = Math.round(convertWeightForPreference(predictionValue, 'lbs', weightUnit) / 5) * 5;
-    const predictionX = chartWidth - 40;
-    const predictionY = chartHeight - ((convertedPrediction - minValue) / range) * chartHeight;
+  // Add prediction point if available
+  if (effectivePrediction) {
+    const convertedPrediction = Math.round(convertWeightForPreference(effectivePrediction, 'lbs', weightUnit) / 5) * 5;
+    const predictionX = chartAreaWidth;
+    const predictionY = chartHeight - ((convertedPrediction - paddedMin) / range) * chartHeight;
     dataPoints.push({
       x: predictionX,
       y: predictionY,
@@ -117,37 +261,40 @@ export default function InteractiveProgressChart({
     setSelectedPoint(null);
   };
 
-  // Get x-axis labels based on actual data
-  const getXAxisLabels = () => {
-    if (dataPoints.length === 0) return [];
-    
-    const labels = [];
-    const firstPoint = dataPoints[0];
-    const lastHistoricalPoint = dataPoints.find(p => p.isHistorical && p === dataPoints[dataPoints.findLastIndex(dp => dp.isHistorical)]);
-    const predictionPoint = dataPoints.find(p => p.isPrediction);
-
-    // First date
-    labels.push({
-      position: 0,
-      text: firstPoint.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      color: currentTheme.colors.text + '60'
-    });
-
-    // Most recent historical date (if different from first)
-    if (lastHistoricalPoint && dataPoints.length > 1) {
-      labels.push({
-        position: (chartWidth - 40) / 2,
-        text: lastHistoricalPoint.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        color: currentTheme.colors.text + '60'
-      });
+  // Format date based on time span
+  const formatDateForSpan = (date: Date, spanDays: number) => {
+    if (spanDays <= 31) {
+      // Within a month: show "Jan 15"
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (spanDays <= 365) {
+      // Within a year: show "Jan 15"
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else {
+      // Over a year: show "Jan '24"
+      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     }
+  };
 
-    // Prediction date
-    if (predictionPoint) {
+  // Get x-axis labels - show multiple dates across the time range
+  const getXAxisLabels = () => {
+    // Calculate time span in days for formatting
+    const spanDays = Math.ceil(totalTimeMs / (1000 * 60 * 60 * 24));
+
+    // Determine number of labels based on time span (3-5 labels)
+    const numLabels = spanDays <= 31 ? 3 : spanDays <= 180 ? 4 : 5;
+    const labels = [];
+
+    for (let i = 0; i < numLabels; i++) {
+      const ratio = i / (numLabels - 1);
+      const dateMs = timeRangeStart.getTime() + (totalTimeMs * ratio);
+      const date = new Date(dateMs);
+      const position = ratio * chartAreaWidth;
+
       labels.push({
-        position: chartWidth - 40,
-        text: predictionPoint.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        color: '#FFA500'
+        position,
+        text: formatDateForSpan(date, spanDays),
+        color: currentTheme.colors.text + '60',
+        align: i === 0 ? 'left' : i === numLabels - 1 ? 'right' : 'center'
       });
     }
 
@@ -168,6 +315,29 @@ export default function InteractiveProgressChart({
           </Text>
         </View>
 
+        {/* Time Period Selector */}
+        {showTimePeriodSelector && (
+          <View style={styles.timePeriodSelector}>
+            {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
+              <TouchableOpacity
+                key={period}
+                style={[
+                  styles.timePeriodButton,
+                  timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
+                ]}
+                onPress={() => setTimePeriod(period)}
+              >
+                <Text style={[
+                  styles.timePeriodText,
+                  { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
+                ]}>
+                  {period}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
           {/* Y-axis labels */}
           <View style={styles.yAxisLabels}>
@@ -175,10 +345,10 @@ export default function InteractiveProgressChart({
               {Math.round(extendedMaxValue / 5) * 5}
             </Text>
             <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-              {Math.round(((extendedMaxValue + minValue) / 2) / 5) * 5}
+              {Math.round(((extendedMaxValue + extendedMinValue) / 2) / 5) * 5}
             </Text>
             <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
-              {Math.round(minValue / 5) * 5}
+              {Math.round(extendedMinValue / 5) * 5}
             </Text>
           </View>
 
@@ -290,11 +460,14 @@ export default function InteractiveProgressChart({
         {/* X-axis with actual dates */}
         <View style={styles.xAxisLabels}>
           {xAxisLabels.map((label, index) => (
-            <View 
+            <View
               key={index}
               style={[
                 styles.xAxisLabel,
-                { left: label.position + 40 }
+                {
+                  left: label.position + 40,
+                  transform: [{ translateX: label.align === 'right' ? -40 : label.align === 'center' ? -20 : 0 }]
+                }
               ]}
             >
               <Text style={[styles.axisLabel, { color: label.color }]}>
@@ -319,12 +492,32 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 16,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 4,
   },
   chartDescription: {
     fontSize: 12,
-    fontFamily: 'Raleway_400Regular',
+  },
+  timePeriodSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  timePeriodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  timePeriodText: {
+    fontSize: 12,
+  },
+  noDataContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noDataText: {
+    fontSize: 14,
   },
   chart: {
     position: 'relative',
@@ -349,7 +542,6 @@ const styles = StyleSheet.create({
   },
   axisLabel: {
     fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
   },
   gridLine: {
     position: 'absolute',
@@ -409,11 +601,9 @@ const styles = StyleSheet.create({
   tooltipValue: {
     fontSize: 14,
     fontWeight: '600',
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 2,
   },
   tooltipDate: {
     fontSize: 10,
-    fontFamily: 'Raleway_400Regular',
   },
 }); 

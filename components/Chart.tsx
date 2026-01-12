@@ -256,7 +256,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: 'bold',
-    fontFamily: 'Raleway_700Bold',
     marginBottom: 16,
     textAlign: 'center',
   },
@@ -264,7 +263,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     opacity: 0.6,
-    fontFamily: 'Raleway_500Medium',
   },
   chartContainer: {
     flex: 1,
@@ -294,12 +292,10 @@ const styles = StyleSheet.create({
   },
   barValue: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
     marginBottom: 4,
   },
   barLabel: {
     fontSize: 11,
-    fontFamily: 'Raleway_500Medium',
     marginTop: 8,
     textAlign: 'center',
     opacity: 0.8,
@@ -320,13 +316,11 @@ const styles = StyleSheet.create({
   },
   horizontalBarLabel: {
     fontSize: 11,
-    fontFamily: 'Raleway_500Medium',
     textAlign: 'right',
     opacity: 0.8,
   },
   horizontalBarSubtitle: {
     fontSize: 9,
-    fontFamily: 'Raleway_400Regular',
     textAlign: 'right',
     opacity: 0.6,
   },
@@ -344,7 +338,6 @@ const styles = StyleSheet.create({
   },
   horizontalBarValue: {
     fontSize: 11,
-    fontFamily: 'Raleway_600SemiBold',
     marginLeft: 8,
     minWidth: 40,
   },
@@ -374,12 +367,10 @@ const styles = StyleSheet.create({
   },
   donutCenterText: {
     fontSize: 14,
-    fontFamily: 'Raleway_500Medium',
     marginBottom: 4,
   },
   donutCenterValue: {
     fontSize: 24,
-    fontFamily: 'Raleway_700Bold',
   },
   pieLegend: {
     flexDirection: 'row',
@@ -401,11 +392,9 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    fontFamily: 'Raleway_500Medium',
   },
   legendValue: {
     fontSize: 12,
-    fontFamily: 'Raleway_600SemiBold',
     marginLeft: 8,
   },
 }); 

@@ -1,7 +1,7 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierColor, StrengthTier } from '@/lib/strengthStandards';
-import { OverallStats } from '@/lib/userProfile';
-import React from 'react';
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { OverallStats } from '@/lib/storage/userProfile';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
@@ -17,7 +17,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   const percentile = Number.isNaN(stats.overallPercentile) ? 0 : stats.overallPercentile;
   const tierColor = getTierColor(stats.strengthLevel as StrengthTier);
 
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <>
@@ -28,7 +28,6 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
           styles.title,
           {
             color: currentTheme.colors.text,
-            fontFamily: currentTheme.properties.headingFontFamily || 'Raleway_600SemiBold',
           }
         ]}>
           Overall Strength
@@ -101,12 +100,10 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     lineHeight: 40,
-    fontFamily: 'Raleway_700Bold',
   },
   statLabel: {
     fontSize: 14,
     opacity: 0.7,
-    fontFamily: 'Raleway_500Medium',
   },
   progressContainer: {
     marginTop: 8,
@@ -117,7 +114,6 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 12,
     opacity: 0.6,
-    fontFamily: 'Raleway_500Medium',
     textAlign: 'center',
   },
 });

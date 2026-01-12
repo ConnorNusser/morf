@@ -1,7 +1,7 @@
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { aiWorkoutGenerator } from '@/lib/aiWorkoutGenerator';
+import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -165,13 +165,13 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onCancel} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
             Plan Builder
           </Text>
           <RNView style={styles.headerRight}>
             {currentPlan ? (
               <TouchableOpacity onPress={handleUsePlan} style={styles.createButton}>
-                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                   Create
                 </Text>
               </TouchableOpacity>
@@ -199,10 +199,10 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
               <Ionicons name="sparkles" size={48} color={currentTheme.colors.primary + '40'} />
-              <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+              <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 {"Let's Build Your Workout"}
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}>
+              <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                 Describe what you want to do today
               </Text>
             </RNView>
@@ -227,7 +227,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   styles.messageText,
                   {
                     color: message.role === 'user' ? '#fff' : currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
                   },
                 ]}
               >
@@ -245,7 +244,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   style={[styles.questionChip, { backgroundColor: currentTheme.colors.surface }]}
                   onPress={() => handleQuestionPress(question)}
                 >
-                  <Text style={[styles.questionText, { color: currentTheme.colors.text, fontFamily: 'Raleway_500Medium' }]}>
+                  <Text style={[styles.questionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
                     {question}
                   </Text>
                 </TouchableOpacity>
@@ -263,7 +262,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               <RNView style={styles.planHeader}>
                 <RNView style={styles.planHeaderLeft}>
                   <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                     Current Plan
                   </Text>
                 </RNView>
@@ -275,12 +274,12 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               </RNView>
 
               {isPlanExpanded ? (
-                <Text style={[styles.planTextExpanded, { color: currentTheme.colors.text, fontFamily: 'Raleway_400Regular' }]}>
+                <Text style={[styles.planTextExpanded, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
                   {currentPlan}
                 </Text>
               ) : (
                 <Text
-                  style={[styles.planTextCollapsed, { color: currentTheme.colors.text + '60', fontFamily: 'Raleway_400Regular' }]}
+                  style={[styles.planTextCollapsed, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}
                   numberOfLines={2}
                 >
                   {currentPlan}
@@ -309,7 +308,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   styles.input,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: 'Raleway_400Regular',
                   },
                 ]}
                 value={inputText}
@@ -353,7 +351,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   onPress={() => Keyboard.dismiss()}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: 'Raleway_600SemiBold' }]}>
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                     Done
                   </Text>
                 </TouchableOpacity>
