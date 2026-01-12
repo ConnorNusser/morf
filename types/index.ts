@@ -158,11 +158,24 @@ export interface UserProfile {
   };
   gender: Gender;
   age?: number;
+  trainingYears?: number;  // Self-reported years of consistent strength training
   lifts: UserLift[];
   secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
   equipmentFilter?: EquipmentFilter;
   username?: string;
+}
+
+// ===== TRAINING ADVANCEMENT TYPES =====
+
+export type TrainingAdvancement = 'beginner' | 'intermediate' | 'advanced';
+
+export interface TrainingAdvancementResult {
+  level: TrainingAdvancement;
+  source: 'percentile' | 'training_years' | 'default';
+  confidence: 'high' | 'medium' | 'low';
+  percentile?: number;
+  trainingYears?: number;
 }
 
 // ===== WORKOUT TYPES =====
@@ -256,6 +269,7 @@ export interface RoutineSet {
 // A single exercise in a routine (just structure, weights calculated dynamically)
 export interface RoutineExercise {
   exerciseId: string;
+  exerciseName?: string;  // Stored at creation time for display (avoids lookups, supports custom exercises)
   sets: RoutineSet[];  // Array of individual sets
   intensityModifier?: IntensityModifier;
   notes?: string;

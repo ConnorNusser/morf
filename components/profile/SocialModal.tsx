@@ -591,7 +591,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                           onPress={handleSaveUsername}
                           variant="primary"
                           size="medium"
-                          disabled={isSavingUsername || (!usernameAvailable && editedUsername !== username)}
+                          disabled={isSavingUsername || (usernameAvailable === false && editedUsername !== username)}
                           style={layout.flex1}
                         />
                       </View>

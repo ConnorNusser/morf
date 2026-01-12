@@ -158,9 +158,12 @@ export function calculateRoutineExerciseWeights(
   const sessions = getExerciseHistory(exercise.exerciseId, workoutHistory);
   const estimated1RM = calculateEstimated1RM(sessions);
 
-  // Get exercise name
-  const workoutInfo = getWorkoutById(exercise.exerciseId);
-  const exerciseName = workoutInfo?.name || exercise.exerciseId;
+  // Get exercise name - prefer stored name, fall back to lookup for legacy routines
+  let exerciseName = exercise.exerciseName;
+  if (!exerciseName) {
+    const workoutInfo = getWorkoutById(exercise.exerciseId);
+    exerciseName = workoutInfo?.name || exercise.exerciseId;
+  }
 
   // Get intensity modifier (default to heavy)
   const intensityModifier = exercise.intensityModifier || 'heavy';

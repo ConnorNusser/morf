@@ -17,6 +17,7 @@ import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS } from '@/lib/data/strengthStandards';
+import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
 
@@ -51,6 +52,11 @@ interface GenerateRoutineOptions {
   trainingGoal: TrainingGoal;
   weeklyDays: number;
   focusMuscles?: string[];
+  trainingYears?: number;  // Override training years for advancement calculation
+  workoutDuration?: number;  // Duration in minutes (30, 60, 90, 120)
+  exercisesPerWorkout?: { min: number; max: number };  // Exercise count constraints
+  includedExercises?: string[];  // Exercises to definitely include
+  excludedExercises?: string[];  // Exercises to definitely exclude
 }
 
 class AIRoutineGeneratorService {
@@ -90,18 +96,20 @@ class AIRoutineGeneratorService {
    */
   async convertToRoutines(program: GeneratedRoutineProgram): Promise<Routine[]> {
     const routines: Routine[] = [];
+    const customExercises = await storageService.getCustomExercises();
 
     for (const day of program.routines) {
       const exercises: RoutineExercise[] = [];
 
       for (const ex of day.exercises) {
-        // Find matching exercise from database
-        const matchedExercise = this.findExerciseByName(ex.name);
+        // Find matching exercise from database or custom exercises
+        const matchedExercise = this.findExerciseByName(ex.name, customExercises);
 
         if (matchedExercise) {
           const reps = typeof ex.reps === 'number' ? ex.reps : parseInt(String(ex.reps)) || 10;
           exercises.push({
             exerciseId: matchedExercise.id,
+            exerciseName: matchedExercise.name,  // Store name for display
             sets: Array(ex.sets).fill(null).map(() => ({ reps })),
             intensityModifier: 'heavy',
             notes: ex.notes,
@@ -124,18 +132,30 @@ class AIRoutineGeneratorService {
     return routines;
   }
 
-  private findExerciseByName(name: string): { id: string; name: string } | null {
-    // Clean the name for matching
+  /**
+   * Find exercise by name in built-in database and custom exercises
+   */
+  private findExerciseByName(
+    name: string,
+    customExercises: CustomExercise[]
+  ): { id: string; name: string } | null {
     const cleanName = name.toLowerCase().trim();
 
-    // Direct match first
+    // 1. Direct match in built-in exercises
     for (const exercise of ALL_WORKOUTS) {
       if (exercise.name.toLowerCase() === cleanName) {
         return { id: exercise.id, name: exercise.name };
       }
     }
 
-    // Partial match (contains)
+    // 2. Direct match in custom exercises
+    for (const exercise of customExercises) {
+      if (exercise.name.toLowerCase() === cleanName) {
+        return { id: exercise.id, name: exercise.name };
+      }
+    }
+
+    // 3. Partial match in built-in exercises (contains)
     for (const exercise of ALL_WORKOUTS) {
       if (exercise.name.toLowerCase().includes(cleanName) ||
           cleanName.includes(exercise.name.toLowerCase())) {
@@ -143,9 +163,25 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // Try matching without equipment suffix
+    // 4. Partial match in custom exercises (contains)
+    for (const exercise of customExercises) {
+      if (exercise.name.toLowerCase().includes(cleanName) ||
+          cleanName.includes(exercise.name.toLowerCase())) {
+        return { id: exercise.id, name: exercise.name };
+      }
+    }
+
+    // 5. Try matching without equipment suffix (built-in)
     const nameWithoutEquipment = cleanName.replace(/\s*\([^)]*\)\s*$/, '').trim();
     for (const exercise of ALL_WORKOUTS) {
+      const exerciseWithoutEquipment = exercise.name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, '').trim();
+      if (exerciseWithoutEquipment === nameWithoutEquipment) {
+        return { id: exercise.id, name: exercise.name };
+      }
+    }
+
+    // 6. Try matching without equipment suffix (custom)
+    for (const exercise of customExercises) {
       const exerciseWithoutEquipment = exercise.name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, '').trim();
       if (exerciseWithoutEquipment === nameWithoutEquipment) {
         return { id: exercise.id, name: exercise.name };
@@ -220,6 +256,37 @@ class AIRoutineGeneratorService {
       ? `Custom exercises: ${customExerciseNames.join(', ')}`
       : '';
 
+    // Determine training advancement for fatigue management
+    // Use options.trainingYears if provided (from UI), otherwise use profile
+    const profileWithTrainingYears = userProfile
+      ? { ...userProfile, trainingYears: options.trainingYears ?? userProfile.trainingYears }
+      : null;
+    const advancementResult = determineTrainingAdvancement(workoutHistory, profileWithTrainingYears);
+    const programmingConfig = PROGRAMMING_RULES[advancementResult.level];
+
+    console.log(`[RoutineGenerator] Training advancement: ${advancementResult.level} (source: ${advancementResult.source}, confidence: ${advancementResult.confidence})`);
+
+    // Filter out excluded exercises and map included exercise IDs to names
+    let filteredExerciseNames = allExerciseNames;
+    if (options.excludedExercises && options.excludedExercises.length > 0) {
+      const excludedSet = new Set(options.excludedExercises);
+      filteredExerciseNames = allExerciseNames.filter(name => {
+        // Match by checking if any excluded ID corresponds to this name
+        const exercise = [...availableExercises, ...customExercises].find(e => e.name === name);
+        return !exercise || !excludedSet.has(exercise.id);
+      });
+    }
+
+    // Get names of included exercises
+    const includedExerciseNames = options.includedExercises
+      ? options.includedExercises
+          .map(id => {
+            const exercise = [...availableExercises, ...customExercises].find(e => e.id === id);
+            return exercise?.name;
+          })
+          .filter((name): name is string => !!name)
+      : undefined;
+
     const params: RoutineGenerationParams = {
       programTemplate: options.programTemplate,
       trainingGoal: options.trainingGoal,
@@ -230,9 +297,18 @@ class AIRoutineGeneratorService {
       userEquipmentDisplay,
       exerciseHistorySummary,
       customExercisesSummary,
-      allExerciseNames,
+      allExerciseNames: filteredExerciseNames,
       weeklyDays: options.weeklyDays,
       focusMuscles: options.focusMuscles,
+      trainingAdvancement: {
+        level: advancementResult.level,
+        allowHeavySquatAndDeadliftSameDay: programmingConfig.allowHeavySquatAndDeadliftSameDay,
+        maxSetsPerMusclePerSession: programmingConfig.maxSetsPerMusclePerSession,
+        suggestedFrequency: programmingConfig.suggestedFrequency,
+      },
+      workoutDuration: options.workoutDuration,
+      exercisesPerWorkout: options.exercisesPerWorkout,
+      includedExercises: includedExerciseNames,
     };
 
     return buildRoutineGenerationPrompt(params);
@@ -288,16 +364,23 @@ class AIRoutineGeneratorService {
 
   private async callAI(prompt: string, programTemplate: ProgramTemplate): Promise<GeneratedRoutineProgram> {
     const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-5-mini',
       messages: [
         {
           role: 'system',
-          content: 'You are an experienced strength and conditioning coach. Create practical, evidence-based workout programs. Return only valid JSON.',
+          content: `You are an experienced strength and conditioning coach. Create practical, evidence-based workout programs.
+
+STRICT RULES:
+1. ONLY use exercises from the "AVAILABLE EXERCISES" list - do NOT invent, substitute, or add any exercises not explicitly listed
+2. Follow the "CRITICAL REQUIREMENTS" section exactly - these constraints (exercise counts, included exercises, fatigue management) override all other guidelines
+3. If a required exercise is listed, it MUST appear in the program
+4. If an exercise is NOT in the available list, do NOT use it under any circumstances
+
+Return only valid JSON.`,
         },
         { role: 'user', content: prompt },
       ],
-      temperature: 0.7,
-      max_tokens: 4000,
+      max_completion_tokens: 4000,
     });
 
     const content = response.choices[0]?.message?.content;
@@ -319,7 +402,7 @@ class AIRoutineGeneratorService {
       inputText: programTemplate,
       outputData: { programName: parsed.programName, routineCount: parsed.routines?.length },
       tokensUsed: response.usage?.total_tokens,
-      model: 'gpt-4o',
+      model: 'gpt-5-mini',
     });
 
     return parsed;
@@ -511,14 +594,33 @@ class AIRoutineGeneratorService {
       6: 'Mon / Tue / Wed / Thu / Fri / Sat',
     };
 
+    // Apply exercise count constraints if specified
+    const adjustedRoutines = options.exercisesPerWorkout
+      ? routines.map(routine => ({
+          ...routine,
+          exercises: routine.exercises.slice(0, options.exercisesPerWorkout!.max),
+        }))
+      : routines;
+
+    // Calculate estimated time based on exercise count
+    const durationMap: Record<number, string> = {
+      30: '~30 min',
+      60: '~60 min',
+      90: '~90 min',
+      120: '~2 hours',
+    };
+    const estimatedDuration = options.workoutDuration
+      ? durationMap[options.workoutDuration] || '45-60 min'
+      : '45-60 min';
+
     return {
       programName: `${templateInfo.name} - ${options.weeklyDays} Day Program`,
       programDescription: templateInfo.description,
       programStyle: options.programTemplate,
       trainingGoal: options.trainingGoal,
       weeklyVolume: `${options.weeklyDays * 15}-${options.weeklyDays * 25} sets per muscle group`,
-      estimatedDuration: '45-60 min per session',
-      routines,
+      estimatedDuration: `${estimatedDuration} per session`,
+      routines: adjustedRoutines,
       weeklySchedule: scheduleMap[options.weeklyDays] || 'Flexible schedule',
       progressionNotes: 'Add 5lbs to upper body lifts and 10lbs to lower body lifts when you complete all sets at target reps.',
     };

@@ -1,9 +1,10 @@
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
+import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage/storage';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
-import { Routine, RoutineExercise, RoutineSet, Workout } from '@/types';
+import { CustomExercise, Routine, RoutineExercise, RoutineSet, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -31,6 +32,7 @@ interface ExercisePickerProps {
   onSelect: (exercises: Workout[]) => void;
   onClose: () => void;
   excludeIds?: string[];
+  customExercises?: CustomExercise[];
 }
 
 // Exercise Picker Modal Component (Multi-select)
@@ -39,6 +41,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   onSelect,
   onClose,
   excludeIds = [],
+  customExercises = [],
 }) => {
   const { currentTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,10 +55,17 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     }
   }, [visible]);
 
-  // Filter out already added exercises
+  // Combine built-in and custom exercises, filter out already added
   const allExercises = useMemo(() => {
-    return ALL_WORKOUTS.filter(e => !excludeIds.includes(e.id));
-  }, [excludeIds]);
+    const combined: Workout[] = [
+      ...ALL_WORKOUTS,
+      ...customExercises.map(ce => ({
+        ...ce,
+        isCustom: true as const,
+      })),
+    ];
+    return combined.filter(e => !excludeIds.includes(e.id));
+  }, [excludeIds, customExercises]);
 
   // Filter exercises based on search
   const filteredExercises = useMemo(() => {
@@ -80,10 +90,11 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   }, []);
 
   const handleDone = useCallback(() => {
-    const selectedExercises = ALL_WORKOUTS.filter(e => selectedIds.has(e.id));
+    // Get selected exercises from both built-in and custom
+    const selectedExercises = allExercises.filter(e => selectedIds.has(e.id));
     onSelect(selectedExercises);
     onClose();
-  }, [selectedIds, onSelect, onClose]);
+  }, [selectedIds, allExercises, onSelect, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
@@ -178,6 +189,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 }) => {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
+  const { customExercises } = useCustomExercises();
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<RoutineExercise[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -199,6 +211,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const handleAddExercises = useCallback((workouts: Workout[]) => {
     const newExercises: RoutineExercise[] = workouts.map(workout => ({
       exerciseId: workout.id,
+      exerciseName: workout.name,  // Store name for display
       sets: [
         { reps: 10, isWarmup: true },
         { reps: 10 },
@@ -302,10 +315,11 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     }
   }, [name, exercises.length, onClose, showAlert]);
 
-  // Get exercise name from ID
-  const getExerciseName = useCallback((exerciseId: string) => {
-    const exercise = ALL_WORKOUTS.find(w => w.id === exerciseId);
-    return exercise?.name || exerciseId;
+  // Get exercise name - prefer stored name, fall back to lookup
+  const getExerciseName = useCallback((exercise: RoutineExercise) => {
+    if (exercise.exerciseName) return exercise.exerciseName;
+    const workout = ALL_WORKOUTS.find(w => w.id === exercise.exerciseId);
+    return workout?.name || exercise.exerciseId;
   }, []);
 
   const excludeIds = useMemo(() => exercises.map(e => e.exerciseId), [exercises]);
@@ -358,7 +372,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               <View key={`${exercise.exerciseId}-${exerciseIndex}`} style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface }]}>
                 <RNView style={styles.exerciseCardHeader}>
                   <Text style={[styles.exerciseCardName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    {getExerciseName(exercise.exerciseId)}
+                    {getExerciseName(exercise)}
                   </Text>
                   <TouchableOpacity onPress={() => handleRemoveExercise(exerciseIndex)}>
                     <Ionicons name="trash-outline" size={20} color={currentTheme.colors.text + '60'} />
@@ -483,6 +497,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         onSelect={handleAddExercises}
         onClose={() => setShowExercisePicker(false)}
         excludeIds={excludeIds}
+        customExercises={customExercises}
       />
     </Modal>
   );

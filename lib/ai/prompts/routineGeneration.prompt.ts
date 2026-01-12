@@ -41,6 +41,17 @@ export interface RoutineGenerationParams {
   allExerciseNames: string[];
   weeklyDays: number;
   focusMuscles?: string[];
+  // Training advancement for fatigue management
+  trainingAdvancement?: {
+    level: 'beginner' | 'intermediate' | 'advanced';
+    allowHeavySquatAndDeadliftSameDay: boolean;
+    maxSetsPerMusclePerSession: number;
+    suggestedFrequency: { squat: number; bench: number; deadlift: number };
+  };
+  // Workout duration and exercise count constraints
+  workoutDuration?: number;  // Duration in minutes (30, 60, 90, 120)
+  exercisesPerWorkout?: { min: number; max: number };  // STRICT exercise count constraints
+  includedExercises?: string[];  // Exercises that MUST be included (spread across routines)
 }
 
 /**
@@ -118,6 +129,10 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
     allExerciseNames,
     weeklyDays,
     focusMuscles,
+    trainingAdvancement,
+    workoutDuration,
+    exercisesPerWorkout,
+    includedExercises,
   } = params;
 
   const templateInfo = PROGRAM_TEMPLATES[programTemplate] || PROGRAM_TEMPLATES.custom;
@@ -125,6 +140,22 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
   const focusText = hasFocusAreas
     ? `PRIORITY FOCUS AREAS: ${focusMuscles.join(', ').toUpperCase()}`
     : '';
+
+  // Build fatigue management guidelines based on training advancement
+  const fatigueGuidelines = trainingAdvancement
+    ? getFatigueManagementGuidelines(trainingAdvancement)
+    : '';
+
+  // Build STRICT exercise count constraints - these override program defaults
+  const exerciseCountConstraints = exercisesPerWorkout
+    ? getExerciseCountConstraints(exercisesPerWorkout, workoutDuration)
+    : '';
+
+  // Build included exercises requirements
+  const includedExercisesRequirements = includedExercises && includedExercises.length > 0
+    ? getIncludedExercisesRequirements(includedExercises)
+    : '';
+
   const focusInstructions = hasFocusAreas
     ? `\nFOCUS AREA REQUIREMENTS:
 - Increase volume for ${focusMuscles.join(', ')} muscle groups
@@ -137,6 +168,13 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
 - If focus is "shoulders", include front/side/rear delt work
 - If focus is "core", add direct ab and oblique exercises`
     : '';
+
+  // Build the critical constraints section - placed at the END for maximum priority
+  const criticalConstraints = buildCriticalConstraints({
+    fatigueGuidelines,
+    exerciseCountConstraints,
+    includedExercisesRequirements,
+  });
 
   return `Generate a practical workout routine program based on proven methodologies.
 
@@ -157,8 +195,14 @@ ${exerciseHistorySummary}
 ${customExercisesSummary}
 ${focusInstructions}
 
-AVAILABLE EXERCISES (prefer using these exact names):
+AVAILABLE EXERCISES (STRICT - use ONLY these exercises, do NOT invent or substitute):
 ${allExerciseNames.join(', ')}
+
+EXERCISE SELECTION RULES:
+- You MUST only use exercises from the list above
+- Do NOT create variations or substitutes not in the list
+- Do NOT add exercises that are not explicitly listed
+- If an exercise type is missing from the list, skip it entirely
 
 ${getProgramGuidelines(programTemplate, trainingGoal, weeklyDays)}
 
@@ -177,7 +221,7 @@ ROUTINE DESIGN PRINCIPLES:
    - General: Moderate reps (8-12), balanced volume, full body emphasis
 5. Appropriate exercise order (compounds first, isolation last)
 6. Realistic volume (15-25 sets per muscle group per week for hypertrophy, less for strength)
-
+${criticalConstraints}
 Return ONLY valid JSON (no markdown, no backticks):
 {
   "programName": "Descriptive program name",
@@ -185,7 +229,7 @@ Return ONLY valid JSON (no markdown, no backticks):
   "programStyle": "${programTemplate}",
   "trainingGoal": "${trainingGoal}",
   "weeklyVolume": "Total sets per week estimate",
-  "estimatedDuration": "45-60 min per session",
+  "estimatedDuration": "${workoutDuration ? `~${workoutDuration} min` : '45-60 min'} per session",
   "routines": [
     {
       "name": "Day name (e.g., 'Push Day', 'Upper Power', 'Day A')",
@@ -200,7 +244,7 @@ Return ONLY valid JSON (no markdown, no backticks):
           "notes": "Optional form cue or progression note"
         }
       ],
-      "estimatedTime": "50 min"
+      "estimatedTime": "${workoutDuration ? `~${workoutDuration} min` : '50 min'}"
     }
   ],
   "weeklySchedule": "Recommended schedule (e.g., 'Mon/Tue/Thu/Fri' or 'A/B/A then B/A/B')",
@@ -208,7 +252,11 @@ Return ONLY valid JSON (no markdown, no backticks):
 }`;
 }
 
-function getProgramGuidelines(template: ProgramTemplate, goal: TrainingGoal, days: number): string {
+function getProgramGuidelines(
+  template: ProgramTemplate,
+  goal: TrainingGoal,
+  days: number
+): string {
   const strengthReps = 'Main lifts: 3-5 reps. Accessories: 6-10 reps.';
   const hypertrophyReps = 'Compounds: 6-10 reps. Isolation: 10-15 reps. Some sets to failure.';
   const powerbuildingReps = 'Power days: 3-5 reps. Hypertrophy days: 8-12 reps.';
@@ -222,7 +270,6 @@ PUSH/PULL/LEGS GUIDELINES (Reddit PPL style):
 - Legs: Quads, hamstrings, glutes, calves
 - Each muscle hit 2x per week (6-day) or 1x (3-day)
 - Start with main compound (bench/OHP on push, rows/pullups on pull, squat/deadlift on legs)
-- 4-6 exercises per session
 - Linear progression on compounds: add weight when you hit target reps
 ${goal === 'strength' ? strengthReps : hypertrophyReps}`;
 
@@ -245,7 +292,6 @@ FULL BODY GUIDELINES (5/3/1 / Starting Strength style):
 - Focus on big compound movements
 - Squat or deadlift variation every session
 - Horizontal push + pull every session
-- 3-4 compound movements + 2-3 accessories
 - Plenty of recovery between sessions
 - Great for beginners or those with limited time
 ${goal === 'strength' ? strengthReps : 'Compounds: 5-8 reps. Accessories: 8-12 reps.'}`;
@@ -256,7 +302,6 @@ BODY PART SPLIT GUIDELINES (Arnold style):
 - One primary muscle group per day
 - High volume per session
 - Example: Chest/Back/Shoulders/Arms/Legs
-- 5-7 exercises per muscle group
 - Multiple angles and exercises for complete development
 - Classic bodybuilding approach
 ${hypertrophyReps}`;
@@ -295,4 +340,87 @@ CUSTOM PROGRAM GUIDELINES:
 - Ensure progressive overload potential
 ${goal === 'strength' ? strengthReps : goal === 'hypertrophy' ? hypertrophyReps : powerbuildingReps}`;
   }
+}
+
+/**
+ * Build critical constraints section - placed at the END of the prompt for maximum priority
+ * These constraints OVERRIDE any conflicting guidelines from program templates
+ */
+function buildCriticalConstraints(params: {
+  fatigueGuidelines: string;
+  exerciseCountConstraints: string;
+  includedExercisesRequirements: string;
+}): string {
+  const { fatigueGuidelines, exerciseCountConstraints, includedExercisesRequirements } = params;
+
+  const hasConstraints = fatigueGuidelines || exerciseCountConstraints || includedExercisesRequirements;
+
+  if (!hasConstraints) {
+    return '';
+  }
+
+  return `
+
+=== CRITICAL REQUIREMENTS (OVERRIDE ALL ABOVE GUIDELINES) ===
+The following constraints MUST be followed. They take priority over any conflicting program template suggestions.
+${fatigueGuidelines}
+${exerciseCountConstraints}
+${includedExercisesRequirements}
+=== END CRITICAL REQUIREMENTS ===
+
+`;
+}
+
+/**
+ * Get fatigue management guidelines - simplified to just squat/deadlift separation
+ */
+function getFatigueManagementGuidelines(advancement: {
+  level: 'beginner' | 'intermediate' | 'advanced';
+  allowHeavySquatAndDeadliftSameDay: boolean;
+  maxSetsPerMusclePerSession: number;
+  suggestedFrequency: { squat: number; bench: number; deadlift: number };
+}): string {
+  const { allowHeavySquatAndDeadliftSameDay } = advancement;
+
+  // Only include fatigue guideline if squat/deadlift should be separated
+  if (allowHeavySquatAndDeadliftSameDay) {
+    return '';
+  }
+
+  return `
+FATIGUE MANAGEMENT:
+- DO NOT program Squat (Barbell) and Deadlift (Barbell) on the SAME DAY - they MUST be on separate days
+- This is a STRICT REQUIREMENT - split them across different workout days`;
+}
+
+/**
+ * Get STRICT exercise count constraints based on workout duration
+ */
+function getExerciseCountConstraints(
+  exercisesPerWorkout: { min: number; max: number },
+  workoutDuration?: number
+): string {
+  const durationText = workoutDuration ? `${workoutDuration} minutes` : 'the specified duration';
+  const countText = exercisesPerWorkout.min === exercisesPerWorkout.max
+    ? `EXACTLY ${exercisesPerWorkout.min}`
+    : `${exercisesPerWorkout.min}-${exercisesPerWorkout.max}`;
+
+  return `
+EXERCISE COUNT (MANDATORY - THIS IS NON-NEGOTIABLE):
+- Target workout duration: ${durationText}
+- Each routine MUST have ${countText} exercises. THIS IS REQUIRED.
+- Do NOT generate routines with fewer exercises than specified.
+- Do NOT generate routines with more exercises than specified.
+- If you need more volume, add sets to exercises - do NOT add extra exercises.
+- Count your exercises before responding to ensure compliance.`;
+}
+
+/**
+ * Get requirements for exercises that MUST be included in the program
+ */
+function getIncludedExercisesRequirements(includedExercises: string[]): string {
+  return `
+REQUIRED EXERCISES (MUST INCLUDE):
+${includedExercises.map(e => `- ${e}`).join('\n')}
+These exercises MUST appear in the program. Distribute them across routines by muscle group.`;
 }
