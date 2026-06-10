@@ -10,7 +10,8 @@ export * from './workoutNoteParsing.prompt';
 export * from './routineGeneration.prompt';
 
 // Re-export from splitTemplates for convenience
-export { TrainingGoal, ExperienceLevel } from '../splitTemplates';
+// (TrainingGoal is already re-exported via routineGeneration.prompt above)
+export { ExperienceLevel } from '../splitTemplates';
 
 /**
  * Standard exercise naming format documentation

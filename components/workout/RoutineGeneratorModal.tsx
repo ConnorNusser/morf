@@ -394,7 +394,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 1</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>What's your goal?</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>What&apos;s your goal?</Text>
       </View>
 
       <View style={styles.goalGrid}>
@@ -539,7 +539,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 4</Text>
         <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How many days per week?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>We'll design the optimal split for your schedule</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>We&apos;ll design the optimal split for your schedule</Text>
       </View>
 
       <View style={styles.daysGrid}>
@@ -563,7 +563,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 5</Text>
         <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How long per workout?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This determines how many exercises we'll include</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This determines how many exercises we&apos;ll include</Text>
       </View>
 
       <View style={styles.durationGrid}>

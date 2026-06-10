@@ -39,7 +39,7 @@ const generateSnowflakes = (count: number): Snowflake[] => {
   }));
 };
 
-const SnowflakeComponent = memo(({ snowflake }: { snowflake: Snowflake }) => {
+const SnowflakeComponent = memo(function SnowflakeComponent({ snowflake }: { snowflake: Snowflake }) {
   const translateY = useSharedValue(-20);
   const translateX = useSharedValue(0);
 
