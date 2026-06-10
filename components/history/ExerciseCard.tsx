@@ -3,21 +3,21 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;
   weightUnit: WeightUnit;
-  onPress: () => void;
+  onPress: (exercise: ExerciseWithMax) => void;
 }
 
-export default function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
+function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
 
   // Get sparkline data for an exercise (bi-weekly periods, last 6)
   // Data is converted to user's preferred unit for consistent display
-  const getSparklineData = (history: ExerciseWithMax['history']): number[] => {
+  const getSparklineData = useCallback((history: ExerciseWithMax['history']): number[] => {
     if (history.length === 0) return [];
 
     const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -48,11 +48,11 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
     }
 
     return periods.length >= 2 ? periods : [];
-  };
+  }, [weightUnit]);
 
   // Get delta for an exercise (3 month comparison)
   // Returns delta in user's preferred unit
-  const getDelta = (history: ExerciseWithMax['history']): { value: number; isPositive: boolean } | null => {
+  const getDelta = useCallback((history: ExerciseWithMax['history']): { value: number; isPositive: boolean } | null => {
     if (history.length < 2) return null;
 
     const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -74,15 +74,15 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
     if (delta === 0) return null;
 
     return { value: Math.round(Math.abs(delta)), isPositive: delta > 0 };
-  };
+  }, [weightUnit]);
 
-  const sparklineData = getSparklineData(exercise.history);
-  const delta = getDelta(exercise.history);
+  const sparklineData = useMemo(() => getSparklineData(exercise.history), [getSparklineData, exercise.history]);
+  const delta = useMemo(() => getDelta(exercise.history), [getDelta, exercise.history]);
 
   return (
     <TouchableOpacity
       style={[styles.liftCard, { borderColor: currentTheme.colors.border }]}
-      onPress={onPress}
+      onPress={() => onPress(exercise)}
       activeOpacity={0.7}
     >
       <View style={[styles.liftMain, { backgroundColor: 'transparent' }]}>
@@ -123,6 +123,8 @@ export default function ExerciseCard({ exercise, weightUnit, onPress }: Exercise
     </TouchableOpacity>
   );
 }
+
+export default React.memo(ExerciseCard);
 
 const styles = StyleSheet.create({
   liftCard: {

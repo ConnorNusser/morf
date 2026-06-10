@@ -11,7 +11,7 @@ import { userSyncService } from '@/lib/services/userSyncService';
 import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ViewToken } from 'react-native';
 import CreatePostModal from './CreatePostModal';
 import FeedCard, { FeedWorkout } from './FeedCard';
@@ -270,7 +270,46 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     loadFeed(true);
   };
 
-  const renderItem = ({ item }: { item: FeedItem }) => {
+  // Keep latest handlers in a ref so the per-row callbacks below stay
+  // referentially stable (lets the memoized rows bail out of re-renders)
+  // while still always invoking the freshest state-aware handler.
+  const handlersRef = useRef({
+    handleWorkoutPress,
+    handleUserPress,
+    handleWorkoutLike,
+    handlePostPress,
+    handlePostLike,
+  });
+  handlersRef.current = {
+    handleWorkoutPress,
+    handleUserPress,
+    handleWorkoutLike,
+    handlePostPress,
+    handlePostLike,
+  };
+
+  const onWorkoutPress = useCallback((workout: FeedWorkout) => {
+    handlersRef.current.handleWorkoutPress(workout);
+  }, []);
+  const onWorkoutUserPress = useCallback((workout: FeedWorkout) => {
+    handlersRef.current.handleUserPress(workout.user_id, workout.username, workout.profile_picture_url);
+  }, []);
+  const onWorkoutLike = useCallback((workoutId: string) => {
+    handlersRef.current.handleWorkoutLike(workoutId);
+  }, []);
+  const onPostUserPress = useCallback((post: FeedPost) => {
+    handlersRef.current.handleUserPress(post.user_id, post.username, post.profile_picture_url);
+  }, []);
+  const onPostLikePress = useCallback((post: FeedPost) => {
+    handlersRef.current.handlePostLike(post.id, post);
+  }, []);
+  const onPostComment = useCallback((post: FeedPost) => {
+    handlersRef.current.handlePostPress(post);
+  }, []);
+
+  const keyExtractor = useCallback((item: FeedItem) => `${item.type}-${item.data.id}`, []);
+
+  const renderItem = useCallback(({ item }: { item: FeedItem }) => {
     const itemKey = `${item.type}-${item.data.id}`;
     const isVisible = visibleItems.has(itemKey);
 
@@ -279,10 +318,10 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       return (
         <FeedCard
           workout={workout}
-          onPress={() => handleWorkoutPress(workout)}
-          onUserPress={() => handleUserPress(workout.user_id, workout.username, workout.profile_picture_url)}
-          onLike={() => handleWorkoutLike(workout.id)}
-          onComment={() => handleWorkoutPress(workout)}
+          onPress={onWorkoutPress}
+          onUserPress={onWorkoutUserPress}
+          onLike={onWorkoutLike}
+          onComment={onWorkoutPress}
           currentUserId={currentUserId}
           weightUnit={weightUnit}
         />
@@ -292,15 +331,15 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       return (
         <FeedPostCard
           post={post}
-          onUserPress={() => handleUserPress(post.user_id, post.username, post.profile_picture_url)}
-          onLike={() => handlePostLike(post.id, post)}
-          onComment={() => handlePostPress(post)}
+          onUserPress={onPostUserPress}
+          onLike={onPostLikePress}
+          onComment={onPostComment}
           currentUserId={currentUserId}
           isVisible={isVisible}
         />
       );
     }
-  };
+  }, [visibleItems, currentUserId, weightUnit, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
@@ -338,7 +377,8 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       <FlatList
         data={feedItems}
         renderItem={renderItem}
-        keyExtractor={(item) => `${item.type}-${item.data.id}`}
+        keyExtractor={keyExtractor}
+        extraData={visibleItems}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}

@@ -21,16 +21,16 @@ export type FeedWorkout = WorkoutSummary & {
 
 interface FeedCardProps {
   workout: FeedWorkout;
-  onPress: () => void;
-  onUserPress?: () => void;
-  onLike?: () => void;
-  onComment?: () => void;
+  onPress: (workout: FeedWorkout) => void;
+  onUserPress?: (workout: FeedWorkout) => void;
+  onLike?: (workoutId: string) => void;
+  onComment?: (workout: FeedWorkout) => void;
   currentUserId?: string | null;
   weightUnit?: WeightUnit;
 }
 
 
-export default function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs' }: FeedCardProps) {
+function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs' }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -49,7 +49,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
       withTiming(1.25, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
     );
-    onLike?.();
+    onLike?.(workout.id);
   };
 
   // Get tier for the badge - only show if workout has tracked lifts (indicated by pr_count)
@@ -73,12 +73,12 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
   return (
     <TouchableOpacity
       style={[styles.container, { borderBottomColor: currentTheme.colors.border }]}
-      onPress={onPress}
+      onPress={() => onPress(workout)}
       activeOpacity={0.9}
     >
       {/* Header with user info */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.userInfo} onPress={onUserPress} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(workout)} activeOpacity={0.7}>
           {workout.profile_picture_url ? (
             <Image source={{ uri: workout.profile_picture_url }} style={styles.avatar} />
           ) : (
@@ -207,7 +207,7 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
           {/* Comment button */}
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={onComment}
+            onPress={() => onComment?.(workout)}
             activeOpacity={0.6}
           >
             <Ionicons
@@ -226,6 +226,8 @@ export default function FeedCard({ workout, onPress, onUserPress, onLike, onComm
     </TouchableOpacity>
   );
 }
+
+export default React.memo(FeedCard);
 
 const styles = StyleSheet.create({
   container: {
