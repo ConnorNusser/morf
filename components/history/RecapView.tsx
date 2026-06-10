@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -143,7 +143,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
     }
   };
 
-  const availableCards = CARD_TYPES.filter(card => {
+  const availableCards = useMemo(() => CARD_TYPES.filter(card => {
     if (!stats) return false;
     switch (card.type) {
       case 'workouts': return stats.totalWorkouts > 0;
@@ -155,7 +155,7 @@ export default function RecapView({ onClose }: RecapViewProps) {
       case 'active': return stats.daysActive > 0;
       default: return false;
     }
-  });
+  }), [stats]);
 
   const renderCard = ({ item, index: _index }: { item: RecapCardData; index: number }) => {
     if (!stats) return null;
@@ -296,7 +296,9 @@ export default function RecapView({ onClose }: RecapViewProps) {
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / CARD_WIDTH);
-    setCurrentCardIndex(index);
+    // Only update when the page actually changes — avoids a setState (and
+    // full re-render) on every scroll frame (scrollEventThrottle=16 → ~60/s).
+    setCurrentCardIndex(prev => (prev === index ? prev : index));
   };
 
   return (

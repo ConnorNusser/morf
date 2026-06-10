@@ -4,7 +4,7 @@ import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface WorkoutCardProps {
@@ -12,11 +12,11 @@ interface WorkoutCardProps {
   exerciseStats: ExerciseWithMax[];
   weightUnit: WeightUnit;
   customExercises: CustomExercise[];
-  onPress: () => void;
-  onLongPress: () => void;
+  onPress: (workout: GeneratedWorkout) => void;
+  onLongPress: (workout: GeneratedWorkout) => void;
 }
 
-export default function WorkoutCard({
+function WorkoutCard({
   workout,
   exerciseStats,
   weightUnit,
@@ -38,15 +38,18 @@ export default function WorkoutCard({
   };
 
   // Helper to get tracking type for an exercise
-  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
+  const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
     const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
     return exerciseInfo?.trackingType;
-  };
+  }, [customExercises]);
 
   // Calculate stats using the universal utility
-  const workoutStats = calculateWorkoutStats(workout.exercises, getTrackingType);
+  const workoutStats = useMemo(
+    () => calculateWorkoutStats(workout.exercises, getTrackingType),
+    [workout.exercises, getTrackingType]
+  );
 
-  const getWorkoutExercises = (): { name: string; sets: string[]; isPR: boolean }[] => {
+  const exercises = useMemo((): { name: string; sets: string[]; isPR: boolean; volume: number }[] => {
     const exercises: { name: string; sets: string[]; isPR: boolean; volume: number }[] = [];
 
     workout.exercises.forEach(ex => {
@@ -100,16 +103,15 @@ export default function WorkoutCard({
     });
 
     return exercises.sort((a, b) => b.volume - a.volume);
-  };
+  }, [workout.exercises, customExercises, exerciseStats, weightUnit]);
 
-  const exercises = getWorkoutExercises();
   const statsLine = formatWorkoutStatsLine(workoutStats, { unit: weightUnit });
 
   return (
     <TouchableOpacity
       style={[styles.workoutCard, { borderColor: currentTheme.colors.border }]}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      onPress={() => onPress(workout)}
+      onLongPress={() => onLongPress(workout)}
       activeOpacity={0.7}
     >
       {/* Header */}
@@ -149,6 +151,8 @@ export default function WorkoutCard({
     </TouchableOpacity>
   );
 }
+
+export default React.memo(WorkoutCard);
 
 const styles = StyleSheet.create({
   workoutCard: {

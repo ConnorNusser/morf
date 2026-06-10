@@ -346,32 +346,37 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     };
   }, [currentUserId, user?.id, myLifts, lifts, comparisonMode, myUserData, userData]);
 
+  // Derived lift stats — memoized so they don't recompute on unrelated
+  // state changes (expanded card, selected lift, etc.)
+  const { benchMax, squatMax, deadliftMax, big3Total, thousandPoundProgress, totalVolume, otherLifts } = useMemo(() => {
+    const getBig3Lift = (exerciseId: string) => {
+      const lift = lifts.find(l => l.exercise_id === exerciseId);
+      return lift ? Math.round(lift.estimated_1rm) : 0;
+    };
+
+    const benchMax = getBig3Lift(MAIN_LIFTS.BENCH_PRESS);
+    const squatMax = getBig3Lift(MAIN_LIFTS.SQUAT);
+    const deadliftMax = getBig3Lift(MAIN_LIFTS.DEADLIFT);
+    const big3Total = benchMax + squatMax + deadliftMax;
+    const thousandPoundProgress = Math.min(100, Math.round((big3Total / 1000) * 100));
+
+    // Total volume (sum of all 1RMs as a rough proxy)
+    const totalVolume = lifts.reduce((sum, lift) => sum + lift.estimated_1rm, 0);
+
+    // Top lifts (excluding Big 3)
+    const otherLifts = lifts
+      .filter(l => !BIG_3.includes(l.exercise_id as typeof MAIN_LIFTS.BENCH_PRESS))
+      .filter(l => getWorkoutById(l.exercise_id) !== null)
+      .sort((a, b) => b.estimated_1rm - a.estimated_1rm)
+      .slice(0, 5);
+
+    return { benchMax, squatMax, deadliftMax, big3Total, thousandPoundProgress, totalVolume, otherLifts };
+  }, [lifts]);
+
   if (!user) return null;
-
-  // Calculate stats
-  const getBig3Lift = (exerciseId: string) => {
-    const lift = lifts.find(l => l.exercise_id === exerciseId);
-    return lift ? Math.round(lift.estimated_1rm) : 0;
-  };
-
-  const benchMax = getBig3Lift(MAIN_LIFTS.BENCH_PRESS);
-  const squatMax = getBig3Lift(MAIN_LIFTS.SQUAT);
-  const deadliftMax = getBig3Lift(MAIN_LIFTS.DEADLIFT);
-  const big3Total = benchMax + squatMax + deadliftMax;
-  const thousandPoundProgress = Math.min(100, Math.round((big3Total / 1000) * 100));
-
-  // Calculate total volume (sum of all 1RMs as a rough proxy)
-  const totalVolume = lifts.reduce((sum, lift) => sum + lift.estimated_1rm, 0);
 
   // Get overall percentile from synced data
   const overallPercentile = percentileData?.overall_percentile ?? null;
-
-  // Get top lifts (excluding Big 3)
-  const otherLifts = lifts
-    .filter(l => !BIG_3.includes(l.exercise_id as typeof MAIN_LIFTS.BENCH_PRESS))
-    .filter(l => getWorkoutById(l.exercise_id) !== null)
-    .sort((a, b) => b.estimated_1rm - a.estimated_1rm)
-    .slice(0, 5);
 
   const getExerciseName = (id: string) => {
     const workout = getWorkoutById(id);

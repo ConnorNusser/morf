@@ -1,6 +1,6 @@
 import { storageService } from '@/lib/storage/storage';
 import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/ui/theme';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
 interface ThemeContextType {
@@ -42,27 +42,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
   }, []);
 
-  const progressToNextTheme = () => {
-    const nextTheme = getNextTheme(currentThemeLevel);
-    setThemeLevel(nextTheme);
-  };
-
-  const setThemeLevel = async (level: ThemeLevel) => {
+  const setThemeLevel = useCallback(async (level: ThemeLevel) => {
     setCurrentThemeLevel(level);
     // Persist theme preference to storage
     await storageService.saveThemePreference(level);
-  };
+  }, []);
+
+  const progressToNextTheme = useCallback(() => {
+    const nextTheme = getNextTheme(currentThemeLevel);
+    setThemeLevel(nextTheme);
+  }, [currentThemeLevel, setThemeLevel]);
 
   // Ensure we always have a valid theme
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
-  const value = {
+  const value = useMemo(() => ({
     currentTheme,
     currentThemeLevel,
     themes,
     progressToNextTheme,
     setThemeLevel,
-  };
+  }), [currentTheme, currentThemeLevel, progressToNextTheme, setThemeLevel]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

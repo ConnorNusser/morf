@@ -193,7 +193,7 @@ export default function HistoryScreen() {
     setRefreshing(false);
   };
 
-  const handleDeleteWorkout = (workout: GeneratedWorkout) => {
+  const handleDeleteWorkout = useCallback((workout: GeneratedWorkout) => {
     showAlert({
       title: 'Delete Workout',
       message: `Delete "${workout.title}"?`,
@@ -212,7 +212,7 @@ export default function HistoryScreen() {
         },
       ],
     });
-  };
+  }, [showAlert, loadHistory, loadExerciseStats]);
 
   // Get recent workouts (last 5)
   const recentWorkouts = useMemo(() =>
@@ -432,8 +432,8 @@ export default function HistoryScreen() {
                     exerciseStats={exerciseStats}
                     weightUnit={weightUnit}
                     customExercises={customExercises}
-                    onPress={() => setSelectedWorkout(workout)}
-                    onLongPress={() => handleDeleteWorkout(workout)}
+                    onPress={setSelectedWorkout}
+                    onLongPress={handleDeleteWorkout}
                   />
                 ))}
 
@@ -483,7 +483,7 @@ export default function HistoryScreen() {
                     key={exercise.id}
                     exercise={exercise}
                     weightUnit={weightUnit}
-                    onPress={() => setSelectedExercise(exercise)}
+                    onPress={setSelectedExercise}
                   />
                 ))}
               </View>

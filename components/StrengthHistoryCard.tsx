@@ -13,7 +13,7 @@ interface StrengthHistoryCardProps {
   userId?: string;
 }
 
-export default function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
+function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
   const { currentTheme } = useTheme();
   const [history, setHistory] = useState<PercentileHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -227,6 +227,8 @@ export default function StrengthHistoryCard({ userId }: StrengthHistoryCardProps
     </>
   );
 }
+
+export default React.memo(StrengthHistoryCard);
 
 const styles = StyleSheet.create({
   card: {

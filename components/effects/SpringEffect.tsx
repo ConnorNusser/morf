@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -47,7 +48,7 @@ const generatePetals = (count: number): Petal[] => {
   }));
 };
 
-const PetalComponent = ({ petal }: { petal: Petal }) => {
+const PetalComponent = React.memo(function PetalComponent({ petal }: { petal: Petal }) {
   const translateY = useSharedValue(-30);
   const translateX = useSharedValue(0);
   const rotate = useSharedValue(petal.rotation);
@@ -98,6 +99,13 @@ const PetalComponent = ({ petal }: { petal: Petal }) => {
         false
       )
     );
+
+    // Cancel the infinite loops on unmount so they don't keep running.
+    return () => {
+      cancelAnimation(translateY);
+      cancelAnimation(translateX);
+      cancelAnimation(rotate);
+    };
   }, [petal, translateY, translateX, rotate]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -124,7 +132,7 @@ const PetalComponent = ({ petal }: { petal: Petal }) => {
       ]}
     />
   );
-};
+});
 
 export interface SpringEffectProps {
   intervalMs: number;

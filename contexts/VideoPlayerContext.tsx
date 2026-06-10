@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useCallback, useMemo, useRef } from 'react';
 import { VideoPlayer } from 'expo-video';
 
 interface VideoPlayerContextType {
@@ -94,18 +94,18 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     });
   }, []);
 
+  const value = useMemo(() => ({
+    registerPlayer,
+    unregisterPlayer,
+    setActiveVideo,
+    clearActiveIfMatches,
+    pauseAll,
+    resumeActive,
+    muteAll,
+  }), [registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches, pauseAll, resumeActive, muteAll]);
+
   return (
-    <VideoPlayerContext.Provider
-      value={{
-        registerPlayer,
-        unregisterPlayer,
-        setActiveVideo,
-        clearActiveIfMatches,
-        pauseAll,
-        resumeActive,
-        muteAll,
-      }}
-    >
+    <VideoPlayerContext.Provider value={value}>
       {children}
     </VideoPlayerContext.Provider>
   );

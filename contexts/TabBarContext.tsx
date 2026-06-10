@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext } from 'react';
+import React, { createContext, useCallback, useContext, useMemo } from 'react';
 import { useSharedValue, SharedValue } from 'react-native-reanimated';
 
 interface TabBarContextType {
@@ -16,11 +16,13 @@ export function TabBarProvider({ children }: { children: React.ReactNode }) {
     tabBarBackgroundVisible.value = visible ? 1 : 0;
   }, [tabBarBackgroundVisible]);
 
+  const value = useMemo(() => ({
+    tabBarBackgroundVisible,
+    setTabBarBackgroundVisible,
+  }), [tabBarBackgroundVisible, setTabBarBackgroundVisible]);
+
   return (
-    <TabBarContext.Provider value={{
-      tabBarBackgroundVisible,
-      setTabBarBackgroundVisible,
-    }}>
+    <TabBarContext.Provider value={value}>
       {children}
     </TabBarContext.Provider>
   );

@@ -1,5 +1,5 @@
 import { storageService, TutorialState } from '@/lib/storage/storage';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 export type { TutorialState };
 
@@ -39,12 +39,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
   const [currentScreen, setCurrentScreen] = useState<'home' | 'workout' | 'history' | 'profile' | 'notes' | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Load tutorial state on mount
-  useEffect(() => {
-    loadTutorialState();
-  }, []);
-
-  const loadTutorialState = async () => {
+  const loadTutorialState = useCallback(async () => {
     try {
       const data = await storageService.getTutorialState();
       if (data) {
@@ -55,32 +50,37 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const saveTutorialState = async (newState: TutorialState) => {
+  // Load tutorial state on mount
+  useEffect(() => {
+    loadTutorialState();
+  }, [loadTutorialState]);
+
+  const saveTutorialState = useCallback(async (newState: TutorialState) => {
     try {
       await storageService.saveTutorialState(newState);
       setTutorialState(newState);
     } catch (error) {
       console.error('Error saving tutorial state:', error);
     }
-  };
+  }, []);
 
-  const startTutorial = () => {
+  const startTutorial = useCallback(() => {
     setCurrentStep(0);
     setCurrentScreen('home');
     setShowTutorial(true);
-  };
+  }, []);
 
-  const nextStep = () => {
+  const nextStep = useCallback(() => {
     setCurrentStep(prev => prev + 1);
-  };
+  }, []);
 
-  const previousStep = () => {
+  const previousStep = useCallback(() => {
     setCurrentStep(prev => Math.max(0, prev - 1));
-  };
+  }, []);
 
-  const skipTutorial = async () => {
+  const skipTutorial = useCallback(async () => {
     setShowTutorial(false);
     setCurrentStep(0);
     setCurrentScreen(null);
@@ -95,9 +95,9 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       },
     };
     await saveTutorialState(newState);
-  };
+  }, [saveTutorialState]);
 
-  const completeTutorial = async () => {
+  const completeTutorial = useCallback(async () => {
     setShowTutorial(false);
     setCurrentStep(0);
     setCurrentScreen(null);
@@ -112,16 +112,16 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
       },
     };
     await saveTutorialState(newState);
-  };
+  }, [saveTutorialState]);
 
-  const resetTutorials = async () => {
+  const resetTutorials = useCallback(async () => {
     await saveTutorialState(defaultTutorialState);
     setShowTutorial(false);
     setCurrentStep(0);
     setCurrentScreen(null);
-  };
+  }, [saveTutorialState]);
 
-  const value: TutorialContextType = {
+  const value: TutorialContextType = useMemo(() => ({
     tutorialState,
     isLoading,
     showTutorial,
@@ -134,7 +134,7 @@ export function TutorialProvider({ children }: { children: React.ReactNode }) {
     completeTutorial,
     setCurrentScreen,
     resetTutorials,
-  };
+  }), [tutorialState, isLoading, showTutorial, currentScreen, currentStep, startTutorial, nextStep, previousStep, skipTutorial, completeTutorial, resetTutorials]);
 
   return (
     <TutorialContext.Provider value={value}>

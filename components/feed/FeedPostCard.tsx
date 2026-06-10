@@ -26,14 +26,14 @@ const MEDIA_WIDTH = SCREEN_WIDTH - 32; // padding on each side
 
 interface FeedPostCardProps {
   post: FeedPost;
-  onUserPress?: () => void;
-  onLike?: () => void;
-  onComment?: () => void;
+  onUserPress?: (post: FeedPost) => void;
+  onLike?: (post: FeedPost) => void;
+  onComment?: (post: FeedPost) => void;
   currentUserId?: string | null;
   isVisible?: boolean;
 }
 
-export default function FeedPostCard({
+function FeedPostCard({
   post,
   onUserPress,
   onLike,
@@ -147,7 +147,7 @@ export default function FeedPostCard({
       withTiming(1.25, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
     );
-    onLike?.();
+    onLike?.(post);
   };
 
   const feedData = post.feed_data;
@@ -177,7 +177,7 @@ export default function FeedPostCard({
       >
         {/* Header with user info */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.userInfo} onPress={onUserPress} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
             {post.profile_picture_url ? (
               <Image source={{ uri: post.profile_picture_url }} style={styles.avatar} />
             ) : (
@@ -337,7 +337,7 @@ export default function FeedPostCard({
             {/* Comment button */}
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={onComment}
+              onPress={() => onComment?.(post)}
               activeOpacity={0.6}
             >
               <Ionicons
@@ -378,6 +378,8 @@ export default function FeedPostCard({
     </>
   );
 }
+
+export default React.memo(FeedPostCard);
 
 const styles = StyleSheet.create({
   container: {
