@@ -32,4 +32,13 @@ module.exports = defineConfig([
       '@typescript-eslint/no-unused-vars': 'off',
     },
   },
+  {
+    // Tests legitimately put jest.mock()/mock setup before imports, which
+    // import/first flags. Reordering would break them (the import would run
+    // the mocked module before the mock vars initialize), so disable it here.
+    files: ['**/__tests__/**', '**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      'import/first': 'off',
+    },
+  },
 ]);
