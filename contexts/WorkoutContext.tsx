@@ -1,6 +1,6 @@
 import { storageService } from '@/lib/storage/storage';
 import { GeneratedWorkout } from '@/types';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface WorkoutContextType {
   // State
@@ -21,14 +21,14 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadWorkouts = async () => {
+  const loadWorkouts = useCallback(async () => {
     try {
       setIsLoading(true);
       const storedWorkouts = await storageService.getWorkoutRoutines();
-      
+
       // Sort by creation date (newest first)
       storedWorkouts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       setWorkouts(storedWorkouts);
     } catch (error) {
       console.error('❌ WorkoutContext: Error loading workouts:', error);
@@ -36,9 +36,9 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const createWorkout = async (workout: GeneratedWorkout) => {
+  const createWorkout = useCallback(async (workout: GeneratedWorkout) => {
     try {
       await storageService.saveWorkoutRoutine(workout);
       await loadWorkouts(); // Reload to ensure consistency
@@ -46,9 +46,9 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ WorkoutContext: Error creating workout:', error);
       throw error;
     }
-  };
+  }, [loadWorkouts]);
 
-  const updateWorkout = async (workout: GeneratedWorkout) => {
+  const updateWorkout = useCallback(async (workout: GeneratedWorkout) => {
     try {
       await storageService.saveWorkoutRoutine(workout);
       await loadWorkouts(); // Reload to ensure consistency
@@ -56,9 +56,9 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ WorkoutContext: Error updating workout:', error);
       throw error;
     }
-  };
+  }, [loadWorkouts]);
 
-  const deleteWorkout = async (workoutId: string) => {
+  const deleteWorkout = useCallback(async (workoutId: string) => {
     try {
       await storageService.deleteWorkoutRoutine(workoutId);
       await loadWorkouts(); // Reload to ensure consistency
@@ -66,18 +66,18 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ WorkoutContext: Error deleting workout:', error);
       throw error;
     }
-  };
+  }, [loadWorkouts]);
 
-  const refreshWorkouts = async () => {
+  const refreshWorkouts = useCallback(async () => {
     await loadWorkouts();
-  };
+  }, [loadWorkouts]);
 
   // Load workouts on mount
   useEffect(() => {
     loadWorkouts();
-  }, []);
+  }, [loadWorkouts]);
 
-  const value: WorkoutContextType = {
+  const value: WorkoutContextType = useMemo(() => ({
     workouts,
     isLoading,
     loadWorkouts,
@@ -85,7 +85,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     updateWorkout,
     deleteWorkout,
     refreshWorkouts,
-  };
+  }), [workouts, isLoading, loadWorkouts, createWorkout, updateWorkout, deleteWorkout, refreshWorkouts]);
 
   return (
     <WorkoutContext.Provider value={value}>

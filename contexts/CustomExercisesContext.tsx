@@ -1,6 +1,6 @@
 import { storageService } from '@/lib/storage/storage';
 import { CustomExercise } from '@/types';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface CustomExercisesContextType {
   customExercises: CustomExercise[];
@@ -72,20 +72,20 @@ export function CustomExercisesProvider({ children }: { children: React.ReactNod
     return customExercises.find(e => e.id === id);
   }, [customExercises]);
 
+  const value = useMemo(() => ({
+    customExercises,
+    isLoading,
+    refresh,
+    addExercise,
+    updateExercise,
+    deleteExercise,
+    clearAll,
+    getByName,
+    getById,
+  }), [customExercises, isLoading, refresh, addExercise, updateExercise, deleteExercise, clearAll, getByName, getById]);
+
   return (
-    <CustomExercisesContext.Provider
-      value={{
-        customExercises,
-        isLoading,
-        refresh,
-        addExercise,
-        updateExercise,
-        deleteExercise,
-        clearAll,
-        getByName,
-        getById,
-      }}
-    >
+    <CustomExercisesContext.Provider value={value}>
       {children}
     </CustomExercisesContext.Provider>
   );

@@ -1,6 +1,6 @@
 import { storageService } from '@/lib/storage/storage';
 import { Routine } from '@/types';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface RoutineContextType {
   // State
@@ -24,14 +24,14 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
   const [currentRoutine, setCurrentRoutineState] = useState<Routine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadRoutines = async () => {
+  const loadRoutines = useCallback(async () => {
     try {
       setIsLoading(true);
       const [storedRoutines, storedCurrentRoutine] = await Promise.all([
         storageService.getRoutines(),
         storageService.getCurrentRoutine()
       ]);
-      
+
       setRoutines(storedRoutines);
       setCurrentRoutineState(storedCurrentRoutine);
     } catch (error) {
@@ -41,9 +41,9 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const createRoutine = async (routine: Routine) => {
+  const createRoutine = useCallback(async (routine: Routine) => {
     try {
       await storageService.saveRoutine(routine);
       await loadRoutines(); // Reload to ensure consistency
@@ -51,55 +51,55 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ RoutineContext: Error creating routine:', error);
       throw error;
     }
-  };
+  }, [loadRoutines]);
 
-  const updateRoutine = async (routine: Routine) => {
+  const updateRoutine = useCallback(async (routine: Routine) => {
     try {
       await storageService.saveRoutine(routine);
-      
+
       // Update current routine if it's the one being updated
       if (currentRoutine?.id === routine.id) {
         await storageService.setCurrentRoutine(routine);
       }
-      
+
       await loadRoutines(); // Reload to ensure consistency
     } catch (error) {
       console.error('❌ RoutineContext: Error updating routine:', error);
       throw error;
     }
-  };
+  }, [currentRoutine, loadRoutines]);
 
-  const deleteRoutine = async (routineId: string) => {
+  const deleteRoutine = useCallback(async (routineId: string) => {
     try {
       await storageService.deleteRoutine(routineId);
-      
+
       // Clear current routine if it's the one being deleted
       if (currentRoutine?.id === routineId) {
         setCurrentRoutineState(null);
         // Clear from storage as well
         try {
-           
+
           await storageService.setCurrentRoutine(null as any);
         } catch (storageError) {
           console.warn('Warning: Could not clear current routine from storage:', storageError);
         }
       }
-      
+
       await loadRoutines(); // Reload to ensure consistency
     } catch (error) {
       console.error('❌ RoutineContext: Error deleting routine:', error);
       throw error;
     }
-  };
+  }, [currentRoutine, loadRoutines]);
 
-  const setCurrentRoutine = async (routine: Routine | null) => {
+  const setCurrentRoutine = useCallback(async (routine: Routine | null) => {
     try {
       if (routine) {
         await storageService.setCurrentRoutine(routine);
       } else {
         // Handle clearing current routine
         try {
-           
+
           await storageService.setCurrentRoutine(null as any);
         } catch (error) {
           console.warn('Warning: Could not clear current routine from storage:', error);
@@ -110,18 +110,18 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
       console.error('❌ RoutineContext: Error setting current routine:', error);
       throw error;
     }
-  };
+  }, []);
 
-  const refreshRoutines = async () => {
+  const refreshRoutines = useCallback(async () => {
     await loadRoutines();
-  };
+  }, [loadRoutines]);
 
   // Load routines on mount
   useEffect(() => {
     loadRoutines();
-  }, []);
+  }, [loadRoutines]);
 
-  const value: RoutineContextType = {
+  const value: RoutineContextType = useMemo(() => ({
     routines,
     currentRoutine,
     isLoading,
@@ -131,7 +131,7 @@ export function RoutineProvider({ children }: { children: React.ReactNode }) {
     deleteRoutine,
     setCurrentRoutine,
     refreshRoutines,
-  };
+  }), [routines, currentRoutine, isLoading, loadRoutines, createRoutine, updateRoutine, deleteRoutine, setCurrentRoutine, refreshRoutines]);
 
   return (
     <RoutineContext.Provider value={value}>

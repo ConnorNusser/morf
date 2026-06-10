@@ -16,7 +16,7 @@ interface IconButtonProps {
   iconColor?: string;
 }
 
-export default function IconButton({
+function IconButton({
   icon,
   onPress,
   size = 'medium',
@@ -86,6 +86,8 @@ export default function IconButton({
     </TouchableOpacity>
   );
 }
+
+export default React.memo(IconButton);
 
 const styles = StyleSheet.create({
   button: {

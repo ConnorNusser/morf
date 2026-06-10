@@ -13,7 +13,7 @@ interface ChipProps {
   textStyle?: TextStyle;
 }
 
-export default function Chip({
+function Chip({
   label,
   selected = false,
   onPress,
@@ -59,6 +59,8 @@ export default function Chip({
     </TouchableOpacity>
   );
 }
+
+export default React.memo(Chip);
 
 const styles = StyleSheet.create({
   chip: {

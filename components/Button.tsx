@@ -17,7 +17,7 @@ interface ButtonProps {
   soundName?: SoundName;
 }
 
-export default function Button({
+function Button({
   title,
   onPress,
   variant = 'primary',
@@ -127,4 +127,6 @@ export default function Button({
       </Text>
     </TouchableOpacity>
   );
-} 
+}
+
+export default React.memo(Button); 

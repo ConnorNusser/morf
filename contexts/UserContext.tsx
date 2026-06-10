@@ -1,7 +1,7 @@
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { UserProfile } from '@/types';
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface UserContextType {
   userProfile: UserProfile | null;
@@ -67,13 +67,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     refreshProfile();
   }, [refreshProfile]);
 
-  const value: UserContextType = {
+  const value: UserContextType = useMemo(() => ({
     userProfile,
     isLoading,
     refreshProfile,
     updateProfile,
     getUserProfileOrDefault,
-  };
+  }), [userProfile, isLoading, refreshProfile, updateProfile, getUserProfileOrDefault]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

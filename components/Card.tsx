@@ -9,7 +9,7 @@ interface CardProps {
   padding?: number;
 }
 
-export default function Card({
+function Card({
   children,
   style,
   variant = 'surface',
@@ -67,6 +67,8 @@ export default function Card({
     </View>
   );
 }
+
+export default React.memo(Card);
 
 const styles = StyleSheet.create({
   container: {
