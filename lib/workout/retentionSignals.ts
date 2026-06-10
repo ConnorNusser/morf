@@ -1,31 +1,19 @@
-/**
- * Retention signals — pure, side-effect-free helpers that derive the data the
- * retention notification scheduler needs (current streak, typical training day).
- *
- * Kept separate from the notification layer so the logic is unit-testable with
- * an injectable `now` and synthetic workout data. See
- * docs/specs/retention-notifications.md.
- */
+// Pure helpers behind the retention reminders — streak and training-day pattern.
+// `now` is injectable so the logic is testable without mocking the clock.
 import { GeneratedWorkout } from '@/types';
 
-/** Local-time date key (YYYY-MM-DD), matching recapStats.getDateKey semantics. */
+// Local YYYY-MM-DD, matching recapStats.
 function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export interface StreakState {
-  /** Consecutive training days ending today or yesterday. */
   current: number;
-  /** Whether a workout has already been logged today. */
   trainedToday: boolean;
 }
 
-/**
- * Current training streak + whether the user has trained today.
- * Mirrors recapStats.calculateCurrentStreak but takes an injectable `now`
- * (for testing) and also reports trainedToday, which the scheduler needs to
- * decide whether to fire a streak-at-risk reminder.
- */
+// Like recapStats' streak count, but also reports whether they've trained today
+// (which decides whether a streak reminder is still worth firing).
 export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Date()): StreakState {
   if (workouts.length === 0) return { current: 0, trainedToday: false };
 
@@ -56,24 +44,16 @@ export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Dat
 }
 
 export interface HabitDay {
-  /** 0 = Sunday … 6 = Saturday. */
-  weekday: number;
-  /** Median start time as minutes from local midnight. */
-  medianStartMinute: number;
-  /** How many workouts in the window fell on this weekday. */
+  weekday: number; // 0 = Sunday … 6 = Saturday
+  medianStartMinute: number; // minutes from local midnight
   count: number;
 }
 
-/** Minimum same-weekday workouts within the window to call it a habit. */
 export const HABIT_MIN_COUNT = 3;
-/** Look-back window for habit detection (days). */
 export const HABIT_WINDOW_DAYS = 28;
 
-/**
- * Detect the user's strongest weekly training habit: the weekday they've
- * trained on at least HABIT_MIN_COUNT times in the last HABIT_WINDOW_DAYS.
- * Returns null if there's no stable pattern.
- */
+// The weekday they train most — needs at least HABIT_MIN_COUNT sessions in the
+// window to count, otherwise null.
 export function getHabitDay(workouts: GeneratedWorkout[], now: Date = new Date()): HabitDay | null {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - HABIT_WINDOW_DAYS);
