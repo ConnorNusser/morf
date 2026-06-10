@@ -4,7 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { storageService } from '@/lib/storage/storage';
 import { getStreakState, getHabitDay } from '@/lib/workout/retentionSignals';
 
-export const RETENTION_NOTIFICATIONS_ENABLED = false;
+export const RETENTION_NOTIFICATIONS_ENABLED = true;
 
 const WEEKLY_CAP = 3;
 const EARLIEST_MINUTE = 9 * 60;
