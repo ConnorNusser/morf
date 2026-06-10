@@ -336,7 +336,7 @@ class UserSyncService {
         return [];
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       return (data || []).map((row: any) => ({
         id: row.id,
         user: row.friend as RemoteUser,
@@ -636,7 +636,7 @@ class UserSyncService {
         .single();
 
       // Build updated history - only add new entry if percentile changed
-      let percentileHistory: Array<{ percentile: number; date: string; muscleGroups?: MuscleGroupPercentiles }> = existing?.percentile_history || [];
+      let percentileHistory: { percentile: number; date: string; muscleGroups?: MuscleGroupPercentiles }[] = existing?.percentile_history || [];
       const today = new Date().toISOString().split('T')[0];
 
       // Check if we should add a new history entry:

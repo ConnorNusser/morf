@@ -579,7 +579,7 @@ describeIfApi('AI Parser Integration', () => {
 
       const parsed = JSON.parse(cleanedContent);
 
-      /* eslint-disable no-console -- Test debugging output */
+       
       // Helper to compare and log differences
       const logDiff = (label: string, ai: unknown, exp: unknown) => {
         const aiStr = JSON.stringify(ai);
@@ -597,7 +597,7 @@ describeIfApi('AI Parser Integration', () => {
         console.log('AI exercises:', parsed.exercises.map((e: { name: string }) => e.name));
         console.log('Expected:', expected.map(e => e.name));
       }
-      /* eslint-enable no-console */
+       
       expect(parsed.exercises.length).toBe(expected.length);
 
       // Verify each exercise

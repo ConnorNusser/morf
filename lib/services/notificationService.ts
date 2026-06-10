@@ -442,7 +442,7 @@ class NotificationService {
         return [];
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       return (data || []).map((row: any) => ({
         id: row.id,
         user_id: row.user_id,

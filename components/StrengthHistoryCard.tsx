@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
 import Svg, { Path, Line, Text as SvgText, Circle } from 'react-native-svg';
 import Card from './Card';
@@ -19,11 +19,7 @@ export default function StrengthHistoryCard({ userId }: StrengthHistoryCardProps
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    loadHistory();
-  }, [userId]);
-
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       const user = userId ? { id: userId } : await userSyncService.getCurrentUser();
       if (!user) {
@@ -40,7 +36,11 @@ export default function StrengthHistoryCard({ userId }: StrengthHistoryCardProps
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   // Don't render if no history or loading
   if (isLoading || history.length === 0) {

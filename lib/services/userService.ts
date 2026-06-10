@@ -73,11 +73,11 @@ class UserService {
   // Record multiple lifts in a single atomic operation
   // This avoids race conditions when recording lifts in parallel
   // Returns array of { liftId: string, isNewPR: boolean } for each lift
-  async recordLifts(lifts: Array<{ lift: Omit<UserLift, 'dateRecorded'>; liftType: 'main' | 'secondary' }>): Promise<Array<{ liftId: string; isNewPR: boolean }>> {
+  async recordLifts(lifts: { lift: Omit<UserLift, 'dateRecorded'>; liftType: 'main' | 'secondary' }[]): Promise<{ liftId: string; isNewPR: boolean }[]> {
     const profile = await this.getRealUserProfile();
     if (!profile) throw new Error('No user profile found');
 
-    const results: Array<{ liftId: string; isNewPR: boolean }> = [];
+    const results: { liftId: string; isNewPR: boolean }[] = [];
 
     for (const { lift, liftType } of lifts) {
       const weightInLbs = convertWeightToLbs(lift.weight, lift.unit);

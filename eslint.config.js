@@ -22,17 +22,14 @@ module.exports = defineConfig([
       },
     },
     rules: {
-      // No console.log in production code
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      // Console allowed — it's the logging channel in React Native
+      'no-console': 'off',
 
-      // No explicit any types
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // Explicit any allowed — pragmatic for RN/3rd-party typing gaps
+      '@typescript-eslint/no-explicit-any': 'off',
 
-      // No unused variables
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-      }],
+      // Unused vars downgraded off — avoids churning intentional WIP stubs
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ]);
