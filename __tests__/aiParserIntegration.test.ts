@@ -6,8 +6,18 @@
 import { exerciseNameToId } from '../lib/data/exerciseUtils';
 import { ALL_WORKOUTS } from '../lib/workout/workouts';
 
-// Skip in CI - requires API key
-const describeIfApi = process.env.EXPO_PUBLIC_GEMINI_API_KEY ? describe : describe.skip;
+// These hit the live Gemini API and assert exact model output, so they are
+// non-deterministic and opt-in only. Run with: RUN_AI_INTEGRATION=1 npm test
+// They skip by default (incl. in the pre-commit hook) to avoid flaky failures.
+const aiIntegrationEnabled =
+  !!process.env.RUN_AI_INTEGRATION && !!process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+if (!aiIntegrationEnabled) {
+  console.warn(
+    '[skip] AI parser integration tests skipped (non-deterministic, live API). ' +
+      'Set RUN_AI_INTEGRATION=1 to run them.'
+  );
+}
+const describeIfApi = aiIntegrationEnabled ? describe : describe.skip;
 
 // ============================================================================
 // TEST DATA
