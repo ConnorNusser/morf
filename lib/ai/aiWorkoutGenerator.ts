@@ -483,7 +483,7 @@ class AIWorkoutGeneratorService {
     const prompt = buildCustomExercisePrompt({ exerciseName });
 
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite',
       generationConfig: {
         responseMimeType: 'application/json',
       },
