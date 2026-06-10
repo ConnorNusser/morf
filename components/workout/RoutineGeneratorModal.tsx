@@ -8,7 +8,7 @@ import {
   GeneratedRoutineProgram,
 } from '@/lib/ai/aiRoutineGenerator';
 import { storageService } from '@/lib/storage/storage';
-import { validateGeneratedProgram } from '@/lib/workout/trainingAdvancement';
+import { validateRoutines } from '@/lib/workout/trainingAdvancement';
 import { getAvailableWorkouts } from '@/lib/workout/workouts';
 import { TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -310,10 +310,13 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
       });
 
-      // Validate the generated program and log results
-      validateGeneratedProgram(program, experienceLevel);
+      const routines = await aiRoutineGenerator.convertToRoutines(program, {
+        excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined,
+      });
 
-      const routines = await aiRoutineGenerator.convertToRoutines(program);
+      // Validate the CONVERTED routines (real exercise IDs) and log results
+      validateRoutines(routines, experienceLevel);
+
       for (const routine of routines) {
         await storageService.saveRoutine(routine);
       }

@@ -227,7 +227,7 @@ ${guidelines}
   // Fatigue management
   if (trainingAdvancement) {
     if (!trainingAdvancement.allowHeavySquatAndDeadliftSameDay) {
-      criticalRules.push(`6. FATIGUE RULE: Do NOT put heavy squat and heavy deadlift on the same day`);
+      criticalRules.push(`6. FATIGUE RULE: Heavy squat and heavy deadlift may share ONE dedicated lower/power day per week (as in PHUL/PHAT). Do NOT repeat that heavy pairing on multiple days — accessory hinges (RDL, leg curl, hip thrust at higher reps) alongside squats are fine.`);
     }
     criticalRules.push(`7. Max sets per muscle per session: ${trainingAdvancement.maxSetsPerMusclePerSession}`);
   }

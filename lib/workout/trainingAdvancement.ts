@@ -21,6 +21,7 @@ import {
   FEMALE_STANDARDS
 } from '@/lib/data/strengthStandards';
 import { analyticsService } from '@/lib/services/analytics';
+import { getWorkoutById } from './workouts';
 
 // ===== TRAINING ADVANCEMENT DETERMINATION =====
 
@@ -346,151 +347,96 @@ export function patternsConflict(pattern1: MovementPattern, pattern2: MovementPa
   );
 }
 
-// ===== ROUTINE VALIDATION =====
 
-export interface RoutineValidationResult {
+// ===== ROUTINE VALIDATION =====
+//
+// Validates CONVERTED routines (real exercise IDs), not raw AI output. This fixes two
+// problems found in the output audit:
+//   1. Coverage: the old validator re-derived IDs from names via regex slugs, so any lift
+//      not in the hand-maintained movement map defaulted to 'isolation' and was invisible
+//      to fatigue checks (56-82% coverage). We now resolve muscles/patterns from the real
+//      exercise DB.
+//   2. False positives: the old check flagged ANY squat+hinge co-occurrence as a same-day
+//      conflict — but PHUL/PHAT intentionally pair heavy squat + heavy deadlift on a single
+//      dedicated lower/power day. We now only warn when that heavy pairing repeats across
+//      MORE THAN ONE day per week (genuinely insufficient recovery).
+//
+// Results are observability-only (logged, not enforced) — consistent with the decision not
+// to build a repair loop.
+
+export interface ProgramValidationResult {
   isValid: boolean;
   warnings: string[];
-  errors: string[];
-  details: {
-    hasSquatAndHingeSameDay: boolean;
-    maxSetsPerMuscleExceeded: boolean;
-    movementPatternBalance: Record<MovementPattern, number>;
-  };
+}
+
+interface ValidatableExercise {
+  exerciseId: string;
+  exerciseName?: string;
+  sets: { reps: number }[];
+}
+interface ValidatableRoutine {
+  name: string;
+  exercises: ValidatableExercise[];
+}
+
+/** A routine exercise is "heavy" when its programmed reps sit in the strength range. */
+function isHeavyRoutineExercise(ex: ValidatableExercise): boolean {
+  const reps = ex.sets?.[0]?.reps ?? 99;
+  return reps <= 6;
 }
 
 /**
- * Validate a generated routine against programming rules
- * Logs validation results for monitoring AI output quality
+ * Classify a lift as a squat- or hinge-pattern movement for the same-day fatigue check.
+ * Uses the curated movement map first, then falls back to name keywords from the exercise DB
+ * so coverage isn't limited to hand-listed IDs.
  */
-export function validateGeneratedRoutine(
-  routineDay: { exercises: { exerciseId: string; sets: number }[] },
-  advancementLevel: TrainingAdvancement,
-  dayName?: string
-): RoutineValidationResult {
+function classifyLowerPattern(exerciseId: string, exerciseName?: string): 'squat' | 'hinge' | null {
+  const mapped = EXERCISE_MOVEMENT_PATTERNS[exerciseId];
+  if (mapped === 'squat' || mapped === 'hinge') return mapped;
+  const name = (exerciseName || getWorkoutById(exerciseId)?.name || exerciseId).toLowerCase();
+  if (/(romanian|rdl|deadlift|good\s*morning|hip\s*thrust|swing|back\s*extension|hyperextension)/.test(name)) return 'hinge';
+  if (/(squat|leg\s*press|hack|lunge|split\s*squat|step.?up)/.test(name)) return 'squat';
+  return null;
+}
+
+/**
+ * Validate converted routines against programming rules. Logs results for monitoring AI
+ * output quality; returns warnings for callers that want to surface them.
+ *
+ * NOTE: a per-session/per-week muscle-volume check was deliberately NOT included. The
+ * exercise DB labels primary muscles with coarse regions ("legs", "back", "arms") that span
+ * several sub-muscles, so summing sets per label flags every normal leg/back day (a 14-set
+ * leg day is really ~5 quad / 5 ham / 4 glute). Re-scoring the audit programs showed such a
+ * check firing on 12/16 by-design programs — noise, not signal. Meaningful volume validation
+ * needs a finer muscle taxonomy than this DB provides (logged as future work).
+ */
+export function validateRoutines(
+  routines: ValidatableRoutine[],
+  advancementLevel: TrainingAdvancement
+): ProgramValidationResult {
   const config = PROGRAMMING_RULES[advancementLevel];
   const warnings: string[] = [];
-  const errors: string[] = [];
 
-  // Track movement patterns in this day
-  const patternCounts: Record<MovementPattern, number> = {
-    squat: 0,
-    hinge: 0,
-    horizontal_push: 0,
-    horizontal_pull: 0,
-    vertical_push: 0,
-    vertical_pull: 0,
-    carry: 0,
-    isolation: 0,
-  };
-
-  // Track sets per muscle-ish (using movement pattern as proxy)
-  const setsPerPattern: Record<MovementPattern, number> = { ...patternCounts };
-
-  for (const exercise of routineDay.exercises) {
-    const pattern = getMovementPattern(exercise.exerciseId);
-    patternCounts[pattern]++;
-    setsPerPattern[pattern] += exercise.sets || 3; // Default to 3 if not specified
-  }
-
-  // Check 1: Squat + Hinge same day
-  const hasSquatAndHinge = patternCounts.squat > 0 && patternCounts.hinge > 0;
-  if (hasSquatAndHinge && !config.allowHeavySquatAndDeadliftSameDay) {
-    warnings.push(`Squat and hinge patterns on same day (${dayName || 'routine'}) - may cause excessive fatigue for ${advancementLevel} level`);
-  }
-
-  // Check 2: Sets per muscle per session
-  const maxSetsExceeded = Object.entries(setsPerPattern).some(
-    ([pattern, sets]) => pattern !== 'isolation' && sets > config.maxSetsPerMusclePerSession
-  );
-  if (maxSetsExceeded) {
-    const exceeding = Object.entries(setsPerPattern)
-      .filter(([pattern, sets]) => pattern !== 'isolation' && sets > config.maxSetsPerMusclePerSession)
-      .map(([pattern, sets]) => `${pattern}: ${sets} sets`);
-    warnings.push(`Exceeds recommended ${config.maxSetsPerMusclePerSession} sets/muscle/session: ${exceeding.join(', ')}`);
-  }
-
-  // Check 3: Push/Pull balance (warning only)
-  const totalPush = setsPerPattern.horizontal_push + setsPerPattern.vertical_push;
-  const totalPull = setsPerPattern.horizontal_pull + setsPerPattern.vertical_pull;
-  if (totalPush > 0 && totalPull > 0) {
-    const ratio = totalPush / totalPull;
-    if (ratio > 1.5) {
-      warnings.push(`Push-heavy session (${totalPush} push sets vs ${totalPull} pull sets)`);
+  // Program-level: heavy squat + heavy deadlift is fine on ONE dedicated day; warn if repeated
+  if (!config.allowHeavySquatAndDeadliftSameDay) {
+    let heavyLowerDays = 0;
+    for (const day of routines) {
+      const heavySquat = day.exercises.some(e => isHeavyRoutineExercise(e) && classifyLowerPattern(e.exerciseId, e.exerciseName) === 'squat');
+      const heavyHinge = day.exercises.some(e => isHeavyRoutineExercise(e) && classifyLowerPattern(e.exerciseId, e.exerciseName) === 'hinge');
+      if (heavySquat && heavyHinge) heavyLowerDays++;
+    }
+    if (heavyLowerDays > 1) {
+      warnings.push(`Heavy squat + heavy deadlift paired on ${heavyLowerDays} days/week — limit to one dedicated lower/power day for ${advancementLevel} lifters.`);
     }
   }
 
-  const isValid = errors.length === 0;
-
-  // Log validation result (fire-and-forget to keep function sync)
-  const logContext = {
-    dayName: dayName || 'Routine',
-    advancementLevel,
-    isValid,
-    warningCount: warnings.length,
-    errorCount: errors.length,
-    warnings,
-    errors,
-    patternBalance: patternCounts,
-  };
-
-  if (isValid && warnings.length === 0) {
-    analyticsService.logInfo('ai', 'routine_validation_passed', `${dayName || 'Routine'} valid for ${advancementLevel}`, logContext);
-  } else if (isValid && warnings.length > 0) {
-    analyticsService.logWarn('ai', 'routine_validation_warnings', `${dayName || 'Routine'} valid with ${warnings.length} warnings`, logContext);
-  } else {
-    analyticsService.logErr('ai', 'routine_validation_failed', `${dayName || 'Routine'} invalid for ${advancementLevel}`, logContext);
-  }
-
-  return {
-    isValid,
-    warnings,
-    errors,
-    details: {
-      hasSquatAndHingeSameDay: hasSquatAndHinge,
-      maxSetsPerMuscleExceeded: maxSetsExceeded,
-      movementPatternBalance: patternCounts,
-    },
-  };
-}
-
-/**
- * Validate an entire generated program
- */
-export function validateGeneratedProgram(
-  program: { routines: { name: string; exercises: { name: string; sets: number }[] }[] },
-  advancementLevel: TrainingAdvancement
-): { isValid: boolean; dayResults: RoutineValidationResult[] } {
-  const dayResults = program.routines.map((day) => {
-    // Map exercise names to IDs for validation (simplified - uses lowercase with dashes)
-    const exercises = day.exercises.map(ex => ({
-      exerciseId: ex.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      sets: ex.sets,
-    }));
-    return validateGeneratedRoutine({ exercises }, advancementLevel, day.name);
-  });
-
-  const isValid = dayResults.every(r => r.isValid);
-  const totalWarnings = dayResults.reduce((sum, r) => sum + r.warnings.length, 0);
-  const totalErrors = dayResults.reduce((sum, r) => sum + r.errors.length, 0);
-
-  // Log program-level summary (fire-and-forget)
-  const logContext = {
-    advancementLevel,
-    isValid,
-    dayCount: dayResults.length,
-    totalWarnings,
-    totalErrors,
-    routineNames: program.routines.map(r => r.name),
-  };
-
+  const isValid = warnings.length === 0;
+  const logContext = { advancementLevel, dayCount: routines.length, warnings };
   if (isValid) {
-    analyticsService.logInfo('ai', 'program_validation_complete',
-      `Program valid: ${dayResults.length} days, ${totalWarnings} warnings`, logContext);
+    analyticsService.logInfo('ai', 'program_validation_complete', `Program valid: ${routines.length} days`, logContext);
   } else {
-    analyticsService.logErr('ai', 'program_validation_failed',
-      `Program invalid: ${totalErrors} errors, ${totalWarnings} warnings`, logContext);
+    analyticsService.logWarn('ai', 'program_validation_warnings', `Program has ${warnings.length} warning(s)`, logContext);
   }
 
-  return { isValid, dayResults };
+  return { isValid, warnings };
 }
