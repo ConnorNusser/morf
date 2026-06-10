@@ -143,6 +143,17 @@ export default function NotesScreen() {
     return calculateAllRoutines(routines, workoutHistory, weightUnit);
   }, [routines, workoutHistory, weightUnit]);
 
+  // Precompute muscle groups per routine once, instead of recomputing
+  // getMuscleGroups (iterates exercises + getWorkoutById lookups) for every
+  // routine card on every render (e.g. each expand/collapse toggle).
+  const muscleGroupsByRoutine = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const routine of calculatedRoutines) {
+      map.set(routine.id, getMuscleGroups(routine));
+    }
+    return map;
+  }, [calculatedRoutines]);
+
   // Separate active and inactive routines
   const { activeRoutines, inactiveRoutines } = useMemo(() => {
     const active: CalculatedRoutine[] = [];
@@ -296,7 +307,7 @@ export default function NotesScreen() {
   const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
-    const muscleGroups = getMuscleGroups(routine);
+    const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
 
     // Find exercises that need deloading (consecutiveFailures >= 2)
