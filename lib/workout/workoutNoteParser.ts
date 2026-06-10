@@ -218,7 +218,7 @@ class WorkoutNoteParser {
     console.log(`[WorkoutNoteParser] Prompt length: ${prompt.length} chars`);
 
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite',
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -233,7 +233,7 @@ class WorkoutNoteParser {
     const content = response.text();
 
     const elapsed = Date.now() - startTime;
-    console.log(`[WorkoutNoteParser] AI call took ${elapsed}ms (model: gemini-2.5-flash-lite)`);
+    console.log(`[WorkoutNoteParser] AI call took ${elapsed}ms (model: gemini-3.1-flash-lite)`);
     console.log(`[WorkoutNoteParser] Response length: ${content?.length || 0} chars`);
 
     if (!content) {
@@ -259,7 +259,7 @@ class WorkoutNoteParser {
       requestType: 'note_parse',
       inputText,
       outputData: parsed,
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite',
     });
 
     return parsed;
