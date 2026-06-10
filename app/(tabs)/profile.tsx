@@ -6,6 +6,7 @@ import CustomExercisesSection from '@/components/profile/CustomExercisesSection'
 import ExercisesSection from '@/components/profile/ExercisesSection';
 import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection';
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
+import NotificationPreferencesSection from '@/components/profile/NotificationPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
@@ -185,6 +186,9 @@ export default function ProfileScreen() {
 
         {/* Weight Unit Preference Section */}
         <WeightUnitPreferenceSection />
+
+        {/* Notification Reminders Section */}
+        <NotificationPreferencesSection />
 
         {/* Equipment Filter Section */}
         <EquipmentFilterSection />

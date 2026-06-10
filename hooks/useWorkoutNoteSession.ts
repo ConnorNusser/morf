@@ -2,6 +2,7 @@ import { useAlert } from '@/components/CustomAlert';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/services/analytics';
 import { notificationService } from '@/lib/services/notificationService';
+import { retentionNotificationService } from '@/lib/services/retentionNotificationService';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
@@ -260,6 +261,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
+
+    // The user just trained — re-evaluate retention reminders so today's
+    // streak/habit nudge is cancelled (they no longer need it).
+    retentionNotificationService.refreshScheduledReminders().catch(() => {});
 
     // Update routine progression if this was from a routine
     if (startedRoutineId) {

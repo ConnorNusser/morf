@@ -19,6 +19,8 @@ const STORAGE_KEYS = {
   HOME_VIEW_MODE: 'home_view_mode',
   PENDING_STRENGTH_PROGRESS: 'pending_strength_progress',
   SHOWN_NOTIFICATIONS: 'shown_notifications',
+  NOTIFICATION_PREFERENCES: 'notification_preferences',
+  RETENTION_META: 'retention_meta',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -29,6 +31,26 @@ export interface PendingStrengthProgress {
 }
 
 export type HomeViewMode = 'home' | 'feed';
+
+// User-facing toggles for self-directed retention notifications.
+export interface NotificationPreferences {
+  streakReminders: boolean;
+  habitReminders: boolean;
+  /** Latest minute-of-day we'll schedule a reminder (default 21:30 = 1290). */
+  quietHoursEndMinute: number;
+}
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  streakReminders: true,
+  habitReminders: true,
+  quietHoursEndMinute: 21 * 60 + 30,
+};
+
+// Internal bookkeeping for retention-notification anti-spam (not user-facing).
+export interface RetentionMeta {
+  /** Date keys (YYYY-MM-DD) we've scheduled a retention reminder for. */
+  scheduledDateKeys: string[];
+}
 
 export interface TutorialState {
   hasCompletedAppTutorial: boolean;
@@ -161,6 +183,46 @@ class StorageService {
     } catch (error) {
       console.error('Error loading share count:', error);
       return 0; // Default for testing
+    }
+  }
+
+  // Retention notification preferences
+  async getNotificationPreferences(): Promise<NotificationPreferences> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES);
+      if (!data) return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+      // Merge over defaults so newly-added fields get sensible values.
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES, ...JSON.parse(data) };
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      return { ...DEFAULT_NOTIFICATION_PREFERENCES };
+    }
+  }
+
+  async saveNotificationPreferences(prefs: NotificationPreferences): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES, JSON.stringify(prefs));
+    } catch (error) {
+      console.error('Error saving notification preferences:', error);
+    }
+  }
+
+  // Retention notification anti-spam bookkeeping
+  async getRetentionMeta(): Promise<RetentionMeta> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.RETENTION_META);
+      return data ? JSON.parse(data) : { scheduledDateKeys: [] };
+    } catch (error) {
+      console.error('Error loading retention meta:', error);
+      return { scheduledDateKeys: [] };
+    }
+  }
+
+  async saveRetentionMeta(meta: RetentionMeta): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.RETENTION_META, JSON.stringify(meta));
+    } catch (error) {
+      console.error('Error saving retention meta:', error);
     }
   }
 
