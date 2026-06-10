@@ -2,10 +2,31 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { calculateAveragePrediction } from '@/lib/data/predictionModels';
 import { convertWeightForPreference } from '@/lib/utils/utils';
 import { UserProgress } from '@/types';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+// Deduplicate: keep only the highest record per day (pure helper, hoisted so
+// it isn't recreated every render and can be memoized cleanly).
+function deduplicateByDay(records: UserProgress[]): UserProgress[] {
+  const byDay = new Map<string, UserProgress>();
+
+  for (const record of records) {
+    const date = new Date(record.lastUpdated);
+    const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+    const existing = byDay.get(dayKey);
+    if (!existing || record.personalRecord > existing.personalRecord) {
+      byDay.set(dayKey, record);
+    }
+  }
+
+  // Return sorted by date
+  return Array.from(byDay.values()).sort(
+    (a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
+  );
+}
 
 interface InteractiveProgressChartProps {
   data: UserProgress[];
@@ -29,7 +50,7 @@ interface DataPoint {
 
 type TimePeriod = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 
-export default function InteractiveProgressChart({
+function InteractiveProgressChart({
   data,
   selectedMetric,
   weightUnit,
@@ -44,59 +65,36 @@ export default function InteractiveProgressChart({
   const [blinkAnim] = useState(new Animated.Value(1));
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('ALL');
 
-  // Filter data based on time period
-  const getFilteredData = () => {
-    if (timePeriod === 'ALL') return data;
-
-    const now = new Date();
-    const cutoff = new Date();
-
-    switch (timePeriod) {
-      case '1M':
-        cutoff.setMonth(now.getMonth() - 1);
-        break;
-      case '3M':
-        cutoff.setMonth(now.getMonth() - 3);
-        break;
-      case '6M':
-        cutoff.setMonth(now.getMonth() - 6);
-        break;
-      case '1Y':
-        cutoff.setFullYear(now.getFullYear() - 1);
-        break;
-    }
-
-    return data.filter(d => new Date(d.lastUpdated) >= cutoff);
-  };
-
-  const filteredData = getFilteredData();
-
-  // Deduplicate: keep only the highest record per day
-  const deduplicateByDay = (records: UserProgress[]): UserProgress[] => {
-    const byDay = new Map<string, UserProgress>();
-
-    for (const record of records) {
-      const date = new Date(record.lastUpdated);
-      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-
-      const existing = byDay.get(dayKey);
-      if (!existing || record.personalRecord > existing.personalRecord) {
-        byDay.set(dayKey, record);
+  // Filter data based on time period (memoized — recompute only when the
+  // underlying data or selected period changes, not on every render/tap)
+  const dedupedData = useMemo(() => {
+    let filtered = data;
+    if (timePeriod !== 'ALL') {
+      const now = new Date();
+      const cutoff = new Date();
+      switch (timePeriod) {
+        case '1M':
+          cutoff.setMonth(now.getMonth() - 1);
+          break;
+        case '3M':
+          cutoff.setMonth(now.getMonth() - 3);
+          break;
+        case '6M':
+          cutoff.setMonth(now.getMonth() - 6);
+          break;
+        case '1Y':
+          cutoff.setFullYear(now.getFullYear() - 1);
+          break;
       }
+      filtered = data.filter(d => new Date(d.lastUpdated) >= cutoff);
     }
-
-    // Return sorted by date
-    return Array.from(byDay.values()).sort(
-      (a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
-    );
-  };
-
-  const dedupedData = deduplicateByDay(filteredData);
+    return deduplicateByDay(filtered);
+  }, [data, timePeriod]);
 
   // Calculate prediction if not provided and showPrediction is true
-  const effectivePrediction = showPrediction
+  const effectivePrediction = useMemo(() => showPrediction
     ? (predictionValue ?? calculateAveragePrediction(dedupedData))
-    : undefined;
+    : undefined, [showPrediction, predictionValue, dedupedData]);
 
   // Blinking animation for prediction point
   useEffect(() => {
@@ -480,6 +478,8 @@ export default function InteractiveProgressChart({
     </TouchableWithoutFeedback>
   );
 }
+
+export default React.memo(InteractiveProgressChart);
 
 const styles = StyleSheet.create({
   chartContainer: {

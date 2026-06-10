@@ -10,7 +10,7 @@ import { userSyncService } from '@/lib/services/userSyncService';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { LeaderboardEntry, MAIN_LIFTS, OverallLeaderboardEntry, RemoteUser } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
   Modal,
@@ -198,9 +198,12 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   }, [visible, loadLeaderboard]);
 
   // Sort entries by 1RM
-  const sortedEntries = [...leaderboardData]
-    .filter(e => !selectedExercise || e.exercise_id === selectedExercise)
-    .sort((a, b) => (b.estimated_1rm || 0) - (a.estimated_1rm || 0));
+  const sortedEntries = useMemo(() =>
+    [...leaderboardData]
+      .filter(e => !selectedExercise || e.exercise_id === selectedExercise)
+      .sort((a, b) => (b.estimated_1rm || 0) - (a.estimated_1rm || 0)),
+    [leaderboardData, selectedExercise]
+  );
 
   const getExerciseName = (id: string) => {
     if (id === 'overall') return 'Overall Strength';

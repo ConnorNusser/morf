@@ -15,7 +15,7 @@ import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Share, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ThemeEvolutionSection() {
@@ -70,17 +70,25 @@ export default function ThemeEvolutionSection() {
     }
   };
 
-  const isThemeAvailable = (level: ThemeLevel) => {
+  // Compute the user's overall percentile once per data change instead of
+  // re-deriving it inside isThemeAvailable for every theme card (~6x/card).
+  const calculatedPercentile = useMemo(() => {
     const percentiles = filteredProgress.map(p => p.percentileRanking);
-    const calculatedPercentile = percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
+    return percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
+  }, [filteredProgress]);
+
+  const isThemeAvailable = useCallback((level: ThemeLevel) => {
     return isThemeUnlocked(level, calculatedPercentile, shareCount);
-  };
+  }, [calculatedPercentile, shareCount]);
 
   const isCurrentTheme = (level: ThemeLevel) => {
     return level === currentThemeLevel;
   };
 
-  const themeEntries = Object.entries(themes) as [ThemeLevel, typeof themes[ThemeLevel]][];
+  const themeEntries = useMemo(
+    () => Object.entries(themes) as [ThemeLevel, typeof themes[ThemeLevel]][],
+    [themes]
+  );
 
   const handleShareApp = async () => {
     try {
