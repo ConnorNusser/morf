@@ -1,0 +1,3695 @@
+{
+  "results": [
+    {
+      "id": "hyp-6-ppl-full",
+      "ok": true,
+      "ms": 71484,
+      "promptChars": 6098,
+      "programName": "Reddit PPL (Adjusted for Max Sets)",
+      "dayCountOk": true,
+      "returnedDays": 6,
+      "totalExercises": 36,
+      "matchedExercises": 36,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 80.6,
+      "fatigueWarnings": [
+        "squat+hinge same day (Legs A)",
+        "squat+hinge same day (Legs B)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Reddit PPL (Adjusted for Max Sets)",
+        "programStyle": "ppl",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Push A",
+            "dayNumber": 1,
+            "focus": "Strength",
+            "targetMuscles": [
+              "Chest",
+              "Shoulders",
+              "Triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": "5"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 1,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Pull A",
+            "dayNumber": 2,
+            "focus": "Strength",
+            "targetMuscles": [
+              "Back",
+              "Biceps",
+              "Hamstrings",
+              "Glutes",
+              "Erector Spinae",
+              "Rear Delts"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Legs A",
+            "dayNumber": 3,
+            "focus": "Strength",
+            "targetMuscles": [
+              "Quadriceps",
+              "Hamstrings",
+              "Glutes",
+              "Calves",
+              "Erector Spinae"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 2,
+                "reps": "5"
+              },
+              {
+                "name": "Squat (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 5,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Push B",
+            "dayNumber": 4,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Chest",
+              "Shoulders",
+              "Triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 4,
+                "reps": "5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 1,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Pull B",
+            "dayNumber": 5,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Back",
+              "Biceps",
+              "Rear Delts",
+              "Traps"
+            ],
+            "exercises": [
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Shrugs (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Legs B",
+            "dayNumber": 6,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Quadriceps",
+              "Hamstrings",
+              "Glutes",
+              "Calves",
+              "Erector Spinae"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 2,
+                "reps": "5"
+              },
+              {
+                "name": "Squat (Barbell)",
+                "sets": 1,
+                "reps": "5+"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 5,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "str-3-fb-full",
+      "ok": true,
+      "ms": 13727,
+      "promptChars": 5671,
+      "programName": "Full Body Strength (Intermediate)",
+      "dayCountOk": true,
+      "returnedDays": 3,
+      "totalExercises": 15,
+      "matchedExercises": 15,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 86.7,
+      "fatigueWarnings": [
+        "push-heavy 7v3 (Day 2)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Full Body Strength (Intermediate)",
+        "programStyle": "full_body",
+        "trainingGoal": "strength",
+        "routines": [
+          {
+            "name": "Day 1",
+            "dayNumber": 1,
+            "focus": "Squat Focus",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Chest",
+              "Triceps",
+              "Back",
+              "Core"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Plank (Bodyweight)",
+                "sets": 3,
+                "reps": "30-60 sec"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2",
+            "dayNumber": 2,
+            "focus": "Bench Focus",
+            "targetMuscles": [
+              "Chest",
+              "Triceps",
+              "Shoulders",
+              "Hamstrings",
+              "Glutes",
+              "Back",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3",
+            "dayNumber": 3,
+            "focus": "Deadlift Focus",
+            "targetMuscles": [
+              "Glutes",
+              "Hamstrings",
+              "Lower Back",
+              "Shoulders",
+              "Upper Back",
+              "Quads",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": 3
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Row (Cables)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 3,
+                "reps": 15
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pb-4-ul-full",
+      "ok": true,
+      "ms": 20497,
+      "promptChars": 6060,
+      "programName": "PHUL Powerbuilding",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 22,
+      "matchedExercises": 22,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 100,
+      "fatigueWarnings": [
+        "squat+hinge same day (Lower Power)",
+        "push-heavy 10v4 (Upper Hypertrophy)",
+        "squat+hinge same day (Lower Hypertrophy)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHUL Powerbuilding",
+        "programStyle": "upper_lower",
+        "trainingGoal": "powerbuilding",
+        "routines": [
+          {
+            "name": "Upper Power",
+            "dayNumber": 1,
+            "focus": "Power",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": "5-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Power",
+            "dayNumber": 2,
+            "focus": "Power",
+            "targetMuscles": [
+              "Quadriceps",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Hip Thrust (Barbell)",
+                "sets": 4,
+                "reps": "6-10"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Upper Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Quadriceps",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-4-ul-full",
+      "ok": true,
+      "ms": 26500,
+      "promptChars": 6043,
+      "programName": "Advanced PHUL (Power Hypertrophy Upper Lower)",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 22,
+      "matchedExercises": 22,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 90.9,
+      "fatigueWarnings": [
+        "squat+hinge same day (Lower Body Power)",
+        "push-heavy 11v4 (Upper Body Hypertrophy)",
+        "squat+hinge same day (Lower Body Hypertrophy)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Advanced PHUL (Power Hypertrophy Upper Lower)",
+        "programStyle": "upper_lower",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Upper Body Power",
+            "dayNumber": 1,
+            "focus": "Power",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": "5-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 4,
+                "reps": "6-10"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Body Power",
+            "dayNumber": 2,
+            "focus": "Power",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Hamstrings",
+              "Calves",
+              "Core"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              },
+              {
+                "name": "Hip Thrust (Barbell)",
+                "sets": 4,
+                "reps": "6-10"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Upper Body Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Body Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Hamstrings",
+              "Glutes",
+              "Quads",
+              "Back",
+              "Calves",
+              "Core"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pb-5-pwr-full",
+      "ok": true,
+      "ms": 47299,
+      "promptChars": 6020,
+      "programName": "PHAT (Power Hypertrophy Adaptive Training)",
+      "dayCountOk": true,
+      "returnedDays": 5,
+      "totalExercises": 32,
+      "matchedExercises": 32,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 81.3,
+      "fatigueWarnings": [
+        "squat+hinge same day (Day 2 - Lower Power (Squat Focus))",
+        "squat+hinge same day (Day 5 - Legs Hypertrophy)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHAT (Power Hypertrophy Adaptive Training)",
+        "programStyle": "powerbuilding",
+        "trainingGoal": "powerbuilding",
+        "routines": [
+          {
+            "name": "Day 1 - Upper Power & Deadlift",
+            "dayNumber": 1,
+            "focus": "Upper Body Power & Heavy Deadlift",
+            "targetMuscles": [
+              "back",
+              "chest",
+              "shoulders",
+              "triceps",
+              "biceps",
+              "glutes",
+              "hamstrings"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Day 2 - Lower Power (Squat Focus)",
+            "dayNumber": 2,
+            "focus": "Lower Body Power & Squat",
+            "targetMuscles": [
+              "quads",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Hack Squat (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Hip Thrust (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Day 3 - Back & Shoulders Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Back & Shoulder Volume",
+            "targetMuscles": [
+              "back",
+              "shoulders",
+              "traps"
+            ],
+            "exercises": [
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Cables)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Rear Delt Fly (Dumbbells)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Shrugs (Barbell)",
+                "sets": 3,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Day 4 - Chest & Arms Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Chest, Biceps & Triceps Volume",
+            "targetMuscles": [
+              "chest",
+              "triceps",
+              "biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Incline Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Day 5 - Legs Hypertrophy",
+            "dayNumber": 5,
+            "focus": "Legs Volume & Endurance",
+            "targetMuscles": [
+              "quads",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 2,
+                "reps": "12-20"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "90 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-5-bro-full",
+      "ok": true,
+      "ms": 32278,
+      "promptChars": 6020,
+      "programName": "PHAT Hypertrophy Program",
+      "dayCountOk": true,
+      "returnedDays": 5,
+      "totalExercises": 31,
+      "matchedExercises": 31,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 87.1,
+      "fatigueWarnings": [
+        "squat+hinge same day (Day 2: Lower Power & Squat)",
+        "squat+hinge same day (Day 5: Legs Hypertrophy)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHAT Hypertrophy Program",
+        "programStyle": "PHAT",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Day 1: Upper Power & Deadlift",
+            "dayNumber": 1,
+            "focus": "Upper Body Strength, Deadlift",
+            "targetMuscles": [
+              "Back",
+              "Chest",
+              "Shoulders",
+              "Triceps",
+              "Biceps",
+              "Glutes",
+              "Hamstrings"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 2,
+                "reps": "8-15"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "8-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2: Lower Power & Squat",
+            "dayNumber": 2,
+            "focus": "Lower Body Strength, Squat",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3: Back & Shoulders Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Back and Shoulder Volume",
+            "targetMuscles": [
+              "Back",
+              "Shoulders",
+              "Biceps",
+              "Triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "12-20"
+              },
+              {
+                "name": "Rear Delt Fly (Dumbbells)",
+                "sets": 3,
+                "reps": "12-20"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 4: Chest & Arms Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Chest and Arm Volume",
+            "targetMuscles": [
+              "Chest",
+              "Triceps",
+              "Biceps",
+              "Shoulders"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "8-15"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 2,
+                "reps": "8-15"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "8-15"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 2,
+                "reps": "8-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 5: Legs Hypertrophy",
+            "dayNumber": 5,
+            "focus": "Leg Volume",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Hack Squat (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 2,
+                "reps": "12-20"
+              },
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "str-6-ppl-full",
+      "ok": true,
+      "ms": 71940,
+      "promptChars": 6022,
+      "programName": "Advanced PPL Strength (6 Days)",
+      "dayCountOk": true,
+      "returnedDays": 6,
+      "totalExercises": 30,
+      "matchedExercises": 30,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 93.3,
+      "fatigueWarnings": [
+        "squat+hinge same day (Legs A (Squat Focus))",
+        "squat+hinge same day (Legs B (Squat Variation))"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Advanced PPL Strength (6 Days)",
+        "programStyle": "ppl",
+        "trainingGoal": "strength",
+        "routines": [
+          {
+            "name": "Push A (Bench Focus)",
+            "dayNumber": 1,
+            "focus": "Bench Press",
+            "targetMuscles": [
+              "Chest",
+              "Triceps",
+              "Shoulders"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 5,
+                "reps": "3-5"
+              },
+              {
+                "name": "Incline Bench Press (Barbell)",
+                "sets": 2,
+                "reps": "6-8"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 1,
+                "reps": "8-10"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 1,
+                "reps": "10-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "12-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Pull A (Deadlift Focus)",
+            "dayNumber": 2,
+            "focus": "Deadlift",
+            "targetMuscles": [
+              "Back",
+              "Hamstrings",
+              "Glutes",
+              "Biceps",
+              "Rear Delts"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 2,
+                "reps": "5-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 3,
+                "reps": "8-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Legs A (Squat Focus)",
+            "dayNumber": 3,
+            "focus": "Squat",
+            "targetMuscles": [
+              "Quads",
+              "Hamstrings",
+              "Glutes",
+              "Calves",
+              "Spinal Erectors"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 2,
+                "reps": "5-8"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 2,
+                "reps": "6-8"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 1,
+                "reps": "8-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Push B (OHP Focus)",
+            "dayNumber": 4,
+            "focus": "Overhead Press",
+            "targetMuscles": [
+              "Shoulders",
+              "Triceps",
+              "Chest"
+            ],
+            "exercises": [
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 2,
+                "reps": "6-8"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 1,
+                "reps": "8-10"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 1,
+                "reps": "10-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Pull B (Row Focus)",
+            "dayNumber": 5,
+            "focus": "Barbell Row",
+            "targetMuscles": [
+              "Back",
+              "Hamstrings",
+              "Glutes",
+              "Biceps",
+              "Rear Delts"
+            ],
+            "exercises": [
+              {
+                "name": "Row (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "5-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 2,
+                "reps": "8-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Legs B (Squat Variation)",
+            "dayNumber": 6,
+            "focus": "Front Squat & Hip Hinge",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 3,
+                "reps": "4-6"
+              },
+              {
+                "name": "Squat (Barbell)",
+                "sets": 2,
+                "reps": "6-8"
+              },
+              {
+                "name": "Hip Thrust (Barbell)",
+                "sets": 2,
+                "reps": "6-8"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 1,
+                "reps": "10-12"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "str-4-ul-full",
+      "ok": true,
+      "ms": 17371,
+      "promptChars": 5708,
+      "programName": "PHUL Strength & Hypertrophy Split",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 22,
+      "matchedExercises": 22,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": true,
+      "patternCoverage": 90.9,
+      "fatigueWarnings": [],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHUL Strength & Hypertrophy Split",
+        "programStyle": "upper_lower",
+        "trainingGoal": "strength",
+        "routines": [
+          {
+            "name": "Upper Body - Power",
+            "dayNumber": 1,
+            "focus": "Strength/Upper Body",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": 10
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Body - Power",
+            "dayNumber": 2,
+            "focus": "Strength/Lower Body",
+            "targetMuscles": [
+              "Quads",
+              "Hamstrings",
+              "Glutes",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": 5
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": 10
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Upper Body - Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Hypertrophy/Upper Body",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Body - Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Hypertrophy/Lower Body",
+            "targetMuscles": [
+              "Quads",
+              "Hamstrings",
+              "Glutes",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Hack Squat (Machine)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-3-fb-full-beg",
+      "ok": true,
+      "ms": 15659,
+      "promptChars": 5265,
+      "programName": "Full Body Hypertrophy (Beginner)",
+      "dayCountOk": true,
+      "returnedDays": 3,
+      "totalExercises": 16,
+      "matchedExercises": 16,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 87.5,
+      "fatigueWarnings": [
+        "push-heavy 7v3 (Day 1 - Push Focus)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Full Body Hypertrophy (Beginner)",
+        "programStyle": "full_body",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Day 1 - Push Focus",
+            "dayNumber": 1,
+            "focus": "Push Emphasis",
+            "targetMuscles": [
+              "chest",
+              "shoulders",
+              "triceps",
+              "back",
+              "quads",
+              "glutes"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2 - Pull Focus",
+            "dayNumber": 2,
+            "focus": "Pull Emphasis",
+            "targetMuscles": [
+              "back",
+              "biceps",
+              "shoulders",
+              "hamstrings",
+              "glutes",
+              "quads"
+            ],
+            "exercises": [
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": 15
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3 - Legs Focus",
+            "dayNumber": 3,
+            "focus": "Legs Emphasis",
+            "targetMuscles": [
+              "quads",
+              "glutes",
+              "hamstrings",
+              "calves",
+              "chest",
+              "shoulders",
+              "triceps",
+              "back",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Row (Cables)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": 15
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 3,
+                "reps": 15
+              },
+              {
+                "name": "Plank (Bodyweight)",
+                "sets": 3,
+                "reps": "30-60s"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pb-6-ppl-full",
+      "ok": true,
+      "ms": 39732,
+      "promptChars": 6107,
+      "programName": "Reddit PPL Powerbuilding",
+      "dayCountOk": true,
+      "returnedDays": 6,
+      "totalExercises": 37,
+      "matchedExercises": 37,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 81.1,
+      "fatigueWarnings": [
+        "squat+hinge same day (Legs A)",
+        "squat+hinge same day (Legs B)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Reddit PPL Powerbuilding",
+        "programStyle": "ppl",
+        "trainingGoal": "powerbuilding",
+        "routines": [
+          {
+            "name": "Push A",
+            "dayNumber": 1,
+            "focus": "Strength",
+            "targetMuscles": [
+              "chest",
+              "shoulders",
+              "triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 5,
+                "reps": "4 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Pull A",
+            "dayNumber": 2,
+            "focus": "Strength",
+            "targetMuscles": [
+              "back",
+              "biceps",
+              "rear delts"
+            ],
+            "exercises": [
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 1,
+                "reps": "1 set of 5+ (AMRAP)"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 5,
+                "reps": "4 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 5,
+                "reps": "15-20"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Legs A",
+            "dayNumber": 3,
+            "focus": "Strength",
+            "targetMuscles": [
+              "quads",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "2 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 5,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Push B",
+            "dayNumber": 4,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "shoulders",
+              "chest",
+              "triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 5,
+                "reps": "4 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "12-15"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Pull B",
+            "dayNumber": 5,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "back",
+              "biceps",
+              "rear delts"
+            ],
+            "exercises": [
+              {
+                "name": "Row (Barbell)",
+                "sets": 5,
+                "reps": "4 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 5,
+                "reps": "15-20"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Preacher Curl (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          },
+          {
+            "name": "Legs B",
+            "dayNumber": 6,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "quads",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "2 sets of 5, 1 set AMRAP"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 5,
+                "reps": "8-12"
+              },
+              {
+                "name": "Bulgarian Split Squat (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "90 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-4-ul-home",
+      "ok": true,
+      "ms": 33070,
+      "promptChars": 5098,
+      "programName": "PHUL Dumbbell & Bodyweight",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 23,
+      "matchedExercises": 23,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 56.5,
+      "fatigueWarnings": [
+        "push-heavy 7v4 (Upper Body - Hypertrophy Focus)",
+        "squat+hinge same day (Lower Body - Hypertrophy Focus)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHUL Dumbbell & Bodyweight",
+        "programStyle": "upper_lower",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Upper Body - Power Focus",
+            "dayNumber": 1,
+            "focus": "Upper Body Strength & Power",
+            "targetMuscles": [
+              "chest",
+              "back",
+              "shoulders",
+              "triceps",
+              "biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Pull-up (Bodyweight)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Body - Power Focus",
+            "dayNumber": 2,
+            "focus": "Lower Body Strength & Power",
+            "targetMuscles": [
+              "quads",
+              "glutes",
+              "hamstrings",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Goblet Squat (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Bulgarian Split Squat (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Hip Thrust (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Walking Lunge (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Plank (Bodyweight)",
+                "sets": 3,
+                "reps": "45-60 sec"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Upper Body - Hypertrophy Focus",
+            "dayNumber": 3,
+            "focus": "Upper Body Muscle Growth",
+            "targetMuscles": [
+              "chest",
+              "back",
+              "shoulders",
+              "triceps",
+              "biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Flyes (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Rear Delt Fly (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Skull Crushers (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              }
+            ],
+            "estimatedTime": "70 min"
+          },
+          {
+            "name": "Lower Body - Hypertrophy Focus",
+            "dayNumber": 4,
+            "focus": "Lower Body Muscle Growth",
+            "targetMuscles": [
+              "quads",
+              "glutes",
+              "hamstrings",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Bulgarian Split Squat (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Walking Lunge (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Hip Thrust (Dumbbells)",
+                "sets": 2,
+                "reps": 12
+              },
+              {
+                "name": "Wall Sit (Bodyweight)",
+                "sets": 3,
+                "reps": "45-60 sec"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-3-fb-home",
+      "ok": true,
+      "ms": 18761,
+      "promptChars": 4307,
+      "programName": "Full Body Hypertrophy (Beginner)",
+      "dayCountOk": true,
+      "returnedDays": 3,
+      "totalExercises": 15,
+      "matchedExercises": 15,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": true,
+      "patternCoverage": 66.7,
+      "fatigueWarnings": [
+        "push-heavy 7v3 (Workout A)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Full Body Hypertrophy (Beginner)",
+        "programStyle": "full_body",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Workout A",
+            "dayNumber": 1,
+            "focus": "Push Emphasis",
+            "targetMuscles": [
+              "Chest",
+              "Shoulders",
+              "Triceps",
+              "Back",
+              "Legs",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Goblet Squat (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              },
+              {
+                "name": "Skull Crushers (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 minutes"
+          },
+          {
+            "name": "Workout B",
+            "dayNumber": 2,
+            "focus": "Pull Emphasis",
+            "targetMuscles": [
+              "Back",
+              "Biceps",
+              "Shoulders",
+              "Triceps",
+              "Hamstrings",
+              "Glutes"
+            ],
+            "exercises": [
+              {
+                "name": "Pull-up (Bodyweight)",
+                "sets": 4,
+                "reps": 8
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Rear Delt Fly (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              }
+            ],
+            "estimatedTime": "60 minutes"
+          },
+          {
+            "name": "Workout C",
+            "dayNumber": 3,
+            "focus": "Legs Emphasis",
+            "targetMuscles": [
+              "Legs",
+              "Glutes",
+              "Chest",
+              "Shoulders",
+              "Triceps",
+              "Back",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bulgarian Split Squat (Dumbbells)",
+                "sets": 4,
+                "reps": 10
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Hip Thrust (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": 15
+              }
+            ],
+            "estimatedTime": "60 minutes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "str-3-fb-home",
+      "ok": true,
+      "ms": 17149,
+      "promptChars": 4713,
+      "programName": "Dumbbell Full Body Strength",
+      "dayCountOk": true,
+      "returnedDays": 3,
+      "totalExercises": 15,
+      "matchedExercises": 15,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 73.3,
+      "fatigueWarnings": [
+        "squat+hinge same day (Day 3)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Dumbbell Full Body Strength",
+        "programStyle": "full_body",
+        "trainingGoal": "strength",
+        "routines": [
+          {
+            "name": "Day 1",
+            "dayNumber": 1,
+            "focus": "Squat Focus",
+            "targetMuscles": [
+              "quadriceps",
+              "glutes",
+              "chest",
+              "triceps",
+              "back",
+              "shoulders",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Goblet Squat (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Walking Lunge (Dumbbells)",
+                "sets": 3,
+                "reps": "10 per leg"
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2",
+            "dayNumber": 2,
+            "focus": "Bench Focus",
+            "targetMuscles": [
+              "chest",
+              "triceps",
+              "shoulders",
+              "hamstrings",
+              "glutes",
+              "back",
+              "biceps",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Pull-up (Bodyweight)",
+                "sets": 3,
+                "reps": "8-10"
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3",
+            "dayNumber": 3,
+            "focus": "Deadlift Focus",
+            "targetMuscles": [
+              "hamstrings",
+              "glutes",
+              "back",
+              "shoulders",
+              "triceps",
+              "quadriceps",
+              "core"
+            ],
+            "exercises": [
+              {
+                "name": "Romanian Deadlift (Dumbbells)",
+                "sets": 4,
+                "reps": 5
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": 8
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": 10
+              },
+              {
+                "name": "Bulgarian Split Squat (Dumbbells)",
+                "sets": 3,
+                "reps": "10 per leg"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": 12
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-5-bro-focus",
+      "ok": true,
+      "ms": 35458,
+      "promptChars": 6436,
+      "programName": "PHAT Hypertrophy (Intermediate)",
+      "dayCountOk": true,
+      "returnedDays": 5,
+      "totalExercises": 30,
+      "matchedExercises": 30,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 83.3,
+      "fatigueWarnings": [
+        "squat+hinge same day (Day 2 - Lower Body Power)",
+        "squat+hinge same day (Day 5 - Legs Hypertrophy)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "PHAT Hypertrophy (Intermediate)",
+        "programStyle": "PHAT",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Day 1 - Upper Body Power",
+            "dayNumber": 1,
+            "focus": "Upper Body Strength & Hypertrophy",
+            "targetMuscles": [
+              "chest",
+              "back",
+              "shoulders",
+              "triceps",
+              "biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "8-12"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 2,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2 - Lower Body Power",
+            "dayNumber": 2,
+            "focus": "Lower Body Strength",
+            "targetMuscles": [
+              "quadriceps",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3 - Back & Shoulders Hypertrophy",
+            "dayNumber": 3,
+            "focus": "Back & Shoulder Muscle Growth",
+            "targetMuscles": [
+              "back",
+              "shoulders"
+            ],
+            "exercises": [
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Row (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Shoulder Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "12-20"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "12-20"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 4 - Chest & Arms Hypertrophy",
+            "dayNumber": 4,
+            "focus": "Chest & Arm Muscle Growth",
+            "targetMuscles": [
+              "chest",
+              "triceps",
+              "biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "10-15"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 2,
+                "reps": "10-15"
+              },
+              {
+                "name": "Bicep Curl (Dumbbells)",
+                "sets": 2,
+                "reps": "10-15"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 2,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 5 - Legs Hypertrophy",
+            "dayNumber": 5,
+            "focus": "Leg Muscle Growth",
+            "targetMuscles": [
+              "quadriceps",
+              "hamstrings",
+              "glutes",
+              "calves"
+            ],
+            "exercises": [
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 2,
+                "reps": "12-20"
+              },
+              {
+                "name": "Deadlift (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 2,
+                "reps": "12-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hyp-4-nolegs",
+      "ok": true,
+      "ms": 36828,
+      "promptChars": 5958,
+      "programName": "Intermediate Upper Body Hypertrophy (4-Day)",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 24,
+      "matchedExercises": 24,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 70.8,
+      "fatigueWarnings": [
+        "horizontal_push 13 sets > 10 (Day 1: Chest & Triceps Focus)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [],
+      "_program": {
+        "programName": "Intermediate Upper Body Hypertrophy (4-Day)",
+        "programStyle": "upper_body_split",
+        "trainingGoal": "hypertrophy",
+        "routines": [
+          {
+            "name": "Day 1: Chest & Triceps Focus",
+            "dayNumber": 1,
+            "focus": "Chest & Triceps",
+            "targetMuscles": [
+              "chest",
+              "triceps",
+              "front_deltoids"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": "6-8"
+              },
+              {
+                "name": "Incline Bench Press (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Dip (Bodyweight)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Tricep Extension (Dumbbells)",
+                "sets": 3,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 2: Back & Biceps Focus",
+            "dayNumber": 2,
+            "focus": "Back & Biceps",
+            "targetMuscles": [
+              "back",
+              "biceps",
+              "rear_deltoids"
+            ],
+            "exercises": [
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "6-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Row (Cables)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Rear Delt Fly (Cables)",
+                "sets": 3,
+                "reps": "15-20"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "10-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 3: Shoulders & Chest Focus",
+            "dayNumber": 3,
+            "focus": "Shoulders & Chest",
+            "targetMuscles": [
+              "shoulders",
+              "chest",
+              "triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 4,
+                "reps": "6-8"
+              },
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Rear Delt Fly (Dumbbells)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "12-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Day 4: Back & Arms Focus",
+            "dayNumber": 4,
+            "focus": "Back & Arms",
+            "targetMuscles": [
+              "back",
+              "biceps",
+              "triceps"
+            ],
+            "exercises": [
+              {
+                "name": "Pull-up (Bodyweight)",
+                "sets": 4,
+                "reps": "6-10"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "12-15"
+              },
+              {
+                "name": "Preacher Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Skull Crushers (Dumbbells)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Bicep Curl (Cables)",
+                "sets": 3,
+                "reps": "10-12"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 3,
+                "reps": "10-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pb-4-incl-excl",
+      "ok": true,
+      "ms": 26283,
+      "promptChars": 6120,
+      "programName": "PHUL Powerbuilding Program",
+      "dayCountOk": true,
+      "returnedDays": 4,
+      "totalExercises": 22,
+      "matchedExercises": 22,
+      "droppedCount": 0,
+      "dropped": [],
+      "partialMatchCount": 0,
+      "matchRate": 100,
+      "shortDays": 0,
+      "emptyDays": 0,
+      "weightsPresent": false,
+      "repsArePoint": false,
+      "patternCoverage": 86.4,
+      "fatigueWarnings": [
+        "squat+hinge same day (Lower Power Day)",
+        "squat+hinge same day (Lower Hypertrophy Day)"
+      ],
+      "includedMissing": [],
+      "excludedViolations": [
+        "Bench Press (Barbell)"
+      ],
+      "_program": {
+        "programName": "PHUL Powerbuilding Program",
+        "programStyle": "upper_lower",
+        "trainingGoal": "powerbuilding",
+        "routines": [
+          {
+            "name": "Upper Power Day",
+            "dayNumber": 1,
+            "focus": "Power",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Bench Press (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Row (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Overhead Press (Barbell)",
+                "sets": 3,
+                "reps": "5-8"
+              },
+              {
+                "name": "Lat Pulldown (Cables)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Tricep Pushdown (Cables)",
+                "sets": 2,
+                "reps": "6-10"
+              },
+              {
+                "name": "Bicep Curl (Barbell)",
+                "sets": 2,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Power Day",
+            "dayNumber": 2,
+            "focus": "Power",
+            "targetMuscles": [
+              "Quads",
+              "Glutes",
+              "Hamstrings",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Squat (Barbell)",
+                "sets": 4,
+                "reps": "3-5"
+              },
+              {
+                "name": "Hip Thrust (Barbell)",
+                "sets": 3,
+                "reps": "3-5"
+              },
+              {
+                "name": "Leg Press (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "6-10"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "6-10"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Upper Hypertrophy Day",
+            "dayNumber": 3,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Chest",
+              "Back",
+              "Shoulders",
+              "Triceps",
+              "Biceps"
+            ],
+            "exercises": [
+              {
+                "name": "Incline Bench Press (Dumbbells)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Chest Fly (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Seated Row (Machine)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Lateral Raise (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Overhead Tricep Extension (Cables)",
+                "sets": 3,
+                "reps": "8-12"
+              },
+              {
+                "name": "Hammer Curl (Dumbbells)",
+                "sets": 3,
+                "reps": "8-12"
+              }
+            ],
+            "estimatedTime": "60 min"
+          },
+          {
+            "name": "Lower Hypertrophy Day",
+            "dayNumber": 4,
+            "focus": "Hypertrophy",
+            "targetMuscles": [
+              "Quads",
+              "Hamstrings",
+              "Glutes",
+              "Calves"
+            ],
+            "exercises": [
+              {
+                "name": "Front Squat (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Romanian Deadlift (Barbell)",
+                "sets": 4,
+                "reps": "8-12"
+              },
+              {
+                "name": "Leg Extension (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Leg Curl (Machine)",
+                "sets": 3,
+                "reps": "10-15"
+              },
+              {
+                "name": "Calf Raise (Machine)",
+                "sets": 4,
+                "reps": "10-15"
+              }
+            ],
+            "estimatedTime": "60 min"
+          }
+        ]
+      }
+    }
+  ],
+  "probes": [
+    [
+      {
+        "name": "Push A",
+        "ex": [
+          "Bench Press (Barbell)",
+          "Overhead Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Dumbbells)",
+          "Overhead Tricep Extension (Cables)"
+        ]
+      },
+      {
+        "name": "Pull A",
+        "ex": [
+          "Deadlift (Barbell)",
+          "Row (Barbell)",
+          "Lat Pulldown (Cables)",
+          "Seated Row (Machine)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Barbell)",
+          "Hammer Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs A",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Barbell)",
+          "Leg Press (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      },
+      {
+        "name": "Push B",
+        "ex": [
+          "Overhead Press (Barbell)",
+          "Bench Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Cables)",
+          "Chest Fly (Cables)"
+        ]
+      },
+      {
+        "name": "Pull B",
+        "ex": [
+          "Row (Barbell)",
+          "Lat Pulldown (Cables)",
+          "Seated Row (Machine)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Dumbbells)",
+          "Preacher Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs B",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Dumbbells)",
+          "Leg Press (Machine)",
+          "Leg Extension (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      }
+    ],
+    [
+      {
+        "name": "Push A",
+        "ex": [
+          "Bench Press (Barbell)",
+          "Overhead Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Pull A",
+        "ex": [
+          "Deadlift (Barbell)",
+          "Row (Barbell)",
+          "Lat Pulldown (Cables)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Barbell)",
+          "Hammer Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs A",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Barbell)",
+          "Leg Press (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      },
+      {
+        "name": "Push B",
+        "ex": [
+          "Overhead Press (Barbell)",
+          "Bench Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Cables)"
+        ]
+      },
+      {
+        "name": "Pull B",
+        "ex": [
+          "Row (Barbell)",
+          "Lat Pulldown (Cables)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Dumbbells)",
+          "Preacher Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs B",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Dumbbells)",
+          "Leg Press (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      }
+    ],
+    [
+      {
+        "name": "Push A",
+        "ex": [
+          "Bench Press (Barbell)",
+          "Overhead Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Pull A",
+        "ex": [
+          "Deadlift (Barbell)",
+          "Row (Barbell)",
+          "Seated Row (Machine)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Dumbbells)",
+          "Hammer Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs A",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Barbell)",
+          "Leg Press (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      },
+      {
+        "name": "Push B",
+        "ex": [
+          "Overhead Press (Barbell)",
+          "Bench Press (Barbell)",
+          "Incline Bench Press (Dumbbells)",
+          "Tricep Pushdown (Cables)",
+          "Lateral Raise (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Pull B",
+        "ex": [
+          "Row (Barbell)",
+          "Lat Pulldown (Cables)",
+          "Rear Delt Fly (Cables)",
+          "Bicep Curl (Dumbbells)",
+          "Hammer Curl (Dumbbells)"
+        ]
+      },
+      {
+        "name": "Legs B",
+        "ex": [
+          "Squat (Barbell)",
+          "Romanian Deadlift (Barbell)",
+          "Leg Press (Machine)",
+          "Leg Curl (Machine)",
+          "Calf Raise (Machine)"
+        ]
+      }
+    ]
+  ],
+  "avgJaccard": 0.77
+}
