@@ -62,10 +62,10 @@ class UserSyncService {
         return existingUser as RemoteUser;
       }
 
-      // Create new user
+      // Create new user (upsert to handle race conditions)
       const { data: newUser, error: insertError } = await supabase
         .from('users')
-        .insert({ device_id: deviceId, username })
+        .upsert({ device_id: deviceId, username }, { onConflict: 'device_id' })
         .select()
         .single();
 
@@ -336,7 +336,7 @@ class UserSyncService {
         return [];
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       return (data || []).map((row: any) => ({
         id: row.id,
         user: row.friend as RemoteUser,
@@ -628,6 +628,39 @@ class UserSyncService {
         }
       }
 
+      // Fetch existing data to build history
+      const { data: existing } = await supabase
+        .from('user_percentiles')
+        .select('overall_percentile, percentile_history')
+        .eq('user_id', user.id)
+        .single();
+
+      // Build updated history - only add new entry if percentile changed
+      let percentileHistory: { percentile: number; date: string; muscleGroups?: MuscleGroupPercentiles }[] = existing?.percentile_history || [];
+      const today = new Date().toISOString().split('T')[0];
+
+      // Check if we should add a new history entry:
+      // - Different percentile than current stored value, OR
+      // - No history exists yet (first entry)
+      const shouldAddEntry = !existing ||
+        Math.round(existing.overall_percentile) !== Math.round(overallPercentile) ||
+        percentileHistory.length === 0;
+
+      if (shouldAddEntry) {
+        // Remove any existing entry for today (update instead of duplicate)
+        percentileHistory = percentileHistory.filter(h => h.date !== today);
+        percentileHistory.push({
+          percentile: Math.round(overallPercentile),
+          date: today,
+          muscleGroups: muscleGroups, // Include muscle group breakdown
+        });
+
+        // Keep last 365 entries max (about a year of daily data)
+        if (percentileHistory.length > 365) {
+          percentileHistory = percentileHistory.slice(-365);
+        }
+      }
+
       // Upsert percentile data
       const { error } = await supabase
         .from('user_percentiles')
@@ -637,6 +670,7 @@ class UserSyncService {
           strength_level: strengthLevel,
           muscle_groups: muscleGroups,
           top_contributions: topContributions,
+          percentile_history: percentileHistory,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_id',
@@ -655,7 +689,8 @@ class UserSyncService {
       analyticsService.logInfo('sync', 'percentile_synced', 'Percentile data synced', {
         overallPercentile,
         strengthLevel,
-        topContributionsCount: topContributions.length
+        topContributionsCount: topContributions.length,
+        historyEntries: percentileHistory.length
       });
       return true;
     } catch (error) {
@@ -892,6 +927,7 @@ class UserSyncService {
         strength_level: data.strength_level,
         muscle_groups: data.muscle_groups || { chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0 },
         top_contributions: data.top_contributions || [],
+        percentile_history: data.percentile_history || [],
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
       };
     } catch (error) {

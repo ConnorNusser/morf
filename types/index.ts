@@ -9,7 +9,7 @@ export type WeightUnit = 'lbs' | 'kg';
 export type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
 // Theme progression levels
-export type ThemeLevel = 'beginner' | 'beginner_dark' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool' | 'christmas_theme_2025';
+export type ThemeLevel = 'beginner' | 'beginner_dark' | 'intermediate' | 'advanced' | 'elite' | 'god' | 'share_warm' | 'share_cool' | 'winter_2026';
 
 // ===== EXERCISE TYPES =====
 
@@ -217,6 +217,7 @@ export interface WorkoutSetCompletion {
 
 export interface WorkoutExerciseSession extends ExerciseSet {
   completedSets: WorkoutSetCompletion[];
+  targetSets?: WorkoutSetCompletion[]; // Target sets from routine progression
   isCompleted: boolean;
 }
 
@@ -307,6 +308,15 @@ export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
   custom: 'Custom',
 };
 
+// Per-exercise progression tracking within a routine
+export interface ExerciseProgressionState {
+  baseReps: number;           // Original programmed reps
+  currentRepBonus: number;    // 0, 1, 2, or 3 extra reps
+  currentWeight: number;      // Current working weight in user's unit
+  consecutiveFailures: number; // For deload detection
+  lastSessionDate?: Date;
+}
+
 // The routine itself - stores structure only, no weights
 export interface Routine {
   id: string;
@@ -317,6 +327,8 @@ export interface Routine {
   createdAt: Date;
   lastUsed?: Date;
   isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
+  // Progression tracking per exercise
+  progressionState?: Record<string, ExerciseProgressionState>;
 }
 
 // Calculated set with weight
@@ -356,6 +368,8 @@ export interface GeneratedWorkout {
   createdAt: Date;
   // day of week for routines
   dayOfWeek?: DayOfWeek;
+  // Link back to source routine for progression tracking
+  routineId?: string;
 }
 
 export interface WorkoutContext {
@@ -539,6 +553,13 @@ export interface TopContribution {
   weight?: number; // 1RM in lbs
 }
 
+// Percentile history entry for tracking strength over time
+export interface PercentileHistoryEntry {
+  percentile: number;
+  date: string; // ISO date string (YYYY-MM-DD)
+  muscleGroups?: MuscleGroupPercentiles; // Optional muscle group breakdown for this date
+}
+
 // User percentile data for overall strength leaderboard
 export interface UserPercentileData {
   user_id: string;
@@ -546,6 +567,7 @@ export interface UserPercentileData {
   strength_level: string;
   muscle_groups: MuscleGroupPercentiles;
   top_contributions: TopContribution[];
+  percentile_history?: PercentileHistoryEntry[];
   updated_at?: Date;
 }
 
@@ -560,13 +582,16 @@ export interface OverallLeaderboardEntry {
 }
 
 // Notification types
-export type NotificationType = 'friend_pr' | 'friend_workout';
+export type NotificationType = 'friend_pr' | 'friend_workout' | 'post_like' | 'post_comment';
 
 export interface NotificationData {
   exercise_id?: string;
   exercise_name?: string;
   weight?: number;
   previous_pr?: number;
+  post_id?: string;
+  post_text?: string;
+  comment_text?: string;
 }
 
 export interface Notification {

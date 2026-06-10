@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import Animated, {
+  cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -11,6 +12,10 @@ import Animated, {
 } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Module-level state to track snow timing across remounts
+let lastSnowStartTime: number | null = null;
+let lastSnowEndTime: number | null = null;
 
 interface Snowflake {
   id: number;
@@ -34,7 +39,7 @@ const generateSnowflakes = (count: number): Snowflake[] => {
   }));
 };
 
-const SnowflakeComponent = ({ snowflake }: { snowflake: Snowflake }) => {
+const SnowflakeComponent = memo(function SnowflakeComponent({ snowflake }: { snowflake: Snowflake }) {
   const translateY = useSharedValue(-20);
   const translateX = useSharedValue(0);
 
@@ -68,6 +73,12 @@ const SnowflakeComponent = ({ snowflake }: { snowflake: Snowflake }) => {
         true
       )
     );
+
+    // Cleanup animations on unmount
+    return () => {
+      cancelAnimation(translateY);
+      cancelAnimation(translateX);
+    };
   }, [snowflake, translateY, translateX]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -92,37 +103,67 @@ const SnowflakeComponent = ({ snowflake }: { snowflake: Snowflake }) => {
       ]}
     />
   );
-};
+});
 
 export interface SnowEffectProps {
   intervalMs: number;
 }
 
+const SNOWFLAKE_COUNT = 25;
+
 export default function SnowEffect({ intervalMs }: SnowEffectProps) {
-  const [isSnowing, setIsSnowing] = useState(true);
-  const [snowflakes, setSnowflakes] = useState<Snowflake[]>(() => generateSnowflakes(30));
+  const [snowflakes, setSnowflakes] = useState<Snowflake[]>(() => {
+    const now = Date.now();
+
+    // Check if we should be snowing based on wall-clock time
+    if (lastSnowStartTime !== null && lastSnowEndTime !== null) {
+      // Currently in a snow session that hasn't ended yet
+      if (now < lastSnowEndTime) {
+        return generateSnowflakes(SNOWFLAKE_COUNT);
+      }
+      // Check if interval has passed since last snow ended
+      if (now - lastSnowEndTime < intervalMs) {
+        return []; // Still waiting for next snow
+      }
+    }
+
+    // Start a new snow session
+    const snowDuration = 15000 + Math.random() * 15000;
+    lastSnowStartTime = now;
+    lastSnowEndTime = now + snowDuration;
+    return generateSnowflakes(SNOWFLAKE_COUNT);
+  });
 
   useEffect(() => {
-    // Snow duration: 15-30 seconds
-    const snowDuration = 15000 + Math.random() * 15000;
+    if (snowflakes.length === 0) {
+      // Not currently snowing - schedule next snow based on wall-clock time
+      const now = Date.now();
+      const timeUntilNextSnow = lastSnowEndTime
+        ? Math.max(0, (lastSnowEndTime + intervalMs) - now)
+        : intervalMs;
 
-    const stopTimeout = setTimeout(() => {
-      setIsSnowing(false);
-      setSnowflakes([]);
-    }, snowDuration);
+      const nextSnowTimeout = setTimeout(() => {
+        const snowDuration = 15000 + Math.random() * 15000;
+        lastSnowStartTime = Date.now();
+        lastSnowEndTime = Date.now() + snowDuration;
+        setSnowflakes(generateSnowflakes(SNOWFLAKE_COUNT));
+      }, timeUntilNextSnow);
 
-    const nextSnowTimeout = setTimeout(() => {
-      setSnowflakes(generateSnowflakes(30));
-      setIsSnowing(true);
-    }, intervalMs);
+      return () => clearTimeout(nextSnowTimeout);
+    } else {
+      // Currently snowing - schedule stop based on remaining time
+      const now = Date.now();
+      const timeUntilStop = lastSnowEndTime ? Math.max(0, lastSnowEndTime - now) : 0;
 
-    return () => {
-      clearTimeout(stopTimeout);
-      clearTimeout(nextSnowTimeout);
-    };
-  }, [isSnowing, intervalMs]);
+      const stopTimeout = setTimeout(() => {
+        setSnowflakes([]);
+      }, timeUntilStop);
 
-  if (!isSnowing || snowflakes.length === 0) return null;
+      return () => clearTimeout(stopTimeout);
+    }
+  }, [snowflakes.length, intervalMs]);
+
+  if (snowflakes.length === 0) return null;
 
   return (
     <>
@@ -137,9 +178,5 @@ const styles = StyleSheet.create({
   snowflake: {
     position: 'absolute',
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 1,
   },
 });

@@ -311,6 +311,101 @@ class NotificationService {
   }
 
   /**
+   * Get push tokens for a specific user
+   */
+  private async getUserPushTokens(userId: string): Promise<string[]> {
+    if (!supabase) return [];
+
+    try {
+      const { data: tokens, error } = await supabase
+        .from('push_tokens')
+        .select('token')
+        .eq('user_id', userId);
+
+      if (error || !tokens) return [];
+
+      return tokens.map(t => t.token);
+    } catch (error) {
+      console.error('Error getting user push tokens:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Notify post author when someone likes their post (push notification only)
+   */
+  async notifyPostLike(
+    authorId: string,
+    fromUserId: string,
+    fromUsername: string,
+    postText: string
+  ): Promise<boolean> {
+    // Don't notify if user liked their own post
+    if (authorId === fromUserId) return true;
+
+    try {
+      const authorTokens = await this.getUserPushTokens(authorId);
+      if (authorTokens.length === 0) return true;
+
+      const truncatedText = postText.length > 50
+        ? postText.substring(0, 50) + '...'
+        : postText;
+
+      await this.sendPushNotifications(
+        authorTokens,
+        `${fromUsername} liked your post`,
+        truncatedText || 'Your post',
+        {
+          type: 'post_like',
+          fromUserId,
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error notifying post like:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Notify post author when someone comments on their post (push notification only)
+   */
+  async notifyPostComment(
+    authorId: string,
+    fromUserId: string,
+    fromUsername: string,
+    commentText: string
+  ): Promise<boolean> {
+    // Don't notify if user commented on their own post
+    if (authorId === fromUserId) return true;
+
+    try {
+      const authorTokens = await this.getUserPushTokens(authorId);
+      if (authorTokens.length === 0) return true;
+
+      const truncatedComment = commentText.length > 100
+        ? commentText.substring(0, 100) + '...'
+        : commentText;
+
+      await this.sendPushNotifications(
+        authorTokens,
+        `${fromUsername} commented on your post`,
+        truncatedComment,
+        {
+          type: 'post_comment',
+          fromUserId,
+        }
+      );
+
+      return true;
+    } catch (error) {
+      console.error('Error notifying post comment:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get notifications for the current user
    */
   async getNotifications(limit: number = 50): Promise<Notification[]> {
@@ -347,7 +442,7 @@ class NotificationService {
         return [];
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       return (data || []).map((row: any) => ({
         id: row.id,
         user_id: row.user_id,

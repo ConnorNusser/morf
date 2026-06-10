@@ -1,3 +1,4 @@
+import Chip from '@/components/Chip';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -30,6 +31,7 @@ interface RoutineGeneratorModalProps {
   visible: boolean;
   onClose: () => void;
   onRoutinesCreated: () => void;
+  onGenerationStarted?: () => void;  // Called when generation starts (for background mode)
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -65,8 +67,8 @@ const TRAINING_GOALS: { id: TrainingGoal; title: string; desc: string; icon: str
   { id: 'general', title: 'General Fitness', desc: 'Well-rounded program for overall health and conditioning', icon: 'heart-outline' },
 ];
 
-// Focus areas
-const FOCUS_AREAS = [
+// Body part areas (for focus/ignore)
+const BODY_AREAS = [
   { id: 'chest', label: 'Chest' },
   { id: 'back', label: 'Back' },
   { id: 'shoulders', label: 'Shoulders' },
@@ -111,33 +113,53 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   visible,
   onClose,
   onRoutinesCreated,
+  onGenerationStarted,
 }) => {
   const { currentTheme } = useTheme();
   const [step, setStep] = useState<FlowStep>('goal');
   const [selectedGoal, setSelectedGoal] = useState<TrainingGoal | null>(null);
   const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
+  const [ignoredMuscles, setIgnoredMuscles] = useState<string[]>([]);
   const [selectedExperience, setSelectedExperience] = useState<TrainingAdvancement | null>(null);
   const [selectedDays, setSelectedDays] = useState<number | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<WorkoutDuration | null>(null);
   const [includedExercises, setIncludedExercises] = useState<string[]>([]);
   const [excludedExercises, setExcludedExercises] = useState<string[]>([]);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<string | null>(null);
   const [generatedProgram, setGeneratedProgram] = useState<GeneratedRoutineProgram | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
 
+  // Muscle group filter categories
+  const muscleCategories = useMemo(() => {
+    const categories = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
+    return categories;
+  }, []);
+
   // Get available exercises for the exercise preferences step
   const availableExercises = useMemo(() => {
-    return getAvailableWorkouts(200).map(e => ({ id: e.id, name: e.name, muscleGroup: e.muscleGroup }));
+    return getAvailableWorkouts(200).map(e => ({ id: e.id, name: e.name, muscleGroup: e.primaryMuscles[0] || '' }));
   }, []);
 
   const filteredExercises = useMemo(() => {
-    if (!exerciseSearchQuery.trim()) return availableExercises;
-    const query = exerciseSearchQuery.toLowerCase().trim();
-    return availableExercises.filter(e =>
-      e.name.toLowerCase().includes(query) ||
-      e.muscleGroup.toLowerCase().includes(query)
-    );
-  }, [availableExercises, exerciseSearchQuery]);
+    let exercises = availableExercises;
+
+    // Filter by muscle group if selected
+    if (selectedMuscleFilter) {
+      exercises = exercises.filter(e => e.muscleGroup === selectedMuscleFilter);
+    }
+
+    // Filter by search query
+    if (exerciseSearchQuery.trim()) {
+      const query = exerciseSearchQuery.toLowerCase().trim();
+      exercises = exercises.filter(e =>
+        e.name.toLowerCase().includes(query) ||
+        (e.muscleGroup && e.muscleGroup.toLowerCase().includes(query))
+      );
+    }
+
+    return exercises;
+  }, [availableExercises, exerciseSearchQuery, selectedMuscleFilter]);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -174,6 +196,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         setStep('goal');
         setSelectedGoal(null);
         setSelectedFocus([]);
+        setIgnoredMuscles([]);
         setSelectedExperience(null);
         setSelectedDays(null);
         setSelectedDuration(null);
@@ -206,12 +229,21 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     animateTransition('focus');
   };
 
-  const handleFocusToggle = (focusId: string) => {
-    setSelectedFocus(prev =>
-      prev.includes(focusId)
-        ? prev.filter(f => f !== focusId)
-        : [...prev, focusId]
-    );
+  const handleBodyAreaToggle = (areaId: string) => {
+    const isFocused = selectedFocus.includes(areaId);
+    const isIgnored = ignoredMuscles.includes(areaId);
+
+    if (!isFocused && !isIgnored) {
+      // Not selected -> Focus (green)
+      setSelectedFocus(prev => [...prev, areaId]);
+    } else if (isFocused) {
+      // Focused -> Ignored (red)
+      setSelectedFocus(prev => prev.filter(f => f !== areaId));
+      setIgnoredMuscles(prev => [...prev, areaId]);
+    } else {
+      // Ignored -> Not selected
+      setIgnoredMuscles(prev => prev.filter(i => i !== areaId));
+    }
   };
 
   const handleFocusContinue = () => {
@@ -256,29 +288,27 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   }, []);
 
   const handleExercisesContinue = async () => {
-    animateTransition('generating');
-    setStatusMessage('Analyzing your goals...');
+    // Close modal immediately and generate in background
+    onGenerationStarted?.();
+    onClose();
 
     try {
       const programTemplate = selectProgramTemplate(selectedGoal!, selectedDays!);
       const experienceLevel = selectedExperience || 'beginner';
       const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
 
-      setTimeout(() => setStatusMessage('Designing program structure...'), 1000);
-      setTimeout(() => setStatusMessage('Selecting exercises...'), 2500);
-
       const program = await aiRoutineGenerator.generateRoutineProgram({
         programTemplate,
         trainingGoal: selectedGoal!,
         weeklyDays: selectedDays!,
         focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
+        ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
         trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
         workoutDuration: selectedDuration!,
         exercisesPerWorkout: { min: durationConfig!.min, max: durationConfig!.max },
         includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
         excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
       });
-      setGeneratedProgram(program);
 
       // Validate the generated program and log results
       validateGeneratedProgram(program, experienceLevel);
@@ -288,12 +318,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         await storageService.saveRoutine(routine);
       }
 
-      setStatusMessage('Complete');
-      animateTransition('success');
+      // Notify that routines were created
+      onRoutinesCreated();
     } catch (error) {
       console.error('Error generating routine:', error);
-      setStatusMessage('Failed to generate');
-      setTimeout(() => onClose(), 1500);
+      // Could add a toast notification here for errors
     }
   };
 
@@ -365,7 +394,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 1</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>What's your goal?</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>What&apos;s your goal?</Text>
       </View>
 
       <View style={styles.goalGrid}>
@@ -391,38 +420,77 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 2</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Any areas to focus on?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Select muscle groups to prioritize, or skip for a balanced program</Text>
+        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Focus or skip any areas?</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>
+          Tap once to focus, tap again to skip, tap again to reset
+        </Text>
+      </View>
+
+      {/* Legend */}
+      <View style={styles.bodyAreaLegend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
+          <Text style={[styles.legendText, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Focus</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
+          <Text style={[styles.legendText, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Skip</Text>
+        </View>
       </View>
 
       <View style={styles.focusGrid}>
-        {FOCUS_AREAS.map((area) => {
-          const isSelected = selectedFocus.includes(area.id);
+        {BODY_AREAS.map((area) => {
+          const isFocused = selectedFocus.includes(area.id);
+          const isIgnored = ignoredMuscles.includes(area.id);
+
+          let chipVariant: 'default' | 'focus' | 'ignore' = 'default';
+          if (isFocused) chipVariant = 'focus';
+          if (isIgnored) chipVariant = 'ignore';
+
           return (
             <TouchableOpacity
               key={area.id}
               style={[
-                styles.focusChip,
+                styles.bodyAreaChip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                isSelected && { backgroundColor: colors.accent + '12', borderColor: colors.accent },
+                isFocused && { backgroundColor: colors.success + '20', borderColor: colors.success },
+                isIgnored && { backgroundColor: '#EF444420', borderColor: '#EF4444' },
               ]}
-              onPress={() => handleFocusToggle(area.id)}
+              onPress={() => handleBodyAreaToggle(area.id)}
               activeOpacity={0.7}
             >
-              {isSelected && (
-                <Ionicons name="checkmark-circle" size={18} color={colors.accent} style={styles.focusCheck} />
-              )}
-              <Text style={[
-                styles.focusLabel,
-                { color: colors.textDim, fontFamily: currentTheme.fonts.semiBold },
-                isSelected && { color: colors.accent },
-              ]}>
+              <Text
+                style={[
+                  styles.bodyAreaLabel,
+                  { color: colors.text, fontFamily: currentTheme.fonts.medium },
+                  isFocused && { color: colors.success },
+                  isIgnored && { color: '#EF4444' },
+                ]}
+              >
                 {area.label}
               </Text>
+              {isFocused && <Ionicons name="add-circle" size={16} color={colors.success} style={{ marginLeft: 4 }} />}
+              {isIgnored && <Ionicons name="remove-circle" size={16} color="#EF4444" style={{ marginLeft: 4 }} />}
             </TouchableOpacity>
           );
         })}
       </View>
+
+      {/* Summary */}
+      {(selectedFocus.length > 0 || ignoredMuscles.length > 0) && (
+        <View style={[styles.bodyAreaSummary, { backgroundColor: colors.surface }]}>
+          {selectedFocus.length > 0 && (
+            <Text style={[styles.bodyAreaSummaryText, { color: colors.success, fontFamily: currentTheme.fonts.medium }]}>
+              Focusing: {selectedFocus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
+            </Text>
+          )}
+          {ignoredMuscles.length > 0 && (
+            <Text style={[styles.bodyAreaSummaryText, { color: '#EF4444', fontFamily: currentTheme.fonts.medium }]}>
+              Skipping: {ignoredMuscles.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ')}
+            </Text>
+          )}
+        </View>
+      )}
 
       <View style={styles.bottomActions}>
         <TouchableOpacity
@@ -431,7 +499,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           activeOpacity={0.8}
         >
           <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
-            {selectedFocus.length > 0 ? 'Continue' : 'Skip'}
+            {selectedFocus.length > 0 || ignoredMuscles.length > 0 ? 'Continue' : 'Skip'}
           </Text>
           <Ionicons name="arrow-forward" size={18} color={colors.bg} />
         </TouchableOpacity>
@@ -471,7 +539,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 4</Text>
         <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How many days per week?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>We'll design the optimal split for your schedule</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>We&apos;ll design the optimal split for your schedule</Text>
       </View>
 
       <View style={styles.daysGrid}>
@@ -495,7 +563,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.titleBlock}>
         <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 5</Text>
         <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How long per workout?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This determines how many exercises we'll include</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This determines how many exercises we&apos;ll include</Text>
       </View>
 
       <View style={styles.durationGrid}>
@@ -514,92 +582,150 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     </Animated.View>
   );
 
+  // Cycle through: neutral -> included -> excluded -> neutral
+  const handleExerciseCycle = useCallback((exerciseId: string) => {
+    const isIncluded = includedExercises.includes(exerciseId);
+    const isExcluded = excludedExercises.includes(exerciseId);
+
+    if (!isIncluded && !isExcluded) {
+      // Neutral -> Included
+      setIncludedExercises(prev => [...prev, exerciseId]);
+    } else if (isIncluded) {
+      // Included -> Excluded
+      setIncludedExercises(prev => prev.filter(id => id !== exerciseId));
+      setExcludedExercises(prev => [...prev, exerciseId]);
+    } else {
+      // Excluded -> Neutral
+      setExcludedExercises(prev => prev.filter(id => id !== exerciseId));
+    }
+  }, [includedExercises, excludedExercises]);
+
   const renderExerciseItem = ({ item }: { item: { id: string; name: string; muscleGroup: string } }) => {
     const isIncluded = includedExercises.includes(item.id);
     const isExcluded = excludedExercises.includes(item.id);
 
     return (
-      <View style={[styles.exerciseRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <TouchableOpacity
+        style={[
+          styles.exerciseRow,
+          { backgroundColor: colors.surface, borderColor: colors.border },
+          isIncluded && { backgroundColor: colors.success + '10', borderColor: colors.success },
+          isExcluded && { backgroundColor: '#EF444410', borderColor: '#EF4444' },
+        ]}
+        onPress={() => handleExerciseCycle(item.id)}
+        activeOpacity={0.7}
+      >
         <View style={styles.exerciseInfo}>
-          <Text style={[styles.exerciseName, { color: colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
+          <Text
+            style={[
+              styles.exerciseName,
+              { color: colors.text, fontFamily: currentTheme.fonts.medium },
+              isIncluded && { color: colors.success },
+              isExcluded && { color: '#EF4444' },
+            ]}
+            numberOfLines={1}
+          >
             {item.name}
           </Text>
           <Text style={[styles.exerciseMuscle, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
             {item.muscleGroup}
           </Text>
         </View>
-        <View style={styles.exerciseActions}>
-          <TouchableOpacity
-            style={[
-              styles.exerciseActionBtn,
-              { backgroundColor: isIncluded ? colors.success + '20' : colors.bg, borderColor: isIncluded ? colors.success : colors.border },
-            ]}
-            onPress={() => handleToggleIncludedExercise(item.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add" size={18} color={isIncluded ? colors.success : colors.textMuted} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.exerciseActionBtn,
-              { backgroundColor: isExcluded ? '#EF444420' : colors.bg, borderColor: isExcluded ? '#EF4444' : colors.border },
-            ]}
-            onPress={() => handleToggleExcludedExercise(item.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="remove" size={18} color={isExcluded ? '#EF4444' : colors.textMuted} />
-          </TouchableOpacity>
+        <View style={styles.exerciseStatus}>
+          {isIncluded && (
+            <View style={[styles.statusBadge, { backgroundColor: colors.success }]}>
+              <Ionicons name="add" size={14} color="#fff" />
+            </View>
+          )}
+          {isExcluded && (
+            <View style={[styles.statusBadge, { backgroundColor: '#EF4444' }]}>
+              <Ionicons name="remove" size={14} color="#fff" />
+            </View>
+          )}
+          {!isIncluded && !isExcluded && (
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
   const renderExercisesStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim, flex: 1 }]}>
-      <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 6</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Exercise preferences</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>
-          Tap + to include, - to exclude. Skip if no preference.
-        </Text>
-      </View>
-
-      {/* Selection summary */}
-      {(includedExercises.length > 0 || excludedExercises.length > 0) && (
-        <View style={[styles.selectionSummary, { backgroundColor: colors.surface }]}>
-          {includedExercises.length > 0 && (
-            <Text style={[styles.selectionText, { color: colors.success, fontFamily: currentTheme.fonts.medium }]}>
-              +{includedExercises.length} included
-            </Text>
-          )}
-          {excludedExercises.length > 0 && (
-            <Text style={[styles.selectionText, { color: '#EF4444', fontFamily: currentTheme.fonts.medium }]}>
-              -{excludedExercises.length} excluded
-            </Text>
-          )}
+      {/* Compact header */}
+      <View style={styles.exercisesHeader}>
+        <View>
+          <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 6</Text>
+          <Text style={[styles.exercisesTitle, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Exercise preferences</Text>
         </View>
-      )}
-
-      {/* Search bar */}
-      <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
-        <Ionicons name="search" size={18} color={colors.textMuted} />
-        <TextInput
-          style={[styles.exerciseSearchInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
-          placeholder="Search exercises..."
-          placeholderTextColor={colors.textMuted}
-          value={exerciseSearchQuery}
-          onChangeText={setExerciseSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {exerciseSearchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setExerciseSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+        {/* Selection summary pill */}
+        {(includedExercises.length > 0 || excludedExercises.length > 0) && (
+          <View style={[styles.selectionPill, { backgroundColor: colors.surface }]}>
+            {includedExercises.length > 0 && (
+              <Text style={[styles.pillText, { color: colors.success, fontFamily: currentTheme.fonts.semiBold }]}>
+                +{includedExercises.length}
+              </Text>
+            )}
+            {includedExercises.length > 0 && excludedExercises.length > 0 && (
+              <Text style={[styles.pillDivider, { color: colors.textMuted }]}>/</Text>
+            )}
+            {excludedExercises.length > 0 && (
+              <Text style={[styles.pillText, { color: '#EF4444', fontFamily: currentTheme.fonts.semiBold }]}>
+                -{excludedExercises.length}
+              </Text>
+            )}
+          </View>
         )}
       </View>
 
-      {/* Exercise list */}
+      <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
+        Tap to cycle: include → exclude → reset
+      </Text>
+
+      {/* Combined search and filter row */}
+      <View style={styles.searchFilterRow}>
+        <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
+          <Ionicons name="search" size={16} color={colors.textMuted} />
+          <TextInput
+            style={[styles.exerciseSearchInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
+            placeholder="Search..."
+            placeholderTextColor={colors.textMuted}
+            value={exerciseSearchQuery}
+            onChangeText={setExerciseSearchQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {exerciseSearchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setExerciseSearchQuery('')}>
+              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Muscle group filter chips - more compact */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.muscleFilterContainer}
+        contentContainerStyle={styles.muscleFilterContent}
+      >
+        <Chip
+          label="All"
+          selected={selectedMuscleFilter === null}
+          onPress={() => setSelectedMuscleFilter(null)}
+        />
+        {muscleCategories.map((muscle) => (
+          <Chip
+            key={muscle}
+            label={muscle.charAt(0).toUpperCase() + muscle.slice(1)}
+            selected={selectedMuscleFilter === muscle}
+            onPress={() => setSelectedMuscleFilter(selectedMuscleFilter === muscle ? null : muscle)}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Exercise list - takes remaining space */}
       <FlatList
         data={filteredExercises}
         renderItem={renderExerciseItem}
@@ -607,12 +733,13 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         style={styles.exerciseList}
         contentContainerStyle={styles.exerciseListContent}
         showsVerticalScrollIndicator={false}
-        initialNumToRender={15}
-        maxToRenderPerBatch={10}
-        windowSize={5}
+        initialNumToRender={20}
+        maxToRenderPerBatch={15}
+        windowSize={7}
       />
 
-      <View style={styles.bottomActions}>
+      {/* Sticky bottom button */}
+      <View style={[styles.exercisesBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
           onPress={handleExercisesContinue}
@@ -621,7 +748,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
             {includedExercises.length === 0 && excludedExercises.length === 0 ? 'Skip & Generate' : 'Generate Routine'}
           </Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.bg} />
+          <Ionicons name="sparkles" size={18} color={colors.bg} />
         </TouchableOpacity>
       </View>
     </Animated.View>
@@ -644,7 +771,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           <Ionicons name="checkmark" size={36} color={colors.success} />
         </View>
         <Text style={[styles.successTitle, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{generatedProgram?.programName}</Text>
-        <Text style={[styles.successDesc, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{generatedProgram?.programDescription}</Text>
       </View>
 
       <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -677,10 +803,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             </Text>
           </View>
         )}
-
-        <View style={[styles.progressionNote, { backgroundColor: colors.bg }]}>
-          <Text style={[styles.progressionNoteText, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{generatedProgram?.progressionNotes}</Text>
-        </View>
       </View>
 
       <TouchableOpacity
@@ -813,19 +935,43 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 10,
   },
-  focusChip: {
+  bodyAreaLegend: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 20,
+  },
+  legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    fontSize: 13,
+  },
+  bodyAreaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
   },
-  focusCheck: {
-    marginRight: 8,
-  },
-  focusLabel: {
+  bodyAreaLabel: {
     fontSize: 15,
+  },
+  bodyAreaSummary: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 10,
+    gap: 6,
+  },
+  bodyAreaSummaryText: {
+    fontSize: 14,
   },
   bottomActions: {
     marginTop: 'auto',
@@ -920,11 +1066,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-  successDesc: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
   summaryCard: {
     borderRadius: 16,
     padding: 20,
@@ -964,14 +1105,6 @@ const styles = StyleSheet.create({
   focusListText: {
     fontSize: 13,
   },
-  progressionNote: {
-    borderRadius: 8,
-    padding: 12,
-  },
-  progressionNoteText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
   // Duration step
   durationGrid: {
     flexDirection: 'row',
@@ -996,45 +1129,72 @@ const styles = StyleSheet.create({
   exercisesContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingTop: 16,
   },
-  selectionSummary: {
+  exercisesHeader: {
     flexDirection: 'row',
-    gap: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  exercisesTitle: {
+    fontSize: 22,
+  },
+  exercisesHint: {
+    fontSize: 13,
     marginBottom: 12,
   },
-  selectionText: {
+  selectionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    gap: 4,
+  },
+  pillText: {
     fontSize: 14,
+  },
+  pillDivider: {
+    fontSize: 14,
+  },
+  searchFilterRow: {
+    marginBottom: 8,
+  },
+  muscleFilterContainer: {
+    flexGrow: 0,
+    marginBottom: 10,
+    marginHorizontal: -24,
+  },
+  muscleFilterContent: {
+    paddingHorizontal: 24,
+    gap: 6,
   },
   exerciseSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 8,
   },
   exerciseSearchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     paddingVertical: 0,
   },
   exerciseList: {
     flex: 1,
-    marginBottom: 12,
+    marginBottom: 0,
   },
   exerciseListContent: {
-    gap: 8,
-    paddingBottom: 16,
+    gap: 6,
+    paddingBottom: 8,
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 10,
     borderWidth: 1,
@@ -1044,23 +1204,28 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   exerciseName: {
-    fontSize: 14,
+    fontSize: 15,
     marginBottom: 2,
   },
   exerciseMuscle: {
     fontSize: 12,
   },
-  exerciseActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  exerciseActionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  exerciseStatus: {
+    width: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+  },
+  statusBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exercisesBottomBar: {
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderTopWidth: 1,
   },
 });
 

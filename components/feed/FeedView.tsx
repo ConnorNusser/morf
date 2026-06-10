@@ -5,6 +5,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoControl } from '@/contexts/VideoPlayerContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { feedService, FeedPost } from '@/lib/services/feedService';
+import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { RemoteUser, WeightUnit } from '@/types';
@@ -45,6 +46,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
+  const [currentUsername, setCurrentUsername] = useState<string>('');
 
   // Viewability config for auto-playing videos
   const viewabilityConfig = useMemo(() => ({
@@ -97,6 +99,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
       setFeedItems(combined);
       setCurrentUserId(user?.id || null);
+      setCurrentUsername(user?.username || '');
       setWeightUnit(profile.weightUnitPreference || 'lbs');
       setHasMore(workouts.length >= PAGE_SIZE || posts.length >= PAGE_SIZE);
     } catch (error) {
@@ -219,14 +222,24 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     }
   };
 
-  const handlePostLike = async (postId: string) => {
-    const success = await feedService.togglePostLike(postId);
-    if (success) {
+  const handlePostLike = async (postId: string, post: FeedPost) => {
+    const result = await feedService.togglePostLike(postId);
+    if (result.success) {
+      // Send push notification if it was a like (not unlike) and not liking own post
+      if (result.liked && post.user_id !== currentUserId && currentUserId && currentUsername) {
+        notificationService.notifyPostLike(
+          post.user_id,
+          currentUserId,
+          currentUsername,
+          post.text
+        ).catch(err => console.error('Error sending like notification:', err));
+      }
+
       setFeedItems(prev => prev.map(item => {
         if (item.type !== 'post' || item.data.id !== postId) return item;
 
-        const post = item.data;
-        const feedData = post.feed_data || {};
+        const postData = item.data;
+        const feedData = postData.feed_data || {};
         const likes = [...(feedData.likes || [])];
         const existingIndex = likes.findIndex(l => l.user_id === currentUserId);
 
@@ -242,7 +255,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
         return {
           ...item,
-          data: { ...post, feed_data: { ...feedData, likes } },
+          data: { ...postData, feed_data: { ...feedData, likes } },
         };
       }));
     }
@@ -280,7 +293,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         <FeedPostCard
           post={post}
           onUserPress={() => handleUserPress(post.user_id, post.username, post.profile_picture_url)}
-          onLike={() => handlePostLike(post.id)}
+          onLike={() => handlePostLike(post.id, post)}
           onComment={() => handlePostPress(post)}
           currentUserId={currentUserId}
           isVisible={isVisible}
@@ -376,6 +389,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         onClose={() => setSelectedPost(null)}
         post={selectedPost}
         currentUserId={currentUserId}
+        currentUsername={currentUsername}
         onPostUpdated={updatePostInFeed}
         onUserPress={handleUserPress}
       />

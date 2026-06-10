@@ -124,7 +124,7 @@ class StorageService {
       if (!data) return null;
 
       // Migrate old themes that no longer exist
-      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool', 'christmas_theme_2025'];
+      const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool', 'winter_2026'];
       if (!validThemes.includes(data as ThemeLevel)) {
         // Map removed themes to their closest equivalent
         if (data === 'beginner_ocean') {
@@ -188,18 +188,19 @@ class StorageService {
   }
 
   // Note-based workout session (for the freeform notes workout screen)
-  async saveNoteSession(session: { noteText: string; startTime: Date }): Promise<void> {
+  async saveNoteSession(session: { noteText: string; startTime: Date; routineId?: string | null }): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION, JSON.stringify({
         noteText: session.noteText,
         startTime: session.startTime.toISOString(),
+        routineId: session.routineId || null,
       }));
     } catch (error) {
       console.error('Error saving note session:', error);
     }
   }
 
-  async getNoteSession(): Promise<{ noteText: string; startTime: Date } | null> {
+  async getNoteSession(): Promise<{ noteText: string; startTime: Date; routineId: string | null } | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION);
       if (!data) return null;
@@ -208,6 +209,7 @@ class StorageService {
       return {
         noteText: session.noteText,
         startTime: new Date(session.startTime),
+        routineId: session.routineId || null,
       };
     } catch (error) {
       console.error('Error loading note session:', error);

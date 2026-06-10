@@ -208,7 +208,7 @@ const PercentileJourney = ({
     }, delay);
 
     return () => clearTimeout(timeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [from, to, delay, duration]);
 
   // During animation, show counting number

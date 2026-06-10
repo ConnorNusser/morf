@@ -9,7 +9,9 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { updateRoutineProgression } from '@/lib/workout/routineProgression';
 import { FEATURED_SECONDARY_LIFTS, isMainLift, UserLift, WeightUnit } from '@/types';
+import { getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -67,6 +69,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
 
+  // Track which routine this workout is from (for UP NEXT cycling)
+  const [startedRoutineId, setStartedRoutineId] = useState<string | null>(null);
+
   // Calculate elapsed time from start time (works even after app restart)
   const calculateElapsedTime = useCallback((startTime: Date | null): number => {
     if (!startTime) return 0;
@@ -77,6 +82,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
+        // First check for a new routine ID from pending (user just clicked Start)
+        const pendingRoutineId = getPendingRoutineId();
+        if (pendingRoutineId) {
+          setStartedRoutineId(pendingRoutineId);
+        }
+
         // Load user preferences
         const profile = await userService.getRealUserProfile();
         if (profile?.weightUnitPreference) {
@@ -89,6 +100,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
           setNoteText(savedSession.noteText);
           setWorkoutStartTime(savedSession.startTime);
           setElapsedTime(calculateElapsedTime(savedSession.startTime));
+          // Restore routine ID from saved session if not already set from pending
+          if (!pendingRoutineId && savedSession.routineId) {
+            setStartedRoutineId(savedSession.routineId);
+          }
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -99,7 +114,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     loadInitialData();
   }, [calculateElapsedTime]);
 
-  // Save session whenever noteText or workoutStartTime changes
+  // Save session whenever noteText, workoutStartTime, or routineId changes
   useEffect(() => {
     if (!isSessionLoaded) return; // Don't save until we've loaded
 
@@ -108,6 +123,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         await storageService.saveNoteSession({
           noteText,
           startTime: workoutStartTime,
+          routineId: startedRoutineId,
         });
       } else if (!noteText) {
         // Clear session if note is empty
@@ -115,7 +131,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       }
     };
     saveSession();
-  }, [noteText, workoutStartTime, isSessionLoaded]);
+  }, [noteText, workoutStartTime, startedRoutineId, isSessionLoaded]);
 
   // Start timer when user starts typing, reset when text is cleared
   useEffect(() => {
@@ -171,6 +187,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
             setNoteText(savedSession.noteText);
             setWorkoutStartTime(savedSession.startTime);
             setElapsedTime(calculateElapsedTime(savedSession.startTime));
+            // Also recover routine ID if it was lost
+            if (savedSession.routineId) {
+              setStartedRoutineId(savedSession.routineId);
+            }
           }
         }
       }
@@ -231,10 +251,29 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const durationMinutes = Math.ceil(elapsedTime / 60);
 
     // Convert to GeneratedWorkout format (also auto-creates custom exercises)
-    const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(parsedWorkout, durationMinutes);
+    // Pass routineId if this workout was started from a routine
+    const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(
+      parsedWorkout,
+      durationMinutes,
+      startedRoutineId || undefined
+    );
 
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
+
+    // Update routine progression if this was from a routine
+    if (startedRoutineId) {
+      try {
+        const routines = await storageService.getRoutines();
+        const routine = routines.find(r => r.id === startedRoutineId);
+        if (routine) {
+          const updatedRoutine = updateRoutineProgression(routine, generatedWorkout, weightUnit);
+          await storageService.saveRoutine(updatedRoutine);
+        }
+      } catch (error) {
+        console.error('Error updating routine progression:', error);
+      }
+    }
 
     // Get current progress (PRs) before recording new lifts - for notifications AND strength animation
     // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
@@ -251,7 +290,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Record lifts for progress tracking and count PRs
     const liftsToSync: UserLift[] = [];
     const newPRs: { exerciseId: string; exerciseName: string; newPR: number; previousPR: number }[] = [];
-    let prCount = 0;
+
+    // Prepare lift data for all exercises first
+    const liftDataWithMeta: { liftData: UserLift; liftType: 'main' | 'secondary'; exercise: typeof generatedWorkout.exercises[0]; previousPR: number }[] = [];
+
     for (const exercise of generatedWorkout.exercises) {
       if (exercise.completedSets.length > 0) {
         // Find the best set (highest estimated 1RM)
@@ -263,7 +305,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
         // Only record lifts with actual weight
         if (bestSet.weight > 0) {
-          // Use proper type guard to categorize lifts correctly
           const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
           const liftData: UserLift = {
             parentId: generatedWorkout.id,
@@ -274,23 +315,36 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
             dateRecorded: new Date(),
           };
           const previousPR = currentPRMap[exercise.id] || 0;
-          const isNewPR = await userService.recordLift(liftData, liftType);
-          if (isNewPR) {
-            prCount++;
-            // Get exercise name for notification
-            const workoutInfo = getWorkoutById(exercise.id);
-            if (workoutInfo) {
-              // Calculate new 1RM using same formula as userService (averages Epley, Brzycki, Lombardi)
-              const newPR = OneRMCalculator.estimate(bestSet.weight, bestSet.reps);
-              newPRs.push({
-                exerciseId: exercise.id,
-                exerciseName: workoutInfo.name,
-                newPR,
-                previousPR: Math.round(previousPR),
-              });
-            }
-          }
+          liftDataWithMeta.push({ liftData, liftType, exercise, previousPR });
           liftsToSync.push(liftData);
+        }
+      }
+    }
+
+    // Record all lifts in a single atomic operation to avoid race conditions
+    // (Previously this used Promise.all which caused lifts to be lost due to concurrent profile writes)
+    const recordResults = await userService.recordLifts(
+      liftDataWithMeta.map(({ liftData, liftType }) => ({ lift: liftData, liftType }))
+    );
+
+    // Build a map of liftId -> isNewPR for quick lookup
+    const prResultMap = new Map(recordResults.map(r => [r.liftId, r.isNewPR]));
+
+    // Process PR results
+    let prCount = 0;
+    for (const { liftData, exercise, previousPR } of liftDataWithMeta) {
+      const isNewPR = prResultMap.get(liftData.id) || false;
+      if (isNewPR) {
+        prCount++;
+        const workoutInfo = getWorkoutById(exercise.id);
+        if (workoutInfo) {
+          const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
+          newPRs.push({
+            exerciseId: exercise.id,
+            exerciseName: workoutInfo.name,
+            newPR,
+            previousPR: Math.round(previousPR),
+          });
         }
       }
     }
@@ -323,8 +377,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       console.error('Error syncing workout to Supabase:', err);
     });
 
-    // Refresh user profile context so other screens get updated data
-    await refreshProfile();
+    // Refresh user profile context so other screens get updated data (fire-and-forget)
+    refreshProfile().catch(err => {
+      console.error('Error refreshing profile:', err);
+    });
 
     // Calculate NEW percentile after recording lifts
     // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
@@ -357,7 +413,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       totalSets,
       durationSeconds: elapsedTime,
     });
-  }, [elapsedTime, refreshProfile]);
+
+    // Update routine lastUsed for UP NEXT cycling (only if started from a routine)
+    if (startedRoutineId) {
+      await storageService.updateRoutineLastUsed(startedRoutineId);
+    }
+  }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
 
   // Handle finish modal complete - reset workout state
   const handleFinishComplete = useCallback(async () => {
@@ -366,6 +427,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setWorkoutStartTime(null);
     setElapsedTime(0);
     setParsedExercises([]);
+    setStartedRoutineId(null);
     // Clear saved session
     await storageService.clearNoteSession();
   }, []);

@@ -1,5 +1,5 @@
 import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
 import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
@@ -48,13 +48,11 @@ interface AICustomExerciseMetadata {
 }
 
 class AIWorkoutGeneratorService {
-  private readonly AI_API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
-  private readonly openai: OpenAI;
+  private readonly GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  private readonly genAI: GoogleGenerativeAI;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: this.AI_API_KEY || process.env.OPENAI_API_KEY,
-    });
+    this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
   }
 
   /**
@@ -66,7 +64,7 @@ class AIWorkoutGeneratorService {
     const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
 
-    if (!this.AI_API_KEY) {
+    if (!this.GEMINI_API_KEY) {
       return this.generateFallbackWorkout(userProfile, options);
     }
 
@@ -93,7 +91,7 @@ class AIWorkoutGeneratorService {
     const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
 
-    if (!this.AI_API_KEY) {
+    if (!this.GEMINI_API_KEY) {
       return {
         noteText: currentPlan,
         title: 'Workout',
@@ -172,20 +170,23 @@ class AIWorkoutGeneratorService {
   }
 
   private async callRefineAI(prompt: string, userMessage: string): Promise<RefinePlanResponse> {
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful personal trainer refining workout plans through conversation. Be concise and helpful. Return only valid JSON.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
+    const startTime = Date.now();
+
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     });
 
-    const content = response.choices[0]?.message?.content;
+    const fullPrompt = `You are a helpful personal trainer refining workout plans through conversation. Be concise and helpful. Return only valid JSON.\n\n${prompt}`;
+
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response;
+    const content = response.text();
+
+    console.log(`[WorkoutGenerator] callRefineAI took ${Date.now() - startTime}ms`);
+
     if (!content) {
       throw new Error('No content received from AI');
     }
@@ -203,8 +204,7 @@ class AIWorkoutGeneratorService {
       requestType: 'plan_builder',
       inputText: userMessage,
       outputData: parsed,
-      tokensUsed: response.usage?.total_tokens,
-      model: 'gpt-4o',
+      model: 'gemini-2.5-flash',
     });
 
     return parsed;
@@ -285,21 +285,23 @@ class AIWorkoutGeneratorService {
   }
 
   private async callAI(prompt: string, customRequest?: string): Promise<AIGeneratedWorkoutNote> {
-    // Note: GPT-5 models don't support temperature parameter
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a personal trainer generating workout plans in a simple note format. Return only valid JSON.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 10000,
+    const startTime = Date.now();
+
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     });
 
-    const content = response.choices[0]?.message?.content;
+    const fullPrompt = `You are a personal trainer generating workout plans in a simple note format. Return only valid JSON.\n\n${prompt}`;
+
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response;
+    const content = response.text();
+
+    console.log(`[WorkoutGenerator] callAI took ${Date.now() - startTime}ms`);
+
     if (!content) {
       throw new Error('No content received from AI');
     }
@@ -317,8 +319,7 @@ class AIWorkoutGeneratorService {
       requestType: 'routine_generate',
       inputText: customRequest || 'auto-generated workout',
       outputData: parsed,
-      tokensUsed: response.usage?.total_tokens,
-      model: 'gpt-4o',
+      model: 'gemini-2.5-flash',
     });
 
     return parsed;
@@ -437,7 +438,7 @@ class AIWorkoutGeneratorService {
    */
   async generateCustomExerciseMetadata(exerciseName: string): Promise<CustomExercise> {
     // Try AI first, fall back to defaults
-    if (this.AI_API_KEY) {
+    if (this.GEMINI_API_KEY) {
       try {
         const metadata = await this.callCustomExerciseAI(exerciseName);
         // Use AI-formatted displayName for the exercise name
@@ -478,22 +479,24 @@ class AIWorkoutGeneratorService {
   }
 
   private async callCustomExerciseAI(exerciseName: string): Promise<AICustomExerciseMetadata> {
+    const startTime = Date.now();
     const prompt = buildCustomExercisePrompt({ exerciseName });
 
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a fitness expert. Return only valid JSON for exercise metadata.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 500,
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash-lite',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     });
 
-    const content = response.choices[0]?.message?.content;
+    const fullPrompt = `You are a fitness expert. Return only valid JSON for exercise metadata.\n\n${prompt}`;
+
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response;
+    const content = response.text();
+
+    console.log(`[WorkoutGenerator] callCustomExerciseAI took ${Date.now() - startTime}ms`);
+
     if (!content) {
       throw new Error('No content received from AI');
     }

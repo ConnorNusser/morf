@@ -9,6 +9,10 @@ export * from './customExercise.prompt';
 export * from './workoutNoteParsing.prompt';
 export * from './routineGeneration.prompt';
 
+// Re-export from splitTemplates for convenience
+// (TrainingGoal is already re-exported via routineGeneration.prompt above)
+export { ExperienceLevel } from '../splitTemplates';
+
 /**
  * Standard exercise naming format documentation
  * This is the canonical format for all exercise names and IDs in the system

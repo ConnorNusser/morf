@@ -3,8 +3,8 @@
  * Creates workout routines based on proven program methodologies
  */
 
-import { CustomExercise, Equipment, GeneratedWorkout, Routine, RoutineExercise, UserProfile } from '@/types';
-import OpenAI from 'openai';
+import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, Routine, RoutineExercise, UserProfile } from '@/types';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import {
   buildRoutineGenerationPrompt,
@@ -37,14 +37,9 @@ interface GeneratedRoutineDay {
 
 export interface GeneratedRoutineProgram {
   programName: string;
-  programDescription: string;
   programStyle: ProgramTemplate;
   trainingGoal: TrainingGoal;
-  weeklyVolume: string;
-  estimatedDuration: string;
   routines: GeneratedRoutineDay[];
-  weeklySchedule: string;
-  progressionNotes: string;
 }
 
 interface GenerateRoutineOptions {
@@ -52,6 +47,7 @@ interface GenerateRoutineOptions {
   trainingGoal: TrainingGoal;
   weeklyDays: number;
   focusMuscles?: string[];
+  ignoredMuscles?: string[];  // Body parts to completely skip (e.g., "no legs")
   trainingYears?: number;  // Override training years for advancement calculation
   workoutDuration?: number;  // Duration in minutes (30, 60, 90, 120)
   exercisesPerWorkout?: { min: number; max: number };  // Exercise count constraints
@@ -60,13 +56,11 @@ interface GenerateRoutineOptions {
 }
 
 class AIRoutineGeneratorService {
-  private readonly AI_API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
-  private readonly openai: OpenAI;
+  private readonly GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  private readonly genAI: GoogleGenerativeAI;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: this.AI_API_KEY || process.env.OPENAI_API_KEY,
-    });
+    this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
   }
 
   /**
@@ -77,7 +71,7 @@ class AIRoutineGeneratorService {
     const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
 
-    if (!this.AI_API_KEY) {
+    if (!this.GEMINI_API_KEY) {
       return this.generateFallbackProgram(userProfile, options);
     }
 
@@ -117,6 +111,18 @@ class AIRoutineGeneratorService {
         }
       }
 
+      // Initialize progression state for each exercise
+      const progressionState: Record<string, ExerciseProgressionState> = {};
+      for (const ex of exercises) {
+        const baseReps = ex.sets[0]?.reps || 10;
+        progressionState[ex.exerciseId] = {
+          baseReps,
+          currentRepBonus: 0,
+          currentWeight: 0,  // Will be set from first workout
+          consecutiveFailures: 0,
+        };
+      }
+
       const routine: Routine = {
         id: `${program.programStyle}-${day.dayNumber}-${Date.now()}`,
         name: day.name,
@@ -124,6 +130,7 @@ class AIRoutineGeneratorService {
         createdAt: new Date(),
         description: day.focus,
         isActive: true,
+        progressionState,
       };
 
       routines.push(routine);
@@ -226,30 +233,71 @@ class AIRoutineGeneratorService {
     };
     const userEquipmentDisplay = userEquipment.map(e => equipmentDisplayMap[e]).join(', ');
 
-    // Build exercise history summary
-    const recentWorkouts = workoutHistory.slice(-10);
-    const exerciseMap = new Map<string, { weight: number; reps: number }>();
+    // Build exercise history summary with names, PRs, and frequency
+    const recentWorkouts = workoutHistory.slice(-20);
+    const exerciseStats = new Map<string, {
+      name: string;
+      weight: number;
+      reps: number;
+      frequency: number;  // How many workouts this exercise appeared in
+    }>();
+
+    // Create ID to name lookup from ALL_WORKOUTS
+    const idToName = new Map<string, string>();
+    for (const workout of ALL_WORKOUTS) {
+      idToName.set(workout.id, workout.name);
+    }
+    // Also add custom exercises
+    for (const custom of customExercises) {
+      idToName.set(custom.id, custom.name);
+    }
 
     for (const workout of recentWorkouts) {
+      // Track which exercises we've already counted in this workout
+      const countedInThisWorkout = new Set<string>();
+
       for (const ex of workout.exercises) {
+        // Skip if we've already counted this exercise in this workout
+        if (countedInThisWorkout.has(ex.id)) continue;
+        countedInThisWorkout.add(ex.id);
+
+        const exerciseName = idToName.get(ex.id) || ex.id;
+
         const bestSet = ex.completedSets?.reduce((best, current) =>
           (current.weight > best.weight) ? current : best,
           { weight: 0, reps: 0 }
         );
-        if (bestSet && bestSet.weight > 0) {
-          const current = exerciseMap.get(ex.id);
-          if (!current || bestSet.weight > current.weight) {
-            exerciseMap.set(ex.id, { weight: bestSet.weight, reps: bestSet.reps });
+
+        const current = exerciseStats.get(ex.id);
+        if (!current) {
+          // First time seeing this exercise
+          exerciseStats.set(ex.id, {
+            name: exerciseName,
+            weight: bestSet?.weight || 0,
+            reps: bestSet?.reps || 0,
+            frequency: 1
+          });
+        } else {
+          // Increment frequency
+          current.frequency++;
+          // Update PR if higher
+          if (bestSet && bestSet.weight > current.weight) {
+            current.weight = bestSet.weight;
+            current.reps = bestSet.reps;
           }
         }
       }
     }
 
-    const exerciseHistorySummary = exerciseMap.size > 0
-      ? `Recent PRs:\n${Array.from(exerciseMap.entries())
-          .slice(0, 10)
-          .map(([id, data]) => `- ${id}: ${data.weight}${weightUnit} x ${data.reps}`)
-          .join('\n')}`
+    // Sort by frequency (most used first) and take top 15
+    const sortedExercises = Array.from(exerciseStats.entries())
+      .sort((a, b) => b[1].frequency - a[1].frequency)
+      .slice(0, 15);
+
+    const exerciseHistorySummary = sortedExercises.length > 0
+      ? `USER'S TRAINING HISTORY (last ${recentWorkouts.length} workouts):\n${sortedExercises
+          .map(([_, data]) => `- ${data.name}: ${data.weight}${weightUnit} x ${data.reps} PR, trained ${data.frequency}x`)
+          .join('\n')}\n\nNote: Prioritize exercises the user frequently trains when building their program.`
       : 'No recent workout history - use reasonable starting weights.';
 
     const customExercisesSummary = customExerciseNames.length > 0
@@ -300,6 +348,7 @@ class AIRoutineGeneratorService {
       allExerciseNames: filteredExerciseNames,
       weeklyDays: options.weeklyDays,
       focusMuscles: options.focusMuscles,
+      ignoredMuscles: options.ignoredMuscles,
       trainingAdvancement: {
         level: advancementResult.level,
         allowHeavySquatAndDeadliftSameDay: programmingConfig.allowHeavySquatAndDeadliftSameDay,
@@ -363,12 +412,17 @@ class AIRoutineGeneratorService {
   }
 
   private async callAI(prompt: string, programTemplate: ProgramTemplate): Promise<GeneratedRoutineProgram> {
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an experienced strength and conditioning coach. Create practical, evidence-based workout programs.
+    console.log('[RoutineGenerator] Calling Gemini with prompt length:', prompt.length);
+    const startTime = Date.now();
+
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
+    });
+
+    const systemPrompt = `You are an experienced strength and conditioning coach. Create practical, evidence-based workout programs.
 
 STRICT RULES:
 1. ONLY use exercises from the "AVAILABLE EXERCISES" list - do NOT invent, substitute, or add any exercises not explicitly listed
@@ -376,14 +430,17 @@ STRICT RULES:
 3. If a required exercise is listed, it MUST appear in the program
 4. If an exercise is NOT in the available list, do NOT use it under any circumstances
 
-Return only valid JSON.`,
-        },
-        { role: 'user', content: prompt },
-      ],
-      max_completion_tokens: 4000,
-    });
+Return only valid JSON.`;
 
-    const content = response.choices[0]?.message?.content;
+    const fullPrompt = `${systemPrompt}\n\n${prompt}`;
+
+    const result = await model.generateContent(fullPrompt);
+    const response = result.response;
+    const content = response.text();
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[RoutineGenerator] Gemini response received in ${elapsed}ms, content length: ${content?.length || 0}`);
+
     if (!content) {
       throw new Error('No content received from AI');
     }
@@ -401,8 +458,7 @@ Return only valid JSON.`,
       requestType: 'routine_generate',
       inputText: programTemplate,
       outputData: { programName: parsed.programName, routineCount: parsed.routines?.length },
-      tokensUsed: response.usage?.total_tokens,
-      model: 'gpt-5-mini',
+      model: 'gemini-2.5-flash',
     });
 
     return parsed;
@@ -587,13 +643,6 @@ Return only valid JSON.`,
       );
     }
 
-    const scheduleMap: Record<number, string> = {
-      3: 'Mon / Wed / Fri',
-      4: 'Mon / Tue / Thu / Fri',
-      5: 'Mon / Tue / Wed / Fri / Sat',
-      6: 'Mon / Tue / Wed / Thu / Fri / Sat',
-    };
-
     // Apply exercise count constraints if specified
     const adjustedRoutines = options.exercisesPerWorkout
       ? routines.map(routine => ({
@@ -602,27 +651,11 @@ Return only valid JSON.`,
         }))
       : routines;
 
-    // Calculate estimated time based on exercise count
-    const durationMap: Record<number, string> = {
-      30: '~30 min',
-      60: '~60 min',
-      90: '~90 min',
-      120: '~2 hours',
-    };
-    const estimatedDuration = options.workoutDuration
-      ? durationMap[options.workoutDuration] || '45-60 min'
-      : '45-60 min';
-
     return {
       programName: `${templateInfo.name} - ${options.weeklyDays} Day Program`,
-      programDescription: templateInfo.description,
       programStyle: options.programTemplate,
       trainingGoal: options.trainingGoal,
-      weeklyVolume: `${options.weeklyDays * 15}-${options.weeklyDays * 25} sets per muscle group`,
-      estimatedDuration: `${estimatedDuration} per session`,
       routines: adjustedRoutines,
-      weeklySchedule: scheduleMap[options.weeklyDays] || 'Flexible schedule',
-      progressionNotes: 'Add 5lbs to upper body lifts and 10lbs to lower body lifts when you complete all sets at target reps.',
     };
   }
 

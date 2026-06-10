@@ -188,8 +188,8 @@ export default function RootLayout() {
     responseListener.current = notificationService.addNotificationResponseListener(response => {
       const data = response.notification.request.content.data;
       // Navigate based on notification type
-      if (data?.type === 'friend_pr') {
-        // Could navigate to friend's profile or leaderboard
+      if (data?.type === 'friend_pr' || data?.type === 'post_like' || data?.type === 'post_comment') {
+        // Navigate to feed tab for all notification types
         router.push('/(tabs)');
       }
     });

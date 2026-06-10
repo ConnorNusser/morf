@@ -12,7 +12,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export type NotificationType = 'christmas_theme';
+export type NotificationType = 'winter_theme';
 
 interface UnlockNotificationModalProps {
   visible: boolean;
@@ -31,12 +31,12 @@ const NOTIFICATION_CONTENT: Record<NotificationType, {
   activateText: string;
   dismissText: string;
 }> = {
-  christmas_theme: {
-    icon: '🎄',
+  winter_theme: {
+    icon: '❄️',
     title: 'New Theme Unlocked!',
-    subtitle: 'Christmas 2025',
-    description: 'Celebrate the season with festive red, green, and gold',
-    themePreview: 'christmas_theme_2025',
+    subtitle: 'Winter 2026',
+    description: 'Embrace the season with festive forest greens and warm accents',
+    themePreview: 'winter_2026',
     activateText: 'Try it now',
     dismissText: 'Maybe later',
   },
