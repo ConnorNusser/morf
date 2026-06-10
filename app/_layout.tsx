@@ -7,8 +7,9 @@ import { TutorialProvider } from '@/contexts/TutorialContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
 import { WorkoutProvider } from '@/contexts/WorkoutContext';
 import { notificationService } from '@/lib/services/notificationService';
+import { retentionNotificationService } from '@/lib/services/retentionNotificationService';
 import { layout } from '@/lib/ui/styles';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import {
     Raleway_400Regular,
     Raleway_500Medium,
@@ -187,8 +188,10 @@ export default function RootLayout() {
     // Listen for notification taps
     responseListener.current = notificationService.addNotificationResponseListener(response => {
       const data = response.notification.request.content.data;
-      // Navigate based on notification type
-      if (data?.type === 'friend_pr' || data?.type === 'post_like' || data?.type === 'post_comment') {
+      // Retention reminders deep-link to the Notes tab ("Up Next" routine).
+      if (data?.kind === 'retention') {
+        router.push('/(tabs)/notes');
+      } else if (data?.type === 'friend_pr' || data?.type === 'post_like' || data?.type === 'post_comment') {
         // Navigate to feed tab for all notification types
         router.push('/(tabs)');
       }
@@ -203,6 +206,18 @@ export default function RootLayout() {
       }
     };
   }, [router]);
+
+  // (Re)schedule self-directed retention reminders on launch and whenever the
+  // app returns to the foreground, so the streak/habit state stays current.
+  useEffect(() => {
+    retentionNotificationService.refreshScheduledReminders();
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        retentionNotificationService.refreshScheduledReminders();
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   if (!loaded) {
     return null;
