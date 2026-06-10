@@ -150,26 +150,26 @@ export default function HomeScreen() {
     if (!userProfile) return;
     if (!tutorialState.hasCompletedAppTutorial) return;
 
-    // Check Christmas theme (Dec 1 - Jan 15)
-    if (isSeasonalThemeAvailable('christmas_theme_2025')) {
-      const shown = await storageService.hasNotificationBeenShown('christmas_theme_2025');
+    // Check Winter theme (Dec 1 - Mar 20)
+    if (isSeasonalThemeAvailable('winter_2026')) {
+      const shown = await storageService.hasNotificationBeenShown('winter_2026');
       if (!shown) {
-        setUnlockNotification('christmas_theme');
+        setUnlockNotification('winter_theme');
         return;
       }
     }
   }, [userProfile, tutorialState.hasCompletedAppTutorial]);
 
   const handleDismissUnlock = useCallback(async () => {
-    if (unlockNotification === 'christmas_theme') {
-      await storageService.markNotificationShown('christmas_theme_2025');
+    if (unlockNotification === 'winter_theme') {
+      await storageService.markNotificationShown('winter_2026');
     }
     setUnlockNotification(null);
   }, [unlockNotification]);
 
   const handleActivateUnlock = useCallback(() => {
-    if (unlockNotification === 'christmas_theme') {
-      setThemeLevel('christmas_theme_2025');
+    if (unlockNotification === 'winter_theme') {
+      setThemeLevel('winter_2026');
     }
   }, [unlockNotification, setThemeLevel]);
 

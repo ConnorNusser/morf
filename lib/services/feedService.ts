@@ -328,11 +328,12 @@ class FeedService {
 
   /**
    * Toggle like on a post
+   * Returns { success, liked } where liked indicates if it was a like (true) or unlike (false)
    */
-  async togglePostLike(postId: string): Promise<boolean> {
+  async togglePostLike(postId: string): Promise<{ success: boolean; liked: boolean }> {
     try {
       const user = await this.getCurrentUser();
-      if (!user) return false;
+      if (!user) return { success: false, liked: false };
 
       return await feedApi.togglePostLike(
         postId,
@@ -342,7 +343,7 @@ class FeedService {
       );
     } catch (error) {
       console.error('Error toggling post like:', error);
-      return false;
+      return { success: false, liked: false };
     }
   }
 

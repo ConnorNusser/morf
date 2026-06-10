@@ -2,6 +2,7 @@ import Card from '@/components/Card';
 import IconButton from '@/components/IconButton';
 import ProgressBar from '@/components/ProgressBar';
 import RadarChart from '@/components/RadarChart';
+import StrengthHistoryModal from '@/components/StrengthHistoryModal';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -25,6 +26,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isGroupPanelOpen, setIsGroupPanelOpen] = useState<boolean>(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [cardAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
@@ -196,7 +198,11 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
           </View>
 
           <Card variant="surface" style={styles.chartCard}>
-            <View style={{ ...styles.chartHeader}}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setShowHistoryModal(true)}
+              style={{ ...styles.chartHeader }}
+            >
               {/* Header with Tier Badge and Percentile */}
               <View style={styles.tierHeaderRow}>
                 <TierBadge percentile={overallPercentile} size="large" />
@@ -206,12 +212,15 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
                 </View>
               </View>
               <ProgressBar progress={overallPercentile} height={10} style={{ marginVertical: 12, width: '100%' }} exerciseName="overall" />
-              <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
-                {!getNextTierInfo(overallPercentile).next
-                  ? `Maximum Tier Reached!`
-                  : `+${getNextTierInfo(overallPercentile).needed}% to ${getNextTierInfo(overallPercentile).next} Tier`}
-              </Text>
-            </View>
+              <View style={styles.heroHintRow}>
+                <Text style={[styles.heroHint, { color: currentTheme.colors.text + '90' }]}>
+                  {!getNextTierInfo(overallPercentile).next
+                    ? `Maximum Tier Reached!`
+                    : `+${getNextTierInfo(overallPercentile).needed}% to ${getNextTierInfo(overallPercentile).next} Tier`}
+                </Text>
+                <Text style={[styles.historyHint, { color: currentTheme.colors.text + '50' }]}>Tap for history</Text>
+              </View>
+            </TouchableOpacity>
             <RadarChart data={chartData} tiers={RADAR_TIER_THRESHOLDS} selectedIndex={selectedIdx} onPointPress={(i) => setSelectedIdx(i)} details={tooltipDetails} inlineTooltip={false} />
           </Card>
 
@@ -290,7 +299,8 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
               </View>
             ))}
           </Card>
-        </ScrollView>
+
+          </ScrollView>
 
         {/* Group detail sheet */}
         {isGroupPanelOpen && selectedIdx >= 0 && chartData[selectedIdx] && (
@@ -298,7 +308,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={closeGroupPanel}>
               <View />
             </TouchableOpacity>
-            <View style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}> 
+            <View style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <Text style={[styles.sheetTitle, { color: currentTheme.colors.text }]}>{chartData[selectedIdx].label}</Text>
               <Text style={[styles.sheetPercent, { color: currentTheme.colors.primary }]}>{chartData[selectedIdx].value}%</Text>
               <Text style={[styles.sheetSubtitle, { color: currentTheme.colors.text }]}>Top contributors</Text>
@@ -314,6 +324,12 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
             </View>
           </Modal>
         )}
+
+        {/* Strength History Modal */}
+        <StrengthHistoryModal
+          visible={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+        />
       </SafeAreaView>
     </Modal>
   );
@@ -350,7 +366,9 @@ const styles = StyleSheet.create({
   heroNumberBlock: { alignItems: 'flex-end', backgroundColor: 'transparent' },
   heroNumber: { fontSize: 36, fontWeight: '800' },
   heroSub: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.7 },
-  heroHint: { marginTop: 6, fontSize: 12, opacity: 0.8 },
+  heroHint: { fontSize: 12, opacity: 0.8 },
+  heroHintRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, width: '100%', backgroundColor: 'transparent' },
+  historyHint: { fontSize: 11, opacity: 0.6 },
   liftsCard: { marginTop: 16, paddingTop: 12, paddingBottom: 12 },
   standardCard: { marginTop: 8, paddingTop: 12, paddingBottom: 12 },
   liftRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#00000010', backgroundColor: 'transparent' },

@@ -4,6 +4,7 @@ import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { feedService, FeedComment, FeedPost } from '@/lib/services/feedService';
+import { notificationService } from '@/lib/services/notificationService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -31,6 +32,7 @@ interface CommentsModalProps {
   onClose: () => void;
   post: FeedPost | null;
   currentUserId: string | null;
+  currentUsername?: string;
   onPostUpdated?: (post: FeedPost) => void;
   onUserPress?: (userId: string, username: string, profilePictureUrl?: string) => void;
 }
@@ -179,6 +181,7 @@ export default function CommentsModal({
   onClose,
   post,
   currentUserId,
+  currentUsername,
   onPostUpdated,
   onUserPress,
 }: CommentsModalProps) {
@@ -223,12 +226,23 @@ export default function CommentsModal({
   const handleSubmitComment = async () => {
     if (!commentText.trim() || isSubmitting) return;
 
+    const trimmedComment = commentText.trim();
     Keyboard.dismiss();
     setIsSubmitting(true);
-    const newComment = await feedService.addPostComment(post.id, commentText.trim());
+    const newComment = await feedService.addPostComment(post.id, trimmedComment);
     setIsSubmitting(false);
 
     if (newComment) {
+      // Send push notification if not commenting on own post
+      if (post.user_id !== currentUserId && currentUserId && currentUsername) {
+        notificationService.notifyPostComment(
+          post.user_id,
+          currentUserId,
+          currentUsername,
+          trimmedComment
+        ).catch(err => console.error('Error sending comment notification:', err));
+      }
+
       setCommentText('');
       const updatedComments = [...comments, newComment];
       const updatedPost: FeedPost = {

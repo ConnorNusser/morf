@@ -40,7 +40,7 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
     god: 5,
     share_warm: 5,
     share_cool: 5,
-    christmas_theme_2025: 5,
+    winter_2026: 5,
   };
 
   const userThemeOrder = themeOrder[userThemeLevel];

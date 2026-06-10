@@ -70,6 +70,55 @@ class UserService {
     return isNewPR;
   }
 
+  // Record multiple lifts in a single atomic operation
+  // This avoids race conditions when recording lifts in parallel
+  // Returns array of { liftId: string, isNewPR: boolean } for each lift
+  async recordLifts(lifts: Array<{ lift: Omit<UserLift, 'dateRecorded'>; liftType: 'main' | 'secondary' }>): Promise<Array<{ liftId: string; isNewPR: boolean }>> {
+    const profile = await this.getRealUserProfile();
+    if (!profile) throw new Error('No user profile found');
+
+    const results: Array<{ liftId: string; isNewPR: boolean }> = [];
+
+    for (const { lift, liftType } of lifts) {
+      const weightInLbs = convertWeightToLbs(lift.weight, lift.unit);
+
+      // Check if this is a new PR by finding existing best 1RM for this exercise
+      const existingLifts = liftType === 'main' ? profile.lifts : profile.secondaryLifts;
+      const existingForExercise = existingLifts.filter(l => l.id === lift.id);
+
+      // Calculate estimated 1RM for comparison (Epley formula)
+      const newEstimated1RM = weightInLbs * (1 + lift.reps / 30);
+      const existingBest1RM = existingForExercise.reduce((best, l) => {
+        const est1RM = l.weight * (1 + l.reps / 30);
+        return est1RM > best ? est1RM : best;
+      }, 0);
+
+      const isNewPR = newEstimated1RM > existingBest1RM;
+
+      if (liftType === 'main') {
+        profile.lifts.push({
+          ...lift,
+          weight: weightInLbs,
+          unit: 'lbs',
+          dateRecorded: new Date(),
+        });
+      } else {
+        profile.secondaryLifts.push({
+          ...lift,
+          weight: weightInLbs,
+          unit: 'lbs',
+          dateRecorded: new Date(),
+        });
+      }
+
+      results.push({ liftId: lift.id, isNewPR });
+    }
+
+    // Single atomic save of all lifts
+    await storageService.saveUserProfile(profile);
+    return results;
+  }
+
   // Calculate real user progress from recorded lifts
   async calculateRealUserProgress(): Promise<UserProgress[]> {
     const profile = await this.getRealUserProfile();

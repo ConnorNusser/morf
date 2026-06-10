@@ -193,17 +193,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 8,
   },
 
-  // Christmas 2025 - Evergreen theme (Dec 1 - Jan 15)
-  christmas_theme_2025: {
-    name: "christmas_theme_2025",
+  // Winter 2026 - Frost & Pine theme (Dec 1 - March 20)
+  winter_2026: {
+    name: "winter_2026",
     colors: {
-      background: "#1a3a2a", // Deep forest green
-      text: "#F5F5F0", // Warm white
-      primary: "#DC2626", // Classic Christmas red
-      secondary: "#15803d", // Lighter pine green
-      accent: "#FBBF24", // Warm gold
-      surface: "#234536", // Lighter forest surface
-      border: "#2d5a42", // Muted green border
+      background: "#162825", // Deep pine
+      text: "#f1f5f9", // Snow white
+      primary: "#38bdf8", // Ice blue
+      secondary: "#4a7c6f", // Muted pine
+      accent: "#e2e8f0", // Frost silver
+      surface: "#1e3633", // Lighter pine
+      border: "#2d4a44", // Pine border
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -239,9 +239,9 @@ export const isSeasonalThemeAvailable = (theme: ThemeLevel): boolean => {
   const month = now.getMonth(); // 0-11
   const day = now.getDate();
 
-  if (theme === "christmas_theme_2025") {
-    // Available Dec 1 - Jan 15
-    return month === 11 || (month === 0 && day <= 15);
+  if (theme === "winter_2026") {
+    // Available Dec 1 - March 20
+    return month === 11 || month === 0 || month === 1 || (month === 2 && day <= 20);
   }
 
   // Non-seasonal themes are always available

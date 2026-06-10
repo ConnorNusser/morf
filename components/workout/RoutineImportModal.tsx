@@ -27,7 +27,7 @@ interface RoutineImportModalProps {
  * Format:
  * Exercise Name
  * Target: 135 x 10, 185 x 10, 185 x 10
- * Expected:
+ * Actual:
  */
 export function generateRoutineText(routine: CalculatedRoutine, includeTitle: boolean = true): string {
   if (!routine?.exercises?.length) return '';
@@ -48,7 +48,7 @@ export function generateRoutineText(routine: CalculatedRoutine, includeTitle: bo
       // Format each set as "weight x reps" (0 if no weight data)
       const setStrings = sets.map(set => `${set.targetWeight || 0}x${set.reps}`);
       lines.push(`Target: ${setStrings.join(', ')}`);
-      lines.push('Expected:');
+      lines.push('Actual:');
     }
 
     lines.push(''); // Empty line between exercises
@@ -219,6 +219,14 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                             </Text>
                             <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
+                              {(() => {
+                                const progState = routine.progressionState?.[exercise.exerciseId];
+                                const bonus = progState?.currentRepBonus ?? 0;
+                                if (bonus > 0) {
+                                  return ` (+${bonus})`;
+                                }
+                                return '';
+                              })()}
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
                           </RNView>

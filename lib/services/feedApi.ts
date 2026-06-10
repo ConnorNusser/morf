@@ -247,20 +247,21 @@ class FeedApi {
 
   /**
    * Toggle like on a post
+   * Returns { success, liked } where liked indicates if it was a like (true) or unlike (false)
    */
   async togglePostLike(
     postId: string,
     userId: string,
     username: string,
     profilePictureUrl?: string
-  ): Promise<boolean> {
+  ): Promise<{ success: boolean; liked: boolean }> {
     const { data, error } = await this.request<{ success: boolean; liked: boolean }>(
       'POST',
       `/api/posts/${postId}/like`,
       userId,
       { username, profile_picture_url: profilePictureUrl }
     );
-    return !error && !!data?.success;
+    return { success: !error && !!data?.success, liked: !!data?.liked };
   }
 
   /**

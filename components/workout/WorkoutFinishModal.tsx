@@ -485,12 +485,12 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     </View>
 
                     <View style={styles.setsContainer}>
-                      {exercise.recommendedSets && exercise.recommendedSets.length > 0 && (
+                      {exercise.targetSets && exercise.targetSets.length > 0 && (
                         <View style={styles.setsSection}>
                           <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
                             Target
                           </Text>
-                          {exercise.recommendedSets.map((set, setIndex) => (
+                          {exercise.targetSets.map((set, setIndex) => (
                             <View key={setIndex} style={styles.setRow}>
                               <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
                                 Set {setIndex + 1}

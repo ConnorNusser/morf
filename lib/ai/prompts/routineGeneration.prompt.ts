@@ -1,58 +1,33 @@
 /**
- * Prompt for routine generation based on proven workout programs
- * References real programs and methodologies from fitness experts
+ * Routine Generation Prompt Builder
+ *
+ * Builds prompts for AI routine generation using split templates.
+ * The AI has flexibility to choose exercises within template guidelines.
+ *
+ * Priority Order:
+ * 1. Days (MUST FOLLOW)
+ * 2. Include/Exclude exercises (MUST FOLLOW)
+ * 3. Focus areas (PRIORITIZE)
+ * 4. Training goal (GUIDE)
  */
 
-import { EXERCISE_NAMING_INSTRUCTIONS } from './workoutGeneration.prompt';
+import { selectTemplate, TrainingGoal, ExperienceLevel, SplitTemplate } from '../splitTemplates';
+import { getExclusionTemplate, shouldUseExclusionTemplate, ExclusionTemplate } from '../exclusionTemplates';
+
+// Re-export for backward compatibility
+export { TrainingGoal };
 
 /**
- * Program templates based on proven methodologies
+ * Program template types (mapped to split templates)
  */
 export type ProgramTemplate =
-  | 'ppl'           // Push/Pull/Legs - Reddit PPL style (Metallicadpa)
-  | 'upper_lower'   // Upper/Lower split - PHUL style (Brandon Campbell)
-  | 'full_body'     // Full body 3x/week - Starting Strength / 5/3/1 style
-  | 'bro_split'     // Classic bodybuilding split - Arnold style
-  | 'powerbuilding' // Strength + hypertrophy - PHAT style (Layne Norton)
-  | 'strength'      // Pure strength focus - 5/3/1 style (Jim Wendler)
-  | 'custom';       // AI picks best fit
-
-/**
- * Training goals that influence program design
- */
-export type TrainingGoal =
-  | 'strength'      // Maximize 1RM on compounds
-  | 'hypertrophy'   // Maximize muscle size
-  | 'powerbuilding' // Balance of strength and size
-  | 'recomp'        // Body recomposition - fat loss + muscle retention
-  | 'athletic'      // Athletic performance - power, explosiveness
-  | 'general';      // General fitness/health
-
-export interface RoutineGenerationParams {
-  programTemplate: ProgramTemplate;
-  trainingGoal: TrainingGoal;
-  userStrengthLevel: string;  // Beginner, Intermediate, Advanced
-  userBodyWeight: number;
-  weightUnit: string;
-  gender: string;
-  userEquipmentDisplay: string;
-  exerciseHistorySummary: string;
-  customExercisesSummary: string;
-  allExerciseNames: string[];
-  weeklyDays: number;
-  focusMuscles?: string[];
-  // Training advancement for fatigue management
-  trainingAdvancement?: {
-    level: 'beginner' | 'intermediate' | 'advanced';
-    allowHeavySquatAndDeadliftSameDay: boolean;
-    maxSetsPerMusclePerSession: number;
-    suggestedFrequency: { squat: number; bench: number; deadlift: number };
-  };
-  // Workout duration and exercise count constraints
-  workoutDuration?: number;  // Duration in minutes (30, 60, 90, 120)
-  exercisesPerWorkout?: { min: number; max: number };  // STRICT exercise count constraints
-  includedExercises?: string[];  // Exercises that MUST be included (spread across routines)
-}
+  | 'ppl'
+  | 'upper_lower'
+  | 'full_body'
+  | 'bro_split'
+  | 'powerbuilding'
+  | 'strength'
+  | 'custom';
 
 /**
  * Program template info for UI display
@@ -62,59 +37,83 @@ export const PROGRAM_TEMPLATES: Record<ProgramTemplate, {
   description: string;
   daysPerWeek: number[];
   bestFor: TrainingGoal[];
-  reference: string;
 }> = {
   ppl: {
     name: 'Push/Pull/Legs',
-    description: 'High frequency split hitting each muscle 2x/week. Great for hypertrophy.',
+    description: 'High frequency split hitting each muscle 2x/week.',
     daysPerWeek: [6, 3],
     bestFor: ['hypertrophy', 'powerbuilding'],
-    reference: 'Reddit PPL by Metallicadpa',
   },
   upper_lower: {
     name: 'Upper/Lower',
     description: 'Balanced 4-day split with power and hypertrophy days.',
     daysPerWeek: [4],
     bestFor: ['powerbuilding', 'hypertrophy'],
-    reference: 'PHUL by Brandon Campbell',
   },
   full_body: {
     name: 'Full Body',
     description: 'Hit everything each session. Efficient for 3 days/week.',
     daysPerWeek: [3],
     bestFor: ['strength', 'general'],
-    reference: '5/3/1 by Jim Wendler',
   },
   bro_split: {
     name: 'Body Part Split',
-    description: 'Classic bodybuilding approach. One muscle group per day.',
+    description: 'Classic bodybuilding. One muscle group per day.',
     daysPerWeek: [5, 6],
     bestFor: ['hypertrophy'],
-    reference: 'Arnold Schwarzenegger Split',
   },
   powerbuilding: {
     name: 'Powerbuilding',
-    description: 'Heavy compounds + hypertrophy work. Best of both worlds.',
+    description: 'Heavy compounds + hypertrophy work.',
     daysPerWeek: [5],
     bestFor: ['powerbuilding', 'strength'],
-    reference: 'PHAT by Dr. Layne Norton',
   },
   strength: {
     name: 'Strength Focus',
     description: 'Periodized strength training with submaximal loads.',
     daysPerWeek: [3, 4],
     bestFor: ['strength'],
-    reference: '5/3/1 by Jim Wendler',
   },
   custom: {
     name: 'Custom Program',
     description: 'AI designs based on your goals and schedule.',
     daysPerWeek: [3, 4, 5, 6],
     bestFor: ['general', 'hypertrophy', 'strength', 'powerbuilding'],
-    reference: 'Personalized',
   },
 };
 
+/**
+ * Parameters for routine generation
+ */
+export interface RoutineGenerationParams {
+  programTemplate: ProgramTemplate;
+  trainingGoal: TrainingGoal;
+  userStrengthLevel: string;
+  userBodyWeight: number;
+  weightUnit: string;
+  gender: string;
+  userEquipmentDisplay: string;
+  exerciseHistorySummary: string;
+  customExercisesSummary: string;
+  allExerciseNames: string[];
+  weeklyDays: number;
+  focusMuscles?: string[];
+  ignoredMuscles?: string[];  // Body parts to completely skip
+  trainingAdvancement?: {
+    level: ExperienceLevel;
+    allowHeavySquatAndDeadliftSameDay: boolean;
+    maxSetsPerMusclePerSession: number;
+    suggestedFrequency: { squat: number; bench: number; deadlift: number };
+  };
+  workoutDuration?: number;
+  exercisesPerWorkout?: { min: number; max: number };
+  includedExercises?: string[];
+  excludedExercises?: string[];
+}
+
+/**
+ * Build the routine generation prompt
+ */
 export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): string {
   const {
     programTemplate,
@@ -129,298 +128,309 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
     allExerciseNames,
     weeklyDays,
     focusMuscles,
+    ignoredMuscles,
     trainingAdvancement,
     workoutDuration,
     exercisesPerWorkout,
     includedExercises,
+    excludedExercises,
   } = params;
 
-  const templateInfo = PROGRAM_TEMPLATES[programTemplate] || PROGRAM_TEMPLATES.custom;
-  const hasFocusAreas = focusMuscles && focusMuscles.length > 0;
-  const focusText = hasFocusAreas
-    ? `PRIORITY FOCUS AREAS: ${focusMuscles.join(', ').toUpperCase()}`
+  // Check if we should use a specialized exclusion template
+  const hasIgnoredMuscles = ignoredMuscles && ignoredMuscles.length > 0;
+  const useExclusionTemplate = shouldUseExclusionTemplate(ignoredMuscles);
+
+  // Select the appropriate template
+  const experience = trainingAdvancement?.level || 'intermediate';
+  let template: SplitTemplate | null = null;
+  let exclusionTemplate: ExclusionTemplate | null = null;
+
+  if (useExclusionTemplate && ignoredMuscles) {
+    // Use specialized exclusion template (e.g., upper body only)
+    exclusionTemplate = getExclusionTemplate(ignoredMuscles, weeklyDays);
+  } else {
+    // Use standard split template
+    template = selectTemplate(weeklyDays, trainingGoal, experience);
+  }
+
+  // Build ignored muscles guideline for non-leg exclusions (legs get full template replacement)
+  const ignoredMusclesGuideline = hasIgnoredMuscles && !useExclusionTemplate
+    ? buildIgnoredMusclesGuideline(ignoredMuscles)
     : '';
 
-  // Build fatigue management guidelines based on training advancement
-  const fatigueGuidelines = trainingAdvancement
-    ? getFatigueManagementGuidelines(trainingAdvancement)
-    : '';
+  // Build sections with clear numbering
+  const sections: string[] = [];
 
-  // Build STRICT exercise count constraints - these override program defaults
-  const exerciseCountConstraints = exercisesPerWorkout
-    ? getExerciseCountConstraints(exercisesPerWorkout, workoutDuration)
-    : '';
+  // ============================================================================
+  // SECTION 1: PROGRAM CONTEXT
+  // ============================================================================
+  const templateName = exclusionTemplate?.name || template?.name || 'Custom';
+  const templateDesc = exclusionTemplate?.description || template?.description || 'AI Generated';
 
-  // Build included exercises requirements
-  const includedExercisesRequirements = includedExercises && includedExercises.length > 0
-    ? getIncludedExercisesRequirements(includedExercises)
-    : '';
+  sections.push(`
+================================================================================
+SECTION 1: PROGRAM CONTEXT
+================================================================================
+Template: ${templateName}
+${exclusionTemplate ? `Type: ${exclusionTemplate.exclusionType.replace('_', ' ').toUpperCase()} PROGRAM` : ''}
+Days per week: ${weeklyDays}
+Goal: ${trainingGoal}
+User level: ${userStrengthLevel} (${experience})
+Description: ${templateDesc}
+`);
 
-  const focusInstructions = hasFocusAreas
-    ? `\nFOCUS AREA REQUIREMENTS:
-- Increase volume for ${focusMuscles.join(', ')} muscle groups
-- Add extra sets or exercises for focus areas
-- Include specialized movements targeting focus areas
-- If focus is "arms", add dedicated bicep and tricep work
-- If focus is "legs", ensure quad and hamstring balance
-- If focus is "chest", include incline/flat/decline variations
-- If focus is "back", include both vertical and horizontal pulls
-- If focus is "shoulders", include front/side/rear delt work
-- If focus is "core", add direct ab and oblique exercises`
-    : '';
+  // ============================================================================
+  // SECTION 2: TEMPLATE GUIDELINES
+  // ============================================================================
+  const guidelines = exclusionTemplate?.guidelines || template?.guidelines;
+  if (guidelines) {
+    sections.push(`
+================================================================================
+SECTION 2: TEMPLATE GUIDELINES
+================================================================================
+${guidelines}
+`);
+  }
 
-  // Build the critical constraints section - placed at the END for maximum priority
-  const criticalConstraints = buildCriticalConstraints({
-    fatigueGuidelines,
-    exerciseCountConstraints,
-    includedExercisesRequirements,
-  });
+  // ============================================================================
+  // SECTION 3: CRITICAL REQUIREMENTS (MUST FOLLOW)
+  // ============================================================================
+  const criticalRules: string[] = [];
 
-  return `Generate a practical workout routine program based on proven methodologies.
+  // Days constraint
+  criticalRules.push(`1. Generate EXACTLY ${weeklyDays} workout days`);
 
-PROGRAM STYLE: ${templateInfo.name}
-Reference: ${templateInfo.reference}
-${templateInfo.description}
+  // Exercise count constraint
+  if (exercisesPerWorkout) {
+    criticalRules.push(`2. Each workout must have ${exercisesPerWorkout.min}-${exercisesPerWorkout.max} exercises`);
+  }
 
-TRAINING GOAL: ${trainingGoal}
-${focusText}
+  // Duration constraint
+  if (workoutDuration) {
+    const durationGuidelines = getDurationGuidelines(workoutDuration);
+    criticalRules.push(`3. Target workout duration: ${workoutDuration} minutes
+   ${durationGuidelines}`);
+  }
 
-USER PROFILE:
-- Experience Level: ${userStrengthLevel}
-- Body Weight: ${userBodyWeight} ${weightUnit}
-- Gender: ${gender}
-- Available Equipment: ${userEquipmentDisplay}
-- Training Days Per Week: ${weeklyDays}
-${exerciseHistorySummary}
-${customExercisesSummary}
-${focusInstructions}
+  // Included exercises (MUST)
+  if (includedExercises && includedExercises.length > 0) {
+    criticalRules.push(`4. MUST INCLUDE these exercises (find appropriate slots):
+   ${includedExercises.join(', ')}`);
+  }
 
-AVAILABLE EXERCISES (STRICT - use ONLY these exercises, do NOT invent or substitute):
+  // Excluded exercises (MUST)
+  if (excludedExercises && excludedExercises.length > 0) {
+    criticalRules.push(`5. MUST EXCLUDE these exercises (never use):
+   ${excludedExercises.join(', ')}`);
+  }
+
+  // Fatigue management
+  if (trainingAdvancement) {
+    if (!trainingAdvancement.allowHeavySquatAndDeadliftSameDay) {
+      criticalRules.push(`6. FATIGUE RULE: Do NOT put heavy squat and heavy deadlift on the same day`);
+    }
+    criticalRules.push(`7. Max sets per muscle per session: ${trainingAdvancement.maxSetsPerMusclePerSession}`);
+  }
+
+  sections.push(`
+================================================================================
+SECTION 3: CRITICAL REQUIREMENTS (MUST FOLLOW)
+================================================================================
+${criticalRules.join('\n\n')}
+`);
+
+  // ============================================================================
+  // SECTION 4: IGNORED BODY PARTS (MUST SKIP)
+  // ============================================================================
+  // Only show this section for non-leg exclusions (legs get full template replacement)
+  if (hasIgnoredMuscles && !useExclusionTemplate && ignoredMusclesGuideline) {
+    sections.push(`
+================================================================================
+SECTION 4: IGNORED BODY PARTS (MUST SKIP)
+================================================================================
+${ignoredMusclesGuideline}
+`);
+  }
+
+  // ============================================================================
+  // SECTION 5: PRIORITY FOCUS AREAS (PRIORITIZE)
+  // ============================================================================
+  if (focusMuscles && focusMuscles.length > 0) {
+    sections.push(`
+================================================================================
+SECTION ${hasIgnoredMuscles ? '5' : '4'}: PRIORITY FOCUS AREAS (PRIORITIZE)
+================================================================================
+The user wants to emphasize: ${focusMuscles.join(', ')}
+
+When selecting exercises:
+- Include more exercises targeting these muscles
+- Place them earlier in the workout when fresh
+- Add extra volume for these muscle groups
+`);
+  }
+
+  // ============================================================================
+  // SECTION 5: AVAILABLE EXERCISES
+  // ============================================================================
+  sections.push(`
+================================================================================
+SECTION 5: AVAILABLE EXERCISES (use ONLY these)
+================================================================================
 ${allExerciseNames.join(', ')}
 
-EXERCISE SELECTION RULES:
-- You MUST only use exercises from the list above
-- Do NOT create variations or substitutes not in the list
-- Do NOT add exercises that are not explicitly listed
-- If an exercise type is missing from the list, skip it entirely
+${customExercisesSummary}
+`);
 
-${getProgramGuidelines(programTemplate, trainingGoal, weeklyDays)}
+  // ============================================================================
+  // SECTION 6: USER CONTEXT
+  // ============================================================================
+  sections.push(`
+================================================================================
+SECTION 6: USER CONTEXT
+================================================================================
+Body weight: ${userBodyWeight} ${weightUnit}
+Gender: ${gender}
+Available equipment: ${userEquipmentDisplay}
+Strength level: ${userStrengthLevel}
 
-${EXERCISE_NAMING_INSTRUCTIONS}
+${exerciseHistorySummary}
+`);
 
-ROUTINE DESIGN PRINCIPLES:
-1. Follow proven programming principles (progressive overload, adequate volume, recovery)
-2. Prioritize compound movements before isolation work
-3. Balance pushing and pulling movements
-4. Include appropriate rep ranges for the training goal:
-   - Strength: 3-6 reps on compounds, focus on progressive overload
-   - Hypertrophy: 8-12 reps primary, 12-20 for isolation, volume focused
-   - Powerbuilding: Mix of both - heavy compounds (3-5) plus hypertrophy work (8-12)
-   - Recomposition: Higher reps (10-15), supersets, shorter rest, metabolic circuits
-   - Athletic: Explosive movements, 3-6 reps for power, plyometrics, functional patterns
-   - General: Moderate reps (8-12), balanced volume, full body emphasis
-5. Appropriate exercise order (compounds first, isolation last)
-6. Realistic volume (15-25 sets per muscle group per week for hypertrophy, less for strength)
-${criticalConstraints}
-Return ONLY valid JSON (no markdown, no backticks):
+  // ============================================================================
+  // SECTION 7: OUTPUT FORMAT
+  // ============================================================================
+  sections.push(`
+================================================================================
+SECTION 7: OUTPUT FORMAT
+================================================================================
+Return ONLY valid JSON. No markdown, no backticks, no explanation.
+
 {
-  "programName": "Descriptive program name",
-  "programDescription": "1-2 sentence description of the program",
+  "programName": "Program Name",
   "programStyle": "${programTemplate}",
   "trainingGoal": "${trainingGoal}",
-  "weeklyVolume": "Total sets per week estimate",
-  "estimatedDuration": "${workoutDuration ? `~${workoutDuration} min` : '45-60 min'} per session",
   "routines": [
     {
-      "name": "Day name (e.g., 'Push Day', 'Upper Power', 'Day A')",
+      "name": "Day Name",
       "dayNumber": 1,
-      "focus": "Primary focus of this day",
-      "targetMuscles": ["chest", "shoulders", "triceps"],
+      "focus": "Focus area",
+      "targetMuscles": ["muscle1", "muscle2"],
       "exercises": [
-        {
-          "name": "Exercise Name (Equipment)",
-          "sets": 3,
-          "reps": 10,
-          "notes": "Optional form cue or progression note"
-        }
+        { "name": "Exercise (Equipment)", "sets": 3, "reps": 10 }
       ],
-      "estimatedTime": "${workoutDuration ? `~${workoutDuration} min` : '50 min'}"
+      "estimatedTime": "50 min"
     }
-  ],
-  "weeklySchedule": "Recommended schedule (e.g., 'Mon/Tue/Thu/Fri' or 'A/B/A then B/A/B')",
-  "progressionNotes": "How to progress (e.g., 'Add 5lbs to compounds when you hit all reps')"
-}`;
+  ]
 }
 
-function getProgramGuidelines(
-  template: ProgramTemplate,
-  goal: TrainingGoal,
-  days: number
-): string {
-  const strengthReps = 'Main lifts: 3-5 reps. Accessories: 6-10 reps.';
-  const hypertrophyReps = 'Compounds: 6-10 reps. Isolation: 10-15 reps. Some sets to failure.';
-  const powerbuildingReps = 'Power days: 3-5 reps. Hypertrophy days: 8-12 reps.';
+CRITICAL:
+- Exercise names must EXACTLY match the available list
+- Return exactly ${weeklyDays} days
+- Follow all rules in SECTION 3
+`);
 
-  switch (template) {
-    case 'ppl':
-      return `
-PUSH/PULL/LEGS GUIDELINES (Reddit PPL style):
-- Push: Chest, shoulders, triceps
-- Pull: Back, biceps, rear delts
-- Legs: Quads, hamstrings, glutes, calves
-- Each muscle hit 2x per week (6-day) or 1x (3-day)
-- Start with main compound (bench/OHP on push, rows/pullups on pull, squat/deadlift on legs)
-- Linear progression on compounds: add weight when you hit target reps
-${goal === 'strength' ? strengthReps : hypertrophyReps}`;
-
-    case 'upper_lower':
-      return `
-UPPER/LOWER GUIDELINES (PHUL style):
-- Upper Power: Heavy bench, rows, OHP (strength focus)
-- Lower Power: Heavy squats, deadlifts (strength focus)
-- Upper Hypertrophy: Higher volume chest, back, shoulders, arms
-- Lower Hypertrophy: Higher volume legs, glutes
-- Power days: Lower reps (3-5), heavier weight
-- Hypertrophy days: Higher reps (8-12), moderate weight
-${days === 4 ? '- 4-day split: Upper Power, Lower Power, Upper Hypertrophy, Lower Hypertrophy' : ''}
-${powerbuildingReps}`;
-
-    case 'full_body':
-      return `
-FULL BODY GUIDELINES (5/3/1 / Starting Strength style):
-- Each session hits all major muscle groups
-- Focus on big compound movements
-- Squat or deadlift variation every session
-- Horizontal push + pull every session
-- Plenty of recovery between sessions
-- Great for beginners or those with limited time
-${goal === 'strength' ? strengthReps : 'Compounds: 5-8 reps. Accessories: 8-12 reps.'}`;
-
-    case 'bro_split':
-      return `
-BODY PART SPLIT GUIDELINES (Arnold style):
-- One primary muscle group per day
-- High volume per session
-- Example: Chest/Back/Shoulders/Arms/Legs
-- Multiple angles and exercises for complete development
-- Classic bodybuilding approach
-${hypertrophyReps}`;
-
-    case 'powerbuilding':
-      return `
-POWERBUILDING GUIDELINES (PHAT by Dr. Layne Norton):
-- 2 power days (upper/lower) for strength
-- 3 hypertrophy days for muscle growth
-- Power days: Heavy compounds, 3-5 reps, long rest
-- Hypertrophy days: Moderate weight, 8-15 reps, shorter rest
-- Speed work on hypertrophy days (explosive reps)
-- Best for intermediate+ lifters
-${powerbuildingReps}`;
-
-    case 'strength':
-      return `
-STRENGTH GUIDELINES (5/3/1 by Jim Wendler):
-- Focus on the "Big 4": Squat, Bench, Deadlift, OHP
-- Submaximal training (work with 85-95% of TM)
-- Wave loading: Week 1 (5s), Week 2 (3s), Week 3 (5/3/1), Week 4 (deload)
-- PR sets (AMRAP) on final set
-- Assistance work: Push, pull, single-leg/core
-- "Start light, progress slow" philosophy
-${strengthReps}`;
-
-    default:
-      return `
-CUSTOM PROGRAM GUIDELINES:
-- Analyze user's training days and goals
-- Select appropriate split for their schedule
-- ${days <= 3 ? 'Full body or PPL condensed works well' : ''}
-- ${days === 4 ? 'Upper/Lower split is ideal' : ''}
-- ${days >= 5 ? 'PPL or body part split appropriate' : ''}
-- Balance volume across the week
-- Ensure progressive overload potential
-${goal === 'strength' ? strengthReps : goal === 'hypertrophy' ? hypertrophyReps : powerbuildingReps}`;
-  }
+  return sections.join('\n');
 }
 
 /**
- * Build critical constraints section - placed at the END of the prompt for maximum priority
- * These constraints OVERRIDE any conflicting guidelines from program templates
+ * Get duration-specific guidelines
  */
-function buildCriticalConstraints(params: {
-  fatigueGuidelines: string;
-  exerciseCountConstraints: string;
-  includedExercisesRequirements: string;
-}): string {
-  const { fatigueGuidelines, exerciseCountConstraints, includedExercisesRequirements } = params;
+function getDurationGuidelines(minutes: number): string {
+  if (minutes <= 30) {
+    return `- Keep to 4-5 exercises
+   - Supersets encouraged
+   - Rest periods: 60-90 seconds
+   - Focus on compounds, minimal isolation`;
+  }
+  if (minutes <= 60) {
+    return `- 5-7 exercises per workout
+   - Rest periods: 90-120 seconds
+   - Good balance of compounds and isolation`;
+  }
+  if (minutes <= 90) {
+    return `- 6-8 exercises per workout
+   - Rest periods: 2-3 minutes on heavy compounds
+   - Room for more accessory work`;
+  }
+  return `- 8-10 exercises per workout
+   - Rest periods: 3-5 minutes on main lifts
+   - Full accessory and isolation work`;
+}
 
-  const hasConstraints = fatigueGuidelines || exerciseCountConstraints || includedExercisesRequirements;
-
-  if (!hasConstraints) {
+/**
+ * Build guidelines for ignored muscle groups
+ * Provides specific programming modifications based on what's being skipped
+ */
+function buildIgnoredMusclesGuideline(ignoredMuscles?: string[]): string {
+  if (!ignoredMuscles || ignoredMuscles.length === 0) {
     return '';
   }
 
-  return `
+  const ignored = ignoredMuscles.map(m => m.toLowerCase());
+  const guidelines: string[] = [];
 
-=== CRITICAL REQUIREMENTS (OVERRIDE ALL ABOVE GUIDELINES) ===
-The following constraints MUST be followed. They take priority over any conflicting program template suggestions.
-${fatigueGuidelines}
-${exerciseCountConstraints}
-${includedExercisesRequirements}
-=== END CRITICAL REQUIREMENTS ===
+  guidelines.push(`The user wants to COMPLETELY SKIP these body parts: ${ignoredMuscles.join(', ')}`);
+  guidelines.push('');
+  guidelines.push('CRITICAL RULES:');
+  guidelines.push('- Do NOT include ANY exercises that primarily target these muscles');
+  guidelines.push('- Do NOT include "leg day" or similar dedicated days for skipped body parts');
+  guidelines.push('- Redistribute workout days to focus on remaining muscle groups');
+  guidelines.push('');
 
-`;
-}
-
-/**
- * Get fatigue management guidelines - simplified to just squat/deadlift separation
- */
-function getFatigueManagementGuidelines(advancement: {
-  level: 'beginner' | 'intermediate' | 'advanced';
-  allowHeavySquatAndDeadliftSameDay: boolean;
-  maxSetsPerMusclePerSession: number;
-  suggestedFrequency: { squat: number; bench: number; deadlift: number };
-}): string {
-  const { allowHeavySquatAndDeadliftSameDay } = advancement;
-
-  // Only include fatigue guideline if squat/deadlift should be separated
-  if (allowHeavySquatAndDeadliftSameDay) {
-    return '';
+  // Specific guidelines based on what's being skipped
+  if (ignored.includes('legs')) {
+    guidelines.push('LEGS SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO squats, deadlifts, leg press, lunges, leg curls, leg extensions, or calf work');
+    guidelines.push('- Convert "Leg Day" to additional upper body work (e.g., extra back/chest day)');
+    guidelines.push('- For PPL: Convert to Push/Pull only, repeat cycle');
+    guidelines.push('- For Upper/Lower: Convert to all upper body days');
+    guidelines.push('- For Full Body: Focus on upper body compounds and accessories');
+    guidelines.push('');
   }
 
-  return `
-FATIGUE MANAGEMENT:
-- DO NOT program Squat (Barbell) and Deadlift (Barbell) on the SAME DAY - they MUST be on separate days
-- This is a STRICT REQUIREMENT - split them across different workout days`;
-}
+  if (ignored.includes('chest')) {
+    guidelines.push('CHEST SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO bench press, chest fly, push-ups, dips (chest-focused), or incline press');
+    guidelines.push('- On "Push Day": Focus on shoulders and triceps only');
+    guidelines.push('- Replace horizontal pressing with more overhead pressing');
+    guidelines.push('');
+  }
 
-/**
- * Get STRICT exercise count constraints based on workout duration
- */
-function getExerciseCountConstraints(
-  exercisesPerWorkout: { min: number; max: number },
-  workoutDuration?: number
-): string {
-  const durationText = workoutDuration ? `${workoutDuration} minutes` : 'the specified duration';
-  const countText = exercisesPerWorkout.min === exercisesPerWorkout.max
-    ? `EXACTLY ${exercisesPerWorkout.min}`
-    : `${exercisesPerWorkout.min}-${exercisesPerWorkout.max}`;
+  if (ignored.includes('back')) {
+    guidelines.push('BACK SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO rows, pulldowns, pull-ups, deadlifts, or back-focused movements');
+    guidelines.push('- On "Pull Day": Focus on biceps and rear delts only');
+    guidelines.push('- Add extra shoulder and arm work to maintain balance');
+    guidelines.push('');
+  }
 
-  return `
-EXERCISE COUNT (MANDATORY - THIS IS NON-NEGOTIABLE):
-- Target workout duration: ${durationText}
-- Each routine MUST have ${countText} exercises. THIS IS REQUIRED.
-- Do NOT generate routines with fewer exercises than specified.
-- Do NOT generate routines with more exercises than specified.
-- If you need more volume, add sets to exercises - do NOT add extra exercises.
-- Count your exercises before responding to ensure compliance.`;
-}
+  if (ignored.includes('shoulders')) {
+    guidelines.push('SHOULDERS SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO overhead press, lateral raises, front raises, or rear delt work');
+    guidelines.push('- On "Push Day": Focus on chest and triceps');
+    guidelines.push('- Note: Some shoulder involvement in pressing is unavoidable');
+    guidelines.push('');
+  }
 
-/**
- * Get requirements for exercises that MUST be included in the program
- */
-function getIncludedExercisesRequirements(includedExercises: string[]): string {
-  return `
-REQUIRED EXERCISES (MUST INCLUDE):
-${includedExercises.map(e => `- ${e}`).join('\n')}
-These exercises MUST appear in the program. Distribute them across routines by muscle group.`;
+  if (ignored.includes('arms')) {
+    guidelines.push('ARMS SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO bicep curls, tricep extensions, hammer curls, or direct arm work');
+    guidelines.push('- Focus on compound movements only');
+    guidelines.push('- Arms will get indirect work from pressing and pulling');
+    guidelines.push('');
+  }
+
+  if (ignored.includes('core')) {
+    guidelines.push('CORE SKIPPED - MODIFIED PROGRAMMING:');
+    guidelines.push('- NO crunches, planks, ab wheel, or direct core work');
+    guidelines.push('- Core gets indirect work from compound lifts');
+    guidelines.push('');
+  }
+
+  guidelines.push('PROGRAM STRUCTURE:');
+  guidelines.push('- Adjust day names to reflect actual content (e.g., "Upper Body A" not "Push")');
+  guidelines.push('- Add extra volume for non-skipped muscle groups');
+  guidelines.push('- Maintain proper rest between muscle groups');
+
+  return guidelines.join('\n');
 }

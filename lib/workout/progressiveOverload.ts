@@ -17,6 +17,7 @@
 import {
   CalculatedRoutineExercise,
   CalculatedSet,
+  ExerciseProgressionState,
   GeneratedWorkout,
   IntensityModifier,
   Routine,
@@ -126,11 +127,14 @@ function roundWeight(weight: number, unit: WeightUnit): number {
 
 /**
  * Calculate target and expected weights for a single routine exercise
+ * If progressionState is provided, uses tracked progression (weight + rep bonus)
+ * Otherwise falls back to 1RM-based calculation from history
  */
 export function calculateRoutineExerciseWeights(
   exercise: RoutineExercise,
   workoutHistory: GeneratedWorkout[],
-  weightUnit: WeightUnit
+  weightUnit: WeightUnit,
+  progressionState?: ExerciseProgressionState
 ): CalculatedRoutineExercise {
   // Handle both old format (sets as number) and new format (sets as array)
   let sets: RoutineSet[];
@@ -192,24 +196,41 @@ export function calculateRoutineExerciseWeights(
     };
   }
 
-  // Calculate weight for each set based on its rep target
+  // Calculate weight for each set
+  // If progressionState exists, use tracked weight and apply rep bonus
+  // Otherwise fall back to 1RM-based calculation
   const calculatedSets = sets.map(set => {
-    if (estimated1RMInUnit <= 0) {
-      return { ...set, targetWeight: 0 };
-    }
-
     let targetWeight: number;
-    if (set.isWarmup) {
-      // Warmups: flat 50% of 1RM
-      targetWeight = estimated1RMInUnit * WARMUP_1RM_PERCENTAGE;
+    let targetReps = set.reps;
+
+    if (progressionState && progressionState.currentWeight > 0) {
+      // Use progression-tracked weight
+      if (set.isWarmup) {
+        // Warmups: 60% of working weight
+        targetWeight = progressionState.currentWeight * 0.6;
+      } else {
+        // Working sets use tracked weight directly
+        targetWeight = progressionState.currentWeight;
+        // Apply rep bonus from progression
+        targetReps = progressionState.baseReps + progressionState.currentRepBonus;
+      }
+    } else if (estimated1RMInUnit > 0) {
+      // Fall back to 1RM-based calculation
+      if (set.isWarmup) {
+        targetWeight = estimated1RMInUnit * WARMUP_1RM_PERCENTAGE;
+      } else {
+        const repPercentage = OneRMCalculator.getPercentageFor(set.reps) / 100;
+        targetWeight = estimated1RMInUnit * repPercentage * intensityMultiplier;
+      }
     } else {
-      // Working sets: percentage based on rep target
-      // e.g., 8 reps = 80%, 15 reps = 65%, 5 reps = 87%
-      const repPercentage = OneRMCalculator.getPercentageFor(set.reps) / 100;
-      targetWeight = estimated1RMInUnit * repPercentage * intensityMultiplier;
+      targetWeight = 0;
     }
 
-    return { ...set, targetWeight: roundWeight(targetWeight, weightUnit) };
+    return {
+      ...set,
+      reps: targetReps,
+      targetWeight: roundWeight(targetWeight, weightUnit),
+    };
   });
 
   // Calculate working weight as the heaviest non-warmup set (for display)
@@ -217,12 +238,27 @@ export function calculateRoutineExerciseWeights(
   const workingWeight = workingSetWeights.length > 0 ? Math.max(...workingSetWeights) : 0;
 
   // Determine progression indicator
-  if (lastPerformed && workingWeight > 0) {
+  // Priority: failures > rep bonuses > weight increases
+  // Note: We don't show 'decrease' just because weight dropped (could be intentional deload)
+  // Only show 'decrease' when there are consecutive failures
+  if (progressionState) {
+    if (progressionState.consecutiveFailures >= 2) {
+      // Two consecutive failures = declining
+      progression = 'decrease';
+    } else if (progressionState.currentRepBonus > 0) {
+      // Earning rep bonuses = improving
+      progression = 'increase';
+    } else if (lastPerformed && workingWeight > lastPerformed.weight + 2) {
+      // Weight increased = improving
+      progression = 'increase';
+    }
+    // else: maintain (stable) - includes post-deload state
+  } else if (lastPerformed && workingWeight > 0) {
+    // No progression state, fall back to weight comparison for improvement only
     if (workingWeight > lastPerformed.weight + 2) {
       progression = 'increase';
-    } else if (workingWeight < lastPerformed.weight - 2) {
-      progression = 'decrease';
     }
+    // Don't show decrease without progression tracking
   }
 
   return {
@@ -239,6 +275,7 @@ export function calculateRoutineExerciseWeights(
 
 /**
  * Calculate all exercises in a routine
+ * Uses routine's progressionState if available for each exercise
  */
 export function calculateRoutine(
   routine: Routine,
@@ -246,9 +283,11 @@ export function calculateRoutine(
   weightUnit: WeightUnit
 ): CalculatedRoutine {
   const exercises = routine?.exercises || [];
-  const calculatedExercises = exercises.map(exercise =>
-    calculateRoutineExerciseWeights(exercise, workoutHistory, weightUnit)
-  );
+  const calculatedExercises = exercises.map(exercise => {
+    // Get progression state for this exercise if it exists
+    const progressionState = routine.progressionState?.[exercise.exerciseId];
+    return calculateRoutineExerciseWeights(exercise, workoutHistory, weightUnit, progressionState);
+  });
 
   return {
     ...routine,

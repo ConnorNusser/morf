@@ -1,5 +1,5 @@
 import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
 import { analyticsService } from '@/lib/services/analytics';
 import { exerciseNameToId } from '@/lib/data/exerciseUtils';
@@ -23,7 +23,7 @@ export interface ParsedExercise {
   isCustom: boolean;
   trackingType?: 'reps' | 'timed' | 'cardio';
   sets: ParsedSet[]; // Actual working sets performed
-  recommendedSets?: ParsedSet[]; // Template/target sets (what they should aim for)
+  targetSets?: ParsedSet[]; // Target sets from "Target:" lines
 }
 
 export interface ParsedWorkout {
@@ -36,7 +36,7 @@ export interface ParsedExerciseSummary {
   name: string;
   setCount: number;
   sets: ParsedSet[]; // Actual working sets
-  recommendedSets?: ParsedSet[]; // Template/target sets
+  targetSets?: ParsedSet[]; // Target sets from "Target:" lines
   matchedExerciseId?: string; // ID of the matched exercise from database
   isCustom?: boolean; // Whether this is a custom exercise
   trackingType?: 'reps' | 'timed' | 'cardio';
@@ -54,7 +54,7 @@ interface AIParseResponse {
       duration?: number;  // seconds
       distance?: number;  // meters
     }[];
-    recommendedSets?: {
+    targetSets?: {
       weight: number;
       reps: number;
       unit: 'lbs' | 'kg';
@@ -66,16 +66,14 @@ interface AIParseResponse {
 }
 
 class WorkoutNoteParser {
-  private readonly AI_API_KEY = process.env.EXPO_PUBLIC_AI_API_KEY;
-  private readonly openai: OpenAI;
+  private readonly GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  private readonly genAI: GoogleGenerativeAI;
   private dbExerciseIds: Set<string> = new Set();
   private customExerciseIds: Set<string> = new Set();
   private cacheInitialized: boolean = false;
 
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: this.AI_API_KEY,
-    });
+    this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
     this.buildExerciseIdCache();
   }
 
@@ -155,7 +153,7 @@ class WorkoutNoteParser {
     }
 
     // If no API key, use fallback parser
-    if (!this.AI_API_KEY) {
+    if (!this.GEMINI_API_KEY) {
       return this.fallbackParse(text, defaultUnit);
     }
 
@@ -182,7 +180,7 @@ class WorkoutNoteParser {
             duration: s.duration,
             distance: s.distance,
           })),
-          recommendedSets: ex.recommendedSets?.map(s => ({
+          targetSets: ex.targetSets?.map(s => ({
             weight: s.weight,
             reps: s.reps,
             unit: s.unit as WeightUnit,
@@ -211,23 +209,33 @@ class WorkoutNoteParser {
   }
 
   /**
-   * Call the AI API
+   * Call the AI API (Gemini 2.5 Flash)
    */
   private async callAI(prompt: string, inputText: string): Promise<AIParseResponse> {
-    const response = await this.openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a workout log parser. Parse natural language workout notes into structured JSON. Return ONLY valid JSON, no markdown or formatting.',
-        },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 2000,
+    const startTime = Date.now();
+    console.log(`[WorkoutNoteParser] Starting Gemini API call...`);
+    console.log(`[WorkoutNoteParser] Input text length: ${inputText.length} chars`);
+    console.log(`[WorkoutNoteParser] Prompt length: ${prompt.length} chars`);
+
+    const model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash-lite',
+      generationConfig: {
+        responseMimeType: 'application/json',
+      },
     });
 
-    const content = response.choices[0]?.message?.content;
+    const fullPrompt = `You are a workout log parser. Parse natural language workout notes into structured JSON. Return ONLY valid JSON.\n\n${prompt}`;
+
+    console.log(`[WorkoutNoteParser] Calling generateContent...`);
+    const result = await model.generateContent(fullPrompt);
+    console.log(`[WorkoutNoteParser] Got result, extracting response...`);
+    const response = result.response;
+    const content = response.text();
+
+    const elapsed = Date.now() - startTime;
+    console.log(`[WorkoutNoteParser] AI call took ${elapsed}ms (model: gemini-2.5-flash-lite)`);
+    console.log(`[WorkoutNoteParser] Response length: ${content?.length || 0} chars`);
+
     if (!content) {
       throw new Error('No content received from AI');
     }
@@ -240,13 +248,18 @@ class WorkoutNoteParser {
 
     const parsed = JSON.parse(cleanedContent);
 
+    // Debug: Log what AI returned
+    console.log(`[Parser] AI returned ${parsed.exercises?.length || 0} exercises`);
+    for (const ex of parsed.exercises || []) {
+      console.log(`[Parser] AI exercise "${ex.name}": targetSets=${ex.targetSets?.length || 0}, sets=${ex.sets?.length || 0}`);
+    }
+
     // Track AI usage analytics
     analyticsService.trackAIUsage({
       requestType: 'note_parse',
       inputText,
       outputData: parsed,
-      tokensUsed: response.usage?.total_tokens,
-      model: 'gpt-4o',
+      model: 'gemini-2.5-flash-lite',
     });
 
     return parsed;
@@ -358,10 +371,10 @@ class WorkoutNoteParser {
         existing.sets = [...existing.sets, ...ex.sets];
         existing.setCount = existing.sets.length;
 
-        if (ex.recommendedSets) {
-          existing.recommendedSets = [
-            ...(existing.recommendedSets || []),
-            ...ex.recommendedSets,
+        if (ex.targetSets) {
+          existing.targetSets = [
+            ...(existing.targetSets || []),
+            ...ex.targetSets,
           ];
         }
       } else {
@@ -369,7 +382,7 @@ class WorkoutNoteParser {
           name: displayName,
           setCount: ex.sets.length,
           sets: [...ex.sets],
-          recommendedSets: ex.recommendedSets ? [...ex.recommendedSets] : undefined,
+          targetSets: ex.targetSets ? [...ex.targetSets] : undefined,
           matchedExerciseId: ex.matchedExerciseId,
           isCustom: ex.isCustom,
           trackingType: ex.trackingType,
@@ -384,34 +397,56 @@ class WorkoutNoteParser {
    * Convert parsed workout to GeneratedWorkout format for saving
    * Auto-creates custom exercises for unmatched exercise names
    */
-  async toGeneratedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number): Promise<GeneratedWorkout> {
-    const exercises: WorkoutExerciseSession[] = [];
+  async toGeneratedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number, routineId?: string): Promise<GeneratedWorkout> {
     let newCustomExercisesCreated = false;
 
-    for (const ex of parsed.exercises) {
-      let exerciseId = ex.matchedExerciseId;
+    // First pass: identify exercises that need custom creation (in parallel)
+    const exercisesNeedingCreation: { ex: ParsedExercise; index: number }[] = [];
+    const exerciseIdMap = new Map<number, string>(); // index -> exerciseId
 
-      // If no match, create custom exercise
-      if (!exerciseId) {
-        // Generate the expected ID from the name
-        const _expectedId = exerciseNameToId(ex.name);
-
-        // Check if custom exercise already exists by ID
-        const existingCustom = await storageService.getCustomExerciseByName(ex.name);
-
-        if (existingCustom) {
-          exerciseId = existingCustom.id;
+    // Check which exercises need custom creation
+    await Promise.all(
+      parsed.exercises.map(async (ex, index) => {
+        if (ex.matchedExerciseId) {
+          exerciseIdMap.set(index, ex.matchedExerciseId);
         } else {
-          // Generate custom exercise with AI metadata
+          // Check if custom exercise already exists
+          const existingCustom = await storageService.getCustomExerciseByName(ex.name);
+          if (existingCustom) {
+            exerciseIdMap.set(index, existingCustom.id);
+          } else {
+            exercisesNeedingCreation.push({ ex, index });
+          }
+        }
+      })
+    );
+
+    // Create all needed custom exercises in parallel
+    if (exercisesNeedingCreation.length > 0) {
+      newCustomExercisesCreated = true;
+      const createdExercises = await Promise.all(
+        exercisesNeedingCreation.map(async ({ ex, index }) => {
           const customExercise = await aiWorkoutGenerator.generateCustomExerciseMetadata(ex.name);
           await storageService.saveCustomExercise(customExercise);
-          exerciseId = customExercise.id;
-          newCustomExercisesCreated = true;
-        }
+          return { index, id: customExercise.id };
+        })
+      );
+      // Map the created IDs
+      for (const { index, id } of createdExercises) {
+        exerciseIdMap.set(index, id);
+      }
+    }
+
+    // Build exercises array in original order
+    const exercises: WorkoutExerciseSession[] = parsed.exercises.map((ex, index) => {
+      // Debug: Log what the parser received
+      console.log(`[Parser] Exercise "${ex.name}": parsed targetSets=${ex.targetSets?.length || 0}, sets=${ex.sets?.length || 0}`);
+      if (ex.targetSets?.length) {
+        console.log(`[Parser] Exercise "${ex.name}" targetSets:`, ex.targetSets.map(s => `${s.weight}x${s.reps}`));
       }
 
-      const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, index) => ({
-        setNumber: index + 1,
+      const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, setIndex) => ({
+        setNumber: setIndex + 1,
         weight: set.weight,
         reps: set.reps,
         unit: set.unit,
@@ -420,17 +455,29 @@ class WorkoutNoteParser {
         distance: set.distance,
       }));
 
-      // Use matched ID or generate from name as final fallback
-      const finalId = exerciseId || exerciseNameToId(ex.name);
+      // Convert targetSets to WorkoutSetCompletion format
+      const targetSets: WorkoutSetCompletion[] | undefined = ex.targetSets?.map((set, setIndex) => ({
+        setNumber: setIndex + 1,
+        weight: set.weight,
+        reps: set.reps,
+        unit: set.unit,
+        completed: false,
+      }));
 
-      exercises.push({
+      // Use mapped ID or generate from name as final fallback
+      const finalId = exerciseIdMap.get(index) || exerciseNameToId(ex.name);
+
+      console.log(`[Parser] Exercise "${ex.name}" -> id="${finalId}", targetSets converted=${targetSets?.length || 0}`);
+
+      return {
         id: finalId,
         sets: ex.sets.length,
         reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
         completedSets,
+        targetSets,
         isCompleted: true,
-      });
-    }
+      };
+    });
 
     // Refresh cache if new custom exercises were created
     if (newCustomExercisesCreated) {
@@ -457,6 +504,7 @@ class WorkoutNoteParser {
       estimatedDuration: duration,
       difficulty: 'Completed',
       createdAt: new Date(),
+      routineId,
     };
   }
 

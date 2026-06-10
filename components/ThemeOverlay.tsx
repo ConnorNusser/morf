@@ -40,7 +40,7 @@ const isSpringSeason = (): boolean => {
 // Default snow effect for all themes during winter
 const DEFAULT_SNOW_CONFIG: ThemeEffectConfig = {
   effect: 'snow',
-  intervalMs: 2 * 60 * 1000, // 2 minutes
+  intervalMs: 8 * 60 * 1000, // 8 minutes
   isActive: isWinterSeason,
 };
 
@@ -53,8 +53,8 @@ const DEFAULT_SPRING_CONFIG: ThemeEffectConfig = {
 
 // Get seasonal effect config for a theme
 const getSeasonalConfig = (theme: ThemeLevel): ThemeEffectConfig | null => {
-  // Christmas theme gets more frequent snow in winter
-  if (theme === 'christmas_theme_2025' && isWinterSeason()) {
+  // Winter theme gets more frequent snow
+  if (theme === 'winter_2026' && isWinterSeason()) {
     return {
       effect: 'snow',
       intervalMs: 25 * 1000, // 25 seconds - frequent snowfall
@@ -62,13 +62,8 @@ const getSeasonalConfig = (theme: ThemeLevel): ThemeEffectConfig | null => {
     };
   }
 
-  // Check winter first, then spring
   if (isWinterSeason()) {
     return { ...DEFAULT_SNOW_CONFIG, isActive: () => true };
-  }
-
-  if (isSpringSeason()) {
-    return { ...DEFAULT_SPRING_CONFIG, isActive: () => true };
   }
 
   return null;

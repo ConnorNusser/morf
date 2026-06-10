@@ -3,6 +3,7 @@ import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial/TutorialTarget';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
+import RoutineProgressModal from '@/components/workout/RoutineProgressModal';
 import { generateRoutineText } from '@/components/workout/RoutineImportModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
@@ -14,13 +15,13 @@ import { layout } from '@/lib/ui/styles';
 import { CalculatedRoutine, GeneratedWorkout, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
@@ -58,10 +59,45 @@ export default function NotesScreen() {
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
+  const [showRoutineProgress, setShowRoutineProgress] = useState(false);
+  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+
+  // Animation for generating progress bar
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Animate progress bar when generating
+  useEffect(() => {
+    if (isGeneratingRoutine) {
+      // Reset progress
+      progressAnim.setValue(0);
+
+      // Animate progress bar - fast to 30%, slow to 70%, then very slow
+      Animated.sequence([
+        Animated.timing(progressAnim, { toValue: 0.3, duration: 2000, useNativeDriver: false }),
+        Animated.timing(progressAnim, { toValue: 0.6, duration: 8000, useNativeDriver: false }),
+        Animated.timing(progressAnim, { toValue: 0.85, duration: 15000, useNativeDriver: false }),
+        Animated.timing(progressAnim, { toValue: 0.92, duration: 20000, useNativeDriver: false }),
+      ]).start();
+
+      // Pulse animation for the icon
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ])
+      );
+      pulse.start();
+
+      return () => pulse.stop();
+    } else {
+      // Complete the animation when done
+      Animated.timing(progressAnim, { toValue: 1, duration: 300, useNativeDriver: false }).start();
+    }
+  }, [isGeneratingRoutine, progressAnim, pulseAnim]);
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -180,6 +216,36 @@ export default function NotesScreen() {
     await loadData();
   }, [loadData]);
 
+  // Handle manual deload for a specific exercise
+  const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
+    const progressionState = routine.progressionState?.[exerciseId];
+    if (!progressionState) return;
+
+    // Calculate deloaded weight (10% reduction, rounded to nearest plate)
+    const deloadPercent = 0.9;
+    const increment = weightUnit === 'kg' ? 2.5 : 5;
+    const newWeight = Math.round((progressionState.currentWeight * deloadPercent) / increment) * increment;
+
+    // Update progression state for this exercise only
+    const updatedProgressionState = {
+      ...routine.progressionState,
+      [exerciseId]: {
+        ...progressionState,
+        currentWeight: newWeight,
+        currentRepBonus: 0,
+        consecutiveFailures: 0,
+      },
+    };
+
+    const updated: Routine = {
+      ...routine,
+      progressionState: updatedProgressionState,
+    };
+
+    await storageService.saveRoutine(updated);
+    await loadData();
+  }, [loadData, weightUnit]);
+
   const handleCreateRoutine = useCallback(() => {
     setEditingRoutine(null);
     setShowRoutineEditor(true);
@@ -201,35 +267,13 @@ export default function NotesScreen() {
 
   const handleStartWorkout = useCallback(async (routine: CalculatedRoutine) => {
     const text = generateRoutineText(routine);
-    await storageService.updateRoutineLastUsed(routine.id);
-    setPendingRoutine(text);
+    setPendingRoutine(text, routine.id);
     router.push('/workout');
   }, [router]);
 
   const toggleRoutineExpanded = useCallback((routineId: string) => {
     setExpandedRoutineId(prev => prev === routineId ? null : routineId);
   }, []);
-
-  // Filter routines based on search query
-  const filteredActiveRoutines = useMemo(() => {
-    if (!searchQuery.trim()) return activeRoutines;
-    const query = searchQuery.toLowerCase();
-    return activeRoutines.filter(r =>
-      r.name.toLowerCase().includes(query) ||
-      r.description?.toLowerCase().includes(query) ||
-      r.exercises.some(e => e.exerciseName.toLowerCase().includes(query))
-    );
-  }, [activeRoutines, searchQuery]);
-
-  const filteredInactiveRoutines = useMemo(() => {
-    if (!searchQuery.trim()) return inactiveRoutines;
-    const query = searchQuery.toLowerCase();
-    return inactiveRoutines.filter(r =>
-      r.name.toLowerCase().includes(query) ||
-      r.description?.toLowerCase().includes(query) ||
-      r.exercises.some(e => e.exerciseName.toLowerCase().includes(query))
-    );
-  }, [inactiveRoutines, searchQuery]);
 
   // Get progression color
   const getProgressionColor = (progression: 'increase' | 'maintain' | 'decrease') => {
@@ -243,9 +287,9 @@ export default function NotesScreen() {
   // Get progression icon
   const getProgressionIcon = (progression: 'increase' | 'maintain' | 'decrease') => {
     switch (progression) {
-      case 'increase': return 'trending-up';
-      case 'decrease': return 'trending-down';
-      default: return 'remove';
+      case 'increase': return 'caret-up';
+      case 'decrease': return 'caret-down';
+      default: return 'remove-outline';
     }
   };
 
@@ -254,6 +298,12 @@ export default function NotesScreen() {
     const isActive = routine.isActive !== false;
     const muscleGroups = getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
+
+    // Find exercises that need deloading (consecutiveFailures >= 2)
+    const exercisesNeedingDeload = routine.exercises?.filter(
+      ex => (routine.progressionState?.[ex.exerciseId]?.consecutiveFailures ?? 0) >= 2
+    ) || [];
+    const hasExercisesNeedingDeload = exercisesNeedingDeload.length > 0;
 
     return (
       <TouchableOpacity
@@ -283,7 +333,7 @@ export default function NotesScreen() {
               </Text>
               {!isActive && (
                 <RNView style={[styles.pausedBadge, { backgroundColor: currentTheme.colors.text + '15' }]}>
-                  <Ionicons name="pause" size={10} color={currentTheme.colors.text + '50'} />
+                  <Ionicons name="moon" size={10} color={currentTheme.colors.text + '50'} />
                 </RNView>
               )}
             </RNView>
@@ -294,6 +344,30 @@ export default function NotesScreen() {
             <Text style={[styles.routineDate, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
               {routine.lastUsed ? formatRelativeDate(routine.lastUsed) : `Created ${formatRelativeDate(routine.createdAt)}`}
             </Text>
+
+            {/* Deload Warning Banner - shown when collapsed and exercises need deload */}
+            {!isExpanded && hasExercisesNeedingDeload && (
+              <RNView style={[styles.deloadBanner, { backgroundColor: '#FF3B30' + '15' }]}>
+                <Ionicons name="warning" size={12} color="#FF3B30" />
+                <Text style={[styles.deloadBannerText, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                  {exercisesNeedingDeload.length} exercise{exercisesNeedingDeload.length > 1 ? 's' : ''} stalling
+                </Text>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    // Deload all stalling exercises
+                    exercisesNeedingDeload.forEach(ex => {
+                      handleDeloadExercise(routine, ex.exerciseId);
+                    });
+                  }}
+                  style={[styles.deloadBannerButton, { backgroundColor: '#FF3B30' }]}
+                >
+                  <Text style={[styles.deloadBannerButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Deload
+                  </Text>
+                </TouchableOpacity>
+              </RNView>
+            )}
           </RNView>
 
           {/* Right: Start button */}
@@ -344,17 +418,29 @@ export default function NotesScreen() {
 
                     <RNView style={styles.weightInfo}>
                       {exercise.workingWeight > 0 ? (
-                        <RNView style={styles.weightRow}>
-                          <Text style={[styles.weightValue, { color: currentTheme.colors.text + '90', fontFamily: currentTheme.fonts.medium }]}>
-                            {exercise.workingWeight} {exercise.unit}
-                          </Text>
-                          <Ionicons
-                            name={getProgressionIcon(exercise.progression)}
-                            size={12}
-                            color={getProgressionColor(exercise.progression)}
-                            style={{ marginLeft: 4 }}
-                          />
-                        </RNView>
+                        <>
+                          <RNView style={styles.weightRow}>
+                            <Text style={[styles.weightValue, { color: currentTheme.colors.text + '90', fontFamily: currentTheme.fonts.medium }]}>
+                              {exercise.workingWeight} {exercise.unit}
+                            </Text>
+                            <Ionicons
+                              name={getProgressionIcon(exercise.progression)}
+                              size={12}
+                              color={getProgressionColor(exercise.progression)}
+                              style={{ marginLeft: 4 }}
+                            />
+                          </RNView>
+                          {(routine.progressionState?.[exercise.exerciseId]?.consecutiveFailures ?? 0) >= 2 && (
+                            <TouchableOpacity
+                              onPress={() => handleDeloadExercise(routine, exercise.exerciseId)}
+                              style={styles.deloadButton}
+                            >
+                              <Text style={[styles.deloadWarning, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                                Tap to deload
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </>
                       ) : (
                         <Text style={[styles.noDataText, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                           —
@@ -375,7 +461,7 @@ export default function NotesScreen() {
                   handleEditRoutine(routine);
                 }}
               >
-                <Ionicons name="pencil-outline" size={18} color={currentTheme.colors.text + '60'} />
+                <Ionicons name="options-outline" size={18} color={currentTheme.colors.text + '60'} />
                 <Text style={[styles.actionText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                   Edit
                 </Text>
@@ -389,7 +475,7 @@ export default function NotesScreen() {
                 }}
               >
                 <Ionicons
-                  name={isActive ? 'pause-circle' : 'play-circle'}
+                  name={isActive ? 'moon-outline' : 'sunny-outline'}
                   size={18}
                   color={isActive ? '#FF9500' : '#34C759'}
                 />
@@ -405,9 +491,9 @@ export default function NotesScreen() {
                   handleDeleteRoutine(routine.id, routine.name);
                 }}
               >
-                <Ionicons name="trash-outline" size={18} color="#FF453A" />
+                <Ionicons name="close-circle-outline" size={18} color="#FF453A" />
                 <Text style={[styles.actionText, { color: '#FF453A', fontFamily: currentTheme.fonts.regular }]}>
-                  Delete
+                  Remove
                 </Text>
               </TouchableOpacity>
             </RNView>
@@ -430,6 +516,7 @@ export default function NotesScreen() {
               style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.7}
+              disabled={isGeneratingRoutine}
             >
               <Ionicons name="sparkles" size={18} color={currentTheme.colors.primary} />
             </TouchableOpacity>
@@ -444,6 +531,39 @@ export default function NotesScreen() {
         </RNView>
       </RNView>
 
+      {/* Generating Banner */}
+      {isGeneratingRoutine && (
+        <RNView style={[styles.generatingBanner, { backgroundColor: currentTheme.colors.surface }]}>
+          <RNView style={styles.generatingHeader}>
+            <Animated.View style={[styles.generatingIcon, { backgroundColor: currentTheme.colors.primary + '15', transform: [{ scale: pulseAnim }] }]}>
+              <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
+            </Animated.View>
+            <RNView style={styles.generatingTextContainer}>
+              <Text style={[styles.generatingTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                Creating your routine
+              </Text>
+              <Text style={[styles.generatingSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                Building exercises and sets...
+              </Text>
+            </RNView>
+          </RNView>
+          <RNView style={[styles.progressBarContainer, { backgroundColor: currentTheme.colors.border }]}>
+            <Animated.View
+              style={[
+                styles.progressBarFill,
+                {
+                  backgroundColor: currentTheme.colors.primary,
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%'],
+                  }),
+                },
+              ]}
+            />
+          </RNView>
+        </RNView>
+      )}
+
       {/* Content */}
       <ScrollView
         style={layout.flex1}
@@ -454,25 +574,23 @@ export default function NotesScreen() {
       >
         {routines.length > 0 ? (
           <>
-            {/* Search Bar */}
-            <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
-              <Ionicons name="search" size={16} color={currentTheme.colors.text + '40'} />
-              <TextInput
-                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
-                placeholder="Search routines"
-                placeholderTextColor={currentTheme.colors.text + '30'}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                  <Ionicons name="close-circle" size={16} color={currentTheme.colors.text + '30'} />
-                </TouchableOpacity>
-              )}
-            </RNView>
+            {/* View Progress Button */}
+            <TutorialTarget id="notes-progress-button">
+              <TouchableOpacity
+                style={[styles.progressButton, { backgroundColor: currentTheme.colors.surface }]}
+                onPress={() => setShowRoutineProgress(true)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+                <Text style={[styles.progressButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  View Progress
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '30'} />
+              </TouchableOpacity>
+            </TutorialTarget>
 
             {/* Up Next Section */}
-            {upNextRoutine && !searchQuery && (
+            {upNextRoutine && (
               <RNView style={styles.section}>
                 <Text style={[styles.sectionLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
                   UP NEXT
@@ -484,33 +602,22 @@ export default function NotesScreen() {
             )}
 
             {/* Active Routines Section */}
-            {filteredActiveRoutines.filter(r => searchQuery || r.id !== upNextRoutine?.id).length > 0 && (
+            {activeRoutines.filter(r => r.id !== upNextRoutine?.id).length > 0 && (
               <RNView style={styles.section}>
-                {!searchQuery && (
-                  <RNView style={styles.sectionHeader}>
-                    <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
-                      YOUR ROUTINES
+                <RNView style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
+                    YOUR ROUTINES
+                  </Text>
+                  <RNView style={styles.activeCountBadge}>
+                    <RNView style={styles.activeCountDot} />
+                    <Text style={[styles.activeCountText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                      {activeRoutines.length} active
                     </Text>
-                    <RNView style={styles.activeCountBadge}>
-                      <RNView style={styles.activeCountDot} />
-                      <Text style={[styles.activeCountText, { fontFamily: currentTheme.fonts.semiBold }]}>
-                        {activeRoutines.length} active
-                      </Text>
-                    </RNView>
                   </RNView>
-                )}
-                {filteredActiveRoutines
-                  .filter(r => searchQuery || r.id !== upNextRoutine?.id)
+                </RNView>
+                {activeRoutines
+                  .filter(r => r.id !== upNextRoutine?.id)
                   .map((routine) => renderRoutineCard(routine))}
-              </RNView>
-            )}
-
-            {/* No search results */}
-            {searchQuery && filteredActiveRoutines.length === 0 && filteredInactiveRoutines.length === 0 && (
-              <RNView style={styles.emptyState}>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.medium }]}>
-                  No routines match "{searchQuery}"
-                </Text>
               </RNView>
             )}
 
@@ -523,7 +630,7 @@ export default function NotesScreen() {
                   activeOpacity={0.7}
                 >
                   <RNView style={styles.pausedHeaderContent}>
-                    <Ionicons name="pause-circle" size={14} color={currentTheme.colors.text + '60'} />
+                    <Ionicons name="moon-outline" size={14} color={currentTheme.colors.text + '60'} />
                     <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
                       PAUSED ({inactiveRoutines.length})
                     </Text>
@@ -535,7 +642,7 @@ export default function NotesScreen() {
                   />
                 </TouchableOpacity>
 
-                {showInactive && filteredInactiveRoutines.map((routine) => renderRoutineCard(routine))}
+                {showInactive && inactiveRoutines.map((routine) => renderRoutineCard(routine))}
               </RNView>
             )}
           </>
@@ -576,7 +683,21 @@ export default function NotesScreen() {
       <RoutineGeneratorModal
         visible={showRoutineGenerator}
         onClose={() => setShowRoutineGenerator(false)}
-        onRoutinesCreated={() => loadData()}
+        onGenerationStarted={() => setIsGeneratingRoutine(true)}
+        onRoutinesCreated={() => {
+          setIsGeneratingRoutine(false);
+          loadData();
+        }}
+      />
+
+      {/* Routine Progress Modal */}
+      <RoutineProgressModal
+        visible={showRoutineProgress}
+        onClose={() => {
+          setShowRoutineProgress(false);
+          loadData(); // Refresh data in case changes were made
+        }}
+        onDataChanged={loadData}
       />
     </SafeAreaView>
   );
@@ -609,6 +730,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  // Generating banner
+  generatingBanner: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    gap: 12,
+  },
+  generatingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  generatingIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generatingTextContainer: {
+    flex: 1,
+  },
+  generatingTitle: {
+    fontSize: 15,
+  },
+  generatingSubtitle: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  progressBarContainer: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+
   // Scroll content
   scrollContent: {
     paddingHorizontal: 20,
@@ -616,20 +778,19 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
-  // Search
-  searchContainer: {
+  // Progress Button
+  progressButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    paddingVertical: 12,
     paddingHorizontal: 14,
-    height: 40,
-    borderRadius: 8,
-    marginBottom: 24,
+    borderRadius: 10,
+    marginBottom: 20,
+    gap: 10,
   },
-  searchInput: {
+  progressButtonText: {
     flex: 1,
-    fontSize: 15,
-    paddingVertical: 0,
+    fontSize: 14,
   },
 
   // Sections
@@ -775,6 +936,38 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 13,
+  },
+  deloadWarning: {
+    fontSize: 10,
+  },
+  deloadButton: {
+    marginTop: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 4,
+    backgroundColor: '#FF3B3015',
+  },
+  deloadBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  deloadBannerText: {
+    fontSize: 12,
+    flex: 1,
+  },
+  deloadBannerButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  deloadBannerButtonText: {
+    fontSize: 11,
+    color: '#FFFFFF',
   },
 
   // Action row

@@ -4,6 +4,7 @@ import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
+import StrengthHistoryCard from '@/components/StrengthHistoryCard';
 import { Text, View } from '@/components/Themed';
 import { TutorialTarget } from '@/components/tutorial';
 import WeeklyOverview from '@/components/WeeklyOverview';
@@ -416,6 +417,11 @@ export default function HistoryScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Strength Percentile History */}
+            <View style={styles.strengthHistorySection}>
+              <StrengthHistoryCard />
+            </View>
+
             {/* Recent Workouts */}
             {recentWorkouts.length > 0 && (
               <View style={styles.section}>
@@ -658,6 +664,9 @@ const styles = StyleSheet.create({
   },
   widgetSection: {
     marginTop: 16,
+  },
+  strengthHistorySection: {
+    marginTop: 8,
   },
   viewAllButton: {
     paddingVertical: 16,

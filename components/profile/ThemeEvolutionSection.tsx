@@ -169,7 +169,7 @@ export default function ThemeEvolutionSection() {
             </Text>
             <View style={styles.themeGrid}>
               {themeEntries
-                .filter(([themeKey]) => !themeKey.startsWith('share_') && themeKey !== 'christmas_theme_2025')
+                .filter(([themeKey]) => !themeKey.startsWith('share_') && themeKey !== 'winter_2026')
                 .map(([themeKey, theme]) => (
                 <TouchableOpacity
                   key={themeKey}
@@ -313,7 +313,7 @@ export default function ThemeEvolutionSection() {
               {themeEntries
                 .filter(([themeKey]) =>
                   themeKey.startsWith('share_') ||
-                  (themeKey === 'christmas_theme_2025' && isSeasonalThemeAvailable('christmas_theme_2025'))
+                  (themeKey === 'winter_2026' && isSeasonalThemeAvailable('winter_2026'))
                 )
                 .map(([themeKey, theme]) => (
                 <TouchableOpacity
