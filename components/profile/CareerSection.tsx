@@ -100,6 +100,24 @@ export default function CareerSection() {
             </View>
           </View>
 
+          {/* Tier hero — the headline identity / single progression */}
+          <View style={styles.hero}>
+            <Text style={[styles.tier, { color }]}>{data.tier}</Text>
+            <View style={styles.heroRight}>
+              <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
+              <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
+                {data.overall}
+                <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
+              </Text>
+              <View style={[styles.track, { backgroundColor: currentTheme.colors.border }]}>
+                <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
+              </View>
+              <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
+                {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
+              </Text>
+            </View>
+          </View>
+
           {/* Weekly challenge */}
           <View style={[styles.challenge, { backgroundColor: challengeColor + '12', borderColor: challengeColor + '40' }]}>
             <View style={styles.challengeBody}>
@@ -121,24 +139,6 @@ export default function CareerSection() {
           </View>
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
-
-          {/* Tier hero */}
-          <View style={styles.hero}>
-            <Text style={[styles.tier, { color }]}>{data.tier}</Text>
-            <View style={styles.heroRight}>
-              <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
-              <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
-                {data.overall}
-                <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
-              </Text>
-              <View style={[styles.track, { backgroundColor: currentTheme.colors.border }]}>
-                <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
-              </View>
-              <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
-                {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
-              </Text>
-            </View>
-          </View>
 
           {/* Stat row */}
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
