@@ -176,6 +176,9 @@ function UnlockCelebration({ items, leveledUpTo }: { items: Achievement[]; level
         : items.length === 1
           ? '🎉 Achievement Unlocked'
           : `🎉 ${items.length} Achievements Unlocked`;
+  // Cap the rows so a first-time user with many unlocked doesn't get a wall.
+  const shown = items.slice(0, 4);
+  const overflow = items.length - shown.length;
   return (
     <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
       <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
@@ -190,7 +193,7 @@ function UnlockCelebration({ items, leveledUpTo }: { items: Achievement[]; level
           </View>
         </View>
       )}
-      {items.map(a => (
+      {shown.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
           <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
             <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={16} color={currentTheme.colors.surface} />
@@ -201,6 +204,11 @@ function UnlockCelebration({ items, leveledUpTo }: { items: Achievement[]; level
           </View>
         </View>
       ))}
+      {overflow > 0 && (
+        <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text, marginLeft: 42 }]}>
+          + {overflow} more
+        </Text>
+      )}
     </View>
   );
 }
