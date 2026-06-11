@@ -2,6 +2,7 @@ import Card from '@/components/Card';
 import { useAlert } from '@/components/CustomAlert';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
+import CareerStatsSection from '@/components/profile/CareerStatsSection';
 import CustomExercisesSection from '@/components/profile/CustomExercisesSection';
 import ExercisesSection from '@/components/profile/ExercisesSection';
 import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection';
@@ -167,6 +168,9 @@ export default function ProfileScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
         </TouchableOpacity>
+
+        {/* Career / gamification overview */}
+        <CareerStatsSection />
 
         {/* Personal Information Section */}
         <TutorialTarget id="profile-personal-info">
