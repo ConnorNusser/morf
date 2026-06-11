@@ -1,5 +1,6 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
+import CareerModal from "@/components/gamification/CareerModal";
 import StreakBanner from "@/components/home/StreakBanner";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
@@ -72,6 +73,7 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [feedRefreshTrigger, setFeedRefreshTrigger] = useState(0);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
 
@@ -322,6 +324,7 @@ export default function HomeScreen() {
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             stats={lifetimeStats ?? undefined}
+            onLevelPress={() => setShowCareer(true)}
           />
 
           <TodayCard />
@@ -402,6 +405,14 @@ export default function HomeScreen() {
       <LeaderboardModal
         visible={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
+      />
+
+      <CareerModal
+        visible={showCareer}
+        onClose={() => {
+          setShowCareer(false);
+          loadUserData();
+        }}
       />
 
       <UserProfileModal

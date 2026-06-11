@@ -21,16 +21,10 @@ interface DashboardHeaderProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   stats?: HeaderStats;
+  onLevelPress?: () => void;
 }
 
-// Compact large numbers: 1840 -> "1.8K", 1_250_000 -> "1.3M".
-function compact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return String(n);
-}
-
-export default function DashboardHeader({ viewMode, onViewModeChange, stats }: DashboardHeaderProps) {
+export default function DashboardHeader({ viewMode, onViewModeChange, stats, onLevelPress }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -88,11 +82,19 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats }: D
                   />
                 </TouchableOpacity>
               </TutorialTarget>
+            </View>
 
-              {stats?.level != null && (
-                <View style={[styles.levelPill, { backgroundColor: currentTheme.colors.primary + '1A', borderColor: currentTheme.colors.primary + '40' }]}>
-                  <Text style={[styles.levelPillText, { color: currentTheme.colors.primary }]}>
-                    LV {stats.level}
+            {stats?.level != null && (
+              <TouchableOpacity
+                style={[styles.levelButton, { backgroundColor: currentTheme.colors.primary + '14', borderColor: currentTheme.colors.primary + '40' }]}
+                onPress={onLevelPress}
+                activeOpacity={0.7}
+                disabled={!onLevelPress}
+              >
+                <Ionicons name="ribbon" size={18} color={currentTheme.colors.primary} />
+                <View style={styles.levelButtonBody}>
+                  <Text style={[styles.levelButtonText, { color: currentTheme.colors.primary }]}>
+                    Level {stats.level}
                   </Text>
                   {stats.levelProgress != null && (
                     <View style={styles.levelTrack}>
@@ -100,23 +102,8 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats }: D
                     </View>
                   )}
                 </View>
-              )}
-            </View>
-
-            {stats && (
-              <View style={styles.headerStats}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                  {stats.totalWorkouts}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-                    {' '}
-                    {stats.totalWorkouts === 1 ? 'workout' : 'workouts'}
-                  </Text>
-                </Text>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                  {compact(stats.totalVolume)} {stats.unit}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}> lifted</Text>
-                </Text>
-              </View>
+                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.primary + 'AA'} />
+              </TouchableOpacity>
             )}
           </View>
 
@@ -194,21 +181,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  levelPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
+  levelButton: {
+    flexShrink: 0,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
+    marginLeft: 12,
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  levelButtonBody: {
     gap: 4,
   },
-  levelPillText: {
-    fontSize: 12,
+  levelButtonText: {
+    fontSize: 14,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
   },
   levelTrack: {
-    width: 32,
+    width: 48,
     height: 3,
     borderRadius: 1.5,
     backgroundColor: 'rgba(128,128,128,0.25)',
@@ -217,20 +211,6 @@ const styles = StyleSheet.create({
   levelFill: {
     height: '100%',
     borderRadius: 1.5,
-  },
-  headerStats: {
-    flexShrink: 0,
-    alignItems: 'flex-end',
-    marginLeft: 12,
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  statLabel: {
-    fontSize: 13,
-    opacity: 0.5,
   },
   logo: {
     width: 40,

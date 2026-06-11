@@ -19,6 +19,7 @@ import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 
 interface Props {
@@ -36,6 +37,7 @@ function formatDate(d: Date): string {
 
 export default function CareerModal({ visible, onClose }: Props) {
   const { currentTheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState<CareerData | null>(null);
   const [loading, setLoading] = useState(true);
   const [leveledUpTo, setLeveledUpTo] = useState<number | null>(null);
@@ -64,9 +66,9 @@ export default function CareerModal({ visible, onClose }: Props) {
   }, [visible, load]);
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>Career</Text>
           <View style={styles.headerActions}>
             {data && (
