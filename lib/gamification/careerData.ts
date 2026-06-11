@@ -10,6 +10,7 @@ import { CareerStats, computeCareerStats } from './careerStats';
 import { computeLevel, LevelInfo } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
+import { computeStrengthMilestones } from './strengthMilestones';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 
 export interface CareerData {
@@ -49,7 +50,10 @@ export async function loadCareerData(): Promise<CareerData> {
     visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
   );
 
-  const achievements = computeAchievements(stats, overall);
+  // Strength milestones (bodyweight ratios) flow through the same achievement
+  // machinery. Computed in lbs so the ratio matches the lbs bodyweight.
+  const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), bodyWeightLbs);
+  const achievements = [...computeAchievements(stats, overall), ...milestones];
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return {
