@@ -177,13 +177,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
 
-        // This is the primary celebration moment — acknowledge the unlocks and
-        // level here so the Profile badge and home screen don't re-celebrate them.
+        // This is the primary celebration moment — acknowledge the unlocks here
+        // so the Profile badge doesn't re-celebrate them.
         if (rewards.hasRewards) {
-          await Promise.all([
-            storageService.setSeenAchievements(unlockedIds(after.achievements)),
-            storageService.setLastCelebratedLevel(after.level.level),
-          ]);
+          await storageService.setSeenAchievements(unlockedIds(after.achievements));
         }
       } catch (rewardErr) {
         console.error('Error computing session rewards:', rewardErr);

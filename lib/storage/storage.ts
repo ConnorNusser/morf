@@ -25,7 +25,6 @@ const STORAGE_KEYS = {
   WEEKLY_GOAL: 'weekly_goal',
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
   SEEN_ACHIEVEMENTS: 'seen_achievements',
-  LAST_CELEBRATED_LEVEL: 'last_celebrated_level',
   PROFILE_ICON: 'profile_icon',
 } as const;
 
@@ -717,25 +716,6 @@ class StorageService {
     }
   }
 
-  // Highest lifter level the user has already been congratulated for.
-  async getLastCelebratedLevel(): Promise<number> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_CELEBRATED_LEVEL);
-      const parsed = data ? parseInt(data, 10) : NaN;
-      return Number.isFinite(parsed) ? parsed : 0;
-    } catch (error) {
-      console.error('Error loading last celebrated level:', error);
-      return 0;
-    }
-  }
-
-  async setLastCelebratedLevel(level: number): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_CELEBRATED_LEVEL, String(level));
-    } catch (error) {
-      console.error('Error saving last celebrated level:', error);
-    }
-  }
 
   // The career emblem id the user picked (null if never chosen).
   async getProfileIconId(): Promise<string | null> {

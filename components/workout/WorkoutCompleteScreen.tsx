@@ -61,45 +61,17 @@ interface WorkoutCompleteScreenProps {
   rewards?: SessionRewards | null;
 }
 
-// Gamification rewards earned this session: XP, level-up, achievements, and the
-// weekly-challenge tick. Sits below the PR highlights in the celebration screen.
+// Gamification rewards earned this session: new achievements and the weekly-
+// challenge tick. Sits below the PR highlights in the celebration screen.
 function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
-  const { leveledUp, xpGained, newAchievements, challenge } = rewards;
+  const { newAchievements, challenge } = rewards;
   const challengeColor = challenge.completed ? CHALLENGE_DONE_COLOR : accent;
   const shownAch = newAchievements.slice(0, 3);
 
   return (
     <Animated.View entering={FadeIn.delay(450)} style={styles.rewardsSection}>
-      {leveledUp ? (
-        <View style={[styles.levelUpBanner, { borderColor: accent, backgroundColor: accent + '1A' }]}>
-          <Ionicons name="trending-up" size={22} color={accent} />
-          <View style={styles.levelUpTextWrap}>
-            <Text style={[styles.levelUpLabel, { color: accent, fontFamily: currentTheme.fonts.bold }]}>
-              LEVEL UP
-            </Text>
-            <Text style={[styles.levelUpText, { color: '#fff', fontFamily: currentTheme.fonts.medium }]}>
-              Level {leveledUp.level} · {leveledUp.title}
-            </Text>
-          </View>
-          {xpGained > 0 && (
-            <Text style={[styles.xpPill, { color: accent, fontFamily: currentTheme.fonts.bold }]}>
-              +{xpGained} XP
-            </Text>
-          )}
-        </View>
-      ) : (
-        xpGained > 0 && (
-          <View style={styles.xpRow}>
-            <Ionicons name="flash" size={16} color={accent} />
-            <Text style={[styles.xpText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
-              +{xpGained} XP earned
-            </Text>
-          </View>
-        )
-      )}
-
       {shownAch.length > 0 && (
         <View style={styles.achList}>
           {shownAch.map(a => (
@@ -764,39 +736,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 32,
     gap: 12,
-  },
-  levelUpBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  levelUpTextWrap: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  levelUpLabel: {
-    fontSize: 12,
-    letterSpacing: 1,
-  },
-  levelUpText: {
-    fontSize: 16,
-    marginTop: 2,
-  },
-  xpPill: {
-    fontSize: 15,
-  },
-  xpRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  xpText: {
-    fontSize: 15,
   },
   achList: {
     width: '100%',

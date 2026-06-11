@@ -100,43 +100,6 @@ export default function CareerSection() {
             </View>
           </View>
 
-          {/* Level + XP */}
-          <View style={styles.levelRow}>
-            <View style={[styles.levelBadge, { backgroundColor: currentTheme.colors.primary }]}>
-              <Text style={[styles.levelNum, { color: currentTheme.colors.surface }]}>{data.level.level}</Text>
-            </View>
-            <View style={styles.levelBody}>
-              <Text style={[styles.axisLabel, { color: currentTheme.colors.primary }]}>EXPERIENCE</Text>
-              <View style={styles.levelTitleRow}>
-                <Text style={[styles.levelTitle, { color: currentTheme.colors.text }]}>
-                  Level {data.level.level} · {data.level.title}
-                </Text>
-                <Text style={[styles.levelXp, { color: currentTheme.colors.text }]}>
-                  {formatCompact(data.level.xp)} XP
-                </Text>
-              </View>
-              <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.border }]}>
-                <View
-                  style={[styles.levelFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(data.level.progress * 100)}%` }]}
-                />
-              </View>
-              <Text style={[styles.levelToNext, { color: currentTheme.colors.text }]}>
-                {formatCompact(data.level.xpForNextLevel - data.level.xpIntoLevel)} XP to Level {data.level.level + 1}
-              </Text>
-            </View>
-          </View>
-
-          {/* This-week momentum — always climbs from effort, even without a PR */}
-          {data.momentum.sessions > 0 && (
-            <View style={[styles.momentum, { backgroundColor: currentTheme.colors.primary + '12' }]}>
-              <Ionicons name="trending-up" size={16} color={currentTheme.colors.primary} />
-              <Text style={[styles.momentumText, { color: currentTheme.colors.text }]}>
-                <Text style={{ color: currentTheme.colors.primary, fontWeight: '800' }}>+{formatCompact(data.momentum.xp)} XP</Text>
-                {' '}this week · {data.momentum.sessions} {data.momentum.sessions === 1 ? 'session' : 'sessions'}
-              </Text>
-            </View>
-          )}
-
           {/* Weekly challenge */}
           <View style={[styles.challenge, { backgroundColor: challengeColor + '12', borderColor: challengeColor + '40' }]}>
             <View style={styles.challengeBody}>
@@ -279,7 +242,7 @@ export default function CareerSection() {
       <ProfileIconPicker
         visible={showIconPicker}
         onClose={() => setShowIconPicker(false)}
-        unlockContext={iconUnlockContext(data.level.level, data.achievements)}
+        unlockContext={iconUnlockContext(data.achievements)}
         currentId={data.profileIconId}
         onSelect={async id => {
           await storageService.setProfileIconId(id);
@@ -303,19 +266,7 @@ const styles = StyleSheet.create({
   newBadgeText: { fontSize: 11, fontWeight: '700' },
   viewAll: { fontSize: 13, fontWeight: '600' },
 
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  levelBadge: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  levelNum: { fontSize: 20, fontWeight: '800' },
-  levelBody: { flex: 1 },
-  levelTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  levelTitle: { fontSize: 14, fontWeight: '700' },
-  levelXp: { fontSize: 12, opacity: 0.5, fontWeight: '600' },
-  levelTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
-  levelFill: { height: 7, borderRadius: 4 },
-  levelToNext: { fontSize: 11, opacity: 0.45, marginTop: 4 },
   axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6, marginBottom: 3 },
-  momentum: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12 },
-  momentumText: { fontSize: 13, flex: 1 },
 
   challenge: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12 },
   challengeBody: { flex: 1 },

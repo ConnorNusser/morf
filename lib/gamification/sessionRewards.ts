@@ -1,12 +1,10 @@
 // The gamification "event backbone". Because every Career number is derived
 // purely from workout history, the rewards a single session earned are simply
 // the diff between a snapshot taken before the workout and one taken after.
-// One pure computeSessionRewards() feeds every surface (finish modal, home,
-// history) so they never drift. No new tracking, no stored deltas.
+// One pure computeSessionRewards() feeds every surface so they never drift.
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Achievement, computeAchievements } from './achievements';
 import { computeCareerStats } from './careerStats';
-import { computeLevel, LevelInfo } from './level';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthMilestones } from './strengthMilestones';
 import { computeWeeklyChallenge, WeeklyChallenge } from './weeklyChallenge';
@@ -15,7 +13,6 @@ import { computeWeeklyChallenge, WeeklyChallenge } from './weeklyChallenge';
 export interface RewardSnapshot {
   stats: ReturnType<typeof computeCareerStats>;
   achievements: Achievement[];
-  level: LevelInfo;
   challenge: WeeklyChallenge;
   prs: LiftPR[];
 }
@@ -33,11 +30,9 @@ export function buildRewardSnapshot(history: GeneratedWorkout[], ctx: RewardCont
   const stats = computeCareerStats(history, ctx.unit, ctx.now);
   const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), ctx.bodyWeightLbs);
   const achievements = [...computeAchievements(stats, ctx.overall), ...milestones];
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
   return {
     stats,
     achievements,
-    level: computeLevel(stats, unlockedCount),
     challenge: computeWeeklyChallenge(history, ctx.now),
     prs: computeMainLiftPRs(history, ctx.unit),
   };
@@ -49,8 +44,6 @@ export interface SessionPR {
 }
 
 export interface SessionRewards {
-  xpGained: number;
-  leveledUp: LevelInfo | null; // new level info if a level boundary was crossed
   newAchievements: Achievement[]; // unlocked in `after` but not `before`
   newPRs: SessionPR[]; // main-lift e1RM PRs set this session
   challenge: WeeklyChallenge; // the current weekly challenge (after the session)
@@ -70,23 +63,14 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     if (prev === null || lift.estimatedOneRM > prev) newPRs.push({ lift, previous: prev });
   }
 
-  const leveledUp = after.level.level > before.level.level ? after.level : null;
   const challengeJustCompleted = after.challenge.completed && !before.challenge.completed;
-  const xpGained = Math.max(0, after.level.xp - before.level.xp);
 
   return {
-    xpGained,
-    leveledUp,
     newAchievements,
     newPRs,
     challenge: after.challenge,
     challengeJustCompleted,
-    hasRewards:
-      xpGained > 0 ||
-      leveledUp !== null ||
-      newAchievements.length > 0 ||
-      newPRs.length > 0 ||
-      challengeJustCompleted,
+    hasRewards: newAchievements.length > 0 || newPRs.length > 0 || challengeJustCompleted,
   };
 }
 

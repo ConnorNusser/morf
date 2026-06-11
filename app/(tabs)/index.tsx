@@ -20,8 +20,8 @@ import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { useUser } from "@/contexts/UserContext";
-import { getStrengthLevelName } from "@/lib/data/strengthStandards";
-import { buildRewardSnapshot } from "@/lib/gamification/sessionRewards";
+import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
+import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
@@ -32,7 +32,7 @@ import {
 import { gap, layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import { convertWeight, LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
+import { LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -115,23 +115,19 @@ export default function HomeScreen() {
 
       const unit = profile?.weightUnitPreference || "lbs";
 
-      // Surface the lifter level/XP on the header (gamification).
+      // Surface the strength tier on the header (gamification).
       const visibleLifts = userProgressData.filter(
         (p) => !savedFilters.hiddenLiftIds.includes(p.workoutId),
       );
       const overall = visibleLifts.length
         ? calculateOverallPercentile(visibleLifts.map((p) => p.percentileRanking))
         : 0;
-      const bodyWeightLbs = profile?.weight
-        ? convertWeight(profile.weight.value, profile.weight.unit, "lbs")
-        : 0;
-      const snapshot = buildRewardSnapshot(history, { unit, overall, bodyWeightLbs });
 
       setLifetimeStats({
         ...getLifetimeTotals(history, unit),
         unit,
-        level: snapshot.level.level,
-        levelProgress: snapshot.level.progress,
+        tier: getStrengthTier(overall),
+        tierProgress: getTierBandProgress(overall).progress,
       });
 
       setIsLoading(false);
@@ -324,7 +320,7 @@ export default function HomeScreen() {
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             stats={lifetimeStats ?? undefined}
-            onLevelPress={() => setShowCareer(true)}
+            onTierPress={() => setShowCareer(true)}
           />
 
           <TodayCard />

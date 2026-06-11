@@ -1,8 +1,9 @@
-import LevelRing from '@/components/gamification/LevelRing';
+import TierRing from '@/components/gamification/TierRing';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { TutorialTarget } from '@/components/tutorial';
 import { getStepsByIndex } from '@/components/tutorial/tutorialSteps';
+import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
@@ -14,18 +15,18 @@ export interface HeaderStats {
   totalVolume: number;
   totalWorkouts: number;
   unit: WeightUnit;
-  level?: number; // lifter level (gamification)
-  levelProgress?: number; // 0..1 toward next level
+  tier?: StrengthTier; // strength tier (gamification)
+  tierProgress?: number; // 0..1 toward the next tier
 }
 
 interface DashboardHeaderProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   stats?: HeaderStats;
-  onLevelPress?: () => void;
+  onTierPress?: () => void;
 }
 
-export default function DashboardHeader({ viewMode, onViewModeChange, stats, onLevelPress }: DashboardHeaderProps) {
+export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -85,15 +86,15 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onL
               </TutorialTarget>
             </View>
 
-            {stats?.level != null && (
+            {stats?.tier != null && (
               <TouchableOpacity
                 style={styles.levelButton}
-                onPress={onLevelPress}
+                onPress={onTierPress}
                 activeOpacity={0.7}
-                disabled={!onLevelPress}
-                accessibilityLabel={`Level ${stats.level}, view career`}
+                disabled={!onTierPress}
+                accessibilityLabel={`${stats.tier} tier, view career`}
               >
-                <LevelRing level={stats.level} progress={stats.levelProgress ?? 0} />
+                <TierRing tier={stats.tier} progress={stats.tierProgress ?? 0} />
               </TouchableOpacity>
             )}
           </View>

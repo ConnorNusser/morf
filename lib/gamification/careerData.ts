@@ -7,7 +7,6 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
 import { Achievement, newlyUnlocked } from './achievements';
 import { CareerStats } from './careerStats';
-import { LevelInfo, weeklyMomentum, WeeklyMomentum } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { iconUnlockContext, resolveProfileIconId } from './profileIcons';
 import { LiftPR } from './personalRecords';
@@ -20,7 +19,6 @@ export interface CareerData {
   stats: CareerStats;
   overall: number;
   tier: StrengthTier;
-  level: LevelInfo;
   ladder: TierRung[];
   timeline: TierMilestone[];
   achievements: Achievement[];
@@ -29,7 +27,6 @@ export interface CareerData {
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
   weeklyChallenge: WeeklyChallenge;
-  momentum: WeeklyMomentum; // XP + sessions earned this week — reward for showing up
   profileIconId: string; // resolved career emblem (chosen if unlocked, else default)
 }
 
@@ -52,9 +49,9 @@ export async function loadCareerData(): Promise<CareerData> {
 
   const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
 
-  // stats / achievements / level / challenge / prs come from the shared snapshot
-  // builder so the Career surfaces and the session-reward diff never drift.
-  const { stats, achievements, level, challenge, prs } = buildRewardSnapshot(history, {
+  // stats / achievements / challenge / prs come from the shared snapshot builder
+  // so the Career surfaces and the session-reward diff never drift.
+  const { stats, achievements, challenge, prs } = buildRewardSnapshot(history, {
     unit,
     overall,
     bodyWeightLbs,
@@ -70,7 +67,6 @@ export async function loadCareerData(): Promise<CareerData> {
     stats,
     overall,
     tier: getStrengthTier(overall),
-    level,
     ladder: getTierLadder(overall),
     timeline,
     achievements,
@@ -79,7 +75,6 @@ export async function loadCareerData(): Promise<CareerData> {
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
     weeklyChallenge: challenge,
-    momentum: weeklyMomentum(history),
-    profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(level.level, achievements)),
+    profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(achievements)),
   };
 }

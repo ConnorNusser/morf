@@ -43,20 +43,16 @@ describe('sessionRewards', () => {
     const history = [workout(NOW, 'bench-press-barbell', [{ weight: 135, reps: 5 }])];
     const r = computeSessionRewards(snap(history), snap(history));
     expect(r.hasRewards).toBe(false);
-    expect(r.xpGained).toBe(0);
     expect(r.newAchievements).toHaveLength(0);
     expect(r.newPRs).toHaveLength(0);
-    expect(r.leveledUp).toBeNull();
   });
 
-  it('awards the first session: XP, level-up, first-workout achievement, a new PR', () => {
+  it('awards the first session: first-workout achievement and a new PR', () => {
     const before = snap([]);
     const after = snap([workout(NOW, 'bench-press-barbell', [{ weight: 185, reps: 3 }])]);
     const r = computeSessionRewards(before, after);
 
     expect(r.hasRewards).toBe(true);
-    expect(r.xpGained).toBeGreaterThan(0);
-    expect(r.leveledUp?.level).toBeGreaterThanOrEqual(2); // 60 + day + first-workout (250) crosses L2
     expect(r.newAchievements.map(a => a.id)).toContain('first-workout');
     expect(r.newPRs).toHaveLength(1);
     expect(r.newPRs[0].lift.exerciseId).toBe('bench-press-barbell');

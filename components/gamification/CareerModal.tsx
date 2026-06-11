@@ -10,7 +10,6 @@ import {
 } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
-import { WeeklyMomentum } from '@/lib/gamification/level';
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
@@ -41,20 +40,16 @@ export default function CareerModal({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<CareerData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [leveledUpTo, setLeveledUpTo] = useState<number | null>(null);
   const shareRef = useRef<ViewShot>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const career = await loadCareerData();
-      const lastLevel = await storageService.getLastCelebratedLevel();
       setData(career);
-      setLeveledUpTo(career.level.level > lastLevel ? career.level.level : null);
-      // Acknowledge everything now that the user is viewing it, so the
-      // "new" highlights and level-up celebration clear next time.
+      // Acknowledge unlocks now that the user is viewing them, so the "new"
+      // highlights clear next time.
       await storageService.setSeenAchievements(unlockedIds(career.achievements));
-      await storageService.setLastCelebratedLevel(career.level.level);
     } catch (err) {
       console.error('CareerModal: failed to load', err);
     } finally {
@@ -89,27 +84,21 @@ export default function CareerModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            {(data.newIds.size > 0 || leveledUpTo != null) && (
-              <UnlockCelebration
-                items={data.achievements.filter(a => data.newIds.has(a.id))}
-                leveledUpTo={leveledUpTo}
-              />
+            {data.newIds.size > 0 && (
+              <UnlockCelebration items={data.achievements.filter(a => data.newIds.has(a.id))} />
             )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
                 <View style={styles.shareTopRow}>
                   <Text style={[styles.shareBrand, { color: currentTheme.colors.text }]}>MORF</Text>
-                  <View style={[styles.levelPill, { backgroundColor: currentTheme.colors.primary }]}>
-                    <Text style={[styles.levelPillText, { color: currentTheme.colors.surface }]}>
-                      LVL {data.level.level} · {data.level.title}
-                    </Text>
+                  <View style={[styles.tierPill, { backgroundColor: getTierColor(data.tier) }]}>
+                    <Text style={[styles.tierPillText, { color: '#fff' }]}>{data.tier} TIER</Text>
                   </View>
                 </View>
                 <TierHero overall={data.overall} tier={data.tier} />
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
-            <MomentumView momentum={data.momentum} />
             <WeeklyChallengeView challenge={data.weeklyChallenge} />
             <NextGoal achievements={data.achievements} />
             {/* Lifetime overview */}
@@ -166,34 +155,17 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
 }
 
 // ---- Celebration shown at the top when achievements / a level were just earned ----
-function UnlockCelebration({ items, leveledUpTo }: { items: Achievement[]; leveledUpTo: number | null }) {
+function UnlockCelebration({ items }: { items: Achievement[] }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
   const title =
-    leveledUpTo != null && items.length > 0
-      ? '🎉 New rewards'
-      : leveledUpTo != null
-        ? '⚡ Level Up!'
-        : items.length === 1
-          ? '🎉 Achievement Unlocked'
-          : `🎉 ${items.length} Achievements Unlocked`;
+    items.length === 1 ? '🎉 Achievement Unlocked' : `🎉 ${items.length} Achievements Unlocked`;
   // Cap the rows so a first-time user with many unlocked doesn't get a wall.
   const shown = items.slice(0, 4);
   const overflow = items.length - shown.length;
   return (
     <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
       <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
-      {leveledUpTo != null && (
-        <View style={styles.celebrateRow}>
-          <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
-            <Ionicons name="flash" size={16} color={currentTheme.colors.surface} />
-          </View>
-          <View style={styles.celebrateText}>
-            <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>Reached Level {leveledUpTo}</Text>
-            <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>Keep the momentum going</Text>
-          </View>
-        </View>
-      )}
       {shown.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
           <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
@@ -235,24 +207,6 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
 }
 
 // ---- This week's rotating challenge ----
-// ---- Weekly momentum: XP + sessions earned this week (reward for showing up) ----
-function MomentumView({ momentum }: { momentum: WeeklyMomentum }) {
-  const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
-  if (momentum.sessions === 0) return null;
-  return (
-    <View style={[styles.momentum, { backgroundColor: accent + '12', borderColor: accent + '30' }]}>
-      <Ionicons name="trending-up" size={18} color={accent} />
-      <Text style={[styles.momentumText, { color: currentTheme.colors.text }]}>
-        <Text style={{ color: accent, fontWeight: '800' }}>+{formatCompact(momentum.xp)} XP</Text> earned this week
-      </Text>
-      <Text style={[styles.momentumSessions, { color: currentTheme.colors.text }]}>
-        {momentum.sessions} {momentum.sessions === 1 ? 'session' : 'sessions'}
-      </Text>
-    </View>
-  );
-}
-
 function WeeklyChallengeView({ challenge }: { challenge: WeeklyChallenge }) {
   const { currentTheme } = useTheme();
   // Completed challenges glow success-green so hitting the weekly goal feels good.
@@ -751,8 +705,8 @@ const styles = StyleSheet.create({
   shareCard: { borderRadius: 16, paddingBottom: 18 },
   shareTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
   shareBrand: { fontSize: 13, fontWeight: '800', letterSpacing: 3, opacity: 0.4 },
-  levelPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 },
-  levelPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  tierPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 },
+  tierPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
   shareStat: { alignItems: 'center' },
   shareStatValue: { fontSize: 16, fontWeight: '700' },
@@ -768,18 +722,6 @@ const styles = StyleSheet.create({
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
 
-  momentum: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    marginTop: 16,
-  },
-  momentumText: { flex: 1, fontSize: 14, fontWeight: '500' },
-  momentumSessions: { fontSize: 13, fontWeight: '700', opacity: 0.55 },
   weekly: {
     flexDirection: 'row',
     alignItems: 'center',

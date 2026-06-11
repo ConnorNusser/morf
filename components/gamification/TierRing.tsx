@@ -1,32 +1,32 @@
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 interface Props {
-  level: number;
-  progress: number; // 0..1 toward next level
+  tier: StrengthTier;
+  progress: number; // 0..1 toward the next tier
   size?: number;
   stroke?: number;
-  color?: string;
 }
 
-// Compact level badge: the level number inside a circular XP-progress ring.
-// Self-contained and tappable (wrap in a touchable) — a clean gamification mark.
-export default function LevelRing({ level, progress, size = 40, stroke = 3, color }: Props) {
+// Compact strength badge: the tier inside a circular progress-to-next-tier ring.
+// Self-contained and tappable (wrap in a touchable) — the lifter's headline rank.
+export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Props) {
   const { currentTheme } = useTheme();
-  const ring = color ?? currentTheme.colors.primary;
+  const ring = getTierColor(tier);
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const clamped = Math.max(0, Math.min(1, progress));
   const center = size / 2;
+  // Longer tiers (e.g. "S++") need a smaller glyph to fit the ring.
+  const tierFont = tier.length >= 3 ? 13 : tier.length === 2 ? 15 : 17;
 
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        {/* Track */}
         <Circle cx={center} cy={center} r={r} stroke={currentTheme.colors.text + '1F'} strokeWidth={stroke} fill="none" />
-        {/* Progress arc — start at top (rotate -90°), clockwise */}
         <Circle
           cx={center}
           cy={center}
@@ -41,8 +41,8 @@ export default function LevelRing({ level, progress, size = 40, stroke = 3, colo
         />
       </Svg>
       <View style={styles.center}>
-        <Text style={[styles.lv, { color: ring }]}>LV</Text>
-        <Text style={[styles.num, { color: currentTheme.colors.text }]}>{level}</Text>
+        <Text style={[styles.label, { color: ring }]}>TIER</Text>
+        <Text style={[styles.tier, { color: currentTheme.colors.text, fontSize: tierFont }]}>{tier}</Text>
       </View>
     </View>
   );
@@ -50,6 +50,6 @@ export default function LevelRing({ level, progress, size = 40, stroke = 3, colo
 
 const styles = StyleSheet.create({
   center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  lv: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, marginBottom: -2 },
-  num: { fontSize: 14, fontWeight: '700' },
+  label: { fontSize: 7, fontWeight: '700', letterSpacing: 0.5, marginBottom: -2 },
+  tier: { fontWeight: '800' },
 });
