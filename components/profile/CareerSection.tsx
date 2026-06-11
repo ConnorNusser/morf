@@ -97,7 +97,7 @@ export default function CareerSection() {
                   Level {data.level.level} · {data.level.title}
                 </Text>
                 <Text style={[styles.levelXp, { color: currentTheme.colors.text }]}>
-                  {formatCompact(data.level.xpIntoLevel)}/{formatCompact(data.level.xpForNextLevel)} XP
+                  {formatCompact(data.level.xp)} XP
                 </Text>
               </View>
               <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.border }]}>
@@ -105,6 +105,9 @@ export default function CareerSection() {
                   style={[styles.levelFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(data.level.progress * 100)}%` }]}
                 />
               </View>
+              <Text style={[styles.levelToNext, { color: currentTheme.colors.text }]}>
+                {formatCompact(data.level.xpForNextLevel - data.level.xpIntoLevel)} XP to Level {data.level.level + 1}
+              </Text>
             </View>
           </View>
 
@@ -243,6 +246,7 @@ const styles = StyleSheet.create({
   levelXp: { fontSize: 12, opacity: 0.5, fontWeight: '600' },
   levelTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
   levelFill: { height: 7, borderRadius: 4 },
+  levelToNext: { fontSize: 11, opacity: 0.45, marginTop: 4 },
 
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   tier: { fontSize: 52, fontWeight: '800', lineHeight: 56, minWidth: 72, textAlign: 'center' },
