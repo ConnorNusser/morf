@@ -364,6 +364,7 @@ function TimelineRow({ color, title, date, faded }: { color: string; title: stri
 // ---- Achievement grid ----
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const unlocked = achievements.filter(a => a.unlocked).length;
   // New first, then unlocked, then locked sorted by closest progress.
   const ordered = [...achievements].sort((a, b) => {
@@ -388,18 +389,42 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
       )}
       <View style={styles.grid}>
         {ordered.map(a => (
-          <AchievementTile key={a.id} achievement={a} isNew={newIds.has(a.id)} />
+          <AchievementTile
+            key={a.id}
+            achievement={a}
+            isNew={newIds.has(a.id)}
+            selected={selectedId === a.id}
+            onPress={() => setSelectedId(id => (id === a.id ? null : a.id))}
+          />
         ))}
       </View>
     </View>
   );
 }
 
-function AchievementTile({ achievement, isNew }: { achievement: Achievement; isNew: boolean }) {
+function AchievementTile({
+  achievement,
+  isNew,
+  selected,
+  onPress,
+}: {
+  achievement: Achievement;
+  isNew: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
+  // When tapped, swap the (truncated) description for exact progress detail.
+  const detail = selected
+    ? achievement.unlocked
+      ? 'Unlocked ✓'
+      : `${formatCompact(achievement.current)} / ${formatCompact(achievement.target)}`
+    : achievement.description;
   return (
-    <View
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
       style={[
         styles.achTile,
         {
@@ -427,15 +452,18 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
       >
         {achievement.title}
       </Text>
-      <Text style={[styles.achDesc, { color: currentTheme.colors.text }]} numberOfLines={1}>
-        {achievement.description}
+      <Text
+        style={[styles.achDesc, { color: selected ? accent : currentTheme.colors.text, opacity: selected ? 1 : 0.5 }]}
+        numberOfLines={1}
+      >
+        {detail}
       </Text>
       {!achievement.unlocked && (
         <View style={[styles.achTrack, { backgroundColor: currentTheme.colors.border }]}>
           <View style={[styles.achFill, { backgroundColor: accent, width: `${Math.round(achievement.progress * 100)}%` }]} />
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
