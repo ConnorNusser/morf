@@ -14,6 +14,7 @@ import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
+import { WeeklyChallenge } from '@/lib/gamification/weeklyChallenge';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -105,6 +106,7 @@ export default function CareerModal({ visible, onClose }: Props) {
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
+            <WeeklyChallengeView challenge={data.weeklyChallenge} />
             <NextGoal achievements={data.achievements} />
             {/* Lifetime overview */}
             <StatGrid stats={data.stats} />
@@ -224,6 +226,29 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
           <Text style={[styles.shareStatLabel, { color: currentTheme.colors.text }]}>{it.l}</Text>
         </View>
       ))}
+    </View>
+  );
+}
+
+// ---- This week's rotating challenge ----
+function WeeklyChallengeView({ challenge }: { challenge: WeeklyChallenge }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  return (
+    <View style={[styles.weekly, { backgroundColor: accent + '12', borderColor: accent + '40' }]}>
+      <View style={styles.weeklyBody}>
+        <Text style={[styles.weeklyLabel, { color: accent }]}>
+          THIS WEEK · {challenge.title.toUpperCase()}
+          {challenge.completed ? ' · DONE ✓' : ''}
+        </Text>
+        <Text style={[styles.weeklyTitle, { color: currentTheme.colors.text }]}>{challenge.description}</Text>
+        <View style={[styles.weeklyTrack, { backgroundColor: currentTheme.colors.border }]}>
+          <View style={[styles.weeklyFill, { backgroundColor: accent, width: `${Math.round(challenge.progress * 100)}%` }]} />
+        </View>
+      </View>
+      <Text style={[styles.weeklyCount, { color: currentTheme.colors.text }]}>
+        {challenge.current}/{challenge.target}
+      </Text>
     </View>
   );
 }
@@ -719,6 +744,22 @@ const styles = StyleSheet.create({
   heroTrack: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
+
+  weekly: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 12,
+  },
+  weeklyBody: { flex: 1 },
+  weeklyLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  weeklyTitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 7 },
+  weeklyTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  weeklyFill: { height: 6, borderRadius: 3 },
+  weeklyCount: { fontSize: 14, fontWeight: '700', opacity: 0.7 },
 
   nextGoal: {
     flexDirection: 'row',
