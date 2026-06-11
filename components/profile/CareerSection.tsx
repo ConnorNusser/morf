@@ -111,6 +111,26 @@ export default function CareerSection() {
             </View>
           </View>
 
+          {/* Weekly challenge */}
+          <View style={[styles.challenge, { backgroundColor: currentTheme.colors.primary + '12', borderColor: currentTheme.colors.primary + '40' }]}>
+            <View style={styles.challengeBody}>
+              <Text style={[styles.challengeLabel, { color: currentTheme.colors.primary }]}>
+                THIS WEEK{data.weeklyChallenge.completed ? ' · DONE ✓' : ''}
+              </Text>
+              <Text style={[styles.challengeTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                {data.weeklyChallenge.description}
+              </Text>
+              <View style={[styles.challengeTrack, { backgroundColor: currentTheme.colors.border }]}>
+                <View
+                  style={[styles.challengeFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(data.weeklyChallenge.progress * 100)}%` }]}
+                />
+              </View>
+            </View>
+            <Text style={[styles.challengeCount, { color: currentTheme.colors.text }]}>
+              {data.weeklyChallenge.current}/{data.weeklyChallenge.target}
+            </Text>
+          </View>
+
           {/* Tier hero */}
           <View style={styles.hero}>
             <Text style={[styles.tier, { color }]}>{data.tier}</Text>
@@ -247,6 +267,14 @@ const styles = StyleSheet.create({
   levelTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
   levelFill: { height: 7, borderRadius: 4 },
   levelToNext: { fontSize: 11, opacity: 0.45, marginTop: 4 },
+
+  challenge: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12 },
+  challengeBody: { flex: 1 },
+  challengeLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
+  challengeTitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 7 },
+  challengeTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  challengeFill: { height: 6, borderRadius: 3 },
+  challengeCount: { fontSize: 14, fontWeight: '700', opacity: 0.7 },
 
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   tier: { fontSize: 52, fontWeight: '800', lineHeight: 56, minWidth: 72, textAlign: 'center' },

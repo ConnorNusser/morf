@@ -13,6 +13,7 @@ import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthMilestones } from './strengthMilestones';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 import { computeTrainingHeatmap, TrainingHeatmap } from './trainingHeatmap';
+import { computeWeeklyChallenge, WeeklyChallenge } from './weeklyChallenge';
 
 export interface CareerData {
   stats: CareerStats;
@@ -26,6 +27,7 @@ export interface CareerData {
   prs: LiftPR[];
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
+  weeklyChallenge: WeeklyChallenge;
 }
 
 export async function loadCareerData(): Promise<CareerData> {
@@ -70,5 +72,6 @@ export async function loadCareerData(): Promise<CareerData> {
     prs: computeMainLiftPRs(history, unit),
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
+    weeklyChallenge: computeWeeklyChallenge(history),
   };
 }
