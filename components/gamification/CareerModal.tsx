@@ -89,12 +89,6 @@ export default function CareerModal({ visible, onClose }: Props) {
             )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
-                <View style={styles.shareTopRow}>
-                  <Text style={[styles.shareBrand, { color: currentTheme.colors.text }]}>MORF</Text>
-                  <View style={[styles.tierPill, { backgroundColor: getTierColor(data.tier) }]}>
-                    <Text style={[styles.tierPillText, { color: '#fff' }]}>{data.tier} TIER</Text>
-                  </View>
-                </View>
                 <TierHero overall={data.overall} tier={data.tier} />
                 <ShareStatStrip stats={data.stats} />
               </View>
@@ -703,10 +697,6 @@ const styles = StyleSheet.create({
   celebrateDesc: { fontSize: 12, opacity: 0.55 },
 
   shareCard: { borderRadius: 16, paddingBottom: 18 },
-  shareTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
-  shareBrand: { fontSize: 13, fontWeight: '800', letterSpacing: 3, opacity: 0.4 },
-  tierPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 },
-  tierPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
   shareStat: { alignItems: 'center' },
   shareStatValue: { fontSize: 16, fontWeight: '700' },
