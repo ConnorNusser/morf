@@ -86,23 +86,27 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onL
 
             {stats?.level != null && (
               <TouchableOpacity
-                style={[styles.levelButton, { backgroundColor: currentTheme.colors.primary + '14', borderColor: currentTheme.colors.primary + '40' }]}
+                style={[styles.levelButton, { borderColor: currentTheme.colors.text + '1A' }]}
                 onPress={onLevelPress}
-                activeOpacity={0.7}
+                activeOpacity={0.6}
                 disabled={!onLevelPress}
               >
-                <Ionicons name="ribbon" size={18} color={currentTheme.colors.primary} />
                 <View style={styles.levelButtonBody}>
-                  <Text style={[styles.levelButtonText, { color: currentTheme.colors.primary }]}>
-                    Level {stats.level}
+                  <Text style={[styles.levelButtonText, { color: currentTheme.colors.text }]}>
+                    LEVEL {stats.level}
                   </Text>
                   {stats.levelProgress != null && (
-                    <View style={styles.levelTrack}>
-                      <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.primary }]} />
+                    <View style={styles.levelMeter}>
+                      <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.text + '1A' }]}>
+                        <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.text + 'B3' }]} />
+                      </View>
+                      <Text style={[styles.levelPct, { color: currentTheme.colors.text + '66' }]}>
+                        {Math.round(stats.levelProgress * 100)}%
+                      </Text>
                     </View>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.primary + 'AA'} />
+                <Ionicons name="chevron-forward" size={14} color={currentTheme.colors.text + '40'} />
               </TouchableOpacity>
             )}
           </View>
@@ -187,30 +191,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginLeft: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingLeft: 12,
     paddingRight: 8,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   levelButtonBody: {
-    gap: 4,
+    gap: 5,
   },
   levelButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.2,
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  levelMeter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   levelTrack: {
-    width: 48,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: 'rgba(128,128,128,0.25)',
+    width: 56,
+    height: 2.5,
+    borderRadius: 1.25,
     overflow: 'hidden',
   },
   levelFill: {
     height: '100%',
-    borderRadius: 1.5,
+    borderRadius: 1.25,
+  },
+  levelPct: {
+    fontSize: 10,
+    fontWeight: '500',
   },
   logo: {
     width: 40,

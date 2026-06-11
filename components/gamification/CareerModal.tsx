@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45, textTransform: 'uppercase', marginBottom: 12 },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
   tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },
   tileValue: { fontSize: 18, fontWeight: '700' },
   tileLabel: { fontSize: 11, opacity: 0.5, marginTop: 4, textAlign: 'center' },
