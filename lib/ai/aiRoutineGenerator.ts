@@ -18,6 +18,7 @@ import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
+import { summarizeQuality, validateRoutineQuality } from '@/lib/workout/routineQuality';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
 
@@ -166,6 +167,17 @@ class AIRoutineGeneratorService {
       };
 
       routines.push(routine);
+    }
+
+    // Quality gate: score the converted program against traditional split norms
+    // so low-quality generations are observable (ordering, muscle gaps, push/pull
+    // imbalance, absurd volume). Non-blocking — we surface, not suppress.
+    const quality = validateRoutineQuality(routines);
+    if (!quality.passed) {
+      console.warn(
+        `[routine-gen] ${summarizeQuality(quality)} ` +
+          quality.issues.map(i => `${i.severity}:${i.code}`).join(', '),
+      );
     }
 
     return routines;
