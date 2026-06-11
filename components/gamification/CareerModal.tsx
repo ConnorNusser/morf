@@ -8,7 +8,7 @@ import {
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { Achievement, computeAchievements } from '@/lib/gamification/achievements';
+import { Achievement, computeAchievements, newlyUnlocked, unlockedIds } from '@/lib/gamification/achievements';
 import { CareerStats, computeCareerStats, formatCompact } from '@/lib/gamification/careerStats';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { convertWeight } from '@/types';
@@ -28,6 +28,7 @@ interface CareerData {
   ladder: TierRung[];
   timeline: TierMilestone[];
   achievements: Achievement[];
+  newIds: Set<string>; // achievements newly unlocked since last viewed
 }
 
 function formatDate(d: Date): string {
@@ -42,11 +43,12 @@ export default function CareerModal({ visible, onClose }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [history, profile, lifts, filters] = await Promise.all([
+      const [history, profile, lifts, filters, seen] = await Promise.all([
         storageService.getWorkoutHistory(),
         userService.getUserProfileOrDefault(),
         userService.getAllFeaturedLifts(),
         storageService.getLiftDisplayFilters(),
+        storageService.getSeenAchievements(),
       ]);
       const unit = profile.weightUnitPreference || 'lbs';
       const stats = computeCareerStats(history, unit);
@@ -66,6 +68,7 @@ export default function CareerModal({ visible, onClose }: Props) {
       });
 
       const achievements = computeAchievements(stats, overall);
+      const newIds = new Set(newlyUnlocked(achievements, seen).map(a => a.id));
 
       setData({
         stats,
@@ -74,7 +77,12 @@ export default function CareerModal({ visible, onClose }: Props) {
         ladder: getTierLadder(overall),
         timeline,
         achievements,
+        newIds,
       });
+
+      // Acknowledge everything unlocked now that the user is viewing it, so the
+      // "new" highlights clear next time.
+      await storageService.setSeenAchievements(unlockedIds(achievements));
     } catch (err) {
       console.error('CareerModal: failed to load', err);
     } finally {
@@ -106,7 +114,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <StatGrid stats={data.stats} />
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
-            <AchievementGridView achievements={data.achievements} />
+            <AchievementGridView achievements={data.achievements} newIds={data.newIds} />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -276,11 +284,14 @@ function TimelineRow({ color, title, date, faded }: { color: string; title: stri
 }
 
 // ---- Achievement grid ----
-function AchievementGridView({ achievements }: { achievements: Achievement[] }) {
+function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
   const unlocked = achievements.filter(a => a.unlocked).length;
-  // Unlocked first, then locked sorted by closest progress.
+  // New first, then unlocked, then locked sorted by closest progress.
   const ordered = [...achievements].sort((a, b) => {
+    const an = newIds.has(a.id) ? 1 : 0;
+    const bn = newIds.has(b.id) ? 1 : 0;
+    if (an !== bn) return bn - an;
     if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
     return b.progress - a.progress;
   });
@@ -292,16 +303,21 @@ function AchievementGridView({ achievements }: { achievements: Achievement[] }) 
           {unlocked}/{achievements.length}
         </Text>
       </View>
+      {newIds.size > 0 && (
+        <Text style={[styles.achNewBanner, { color: currentTheme.colors.primary }]}>
+          🎉 {newIds.size} newly unlocked
+        </Text>
+      )}
       <View style={styles.grid}>
         {ordered.map(a => (
-          <AchievementTile key={a.id} achievement={a} />
+          <AchievementTile key={a.id} achievement={a} isNew={newIds.has(a.id)} />
         ))}
       </View>
     </View>
   );
 }
 
-function AchievementTile({ achievement }: { achievement: Achievement }) {
+function AchievementTile({ achievement, isNew }: { achievement: Achievement; isNew: boolean }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
   return (
@@ -310,15 +326,23 @@ function AchievementTile({ achievement }: { achievement: Achievement }) {
         styles.achTile,
         {
           backgroundColor: currentTheme.colors.surface,
-          borderColor: achievement.unlocked ? accent : currentTheme.colors.border,
+          borderColor: isNew || achievement.unlocked ? accent : currentTheme.colors.border,
+          borderWidth: isNew ? 2 : 1,
         },
       ]}
     >
-      <Ionicons
-        name={achievement.icon as keyof typeof Ionicons.glyphMap}
-        size={20}
-        color={achievement.unlocked ? accent : currentTheme.colors.text + '40'}
-      />
+      <View style={styles.achTileTop}>
+        <Ionicons
+          name={achievement.icon as keyof typeof Ionicons.glyphMap}
+          size={20}
+          color={achievement.unlocked ? accent : currentTheme.colors.text + '40'}
+        />
+        {isNew && (
+          <View style={[styles.achNewPill, { backgroundColor: accent }]}>
+            <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>NEW</Text>
+          </View>
+        )}
+      </View>
       <Text
         style={[styles.achTitle, { color: currentTheme.colors.text, opacity: achievement.unlocked ? 1 : 0.55 }]}
         numberOfLines={1}
@@ -390,7 +414,11 @@ const styles = StyleSheet.create({
   timelineDate: { fontSize: 13, opacity: 0.5, marginTop: 1 },
 
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
+  achNewBanner: { fontSize: 14, fontWeight: '700', marginBottom: 12, marginTop: -4 },
   achTile: { width: '48%', borderRadius: 12, borderWidth: 1, padding: 12, gap: 4 },
+  achTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  achNewPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
+  achNewPillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   achTitle: { fontSize: 14, fontWeight: '600', marginTop: 2 },
   achDesc: { fontSize: 11, opacity: 0.5 },
   achTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 6 },

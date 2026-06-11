@@ -81,6 +81,17 @@ export interface AchievementSummary {
   nextUp: Achievement | null;
 }
 
+// IDs of currently-unlocked achievements.
+export function unlockedIds(achievements: Achievement[]): string[] {
+  return achievements.filter(a => a.unlocked).map(a => a.id);
+}
+
+// Unlocked achievements the user hasn't acknowledged yet (for "NEW" highlights).
+export function newlyUnlocked(achievements: Achievement[], seenIds: string[]): Achievement[] {
+  const seen = new Set(seenIds);
+  return achievements.filter(a => a.unlocked && !seen.has(a.id));
+}
+
 export function summarizeAchievements(achievements: Achievement[]): AchievementSummary {
   const locked = achievements.filter(a => !a.unlocked);
   const nextUp = locked

@@ -1,5 +1,10 @@
 import { CareerStats } from '../lib/gamification/careerStats';
-import { computeAchievements, summarizeAchievements } from '../lib/gamification/achievements';
+import {
+  computeAchievements,
+  newlyUnlocked,
+  summarizeAchievements,
+  unlockedIds,
+} from '../lib/gamification/achievements';
 
 function stats(partial: Partial<CareerStats>): CareerStats {
   return {
@@ -55,5 +60,18 @@ describe('summarizeAchievements', () => {
     expect(s.total).toBe(a.length);
     // workouts-10 is at 9/10 = 0.9 progress — the closest locked one
     expect(s.nextUp?.id).toBe('workouts-10');
+  });
+});
+
+describe('newlyUnlocked / unlockedIds', () => {
+  it('lists unlocked ids and the subset not yet seen', () => {
+    const a = computeAchievements(stats({ totalWorkouts: 12 }), 0);
+    const ids = unlockedIds(a);
+    expect(ids).toEqual(expect.arrayContaining(['first-workout', 'workouts-10']));
+    // first-workout already seen -> only workouts-10 is "new"
+    const fresh = newlyUnlocked(a, ['first-workout']);
+    expect(fresh.map(x => x.id)).toEqual(['workouts-10']);
+    // everything seen -> nothing new
+    expect(newlyUnlocked(a, ids)).toEqual([]);
   });
 });
