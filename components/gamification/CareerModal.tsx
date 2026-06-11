@@ -10,6 +10,7 @@ import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { Achievement, computeAchievements, newlyUnlocked, unlockedIds } from '@/lib/gamification/achievements';
 import { CareerStats, computeCareerStats, formatCompact } from '@/lib/gamification/careerStats';
+import { computeMainLiftPRs, LiftPR } from '@/lib/gamification/personalRecords';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { convertWeight } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,7 @@ interface CareerData {
   timeline: TierMilestone[];
   achievements: Achievement[];
   newIds: Set<string>; // achievements newly unlocked since last viewed
+  prs: LiftPR[];
 }
 
 function formatDate(d: Date): string {
@@ -78,6 +80,7 @@ export default function CareerModal({ visible, onClose }: Props) {
         timeline,
         achievements,
         newIds,
+        prs: computeMainLiftPRs(history, unit),
       });
 
       // Acknowledge everything unlocked now that the user is viewing it, so the
@@ -112,6 +115,7 @@ export default function CareerModal({ visible, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <TierHero overall={data.overall} tier={data.tier} />
             <StatGrid stats={data.stats} />
+            <PersonalRecordsView prs={data.prs} />
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={data.newIds} />
@@ -190,6 +194,43 @@ function StatTile({ label, value }: { label: string; value: string }) {
         {value}
       </Text>
       <Text style={[styles.tileLabel, { color: currentTheme.colors.text }]}>{label}</Text>
+    </View>
+  );
+}
+
+// ---- Personal records: best estimated 1RM per main lift ----
+function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
+  const { currentTheme } = useTheme();
+  if (prs.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <SectionLabel>Personal records</SectionLabel>
+      <View style={[styles.prCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+        {prs.map((pr, i) => (
+          <View
+            key={pr.exerciseId}
+            style={[
+              styles.prRow,
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border },
+            ]}
+          >
+            <View style={styles.prLeft}>
+              <Text style={[styles.prName, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                {pr.name}
+              </Text>
+              <Text style={[styles.prSub, { color: currentTheme.colors.text }]}>
+                {pr.topWeight} {pr.unit} × {pr.topReps} · {formatDate(pr.date)}
+              </Text>
+            </View>
+            <View style={styles.prRight}>
+              <Text style={[styles.prValue, { color: currentTheme.colors.text }]}>
+                {pr.estimatedOneRM} {pr.unit}
+              </Text>
+              <Text style={[styles.prValueLabel, { color: currentTheme.colors.text }]}>est. 1RM</Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -397,6 +438,15 @@ const styles = StyleSheet.create({
   tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },
   tileValue: { fontSize: 18, fontWeight: '700' },
   tileLabel: { fontSize: 11, opacity: 0.5, marginTop: 4, textAlign: 'center' },
+
+  prCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14 },
+  prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  prLeft: { flex: 1, marginRight: 12 },
+  prName: { fontSize: 15, fontWeight: '600' },
+  prSub: { fontSize: 12, opacity: 0.5, marginTop: 2 },
+  prRight: { alignItems: 'flex-end' },
+  prValue: { fontSize: 17, fontWeight: '700' },
+  prValueLabel: { fontSize: 10, opacity: 0.45, marginTop: 1 },
 
   ladderRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 44 },
   ladderItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
