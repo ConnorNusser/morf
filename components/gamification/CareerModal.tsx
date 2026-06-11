@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor, StrengthTier, TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getWorkoutById } from '@/lib/workout/workouts';
 import { storageService } from '@/lib/storage/storage';
 import {
   Achievement,
@@ -22,6 +23,10 @@ import ViewShot from 'react-native-view-shot';
 interface Props {
   visible: boolean;
   onClose: () => void;
+}
+
+function cleanExerciseName(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 }
 
 function formatDate(d: Date): string {
@@ -102,6 +107,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             </ViewShot>
             <NextGoal achievements={data.achievements} />
             <StatGrid stats={data.stats} />
+            <BestsView stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
             <ConsistencyView heatmap={data.heatmap} />
             <MuscleMasteryView mastery={data.muscleMastery} />
@@ -279,6 +285,39 @@ function StatTile({ label, value }: { label: string; value: string }) {
         {value}
       </Text>
       <Text style={[styles.tileLabel, { color: currentTheme.colors.text }]}>{label}</Text>
+    </View>
+  );
+}
+
+// ---- Fun all-time bests ----
+function BestsView({ stats }: { stats: CareerStats }) {
+  const { currentTheme } = useTheme();
+  if (!stats.heaviestSet && stats.biggestSessionVolume === 0) return null;
+  const hs = stats.heaviestSet;
+  const heaviestName = hs ? cleanExerciseName(getWorkoutById(hs.exerciseId)?.name ?? 'Lift') : '';
+  return (
+    <View style={styles.section}>
+      <SectionLabel>All-time bests</SectionLabel>
+      <View style={styles.bestsRow}>
+        {hs && (
+          <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+            <Text style={[styles.bestValue, { color: currentTheme.colors.text }]}>
+              {hs.weight} {stats.unit} × {hs.reps}
+            </Text>
+            <Text style={[styles.bestLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
+              Heaviest set · {heaviestName}
+            </Text>
+          </View>
+        )}
+        {stats.biggestSessionVolume > 0 && (
+          <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+            <Text style={[styles.bestValue, { color: currentTheme.colors.text }]}>
+              {formatCompact(stats.biggestSessionVolume)} {stats.unit}
+            </Text>
+            <Text style={[styles.bestLabel, { color: currentTheme.colors.text }]}>Biggest session</Text>
+          </View>
+        )}
+      </View>
     </View>
   );
 }
@@ -693,6 +732,11 @@ const styles = StyleSheet.create({
   tileValue: { fontSize: 18, fontWeight: '700' },
   tileLabel: { fontSize: 11, opacity: 0.5, marginTop: 4, textAlign: 'center' },
   comparison: { fontSize: 13, opacity: 0.45, textAlign: 'center', marginTop: 12, fontStyle: 'italic' },
+
+  bestsRow: { flexDirection: 'row', gap: 10 },
+  bestTile: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14 },
+  bestValue: { fontSize: 18, fontWeight: '700' },
+  bestLabel: { fontSize: 11, opacity: 0.5, marginTop: 4 },
 
   prCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14 },
   prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
