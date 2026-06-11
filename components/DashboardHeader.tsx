@@ -1,3 +1,4 @@
+import LevelRing from '@/components/gamification/LevelRing';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { TutorialTarget } from '@/components/tutorial';
@@ -88,23 +89,11 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onL
               <TouchableOpacity
                 style={styles.levelButton}
                 onPress={onLevelPress}
-                activeOpacity={0.6}
+                activeOpacity={0.7}
                 disabled={!onLevelPress}
+                accessibilityLabel={`Level ${stats.level}, view career`}
               >
-                <Text style={[styles.levelButtonText, { color: currentTheme.colors.text }]}>
-                  LEVEL {stats.level}
-                </Text>
-                {stats.levelProgress != null && (
-                  <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.text + '1A' }]}>
-                    <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.text + 'B3' }]} />
-                  </View>
-                )}
-                {stats.levelProgress != null && (
-                  <Text style={[styles.levelPct, { color: currentTheme.colors.text + '66' }]}>
-                    {Math.round(stats.levelProgress * 100)}%
-                  </Text>
-                )}
-                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '40'} />
+                <LevelRing level={stats.level} progress={stats.levelProgress ?? 0} />
               </TouchableOpacity>
             )}
           </View>
@@ -183,31 +172,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   levelButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginLeft: 16,
-    paddingVertical: 10,
-  },
-  levelButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  levelTrack: {
-    flex: 1,
-    height: 3,
-    borderRadius: 1.5,
-    overflow: 'hidden',
-  },
-  levelFill: {
-    height: '100%',
-    borderRadius: 1.5,
-  },
-  levelPct: {
-    fontSize: 11,
-    fontWeight: '600',
+    flexShrink: 0,
+    marginLeft: 12,
+    padding: 2,
   },
   logo: {
     width: 40,
