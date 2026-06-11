@@ -130,3 +130,24 @@ export function formatCompact(n: number): string {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
   return String(Math.round(n));
 }
+
+// Relatable comparison for total volume — picks the heaviest object the user has
+// "lifted" the equivalent of. Returns null below the smallest object.
+const HEAVY_OBJECTS: { single: string; plural: string; lbs: number }[] = [
+  { single: 'blue whale', plural: 'blue whales', lbs: 300_000 },
+  { single: 'school bus', plural: 'school buses', lbs: 24_000 },
+  { single: 'elephant', plural: 'elephants', lbs: 13_000 },
+  { single: 'car', plural: 'cars', lbs: 4_000 },
+  { single: 'grand piano', plural: 'grand pianos', lbs: 1_000 },
+];
+
+export function volumeComparison(volume: number, unit: WeightUnit): string | null {
+  const lbs = unit === 'kg' ? convertWeight(volume, 'kg', 'lbs') : volume;
+  for (const obj of HEAVY_OBJECTS) {
+    if (lbs >= obj.lbs) {
+      const n = Math.round(lbs / obj.lbs);
+      return `≈ ${n.toLocaleString()} ${n === 1 ? obj.single : obj.plural} lifted`;
+    }
+  }
+  return null;
+}

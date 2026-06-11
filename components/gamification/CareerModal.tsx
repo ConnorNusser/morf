@@ -8,8 +8,14 @@ import {
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { Achievement, computeAchievements, newlyUnlocked, unlockedIds } from '@/lib/gamification/achievements';
-import { CareerStats, computeCareerStats, formatCompact } from '@/lib/gamification/careerStats';
+import {
+  Achievement,
+  computeAchievements,
+  newlyUnlocked,
+  summarizeAchievements,
+  unlockedIds,
+} from '@/lib/gamification/achievements';
+import { CareerStats, computeCareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
 import { computeMainLiftPRs, LiftPR } from '@/lib/gamification/personalRecords';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { convertWeight } from '@/types';
@@ -114,6 +120,7 @@ export default function CareerModal({ visible, onClose }: Props) {
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <TierHero overall={data.overall} tier={data.tier} />
+            <NextGoal achievements={data.achievements} />
             <StatGrid stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
             <TierLadderView ladder={data.ladder} />
@@ -164,8 +171,37 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
   );
 }
 
+// ---- Next goal: the closest locked achievement, to chase ----
+function NextGoal({ achievements }: { achievements: Achievement[] }) {
+  const { currentTheme } = useTheme();
+  const { nextUp } = summarizeAchievements(achievements);
+  if (!nextUp) return null;
+  const accent = currentTheme.colors.primary;
+  return (
+    <View style={[styles.nextGoal, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+      <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
+        <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={20} color={accent} />
+      </View>
+      <View style={styles.nextBody}>
+        <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>NEXT GOAL</Text>
+        <Text style={[styles.nextTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
+          {nextUp.title}
+        </Text>
+        <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
+          <View style={[styles.nextFill, { backgroundColor: accent, width: `${Math.round(nextUp.progress * 100)}%` }]} />
+        </View>
+      </View>
+      <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+        {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
+      </Text>
+    </View>
+  );
+}
+
 // ---- Lifetime stat grid ----
 function StatGrid({ stats }: { stats: CareerStats }) {
+  const { currentTheme } = useTheme();
+  const comparison = volumeComparison(stats.totalVolume, stats.unit);
   const tiles: { label: string; value: string }[] = [
     { label: 'Total lifted', value: `${formatCompact(stats.totalVolume)} ${stats.unit}` },
     { label: 'Workouts', value: formatCompact(stats.totalWorkouts) },
@@ -182,6 +218,7 @@ function StatGrid({ stats }: { stats: CareerStats }) {
           <StatTile key={t.label} label={t.label} value={t.value} />
         ))}
       </View>
+      {comparison && <Text style={[styles.comparison, { color: currentTheme.colors.text }]}>{comparison}</Text>}
     </View>
   );
 }
@@ -430,6 +467,23 @@ const styles = StyleSheet.create({
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
 
+  nextGoal: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 8,
+  },
+  nextIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  nextBody: { flex: 1 },
+  nextLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  nextTitle: { fontSize: 15, fontWeight: '600', marginTop: 1, marginBottom: 6 },
+  nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
+  nextFill: { height: 5, borderRadius: 3 },
+  nextCount: { fontSize: 13, fontWeight: '700', opacity: 0.6 },
+
   section: { marginTop: 28 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45, textTransform: 'uppercase', marginBottom: 12 },
@@ -438,6 +492,7 @@ const styles = StyleSheet.create({
   tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },
   tileValue: { fontSize: 18, fontWeight: '700' },
   tileLabel: { fontSize: 11, opacity: 0.5, marginTop: 4, textAlign: 'center' },
+  comparison: { fontSize: 13, opacity: 0.45, textAlign: 'center', marginTop: 12, fontStyle: 'italic' },
 
   prCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14 },
   prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },

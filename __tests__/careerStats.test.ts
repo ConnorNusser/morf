@@ -1,5 +1,5 @@
 import { GeneratedWorkout } from '../types';
-import { computeCareerStats, formatCompact } from '../lib/gamification/careerStats';
+import { computeCareerStats, formatCompact, volumeComparison } from '../lib/gamification/careerStats';
 
 // Build a workout on a given day with completed sets [{weight, reps, unit}].
 function workout(date: Date, sets: { weight: number; reps: number; unit?: 'lbs' | 'kg' }[]): GeneratedWorkout {
@@ -109,5 +109,22 @@ describe('formatCompact', () => {
     expect(formatCompact(1840)).toBe('1.8K');
     expect(formatCompact(1_250_000)).toBe('1.3M');
     expect(formatCompact(2_000_000)).toBe('2M');
+  });
+});
+
+describe('volumeComparison', () => {
+  it('returns null below the smallest object', () => {
+    expect(volumeComparison(500, 'lbs')).toBeNull();
+  });
+
+  it('picks the heaviest relatable object and pluralizes', () => {
+    expect(volumeComparison(1_000, 'lbs')).toBe('≈ 1 grand piano lifted');
+    expect(volumeComparison(8_000, 'lbs')).toBe('≈ 2 cars lifted');
+    expect(volumeComparison(600_000, 'lbs')).toBe('≈ 2 blue whales lifted');
+  });
+
+  it('converts kg volume to lbs first', () => {
+    // 3000 kg ~ 6600 lbs -> cars (4000 lbs)
+    expect(volumeComparison(3_000, 'kg')).toContain('car');
   });
 });
