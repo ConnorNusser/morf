@@ -1,0 +1,94 @@
+// Achievement / milestone engine. Pure: derives unlocked state and progress
+// from career stats + overall strength percentile. No new tracking required —
+// everything is computed from existing data, so it stays in sync automatically.
+import { CareerStats } from './careerStats';
+
+export type AchievementCategory = 'consistency' | 'volume' | 'strength' | 'milestone';
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string; // Ionicons name
+  category: AchievementCategory;
+  current: number;
+  target: number;
+  unlocked: boolean;
+  progress: number; // 0..1, clamped
+}
+
+interface AchievementDef {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  category: AchievementCategory;
+  target: number;
+  // Current value for this metric, given the user's stats + overall percentile.
+  metric: (stats: CareerStats, percentile: number) => number;
+}
+
+const DEFS: AchievementDef[] = [
+  // Milestone — getting started
+  { id: 'first-workout', title: 'First Rep', description: 'Log your first workout', icon: 'flag', category: 'milestone', target: 1, metric: s => s.totalWorkouts },
+  { id: 'workouts-10', title: 'Getting Serious', description: 'Log 10 workouts', icon: 'barbell', category: 'milestone', target: 10, metric: s => s.totalWorkouts },
+  { id: 'workouts-50', title: 'Committed', description: 'Log 50 workouts', icon: 'barbell', category: 'milestone', target: 50, metric: s => s.totalWorkouts },
+  { id: 'workouts-100', title: 'Century', description: 'Log 100 workouts', icon: 'trophy', category: 'milestone', target: 100, metric: s => s.totalWorkouts },
+  { id: 'workouts-250', title: 'Iron Devotee', description: 'Log 250 workouts', icon: 'trophy', category: 'milestone', target: 250, metric: s => s.totalWorkouts },
+
+  // Consistency — streaks & active days
+  { id: 'streak-3', title: 'Warming Up', description: 'Train 3 days in a row', icon: 'flame', category: 'consistency', target: 3, metric: s => s.longestStreak },
+  { id: 'streak-7', title: 'Full Week', description: '7-day training streak', icon: 'flame', category: 'consistency', target: 7, metric: s => s.longestStreak },
+  { id: 'streak-14', title: 'Locked In', description: '14-day training streak', icon: 'flame', category: 'consistency', target: 14, metric: s => s.longestStreak },
+  { id: 'streak-30', title: 'Unstoppable', description: '30-day training streak', icon: 'flame', category: 'consistency', target: 30, metric: s => s.longestStreak },
+  { id: 'days-100', title: 'Regular', description: 'Train on 100 different days', icon: 'calendar', category: 'consistency', target: 100, metric: s => s.daysActive },
+
+  // Volume — total weight moved
+  { id: 'volume-100k', title: 'Mover', description: 'Lift 100K total', icon: 'trending-up', category: 'volume', target: 100_000, metric: s => s.totalVolume },
+  { id: 'volume-1m', title: 'Millionaire', description: 'Lift 1M total', icon: 'trending-up', category: 'volume', target: 1_000_000, metric: s => s.totalVolume },
+  { id: 'volume-5m', title: 'Tonnage', description: 'Lift 5M total', icon: 'trending-up', category: 'volume', target: 5_000_000, metric: s => s.totalVolume },
+  { id: 'volume-10m', title: 'Earth Mover', description: 'Lift 10M total', icon: 'planet', category: 'volume', target: 10_000_000, metric: s => s.totalVolume },
+
+  // Strength — overall percentile / tier gates
+  { id: 'tier-c', title: 'Above Average', description: 'Reach C tier', icon: 'shield-half', category: 'strength', target: 31, metric: (_s, p) => p },
+  { id: 'tier-b', title: 'Strong', description: 'Reach B tier', icon: 'shield', category: 'strength', target: 55, metric: (_s, p) => p },
+  { id: 'tier-a', title: 'Elite', description: 'Reach A tier', icon: 'medal', category: 'strength', target: 75, metric: (_s, p) => p },
+  { id: 'tier-s', title: 'Legendary', description: 'Reach S tier', icon: 'star', category: 'strength', target: 90, metric: (_s, p) => p },
+];
+
+export function computeAchievements(stats: CareerStats, overallPercentile: number): Achievement[] {
+  return DEFS.map(def => {
+    const current = def.metric(stats, overallPercentile);
+    const unlocked = current >= def.target;
+    return {
+      id: def.id,
+      title: def.title,
+      description: def.description,
+      icon: def.icon,
+      category: def.category,
+      current,
+      target: def.target,
+      unlocked,
+      progress: Math.max(0, Math.min(1, def.target === 0 ? 1 : current / def.target)),
+    };
+  });
+}
+
+export interface AchievementSummary {
+  unlockedCount: number;
+  total: number;
+  // The closest-to-complete locked achievement — the "next goal" to chase.
+  nextUp: Achievement | null;
+}
+
+export function summarizeAchievements(achievements: Achievement[]): AchievementSummary {
+  const locked = achievements.filter(a => !a.unlocked);
+  const nextUp = locked
+    .slice()
+    .sort((a, b) => b.progress - a.progress)[0] ?? null;
+  return {
+    unlockedCount: achievements.filter(a => a.unlocked).length,
+    total: achievements.length,
+    nextUp,
+  };
+}
