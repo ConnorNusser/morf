@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
   SEEN_ACHIEVEMENTS: 'seen_achievements',
   LAST_CELEBRATED_LEVEL: 'last_celebrated_level',
+  PROFILE_ICON: 'profile_icon',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -733,6 +734,24 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_CELEBRATED_LEVEL, String(level));
     } catch (error) {
       console.error('Error saving last celebrated level:', error);
+    }
+  }
+
+  // The career emblem id the user picked (null if never chosen).
+  async getProfileIconId(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_ICON);
+    } catch (error) {
+      console.error('Error loading profile icon:', error);
+      return null;
+    }
+  }
+
+  async setProfileIconId(id: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.PROFILE_ICON, id);
+    } catch (error) {
+      console.error('Error saving profile icon:', error);
     }
   }
 

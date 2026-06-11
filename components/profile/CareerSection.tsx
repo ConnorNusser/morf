@@ -1,10 +1,13 @@
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
+import ProfileIconPicker from '@/components/gamification/ProfileIconPicker';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
+import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
+import { profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ export default function CareerSection() {
   const { currentTheme } = useTheme();
   const [data, setData] = useState<CareerData | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showIconPicker, setShowIconPicker] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -68,7 +72,21 @@ export default function CareerSection() {
         <Card variant="elevated" style={styles.card} padding={18}>
           {/* Header */}
           <View style={styles.headerRow}>
-            <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
+            <View style={styles.headerLeft}>
+              <TouchableOpacity
+                onPress={() => setShowIconPicker(true)}
+                activeOpacity={0.7}
+                hitSlop={8}
+                style={[styles.emblem, { backgroundColor: currentTheme.colors.primary }]}
+              >
+                <Ionicons
+                  name={profileIconName(data.profileIconId) as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color={currentTheme.colors.surface}
+                />
+              </TouchableOpacity>
+              <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
+            </View>
             <View style={styles.headerRight}>
               {data.newIds.size > 0 && (
                 <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary }]}>
@@ -244,6 +262,18 @@ export default function CareerSection() {
       </TouchableOpacity>
 
       <CareerModal visible={showModal} onClose={() => { setShowModal(false); load(); }} />
+
+      <ProfileIconPicker
+        visible={showIconPicker}
+        onClose={() => setShowIconPicker(false)}
+        level={data.level.level}
+        currentId={data.profileIconId}
+        onSelect={async id => {
+          await storageService.setProfileIconId(id);
+          setShowIconPicker(false);
+          load();
+        }}
+      />
     </>
   );
 }
@@ -252,6 +282,8 @@ const styles = StyleSheet.create({
   card: { gap: 14 },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  emblem: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   heading: { fontSize: 20, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginRight: 4 },

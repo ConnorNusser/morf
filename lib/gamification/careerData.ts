@@ -9,6 +9,7 @@ import { Achievement, computeAchievements, newlyUnlocked } from './achievements'
 import { CareerStats, computeCareerStats } from './careerStats';
 import { computeLevel, LevelInfo } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
+import { resolveProfileIconId } from './profileIcons';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthMilestones } from './strengthMilestones';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
@@ -28,15 +29,17 @@ export interface CareerData {
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
   weeklyChallenge: WeeklyChallenge;
+  profileIconId: string; // resolved career emblem (chosen if unlocked, else default)
 }
 
 export async function loadCareerData(): Promise<CareerData> {
-  const [history, profile, lifts, filters, seen] = await Promise.all([
+  const [history, profile, lifts, filters, seen, chosenIconId] = await Promise.all([
     storageService.getWorkoutHistory(),
     userService.getUserProfileOrDefault(),
     userService.getAllFeaturedLifts(),
     storageService.getLiftDisplayFilters(),
     storageService.getSeenAchievements(),
+    storageService.getProfileIconId(),
   ]);
 
   const unit = profile.weightUnitPreference || 'lbs';
@@ -59,12 +62,13 @@ export async function loadCareerData(): Promise<CareerData> {
   const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), bodyWeightLbs);
   const achievements = [...computeAchievements(stats, overall), ...milestones];
   const unlockedCount = achievements.filter(a => a.unlocked).length;
+  const level = computeLevel(stats, unlockedCount);
 
   return {
     stats,
     overall,
     tier: getStrengthTier(overall),
-    level: computeLevel(stats, unlockedCount),
+    level,
     ladder: getTierLadder(overall),
     timeline,
     achievements,
@@ -73,5 +77,6 @@ export async function loadCareerData(): Promise<CareerData> {
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
     weeklyChallenge: computeWeeklyChallenge(history),
+    profileIconId: resolveProfileIconId(chosenIconId, level.level),
   };
 }
