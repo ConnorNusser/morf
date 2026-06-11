@@ -31,16 +31,20 @@ export default function CareerModal({ visible, onClose }: Props) {
   const { currentTheme } = useTheme();
   const [data, setData] = useState<CareerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leveledUpTo, setLeveledUpTo] = useState<number | null>(null);
   const shareRef = useRef<ViewShot>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const career = await loadCareerData();
+      const lastLevel = await storageService.getLastCelebratedLevel();
       setData(career);
-      // Acknowledge everything unlocked now that the user is viewing it, so the
-      // "new" highlights clear next time.
+      setLeveledUpTo(career.level.level > lastLevel ? career.level.level : null);
+      // Acknowledge everything now that the user is viewing it, so the
+      // "new" highlights and level-up celebration clear next time.
       await storageService.setSeenAchievements(unlockedIds(career.achievements));
+      await storageService.setLastCelebratedLevel(career.level.level);
     } catch (err) {
       console.error('CareerModal: failed to load', err);
     } finally {
@@ -75,8 +79,11 @@ export default function CareerModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            {data.newIds.size > 0 && (
-              <UnlockCelebration items={data.achievements.filter(a => data.newIds.has(a.id))} />
+            {(data.newIds.size > 0 || leveledUpTo != null) && (
+              <UnlockCelebration
+                items={data.achievements.filter(a => data.newIds.has(a.id))}
+                leveledUpTo={leveledUpTo}
+              />
             )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
@@ -149,15 +156,32 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
   );
 }
 
-// ---- Celebration shown at the top when achievements were just unlocked ----
-function UnlockCelebration({ items }: { items: Achievement[] }) {
+// ---- Celebration shown at the top when achievements / a level were just earned ----
+function UnlockCelebration({ items, leveledUpTo }: { items: Achievement[]; leveledUpTo: number | null }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
+  const title =
+    leveledUpTo != null && items.length > 0
+      ? '🎉 New rewards'
+      : leveledUpTo != null
+        ? '⚡ Level Up!'
+        : items.length === 1
+          ? '🎉 Achievement Unlocked'
+          : `🎉 ${items.length} Achievements Unlocked`;
   return (
     <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
-      <Text style={[styles.celebrateTitle, { color: accent }]}>
-        🎉 {items.length === 1 ? 'Achievement Unlocked' : `${items.length} Achievements Unlocked`}
-      </Text>
+      <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
+      {leveledUpTo != null && (
+        <View style={styles.celebrateRow}>
+          <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
+            <Ionicons name="flash" size={16} color={currentTheme.colors.surface} />
+          </View>
+          <View style={styles.celebrateText}>
+            <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>Reached Level {leveledUpTo}</Text>
+            <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>Keep the momentum going</Text>
+          </View>
+        </View>
+      )}
       {items.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
           <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>

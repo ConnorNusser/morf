@@ -25,6 +25,7 @@ const STORAGE_KEYS = {
   WEEKLY_GOAL: 'weekly_goal',
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
   SEEN_ACHIEVEMENTS: 'seen_achievements',
+  LAST_CELEBRATED_LEVEL: 'last_celebrated_level',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -712,6 +713,26 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.SEEN_ACHIEVEMENTS, JSON.stringify(ids));
     } catch (error) {
       console.error('Error saving seen achievements:', error);
+    }
+  }
+
+  // Highest lifter level the user has already been congratulated for.
+  async getLastCelebratedLevel(): Promise<number> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_CELEBRATED_LEVEL);
+      const parsed = data ? parseInt(data, 10) : NaN;
+      return Number.isFinite(parsed) ? parsed : 0;
+    } catch (error) {
+      console.error('Error loading last celebrated level:', error);
+      return 0;
+    }
+  }
+
+  async setLastCelebratedLevel(level: number): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_CELEBRATED_LEVEL, String(level));
+    } catch (error) {
+      console.error('Error saving last celebrated level:', error);
     }
   }
 
