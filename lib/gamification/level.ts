@@ -4,22 +4,25 @@
 import { convertWeight } from '@/types';
 import { CareerStats } from './careerStats';
 
-export const XP_PER_WORKOUT = 50;
-export const XP_PER_100_LBS = 1; // 1 XP per 100 lbs of volume
-export const XP_PER_ACTIVE_DAY = 20;
-export const XP_PER_ACHIEVEMENT = 200;
+export const XP_PER_WORKOUT = 60;
+export const VOLUME_PER_XP = 80; // lbs of volume per 1 XP
+export const XP_PER_ACTIVE_DAY = 25;
+export const XP_PER_ACHIEVEMENT = 250;
 
-// Cumulative XP required to *reach* a given level. Level 1 starts at 0; each
-// level costs 250 more than the last (triangular: 250 * L * (L-1)).
+// Cumulative XP required to *reach* a given level. Level 1 starts at 0; the curve
+// widens gently (LEVEL_CURVE * L * (L-1)) so early levels come fast and later
+// ones stay meaningful — an active lifter lands in the 20s, not stuck at ~10.
+const LEVEL_CURVE = 100;
+
 function cumulativeXpForLevel(level: number): number {
-  return 250 * level * (level - 1);
+  return LEVEL_CURVE * level * (level - 1);
 }
 
 export function totalXp(stats: CareerStats, unlockedAchievements: number): number {
   const volumeLbs = stats.unit === 'kg' ? convertWeight(stats.totalVolume, 'kg', 'lbs') : stats.totalVolume;
   return Math.round(
     stats.totalWorkouts * XP_PER_WORKOUT +
-      (volumeLbs / 100) * XP_PER_100_LBS +
+      volumeLbs / VOLUME_PER_XP +
       stats.daysActive * XP_PER_ACTIVE_DAY +
       unlockedAchievements * XP_PER_ACHIEVEMENT,
   );
@@ -48,8 +51,11 @@ function levelTitle(level: number): string {
 
 export function computeLevel(stats: CareerStats, unlockedAchievements: number): LevelInfo {
   const xp = totalXp(stats, unlockedAchievements);
-  // Largest level L with cumulativeXpForLevel(L) <= xp (inverse of triangular).
-  const level = Math.max(1, Math.floor((250 + Math.sqrt(62500 + 1000 * xp)) / 500));
+  // Largest level L with cumulativeXpForLevel(L) <= xp (inverse of the curve).
+  const level = Math.max(
+    1,
+    Math.floor((LEVEL_CURVE + Math.sqrt(LEVEL_CURVE * LEVEL_CURVE + 4 * LEVEL_CURVE * xp)) / (2 * LEVEL_CURVE)),
+  );
   const floor = cumulativeXpForLevel(level);
   const next = cumulativeXpForLevel(level + 1);
   const xpForNextLevel = next - floor;

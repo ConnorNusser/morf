@@ -21,8 +21,8 @@ function stats(p: Partial<CareerStats>): CareerStats {
 
 describe('totalXp', () => {
   it('sums the weighted sources', () => {
-    // 10 workouts (500) + 100k volume (1000) + 20 days (400) + 3 achievements (600)
-    expect(totalXp(stats({ totalWorkouts: 10, totalVolume: 100_000, daysActive: 20 }), 3)).toBe(2500);
+    // 10 workouts (600) + 100k volume (1250) + 20 days (500) + 3 achievements (750)
+    expect(totalXp(stats({ totalWorkouts: 10, totalVolume: 100_000, daysActive: 20 }), 3)).toBe(3100);
   });
 
   it('normalizes kg volume to lbs', () => {
@@ -41,18 +41,18 @@ describe('computeLevel', () => {
     expect(l.title).toBe('Rookie');
   });
 
-  it('levels up on the triangular curve', () => {
-    // cumulative XP: L2=500, L3=1500, L4=3000
-    expect(computeLevel(stats({ totalVolume: 50_000 }), 0).level).toBe(2); // 500 xp
-    expect(computeLevel(stats({ totalVolume: 149_900 }), 0).level).toBe(2); // <1500 -> still L2
-    expect(computeLevel(stats({ totalVolume: 150_000 }), 0).level).toBe(3); // 1500 -> L3
+  it('levels up on the widening curve', () => {
+    // cumulative XP: L2=200, L3=600, L4=1200. Volume XP = volume / 80.
+    expect(computeLevel(stats({ totalVolume: 16_000 }), 0).level).toBe(2); // 200 xp
+    expect(computeLevel(stats({ totalVolume: 47_900 }), 0).level).toBe(2); // 599 xp -> still L2
+    expect(computeLevel(stats({ totalVolume: 48_000 }), 0).level).toBe(3); // 600 xp -> L3
   });
 
   it('reports progress within a level (0..1) and a sane span', () => {
-    const l = computeLevel(stats({ totalVolume: 100_000 }), 0); // 1000 xp, between L2(500) and L3(1500)
+    const l = computeLevel(stats({ totalVolume: 32_000 }), 0); // 400 xp, between L2(200) and L3(600)
     expect(l.level).toBe(2);
-    expect(l.xpForNextLevel).toBe(1000);
-    expect(l.xpIntoLevel).toBe(500);
+    expect(l.xpForNextLevel).toBe(400);
+    expect(l.xpIntoLevel).toBe(200);
     expect(l.progress).toBeCloseTo(0.5);
   });
 
