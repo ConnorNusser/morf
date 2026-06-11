@@ -7,7 +7,7 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
 import { Achievement, newlyUnlocked } from './achievements';
 import { CareerStats } from './careerStats';
-import { LevelInfo } from './level';
+import { LevelInfo, weeklyMomentum, WeeklyMomentum } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { iconUnlockContext, resolveProfileIconId } from './profileIcons';
 import { LiftPR } from './personalRecords';
@@ -29,6 +29,7 @@ export interface CareerData {
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
   weeklyChallenge: WeeklyChallenge;
+  momentum: WeeklyMomentum; // XP + sessions earned this week — reward for showing up
   profileIconId: string; // resolved career emblem (chosen if unlocked, else default)
 }
 
@@ -78,6 +79,7 @@ export async function loadCareerData(): Promise<CareerData> {
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
     weeklyChallenge: challenge,
+    momentum: weeklyMomentum(history),
     profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(level.level, achievements)),
   };
 }

@@ -106,6 +106,7 @@ export default function CareerSection() {
               <Text style={[styles.levelNum, { color: currentTheme.colors.surface }]}>{data.level.level}</Text>
             </View>
             <View style={styles.levelBody}>
+              <Text style={[styles.axisLabel, { color: currentTheme.colors.primary }]}>EXPERIENCE</Text>
               <View style={styles.levelTitleRow}>
                 <Text style={[styles.levelTitle, { color: currentTheme.colors.text }]}>
                   Level {data.level.level} · {data.level.title}
@@ -124,6 +125,17 @@ export default function CareerSection() {
               </Text>
             </View>
           </View>
+
+          {/* This-week momentum — always climbs from effort, even without a PR */}
+          {data.momentum.sessions > 0 && (
+            <View style={[styles.momentum, { backgroundColor: currentTheme.colors.primary + '12' }]}>
+              <Ionicons name="trending-up" size={16} color={currentTheme.colors.primary} />
+              <Text style={[styles.momentumText, { color: currentTheme.colors.text }]}>
+                <Text style={{ color: currentTheme.colors.primary, fontWeight: '800' }}>+{formatCompact(data.momentum.xp)} XP</Text>
+                {' '}this week · {data.momentum.sessions} {data.momentum.sessions === 1 ? 'session' : 'sessions'}
+              </Text>
+            </View>
+          )}
 
           {/* Weekly challenge */}
           <View style={[styles.challenge, { backgroundColor: challengeColor + '12', borderColor: challengeColor + '40' }]}>
@@ -151,6 +163,7 @@ export default function CareerSection() {
           <View style={styles.hero}>
             <Text style={[styles.tier, { color }]}>{data.tier}</Text>
             <View style={styles.heroRight}>
+              <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
               <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
                 {data.overall}
                 <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
@@ -300,6 +313,9 @@ const styles = StyleSheet.create({
   levelTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
   levelFill: { height: 7, borderRadius: 4 },
   levelToNext: { fontSize: 11, opacity: 0.45, marginTop: 4 },
+  axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6, marginBottom: 3 },
+  momentum: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 10, paddingVertical: 9, paddingHorizontal: 12 },
+  momentumText: { fontSize: 13, flex: 1 },
 
   challenge: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12 },
   challengeBody: { flex: 1 },

@@ -1,5 +1,6 @@
+import { GeneratedWorkout } from '../types';
 import { CareerStats } from '../lib/gamification/careerStats';
-import { computeLevel, totalXp, workoutXp } from '../lib/gamification/level';
+import { computeLevel, totalXp, weeklyMomentum, workoutXp } from '../lib/gamification/level';
 
 function stats(p: Partial<CareerStats>): CareerStats {
   return {
@@ -40,6 +41,31 @@ describe('workoutXp', () => {
 
   it('never goes negative on bad input', () => {
     expect(workoutXp(-500)).toBe(60);
+  });
+});
+
+describe('weeklyMomentum', () => {
+  const wk = (date: Date, sets: { weight: number; reps: number }[]): GeneratedWorkout =>
+    ({
+      id: date.toISOString(),
+      createdAt: date,
+      exercises: [{ id: 'bench-press', completedSets: sets.map(s => ({ ...s, unit: 'lbs', completed: true })) }],
+    } as unknown as GeneratedWorkout);
+
+  // Wed Jun 10 2026; week starts Mon Jun 8.
+  const NOW = new Date(2026, 5, 10, 20, 0, 0);
+
+  it('sums XP + sessions only for the current week', () => {
+    const thisWeek = [wk(new Date(2026, 5, 8, 18), [{ weight: 100, reps: 8 }]), wk(new Date(2026, 5, 10, 18), [{ weight: 100, reps: 8 }])];
+    const lastWeek = [wk(new Date(2026, 5, 1, 18), [{ weight: 200, reps: 10 }])];
+    const m = weeklyMomentum([...thisWeek, ...lastWeek], NOW);
+    expect(m.sessions).toBe(2);
+    // each session: 60 + 800/80 = 70 XP -> 140 total
+    expect(m.xp).toBe(140);
+  });
+
+  it('is zero with no training this week', () => {
+    expect(weeklyMomentum([wk(new Date(2026, 5, 1, 18), [{ weight: 100, reps: 8 }])], NOW)).toEqual({ xp: 0, sessions: 0 });
   });
 });
 
