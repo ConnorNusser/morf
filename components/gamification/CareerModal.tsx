@@ -3,6 +3,7 @@ import { getStrengthTier, getTierColor, StrengthTier, TIER_THRESHOLDS } from '@/
 import { storageService } from '@/lib/storage/storage';
 import {
   Achievement,
+  AchievementCategory,
   summarizeAchievements,
   unlockedIds,
 } from '@/lib/gamification/achievements';
@@ -412,18 +413,29 @@ function TimelineRow({ color, title, date, faded }: { color: string; title: stri
 }
 
 // ---- Achievement grid ----
+const ACH_FILTERS: { key: 'all' | AchievementCategory; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'strength', label: 'Strength' },
+  { key: 'consistency', label: 'Consistency' },
+  { key: 'volume', label: 'Volume' },
+  { key: 'milestone', label: 'Milestones' },
+];
+
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
   const unlocked = achievements.filter(a => a.unlocked).length;
   // New first, then unlocked, then locked sorted by closest progress.
-  const ordered = [...achievements].sort((a, b) => {
-    const an = newIds.has(a.id) ? 1 : 0;
-    const bn = newIds.has(b.id) ? 1 : 0;
-    if (an !== bn) return bn - an;
-    if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    return b.progress - a.progress;
-  });
+  const ordered = [...achievements]
+    .filter(a => filter === 'all' || a.category === filter)
+    .sort((a, b) => {
+      const an = newIds.has(a.id) ? 1 : 0;
+      const bn = newIds.has(b.id) ? 1 : 0;
+      if (an !== bn) return bn - an;
+      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+      return b.progress - a.progress;
+    });
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -437,6 +449,29 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
           🎉 {newIds.size} newly unlocked
         </Text>
       )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
+        {ACH_FILTERS.map(f => {
+          const active = filter === f.key;
+          return (
+            <TouchableOpacity
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              style={[
+                styles.achTab,
+                active
+                  ? { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }
+                  : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
+              ]}
+            >
+              <Text
+                style={[styles.achTabText, { color: active ? currentTheme.colors.surface : currentTheme.colors.text }]}
+              >
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
       <View style={styles.grid}>
         {ordered.map(a => (
           <AchievementTile
@@ -626,6 +661,9 @@ const styles = StyleSheet.create({
 
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
   achNewBanner: { fontSize: 14, fontWeight: '700', marginBottom: 12, marginTop: -4 },
+  achTabs: { gap: 8, paddingBottom: 12 },
+  achTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
+  achTabText: { fontSize: 12, fontWeight: '600' },
   achTile: { width: '48%', borderRadius: 12, borderWidth: 1, padding: 12, gap: 4 },
   achTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   achNewPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
