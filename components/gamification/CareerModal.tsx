@@ -74,6 +74,9 @@ export default function CareerModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            {data.newIds.size > 0 && (
+              <UnlockCelebration items={data.achievements.filter(a => data.newIds.has(a.id))} />
+            )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
                 <View style={styles.shareTopRow}>
@@ -141,6 +144,30 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
       ) : (
         <Text style={[styles.heroNext, { color: currentTheme.colors.text }]}>Max tier reached</Text>
       )}
+    </View>
+  );
+}
+
+// ---- Celebration shown at the top when achievements were just unlocked ----
+function UnlockCelebration({ items }: { items: Achievement[] }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  return (
+    <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
+      <Text style={[styles.celebrateTitle, { color: accent }]}>
+        🎉 {items.length === 1 ? 'Achievement Unlocked' : `${items.length} Achievements Unlocked`}
+      </Text>
+      {items.map(a => (
+        <View key={a.id} style={styles.celebrateRow}>
+          <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
+            <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={16} color={currentTheme.colors.surface} />
+          </View>
+          <View style={styles.celebrateText}>
+            <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
+            <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -509,6 +536,14 @@ const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
+
+  celebrate: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginTop: 4, marginBottom: 4, gap: 10 },
+  celebrateTitle: { fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  celebrateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  celebrateIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  celebrateText: { flex: 1 },
+  celebrateName: { fontSize: 14, fontWeight: '700' },
+  celebrateDesc: { fontSize: 12, opacity: 0.55 },
 
   shareCard: { borderRadius: 16, paddingBottom: 18 },
   shareTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
