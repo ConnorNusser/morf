@@ -7,7 +7,7 @@ import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { profileIconName } from '@/lib/gamification/profileIcons';
+import { iconUnlockContext, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { Ionicons } from '@expo/vector-icons';
@@ -266,7 +266,7 @@ export default function CareerSection() {
       <ProfileIconPicker
         visible={showIconPicker}
         onClose={() => setShowIconPicker(false)}
-        level={data.level.level}
+        unlockContext={iconUnlockContext(data.level.level, data.achievements)}
         currentId={data.profileIconId}
         onSelect={async id => {
           await storageService.setProfileIconId(id);

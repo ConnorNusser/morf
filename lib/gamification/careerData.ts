@@ -9,7 +9,7 @@ import { Achievement, newlyUnlocked } from './achievements';
 import { CareerStats } from './careerStats';
 import { LevelInfo } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
-import { resolveProfileIconId } from './profileIcons';
+import { iconUnlockContext, resolveProfileIconId } from './profileIcons';
 import { LiftPR } from './personalRecords';
 import { buildRewardSnapshot } from './sessionRewards';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
@@ -78,6 +78,6 @@ export async function loadCareerData(): Promise<CareerData> {
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
     weeklyChallenge: challenge,
-    profileIconId: resolveProfileIconId(chosenIconId, level.level),
+    profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(level.level, achievements)),
   };
 }

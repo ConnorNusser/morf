@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getProfileIcons } from '@/lib/gamification/profileIcons';
+import { getProfileIcons, IconUnlockContext } from '@/lib/gamification/profileIcons';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -7,16 +7,17 @@ import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 interface Props {
   visible: boolean;
   onClose: () => void;
-  level: number;
+  unlockContext: IconUnlockContext;
   currentId: string;
   onSelect: (id: string) => void;
 }
 
-// Bottom sheet to pick the career emblem. Locked emblems show their unlock level.
-export default function ProfileIconPicker({ visible, onClose, level, currentId, onSelect }: Props) {
+// Bottom sheet to pick the career emblem. Locked emblems show how to unlock them.
+export default function ProfileIconPicker({ visible, onClose, unlockContext, currentId, onSelect }: Props) {
   const { currentTheme } = useTheme();
-  const icons = getProfileIcons(level);
+  const icons = getProfileIcons(unlockContext);
   const accent = currentTheme.colors.primary;
+  const unlockedCount = icons.filter(i => i.unlocked).length;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -26,7 +27,9 @@ export default function ProfileIconPicker({ visible, onClose, level, currentId, 
           <View style={styles.header}>
             <View>
               <Text style={[styles.title, { color: currentTheme.colors.text }]}>Career emblem</Text>
-              <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>Unlock more by leveling up</Text>
+              <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
+                {unlockedCount}/{icons.length} unlocked · earn more by leveling up & hitting milestones
+              </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
               <Ionicons name="close" size={24} color={currentTheme.colors.text} />
@@ -65,8 +68,8 @@ export default function ProfileIconPicker({ visible, onClose, level, currentId, 
                       </View>
                     )}
                   </View>
-                  <Text style={[styles.cellLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
-                    {ic.unlocked ? ic.label : `Lvl ${ic.unlockLevel}`}
+                  <Text style={[styles.cellLabel, { color: currentTheme.colors.text }]} numberOfLines={2}>
+                    {ic.unlocked ? ic.label : ic.hint}
                   </Text>
                 </TouchableOpacity>
               );
@@ -105,5 +108,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cellLabel: { fontSize: 11, opacity: 0.6 },
+  cellLabel: { fontSize: 11, opacity: 0.6, textAlign: 'center', lineHeight: 14 },
 });
