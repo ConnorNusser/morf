@@ -1,10 +1,11 @@
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierColor, TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getTierColor } from '@/lib/data/strengthStandards';
 import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { formatCompact } from '@/lib/gamification/careerStats';
+import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -37,14 +38,7 @@ export default function CareerSection() {
   const color = getTierColor(data.tier);
   const open = () => setShowModal(true);
 
-  // Progress through the current tier band.
-  const idx = TIER_THRESHOLDS.findIndex(t => t.label === data.tier);
-  const floor = idx >= 0 ? TIER_THRESHOLDS[idx].threshold : 0;
-  const nextRung = idx >= 0 && idx < TIER_THRESHOLDS.length - 1 ? TIER_THRESHOLDS[idx + 1] : null;
-  const bandProgress = nextRung
-    ? Math.max(0, Math.min(1, (data.overall - floor) / Math.max(1, nextRung.threshold - floor)))
-    : 1;
-
+  const band = getTierBandProgress(data.overall);
   const streakActive = data.stats.currentStreak > 0;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
@@ -140,10 +134,10 @@ export default function CareerSection() {
                 <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
               </Text>
               <View style={[styles.track, { backgroundColor: currentTheme.colors.border }]}>
-                <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(bandProgress * 100)}%` }]} />
+                <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
               </View>
               <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
-                {nextRung ? `${nextRung.threshold - data.overall} to ${nextRung.label}` : 'Max tier reached'}
+                {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
               </Text>
             </View>
           </View>

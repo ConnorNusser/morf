@@ -1,5 +1,5 @@
 import { GeneratedWorkout } from '../types';
-import { computeTierTimeline, getTierLadder } from '../lib/gamification/tierTimeline';
+import { computeTierTimeline, getTierBandProgress, getTierLadder } from '../lib/gamification/tierTimeline';
 import { getStrengthTier, TIER_THRESHOLDS } from '../lib/data/strengthStandards';
 
 function benchWorkout(date: Date, weightLbs: number, reps: number): GeneratedWorkout {
@@ -77,6 +77,25 @@ describe('computeTierTimeline', () => {
     const timeline = computeTierTimeline(workouts, PROFILE);
     expect(timeline.length).toBe(1);
     expect(timeline[0].date.getDate()).toBe(1);
+  });
+});
+
+describe('getTierBandProgress', () => {
+  it('reports the next tier, distance, and band progress', () => {
+    // B = [55,63); at 58 -> 3/8 of the way to B+ (63)
+    const b = getTierBandProgress(58);
+    expect(b.tier).toBe('B');
+    expect(b.nextTier).toBe('B+');
+    expect(b.toNext).toBe(5); // 63 - 58
+    expect(b.progress).toBeCloseTo((58 - 55) / (63 - 55));
+  });
+
+  it('caps out at the top tier', () => {
+    const s = getTierBandProgress(100);
+    expect(s.tier).toBe('S++');
+    expect(s.nextTier).toBeNull();
+    expect(s.toNext).toBe(0);
+    expect(s.progress).toBe(1);
   });
 });
 

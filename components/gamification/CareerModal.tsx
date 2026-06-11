@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getStrengthTier, getTierColor, StrengthTier, TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { storageService } from '@/lib/storage/storage';
 import {
@@ -12,7 +12,7 @@ import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
-import { TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
+import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
@@ -129,15 +129,7 @@ export default function CareerModal({ visible, onClose }: Props) {
 function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
   const { currentTheme } = useTheme();
   const color = getTierColor(tier);
-
-  // Progress through the current tier band: from this tier's floor to the next.
-  const idx = TIER_THRESHOLDS.findIndex(t => t.label === tier);
-  const floor = idx >= 0 ? TIER_THRESHOLDS[idx].threshold : 0;
-  const nextRung = idx >= 0 && idx < TIER_THRESHOLDS.length - 1 ? TIER_THRESHOLDS[idx + 1] : null;
-  const bandProgress = nextRung
-    ? Math.max(0, Math.min(1, (overall - floor) / Math.max(1, nextRung.threshold - floor)))
-    : 1;
-  const toNext = nextRung ? nextRung.threshold - overall : 0;
+  const band = getTierBandProgress(overall);
 
   return (
     <View style={styles.hero}>
@@ -151,13 +143,13 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
           Stronger than {overall}% of lifters
         </Text>
       )}
-      {nextRung ? (
+      {band.nextTier ? (
         <View style={styles.heroProgressWrap}>
           <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
-            <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(bandProgress * 100)}%` }]} />
+            <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
           </View>
           <Text style={[styles.heroNext, { color: currentTheme.colors.text }]}>
-            {toNext} to {nextRung.label}
+            {band.toNext} to {band.nextTier}
           </Text>
         </View>
       ) : (

@@ -98,6 +98,28 @@ export interface TierRung {
   current: boolean;
 }
 
+export interface TierBandProgress {
+  tier: StrengthTier;
+  nextTier: StrengthTier | null;
+  toNext: number; // percentile points to the next tier (0 at max)
+  progress: number; // 0..1 through the current tier band
+}
+
+// Progress through the current tier band — shared by the inline Career section
+// and the modal hero so the math (and behavior at max tier) stays in one place.
+export function getTierBandProgress(percentile: number): TierBandProgress {
+  const tier = getStrengthTier(percentile);
+  const idx = TIER_THRESHOLDS.findIndex(t => t.label === tier);
+  const floor = idx >= 0 ? TIER_THRESHOLDS[idx].threshold : 0;
+  const next = idx >= 0 && idx < TIER_THRESHOLDS.length - 1 ? TIER_THRESHOLDS[idx + 1] : null;
+  return {
+    tier,
+    nextTier: next?.label ?? null,
+    toNext: next ? next.threshold - percentile : 0,
+    progress: next ? Math.max(0, Math.min(1, (percentile - floor) / Math.max(1, next.threshold - floor))) : 1,
+  };
+}
+
 export function getTierLadder(currentPercentile: number): TierRung[] {
   const currentTier = getStrengthTier(currentPercentile);
   // TIER_THRESHOLDS is already worst -> best (E- ... S++), the order we want.
