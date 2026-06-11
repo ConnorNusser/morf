@@ -41,6 +41,7 @@ export default function LevelRing({ level, progress, size = 40, stroke = 3, colo
         />
       </Svg>
       <View style={styles.center}>
+        <Text style={[styles.lv, { color: ring }]}>LV</Text>
         <Text style={[styles.num, { color: currentTheme.colors.text }]}>{level}</Text>
       </View>
     </View>
@@ -49,5 +50,6 @@ export default function LevelRing({ level, progress, size = 40, stroke = 3, colo
 
 const styles = StyleSheet.create({
   center: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  num: { fontSize: 15, fontWeight: '700' },
+  lv: { fontSize: 8, fontWeight: '700', letterSpacing: 0.5, marginBottom: -2 },
+  num: { fontSize: 14, fontWeight: '700' },
 });
