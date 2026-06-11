@@ -1,7 +1,14 @@
 // Achievement / milestone engine. Pure: derives unlocked state and progress
 // from career stats + overall strength percentile. No new tracking required —
 // everything is computed from existing data, so it stays in sync automatically.
+import { convertWeight } from '@/types';
 import { CareerStats } from './careerStats';
+
+// Single heaviest completed set, in lbs (so plate milestones are fair in kg too).
+function heaviestSetLbs(s: CareerStats): number {
+  if (!s.heaviestSet) return 0;
+  return Math.round(s.unit === 'kg' ? convertWeight(s.heaviestSet.weight, 'kg', 'lbs') : s.heaviestSet.weight);
+}
 
 export type AchievementCategory = 'consistency' | 'volume' | 'strength' | 'milestone';
 
@@ -62,6 +69,17 @@ const DEFS: AchievementDef[] = [
   { id: 'tier-b', title: 'Strong', description: 'Reach B tier', icon: 'shield', category: 'strength', target: 55, metric: (_s, p) => p },
   { id: 'tier-a', title: 'Elite', description: 'Reach A tier', icon: 'medal', category: 'strength', target: 75, metric: (_s, p) => p },
   { id: 'tier-s', title: 'Legendary', description: 'Reach S tier', icon: 'star', category: 'strength', target: 90, metric: (_s, p) => p },
+
+  // For fun — silly milestones that are a wink as much as a goal.
+  { id: 'meme-9000', title: "It's Over 9,000!", description: 'Lift over 9,000 total', icon: 'flame', category: 'volume', target: 9_000, metric: s => s.totalVolume },
+  { id: 'sets-1000', title: 'Glutton for Punishment', description: 'Complete 1,000 sets', icon: 'repeat', category: 'volume', target: 1_000, metric: s => s.totalSets },
+  { id: 'reps-marathon', title: 'Marathoner', description: 'Rep your way to a marathon — 26,200 reps', icon: 'walk', category: 'volume', target: 26_200, metric: s => s.totalReps },
+  { id: 'plates-2', title: 'Plate Tectonics', description: '225 lbs on a single set (two plates)', icon: 'barbell', category: 'strength', target: 225, metric: heaviestSetLbs },
+  { id: 'plates-3', title: 'Three Plate Club', description: '315 lbs on a single set', icon: 'barbell', category: 'strength', target: 315, metric: heaviestSetLbs },
+  { id: 'plates-4', title: 'Four Plate Monster', description: '405 lbs on a single set', icon: 'barbell', category: 'strength', target: 405, metric: heaviestSetLbs },
+  { id: 'days-200', title: 'Touch Grass', description: 'Train on 200 different days (seriously, go outside)', icon: 'leaf', category: 'consistency', target: 200, metric: s => s.daysActive },
+  { id: 'member-1000', title: 'Lifer', description: '1,000 days since your first workout', icon: 'hourglass', category: 'consistency', target: 1_000, metric: s => s.daysSinceStart },
+  { id: 'session-50k', title: 'Leg Day Regret', description: 'Move 50K in a single workout', icon: 'flash', category: 'volume', target: 50_000, metric: s => s.biggestSessionVolume },
 ];
 
 export function computeAchievements(stats: CareerStats, overallPercentile: number): Achievement[] {

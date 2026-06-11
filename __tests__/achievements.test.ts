@@ -52,6 +52,32 @@ describe('computeAchievements', () => {
   });
 });
 
+describe('funny achievements', () => {
+  it('unlocks the meme and silly-count milestones', () => {
+    const a = computeAchievements(
+      stats({ totalVolume: 9_500, totalSets: 1_200, totalReps: 27_000, daysActive: 220, daysSinceStart: 1_100, biggestSessionVolume: 60_000 }),
+      0,
+    );
+    const by = (id: string) => a.find(x => x.id === id)!;
+    expect(by('meme-9000').unlocked).toBe(true);
+    expect(by('sets-1000').unlocked).toBe(true);
+    expect(by('reps-marathon').unlocked).toBe(true);
+    expect(by('days-200').unlocked).toBe(true);
+    expect(by('member-1000').unlocked).toBe(true);
+    expect(by('session-50k').unlocked).toBe(true);
+  });
+
+  it('gates plate milestones on the single heaviest set, fair across units', () => {
+    const lbs = computeAchievements(stats({ heaviestSet: { weight: 320, reps: 1, exerciseId: 'x', date: new Date() }, unit: 'lbs' }), 0);
+    expect(lbs.find(x => x.id === 'plates-3')?.unlocked).toBe(true); // 320 >= 315
+    expect(lbs.find(x => x.id === 'plates-4')?.unlocked).toBe(false); // 320 < 405
+
+    // 150 kg ≈ 330 lbs — should clear the three-plate (315 lbs) milestone.
+    const kg = computeAchievements(stats({ heaviestSet: { weight: 150, reps: 1, exerciseId: 'x', date: new Date() }, unit: 'kg' }), 0);
+    expect(kg.find(x => x.id === 'plates-3')?.unlocked).toBe(true);
+  });
+});
+
 describe('summarizeAchievements', () => {
   it('counts unlocked and picks the nearest next goal', () => {
     const a = computeAchievements(stats({ totalWorkouts: 9, longestStreak: 1, totalVolume: 0 }), 0);
