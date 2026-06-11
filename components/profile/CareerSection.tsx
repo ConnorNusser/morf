@@ -6,6 +6,7 @@ import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
+import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -40,6 +41,7 @@ export default function CareerSection() {
 
   const band = getTierBandProgress(data.overall);
   const streakActive = data.stats.currentStreak > 0;
+  const challengeColor = data.weeklyChallenge.completed ? CHALLENGE_DONE_COLOR : currentTheme.colors.primary;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
     { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts', accent: false },
@@ -106,9 +108,9 @@ export default function CareerSection() {
           </View>
 
           {/* Weekly challenge */}
-          <View style={[styles.challenge, { backgroundColor: currentTheme.colors.primary + '12', borderColor: currentTheme.colors.primary + '40' }]}>
+          <View style={[styles.challenge, { backgroundColor: challengeColor + '12', borderColor: challengeColor + '40' }]}>
             <View style={styles.challengeBody}>
-              <Text style={[styles.challengeLabel, { color: currentTheme.colors.primary }]}>
+              <Text style={[styles.challengeLabel, { color: challengeColor }]}>
                 THIS WEEK{data.weeklyChallenge.completed ? ' · DONE ✓' : ''}
               </Text>
               <Text style={[styles.challengeTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
@@ -116,7 +118,7 @@ export default function CareerSection() {
               </Text>
               <View style={[styles.challengeTrack, { backgroundColor: currentTheme.colors.border }]}>
                 <View
-                  style={[styles.challengeFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(data.weeklyChallenge.progress * 100)}%` }]}
+                  style={[styles.challengeFill, { backgroundColor: challengeColor, width: `${Math.round(data.weeklyChallenge.progress * 100)}%` }]}
                 />
               </View>
             </View>

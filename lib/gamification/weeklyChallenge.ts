@@ -4,6 +4,9 @@
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup } from '@/types';
 
+// Success green for a completed weekly challenge (shared by both surfaces).
+export const CHALLENGE_DONE_COLOR = '#34C759';
+
 export interface WeeklyChallenge {
   id: string;
   title: string;

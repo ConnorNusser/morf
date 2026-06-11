@@ -14,7 +14,7 @@ import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
-import { WeeklyChallenge } from '@/lib/gamification/weeklyChallenge';
+import { CHALLENGE_DONE_COLOR, WeeklyChallenge } from '@/lib/gamification/weeklyChallenge';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -233,17 +233,18 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
 // ---- This week's rotating challenge ----
 function WeeklyChallengeView({ challenge }: { challenge: WeeklyChallenge }) {
   const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
+  // Completed challenges glow success-green so hitting the weekly goal feels good.
+  const c = challenge.completed ? CHALLENGE_DONE_COLOR : currentTheme.colors.primary;
   return (
-    <View style={[styles.weekly, { backgroundColor: accent + '12', borderColor: accent + '40' }]}>
+    <View style={[styles.weekly, { backgroundColor: c + '12', borderColor: c + '40' }]}>
       <View style={styles.weeklyBody}>
-        <Text style={[styles.weeklyLabel, { color: accent }]}>
+        <Text style={[styles.weeklyLabel, { color: c }]}>
           THIS WEEK · {challenge.title.toUpperCase()}
           {challenge.completed ? ' · DONE ✓' : ''}
         </Text>
         <Text style={[styles.weeklyTitle, { color: currentTheme.colors.text }]}>{challenge.description}</Text>
         <View style={[styles.weeklyTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.weeklyFill, { backgroundColor: accent, width: `${Math.round(challenge.progress * 100)}%` }]} />
+          <View style={[styles.weeklyFill, { backgroundColor: c, width: `${Math.round(challenge.progress * 100)}%` }]} />
         </View>
       </View>
       <Text style={[styles.weeklyCount, { color: currentTheme.colors.text }]}>
