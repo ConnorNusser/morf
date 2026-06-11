@@ -1,25 +1,16 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import {
-  getStrengthTier,
-  getTierColor,
-  StrengthTier,
-  TIER_THRESHOLDS,
-} from '@/lib/data/strengthStandards';
+import { getStrengthTier, getTierColor, StrengthTier, TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
-import { userService } from '@/lib/services/userService';
-import { calculateOverallPercentile } from '@/lib/utils/utils';
 import {
   Achievement,
-  computeAchievements,
-  newlyUnlocked,
   summarizeAchievements,
   unlockedIds,
 } from '@/lib/gamification/achievements';
-import { CareerStats, computeCareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
-import { computeMainLiftPRs, LiftPR } from '@/lib/gamification/personalRecords';
-import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
+import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
+import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
+import { LiftPR } from '@/lib/gamification/personalRecords';
+import { TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { captureAndShare } from '@/lib/ui/shareUtils';
-import { convertWeight } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -28,17 +19,6 @@ import ViewShot from 'react-native-view-shot';
 interface Props {
   visible: boolean;
   onClose: () => void;
-}
-
-interface CareerData {
-  stats: CareerStats;
-  overall: number;
-  tier: StrengthTier;
-  ladder: TierRung[];
-  timeline: TierMilestone[];
-  achievements: Achievement[];
-  newIds: Set<string>; // achievements newly unlocked since last viewed
-  prs: LiftPR[];
 }
 
 function formatDate(d: Date): string {
@@ -54,47 +34,11 @@ export default function CareerModal({ visible, onClose }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [history, profile, lifts, filters, seen] = await Promise.all([
-        storageService.getWorkoutHistory(),
-        userService.getUserProfileOrDefault(),
-        userService.getAllFeaturedLifts(),
-        storageService.getLiftDisplayFilters(),
-        storageService.getSeenAchievements(),
-      ]);
-      const unit = profile.weightUnitPreference || 'lbs';
-      const stats = computeCareerStats(history, unit);
-
-      const visibleLifts = lifts.filter(l => !filters.hiddenLiftIds.includes(l.workoutId));
-      const overall = visibleLifts.length
-        ? calculateOverallPercentile(visibleLifts.map(l => l.percentileRanking))
-        : 0;
-
-      const bodyWeightLbs = profile.weight
-        ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs')
-        : 0;
-      const timeline = computeTierTimeline(
-        history,
-        { bodyWeightLbs, gender: profile.gender, age: profile.age },
-        visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
-      );
-
-      const achievements = computeAchievements(stats, overall);
-      const newIds = new Set(newlyUnlocked(achievements, seen).map(a => a.id));
-
-      setData({
-        stats,
-        overall,
-        tier: getStrengthTier(overall),
-        ladder: getTierLadder(overall),
-        timeline,
-        achievements,
-        newIds,
-        prs: computeMainLiftPRs(history, unit),
-      });
-
+      const career = await loadCareerData();
+      setData(career);
       // Acknowledge everything unlocked now that the user is viewing it, so the
       // "new" highlights clear next time.
-      await storageService.setSeenAchievements(unlockedIds(achievements));
+      await storageService.setSeenAchievements(unlockedIds(career.achievements));
     } catch (err) {
       console.error('CareerModal: failed to load', err);
     } finally {
