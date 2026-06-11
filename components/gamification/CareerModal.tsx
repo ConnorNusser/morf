@@ -351,6 +351,13 @@ function ConsistencyView({ heatmap }: { heatmap: TrainingHeatmap }) {
           </View>
         ))}
       </View>
+      <View style={styles.heatLegend}>
+        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Less</Text>
+        {[0.2, 0.45, 0.7, 1].map(i => (
+          <View key={i} style={[styles.heatLegendCell, { backgroundColor: accent, opacity: 0.3 + 0.7 * i }]} />
+        ))}
+        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>More</Text>
+      </View>
     </View>
   );
 }
@@ -699,6 +706,9 @@ const styles = StyleSheet.create({
   heatGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 4 },
   heatCell: { width: 15, height: 15, borderRadius: 3 },
+  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 10 },
+  heatLegendText: { fontSize: 10, opacity: 0.4 },
+  heatLegendCell: { width: 11, height: 11, borderRadius: 2 },
 
   muscleCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
