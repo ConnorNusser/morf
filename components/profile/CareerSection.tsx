@@ -125,6 +125,8 @@ export default function CareerSection() {
             </Text>
           </View>
 
+          <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
+
           {/* Tier hero */}
           <View style={styles.hero}>
             <Text style={[styles.tier, { color }]}>{data.tier}</Text>
@@ -181,6 +183,8 @@ export default function CareerSection() {
               </View>
             ))}
           </View>
+
+          <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
 
           {/* Next goal */}
           {nextUp && (
@@ -244,6 +248,7 @@ export default function CareerSection() {
 
 const styles = StyleSheet.create({
   card: { gap: 14 },
+  divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heading: { fontSize: 20, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
