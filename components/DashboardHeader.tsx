@@ -86,27 +86,25 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onL
 
             {stats?.level != null && (
               <TouchableOpacity
-                style={[styles.levelButton, { borderColor: currentTheme.colors.text + '1A' }]}
+                style={[styles.levelButton, { backgroundColor: currentTheme.colors.text + '0D' }]}
                 onPress={onLevelPress}
                 activeOpacity={0.6}
                 disabled={!onLevelPress}
               >
-                <View style={styles.levelButtonBody}>
-                  <Text style={[styles.levelButtonText, { color: currentTheme.colors.text }]}>
-                    LEVEL {stats.level}
+                <Text style={[styles.levelButtonText, { color: currentTheme.colors.text }]}>
+                  LEVEL {stats.level}
+                </Text>
+                {stats.levelProgress != null && (
+                  <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.text + '1A' }]}>
+                    <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.text + 'B3' }]} />
+                  </View>
+                )}
+                {stats.levelProgress != null && (
+                  <Text style={[styles.levelPct, { color: currentTheme.colors.text + '66' }]}>
+                    {Math.round(stats.levelProgress * 100)}%
                   </Text>
-                  {stats.levelProgress != null && (
-                    <View style={styles.levelMeter}>
-                      <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.text + '1A' }]}>
-                        <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.text + 'B3' }]} />
-                      </View>
-                      <Text style={[styles.levelPct, { color: currentTheme.colors.text + '66' }]}>
-                        {Math.round(stats.levelProgress * 100)}%
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={currentTheme.colors.text + '40'} />
+                )}
+                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '40'} />
               </TouchableOpacity>
             )}
           </View>
@@ -179,50 +177,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerLeft: {
-    flex: 1,
-    minWidth: 0,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
   levelButton: {
-    flexShrink: 0,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginLeft: 12,
-    paddingVertical: 7,
-    paddingLeft: 12,
-    paddingRight: 8,
-    borderRadius: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  levelButtonBody: {
-    gap: 5,
+    paddingVertical: 11,
+    paddingLeft: 14,
+    paddingRight: 10,
+    borderRadius: 12,
   },
   levelButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     letterSpacing: 1,
   },
-  levelMeter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
   levelTrack: {
-    width: 56,
-    height: 2.5,
-    borderRadius: 1.25,
+    flex: 1,
+    height: 3,
+    borderRadius: 1.5,
     overflow: 'hidden',
   },
   levelFill: {
     height: '100%',
-    borderRadius: 1.25,
+    borderRadius: 1.5,
   },
   levelPct: {
-    fontSize: 10,
-    fontWeight: '500',
+    fontSize: 11,
+    fontWeight: '600',
   },
   logo: {
     width: 40,
