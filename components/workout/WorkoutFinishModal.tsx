@@ -6,11 +6,17 @@ import ExerciseBadge from '@/components/workout/ExerciseBadge';
 import WorkoutCompleteScreen from '@/components/workout/WorkoutCompleteScreen';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
+import { unlockedIds } from '@/lib/gamification/achievements';
+import {
+  buildRewardSnapshot,
+  computeSessionRewards,
+  SessionRewards,
+} from '@/lib/gamification/sessionRewards';
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
+import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeight, UserProfile, UserProgress, WeightUnit, WorkoutTemplate } from '@/types';
@@ -87,6 +93,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [templateSaved, setTemplateSaved] = useState(false);
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
 
   // Fetch user lifts for preview mode
   useEffect(() => {
@@ -108,6 +115,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setParsedWorkout(null);
       setError(null);
       setTemplateSaved(false);
+      setSessionRewards(null);
 
       const parseWorkout = async () => {
         try {
@@ -137,10 +145,49 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     playHapticFeedback('light', false);
     setIsSaving(true);
     try {
+      // Snapshot the career before saving so we can diff what this session earned.
+      const beforeHistory = await storageService.getWorkoutHistory();
+      const beforeLifts = userLifts;
+
       await onSave(parsedWorkout);
       playUnlock();
       playHapticFeedback('medium', false);
       setModalState('celebration');
+
+      // Compute session rewards (XP / level-up / achievements / weekly challenge).
+      // Best-effort — never let this block or fail the celebration.
+      try {
+        const [afterHistory, afterLifts, profile] = await Promise.all([
+          storageService.getWorkoutHistory(),
+          userService.getAllFeaturedLifts(),
+          userService.getUserProfileOrDefault(),
+        ]);
+        const unit = profile.weightUnitPreference || weightUnit;
+        const bodyWeightLbs = profile.weight
+          ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs')
+          : 0;
+        const overallBefore = beforeLifts.length
+          ? calculateOverallPercentile(beforeLifts.map(l => l.percentileRanking))
+          : 0;
+        const overallAfter = afterLifts.length
+          ? calculateOverallPercentile(afterLifts.map(l => l.percentileRanking))
+          : 0;
+        const before = buildRewardSnapshot(beforeHistory, { unit, overall: overallBefore, bodyWeightLbs });
+        const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
+        const rewards = computeSessionRewards(before, after);
+        setSessionRewards(rewards);
+
+        // This is the primary celebration moment — acknowledge the unlocks and
+        // level here so the Profile badge and home screen don't re-celebrate them.
+        if (rewards.hasRewards) {
+          await Promise.all([
+            storageService.setSeenAchievements(unlockedIds(after.achievements)),
+            storageService.setLastCelebratedLevel(after.level.level),
+          ]);
+        }
+      } catch (rewardErr) {
+        console.error('Error computing session rewards:', rewardErr);
+      }
     } catch (err) {
       console.error('Error saving workout:', err);
       setError('Failed to save workout. Please try again.');
@@ -148,7 +195,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [parsedWorkout, onSave, playUnlock]);
+  }, [parsedWorkout, onSave, playUnlock, userLifts, weightUnit]);
 
   // Handle cancel with haptic
   const handleCancel = useCallback(() => {
@@ -558,6 +605,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       onSaveAsTemplate={handleSaveAsTemplate}
       onDone={handleDone}
       isSmallScreen={isSmallScreen}
+      rewards={sessionRewards}
     />
   );
 

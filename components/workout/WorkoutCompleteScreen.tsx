@@ -3,6 +3,8 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { SessionRewards } from '@/lib/gamification/sessionRewards';
+import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
@@ -56,6 +58,88 @@ interface WorkoutCompleteScreenProps {
   onSaveAsTemplate: () => void;
   onDone: () => void;
   isSmallScreen?: boolean;
+  rewards?: SessionRewards | null;
+}
+
+// Gamification rewards earned this session: XP, level-up, achievements, and the
+// weekly-challenge tick. Sits below the PR highlights in the celebration screen.
+function RewardsSection({ rewards }: { rewards: SessionRewards }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  const { leveledUp, xpGained, newAchievements, challenge } = rewards;
+  const challengeColor = challenge.completed ? CHALLENGE_DONE_COLOR : accent;
+  const shownAch = newAchievements.slice(0, 3);
+
+  return (
+    <Animated.View entering={FadeIn.delay(450)} style={styles.rewardsSection}>
+      {leveledUp ? (
+        <View style={[styles.levelUpBanner, { borderColor: accent, backgroundColor: accent + '1A' }]}>
+          <Ionicons name="trending-up" size={22} color={accent} />
+          <View style={styles.levelUpTextWrap}>
+            <Text style={[styles.levelUpLabel, { color: accent, fontFamily: currentTheme.fonts.bold }]}>
+              LEVEL UP
+            </Text>
+            <Text style={[styles.levelUpText, { color: '#fff', fontFamily: currentTheme.fonts.medium }]}>
+              Level {leveledUp.level} · {leveledUp.title}
+            </Text>
+          </View>
+          {xpGained > 0 && (
+            <Text style={[styles.xpPill, { color: accent, fontFamily: currentTheme.fonts.bold }]}>
+              +{xpGained} XP
+            </Text>
+          )}
+        </View>
+      ) : (
+        xpGained > 0 && (
+          <View style={styles.xpRow}>
+            <Ionicons name="flash" size={16} color={accent} />
+            <Text style={[styles.xpText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
+              +{xpGained} XP earned
+            </Text>
+          </View>
+        )
+      )}
+
+      {shownAch.length > 0 && (
+        <View style={styles.achList}>
+          {shownAch.map(a => (
+            <View key={a.id} style={styles.achRow}>
+              <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={18} color="#FFD700" />
+              <View style={styles.achTextWrap}>
+                <Text style={[styles.achTitle, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+                  {a.title}
+                </Text>
+                <Text style={[styles.achSub, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+                  Achievement unlocked
+                </Text>
+              </View>
+            </View>
+          ))}
+          {newAchievements.length > shownAch.length && (
+            <Text style={[styles.achMore, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+              +{newAchievements.length - shownAch.length} more unlocked
+            </Text>
+          )}
+        </View>
+      )}
+
+      {challenge.current > 0 && (
+        <View style={styles.challengeBlock}>
+          <View style={styles.challengeHeader}>
+            <Text style={[styles.challengeTitle, { color: 'rgba(255,255,255,0.7)', fontFamily: currentTheme.fonts.medium }]}>
+              {challenge.title}
+            </Text>
+            <Text style={[styles.challengeCount, { color: challengeColor, fontFamily: currentTheme.fonts.semiBold }]}>
+              {challenge.completed ? 'Complete ✓' : `${challenge.current}/${challenge.target}`}
+            </Text>
+          </View>
+          <View style={styles.challengeTrack}>
+            <View style={[styles.challengeFill, { width: `${Math.round(challenge.progress * 100)}%`, backgroundColor: challengeColor }]} />
+          </View>
+        </View>
+      )}
+    </Animated.View>
+  );
 }
 
 // Confetti particle
@@ -278,6 +362,7 @@ export default function WorkoutCompleteScreen({
   onSaveAsTemplate,
   onDone,
   isSmallScreen = false,
+  rewards,
 }: WorkoutCompleteScreenProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -460,6 +545,9 @@ export default function WorkoutCompleteScreen({
               </Animated.View>
             </View>
           )}
+
+          {/* Gamification rewards: XP, level-up, achievements, weekly challenge */}
+          {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
 
           {/* Interactive Stats */}
           <Animated.View entering={FadeIn.delay(500)} style={[styles.statsContainer, isSmallScreen && styles.statsContainerSmall]}>
@@ -670,6 +758,99 @@ const styles = StyleSheet.create({
   },
   improvementText: {
     fontSize: 13,
+  },
+  // Rewards (gamification)
+  rewardsSection: {
+    width: '100%',
+    marginBottom: 32,
+    gap: 12,
+  },
+  levelUpBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  levelUpTextWrap: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  levelUpLabel: {
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  levelUpText: {
+    fontSize: 16,
+    marginTop: 2,
+  },
+  xpPill: {
+    fontSize: 15,
+  },
+  xpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  xpText: {
+    fontSize: 15,
+  },
+  achList: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  achRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'transparent',
+  },
+  achTextWrap: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  achTitle: {
+    fontSize: 15,
+  },
+  achSub: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  achMore: {
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  challengeBlock: {
+    width: '100%',
+    gap: 8,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  challengeTitle: {
+    fontSize: 14,
+  },
+  challengeCount: {
+    fontSize: 14,
+  },
+  challengeTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  challengeFill: {
+    height: '100%',
+    borderRadius: 3,
   },
   // Stats
   statsContainer: {

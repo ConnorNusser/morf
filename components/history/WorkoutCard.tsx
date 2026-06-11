@@ -1,6 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { workoutXp } from '@/lib/gamification/level';
 import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
@@ -107,6 +108,9 @@ function WorkoutCard({
 
   const statsLine = formatWorkoutStatsLine(workoutStats, { unit: weightUnit });
 
+  // XP this session earned — makes the gamification XP economy tangible in the log.
+  const xpEarned = useMemo(() => workoutXp(workoutStats.totalVolumeLbs), [workoutStats.totalVolumeLbs]);
+
   return (
     <TouchableOpacity
       style={[styles.workoutCard, { borderColor: currentTheme.colors.border }]}
@@ -116,9 +120,18 @@ function WorkoutCard({
     >
       {/* Header */}
       <View style={[styles.workoutHeader, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-          {workout.title}
-        </Text>
+        <RNView style={styles.workoutTitleRow}>
+          <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+            {workout.title}
+          </Text>
+          {xpEarned > 0 && (
+            <RNView style={[styles.xpChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
+              <Text style={[styles.xpChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                +{xpEarned} XP
+              </Text>
+            </RNView>
+          )}
+        </RNView>
         <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
           {formatRelativeDate(workout.createdAt)} • {statsLine}
         </Text>
@@ -162,10 +175,26 @@ const styles = StyleSheet.create({
   workoutHeader: {
     marginBottom: 12,
   },
+  workoutTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
   workoutTitle: {
+    flex: 1,
     fontSize: 16,
     lineHeight: 22,
     letterSpacing: -0.2,
+  },
+  xpChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  xpChipText: {
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   workoutMeta: {
     fontSize: 13,

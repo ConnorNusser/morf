@@ -20,6 +20,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { useUser } from "@/contexts/UserContext";
 import { getStrengthLevelName } from "@/lib/data/strengthStandards";
+import { buildRewardSnapshot } from "@/lib/gamification/sessionRewards";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
@@ -30,7 +31,7 @@ import {
 import { gap, layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import { LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
+import { convertWeight, LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
@@ -111,7 +112,25 @@ export default function HomeScreen() {
       setLiftFilters(savedFilters);
 
       const unit = profile?.weightUnitPreference || "lbs";
-      setLifetimeStats({ ...getLifetimeTotals(history, unit), unit });
+
+      // Surface the lifter level/XP on the header (gamification).
+      const visibleLifts = userProgressData.filter(
+        (p) => !savedFilters.hiddenLiftIds.includes(p.workoutId),
+      );
+      const overall = visibleLifts.length
+        ? calculateOverallPercentile(visibleLifts.map((p) => p.percentileRanking))
+        : 0;
+      const bodyWeightLbs = profile?.weight
+        ? convertWeight(profile.weight.value, profile.weight.unit, "lbs")
+        : 0;
+      const snapshot = buildRewardSnapshot(history, { unit, overall, bodyWeightLbs });
+
+      setLifetimeStats({
+        ...getLifetimeTotals(history, unit),
+        unit,
+        level: snapshot.level.level,
+        levelProgress: snapshot.level.progress,
+      });
 
       setIsLoading(false);
     } catch (error) {

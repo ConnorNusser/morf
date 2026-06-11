@@ -1,5 +1,5 @@
 import { CareerStats } from '../lib/gamification/careerStats';
-import { computeLevel, totalXp } from '../lib/gamification/level';
+import { computeLevel, totalXp, workoutXp } from '../lib/gamification/level';
 
 function stats(p: Partial<CareerStats>): CareerStats {
   return {
@@ -29,6 +29,17 @@ describe('totalXp', () => {
     const inKg = totalXp(stats({ totalVolume: 45_360, unit: 'kg' }), 0); // ~100k lbs
     const inLbs = totalXp(stats({ totalVolume: 100_000, unit: 'lbs' }), 0);
     expect(Math.abs(inKg - inLbs)).toBeLessThan(50);
+  });
+});
+
+describe('workoutXp', () => {
+  it('is the workout bonus plus volume contribution', () => {
+    expect(workoutXp(0)).toBe(60); // bonus only
+    expect(workoutXp(8_000)).toBe(160); // 60 + 8000/80
+  });
+
+  it('never goes negative on bad input', () => {
+    expect(workoutXp(-500)).toBe(60);
   });
 });
 

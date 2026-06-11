@@ -28,6 +28,13 @@ export function totalXp(stats: CareerStats, unlockedAchievements: number): numbe
   );
 }
 
+// XP a single session contributes: the per-workout bonus plus its volume. The
+// active-day and achievement bonuses aren't attributable to one session, so this
+// is a session's core earned XP — used to annotate the history log.
+export function workoutXp(volumeLbs: number): number {
+  return Math.round(XP_PER_WORKOUT + Math.max(0, volumeLbs) / VOLUME_PER_XP);
+}
+
 export interface LevelInfo {
   level: number;
   xp: number;

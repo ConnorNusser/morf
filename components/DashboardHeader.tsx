@@ -13,6 +13,8 @@ export interface HeaderStats {
   totalVolume: number;
   totalWorkouts: number;
   unit: WeightUnit;
+  level?: number; // lifter level (gamification)
+  levelProgress?: number; // 0..1 toward next level
 }
 
 interface DashboardHeaderProps {
@@ -86,6 +88,19 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats }: D
                   />
                 </TouchableOpacity>
               </TutorialTarget>
+
+              {stats?.level != null && (
+                <View style={[styles.levelPill, { backgroundColor: currentTheme.colors.primary + '1A', borderColor: currentTheme.colors.primary + '40' }]}>
+                  <Text style={[styles.levelPillText, { color: currentTheme.colors.primary }]}>
+                    LV {stats.level}
+                  </Text>
+                  {stats.levelProgress != null && (
+                    <View style={styles.levelTrack}>
+                      <View style={[styles.levelFill, { width: `${Math.round(stats.levelProgress * 100)}%`, backgroundColor: currentTheme.colors.primary }]} />
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
 
             {stats && (
@@ -178,6 +193,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  levelPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  levelPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  levelTrack: {
+    width: 32,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(128,128,128,0.25)',
+    overflow: 'hidden',
+  },
+  levelFill: {
+    height: '100%',
+    borderRadius: 1.5,
   },
   headerStats: {
     flexShrink: 0,

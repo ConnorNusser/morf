@@ -5,16 +5,16 @@ import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
-import { Achievement, computeAchievements, newlyUnlocked } from './achievements';
-import { CareerStats, computeCareerStats } from './careerStats';
-import { computeLevel, LevelInfo } from './level';
+import { Achievement, newlyUnlocked } from './achievements';
+import { CareerStats } from './careerStats';
+import { LevelInfo } from './level';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { resolveProfileIconId } from './profileIcons';
-import { computeMainLiftPRs, LiftPR } from './personalRecords';
-import { computeStrengthMilestones } from './strengthMilestones';
+import { LiftPR } from './personalRecords';
+import { buildRewardSnapshot } from './sessionRewards';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 import { computeTrainingHeatmap, TrainingHeatmap } from './trainingHeatmap';
-import { computeWeeklyChallenge, WeeklyChallenge } from './weeklyChallenge';
+import { WeeklyChallenge } from './weeklyChallenge';
 
 export interface CareerData {
   stats: CareerStats;
@@ -43,7 +43,6 @@ export async function loadCareerData(): Promise<CareerData> {
   ]);
 
   const unit = profile.weightUnitPreference || 'lbs';
-  const stats = computeCareerStats(history, unit);
 
   const visibleLifts = lifts.filter(l => !filters.hiddenLiftIds.includes(l.workoutId));
   const overall = visibleLifts.length
@@ -51,18 +50,20 @@ export async function loadCareerData(): Promise<CareerData> {
     : 0;
 
   const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
+
+  // stats / achievements / level / challenge / prs come from the shared snapshot
+  // builder so the Career surfaces and the session-reward diff never drift.
+  const { stats, achievements, level, challenge, prs } = buildRewardSnapshot(history, {
+    unit,
+    overall,
+    bodyWeightLbs,
+  });
+
   const timeline = computeTierTimeline(
     history,
     { bodyWeightLbs, gender: profile.gender, age: profile.age },
     visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
   );
-
-  // Strength milestones (bodyweight ratios) flow through the same achievement
-  // machinery. Computed in lbs so the ratio matches the lbs bodyweight.
-  const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), bodyWeightLbs);
-  const achievements = [...computeAchievements(stats, overall), ...milestones];
-  const unlockedCount = achievements.filter(a => a.unlocked).length;
-  const level = computeLevel(stats, unlockedCount);
 
   return {
     stats,
@@ -73,10 +74,10 @@ export async function loadCareerData(): Promise<CareerData> {
     timeline,
     achievements,
     newIds: new Set(newlyUnlocked(achievements, seen).map(a => a.id)),
-    prs: computeMainLiftPRs(history, unit),
+    prs,
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
-    weeklyChallenge: computeWeeklyChallenge(history),
+    weeklyChallenge: challenge,
     profileIconId: resolveProfileIconId(chosenIconId, level.level),
   };
 }
