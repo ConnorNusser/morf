@@ -18,10 +18,12 @@ import {
 import { CareerStats, computeCareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
 import { computeMainLiftPRs, LiftPR } from '@/lib/gamification/personalRecords';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
+import { captureAndShare } from '@/lib/ui/shareUtils';
 import { convertWeight } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 
 interface Props {
   visible: boolean;
@@ -47,6 +49,7 @@ export default function CareerModal({ visible, onClose }: Props) {
   const { currentTheme } = useTheme();
   const [data, setData] = useState<CareerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const shareRef = useRef<ViewShot>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,9 +111,16 @@ export default function CareerModal({ visible, onClose }: Props) {
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>Career</Text>
-          <TouchableOpacity onPress={onClose} hitSlop={12}>
-            <Ionicons name="close" size={26} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            {data && (
+              <TouchableOpacity onPress={() => captureAndShare(shareRef as React.RefObject<ViewShot>)} hitSlop={12}>
+                <Ionicons name="share-outline" size={24} color={currentTheme.colors.text} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={onClose} hitSlop={12}>
+              <Ionicons name="close" size={26} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {loading || !data ? (
@@ -119,7 +129,13 @@ export default function CareerModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            <TierHero overall={data.overall} tier={data.tier} />
+            <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
+              <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
+                <Text style={[styles.shareBrand, { color: currentTheme.colors.text }]}>MORF</Text>
+                <TierHero overall={data.overall} tier={data.tier} />
+                <ShareStatStrip stats={data.stats} />
+              </View>
+            </ViewShot>
             <NextGoal achievements={data.achievements} />
             <StatGrid stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
@@ -167,6 +183,26 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
       ) : (
         <Text style={[styles.heroNext, { color: currentTheme.colors.text }]}>Max tier reached</Text>
       )}
+    </View>
+  );
+}
+
+// ---- Compact stat strip shown inside the shareable card ----
+function ShareStatStrip({ stats }: { stats: CareerStats }) {
+  const { currentTheme } = useTheme();
+  const items = [
+    { v: `${formatCompact(stats.totalVolume)} ${stats.unit}`, l: 'lifted' },
+    { v: formatCompact(stats.totalWorkouts), l: 'workouts' },
+    { v: `${stats.longestStreak}d`, l: 'best streak' },
+  ];
+  return (
+    <View style={styles.shareStrip}>
+      {items.map((it, i) => (
+        <View key={i} style={styles.shareStat}>
+          <Text style={[styles.shareStatValue, { color: currentTheme.colors.text }]}>{it.v}</Text>
+          <Text style={[styles.shareStatLabel, { color: currentTheme.colors.text }]}>{it.l}</Text>
+        </View>
+      ))}
     </View>
   );
 }
@@ -483,8 +519,16 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   headerTitle: { fontSize: 28, fontWeight: '700' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
+
+  shareCard: { borderRadius: 16, paddingBottom: 18 },
+  shareBrand: { fontSize: 13, fontWeight: '800', letterSpacing: 3, textAlign: 'center', opacity: 0.4, marginTop: 8 },
+  shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
+  shareStat: { alignItems: 'center' },
+  shareStatValue: { fontSize: 16, fontWeight: '700' },
+  shareStatLabel: { fontSize: 11, opacity: 0.5, marginTop: 2 },
 
   hero: { alignItems: 'center', paddingVertical: 24 },
   heroTier: { fontSize: 72, fontWeight: '800', lineHeight: 78 },
