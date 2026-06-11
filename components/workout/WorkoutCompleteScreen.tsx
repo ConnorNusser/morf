@@ -3,8 +3,8 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
-import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
@@ -61,13 +61,11 @@ interface WorkoutCompleteScreenProps {
   rewards?: SessionRewards | null;
 }
 
-// Gamification rewards earned this session: new achievements and the weekly-
-// challenge tick. Sits below the PR highlights in the celebration screen.
+// Gamification rewards earned this session: new achievements. Sits below the PR
+// highlights in the celebration screen.
 function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
-  const { newAchievements, challenge } = rewards;
-  const challengeColor = challenge.completed ? CHALLENGE_DONE_COLOR : accent;
+  const { newAchievements } = rewards;
   const shownAch = newAchievements.slice(0, 3);
 
   return (
@@ -76,7 +74,7 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
         <View style={styles.achList}>
           {shownAch.map(a => (
             <View key={a.id} style={styles.achRow}>
-              <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={18} color="#FFD700" />
+              <AchievementBadge icon={a.icon} rarity={a.rarity} size={34} />
               <View style={styles.achTextWrap}>
                 <Text style={[styles.achTitle, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
                   {a.title}
@@ -92,22 +90,6 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
               +{newAchievements.length - shownAch.length} more unlocked
             </Text>
           )}
-        </View>
-      )}
-
-      {challenge.current > 0 && (
-        <View style={styles.challengeBlock}>
-          <View style={styles.challengeHeader}>
-            <Text style={[styles.challengeTitle, { color: 'rgba(255,255,255,0.7)', fontFamily: currentTheme.fonts.medium }]}>
-              {challenge.title}
-            </Text>
-            <Text style={[styles.challengeCount, { color: challengeColor, fontFamily: currentTheme.fonts.semiBold }]}>
-              {challenge.completed ? 'Complete ✓' : `${challenge.current}/${challenge.target}`}
-            </Text>
-          </View>
-          <View style={styles.challengeTrack}>
-            <View style={[styles.challengeFill, { width: `${Math.round(challenge.progress * 100)}%`, backgroundColor: challengeColor }]} />
-          </View>
         </View>
       )}
     </Animated.View>
@@ -518,7 +500,7 @@ export default function WorkoutCompleteScreen({
             </View>
           )}
 
-          {/* Gamification rewards: XP, level-up, achievements, weekly challenge */}
+          {/* Gamification rewards: newly unlocked achievements */}
           {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
 
           {/* Interactive Stats */}
@@ -764,32 +746,6 @@ const styles = StyleSheet.create({
   achMore: {
     fontSize: 13,
     textAlign: 'center',
-  },
-  challengeBlock: {
-    width: '100%',
-    gap: 8,
-  },
-  challengeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  challengeTitle: {
-    fontSize: 14,
-  },
-  challengeCount: {
-    fontSize: 14,
-  },
-  challengeTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    overflow: 'hidden',
-  },
-  challengeFill: {
-    height: '100%',
-    borderRadius: 3,
   },
   // Stats
   statsContainer: {

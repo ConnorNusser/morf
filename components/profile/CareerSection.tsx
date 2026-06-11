@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import AchievementBadge from '@/components/gamification/AchievementBadge';
 import CareerModal from '@/components/gamification/CareerModal';
 import ProfileIconPicker from '@/components/gamification/ProfileIconPicker';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -9,7 +10,6 @@ import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { iconUnlockContext, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
-import { CHALLENGE_DONE_COLOR } from '@/lib/gamification/weeklyChallenge';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -45,7 +45,6 @@ export default function CareerSection() {
 
   const band = getTierBandProgress(data.overall);
   const streakActive = data.stats.currentStreak > 0;
-  const challengeColor = data.weeklyChallenge.completed ? CHALLENGE_DONE_COLOR : currentTheme.colors.primary;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
     { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts', accent: false },
@@ -116,26 +115,6 @@ export default function CareerSection() {
                 {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
               </Text>
             </View>
-          </View>
-
-          {/* Weekly challenge */}
-          <View style={[styles.challenge, { backgroundColor: challengeColor + '12', borderColor: challengeColor + '40' }]}>
-            <View style={styles.challengeBody}>
-              <Text style={[styles.challengeLabel, { color: challengeColor }]}>
-                THIS WEEK{data.weeklyChallenge.completed ? ' · DONE ✓' : ''}
-              </Text>
-              <Text style={[styles.challengeTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
-                {data.weeklyChallenge.description}
-              </Text>
-              <View style={[styles.challengeTrack, { backgroundColor: currentTheme.colors.border }]}>
-                <View
-                  style={[styles.challengeFill, { backgroundColor: challengeColor, width: `${Math.round(data.weeklyChallenge.progress * 100)}%` }]}
-                />
-              </View>
-            </View>
-            <Text style={[styles.challengeCount, { color: currentTheme.colors.text }]}>
-              {data.weeklyChallenge.current}/{data.weeklyChallenge.target}
-            </Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
@@ -210,28 +189,16 @@ export default function CareerSection() {
               {unlockedCount}/{total} achievements
             </Text>
             <View style={styles.chips}>
-              {previewChips.map(a => {
-                const isNew = data.newIds.has(a.id);
-                return (
-                  <View
-                    key={a.id}
-                    style={[
-                      styles.chip,
-                      {
-                        backgroundColor: a.unlocked ? currentTheme.colors.primary + '1A' : 'transparent',
-                        borderColor: isNew ? currentTheme.colors.primary : currentTheme.colors.border,
-                        borderWidth: isNew ? 2 : 1,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={a.icon as keyof typeof Ionicons.glyphMap}
-                      size={15}
-                      color={a.unlocked ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
-                    />
-                  </View>
-                );
-              })}
+              {previewChips.map(a => (
+                <AchievementBadge
+                  key={a.id}
+                  icon={a.icon}
+                  rarity={a.rarity}
+                  unlocked={a.unlocked}
+                  isNew={data.newIds.has(a.id)}
+                  size={34}
+                />
+              ))}
             </View>
           </View>
         </Card>
@@ -268,14 +235,6 @@ const styles = StyleSheet.create({
 
   axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6, marginBottom: 3 },
 
-  challenge: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 12, borderWidth: 1, padding: 12 },
-  challengeBody: { flex: 1 },
-  challengeLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  challengeTitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 7 },
-  challengeTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  challengeFill: { height: 6, borderRadius: 3 },
-  challengeCount: { fontSize: 14, fontWeight: '700', opacity: 0.7 },
-
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   tier: { fontSize: 52, fontWeight: '800', lineHeight: 56, minWidth: 72, textAlign: 'center' },
   heroRight: { flex: 1 },
@@ -307,5 +266,4 @@ const styles = StyleSheet.create({
   achRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
   chips: { flexDirection: 'row', gap: 6 },
-  chip: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 });

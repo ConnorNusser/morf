@@ -13,7 +13,6 @@ import { LiftPR } from './personalRecords';
 import { buildRewardSnapshot } from './sessionRewards';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 import { computeTrainingHeatmap, TrainingHeatmap } from './trainingHeatmap';
-import { WeeklyChallenge } from './weeklyChallenge';
 
 export interface CareerData {
   stats: CareerStats;
@@ -26,7 +25,6 @@ export interface CareerData {
   prs: LiftPR[];
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
-  weeklyChallenge: WeeklyChallenge;
   profileIconId: string; // resolved career emblem (chosen if unlocked, else default)
 }
 
@@ -49,9 +47,9 @@ export async function loadCareerData(): Promise<CareerData> {
 
   const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
 
-  // stats / achievements / challenge / prs come from the shared snapshot builder
+  // stats / achievements / prs come from the shared snapshot builder
   // so the Career surfaces and the session-reward diff never drift.
-  const { stats, achievements, challenge, prs } = buildRewardSnapshot(history, {
+  const { stats, achievements, prs } = buildRewardSnapshot(history, {
     unit,
     overall,
     bodyWeightLbs,
@@ -74,7 +72,6 @@ export async function loadCareerData(): Promise<CareerData> {
     prs,
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
-    weeklyChallenge: challenge,
     profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(achievements)),
   };
 }

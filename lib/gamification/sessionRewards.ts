@@ -4,16 +4,16 @@
 // One pure computeSessionRewards() feeds every surface so they never drift.
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Achievement, computeAchievements } from './achievements';
+import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
+import { computeNicheAchievements } from './nicheAchievements';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthMilestones } from './strengthMilestones';
-import { computeWeeklyChallenge, WeeklyChallenge } from './weeklyChallenge';
 
 // The minimal derived state needed to diff two points in a lifter's career.
 export interface RewardSnapshot {
   stats: ReturnType<typeof computeCareerStats>;
   achievements: Achievement[];
-  challenge: WeeklyChallenge;
   prs: LiftPR[];
 }
 
@@ -29,11 +29,11 @@ export interface RewardContext {
 export function buildRewardSnapshot(history: GeneratedWorkout[], ctx: RewardContext): RewardSnapshot {
   const stats = computeCareerStats(history, ctx.unit, ctx.now);
   const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), ctx.bodyWeightLbs);
-  const achievements = [...computeAchievements(stats, ctx.overall), ...milestones];
+  const niche = computeNicheAchievements(computeBehavioralSignals(history));
+  const achievements = [...computeAchievements(stats, ctx.overall), ...niche, ...milestones];
   return {
     stats,
     achievements,
-    challenge: computeWeeklyChallenge(history, ctx.now),
     prs: computeMainLiftPRs(history, ctx.unit),
   };
 }
@@ -46,8 +46,6 @@ export interface SessionPR {
 export interface SessionRewards {
   newAchievements: Achievement[]; // unlocked in `after` but not `before`
   newPRs: SessionPR[]; // main-lift e1RM PRs set this session
-  challenge: WeeklyChallenge; // the current weekly challenge (after the session)
-  challengeJustCompleted: boolean; // this session pushed it over the line
   hasRewards: boolean; // anything worth celebrating
 }
 
@@ -63,14 +61,10 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     if (prev === null || lift.estimatedOneRM > prev) newPRs.push({ lift, previous: prev });
   }
 
-  const challengeJustCompleted = after.challenge.completed && !before.challenge.completed;
-
   return {
     newAchievements,
     newPRs,
-    challenge: after.challenge,
-    challengeJustCompleted,
-    hasRewards: newAchievements.length > 0 || newPRs.length > 0 || challengeJustCompleted,
+    hasRewards: newAchievements.length > 0 || newPRs.length > 0,
   };
 }
 

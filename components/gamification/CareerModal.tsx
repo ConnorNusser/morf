@@ -14,8 +14,9 @@ import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
-import { CHALLENGE_DONE_COLOR, WeeklyChallenge } from '@/lib/gamification/weeklyChallenge';
+import { RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
+import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -35,12 +36,20 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// Stable empty set so a dismissed celebration doesn't allocate on every render.
+const EMPTY_NEW_IDS: Set<string> = new Set();
+
 export default function CareerModal({ visible, onClose }: Props) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [data, setData] = useState<CareerData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dismissedNew, setDismissedNew] = useState(false);
   const shareRef = useRef<ViewShot>(null);
+
+  // The "new" highlights to show this view — cleared instantly when the user
+  // dismisses the celebration (already persisted as seen on open).
+  const newIds = data && !dismissedNew ? data.newIds : EMPTY_NEW_IDS;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,7 +67,10 @@ export default function CareerModal({ visible, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (visible) load();
+    if (visible) {
+      setDismissedNew(false);
+      load();
+    }
   }, [visible, load]);
 
   return (
@@ -84,8 +96,11 @@ export default function CareerModal({ visible, onClose }: Props) {
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-            {data.newIds.size > 0 && (
-              <UnlockCelebration items={data.achievements.filter(a => data.newIds.has(a.id))} />
+            {newIds.size > 0 && (
+              <UnlockCelebration
+                items={data.achievements.filter(a => newIds.has(a.id))}
+                onDismiss={() => setDismissedNew(true)}
+              />
             )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
@@ -93,7 +108,6 @@ export default function CareerModal({ visible, onClose }: Props) {
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
-            <WeeklyChallengeView challenge={data.weeklyChallenge} />
             <NextGoal achievements={data.achievements} />
             {/* Lifetime overview */}
             <StatGrid stats={data.stats} />
@@ -105,7 +119,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             {/* Tier progression */}
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
-            <AchievementGridView achievements={data.achievements} newIds={data.newIds} />
+            <AchievementGridView achievements={data.achievements} newIds={newIds} />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -148,23 +162,26 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
   );
 }
 
-// ---- Celebration shown at the top when achievements / a level were just earned ----
-function UnlockCelebration({ items }: { items: Achievement[] }) {
+// ---- Celebration shown at the top when achievements were just earned ----
+function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismiss: () => void }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
   const title =
-    items.length === 1 ? '🎉 Achievement Unlocked' : `🎉 ${items.length} Achievements Unlocked`;
+    items.length === 1 ? 'Achievement unlocked' : `${items.length} achievements unlocked`;
   // Cap the rows so a first-time user with many unlocked doesn't get a wall.
   const shown = items.slice(0, 4);
   const overflow = items.length - shown.length;
   return (
     <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
-      <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
+      <View style={styles.celebrateHeader}>
+        <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
+        <TouchableOpacity onPress={onDismiss} hitSlop={10}>
+          <Ionicons name="close" size={18} color={accent} />
+        </TouchableOpacity>
+      </View>
       {shown.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
-          <View style={[styles.celebrateIcon, { backgroundColor: accent }]}>
-            <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={16} color={currentTheme.colors.surface} />
-          </View>
+          <AchievementBadge icon={a.icon} rarity={a.rarity} size={38} />
           <View style={styles.celebrateText}>
             <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
             <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
@@ -196,30 +213,6 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
           <Text style={[styles.shareStatLabel, { color: currentTheme.colors.text }]}>{it.l}</Text>
         </View>
       ))}
-    </View>
-  );
-}
-
-// ---- This week's rotating challenge ----
-function WeeklyChallengeView({ challenge }: { challenge: WeeklyChallenge }) {
-  const { currentTheme } = useTheme();
-  // Completed challenges glow success-green so hitting the weekly goal feels good.
-  const c = challenge.completed ? CHALLENGE_DONE_COLOR : currentTheme.colors.primary;
-  return (
-    <View style={[styles.weekly, { backgroundColor: c + '12', borderColor: c + '40' }]}>
-      <View style={styles.weeklyBody}>
-        <Text style={[styles.weeklyLabel, { color: c }]}>
-          THIS WEEK · {challenge.title.toUpperCase()}
-          {challenge.completed ? ' · DONE ✓' : ''}
-        </Text>
-        <Text style={[styles.weeklyTitle, { color: currentTheme.colors.text }]}>{challenge.description}</Text>
-        <View style={[styles.weeklyTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.weeklyFill, { backgroundColor: c, width: `${Math.round(challenge.progress * 100)}%` }]} />
-        </View>
-      </View>
-      <Text style={[styles.weeklyCount, { color: currentTheme.colors.text }]}>
-        {challenge.current}/{challenge.target}
-      </Text>
     </View>
   );
 }
@@ -532,6 +525,7 @@ function TimelineRow({ color, title, date, faded }: { color: string; title: stri
 // ---- Achievement grid ----
 const ACH_FILTERS: { key: 'all' | AchievementCategory; label: string }[] = [
   { key: 'all', label: 'All' },
+  { key: 'special', label: 'Special' },
   { key: 'strength', label: 'Strength' },
   { key: 'consistency', label: 'Consistency' },
   { key: 'volume', label: 'Volume' },
@@ -562,7 +556,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
       </View>
       {newIds.size > 0 && (
         <Text style={[styles.achNewBanner, { color: currentTheme.colors.primary }]}>
-          🎉 {newIds.size} newly unlocked
+          {newIds.size} newly unlocked
         </Text>
       )}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
@@ -619,7 +613,7 @@ function AchievementTile({
   // When tapped, swap the (truncated) description for exact progress detail.
   const detail = selected
     ? achievement.unlocked
-      ? 'Unlocked ✓'
+      ? 'Unlocked'
       : `${formatCompact(achievement.current)} / ${formatCompact(achievement.target)}`
     : achievement.description;
   return (
@@ -636,15 +630,21 @@ function AchievementTile({
       ]}
     >
       <View style={styles.achTileTop}>
-        <Ionicons
-          name={achievement.icon as keyof typeof Ionicons.glyphMap}
-          size={20}
-          color={achievement.unlocked ? accent : currentTheme.colors.text + '40'}
+        <AchievementBadge
+          icon={achievement.icon}
+          rarity={achievement.rarity}
+          unlocked={achievement.unlocked}
+          isNew={isNew}
+          size={40}
         />
-        {isNew && (
+        {isNew ? (
           <View style={[styles.achNewPill, { backgroundColor: accent }]}>
             <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>NEW</Text>
           </View>
+        ) : (
+          <Text style={[styles.achRarity, { color: RARITY_META[achievement.rarity].accent }]}>
+            {RARITY_META[achievement.rarity].label}
+          </Text>
         )}
       </View>
       <Text
@@ -689,9 +689,9 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
 
   celebrate: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginTop: 4, marginBottom: 4, gap: 10 },
-  celebrateTitle: { fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  celebrateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  celebrateTitle: { fontSize: 15, fontWeight: '700' },
   celebrateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  celebrateIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   celebrateText: { flex: 1 },
   celebrateName: { fontSize: 14, fontWeight: '700' },
   celebrateDesc: { fontSize: 12, opacity: 0.55 },
@@ -712,22 +712,6 @@ const styles = StyleSheet.create({
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
 
-  weekly: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-    marginTop: 12,
-  },
-  weeklyBody: { flex: 1 },
-  weeklyLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8 },
-  weeklyTitle: { fontSize: 14, fontWeight: '600', marginTop: 2, marginBottom: 7 },
-  weeklyTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  weeklyFill: { height: 6, borderRadius: 3 },
-  weeklyCount: { fontSize: 14, fontWeight: '700', opacity: 0.7 },
-
   nextGoal: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -735,7 +719,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     padding: 12,
-    marginTop: 8,
+    marginTop: 12,
   },
   nextIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   nextBody: { flex: 1 },
@@ -804,6 +788,7 @@ const styles = StyleSheet.create({
   achTabText: { fontSize: 12, fontWeight: '600' },
   achTile: { width: '48%', borderRadius: 12, borderWidth: 1, padding: 12, gap: 4 },
   achTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  achRarity: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   achNewPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
   achNewPillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
   achTitle: { fontSize: 14, fontWeight: '600', marginTop: 2 },

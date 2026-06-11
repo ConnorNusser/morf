@@ -3,22 +3,24 @@
 // the same unlocked / new / acknowledge machinery as the other achievements.
 import { Achievement } from './achievements';
 import { LiftPR } from './personalRecords';
+import { Rarity } from './rarity';
 
 interface MilestoneDef {
   liftId: string;
   name: string;
-  ratios: number[];
+  tiers: { ratio: number; rarity: Rarity }[];
 }
 
-// Sensible bodyweight multiples per main lift.
+// Sensible bodyweight multiples per main lift, with rarity scaling to how hard
+// the ratio is to reach (a 2.5× deadlift is far rarer than a 1× bench).
 const MILESTONES: MilestoneDef[] = [
-  { liftId: 'bench-press-barbell', name: 'Bench', ratios: [1, 1.5] },
-  { liftId: 'squat-barbell', name: 'Squat', ratios: [1.5, 2] },
-  { liftId: 'deadlift-barbell', name: 'Deadlift', ratios: [2, 2.5] },
-  { liftId: 'overhead-press-barbell', name: 'Press', ratios: [0.75, 1] },
+  { liftId: 'bench-press-barbell', name: 'Bench', tiers: [{ ratio: 1, rarity: 'rare' }, { ratio: 1.5, rarity: 'epic' }] },
+  { liftId: 'squat-barbell', name: 'Squat', tiers: [{ ratio: 1.5, rarity: 'rare' }, { ratio: 2, rarity: 'epic' }] },
+  { liftId: 'deadlift-barbell', name: 'Deadlift', tiers: [{ ratio: 2, rarity: 'epic' }, { ratio: 2.5, rarity: 'legendary' }] },
+  { liftId: 'overhead-press-barbell', name: 'Press', tiers: [{ ratio: 0.75, rarity: 'rare' }, { ratio: 1, rarity: 'epic' }] },
 ];
 
-const ratioLabel = (r: number): string => (Number.isInteger(r) ? `${r}×` : `${r}×`);
+const ratioLabel = (r: number): string => `${r}×`;
 
 // `prs` and `bodyWeight` must share a unit (the ratio is unit-invariant).
 export function computeStrengthMilestones(prs: LiftPR[], bodyWeight: number): Achievement[] {
@@ -27,7 +29,7 @@ export function computeStrengthMilestones(prs: LiftPR[], bodyWeight: number): Ac
   const out: Achievement[] = [];
   for (const m of MILESTONES) {
     const e1rm = best.get(m.liftId) ?? 0;
-    for (const ratio of m.ratios) {
+    for (const { ratio, rarity } of m.tiers) {
       const targetWeight = ratio * bodyWeight;
       out.push({
         id: `bw-${m.liftId}-${ratio}`,
@@ -35,6 +37,7 @@ export function computeStrengthMilestones(prs: LiftPR[], bodyWeight: number): Ac
         description: `${m.name} ${ratioLabel(ratio)} bodyweight`,
         icon: 'barbell',
         category: 'strength',
+        rarity,
         current: Math.round((e1rm / bodyWeight) * 100), // % of bodyweight
         target: Math.round(ratio * 100),
         unlocked: e1rm >= targetWeight,

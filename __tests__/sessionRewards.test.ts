@@ -73,24 +73,6 @@ describe('sessionRewards', () => {
     expect(noBeat.newPRs).toHaveLength(0);
   });
 
-  it('flags the weekly challenge only on the session that completes it', () => {
-    // Week-of-Jun-8 (Mon) challenge rotates deterministically; build enough
-    // history that one more session tips it over, regardless of which metric.
-    const days = [8, 9, 10].map(d => new Date(2026, 5, d, 18, 0, 0));
-    const big = (date: Date) =>
-      workout(
-        date,
-        'squat-barbell',
-        Array.from({ length: 25 }, () => ({ weight: 135, reps: 12 })),
-      );
-    const before = snap([big(days[0]), big(days[1])]);
-    const after = snap([big(days[0]), big(days[1]), big(days[2])]);
-    const r = computeSessionRewards(before, after);
-    // Either the added work or the added day completed it — assert the flag is
-    // consistent with the challenge's own completed state transition.
-    expect(r.challengeJustCompleted).toBe(after.challenge.completed && !before.challenge.completed);
-  });
-
   it('formatPRDelta labels a first-ever lift as a new PR', () => {
     expect(formatPRDelta({ lift: { unit: 'lbs', estimatedOneRM: 200 } as never, previous: null })).toBe('New PR');
   });
