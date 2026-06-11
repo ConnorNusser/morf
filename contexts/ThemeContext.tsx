@@ -1,7 +1,6 @@
 import { storageService } from '@/lib/storage/storage';
 import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/ui/theme';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { useColorScheme } from 'react-native';
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -14,12 +13,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const colorScheme = useColorScheme();
-
-  // Get default theme based on system preference
-  const getDefaultTheme = (): ThemeLevel => {
-    return colorScheme === 'dark' ? 'beginner_dark' : 'beginner';
-  };
+  // Default to the dark theme for new users (until they pick one in settings).
+  const getDefaultTheme = (): ThemeLevel => 'beginner_dark';
 
   // Initialize with system preference, will be updated from storage
   const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
@@ -28,18 +23,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadThemePreference = async () => {
       const savedTheme = await storageService.getThemePreference();
-      // If no saved theme (null/undefined), use system preference
+      // If no saved theme (null/undefined), fall back to the default (dark).
       if (savedTheme) {
         setCurrentThemeLevel(savedTheme);
       } else {
-        // First time user - set based on system preference
         const defaultTheme = getDefaultTheme();
         setCurrentThemeLevel(defaultTheme);
         await storageService.saveThemePreference(defaultTheme);
       }
     };
     loadThemePreference();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- Only run on mount
   }, []);
 
   const setThemeLevel = useCallback(async (level: ThemeLevel) => {

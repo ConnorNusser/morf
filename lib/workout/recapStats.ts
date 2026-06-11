@@ -3,6 +3,31 @@ import { userService } from '@/lib/services/userService';
 import { CustomExercise, GeneratedWorkout, MuscleGroup, UserLift, WeightUnit, convertWeight } from '@/types';
 import { getWorkoutByIdWithCustom } from './workouts';
 
+// Lifetime totals for the dashboard header: total volume (Σ weight×reps over all
+// completed sets, in the user's preferred unit) and total workouts logged.
+export interface LifetimeTotals {
+  totalVolume: number;
+  totalWorkouts: number;
+}
+
+export function getLifetimeTotals(
+  workouts: GeneratedWorkout[],
+  preferredUnit: WeightUnit
+): LifetimeTotals {
+  let totalVolume = 0;
+  for (const workout of workouts) {
+    for (const exercise of workout.exercises || []) {
+      for (const set of exercise.completedSets || []) {
+        if (!set.completed) continue;
+        const weight =
+          set.unit === preferredUnit ? set.weight : convertWeight(set.weight, set.unit, preferredUnit);
+        totalVolume += weight * set.reps;
+      }
+    }
+  }
+  return { totalVolume: Math.round(totalVolume), totalWorkouts: workouts.length };
+}
+
 // ===== TYPES =====
 
 export type RecapPeriod = 'week' | 'month' | 'year';

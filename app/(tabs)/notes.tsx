@@ -227,6 +227,57 @@ export default function NotesScreen() {
     await loadData();
   }, [loadData]);
 
+  const handlePauseAll = useCallback(() => {
+    const active = routines.filter(r => r.isActive !== false);
+    if (active.length === 0) return;
+    showAlert({
+      title: 'Pause All Routines',
+      message: `Move all ${active.length} active routine${active.length === 1 ? '' : 's'} to Paused?`,
+      type: 'confirm',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Pause All',
+          onPress: async () => {
+            for (const routine of active) {
+              await storageService.saveRoutine({ ...routine, isActive: false });
+            }
+            await loadData();
+          },
+        },
+      ],
+    });
+  }, [routines, loadData, showAlert]);
+
+  const handleResumeAll = useCallback(async () => {
+    const paused = routines.filter(r => r.isActive === false);
+    if (paused.length === 0) return;
+    for (const routine of paused) {
+      await storageService.saveRoutine({ ...routine, isActive: true });
+    }
+    await loadData();
+  }, [routines, loadData]);
+
+  const handleDeleteAll = useCallback(() => {
+    if (routines.length === 0) return;
+    showAlert({
+      title: 'Delete All Routines',
+      message: `Permanently delete all ${routines.length} routine${routines.length === 1 ? '' : 's'}? This can't be undone.`,
+      type: 'confirm',
+      buttons: [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete All',
+          style: 'destructive',
+          onPress: async () => {
+            await storageService.clearAllRoutines();
+            await loadData();
+          },
+        },
+      ],
+    });
+  }, [routines, loadData, showAlert]);
+
   // Handle manual deload for a specific exercise
   const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
     const progressionState = routine.progressionState?.[exerciseId];
@@ -656,6 +707,42 @@ export default function NotesScreen() {
                 {showInactive && inactiveRoutines.map((routine) => renderRoutineCard(routine))}
               </RNView>
             )}
+
+            {/* Bulk actions */}
+            <RNView style={styles.bulkActions}>
+              {activeRoutines.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
+                  onPress={handlePauseAll}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
+                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
+                    Pause all
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {inactiveRoutines.length > 0 && (
+                <TouchableOpacity
+                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
+                  onPress={handleResumeAll}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="play" size={15} color={currentTheme.colors.text + '99'} />
+                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
+                    Resume all
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
+                onPress={handleDeleteAll}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={15} color="#E5484D" />
+                <Text style={[styles.bulkButtonText, { color: '#E5484D' }]}>Delete all</Text>
+              </TouchableOpacity>
+            </RNView>
           </>
         ) : (
           <RNView style={styles.emptyState}>
@@ -739,6 +826,27 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bulkActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  bulkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  bulkButtonText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 
   // Generating banner

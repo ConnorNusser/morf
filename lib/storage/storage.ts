@@ -1,6 +1,7 @@
 import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
+import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -21,6 +22,8 @@ const STORAGE_KEYS = {
   SHOWN_NOTIFICATIONS: 'shown_notifications',
   NOTIFICATION_PREFERENCES: 'notification_preferences',
   RETENTION_META: 'retention_meta',
+  WEEKLY_GOAL: 'weekly_goal',
+  ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -384,6 +387,12 @@ class StorageService {
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(filtered));
   }
 
+  // Remove every routine and clear the current-routine pointer.
+  async clearAllRoutines(): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify([]));
+    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_ROUTINE);
+  }
+
   async getWorkoutRoutines(): Promise<GeneratedWorkout[]> {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_ROUTINES);
     return data ? JSON.parse(data) : [];
@@ -636,6 +645,51 @@ class StorageService {
     } catch (error) {
       console.error('Error loading home view mode:', error);
       return 'home';
+    }
+  }
+
+  // Weekly training-day goal (days/week target shown on the home dashboard).
+  async getWeeklyGoal(): Promise<number> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.WEEKLY_GOAL);
+      const parsed = data ? parseInt(data, 10) : NaN;
+      if (Number.isFinite(parsed)) {
+        return Math.min(WEEKLY_GOAL_MAX, Math.max(WEEKLY_GOAL_MIN, parsed));
+      }
+      return DEFAULT_WEEKLY_GOAL;
+    } catch (error) {
+      console.error('Error loading weekly goal:', error);
+      return DEFAULT_WEEKLY_GOAL;
+    }
+  }
+
+  async saveWeeklyGoal(goal: number): Promise<void> {
+    try {
+      const clamped = Math.min(WEEKLY_GOAL_MAX, Math.max(WEEKLY_GOAL_MIN, Math.round(goal)));
+      await AsyncStorage.setItem(STORAGE_KEYS.WEEKLY_GOAL, String(clamped));
+    } catch (error) {
+      console.error('Error saving weekly goal:', error);
+    }
+  }
+
+  // Timestamp (ms) the user last dismissed the "build a routine" home nudge, or
+  // null if never. The home card re-surfaces the nudge after a cooldown.
+  async getRoutineAdviceDismissedAt(): Promise<number | null> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINE_ADVICE_DISMISSED);
+      const parsed = raw ? parseInt(raw, 10) : NaN;
+      return Number.isFinite(parsed) ? parsed : null;
+    } catch (error) {
+      console.error('Error loading routine advice flag:', error);
+      return null;
+    }
+  }
+
+  async setRoutineAdviceDismissedAt(timestamp: number): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE_ADVICE_DISMISSED, String(timestamp));
+    } catch (error) {
+      console.error('Error saving routine advice flag:', error);
     }
   }
 

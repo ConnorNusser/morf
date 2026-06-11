@@ -2,18 +2,33 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { TutorialTarget } from '@/components/tutorial';
 import { getStepsByIndex } from '@/components/tutorial/tutorialSteps';
+import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type ViewMode = 'home' | 'feed';
 
+export interface HeaderStats {
+  totalVolume: number;
+  totalWorkouts: number;
+  unit: WeightUnit;
+}
+
 interface DashboardHeaderProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
+  stats?: HeaderStats;
 }
 
-export default function DashboardHeader({ viewMode, onViewModeChange }: DashboardHeaderProps) {
+// Compact large numbers: 1840 -> "1.8K", 1_250_000 -> "1.3M".
+function compact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  return String(n);
+}
+
+export default function DashboardHeader({ viewMode, onViewModeChange, stats }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -45,31 +60,49 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
       {showViewSelector ? (
         <>
           <View style={styles.headerRow}>
-            <Image
-              source={require('@/assets/images/icon-original.png')}
-              style={styles.logo}
-            />
-            <TutorialTarget id="home-view-selector">
-              <TouchableOpacity
-                style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
-                onPress={() => !showTutorial && setShowDropdown(!showDropdown)}
-                activeOpacity={0.7}
-              >
-                <Text style={[
-                  styles.appName,
-                  {
-                    color: currentTheme.colors.text,
-                  }
-                ]}>
-                  {viewMode === 'home' ? 'Morf' : 'Feed'}
+            <View style={styles.headerLeft}>
+              <Image
+                source={require('@/assets/images/icon-original.png')}
+                style={styles.logo}
+              />
+              <TutorialTarget id="home-view-selector">
+                <TouchableOpacity
+                  style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
+                  onPress={() => !showTutorial && setShowDropdown(!showDropdown)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[
+                    styles.appName,
+                    {
+                      color: currentTheme.colors.text,
+                    }
+                  ]}>
+                    {viewMode === 'home' ? 'Morf' : 'Feed'}
+                  </Text>
+                  <Ionicons
+                    name={showDropdown ? 'chevron-up' : 'chevron-down'}
+                    size={24}
+                    color={currentTheme.colors.text}
+                  />
+                </TouchableOpacity>
+              </TutorialTarget>
+            </View>
+
+            {stats && (
+              <View style={styles.headerStats}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
+                  {stats.totalWorkouts}
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
+                    {' '}
+                    {stats.totalWorkouts === 1 ? 'workout' : 'workouts'}
+                  </Text>
                 </Text>
-                <Ionicons
-                  name={showDropdown ? 'chevron-up' : 'chevron-down'}
-                  size={24}
-                  color={currentTheme.colors.text}
-                />
-              </TouchableOpacity>
-            </TutorialTarget>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
+                  {compact(stats.totalVolume)} {stats.unit}
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}> lifted</Text>
+                </Text>
+              </View>
+            )}
           </View>
 
           {showDropdown && (
@@ -129,14 +162,36 @@ export default function DashboardHeader({ viewMode, onViewModeChange }: Dashboar
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    paddingTop: 4,
+    paddingBottom: 0,
     paddingHorizontal: 4,
     zIndex: 1000,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+  },
+  headerStats: {
+    flexShrink: 0,
+    alignItems: 'flex-end',
+    marginLeft: 12,
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  statLabel: {
+    fontSize: 13,
+    opacity: 0.5,
   },
   logo: {
     width: 40,
