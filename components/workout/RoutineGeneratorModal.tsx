@@ -9,6 +9,7 @@ import {
 } from '@/lib/ai/aiRoutineGenerator';
 import { storageService } from '@/lib/storage/storage';
 import { validateRoutines } from '@/lib/workout/trainingAdvancement';
+import { summarizeQuality } from '@/lib/workout/routineQuality';
 import { getAvailableWorkouts } from '@/lib/workout/workouts';
 import { TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -297,24 +298,26 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       const experienceLevel = selectedExperience || 'beginner';
       const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
 
-      const program = await aiRoutineGenerator.generateRoutineProgram({
-        programTemplate,
-        trainingGoal: selectedGoal!,
-        weeklyDays: selectedDays!,
-        focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
-        ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
-        trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
-        workoutDuration: selectedDuration!,
-        exercisesPerWorkout: { min: durationConfig!.min, max: durationConfig!.max },
-        includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
-        excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
-      });
+      // Self-improving generation: generate → verify against the quality rubric →
+      // repair → re-verify, returning the best-scoring program.
+      const { routines, quality } = await aiRoutineGenerator.generateValidatedProgram(
+        {
+          programTemplate,
+          trainingGoal: selectedGoal!,
+          weeklyDays: selectedDays!,
+          focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
+          ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
+          trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
+          workoutDuration: selectedDuration!,
+          exercisesPerWorkout: { min: durationConfig!.min, max: durationConfig!.max },
+          includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
+          excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
+        },
+        { excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined },
+      );
+      console.log('[RoutineGenerator] ' + summarizeQuality(quality));
 
-      const routines = await aiRoutineGenerator.convertToRoutines(program, {
-        excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined,
-      });
-
-      // Validate the CONVERTED routines (real exercise IDs) and log results
+      // Fatigue-spacing check (heavy squat+deadlift recovery) — separate concern.
       validateRoutines(routines, experienceLevel);
 
       for (const routine of routines) {

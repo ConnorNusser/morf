@@ -18,7 +18,7 @@ import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
-import { summarizeQuality, validateRoutineQuality } from '@/lib/workout/routineQuality';
+import { RoutineQualityReport, summarizeQuality, validateRoutineQuality } from '@/lib/workout/routineQuality';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
 
@@ -68,6 +68,13 @@ class AIRoutineGeneratorService {
   private readonly GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
   private readonly genAI: GoogleGenerativeAI;
 
+  // Program design is a reasoning task — use the smarter Pro model for it, with a
+  // fast Flash fallback if Pro errors / isn't enabled (so generation never silently
+  // degrades to the deterministic template just because of a model id).
+  private readonly PRIMARY_MODEL = 'gemini-2.5-pro';
+  private readonly FALLBACK_MODEL = 'gemini-2.5-flash';
+  private readonly MAX_REPAIRS = 2; // self-repair iterations before accepting best/fallback
+
   constructor() {
     this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
   }
@@ -92,6 +99,81 @@ class AIRoutineGeneratorService {
       console.error('AI routine generation failed, using fallback:', error);
       return this.generateFallbackProgram(userProfile, options);
     }
+  }
+
+  /**
+   * Self-improving generation: generate → verify against the quality rubric →
+   * feed the exact violations back as a repair prompt → re-verify, up to
+   * MAX_REPAIRS times. Returns the best-scoring result with its quality report,
+   * and falls back to the deterministic template as a floor. This is the loop —
+   * the verifier (validateRoutineQuality) guides regeneration.
+   */
+  async generateValidatedProgram(
+    options: GenerateRoutineOptions,
+    convertOpts?: { excludedExerciseIds?: string[] },
+  ): Promise<{ program: GeneratedRoutineProgram; routines: Routine[]; quality: RoutineQualityReport }> {
+    const score = async (program: GeneratedRoutineProgram) => {
+      const routines = await this.convertToRoutines(program, convertOpts);
+      const quality = validateRoutineQuality(routines, { goal: options.trainingGoal });
+      return { program, routines, quality };
+    };
+
+    let best = await score(await this.generateRoutineProgram(options)); // pass 1
+    if (best.quality.passed) return best;
+
+    for (let attempt = 1; attempt <= this.MAX_REPAIRS && this.GEMINI_API_KEY; attempt++) {
+      try {
+        const repaired = await this.callAI(
+          this.buildRepairPrompt(best.program, best.quality, options),
+          options.programTemplate,
+        );
+        const candidate = await score(repaired);
+        if (candidate.quality.score > best.quality.score) best = candidate;
+        if (best.quality.passed) return best;
+      } catch (err) {
+        console.warn('[RoutineGenerator] repair pass failed:', err);
+        break;
+      }
+    }
+
+    // Still short of passing — try the deterministic template as a floor.
+    if (!best.quality.passed) {
+      try {
+        const userProfile = await userService.getRealUserProfile();
+        const fb = await score(this.generateFallbackProgram(userProfile, options));
+        if (fb.quality.score >= best.quality.score) best = fb;
+      } catch { /* keep best */ }
+    }
+    console.log(`[RoutineGenerator] final ${summarizeQuality(best.quality)}`);
+    return best;
+  }
+
+  // Hand the model its own program + the exact rubric violations, asking it to fix
+  // only those — the core of verifier-guided self-repair.
+  private buildRepairPrompt(
+    program: GeneratedRoutineProgram,
+    quality: RoutineQualityReport,
+    options: GenerateRoutineOptions,
+  ): string {
+    const issues = quality.issues
+      .filter(i => i.severity !== 'info')
+      .map(i => `- [${i.severity}] ${i.message}`)
+      .join('\n');
+    return `You previously generated this ${options.weeklyDays}-day ${options.trainingGoal} program, but it failed a quality review (score ${quality.score}/100).
+
+CURRENT PROGRAM (JSON):
+${JSON.stringify(program)}
+
+QUALITY ISSUES TO FIX:
+${issues}
+
+Revise the program to resolve EVERY issue above while keeping:
+- the same number of days (${options.weeklyDays})
+- only exercises from the available list (same names/format)
+- compound (multi-joint) lifts before isolation within each day
+- each major muscle trained adequately and push/pull volume balanced
+
+Return the corrected program in the SAME JSON structure. Return only valid JSON.`;
   }
 
   /**
@@ -527,12 +609,23 @@ class AIRoutineGeneratorService {
     return 'Elite';
   }
 
+  // Call Gemini, preferring the smarter Pro model and falling back to Flash if it
+  // errors (e.g. not enabled on the key) so we never silently drop to the template.
   private async callAI(prompt: string, programTemplate: ProgramTemplate): Promise<GeneratedRoutineProgram> {
-    console.log('[RoutineGenerator] Calling Gemini with prompt length:', prompt.length);
+    try {
+      return await this.callModel(prompt, programTemplate, this.PRIMARY_MODEL);
+    } catch (error) {
+      console.warn(`[RoutineGenerator] ${this.PRIMARY_MODEL} failed, retrying with ${this.FALLBACK_MODEL}:`, error);
+      return await this.callModel(prompt, programTemplate, this.FALLBACK_MODEL);
+    }
+  }
+
+  private async callModel(prompt: string, programTemplate: ProgramTemplate, modelName: string): Promise<GeneratedRoutineProgram> {
+    console.log(`[RoutineGenerator] Calling ${modelName} with prompt length:`, prompt.length);
     const startTime = Date.now();
 
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: modelName,
       generationConfig: {
         responseMimeType: 'application/json',
       },
@@ -574,7 +667,7 @@ Return only valid JSON.`;
       requestType: 'routine_generate',
       inputText: programTemplate,
       outputData: { programName: parsed.programName, routineCount: parsed.routines?.length },
-      model: 'gemini-2.5-flash',
+      model: modelName,
     });
 
     return parsed;
