@@ -137,6 +137,27 @@ export default function CareerSection() {
             ))}
           </View>
 
+          {/* Consistency heatmap (last 8 weeks) */}
+          <View style={styles.heatRow}>
+            {data.heatmap.weeks.slice(-8).map((week, w) => (
+              <View key={w} style={styles.heatCol}>
+                {week.map((cell, d) => (
+                  <View
+                    key={d}
+                    style={[
+                      styles.heatCell,
+                      cell.future
+                        ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
+                        : cell.trained
+                          ? { backgroundColor: currentTheme.colors.primary, opacity: 0.3 + 0.7 * cell.intensity }
+                          : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
+                    ]}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+
           {/* Next goal */}
           {nextUp && (
             <View style={styles.nextGoal}>
@@ -230,6 +251,10 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 16, fontWeight: '700' },
   statUnit: { fontSize: 11, fontWeight: '600', opacity: 0.6 },
   statLabel: { fontSize: 11, opacity: 0.5, marginTop: 2 },
+
+  heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  heatCol: { gap: 3 },
+  heatCell: { width: 12, height: 12, borderRadius: 2 },
 
   nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   nextIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
