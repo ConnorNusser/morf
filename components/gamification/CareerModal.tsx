@@ -10,6 +10,7 @@ import {
 } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
+import { WeeklyMomentum } from '@/lib/gamification/level';
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
@@ -108,6 +109,7 @@ export default function CareerModal({ visible, onClose }: Props) {
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
+            <MomentumView momentum={data.momentum} />
             <WeeklyChallengeView challenge={data.weeklyChallenge} />
             <NextGoal achievements={data.achievements} />
             {/* Lifetime overview */}
@@ -233,6 +235,24 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
 }
 
 // ---- This week's rotating challenge ----
+// ---- Weekly momentum: XP + sessions earned this week (reward for showing up) ----
+function MomentumView({ momentum }: { momentum: WeeklyMomentum }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  if (momentum.sessions === 0) return null;
+  return (
+    <View style={[styles.momentum, { backgroundColor: accent + '12', borderColor: accent + '30' }]}>
+      <Ionicons name="trending-up" size={18} color={accent} />
+      <Text style={[styles.momentumText, { color: currentTheme.colors.text }]}>
+        <Text style={{ color: accent, fontWeight: '800' }}>+{formatCompact(momentum.xp)} XP</Text> earned this week
+      </Text>
+      <Text style={[styles.momentumSessions, { color: currentTheme.colors.text }]}>
+        {momentum.sessions} {momentum.sessions === 1 ? 'session' : 'sessions'}
+      </Text>
+    </View>
+  );
+}
+
 function WeeklyChallengeView({ challenge }: { challenge: WeeklyChallenge }) {
   const { currentTheme } = useTheme();
   // Completed challenges glow success-green so hitting the weekly goal feels good.
@@ -748,6 +768,18 @@ const styles = StyleSheet.create({
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
 
+  momentum: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginTop: 16,
+  },
+  momentumText: { flex: 1, fontSize: 14, fontWeight: '500' },
+  momentumSessions: { fontSize: 13, fontWeight: '700', opacity: 0.55 },
   weekly: {
     flexDirection: 'row',
     alignItems: 'center',
