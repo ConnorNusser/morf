@@ -7,6 +7,7 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
 import { Achievement, computeAchievements, newlyUnlocked } from './achievements';
 import { CareerStats, computeCareerStats } from './careerStats';
+import { computeLevel, LevelInfo } from './level';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 
@@ -14,6 +15,7 @@ export interface CareerData {
   stats: CareerStats;
   overall: number;
   tier: StrengthTier;
+  level: LevelInfo;
   ladder: TierRung[];
   timeline: TierMilestone[];
   achievements: Achievement[];
@@ -46,11 +48,13 @@ export async function loadCareerData(): Promise<CareerData> {
   );
 
   const achievements = computeAchievements(stats, overall);
+  const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return {
     stats,
     overall,
     tier: getStrengthTier(overall),
+    level: computeLevel(stats, unlockedCount),
     ladder: getTierLadder(overall),
     timeline,
     achievements,

@@ -85,6 +85,28 @@ export default function CareerSection() {
             </View>
           </View>
 
+          {/* Level + XP */}
+          <View style={styles.levelRow}>
+            <View style={[styles.levelBadge, { backgroundColor: currentTheme.colors.primary }]}>
+              <Text style={[styles.levelNum, { color: currentTheme.colors.surface }]}>{data.level.level}</Text>
+            </View>
+            <View style={styles.levelBody}>
+              <View style={styles.levelTitleRow}>
+                <Text style={[styles.levelTitle, { color: currentTheme.colors.text }]}>
+                  Level {data.level.level} · {data.level.title}
+                </Text>
+                <Text style={[styles.levelXp, { color: currentTheme.colors.text }]}>
+                  {formatCompact(data.level.xpIntoLevel)}/{formatCompact(data.level.xpForNextLevel)} XP
+                </Text>
+              </View>
+              <View style={[styles.levelTrack, { backgroundColor: currentTheme.colors.border }]}>
+                <View
+                  style={[styles.levelFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(data.level.progress * 100)}%` }]}
+                />
+              </View>
+            </View>
+          </View>
+
           {/* Tier hero */}
           <View style={styles.hero}>
             <Text style={[styles.tier, { color }]}>{data.tier}</Text>
@@ -183,6 +205,16 @@ const styles = StyleSheet.create({
   newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginRight: 4 },
   newBadgeText: { fontSize: 11, fontWeight: '700' },
   viewAll: { fontSize: 13, fontWeight: '600' },
+
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  levelBadge: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  levelNum: { fontSize: 20, fontWeight: '800' },
+  levelBody: { flex: 1 },
+  levelTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  levelTitle: { fontSize: 14, fontWeight: '700' },
+  levelXp: { fontSize: 12, opacity: 0.5, fontWeight: '600' },
+  levelTrack: { height: 7, borderRadius: 4, overflow: 'hidden' },
+  levelFill: { height: 7, borderRadius: 4 },
 
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   tier: { fontSize: 52, fontWeight: '800', lineHeight: 56, minWidth: 72, textAlign: 'center' },

@@ -75,7 +75,14 @@ export default function CareerModal({ visible, onClose }: Props) {
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.shareBrand, { color: currentTheme.colors.text }]}>MORF</Text>
+                <View style={styles.shareTopRow}>
+                  <Text style={[styles.shareBrand, { color: currentTheme.colors.text }]}>MORF</Text>
+                  <View style={[styles.levelPill, { backgroundColor: currentTheme.colors.primary }]}>
+                    <Text style={[styles.levelPillText, { color: currentTheme.colors.surface }]}>
+                      LVL {data.level.level} · {data.level.title}
+                    </Text>
+                  </View>
+                </View>
                 <TierHero overall={data.overall} tier={data.tier} />
                 <ShareStatStrip stats={data.stats} />
               </View>
@@ -468,7 +475,10 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
 
   shareCard: { borderRadius: 16, paddingBottom: 18 },
-  shareBrand: { fontSize: 13, fontWeight: '800', letterSpacing: 3, textAlign: 'center', opacity: 0.4, marginTop: 8 },
+  shareTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 8 },
+  shareBrand: { fontSize: 13, fontWeight: '800', letterSpacing: 3, opacity: 0.4 },
+  levelPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 },
+  levelPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
   shareStat: { alignItems: 'center' },
   shareStatValue: { fontSize: 16, fontWeight: '700' },
