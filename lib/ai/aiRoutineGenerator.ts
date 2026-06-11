@@ -172,7 +172,7 @@ class AIRoutineGeneratorService {
     // Quality gate: score the converted program against traditional split norms
     // so low-quality generations are observable (ordering, muscle gaps, push/pull
     // imbalance, absurd volume). Non-blocking — we surface, not suppress.
-    const quality = validateRoutineQuality(routines);
+    const quality = validateRoutineQuality(routines, { goal: program.trainingGoal });
     if (!quality.passed) {
       console.warn(
         `[routine-gen] ${summarizeQuality(quality)} ` +

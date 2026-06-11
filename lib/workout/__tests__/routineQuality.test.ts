@@ -98,6 +98,30 @@ describe('validateRoutineQuality', () => {
     expect(r.passed).toBe(false);
   });
 
+  it('flags under-volume for a barely-trained major muscle', () => {
+    const r = validateRoutineQuality([day('Chest', [{ id: 'bench-press-barbell', sets: 2 }])]);
+    expect(codes(r)).toContain('under-volume');
+  });
+
+  it('flags over-volume past the recoverable max', () => {
+    const r = validateRoutineQuality([
+      day('Chest', [
+        { id: 'bench-press-barbell', sets: 14 },
+        { id: 'incline-bench-press-barbell', sets: 14 }, // chest ≈ 28 sets > MRV
+      ]),
+    ]);
+    expect(codes(r)).toContain('over-volume');
+  });
+
+  it('flags low frequency + under-volume when a 3-day PPL is judged as hypertrophy', () => {
+    // Each muscle is hit ~1×/week — fine generally, but sub-optimal for hypertrophy
+    // (wants ≥2×/week and ≥8 sets/muscle).
+    const r = validateRoutineQuality([pushDay, pullDay, legDay], { goal: 'hypertrophy' });
+    expect(codes(r)).toContain('low-frequency');
+    expect(codes(r)).toContain('under-volume');
+    // ...yet the same program is clean under a general goal (asserted above).
+  });
+
   it('summarizeQuality reads cleanly for pass and fail', () => {
     expect(summarizeQuality(validateRoutineQuality([pushDay, pullDay, legDay]))).toMatch(/clean/);
     const failing = validateRoutineQuality([pushDay, legDay]);
