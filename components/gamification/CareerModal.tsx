@@ -5,6 +5,8 @@ import { storageService } from '@/lib/storage/storage';
 import {
   Achievement,
   AchievementCategory,
+  achievementDisplay,
+  rarityBreakdown,
   summarizeAchievements,
   unlockedIds,
 } from '@/lib/gamification/achievements';
@@ -13,7 +15,7 @@ import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
-import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
+import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
@@ -111,7 +113,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <NextGoal achievements={data.achievements} />
             {/* Lifetime overview */}
             <StatGrid stats={data.stats} />
-            <ConsistencyView heatmap={data.heatmap} />
+            <ConsistencyView heatmap={data.heatmap} unit={data.stats.unit} />
             {/* Strength */}
             <BestsView stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
@@ -352,40 +354,75 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
 }
 
 // ---- Consistency heatmap: last 12 weeks of training days ----
-function ConsistencyView({ heatmap }: { heatmap: TrainingHeatmap }) {
+function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: string }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
+  // Tap a day to reveal its date + volume (the "hover" readout).
+  const [selected, setSelected] = useState<HeatCell | null>(null);
+
+  // The actual span shown, so the timeframe is explicit (not just "12 wks").
+  const cells = heatmap.weeks.flat();
+  const first = cells[0]?.date;
+  const lastReal = [...cells].reverse().find(c => !c.future)?.date ?? first;
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const range = first && lastReal ? `${fmt(first)} – ${fmt(lastReal)}` : '';
+
+  // A month abbreviation above the first week that lands in a new month.
+  const monthLabels = heatmap.weeks.map((week, w) => {
+    const m = week[0].date.getMonth();
+    const prev = w > 0 ? heatmap.weeks[w - 1][0].date.getMonth() : -1;
+    return m !== prev ? week[0].date.toLocaleDateString('en-US', { month: 'short' }) : '';
+  });
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
-        <SectionLabel>Consistency</SectionLabel>
-        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
-          {heatmap.totalDays} days · 12 wks
-        </Text>
+        <SectionLabel>Activity</SectionLabel>
+        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{range}</Text>
       </View>
+      {selected ? (
+        <Text style={[styles.heatCaption, { color: accent }]}>
+          {selected.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ·{' '}
+          {formatCompact(selected.volume)} {unit} lifted
+        </Text>
+      ) : (
+        <Text style={[styles.heatCaption, { color: currentTheme.colors.text }]}>
+          {heatmap.totalDays} active days in the last 12 weeks — tap a day for its volume.
+        </Text>
+      )}
       <View style={styles.heatGrid}>
         {heatmap.weeks.map((week, w) => (
           <View key={w} style={styles.heatCol}>
-            {week.map((cell, d) => (
-              <View
-                key={d}
-                style={[
-                  styles.heatCell,
-                  cell.future
-                    ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
-                    : cell.trained
-                      ? { backgroundColor: accent, opacity: 0.3 + 0.7 * cell.intensity }
-                      : { backgroundColor: currentTheme.colors.border, opacity: 0.5 },
-                ]}
-              />
-            ))}
+            {monthLabels[w] ? (
+              <Text style={[styles.monthLabel, { color: currentTheme.colors.text }]}>{monthLabels[w]}</Text>
+            ) : null}
+            {week.map((cell, d) => {
+              const isSel = selected?.date.getTime() === cell.date.getTime();
+              const cellStyle = [
+                styles.heatCell,
+                cell.future
+                  ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
+                  : cell.trained
+                    ? { backgroundColor: accent, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                    : { backgroundColor: currentTheme.colors.border, opacity: 0.5 },
+                isSel ? { opacity: 1, borderWidth: 1.5, borderColor: currentTheme.colors.text } : null,
+              ];
+              return cell.trained && !cell.future ? (
+                <TouchableOpacity key={d} activeOpacity={0.7} style={cellStyle} onPress={() => setSelected(isSel ? null : cell)} />
+              ) : (
+                <View key={d} style={cellStyle} />
+              );
+            })}
           </View>
         ))}
       </View>
       <View style={styles.heatLegend}>
+        <View style={[styles.heatLegendCell, { backgroundColor: currentTheme.colors.border, opacity: 0.5 }]} />
+        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Rest</Text>
+        <View style={styles.heatLegendSpacer} />
         <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Less</Text>
-        {[0.2, 0.45, 0.7, 1].map(i => (
-          <View key={i} style={[styles.heatLegendCell, { backgroundColor: accent, opacity: 0.3 + 0.7 * i }]} />
+        {HEAT_OPACITIES.map(o => (
+          <View key={o} style={[styles.heatLegendCell, { backgroundColor: accent, opacity: o }]} />
         ))}
         <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>More</Text>
       </View>
@@ -538,6 +575,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
   const filtered = achievements.filter(a => filter === 'all' || a.category === filter);
   const unlocked = filtered.filter(a => a.unlocked).length;
+  const breakdown = rarityBreakdown(achievements);
   // New first, then unlocked, then locked sorted by closest progress.
   const ordered = [...filtered].sort((a, b) => {
     const an = newIds.has(a.id) ? 1 : 0;
@@ -553,6 +591,18 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
         <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
           {unlocked}/{filtered.length}
         </Text>
+      </View>
+      <View style={styles.rarityRow}>
+        {breakdown.map(b => (
+          <View key={b.rarity} style={styles.rarityCell}>
+            <Text style={[styles.rarityCellLabel, { color: RARITY_META[b.rarity].accent }]}>
+              {RARITY_META[b.rarity].label}
+            </Text>
+            <Text style={[styles.rarityCellCount, { color: currentTheme.colors.text }]}>
+              {b.unlocked}/{b.total}
+            </Text>
+          </View>
+        ))}
       </View>
       {newIds.size > 0 && (
         <Text style={[styles.achNewBanner, { color: currentTheme.colors.primary }]}>
@@ -610,12 +660,16 @@ function AchievementTile({
 }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
-  // When tapped, swap the (truncated) description for exact progress detail.
-  const detail = selected
-    ? achievement.unlocked
-      ? 'Unlocked'
-      : `${formatCompact(achievement.current)} / ${formatCompact(achievement.target)}`
-    : achievement.description;
+  const display = achievementDisplay(achievement);
+  // Secret badges never reveal title/progress until earned. Otherwise, tapping
+  // swaps the (truncated) description for exact progress detail.
+  const detail = display.masked
+    ? display.description
+    : selected
+      ? achievement.unlocked
+        ? 'Unlocked'
+        : `${formatCompact(achievement.current)} / ${formatCompact(achievement.target)}`
+      : achievement.description;
   return (
     <TouchableOpacity
       activeOpacity={0.7}
@@ -631,7 +685,7 @@ function AchievementTile({
     >
       <View style={styles.achTileTop}>
         <AchievementBadge
-          icon={achievement.icon}
+          icon={display.icon}
           rarity={achievement.rarity}
           unlocked={achievement.unlocked}
           isNew={isNew}
@@ -642,8 +696,13 @@ function AchievementTile({
             <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>NEW</Text>
           </View>
         ) : (
-          <Text style={[styles.achRarity, { color: RARITY_META[achievement.rarity].accent }]}>
-            {RARITY_META[achievement.rarity].label}
+          <Text
+            style={[
+              styles.achRarity,
+              { color: display.masked ? currentTheme.colors.text + '55' : RARITY_META[achievement.rarity].accent },
+            ]}
+          >
+            {display.masked ? 'Secret' : RARITY_META[achievement.rarity].label}
           </Text>
         )}
       </View>
@@ -651,7 +710,7 @@ function AchievementTile({
         style={[styles.achTitle, { color: currentTheme.colors.text, opacity: achievement.unlocked ? 1 : 0.55 }]}
         numberOfLines={1}
       >
-        {achievement.title}
+        {display.title}
       </Text>
       <Text
         style={[styles.achDesc, { color: selected ? accent : currentTheme.colors.text, opacity: selected ? 1 : 0.5 }]}
@@ -659,7 +718,7 @@ function AchievementTile({
       >
         {detail}
       </Text>
-      {!achievement.unlocked && (
+      {!achievement.unlocked && !display.masked && (
         <View style={[styles.achTrack, { backgroundColor: currentTheme.colors.border }]}>
           <View style={[styles.achFill, { backgroundColor: accent, width: `${Math.round(achievement.progress * 100)}%` }]} />
         </View>
@@ -753,12 +812,15 @@ const styles = StyleSheet.create({
   prValue: { fontSize: 17, fontWeight: '700' },
   prValueLabel: { fontSize: 10, opacity: 0.45, marginTop: 1 },
 
-  heatGrid: { flexDirection: 'row', justifyContent: 'space-between' },
-  heatCol: { gap: 4 },
+  heatCaption: { fontSize: 11, opacity: 0.5, lineHeight: 16, marginTop: -4, marginBottom: 12 },
+  heatGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 16 },
+  heatCol: { gap: 4, position: 'relative' },
+  monthLabel: { position: 'absolute', top: -14, left: 0, fontSize: 9, opacity: 0.5, width: 40 },
   heatCell: { width: 15, height: 15, borderRadius: 3 },
-  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 4, marginTop: 10 },
+  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 4, marginTop: 12 },
   heatLegendText: { fontSize: 10, opacity: 0.4 },
   heatLegendCell: { width: 11, height: 11, borderRadius: 2 },
+  heatLegendSpacer: { flex: 1 },
 
   muscleCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
@@ -782,6 +844,10 @@ const styles = StyleSheet.create({
   timelineDate: { fontSize: 13, opacity: 0.5, marginTop: 1 },
 
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
+  rarityRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, marginBottom: 14 },
+  rarityCell: { flex: 1, alignItems: 'center' },
+  rarityCellLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  rarityCellCount: { fontSize: 13, fontWeight: '700', marginTop: 3 },
   achNewBanner: { fontSize: 14, fontWeight: '700', marginBottom: 12, marginTop: -4 },
   achTabs: { gap: 8, paddingBottom: 12 },
   achTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },

@@ -9,19 +9,17 @@ export const RARITY_ORDER: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 export interface RarityMeta {
   label: string;
-  // Metallic gradient for the badge medallion: [top highlight, bottom shade].
-  gradient: [string, string];
-  // Ring / bevel color and the rarity text accent.
+  // The badge tint + border color and the rarity text accent.
   accent: string;
 }
 
-// Bronze → Sapphire → Amethyst → Gold. Chosen to read as escalating prestige
-// and to stay legible on both light and dark surfaces.
+// Slate → Sapphire → Amethyst → Gold: an escalating-prestige ramp that stays
+// legible (as a tint + border) on both light and dark surfaces.
 export const RARITY_META: Record<Rarity, RarityMeta> = {
-  common: { label: 'Common', gradient: ['#B8BEC9', '#7C8595'], accent: '#6B7280' },
-  rare: { label: 'Rare', gradient: ['#5EC2F5', '#2563EB'], accent: '#2563EB' },
-  epic: { label: 'Epic', gradient: ['#C98BFB', '#7C3AED'], accent: '#7C3AED' },
-  legendary: { label: 'Legendary', gradient: ['#FCD667', '#F59E0B'], accent: '#F59E0B' },
+  common: { label: 'Common', accent: '#6B7280' },
+  rare: { label: 'Rare', accent: '#2563EB' },
+  epic: { label: 'Epic', accent: '#7C3AED' },
+  legendary: { label: 'Legendary', accent: '#F59E0B' },
 };
 
 export function rarityRank(r: Rarity): number {

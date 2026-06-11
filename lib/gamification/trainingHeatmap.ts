@@ -7,12 +7,26 @@ export interface HeatCell {
   date: Date;
   trained: boolean;
   intensity: number; // 0..1 relative to the user's biggest training day in range
+  volume: number; // that day's training volume (in the unit it was logged), for tooltips
   future: boolean; // day hasn't happened yet (current week tail)
 }
 
 export interface TrainingHeatmap {
   weeks: HeatCell[][]; // weeks[w] = 7 cells (Mon..Sun)
   totalDays: number; // distinct trained days in range
+}
+
+// Discrete shade steps for a trained day, so the scale reads as legible buckets
+// (light → heavy volume) instead of a continuous mush. Shared by the card, the
+// modal grid and their legends so all three stay in lockstep.
+export const HEAT_OPACITIES = [0.4, 0.6, 0.8, 1] as const;
+
+// Bucket a 0..1 volume intensity into an index into HEAT_OPACITIES.
+export function heatLevel(intensity: number): number {
+  if (intensity <= 0.25) return 0;
+  if (intensity <= 0.5) return 1;
+  if (intensity <= 0.75) return 2;
+  return 3;
 }
 
 function dateKey(d: Date): string {
@@ -73,6 +87,7 @@ export function computeTrainingHeatmap(
         date,
         trained,
         intensity: maxVol > 0 ? vol / maxVol : 0,
+        volume: Math.round(vol),
         future: key > todayKey,
       });
     }

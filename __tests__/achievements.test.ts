@@ -1,10 +1,30 @@
 import { CareerStats } from '../lib/gamification/careerStats';
 import {
+  Achievement,
+  achievementDisplay,
   computeAchievements,
   newlyUnlocked,
+  rarityBreakdown,
   summarizeAchievements,
   unlockedIds,
 } from '../lib/gamification/achievements';
+import { Rarity } from '../lib/gamification/rarity';
+
+function mk(id: string, rarity: Rarity, unlocked: boolean, hidden = false): Achievement {
+  return {
+    id,
+    title: id,
+    description: id,
+    icon: 'flag',
+    category: 'special',
+    rarity,
+    current: unlocked ? 1 : 0,
+    target: 1,
+    unlocked,
+    progress: unlocked ? 1 : 0,
+    hidden,
+  };
+}
 
 function stats(partial: Partial<CareerStats>): CareerStats {
   return {
@@ -86,6 +106,40 @@ describe('summarizeAchievements', () => {
     expect(s.total).toBe(a.length);
     // workouts-10 is at 9/10 = 0.9 progress — the closest locked one
     expect(s.nextUp?.id).toBe('workouts-10');
+  });
+});
+
+describe('rarityBreakdown', () => {
+  it('counts unlocked/total per rarity in ascending order', () => {
+    const bd = rarityBreakdown([
+      mk('a', 'common', true),
+      mk('b', 'common', false),
+      mk('c', 'rare', true),
+      mk('d', 'legendary', false),
+    ]);
+    expect(bd.map(x => x.rarity)).toEqual(['common', 'rare', 'epic', 'legendary']);
+    expect(bd[0]).toMatchObject({ unlocked: 1, total: 2 });
+    expect(bd[1]).toMatchObject({ unlocked: 1, total: 1 });
+    expect(bd[2]).toMatchObject({ unlocked: 0, total: 0 });
+    expect(bd[3]).toMatchObject({ unlocked: 0, total: 1 });
+  });
+});
+
+describe('hidden / secret badges', () => {
+  it('masks a secret locked badge and never teases it as the next goal', () => {
+    const secret = mk('secret', 'epic', false, true);
+    const open = mk('open', 'rare', false);
+    open.progress = 0.9;
+
+    const masked = achievementDisplay(secret);
+    expect(masked.masked).toBe(true);
+    expect(masked.title).toBe('Secret achievement');
+
+    // A revealed (unlocked) secret shows its real title.
+    expect(achievementDisplay(mk('secret', 'epic', true, true)).masked).toBe(false);
+
+    // nextUp prefers the visible locked badge over the closer secret.
+    expect(summarizeAchievements([secret, open]).nextUp?.id).toBe('open');
   });
 });
 

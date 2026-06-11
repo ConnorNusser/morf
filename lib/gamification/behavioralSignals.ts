@@ -19,6 +19,8 @@ export interface BehavioralSignals {
   maxRepsSingleSet: number; // most reps in one completed set
   maxRepsOneExerciseSession: number; // most reps of one exercise in one session
   hasAllFourSeasons: boolean; // trained in all 4 seasons of one calendar year
+  pushSets: number; // completed sets whose primary muscle is a "push"
+  pullSets: number; // completed sets whose primary muscle is a "pull"
   trainedNewYearsDay: boolean; // Jan 1
   trainedThanksgiving: boolean; // US Thanksgiving (4th Thursday of November)
   trainedChristmas: boolean; // Dec 25
@@ -52,17 +54,6 @@ function isThanksgiving(d: Date): boolean {
   return d.getMonth() === 10 && d.getDay() === 4 && d.getDate() >= 22 && d.getDate() <= 28;
 }
 
-// PPL categories trained on a given workout, from each exercise's primary muscle.
-function workoutPPL(workout: GeneratedWorkout): Set<PPLCategory> {
-  const cats = new Set<PPLCategory>();
-  for (const exercise of workout.exercises || []) {
-    const muscle = getWorkoutById(exercise.id)?.primaryMuscles?.[0];
-    const cat = muscle ? MUSCLE_TO_PPL[muscle] : undefined;
-    if (cat) cats.add(cat);
-  }
-  return cats;
-}
-
 export function computeBehavioralSignals(workouts: GeneratedWorkout[]): BehavioralSignals {
   const empty: BehavioralSignals = {
     trainedBefore6am: false,
@@ -76,6 +67,8 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
     maxRepsSingleSet: 0,
     maxRepsOneExerciseSession: 0,
     hasAllFourSeasons: false,
+    pushSets: 0,
+    pullSets: 0,
     trainedNewYearsDay: false,
     trainedThanksgiving: false,
     trainedChristmas: false,
@@ -88,6 +81,8 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
   let trainedMidnightTo4 = false;
   let maxRepsSingleSet = 0;
   let maxRepsOneExerciseSession = 0;
+  let pushSets = 0;
+  let pullSets = 0;
   let trainedNewYearsDay = false;
   let trainedThanksgiving = false;
   let trainedChristmas = false;
@@ -129,25 +124,28 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
     if (month === 1 && date === 29) trainedLeapDay = true;
     if (isThanksgiving(created)) trainedThanksgiving = true;
 
-    const cats = workoutPPL(workout);
-    if (cats.size) {
-      const existing = dayPPL.get(key) ?? new Set<PPLCategory>();
-      cats.forEach(c => existing.add(c));
-      dayPPL.set(key, existing);
-    }
-
+    const dayCats = dayPPL.get(key) ?? new Set<PPLCategory>();
     for (const exercise of workout.exercises || []) {
       distinct.add(exercise.id);
+      const muscle = getWorkoutById(exercise.id)?.primaryMuscles?.[0];
+      const cat = muscle ? MUSCLE_TO_PPL[muscle] : undefined;
+      if (cat) dayCats.add(cat);
+
       let exerciseSessionReps = 0;
+      let exerciseCompletedSets = 0;
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
         exerciseSessionReps += set.reps;
+        exerciseCompletedSets += 1;
         if (set.reps > maxRepsSingleSet) maxRepsSingleSet = set.reps;
       }
+      if (cat === 'push') pushSets += exerciseCompletedSets;
+      else if (cat === 'pull') pullSets += exerciseCompletedSets;
       if (exerciseSessionReps > maxRepsOneExerciseSession) {
         maxRepsOneExerciseSession = exerciseSessionReps;
       }
     }
+    if (dayCats.size) dayPPL.set(key, dayCats);
   }
 
   // Largest gap the lifter came back from: max gap between consecutive trained
@@ -187,6 +185,8 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
     maxRepsSingleSet,
     maxRepsOneExerciseSession,
     hasAllFourSeasons: [...yearSeasons.values()].some(s => s.size === 4),
+    pushSets,
+    pullSets,
     trainedNewYearsDay,
     trainedThanksgiving,
     trainedChristmas,

@@ -15,7 +15,6 @@ describe('rarity', () => {
     for (const r of RARITY_ORDER) {
       const meta = RARITY_META[r];
       expect(meta.label.length).toBeGreaterThan(0);
-      expect(meta.gradient).toHaveLength(2);
       expect(meta.accent).toMatch(/^#[0-9A-Fa-f]{6}$/);
     }
   });

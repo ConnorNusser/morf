@@ -8,6 +8,7 @@ import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
 import { computeNicheAchievements } from './nicheAchievements';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
+import { computeStrengthFeats } from './strengthFeats';
 import { computeStrengthMilestones } from './strengthMilestones';
 
 // The minimal derived state needed to diff two points in a lifter's career.
@@ -28,9 +29,11 @@ export interface RewardContext {
 // same fields, so careerData reuses this (see careerData.ts) — single source.
 export function buildRewardSnapshot(history: GeneratedWorkout[], ctx: RewardContext): RewardSnapshot {
   const stats = computeCareerStats(history, ctx.unit, ctx.now);
-  const milestones = computeStrengthMilestones(computeMainLiftPRs(history, 'lbs'), ctx.bodyWeightLbs);
+  const prsLbs = computeMainLiftPRs(history, 'lbs');
+  const milestones = computeStrengthMilestones(prsLbs, ctx.bodyWeightLbs);
+  const feats = computeStrengthFeats(prsLbs);
   const niche = computeNicheAchievements(computeBehavioralSignals(history));
-  const achievements = [...computeAchievements(stats, ctx.overall), ...niche, ...milestones];
+  const achievements = [...computeAchievements(stats, ctx.overall), ...niche, ...feats, ...milestones];
   return {
     stats,
     achievements,

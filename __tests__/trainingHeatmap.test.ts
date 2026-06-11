@@ -1,5 +1,5 @@
 import { GeneratedWorkout } from '../types';
-import { computeTrainingHeatmap } from '../lib/gamification/trainingHeatmap';
+import { computeTrainingHeatmap, HEAT_OPACITIES, heatLevel } from '../lib/gamification/trainingHeatmap';
 
 function workout(date: Date, volume: number): GeneratedWorkout {
   return {
@@ -44,5 +44,18 @@ describe('computeTrainingHeatmap', () => {
     expect(lastWeek[2].future).toBe(false);
     expect(lastWeek[3].future).toBe(true);
     expect(lastWeek[6].future).toBe(true);
+  });
+});
+
+describe('heatLevel', () => {
+  it('buckets intensity into the four discrete shade steps', () => {
+    expect(heatLevel(0)).toBe(0);
+    expect(heatLevel(0.25)).toBe(0);
+    expect(heatLevel(0.26)).toBe(1);
+    expect(heatLevel(0.5)).toBe(1);
+    expect(heatLevel(0.75)).toBe(2);
+    expect(heatLevel(0.76)).toBe(3);
+    expect(heatLevel(1)).toBe(3);
+    expect(HEAT_OPACITIES).toHaveLength(4);
   });
 });

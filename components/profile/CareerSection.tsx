@@ -1,5 +1,4 @@
 import Card from '@/components/Card';
-import AchievementBadge from '@/components/gamification/AchievementBadge';
 import CareerModal from '@/components/gamification/CareerModal';
 import ProfileIconPicker from '@/components/gamification/ProfileIconPicker';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -10,6 +9,7 @@ import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { iconUnlockContext, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
+import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -54,16 +54,9 @@ export default function CareerSection() {
 
   const { nextUp, unlockedCount, total } = summarizeAchievements(data.achievements);
 
-  // Preview chips: newly-unlocked first, then unlocked, then closest locked.
-  const previewChips = [...data.achievements]
-    .sort((a, b) => {
-      const an = data.newIds.has(a.id) ? 1 : 0;
-      const bn = data.newIds.has(b.id) ? 1 : 0;
-      if (an !== bn) return bn - an;
-      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-      return b.progress - a.progress;
-    })
-    .slice(0, 6);
+  // Consistency strip: the last 8 weeks, with a count so it reads on its own.
+  const recentWeeks = data.heatmap.weeks.slice(-8);
+  const recentActive = recentWeeks.reduce((n, wk) => n + wk.filter(c => c.trained).length, 0);
 
   return (
     <>
@@ -123,40 +116,45 @@ export default function CareerSection() {
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
             {statItems.map(s => (
               <View key={s.l} style={styles.stat}>
-                <View style={styles.statValueRow}>
-                  {s.accent && <Ionicons name="flame" size={13} color={currentTheme.colors.primary} />}
-                  <Text
-                    style={[styles.statValue, { color: s.accent ? currentTheme.colors.primary : currentTheme.colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {s.v}
-                    {s.u ? <Text style={styles.statUnit}>{s.u}</Text> : null}
-                  </Text>
-                </View>
+                <Text
+                  style={[styles.statValue, { color: s.accent ? currentTheme.colors.primary : currentTheme.colors.text }]}
+                  numberOfLines={1}
+                >
+                  {s.v}
+                  {s.u ? <Text style={styles.statUnit}>{s.u}</Text> : null}
+                </Text>
                 <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>{s.l}</Text>
               </View>
             ))}
           </View>
 
-          {/* Consistency heatmap (last 8 weeks) */}
-          <View style={styles.heatRow}>
-            {data.heatmap.weeks.slice(-8).map((week, w) => (
-              <View key={w} style={styles.heatCol}>
-                {week.map((cell, d) => (
-                  <View
-                    key={d}
-                    style={[
-                      styles.heatCell,
-                      cell.future
-                        ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
-                        : cell.trained
-                          ? { backgroundColor: currentTheme.colors.primary, opacity: 0.3 + 0.7 * cell.intensity }
-                          : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
-                    ]}
-                  />
-                ))}
-              </View>
-            ))}
+          {/* Activity — the last 8 weeks, labelled so it reads on its own */}
+          <View style={styles.consistency}>
+            <View style={styles.consistencyHead}>
+              <Text style={[styles.consistencyLabel, { color: currentTheme.colors.text }]}>ACTIVITY</Text>
+              <Text style={[styles.consistencyMeta, { color: currentTheme.colors.text }]}>
+                {recentActive} active days · last 8 weeks
+              </Text>
+            </View>
+            <View style={styles.heatRow}>
+              {recentWeeks.map((week, w) => (
+                <View key={w} style={styles.heatCol}>
+                  {week.map((cell, d) => (
+                    <View
+                      key={d}
+                      style={[
+                        styles.heatCell,
+                        cell.future
+                          ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
+                          : cell.trained
+                            ? { backgroundColor: currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                            : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
+                      ]}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
@@ -164,11 +162,8 @@ export default function CareerSection() {
           {/* Next goal */}
           {nextUp && (
             <View style={styles.nextGoal}>
-              <View style={[styles.nextIcon, { backgroundColor: currentTheme.colors.primary + '1A' }]}>
-                <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={16} color={currentTheme.colors.primary} />
-              </View>
               <View style={styles.nextBody}>
-                <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>
+                <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
                   NEXT · {nextUp.title}
                 </Text>
                 <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
@@ -183,23 +178,16 @@ export default function CareerSection() {
             </View>
           )}
 
-          {/* Achievement preview */}
+          {/* Achievements — collection count; the full grid lives in the modal */}
           <View style={styles.achRow}>
             <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
-              {unlockedCount}/{total} achievements
+              {unlockedCount}/{total} achievements unlocked
             </Text>
-            <View style={styles.chips}>
-              {previewChips.map(a => (
-                <AchievementBadge
-                  key={a.id}
-                  icon={a.icon}
-                  rarity={a.rarity}
-                  unlocked={a.unlocked}
-                  isNew={data.newIds.has(a.id)}
-                  size={34}
-                />
-              ))}
-            </View>
+            {data.newIds.size > 0 && (
+              <Text style={[styles.achNew, { color: currentTheme.colors.primary }]}>
+                {data.newIds.size} new
+              </Text>
+            )}
           </View>
         </Card>
       </TouchableOpacity>
@@ -246,17 +234,19 @@ const styles = StyleSheet.create({
 
   statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
   stat: { alignItems: 'center', flex: 1 },
-  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   statValue: { fontSize: 16, fontWeight: '700' },
   statUnit: { fontSize: 11, fontWeight: '600', opacity: 0.6 },
   statLabel: { fontSize: 11, opacity: 0.5, marginTop: 2 },
 
+  consistency: { gap: 8 },
+  consistencyHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  consistencyLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  consistencyMeta: { fontSize: 11, opacity: 0.5 },
   heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
 
-  nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  nextIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 12, fontWeight: '600', marginBottom: 5 },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
@@ -265,5 +255,5 @@ const styles = StyleSheet.create({
 
   achRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
-  chips: { flexDirection: 'row', gap: 6 },
+  achNew: { fontSize: 13, fontWeight: '700' },
 });

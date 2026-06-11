@@ -3,7 +3,7 @@
 // everything is computed from existing data, so it stays in sync automatically.
 import { convertWeight } from '@/types';
 import { CareerStats } from './careerStats';
-import { Rarity } from './rarity';
+import { Rarity, RARITY_ORDER } from './rarity';
 
 // Single heaviest completed set, in lbs (so plate milestones are fair in kg too).
 function heaviestSetLbs(s: CareerStats): number {
@@ -24,6 +24,7 @@ export interface Achievement {
   target: number;
   unlocked: boolean;
   progress: number; // 0..1, clamped
+  hidden?: boolean; // a "secret" badge — masked in the UI until earned
 }
 
 interface AchievementDef {
@@ -34,6 +35,7 @@ interface AchievementDef {
   category: AchievementCategory;
   rarity: Rarity;
   target: number;
+  hidden?: boolean;
   // Current value for this metric, given the user's stats + overall percentile.
   metric: (stats: CareerStats, percentile: number) => number;
 }
@@ -77,11 +79,13 @@ const DEFS: AchievementDef[] = [
   { id: 'meme-9000', title: "It's Over 9,000!", description: 'Lift over 9,000 total', icon: 'flame', category: 'volume', rarity: 'common', target: 9_000, metric: s => s.totalVolume },
   { id: 'sets-1000', title: 'Glutton for Punishment', description: 'Complete 1,000 sets', icon: 'repeat', category: 'volume', rarity: 'rare', target: 1_000, metric: s => s.totalSets },
   { id: 'reps-marathon', title: 'Marathoner', description: 'Rep your way to a marathon — 26,200 reps', icon: 'walk', category: 'volume', rarity: 'epic', target: 26_200, metric: s => s.totalReps },
+  { id: 'plates-1', title: 'One Plate', description: '135 lbs on a single set', icon: 'barbell', category: 'strength', rarity: 'common', target: 135, metric: heaviestSetLbs },
   { id: 'plates-2', title: 'Plate Tectonics', description: '225 lbs on a single set (two plates)', icon: 'barbell', category: 'strength', rarity: 'rare', target: 225, metric: heaviestSetLbs },
   { id: 'plates-3', title: 'Three Plate Club', description: '315 lbs on a single set', icon: 'barbell', category: 'strength', rarity: 'epic', target: 315, metric: heaviestSetLbs },
-  { id: 'plates-4', title: 'Four Plate Monster', description: '405 lbs on a single set', icon: 'skull', category: 'strength', rarity: 'legendary', target: 405, metric: heaviestSetLbs },
-  { id: 'days-200', title: 'Touch Grass', description: 'Train on 200 different days (seriously, go outside)', icon: 'leaf', category: 'consistency', rarity: 'epic', target: 200, metric: s => s.daysActive },
-  { id: 'member-1000', title: 'Lifer', description: '1,000 days since your first workout', icon: 'hourglass', category: 'consistency', rarity: 'legendary', target: 1_000, metric: s => s.daysSinceStart },
+  { id: 'plates-4', title: 'Four Plate Monster', description: '405 lbs on a single set', icon: 'barbell', category: 'strength', rarity: 'epic', target: 405, metric: heaviestSetLbs },
+  { id: 'plates-5', title: 'Five Plates', description: '495 lbs on a single set', icon: 'skull', category: 'strength', rarity: 'legendary', target: 495, metric: heaviestSetLbs },
+  { id: 'days-200', title: 'Touch Grass', description: 'Train on 200 different days (seriously, go outside)', icon: 'leaf', category: 'consistency', rarity: 'rare', target: 200, metric: s => s.daysActive },
+  { id: 'member-1000', title: 'Lifer', description: '1,000 days since your first workout', icon: 'hourglass', category: 'consistency', rarity: 'epic', target: 1_000, metric: s => s.daysSinceStart },
   { id: 'session-50k', title: 'Leg Day Regret', description: 'Move 50K in a single workout', icon: 'flash', category: 'volume', rarity: 'epic', target: 50_000, metric: s => s.biggestSessionVolume },
 ];
 
@@ -100,6 +104,7 @@ export function computeAchievements(stats: CareerStats, overallPercentile: numbe
       target: def.target,
       unlocked,
       progress: Math.max(0, Math.min(1, def.target === 0 ? 1 : current / def.target)),
+      hidden: def.hidden,
     };
   });
 }
@@ -122,10 +127,43 @@ export function newlyUnlocked(achievements: Achievement[], seenIds: string[]): A
   return achievements.filter(a => a.unlocked && !seen.has(a.id));
 }
 
+// Display fields for an achievement, masking secret badges that aren't earned yet
+// so the UI can tease "something's there" without spoiling it.
+export interface AchievementDisplay {
+  title: string;
+  description: string;
+  icon: string;
+  masked: boolean;
+}
+
+export function achievementDisplay(a: Achievement): AchievementDisplay {
+  if (a.hidden && !a.unlocked) {
+    return { title: 'Secret achievement', description: 'Keep training to reveal this one', icon: 'help', masked: true };
+  }
+  return { title: a.title, description: a.description, icon: a.icon, masked: false };
+}
+
+export interface RarityCount {
+  rarity: Rarity;
+  unlocked: number;
+  total: number;
+}
+
+// Per-rarity collection progress, in ascending rarity order. Surfaces how scarce
+// each tier is (and how much of it the lifter owns) honestly, without needing a
+// global "X% of users" backend we don't have.
+export function rarityBreakdown(achievements: Achievement[]): RarityCount[] {
+  return RARITY_ORDER.map(rarity => {
+    const inTier = achievements.filter(a => a.rarity === rarity);
+    return { rarity, unlocked: inTier.filter(a => a.unlocked).length, total: inTier.length };
+  });
+}
+
 export function summarizeAchievements(achievements: Achievement[]): AchievementSummary {
   const locked = achievements.filter(a => !a.unlocked);
+  // Don't tease secret badges as the "next goal".
   const nextUp = locked
-    .slice()
+    .filter(a => !a.hidden)
     .sort((a, b) => b.progress - a.progress)[0] ?? null;
   return {
     unlockedCount: achievements.filter(a => a.unlocked).length,

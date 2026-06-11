@@ -13,6 +13,8 @@ const baseSignals: BehavioralSignals = {
   maxRepsSingleSet: 0,
   maxRepsOneExerciseSession: 0,
   hasAllFourSeasons: false,
+  pushSets: 0,
+  pullSets: 0,
   trainedNewYearsDay: false,
   trainedThanksgiving: false,
   trainedChristmas: false,
@@ -44,5 +46,22 @@ describe('computeNicheAchievements', () => {
     const done = computeNicheAchievements({ ...baseSignals, maxRepsSingleSet: 35, maxWorkoutsInDay: 2 });
     expect(find(done, 'marathon-set').unlocked).toBe(true); // 35 >= 30
     expect(find(done, 'double-duty').unlocked).toBe(true); // 2 >= 2
+  });
+
+  it('unlocks the balance badge only when push and pull are big and even', () => {
+    const uneven = computeNicheAchievements({ ...baseSignals, pushSets: 100, pullSets: 50 }); // 50/100 = 0.5
+    expect(find(uneven, 'balanced').unlocked).toBe(false);
+    const tooFew = computeNicheAchievements({ ...baseSignals, pushSets: 40, pullSets: 40 });
+    expect(find(tooFew, 'balanced').unlocked).toBe(false);
+    const even = computeNicheAchievements({ ...baseSignals, pushSets: 60, pullSets: 55 }); // 0.92
+    expect(find(even, 'balanced').unlocked).toBe(true);
+  });
+
+  it('marks the secret badges as hidden', () => {
+    const a = computeNicheAchievements(baseSignals);
+    expect(find(a, 'vampire-hours').hidden).toBe(true);
+    expect(find(a, 'gym-on-christmas').hidden).toBe(true);
+    expect(find(a, 'leap-of-faith').hidden).toBe(true);
+    expect(find(a, 'early-bird').hidden).toBe(false);
   });
 });
