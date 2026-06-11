@@ -64,21 +64,7 @@ export default function CareerSection() {
         <Card variant="elevated" style={styles.card} padding={18}>
           {/* Header */}
           <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <TouchableOpacity
-                onPress={() => setShowIconPicker(true)}
-                activeOpacity={0.7}
-                hitSlop={8}
-                style={[styles.emblem, { backgroundColor: currentTheme.colors.primary }]}
-              >
-                <Ionicons
-                  name={profileIconName(data.profileIconId) as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color={currentTheme.colors.surface}
-                />
-              </TouchableOpacity>
-              <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
-            </View>
+            <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
             <View style={styles.headerRight}>
               {data.newIds.size > 0 && (
                 <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary }]}>
@@ -92,9 +78,23 @@ export default function CareerSection() {
             </View>
           </View>
 
-          {/* Tier hero — the headline identity / single progression */}
+          {/* Tier hero — the custom emblem is the identity, the tier its rank badge */}
           <View style={styles.hero}>
-            <Text style={[styles.tier, { color }]}>{data.tier}</Text>
+            <TouchableOpacity
+              onPress={() => setShowIconPicker(true)}
+              activeOpacity={0.8}
+              hitSlop={6}
+              style={[styles.heroAvatar, { backgroundColor: color + '1A', borderColor: color }]}
+            >
+              <Ionicons
+                name={profileIconName(data.profileIconId) as keyof typeof Ionicons.glyphMap}
+                size={30}
+                color={color}
+              />
+              <View style={[styles.heroRankBadge, { backgroundColor: color, borderColor: currentTheme.colors.surface }]}>
+                <Text style={styles.heroRankText}>{data.tier}</Text>
+              </View>
+            </TouchableOpacity>
             <View style={styles.heroRight}>
               <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
               <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
@@ -213,8 +213,6 @@ const styles = StyleSheet.create({
   card: { gap: 14 },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  emblem: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   heading: { fontSize: 20, fontWeight: '700' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginRight: 4 },
@@ -224,7 +222,9 @@ const styles = StyleSheet.create({
   axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6, marginBottom: 3 },
 
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  tier: { fontSize: 52, fontWeight: '800', lineHeight: 56, minWidth: 72, textAlign: 'center' },
+  heroAvatar: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  heroRankBadge: { position: 'absolute', bottom: -4, right: -4, minWidth: 24, height: 22, borderRadius: 11, borderWidth: 2, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+  heroRankText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   heroRight: { flex: 1 },
   percentile: { fontSize: 18, fontWeight: '700' },
   percentileLabel: { fontSize: 13, fontWeight: '400', opacity: 0.5 },
