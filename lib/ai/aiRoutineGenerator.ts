@@ -639,6 +639,14 @@ STRICT RULES:
 3. If a required exercise is listed, it MUST appear in the program
 4. If an exercise is NOT in the available list, do NOT use it under any circumstances
 
+QUALITY CONTRACT (the program is auto-scored against these — satisfy them up front):
+- Order each day's exercises compound (multi-joint) FIRST, isolation LAST.
+- Every training day includes at least one compound lift.
+- Train every major muscle across the week; keep weekly push and pull volume roughly balanced.
+- Hypertrophy: hit each muscle ~2x/week with roughly 8-20 hard sets per muscle per week.
+- Strength: keep main lifts heavy and low-rep (1-6); fewer total sets is fine.
+- Keep all rep prescriptions sane (1-30); avoid junk volume on any single muscle.
+
 Return only valid JSON.`;
 
     const fullPrompt = `${systemPrompt}\n\n${prompt}`;
