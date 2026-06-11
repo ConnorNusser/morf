@@ -86,7 +86,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onL
 
             {stats?.level != null && (
               <TouchableOpacity
-                style={[styles.levelButton, { backgroundColor: currentTheme.colors.text + '0D' }]}
+                style={styles.levelButton}
                 onPress={onLevelPress}
                 activeOpacity={0.6}
                 disabled={!onLevelPress}
@@ -186,12 +186,9 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginLeft: 12,
-    paddingVertical: 11,
-    paddingLeft: 14,
-    paddingRight: 10,
-    borderRadius: 12,
+    gap: 14,
+    marginLeft: 16,
+    paddingVertical: 10,
   },
   levelButtonText: {
     fontSize: 13,
