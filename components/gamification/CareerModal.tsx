@@ -449,23 +449,22 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
   const { currentTheme } = useTheme();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
-  const unlocked = achievements.filter(a => a.unlocked).length;
+  const filtered = achievements.filter(a => filter === 'all' || a.category === filter);
+  const unlocked = filtered.filter(a => a.unlocked).length;
   // New first, then unlocked, then locked sorted by closest progress.
-  const ordered = [...achievements]
-    .filter(a => filter === 'all' || a.category === filter)
-    .sort((a, b) => {
-      const an = newIds.has(a.id) ? 1 : 0;
-      const bn = newIds.has(b.id) ? 1 : 0;
-      if (an !== bn) return bn - an;
-      if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-      return b.progress - a.progress;
-    });
+  const ordered = [...filtered].sort((a, b) => {
+    const an = newIds.has(a.id) ? 1 : 0;
+    const bn = newIds.has(b.id) ? 1 : 0;
+    if (an !== bn) return bn - an;
+    if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+    return b.progress - a.progress;
+  });
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionLabel>Achievements</SectionLabel>
         <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
-          {unlocked}/{achievements.length}
+          {unlocked}/{filtered.length}
         </Text>
       </View>
       {newIds.size > 0 && (
