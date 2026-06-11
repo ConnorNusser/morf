@@ -45,11 +45,12 @@ export default function CareerSection() {
     ? Math.max(0, Math.min(1, (data.overall - floor) / Math.max(1, nextRung.threshold - floor)))
     : 1;
 
+  const streakActive = data.stats.currentStreak > 0;
   const statItems = [
-    { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted' },
-    { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts' },
-    { v: `${data.stats.currentStreak}`, u: 'd', l: 'streak' },
-    { v: formatCompact(data.stats.daysActive), u: '', l: 'days' },
+    { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
+    { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts', accent: false },
+    { v: `${data.stats.currentStreak}`, u: 'd', l: 'streak', accent: streakActive },
+    { v: formatCompact(data.stats.daysActive), u: '', l: 'days', accent: false },
   ];
 
   const { nextUp, unlockedCount, total } = summarizeAchievements(data.achievements);
@@ -128,10 +129,16 @@ export default function CareerSection() {
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
             {statItems.map(s => (
               <View key={s.l} style={styles.stat}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text }]} numberOfLines={1}>
-                  {s.v}
-                  {s.u ? <Text style={styles.statUnit}>{s.u}</Text> : null}
-                </Text>
+                <View style={styles.statValueRow}>
+                  {s.accent && <Ionicons name="flame" size={13} color={currentTheme.colors.primary} />}
+                  <Text
+                    style={[styles.statValue, { color: s.accent ? currentTheme.colors.primary : currentTheme.colors.text }]}
+                    numberOfLines={1}
+                  >
+                    {s.v}
+                    {s.u ? <Text style={styles.statUnit}>{s.u}</Text> : null}
+                  </Text>
+                </View>
                 <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>{s.l}</Text>
               </View>
             ))}
@@ -248,6 +255,7 @@ const styles = StyleSheet.create({
 
   statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
   stat: { alignItems: 'center', flex: 1 },
+  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   statValue: { fontSize: 16, fontWeight: '700' },
   statUnit: { fontSize: 11, fontWeight: '600', opacity: 0.6 },
   statLabel: { fontSize: 11, opacity: 0.5, marginTop: 2 },

@@ -106,11 +106,14 @@ export default function CareerModal({ visible, onClose }: Props) {
               </View>
             </ViewShot>
             <NextGoal achievements={data.achievements} />
+            {/* Lifetime overview */}
             <StatGrid stats={data.stats} />
+            <ConsistencyView heatmap={data.heatmap} />
+            {/* Strength */}
             <BestsView stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
-            <ConsistencyView heatmap={data.heatmap} />
             <MuscleMasteryView mastery={data.muscleMastery} />
+            {/* Tier progression */}
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={data.newIds} />
