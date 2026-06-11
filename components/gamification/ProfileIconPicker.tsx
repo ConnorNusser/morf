@@ -28,7 +28,7 @@ export default function ProfileIconPicker({ visible, onClose, unlockContext, cur
             <View>
               <Text style={[styles.title, { color: currentTheme.colors.text }]}>Career emblem</Text>
               <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
-                {unlockedCount}/{icons.length} unlocked · earn more by leveling up & hitting milestones
+                {unlockedCount}/{icons.length} unlocked · earn more by hitting milestones
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={12}>
