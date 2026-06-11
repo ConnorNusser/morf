@@ -593,16 +593,18 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
         </Text>
       </View>
       <View style={styles.rarityRow}>
-        {breakdown.map(b => (
-          <View key={b.rarity} style={styles.rarityCell}>
-            <Text style={[styles.rarityCellLabel, { color: RARITY_META[b.rarity].accent }]}>
-              {RARITY_META[b.rarity].label}
-            </Text>
-            <Text style={[styles.rarityCellCount, { color: currentTheme.colors.text }]}>
-              {b.unlocked}/{b.total}
-            </Text>
-          </View>
-        ))}
+        {breakdown.map(b => {
+          const rc = RARITY_META[b.rarity].accent;
+          const complete = b.total > 0 && b.unlocked === b.total;
+          return (
+            <View key={b.rarity} style={[styles.rarityChip, { backgroundColor: rc + '14', borderColor: complete ? rc : rc + '33' }]}>
+              <Text style={[styles.rarityCellLabel, { color: rc }]}>{RARITY_META[b.rarity].label}</Text>
+              <Text style={[styles.rarityCellCount, { color: currentTheme.colors.text }]}>
+                {b.unlocked}/{b.total}
+              </Text>
+            </View>
+          );
+        })}
       </View>
       {newIds.size > 0 && (
         <Text style={[styles.achNewBanner, { color: currentTheme.colors.primary }]}>
@@ -659,7 +661,10 @@ function AchievementTile({
   onPress: () => void;
 }) {
   const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
+  // Rarity is the one organizing color — the tile frame, wash and progress all
+  // match the badge so the grid reads as a coherent rarity-coded collection
+  // instead of a clash of primary borders over differently-coloured badges.
+  const r = RARITY_META[achievement.rarity].accent;
   const display = achievementDisplay(achievement);
   // Secret badges never reveal title/progress until earned. Otherwise, tapping
   // swaps the (truncated) description for exact progress detail.
@@ -676,11 +681,9 @@ function AchievementTile({
       onPress={onPress}
       style={[
         styles.achTile,
-        {
-          backgroundColor: currentTheme.colors.surface,
-          borderColor: isNew || achievement.unlocked ? accent : currentTheme.colors.border,
-          borderWidth: isNew ? 2 : 1,
-        },
+        achievement.unlocked
+          ? { backgroundColor: r + '0D', borderColor: isNew ? r : r + '40', borderWidth: isNew ? 2 : 1 }
+          : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 },
       ]}
     >
       <View style={styles.achTileTop}>
@@ -692,7 +695,7 @@ function AchievementTile({
           size={40}
         />
         {isNew ? (
-          <View style={[styles.achNewPill, { backgroundColor: accent }]}>
+          <View style={[styles.achNewPill, { backgroundColor: r }]}>
             <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>NEW</Text>
           </View>
         ) : (
@@ -713,14 +716,14 @@ function AchievementTile({
         {display.title}
       </Text>
       <Text
-        style={[styles.achDesc, { color: selected ? accent : currentTheme.colors.text, opacity: selected ? 1 : 0.5 }]}
+        style={[styles.achDesc, { color: selected ? r : currentTheme.colors.text, opacity: selected ? 1 : 0.5 }]}
         numberOfLines={1}
       >
         {detail}
       </Text>
       {!achievement.unlocked && !display.masked && (
         <View style={[styles.achTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.achFill, { backgroundColor: accent, width: `${Math.round(achievement.progress * 100)}%` }]} />
+          <View style={[styles.achFill, { backgroundColor: r, width: `${Math.round(achievement.progress * 100)}%` }]} />
         </View>
       )}
     </TouchableOpacity>
@@ -844,10 +847,10 @@ const styles = StyleSheet.create({
   timelineDate: { fontSize: 13, opacity: 0.5, marginTop: 1 },
 
   achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
-  rarityRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, marginBottom: 14 },
-  rarityCell: { flex: 1, alignItems: 'center' },
+  rarityRow: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 14 },
+  rarityChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 3 },
   rarityCellLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
-  rarityCellCount: { fontSize: 13, fontWeight: '700', marginTop: 3 },
+  rarityCellCount: { fontSize: 13, fontWeight: '700' },
   achNewBanner: { fontSize: 14, fontWeight: '700', marginBottom: 12, marginTop: -4 },
   achTabs: { gap: 8, paddingBottom: 12 },
   achTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
