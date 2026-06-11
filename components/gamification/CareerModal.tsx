@@ -69,11 +69,11 @@ export default function CareerModal({ visible, onClose }: Props) {
       const bodyWeightLbs = profile.weight
         ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs')
         : 0;
-      const timeline = computeTierTimeline(history, {
-        bodyWeightLbs,
-        gender: profile.gender,
-        age: profile.age,
-      });
+      const timeline = computeTierTimeline(
+        history,
+        { bodyWeightLbs, gender: profile.gender, age: profile.age },
+        visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
+      );
 
       const achievements = computeAchievements(stats, overall);
       const newIds = new Set(newlyUnlocked(achievements, seen).map(a => a.id));

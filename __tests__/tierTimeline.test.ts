@@ -63,6 +63,15 @@ describe('computeTierTimeline', () => {
     expect(last.tier).toBe(getStrengthTier(last.percentile));
   });
 
+  it('honors a custom lift set (e.g. the dashboard featured lifts)', () => {
+    // A secondary lift is ignored under the default (main-lift) set...
+    const secondary = benchWorkout(day(1), 185, 5);
+    secondary.exercises[0].id = 'row-barbell';
+    expect(computeTierTimeline([secondary], PROFILE)).toEqual([]);
+    // ...but counts when included in the lift set.
+    expect(computeTierTimeline([secondary], PROFILE, ['row-barbell']).length).toBeGreaterThan(0);
+  });
+
   it('ignores regressions (a lighter later session does not add a milestone)', () => {
     const workouts = [benchWorkout(day(1), 315, 1), benchWorkout(day(2), 95, 5)];
     const timeline = computeTierTimeline(workouts, PROFILE);

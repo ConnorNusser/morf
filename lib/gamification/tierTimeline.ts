@@ -15,7 +15,7 @@ import {
   TIER_THRESHOLDS,
 } from '@/lib/data/strengthStandards';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { ALL_MAIN_LIFTS, convertWeight, Gender, GeneratedWorkout, isMainLift } from '@/types';
+import { ALL_MAIN_LIFTS, convertWeight, Gender, GeneratedWorkout } from '@/types';
 
 export interface TierMilestone {
   tier: StrengthTier;
@@ -38,14 +38,18 @@ function tierRank(tier: StrengthTier): number {
 export function computeTierTimeline(
   workouts: GeneratedWorkout[],
   profile: TimelineProfile,
+  // Which lifts feed the overall percentile. Defaults to the four main lifts;
+  // pass the dashboard's featured-lift set so the timeline matches the hero tier.
+  liftIds: readonly string[] = ALL_MAIN_LIFTS,
 ): TierMilestone[] {
   if (!profile.bodyWeightLbs || profile.bodyWeightLbs <= 0) return [];
 
+  const liftSet = new Set(liftIds);
   const chronological = [...workouts].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
   );
 
-  const bestOneRM = new Map<string, number>(); // main-lift id -> best estimated 1RM (lbs)
+  const bestOneRM = new Map<string, number>(); // lift id -> best estimated 1RM (lbs)
   const milestones: TierMilestone[] = [];
   let bestRankSoFar = -1;
 
@@ -53,7 +57,7 @@ export function computeTierTimeline(
     let improved = false;
 
     for (const exercise of workout.exercises || []) {
-      if (!isMainLift(exercise.id)) continue;
+      if (!liftSet.has(exercise.id)) continue;
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
         const weightLbs = set.unit === 'lbs' ? set.weight : convertWeight(set.weight, set.unit, 'lbs');
@@ -67,9 +71,11 @@ export function computeTierTimeline(
 
     if (!improved || bestOneRM.size === 0) continue;
 
-    const percentiles = ALL_MAIN_LIFTS.filter(id => bestOneRM.has(id)).map(id =>
-      calculateStrengthPercentile(bestOneRM.get(id)!, profile.bodyWeightLbs, profile.gender, id, profile.age),
-    );
+    const percentiles = liftIds
+      .filter(id => bestOneRM.has(id))
+      .map(id =>
+        calculateStrengthPercentile(bestOneRM.get(id)!, profile.bodyWeightLbs, profile.gender, id, profile.age),
+      );
     const overall = calculateOverallPercentile(percentiles);
     const tier = getStrengthTier(overall);
     const rank = tierRank(tier);
