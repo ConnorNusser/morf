@@ -8,6 +8,7 @@ import { convertWeight } from '@/types';
 import { Achievement, computeAchievements, newlyUnlocked } from './achievements';
 import { CareerStats, computeCareerStats } from './careerStats';
 import { computeLevel, LevelInfo } from './level';
+import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
 
@@ -21,6 +22,7 @@ export interface CareerData {
   achievements: Achievement[];
   newIds: Set<string>; // achievements unlocked since last acknowledged
   prs: LiftPR[];
+  muscleMastery: MuscleMastery[];
 }
 
 export async function loadCareerData(): Promise<CareerData> {
@@ -60,5 +62,6 @@ export async function loadCareerData(): Promise<CareerData> {
     achievements,
     newIds: new Set(newlyUnlocked(achievements, seen).map(a => a.id)),
     prs: computeMainLiftPRs(history, unit),
+    muscleMastery: computeMuscleMastery(visibleLifts),
   };
 }

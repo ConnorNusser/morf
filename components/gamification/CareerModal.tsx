@@ -8,6 +8,7 @@ import {
 } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
+import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { captureAndShare } from '@/lib/ui/shareUtils';
@@ -90,6 +91,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <NextGoal achievements={data.achievements} />
             <StatGrid stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
+            <MuscleMasteryView mastery={data.muscleMastery} />
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={data.newIds} />
@@ -254,6 +256,35 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
             </View>
           </View>
         ))}
+      </View>
+    </View>
+  );
+}
+
+// ---- Muscle-group mastery: per-group tier with a percentile bar ----
+function MuscleMasteryView({ mastery }: { mastery: MuscleMastery[] }) {
+  const { currentTheme } = useTheme();
+  if (mastery.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <SectionLabel>Muscle mastery</SectionLabel>
+      <View style={[styles.muscleCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+        {mastery.map(m => {
+          const color = getTierColor(m.tier);
+          return (
+            <View key={m.group} style={styles.muscleRow}>
+              <Text style={[styles.muscleName, { color: currentTheme.colors.text }]}>
+                {m.group.charAt(0).toUpperCase() + m.group.slice(1)}
+              </Text>
+              <View style={[styles.muscleTrack, { backgroundColor: currentTheme.colors.border }]}>
+                <View style={[styles.muscleFill, { backgroundColor: color, width: `${Math.max(3, m.percentile)}%` }]} />
+              </View>
+              <View style={[styles.muscleTier, { borderColor: color }]}>
+                <Text style={[styles.muscleTierText, { color }]}>{m.tier}</Text>
+              </View>
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -528,6 +559,14 @@ const styles = StyleSheet.create({
   prRight: { alignItems: 'flex-end' },
   prValue: { fontSize: 17, fontWeight: '700' },
   prValueLabel: { fontSize: 10, opacity: 0.45, marginTop: 1 },
+
+  muscleCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
+  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  muscleName: { fontSize: 13, fontWeight: '600', width: 78 },
+  muscleTrack: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
+  muscleFill: { height: 7, borderRadius: 4 },
+  muscleTier: { minWidth: 34, alignItems: 'center', borderWidth: 1.5, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1 },
+  muscleTierText: { fontSize: 11, fontWeight: '800' },
 
   ladderRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', height: 44 },
   ladderItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
