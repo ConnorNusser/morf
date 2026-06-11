@@ -12,6 +12,7 @@ import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthMilestones } from './strengthMilestones';
 import { computeTierTimeline, getTierLadder, TierMilestone, TierRung } from './tierTimeline';
+import { computeTrainingHeatmap, TrainingHeatmap } from './trainingHeatmap';
 
 export interface CareerData {
   stats: CareerStats;
@@ -24,6 +25,7 @@ export interface CareerData {
   newIds: Set<string>; // achievements unlocked since last acknowledged
   prs: LiftPR[];
   muscleMastery: MuscleMastery[];
+  heatmap: TrainingHeatmap;
 }
 
 export async function loadCareerData(): Promise<CareerData> {
@@ -67,5 +69,6 @@ export async function loadCareerData(): Promise<CareerData> {
     newIds: new Set(newlyUnlocked(achievements, seen).map(a => a.id)),
     prs: computeMainLiftPRs(history, unit),
     muscleMastery: computeMuscleMastery(visibleLifts),
+    heatmap: computeTrainingHeatmap(history, 12),
   };
 }

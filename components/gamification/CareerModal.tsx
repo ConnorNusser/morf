@@ -12,6 +12,7 @@ import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
+import { TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -102,6 +103,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <NextGoal achievements={data.achievements} />
             <StatGrid stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
+            <ConsistencyView heatmap={data.heatmap} />
             <MuscleMasteryView mastery={data.muscleMastery} />
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
@@ -311,6 +313,41 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
               </Text>
               <Text style={[styles.prValueLabel, { color: currentTheme.colors.text }]}>est. 1RM</Text>
             </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+// ---- Consistency heatmap: last 12 weeks of training days ----
+function ConsistencyView({ heatmap }: { heatmap: TrainingHeatmap }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionLabel>Consistency</SectionLabel>
+        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
+          {heatmap.totalDays} days · 12 wks
+        </Text>
+      </View>
+      <View style={styles.heatGrid}>
+        {heatmap.weeks.map((week, w) => (
+          <View key={w} style={styles.heatCol}>
+            {week.map((cell, d) => (
+              <View
+                key={d}
+                style={[
+                  styles.heatCell,
+                  cell.future
+                    ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
+                    : cell.trained
+                      ? { backgroundColor: accent, opacity: 0.3 + 0.7 * cell.intensity }
+                      : { backgroundColor: currentTheme.colors.border, opacity: 0.5 },
+                ]}
+              />
+            ))}
           </View>
         ))}
       </View>
@@ -658,6 +695,10 @@ const styles = StyleSheet.create({
   prRight: { alignItems: 'flex-end' },
   prValue: { fontSize: 17, fontWeight: '700' },
   prValueLabel: { fontSize: 10, opacity: 0.45, marginTop: 1 },
+
+  heatGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  heatCol: { gap: 4 },
+  heatCell: { width: 15, height: 15, borderRadius: 3 },
 
   muscleCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
   muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
