@@ -124,6 +124,11 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
         {overall}
         <Text style={[styles.heroPercentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
       </Text>
+      {overall > 0 && (
+        <Text style={[styles.heroRank, { color: currentTheme.colors.text }]}>
+          Stronger than {overall}% of lifters
+        </Text>
+      )}
       {nextRung ? (
         <View style={styles.heroProgressWrap}>
           <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
@@ -519,6 +524,7 @@ const styles = StyleSheet.create({
   heroTier: { fontSize: 72, fontWeight: '800', lineHeight: 78 },
   heroPercentile: { fontSize: 20, fontWeight: '600', marginTop: 4 },
   heroPercentileLabel: { fontSize: 14, fontWeight: '400', opacity: 0.5 },
+  heroRank: { fontSize: 13, opacity: 0.55, marginTop: 4 },
   heroProgressWrap: { width: '70%', marginTop: 16, alignItems: 'center' },
   heroTrack: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3 },

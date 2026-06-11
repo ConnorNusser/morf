@@ -43,6 +43,8 @@ const DEFS: AchievementDef[] = [
   { id: 'streak-14', title: 'Locked In', description: '14-day training streak', icon: 'flame', category: 'consistency', target: 14, metric: s => s.longestStreak },
   { id: 'streak-30', title: 'Unstoppable', description: '30-day training streak', icon: 'flame', category: 'consistency', target: 30, metric: s => s.longestStreak },
   { id: 'streak-60', title: 'Iron Will', description: '60-day training streak', icon: 'flame', category: 'consistency', target: 60, metric: s => s.longestStreak },
+  { id: 'streak-100', title: 'Relentless', description: '100-day training streak', icon: 'flame', category: 'consistency', target: 100, metric: s => s.longestStreak },
+  { id: 'member-365', title: 'Veteran', description: 'One year with Morf', icon: 'time', category: 'consistency', target: 365, metric: s => s.daysSinceStart },
   { id: 'days-100', title: 'Regular', description: 'Train on 100 different days', icon: 'calendar', category: 'consistency', target: 100, metric: s => s.daysActive },
   { id: 'days-365', title: 'Year of Iron', description: 'Train on 365 different days', icon: 'calendar', category: 'consistency', target: 365, metric: s => s.daysActive },
 
@@ -53,6 +55,7 @@ const DEFS: AchievementDef[] = [
   { id: 'volume-10m', title: 'Earth Mover', description: 'Lift 10M total', icon: 'planet', category: 'volume', target: 10_000_000, metric: s => s.totalVolume },
   { id: 'reps-10k', title: 'Rep Machine', description: 'Complete 10,000 reps', icon: 'repeat', category: 'volume', target: 10_000, metric: s => s.totalReps },
   { id: 'session-20k', title: 'Big Session', description: 'Move 20K in one workout', icon: 'flash', category: 'volume', target: 20_000, metric: s => s.biggestSessionVolume },
+  { id: 'reps-50k', title: 'Rep God', description: 'Complete 50,000 reps', icon: 'repeat', category: 'volume', target: 50_000, metric: s => s.totalReps },
 
   // Strength — overall percentile / tier gates
   { id: 'tier-c', title: 'Above Average', description: 'Reach C tier', icon: 'shield-half', category: 'strength', target: 31, metric: (_s, p) => p },
