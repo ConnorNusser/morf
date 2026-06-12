@@ -15,7 +15,7 @@
  * refine / convert-to-routines all work unchanged.
  */
 
-import { Equipment, MuscleGroup } from '@/types';
+import { Equipment, MuscleGroup, TrainingAdvancement } from '@/types';
 import { TrainingGoal } from '@/lib/ai/splitTemplates';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import type { GeneratedRoutineDay, GeneratedRoutineProgram } from '@/lib/ai/aiRoutineGenerator';
@@ -23,6 +23,8 @@ import {
   PROGRAMS,
   DAY_TEMPLATES,
   REP_SCHEMES,
+  SLOTS,
+  SlotKey,
   ProgramDef,
   DayTemplate,
   ExerciseSlot,
@@ -32,6 +34,7 @@ export interface DeterministicBuildOptions {
   goal: TrainingGoal;
   days: number;
   equipment: Equipment[];
+  experience?: TrainingAdvancement;
   exerciseCount?: { min: number; max: number };
   focusMuscles?: string[];
   ignoredMuscles?: string[];
@@ -48,6 +51,19 @@ interface ResolvedExercise {
 // id -> workout lookup
 const WORKOUT_BY_ID = new Map(ALL_WORKOUTS.map(w => [w.id, w]));
 
+// Slots grouped by the muscle they target — used to backfill days that come up short
+// (e.g. after skipping a muscle group) with extra work from other areas.
+const SLOTS_BY_TARGET: Partial<Record<MuscleGroup, ExerciseSlot[]>> = (() => {
+  const map: Partial<Record<MuscleGroup, ExerciseSlot[]>> = {};
+  for (const key of Object.keys(SLOTS) as SlotKey[]) {
+    const slot = SLOTS[key];
+    (map[slot.target] ||= []).push(slot);
+  }
+  return map;
+})();
+
+const ALL_MUSCLES: MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'glutes', 'arms', 'core'];
+
 /** Fallback day templates (in priority order) used when a whole day is skipped. */
 const SUBSTITUTE_DAYS = ['upper_gen', 'push', 'pull', 'upper_hyper', 'chest_arms', 'back_shoulders', 'lower_gen'];
 
@@ -55,13 +71,22 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/** A program suits a level if it has no level tag, or explicitly lists the level. */
+function suitsLevel(p: ProgramDef, experience?: TrainingAdvancement): boolean {
+  return !experience || !p.bestFor || p.bestFor.includes(experience);
+}
+
 /**
- * Select a program suited to the goal + days, RNG-picking among the matches for variety.
- * Relaxes constraints progressively if nothing matches exactly.
+ * Select a program suited to the goal + days (+ experience), RNG-picking among the
+ * matches for variety. Relaxes constraints progressively if nothing matches exactly.
  */
-export function selectProgram(goal: TrainingGoal, days: number): ProgramDef {
-  const exact = PROGRAMS.filter(p => p.days === days && p.goals.includes(goal));
-  if (exact.length) return pickRandom(exact);
+export function selectProgram(goal: TrainingGoal, days: number, experience?: TrainingAdvancement): ProgramDef {
+  const byGoalDays = PROGRAMS.filter(p => p.days === days && p.goals.includes(goal));
+
+  // Prefer programs that also fit the lifter's experience level.
+  const levelFit = byGoalDays.filter(p => suitsLevel(p, experience));
+  if (levelFit.length) return pickRandom(levelFit);
+  if (byGoalDays.length) return pickRandom(byGoalDays);
 
   const sameDays = PROGRAMS.filter(p => p.days === days);
   if (sameDays.length) return pickRandom(sameDays);
@@ -162,6 +187,29 @@ function buildDay(
     }
   }
 
+  // 4. Backfill: if the day came up short (e.g. after skipping a muscle group, or a
+  //    template with few accessories), top it up with extra work from the focus areas
+  //    first, then the day's own theme, then any other non-skipped area.
+  if (resolved.length < opts.targetCount) {
+    const fillOrder: MuscleGroup[] = [];
+    const queue = (muscles: MuscleGroup[]) => {
+      for (const m of muscles) {
+        if (!opts.ignored.has(m) && !fillOrder.includes(m)) fillOrder.push(m);
+      }
+    };
+    queue([...opts.focus] as MuscleGroup[]);
+    queue(template.targetMuscles);
+    queue(ALL_MUSCLES);
+
+    for (const muscle of fillOrder) {
+      if (resolved.length >= opts.targetCount) break;
+      for (const slot of SLOTS_BY_TARGET[muscle] || []) {
+        if (resolved.length >= opts.targetCount) break;
+        tryAdd(slot, false);
+      }
+    }
+  }
+
   const exercises = resolved.map(({ ex, isCore }) => {
     const { sets, reps } = setsRepsFor(program, isCore, ex.isCompound);
     return { name: ex.name, sets, reps };
@@ -180,7 +228,7 @@ function buildDay(
 }
 
 export function buildDeterministicProgram(options: DeterministicBuildOptions): GeneratedRoutineProgram {
-  const program = selectProgram(options.goal, options.days);
+  const program = selectProgram(options.goal, options.days, options.experience);
 
   const available = new Set(options.equipment);
   const excluded = new Set(options.excludedExerciseIds || []);

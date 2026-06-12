@@ -318,6 +318,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
       ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
       trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
+      experienceLevel,
       workoutDuration: selectedDuration!,
       exercisesPerWorkout: durationConfig ? { min: durationConfig.min, max: durationConfig.max } : undefined,
       includedExercises: includedExercises.length > 0 ? includedExercises : undefined,

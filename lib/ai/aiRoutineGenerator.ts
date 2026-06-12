@@ -3,7 +3,7 @@
  * Creates workout routines based on proven program methodologies
  */
 
-import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, UserProfile, WeightUnit, convertWeight } from '@/types';
+import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile, WeightUnit, convertWeight } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import {
@@ -66,6 +66,7 @@ export interface GenerateRoutineOptions {
   includedExercises?: string[];  // Exercises to definitely include
   excludedExercises?: string[];  // Exercises to definitely exclude
   customRequest?: string;  // Freeform notes from the lifter (injuries, loose avoids, preferences)
+  experienceLevel?: TrainingAdvancement;  // Biases deterministic program selection
 }
 
 class AIRoutineGeneratorService {
@@ -116,6 +117,7 @@ class AIRoutineGeneratorService {
       goal: options.trainingGoal,
       days: options.weeklyDays,
       equipment,
+      experience: options.experienceLevel,
       exerciseCount: options.exercisesPerWorkout,
       focusMuscles: options.focusMuscles,
       ignoredMuscles: options.ignoredMuscles,
