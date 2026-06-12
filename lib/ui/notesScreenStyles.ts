@@ -72,10 +72,54 @@ export const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 14,
   },
-  upNextLabel: {
-    fontSize: 12,
+  upNextInline: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  upNextInlineText: {
+    fontSize: 10,
     letterSpacing: 0.5,
-    marginBottom: 8,
+  },
+  // Program timeline (days threaded onto a left spine)
+  timeline: {
+    marginTop: 2,
+  },
+  timelineRow: {
+    flexDirection: 'row',
+  },
+  spine: {
+    width: 26,
+  },
+  spineDot: {
+    position: 'absolute',
+    top: 18,
+    left: 6,
+    width: 13,
+    height: 13,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  spineLineTop: {
+    position: 'absolute',
+    top: 0,
+    height: 24,
+    left: 11,
+    width: 2,
+  },
+  spineLineBottom: {
+    position: 'absolute',
+    top: 24,
+    bottom: 0,
+    left: 11,
+    width: 2,
+  },
+  routineCardFlat: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    paddingVertical: 12,
+    marginBottom: 0,
   },
   renameOverlay: {
     flex: 1,

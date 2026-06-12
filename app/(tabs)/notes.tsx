@@ -335,7 +335,7 @@ export default function NotesScreen() {
     }
   };
 
-  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
+  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false, flat = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
@@ -352,8 +352,8 @@ export default function NotesScreen() {
         key={routine.id}
         style={[
           styles.routineCard,
-          { backgroundColor: currentTheme.colors.surface },
-          isUpNext && styles.upNextCard,
+          flat ? styles.routineCardFlat : { backgroundColor: currentTheme.colors.surface },
+          isUpNext && !flat && styles.upNextCard,
         ]}
         onPress={() => toggleRoutineExpanded(routine.id)}
         activeOpacity={0.7}
@@ -374,6 +374,11 @@ export default function NotesScreen() {
               >
                 {routine.name}
               </Text>
+              {isUpNext && (
+                <RNView style={[styles.upNextInline, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                  <Text weight="semiBold" style={[styles.upNextInlineText, { color: currentTheme.colors.primary }]}>UP NEXT</Text>
+                </RNView>
+              )}
               {!isActive && (
                 <RNView style={[styles.pausedBadge, { backgroundColor: currentTheme.colors.text + '15' }]}>
                   <Ionicons name="moon" size={10} color={currentTheme.colors.text + '50'} />
@@ -663,22 +668,31 @@ export default function NotesScreen() {
                     </TouchableOpacity>
                   </RNView>
 
-                  {/* Days */}
-                  {isExpanded && orderedDays.map((routine) => {
-                    const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
-                    return (
-                      <RNView key={routine.id}>
-                        {isUpNext && (
-                          <Text weight="semiBold" style={[styles.upNextLabel, { color: currentTheme.colors.primary }]}>UP NEXT</Text>
-                        )}
-                        {isUpNext ? (
-                          <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
-                        ) : (
-                          renderRoutineCard(routine)
-                        )}
-                      </RNView>
-                    );
-                  })}
+                  {/* Days — threaded onto a timeline spine so they read as one program */}
+                  {isExpanded && (
+                    <RNView style={styles.timeline}>
+                      {orderedDays.map((routine, idx) => {
+                        const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
+                        const isFirst = idx === 0;
+                        const isLast = idx === orderedDays.length - 1;
+                        const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
+                        const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
+                        const body = isUpNext
+                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true, true)}</TutorialTarget>
+                          : renderRoutineCard(routine, false, true);
+                        return (
+                          <RNView key={routine.id} style={styles.timelineRow}>
+                            <RNView style={styles.spine}>
+                              {!isFirst && <RNView style={[styles.spineLineTop, { backgroundColor: currentTheme.colors.border }]} />}
+                              {!isLast && <RNView style={[styles.spineLineBottom, { backgroundColor: currentTheme.colors.border }]} />}
+                              <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                            </RNView>
+                            <RNView style={layout.flex1}>{body}</RNView>
+                          </RNView>
+                        );
+                      })}
+                    </RNView>
+                  )}
                 </RNView>
               );
             })}
