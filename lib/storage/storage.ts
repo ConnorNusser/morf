@@ -2,6 +2,7 @@ import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Rout
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
+import { emitRoutinesChanged } from '@/lib/storage/routineEvents';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -323,6 +324,7 @@ class StorageService {
 
   async setCurrentRoutine(routine: Routine): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_ROUTINE, JSON.stringify(routine));
+    emitRoutinesChanged();
   };
 
   async getRoutines(): Promise<Routine[]> {
@@ -365,6 +367,7 @@ class StorageService {
       }
 
       await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+      emitRoutinesChanged();
     } catch (error) {
       console.error('Error saving routine:', error);
     }
@@ -377,6 +380,7 @@ class StorageService {
       if (routine) {
         routine.lastUsed = new Date();
         await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+        emitRoutinesChanged();
       }
     } catch (error) {
       console.error('Error updating routine last used:', error);
@@ -387,12 +391,14 @@ class StorageService {
     const routines = await this.getRoutines();
     const filtered = routines.filter(r => r.id !== routineId);
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(filtered));
+    emitRoutinesChanged();
   }
 
   // Remove every routine and clear the current-routine pointer.
   async clearAllRoutines(): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify([]));
     await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_ROUTINE);
+    emitRoutinesChanged();
   }
 
   async getWorkoutRoutines(): Promise<GeneratedWorkout[]> {

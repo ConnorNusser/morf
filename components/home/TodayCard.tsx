@@ -3,6 +3,7 @@ import { generateRoutineText } from "@/components/workout/RoutineImportModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { storageService } from "@/lib/storage/storage";
+import { useRoutinesChanged } from "@/lib/storage/routineEvents";
 import { formatRelativeTime } from "@/lib/ui/formatters";
 import { getTodayRoutine } from "@/lib/workout/activeRoutine";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
@@ -96,6 +97,10 @@ export default function TodayCard() {
       load();
     }, [load]),
   );
+
+  // Push update: refresh immediately when a routine is edited/paused/deleted
+  // anywhere, even while this card is mounted-but-unfocused in the tab navigator.
+  useRoutinesChanged(load);
 
   const handleStart = useCallback(() => {
     if (!calculated) return;

@@ -10,6 +10,7 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { getTodayRoutine } from '@/lib/workout/activeRoutine';
+import { useRoutinesChanged } from '@/lib/storage/routineEvents';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
@@ -135,6 +136,10 @@ export default function NotesScreen() {
       loadData();
     }, [loadData])
   );
+
+  // Push update: stay in sync when routines change from anywhere (keeps this list
+  // and the dashboard's Up Next reacting to the same events).
+  useRoutinesChanged(loadData);
 
   const handleRefresh = async () => {
     setRefreshing(true);
