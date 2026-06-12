@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import { useImageCarousel } from '@/hooks/useImageCarousel';
 import { useMute } from '@/hooks/useMute';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoPlayerContext } from '@/contexts/VideoPlayerContext';
@@ -44,9 +45,6 @@ function FeedPostCard({
 }: FeedPostCardProps) {
   const { currentTheme } = useTheme();
   const { registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches } = useVideoPlayerContext();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showFullScreen, setShowFullScreen] = useState(false);
-  const [fullScreenInitialIndex, setFullScreenInitialIndex] = useState(0);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isHoldingVideo, setIsHoldingVideo] = useState(false);
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set());
@@ -59,6 +57,8 @@ function FeedPostCard({
     .filter(m => m.type === 'image')
     .map(m => m.url)
     .filter(url => !failedMedia.has(url));
+
+  const { currentImageIndex, showFullScreen, fullScreenInitialIndex, setShowFullScreen, handleImagePress, handleImageScroll } = useImageCarousel(imageUrls, MEDIA_WIDTH);
   const hasVideo = firstVideo && !videoFailed;
   const hasMedia = (imageUrls.length > 0 || hasVideo);
 
@@ -148,18 +148,7 @@ function FeedPostCard({
   const comments = feedData?.comments || [];
   const commentCount = comments.length;
 
-  const handleImageScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / MEDIA_WIDTH);
-    if (index !== currentImageIndex && index >= 0 && index < imageUrls.length) {
-      setCurrentImageIndex(index);
-    }
-  };
 
-  const handleImagePress = (index: number) => {
-    setFullScreenInitialIndex(index);
-    setShowFullScreen(true);
-  };
 
   return (
     <>
