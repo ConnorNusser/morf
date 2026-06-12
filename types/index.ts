@@ -127,9 +127,6 @@ export const ALL_MAIN_LIFTS: MainLiftType[] = Object.values(MAIN_LIFTS);
 // Array of all featured secondary lifts for iteration
 export const ALL_FEATURED_SECONDARY_LIFTS: FeaturedSecondaryLiftType[] = Object.values(FEATURED_SECONDARY_LIFTS);
 
-// Array of all featured lifts (main + secondary) for iteration
-export const ALL_FEATURED_LIFTS: FeaturedLiftType[] = [...ALL_MAIN_LIFTS, ...ALL_FEATURED_SECONDARY_LIFTS];
-
 // Helper to check if an exercise ID is a main lift
 export const isMainLift = (exerciseId: string): exerciseId is MainLiftType => {
   return ALL_MAIN_LIFTS.includes(exerciseId as MainLiftType);
@@ -221,20 +218,6 @@ export interface WorkoutExerciseSession extends ExerciseSet {
   isCompleted: boolean;
 }
 
-export interface ActiveWorkoutSession {
-  id: string;
-  workoutId: string;
-  title: string;
-  exercises: WorkoutExerciseSession[];
-  startTime: Date;
-  // i can probably remove this and just use the exercises array
-  currentExerciseIndex: number;
-  // i can probably remove this and just use the exercises array
-  currentSetIndex: number;
-  isCompleted: boolean;
-  totalRestTime: number; // in seconds
-}
-
 // ===== AI WORKOUT TYPES =====
 
 // Minimal exercise structure - just what AI provides
@@ -279,22 +262,6 @@ export type SplitType =
   | 'core'
   | 'cardio'
   | 'custom';
-
-export const SPLIT_TYPE_LABELS: Record<SplitType, string> = {
-  push: 'Push',
-  pull: 'Pull',
-  legs: 'Legs',
-  upper: 'Upper',
-  lower: 'Lower',
-  full_body: 'Full Body',
-  chest: 'Chest',
-  back: 'Back',
-  shoulders: 'Shoulders',
-  arms: 'Arms',
-  core: 'Core',
-  cardio: 'Cardio',
-  custom: 'Custom',
-};
 
 // Per-exercise progression tracking within a routine
 export interface ExerciseProgressionState {
@@ -390,33 +357,7 @@ export interface WorkoutContext {
   };
 }
 
-export interface WorkoutAnalysis {
-  recentExerciseIds: string[];
-  overallPercentile: number;
-  strengthLevel: string;
-  // For auto-generated workouts
-  autoFocus?: {
-    recommendedSplit: WorkoutSplit;
-    reasoning: string;
-    muscleGroupGaps: string[];
-  };
-  // For user-selected splits
-  splitWeaknesses?: {
-    weakerAreas: string[];
-    progressionAnalysis: string[];
-    progressionIssues: string[];
-  };
-}
-
 // ===== STORAGE TYPES =====
-
-export interface UserPreferences {
-  preferredEquipment: string[];
-  workoutDuration: number; // minutes
-  excludeBodyweight: boolean;
-  favoriteExercises: string[];
-  notifications: boolean;
-}
 
 // Custom user-created exercise (same structure as Workout but user-created)
 export interface CustomExercise extends Workout {

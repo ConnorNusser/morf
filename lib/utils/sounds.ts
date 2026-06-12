@@ -30,22 +30,3 @@ export type SoundName = keyof typeof SOUNDS;
 // Helper function to get sound by name
 export const getSound = (soundName: SoundName) => SOUNDS[soundName];
 
-// List of all available sound names
-export const SOUND_NAMES = Object.keys(SOUNDS) as SoundName[];
-
-// Sound categories for better organization
-export const SOUND_CATEGORIES = {
-  feedback: ['beep', 'pop'] as SoundName[],
-  notifications: ['notification'] as SoundName[],
-  transitions: ['whoosh'] as SoundName[],
-  
-  // UI interactions
-  taps: ['tapVariant1', 'tapVariant2', 'tapVariant3', 'tapVariant4'] as SoundName[],
-  security: ['unlock', 'lock'] as SoundName[],
-  
-  // Navigation
-  navigation: ['hoverTap', 'selectionComplete', 'forwardMinimal', 'backwardMinimal'] as SoundName[],
-  
-  // State changes
-  stateChanges: ['confirmUp', 'confirmDown'] as SoundName[],
-} as const; 
