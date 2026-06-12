@@ -1,5 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
+import { formatRelativeDate } from '@/lib/ui/formatters';
 import { TutorialTarget } from '@/components/tutorial/TutorialTarget';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
@@ -165,16 +166,6 @@ export default function NotesScreen() {
     })[0];
   }, [activeProgramGroup]);
 
-  const formatRelativeDate = (date: Date): string => {
-    const now = new Date();
-    const d = new Date(date);
-    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const handleDeleteRoutine = useCallback((routineId: string, routineName: string) => {
     showAlert({

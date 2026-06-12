@@ -6,7 +6,7 @@ import StrengthHistoryModal from '@/components/StrengthHistoryModal';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getPercentileColor, AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
@@ -136,10 +136,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
   }, [lifts]);
   const _overallLevel = getStrengthLevelName(overallPercentile);
 
-  const getPercentileColor = (percentile: number) => {
-    const tier = getStrengthTier(percentile);
-    return getTierColor(tier);
-  };
 
   const sortedLifts = useMemo(() => {
     return lifts

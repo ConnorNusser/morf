@@ -32,6 +32,27 @@ export const formatDuration = (seconds: number): string => {
 };
 
 /**
+ * Relative date label: "Today" / "Yesterday" / weekday (<7d) / "Mon 5".
+ */
+export const formatRelativeDate = (date: Date): string => {
+  const now = new Date();
+  const d = new Date(date);
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+/**
+ * Short calendar date from a date string: "Mon 5".
+ */
+export const formatShortDate = (dateStr: string): string => {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+};
+
+/**
  * Format weight with unit (e.g., "185 lbs", "84 kg")
  */
 export const formatWeight = (weight: number, unit: 'lbs' | 'kg' = 'lbs'): string => {

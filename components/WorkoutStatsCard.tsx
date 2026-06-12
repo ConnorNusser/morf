@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
+import { getPercentileColor, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
@@ -25,10 +25,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
-  const getPercentileColor = (percentile: number) => {
-    const tier = getStrengthTier(percentile);
-    return getTierColor(tier);
-  };
 
   const { play: playForwardMinimal } = useSound('forwardMinimal');
 

@@ -883,6 +883,11 @@ export function getTierColor(tier: StrengthTier): string {
   return TIER_COLORS[getBaseTier(tier)];
 }
 
+// Color for a raw percentile (strength tier → color), used by stat cards/modals.
+export function getPercentileColor(percentile: number): string {
+  return getTierColor(getStrengthTier(percentile));
+}
+
 // Helper function to get strength level name using theme levels (legacy, returns tier)
 export function getStrengthLevelName(percentile: number): string {
   return getStrengthTier(percentile);

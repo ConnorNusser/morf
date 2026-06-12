@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
+import { formatShortDate as formatDate } from '@/lib/ui/formatters';
 import Svg, { Path, Line, Text as SvgText, Circle } from 'react-native-svg';
 import Card from './Card';
 import StrengthHistoryModal from './StrengthHistoryModal';
@@ -93,10 +94,6 @@ function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
   const changeColor = change > 0 ? '#22C55E' : change < 0 ? '#EF4444' : currentTheme.colors.text + '60';
 
   // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   return (
     <>
