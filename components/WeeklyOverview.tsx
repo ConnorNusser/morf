@@ -1,6 +1,6 @@
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,23 +42,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [modalWorkouts, setModalWorkouts] = useState<GeneratedWorkout[]>([]);
 
-  const getWorkoutCategory = (workout: GeneratedWorkout): string => {
-    const title = workout.title.toLowerCase();
-    
-    if (title.includes('push') || title.includes('chest') || title.includes('bench')) {
-      return 'push';
-    } else if (title.includes('pull') || title.includes('back') || title.includes('deadlift')) {
-      return 'pull';
-    } else if (title.includes('leg') || title.includes('squat') || title.includes('glute')) {
-      return 'legs';
-    } else if (title.includes('upper') || title.includes('arm')) {
-      return 'upper';
-    } else if (title.includes('full') || title.includes('total')) {
-      return 'full';
-    } else {
-      return 'other';
-    }
-  };
 
   const _getCategoryColor = (_category: string): string => {
     return currentTheme.colors.primary;
@@ -179,14 +162,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     );
     const combinedStats = combineWorkoutStats(workoutStatsList);
 
-    const formatTime = (minutes: number) => {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      if (hours > 0) {
-        return `${hours}h ${mins}m`;
-      }
-      return `${mins}m`;
-    };
 
     const formatVolume = (volume: number) => {
       if (volume >= 1000) {

@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -183,11 +183,6 @@ export default function MonthlyTrendsModal({
     return volume.toString();
   };
 
-  const formatTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    if (hours > 0) return `${hours}h ${minutes % 60}m`;
-    return `${minutes}m`;
-  };
 
   const handleClose = () => {
     playTap();

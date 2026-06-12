@@ -1,4 +1,4 @@
-import { WeightUnit, TrackingType } from "@/types";
+import { WeightUnit, TrackingType, GeneratedWorkout } from "@/types";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
@@ -77,6 +77,36 @@ export const formatDuration = (seconds: number): string => {
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
+ * Format a whole-minutes duration as "1h 30m" / "30m" (used by the overview/trends modals).
+ */
+export const formatMinutes = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
+/**
+ * Categorize a workout into a split bucket from its title (push/pull/legs/upper/full/other).
+ */
+export const getWorkoutCategory = (workout: GeneratedWorkout): string => {
+  const title = workout.title.toLowerCase();
+
+  if (title.includes('push') || title.includes('chest') || title.includes('bench')) {
+    return 'push';
+  } else if (title.includes('pull') || title.includes('back') || title.includes('deadlift')) {
+    return 'pull';
+  } else if (title.includes('leg') || title.includes('squat') || title.includes('glute')) {
+    return 'legs';
+  } else if (title.includes('upper') || title.includes('arm')) {
+    return 'upper';
+  } else if (title.includes('full') || title.includes('total')) {
+    return 'full';
+  } else {
+    return 'other';
+  }
 };
 
 /**

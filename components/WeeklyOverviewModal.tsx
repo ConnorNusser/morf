@@ -1,7 +1,7 @@
 import Chart from '@/components/Chart'; // Added import for Chart component
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo } from 'react';
@@ -37,23 +37,6 @@ export default function WeeklyOverviewModal({
     return exerciseInfo?.trackingType;
   };
 
-  const getWorkoutCategory = (workout: GeneratedWorkout): string => {
-    const title = workout.title.toLowerCase();
-    
-    if (title.includes('push') || title.includes('chest') || title.includes('bench')) {
-      return 'push';
-    } else if (title.includes('pull') || title.includes('back') || title.includes('deadlift')) {
-      return 'pull';
-    } else if (title.includes('leg') || title.includes('squat') || title.includes('glute')) {
-      return 'legs';
-    } else if (title.includes('upper') || title.includes('arm')) {
-      return 'upper';
-    } else if (title.includes('full') || title.includes('total')) {
-      return 'full';
-    } else {
-      return 'other';
-    }
-  };
 
   const getCategoryColor = (category: string): string => {
     switch (category) {
@@ -196,14 +179,6 @@ export default function WeeklyOverviewModal({
     return `${volume} lbs`;
   };
 
-  const formatTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins}m`;
-    }
-    return `${mins}m`;
-  };
 
   const getModalTitle = () => {
     switch (invocationType) {
