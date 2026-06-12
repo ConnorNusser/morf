@@ -235,18 +235,6 @@ export interface ActiveWorkoutSession {
   totalRestTime: number; // in seconds
 }
 
-export const convertActiveWorkoutSessionToGeneratedWorkout = (activeWorkoutSession: ActiveWorkoutSession): GeneratedWorkout => {
-  return {
-    id: activeWorkoutSession.id,
-    title: activeWorkoutSession.title,
-    exercises: activeWorkoutSession.exercises,
-    description: '',
-    estimatedDuration: 0,
-    difficulty: '',
-    createdAt: new Date(),
-  };
-};
-
 // ===== AI WORKOUT TYPES =====
 
 // Minimal exercise structure - just what AI provides

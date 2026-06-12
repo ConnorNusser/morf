@@ -38,18 +38,3 @@ export async function captureAndShare(viewRef: RefObject<ViewShot>): Promise<boo
     return false;
   }
 }
-
-export async function captureToUri(viewRef: RefObject<ViewShot>): Promise<string | null> {
-  try {
-    if (!viewRef.current) {
-      console.error('ViewShot ref is not available');
-      return null;
-    }
-
-    const uri = await viewRef.current.capture?.();
-    return uri || null;
-  } catch (error) {
-    console.error('Error capturing view:', error);
-    return null;
-  }
-}

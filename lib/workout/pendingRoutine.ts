@@ -18,7 +18,3 @@ export function getPendingRoutineId(): string | null {
   pendingRoutineId = null; // Clear after reading
   return id;
 }
-
-export function clearPendingRoutineId() {
-  pendingRoutineId = null;
-}

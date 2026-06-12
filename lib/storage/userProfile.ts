@@ -113,19 +113,3 @@ export const isThemeUnlocked = (level: ThemeLevel, userPercentile: number, share
   // For fitness themes, check percentile
   return userPercentile >= getThemeRequiredPercentile(level);
 };
-
-// Get theme level order for progression
-export const getThemeOrder = (level: ThemeLevel): number => {
-  const order: Record<ThemeLevel, number> = {
-    beginner: 1,
-    beginner_dark: 1,  // Same level as beginner (just dark variant)
-    intermediate: 2,
-    advanced: 3,
-    elite: 4,
-    god: 5,
-    share_warm: 6,  // Shareable themes come after fitness themes
-    share_cool: 7,
-    winter_2026: 8,   // Seasonal themes at the end
-  };
-  return order[level];
-};

@@ -349,40 +349,6 @@ export const formatWorkoutStatsLine = (
 };
 
 /**
- * Format aggregate stats for weekly/monthly totals
- *
- * Example: "125k lbs · 25km · 2h cardio"
- */
-export const formatAggregateStats = (
-  stats: WorkoutStats,
-  options: { unit?: WeightUnit } = {}
-): string => {
-  const { unit = 'lbs' } = options;
-  const parts: string[] = [];
-
-  if (stats.hasWeightedExercises && stats.totalVolumeLbs > 0) {
-    parts.push(formatVolume(stats.totalVolumeLbs, unit));
-  }
-
-  if (stats.hasCardioExercises) {
-    if (stats.totalDistanceMeters > 0) {
-      parts.push(formatDistance(stats.totalDistanceMeters));
-    }
-    if (stats.totalCardioDurationSeconds > 0) {
-      // For aggregates, format as hours if > 1 hour
-      const hours = stats.totalCardioDurationSeconds / 3600;
-      if (hours >= 1) {
-        parts.push(`${hours.toFixed(1)}h cardio`);
-      } else {
-        parts.push(`${formatDuration(stats.totalCardioDurationSeconds)} cardio`);
-      }
-    }
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : '—';
-};
-
-/**
  * Combine multiple WorkoutStats into aggregate totals
  */
 export const combineWorkoutStats = (statsList: WorkoutStats[]): WorkoutStats => {

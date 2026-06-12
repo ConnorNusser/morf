@@ -98,9 +98,3 @@ export function useCustomExercises() {
   }
   return context;
 }
-
-// Helper to get custom exercises outside of React components (for lib functions)
-// This fetches fresh from storage - use sparingly
-export async function getCustomExercisesFromStorage(): Promise<CustomExercise[]> {
-  return storageService.getCustomExercises();
-}

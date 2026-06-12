@@ -32,13 +32,6 @@ export const formatDuration = (seconds: number): string => {
 };
 
 /**
- * Format a number with locale-specific separators (e.g., 1,234,567)
- */
-export const formatNumber = (num: number): string => {
-  return num.toLocaleString();
-};
-
-/**
  * Format weight with unit (e.g., "185 lbs", "84 kg")
  */
 export const formatWeight = (weight: number, unit: 'lbs' | 'kg' = 'lbs'): string => {

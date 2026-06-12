@@ -55,7 +55,3 @@ export function TutorialTarget({ id, children, style }: TutorialTargetProps) {
 export function getTargetPosition(id: string) {
   return tutorialTargetRegistry.get(id);
 }
-
-export function clearTargetRegistry() {
-  tutorialTargetRegistry.clear();
-}
