@@ -364,9 +364,10 @@ export default function NotesScreen() {
           <RNView style={styles.cardInfo}>
             <RNView style={styles.routineNameRow}>
               <Text
+                weight="semiBold"
                 style={[
                   styles.routineName,
-                  { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold },
+                  { color: currentTheme.colors.text },
                   !isActive && { opacity: 0.5 }
                 ]}
                 numberOfLines={1}
@@ -379,11 +380,11 @@ export default function NotesScreen() {
                 </RNView>
               )}
             </RNView>
-            <Text style={[styles.routineSubtitle, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.routineSubtitle, { color: currentTheme.colors.text + '70' }]}>
               {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
               {muscleGroups.length > 0 && ` · ${muscleGroups.join(', ')}`}
             </Text>
-            <Text style={[styles.routineDate, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.routineDate, { color: currentTheme.colors.text + '40' }]}>
               {routine.lastUsed ? formatRelativeDate(routine.lastUsed) : `Created ${formatRelativeDate(routine.createdAt)}`}
             </Text>
 
@@ -391,7 +392,7 @@ export default function NotesScreen() {
             {!isExpanded && hasExercisesNeedingDeload && (
               <RNView style={[styles.deloadBanner, { backgroundColor: '#FF3B30' + '15' }]}>
                 <Ionicons name="warning" size={12} color="#FF3B30" />
-                <Text style={[styles.deloadBannerText, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                <Text weight="medium" style={[styles.deloadBannerText, { color: '#FF3B30' }]}>
                   {exercisesNeedingDeload.length} exercise{exercisesNeedingDeload.length > 1 ? 's' : ''} stalling
                 </Text>
                 <TouchableOpacity
@@ -404,7 +405,7 @@ export default function NotesScreen() {
                   }}
                   style={[styles.deloadBannerButton, { backgroundColor: '#FF3B30' }]}
                 >
-                  <Text style={[styles.deloadBannerButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text weight="semiBold" style={[styles.deloadBannerButtonText]}>
                     Deload
                   </Text>
                 </TouchableOpacity>
@@ -424,14 +425,14 @@ export default function NotesScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Text style={[styles.startButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>Start</Text>
+            <Text weight="semiBold" style={[styles.startButtonText]}>Start</Text>
           </TouchableOpacity>
         </RNView>
 
         {/* Expand hint - only when collapsed */}
         {!isExpanded && (
           <RNView style={styles.expandHint}>
-            <Text style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3', fontFamily: currentTheme.fonts.medium }]}>
+            <Text weight="medium" style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3' }]}>
               See details
             </Text>
             <Ionicons name="chevron-down" size={12} color={currentTheme.colors.text + 'B3'} />
@@ -450,10 +451,10 @@ export default function NotesScreen() {
                     style={styles.exerciseRow}
                   >
                     <RNView style={styles.exerciseInfo}>
-                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text weight="medium" style={[styles.exerciseName, { color: currentTheme.colors.text }]}>
                         {exercise.exerciseName}
                       </Text>
-                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text weight="regular" style={[styles.exerciseSets, { color: currentTheme.colors.text + '50' }]}>
                         {exercise.sets?.length || 0} sets × {exercise.sets?.[0]?.reps || 0} reps
                       </Text>
                     </RNView>
@@ -462,7 +463,7 @@ export default function NotesScreen() {
                       {exercise.workingWeight > 0 ? (
                         <>
                           <RNView style={styles.weightRow}>
-                            <Text style={[styles.weightValue, { color: currentTheme.colors.text + '90', fontFamily: currentTheme.fonts.medium }]}>
+                            <Text weight="medium" style={[styles.weightValue, { color: currentTheme.colors.text + '90' }]}>
                               {exercise.workingWeight} {exercise.unit}
                             </Text>
                             <Ionicons
@@ -477,14 +478,14 @@ export default function NotesScreen() {
                               onPress={() => handleDeloadExercise(routine, exercise.exerciseId)}
                               style={styles.deloadButton}
                             >
-                              <Text style={[styles.deloadWarning, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                              <Text weight="medium" style={[styles.deloadWarning, { color: '#FF3B30' }]}>
                                 Tap to deload
                               </Text>
                             </TouchableOpacity>
                           )}
                         </>
                       ) : (
-                        <Text style={[styles.noDataText, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text weight="regular" style={[styles.noDataText, { color: currentTheme.colors.text + '30' }]}>
                           —
                         </Text>
                       )}
@@ -504,7 +505,7 @@ export default function NotesScreen() {
                 }}
               >
                 <Ionicons name="options-outline" size={18} color={currentTheme.colors.text + '60'} />
-                <Text style={[styles.actionText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: currentTheme.colors.text + '60' }]}>
                   Edit
                 </Text>
               </TouchableOpacity>
@@ -521,7 +522,7 @@ export default function NotesScreen() {
                   size={18}
                   color={isActive ? '#FF9500' : '#34C759'}
                 />
-                <Text style={[styles.actionText, { color: isActive ? '#FF9500' : '#34C759', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: isActive ? '#FF9500' : '#34C759' }]}>
                   {isActive ? 'Pause' : 'Resume'}
                 </Text>
               </TouchableOpacity>
@@ -534,7 +535,7 @@ export default function NotesScreen() {
                 }}
               >
                 <Ionicons name="close-circle-outline" size={18} color="#FF453A" />
-                <Text style={[styles.actionText, { color: '#FF453A', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: '#FF453A' }]}>
                   Remove
                 </Text>
               </TouchableOpacity>
@@ -549,7 +550,7 @@ export default function NotesScreen() {
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <RNView style={styles.header}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+        <Text weight="bold" style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
           Routines
         </Text>
         <RNView style={styles.headerActions}>
@@ -590,7 +591,7 @@ export default function NotesScreen() {
                 activeOpacity={0.7}
               >
                 <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                <Text style={[styles.progressButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                <Text weight="medium" style={[styles.progressButtonText, { color: currentTheme.colors.text }]}>
                   View Progress
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '30'} />
@@ -617,14 +618,14 @@ export default function NotesScreen() {
                   >
                     <RNView style={layout.flex1}>
                       <RNView style={styles.programTitleRow}>
-                        <Text style={[styles.programName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+                        <Text weight="semiBold" style={[styles.programName, { color: currentTheme.colors.text }]} numberOfLines={1}>
                           {program.name}
                         </Text>
                         <RNView style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
-                          <Text style={[styles.statusPillText, { color: statusColor, fontFamily: currentTheme.fonts.semiBold }]}>{statusLabel}</Text>
+                          <Text weight="semiBold" style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
                         </RNView>
                       </RNView>
-                      <Text style={[styles.programMeta, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text weight="regular" style={[styles.programMeta, { color: currentTheme.colors.text + '60' }]}>
                         {program.days} day{program.days === 1 ? '' : 's'}{program.source ? ` · ${program.source.program}` : ''}
                       </Text>
                     </RNView>
@@ -668,7 +669,7 @@ export default function NotesScreen() {
                     return (
                       <RNView key={routine.id}>
                         {isUpNext && (
-                          <Text style={[styles.upNextLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>UP NEXT</Text>
+                          <Text weight="semiBold" style={[styles.upNextLabel, { color: currentTheme.colors.primary }]}>UP NEXT</Text>
                         )}
                         {isUpNext ? (
                           <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
@@ -685,7 +686,7 @@ export default function NotesScreen() {
             {/* My Routines — loose routines not tied to a program */}
             {standaloneRoutines.length > 0 && (
               <RNView style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text weight="semiBold" style={[styles.sectionLabel, { color: currentTheme.colors.text + '50' }]}>
                   MY ROUTINES
                 </Text>
                 {standaloneRoutines.map((routine) => renderRoutineCard(routine))}
@@ -697,10 +698,10 @@ export default function NotesScreen() {
             <RNView style={[styles.emptyIcon, { backgroundColor: currentTheme.colors.surface }]}>
               <Ionicons name="sparkles" size={32} color={currentTheme.colors.primary} />
             </RNView>
-            <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text weight="semiBold" style={[styles.emptyTitle, { color: currentTheme.colors.text }]}>
               No routines yet
             </Text>
-            <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.emptyText, { color: currentTheme.colors.text + '50' }]}>
               Generate a personalized program{'\n'}based on your goals
             </Text>
             <TouchableOpacity
@@ -708,7 +709,7 @@ export default function NotesScreen() {
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.emptyButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text weight="semiBold" style={[styles.emptyButtonText]}>
                 Generate with AI
               </Text>
             </TouchableOpacity>
@@ -747,7 +748,7 @@ export default function NotesScreen() {
       <Modal visible={!!renamingProgram} transparent animationType="fade" onRequestClose={() => setRenamingProgram(null)}>
         <RNView style={styles.renameOverlay}>
           <RNView style={[styles.renameCard, { backgroundColor: currentTheme.colors.surface }]}>
-            <Text style={[styles.renameTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text weight="semiBold" style={[styles.renameTitle, { color: currentTheme.colors.text }]}>
               Rename program
             </Text>
             <TextInput
@@ -764,10 +765,10 @@ export default function NotesScreen() {
             />
             <RNView style={styles.renameButtons}>
               <TouchableOpacity style={styles.renameCancel} onPress={() => setRenamingProgram(null)} activeOpacity={0.7}>
-                <Text style={[styles.renameCancelText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>Cancel</Text>
+                <Text weight="medium" style={[styles.renameCancelText, { color: currentTheme.colors.text + '99' }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.renameSave, { backgroundColor: currentTheme.colors.primary }]} onPress={handleRenameSave} activeOpacity={0.85}>
-                <Text style={[styles.renameSaveText, { fontFamily: currentTheme.fonts.semiBold }]}>Save</Text>
+                <Text weight="semiBold" style={[styles.renameSaveText]}>Save</Text>
               </TouchableOpacity>
             </RNView>
           </RNView>
