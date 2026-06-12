@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useLikePop } from '@/hooks/useLikePop';
 import React, { useState, useEffect } from 'react';
 import {
   Dimensions,
@@ -59,10 +60,7 @@ export default function FullScreenImageViewer({
   const hasSocialFeatures = onLike !== undefined;
 
   // Like animation
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -82,10 +80,7 @@ export default function FullScreenImageViewer({
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.3, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike?.();
   };
 

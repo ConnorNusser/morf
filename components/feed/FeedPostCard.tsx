@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import { useMute } from '@/hooks/useMute';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoPlayerContext } from '@/contexts/VideoPlayerContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
@@ -47,7 +48,6 @@ function FeedPostCard({
   const [showFullScreen, setShowFullScreen] = useState(false);
   const [fullScreenInitialIndex, setFullScreenInitialIndex] = useState(0);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [isHoldingVideo, setIsHoldingVideo] = useState(false);
   const [failedMedia, setFailedMedia] = useState<Set<string>>(new Set());
   const [videoFailed, setVideoFailed] = useState(false);
@@ -67,6 +67,8 @@ function FeedPostCard({
     player.loop = true;
     player.muted = false;
   });
+
+  const { isMuted, toggleMute } = useMute(player);
 
   // Register player with context
   useEffect(() => {
@@ -90,17 +92,6 @@ function FeedPostCard({
     return () => subscription.remove();
   }, [player, firstVideo?.url]);
 
-  // Sync mute state with player
-  useEffect(() => {
-    if (player) {
-      player.muted = isMuted;
-    }
-  }, [player, isMuted]);
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    playHapticFeedback('light', false);
-  };
 
   const handleVideoLongPress = () => {
     if (!player) return;

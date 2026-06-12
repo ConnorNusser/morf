@@ -1,4 +1,6 @@
 import { Text } from '@/components/Themed';
+import { useMute } from '@/hooks/useMute';
+import { useLikePop } from '@/hooks/useLikePop';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -39,7 +41,6 @@ export default function FullScreenVideoViewer({
   onLike,
 }: FullScreenVideoViewerProps) {
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
 
@@ -48,6 +49,8 @@ export default function FullScreenVideoViewer({
     player.muted = false;
   });
 
+  const { isMuted, toggleMute, setIsMuted } = useMute(player);
+
   // Auto-play when modal opens
   useEffect(() => {
     if (visible && player) {
@@ -55,14 +58,7 @@ export default function FullScreenVideoViewer({
       setIsPlaying(true);
       setIsMuted(false);
     }
-  }, [visible, player]);
-
-  // Sync muted state
-  useEffect(() => {
-    if (player) {
-      player.muted = isMuted;
-    }
-  }, [player, isMuted]);
+  }, [visible, player, setIsMuted]);
 
   // Track progress
   useEffect(() => {
@@ -83,17 +79,11 @@ export default function FullScreenVideoViewer({
   const hasSocialFeatures = onLike !== undefined;
 
   // Like animation
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.3, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike?.();
   };
 
@@ -108,10 +98,6 @@ export default function FullScreenVideoViewer({
     }
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    playHapticFeedback('light', false);
-  };
 
   const handleClose = () => {
     if (player) {
