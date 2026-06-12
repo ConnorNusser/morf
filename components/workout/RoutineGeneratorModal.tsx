@@ -130,7 +130,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const [selectedDuration, setSelectedDuration] = useState<WorkoutDuration | null>(null);
   const [includedExercises, setIncludedExercises] = useState<string[]>([]);
   const [excludedExercises, setExcludedExercises] = useState<string[]>([]);
-  const [customNotes, setCustomNotes] = useState('');
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<string | null>(null);
   const [userEquipment, setUserEquipment] = useState<Equipment[]>([]);
@@ -226,7 +225,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         setSelectedDuration(null);
         setIncludedExercises([]);
         setExcludedExercises([]);
-        setCustomNotes('');
         setExerciseSearchQuery('');
         setSelectedMuscleFilter(null);
         setGeneratedProgram(null);
@@ -310,7 +308,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const buildOptions = (): GenerateRoutineOptions => {
     const experienceLevel = selectedExperience || 'beginner';
     const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
-    const notes = customNotes.trim();
     return {
       programTemplate: selectProgramTemplate(selectedGoal!, selectedDays!),
       trainingGoal: selectedGoal!,
@@ -323,7 +320,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       exercisesPerWorkout: durationConfig ? { min: durationConfig.min, max: durationConfig.max } : undefined,
       includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
       excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
-      customRequest: notes.length > 0 ? notes : undefined,
     };
   };
 
@@ -694,29 +690,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     );
   };
 
-  // Freeform notes + cycling hint, rendered above the exercise list so loose preferences
-  // (injuries, "no overhead pressing", etc.) can be expressed without tapping specifics.
+  // Cycling hint, rendered above the exercise list.
   const renderExercisesHeader = () => (
-    <View>
-      <View style={[styles.notesBlock, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.notesLabel, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-          Anything else for the coach?
-        </Text>
-        <TextInput
-          style={[styles.notesInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
-          placeholder="Injuries, things to avoid, equipment quirks, how you like to train…"
-          placeholderTextColor={colors.textMuted}
-          value={customNotes}
-          onChangeText={setCustomNotes}
-          multiline
-          textAlignVertical="top"
-          maxLength={500}
-        />
-      </View>
-      <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
-        Optionally pick exercises — tap to cycle: include → exclude → reset
-      </Text>
-    </View>
+    <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
+      Optionally pick exercises — tap to cycle: include → exclude → reset
+    </Text>
   );
 
   const renderExercisesStep = () => (
@@ -1226,22 +1204,6 @@ const styles = StyleSheet.create({
   },
   exercisesTitle: {
     fontSize: 22,
-  },
-  notesBlock: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
-  },
-  notesLabel: {
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  notesInput: {
-    fontSize: 14,
-    lineHeight: 20,
-    minHeight: 64,
-    padding: 0,
   },
   exercisesHint: {
     fontSize: 13,

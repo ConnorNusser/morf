@@ -114,7 +114,6 @@ export interface RoutineGenerationParams {
   exercisesPerWorkout?: { min: number; max: number };
   includedExercises?: string[];
   excludedExercises?: string[];
-  customRequest?: string;        // Freeform notes from the lifter (injuries, loose avoids, preferences)
   // Refinement mode: when both are present, revise the supplied program in place.
   currentProgramJson?: string;
   refineInstruction?: string;
@@ -142,7 +141,6 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
     exercisesPerWorkout,
     includedExercises,
     excludedExercises,
-    customRequest,
     currentProgramJson,
     refineInstruction,
   } = params;
@@ -180,10 +178,6 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
 
   if (excludedExercises && excludedExercises.length > 0) {
     choices.push(`- Never include these exercises: ${excludedExercises.join(', ')}`);
-  }
-
-  if (customRequest && customRequest.trim().length > 0) {
-    choices.push(`- In the lifter's own words (honor this — it may describe injuries, things to avoid, or how they like to train): "${customRequest.trim()}"`);
   }
 
   // ---- Hard rules (the few non-negotiables) ----

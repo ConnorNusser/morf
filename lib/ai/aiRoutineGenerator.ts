@@ -65,7 +65,6 @@ export interface GenerateRoutineOptions {
   exercisesPerWorkout?: { min: number; max: number };  // Exercise count constraints
   includedExercises?: string[];  // Exercises to definitely include
   excludedExercises?: string[];  // Exercises to definitely exclude
-  customRequest?: string;  // Freeform notes from the lifter (injuries, loose avoids, preferences)
   experienceLevel?: TrainingAdvancement;  // Biases deterministic program selection
 }
 
@@ -528,7 +527,6 @@ class AIRoutineGeneratorService {
       exercisesPerWorkout: options.exercisesPerWorkout,
       includedExercises: includedExerciseNames,
       excludedExercises: excludedExerciseNames,
-      customRequest: options.customRequest,
       currentProgramJson: refine ? JSON.stringify(refine.currentProgram, null, 2) : undefined,
       refineInstruction: refine?.instruction,
     };
