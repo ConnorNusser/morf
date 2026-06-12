@@ -227,18 +227,6 @@ export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> =
   },
 };
 
-/**
- * Get programming config for a user
- */
-export function getProgrammingConfig(
-  workoutHistory: GeneratedWorkout[],
-  userProfile: UserProfile | null
-): { config: ProgrammingConfig; advancement: TrainingAdvancementResult } {
-  const advancement = determineTrainingAdvancement(workoutHistory, userProfile);
-  const config = PROGRAMMING_RULES[advancement.level];
-  return { config, advancement };
-}
-
 // ===== MOVEMENT PATTERN DEFINITIONS =====
 
 export type MovementPattern =
@@ -322,31 +310,6 @@ export const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
   'face-pull-cables': 'isolation',
   'rear-delt-fly-dumbbells': 'isolation',
 };
-
-/**
- * Get movement pattern for an exercise
- * Returns 'isolation' as default for unknown exercises (safest assumption)
- */
-export function getMovementPattern(exerciseId: string): MovementPattern {
-  return EXERCISE_MOVEMENT_PATTERNS[exerciseId] || 'isolation';
-}
-
-/**
- * Patterns that conflict when both are heavy on same day
- */
-export const HEAVY_PATTERN_CONFLICTS: [MovementPattern, MovementPattern][] = [
-  ['squat', 'hinge'],  // Both tax lower back, glutes, legs
-];
-
-/**
- * Check if two movement patterns conflict when both heavy
- */
-export function patternsConflict(pattern1: MovementPattern, pattern2: MovementPattern): boolean {
-  return HEAVY_PATTERN_CONFLICTS.some(
-    ([a, b]) => (pattern1 === a && pattern2 === b) || (pattern1 === b && pattern2 === a)
-  );
-}
-
 
 // ===== ROUTINE VALIDATION =====
 //

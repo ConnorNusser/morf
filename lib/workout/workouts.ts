@@ -58,18 +58,6 @@ export const getUserThemeLevel = (userPercentile: number): ThemeLevel => {
   return 'beginner';
 };
 
-// Helper function to get workouts by muscle group and theme level
-export const getWorkoutsByMuscleGroup = (
-  muscleGroup: MuscleGroup,
-  userPercentile: number
-): Workout[] => {
-  const availableWorkouts = getAvailableWorkouts(userPercentile);
-  return availableWorkouts.filter(workout =>
-    workout.primaryMuscles.includes(muscleGroup) ||
-    workout.secondaryMuscles.includes(muscleGroup)
-  );
-};
-
 // Helper function to get workouts by equipment
 export const getWorkoutsByEquipment = (
   equipment: Equipment[],
@@ -79,45 +67,6 @@ export const getWorkoutsByEquipment = (
   return availableWorkouts.filter(workout =>
     workout.equipment.some(eq => equipment.includes(eq))
   );
-};
-
-// Helper function to get compound vs isolation exercises
-export const getWorkoutsByCategory = (
-  category: WorkoutCategory,
-  userPercentile: number
-): Workout[] => {
-  const availableWorkouts = getAvailableWorkouts(userPercentile);
-  return availableWorkouts.filter(workout => workout.category === category);
-};
-
-// Function to analyze user's weak points
-export const analyzeWeakPoints = (
-  userProgress: UserProgress[]
-): { weakestMuscleGroups: MuscleGroup[]; recommendations: string[] } => {
-  // Sort by percentile ranking to find weak points
-  const sortedProgress = [...userProgress].sort((a, b) => a.percentileRanking - b.percentileRanking);
-
-  const weakestLifts = sortedProgress.slice(0, 2); // Top 2 weakest lifts
-  const recommendations: string[] = [];
-  const weakMuscleGroups: MuscleGroup[] = [];
-
-  weakestLifts.forEach(lift => {
-    const workout = MAIN_LIFTS.find(w => w.id === lift.workoutId);
-    if (workout) {
-      weakMuscleGroups.push(...workout.primaryMuscles);
-
-      if (lift.percentileRanking < 25) {
-        recommendations.push(`Focus on ${workout.name} - you're in the ${lift.percentileRanking}th percentile`);
-      } else if (lift.percentileRanking < 50) {
-        recommendations.push(`Improve ${workout.name} with accessory work`);
-      }
-    }
-  });
-
-  return {
-    weakestMuscleGroups: [...new Set(weakMuscleGroups)], // Remove duplicates
-    recommendations
-  };
 };
 
 // Sync version - only checks built-in exercises
