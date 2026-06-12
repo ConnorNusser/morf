@@ -13,6 +13,7 @@ import {
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
+import { getProfileIcons, iconUnlockContext } from '@/lib/gamification/profileIcons';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
@@ -122,6 +123,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
+            <EmblemsView achievements={data.achievements} />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -730,6 +732,52 @@ function AchievementTile({
   );
 }
 
+// ---- Emblems: the custom-icon collectible gallery (read-only; equip via the picker) ----
+function EmblemsView({ achievements }: { achievements: Achievement[] }) {
+  const { currentTheme } = useTheme();
+  const accent = currentTheme.colors.primary;
+  const icons = getProfileIcons(iconUnlockContext(achievements));
+  const unlocked = icons.filter(i => i.unlocked).length;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeaderRow}>
+        <SectionLabel>Emblems</SectionLabel>
+        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{unlocked}/{icons.length}</Text>
+      </View>
+      <View style={styles.emblemGrid}>
+        {icons.map(ic => (
+          <View key={ic.id} style={styles.emblemCell}>
+            <View
+              style={[
+                styles.emblemDisc,
+                {
+                  backgroundColor: ic.unlocked ? accent + '1A' : currentTheme.colors.surface,
+                  borderColor: ic.unlocked ? accent : currentTheme.colors.border,
+                  opacity: ic.unlocked ? 1 : 0.55,
+                },
+              ]}
+            >
+              <Ionicons
+                name={ic.icon as keyof typeof Ionicons.glyphMap}
+                size={24}
+                color={ic.unlocked ? accent : currentTheme.colors.text + '55'}
+              />
+              {!ic.unlocked && (
+                <View style={[styles.emblemLock, { backgroundColor: currentTheme.colors.background }]}>
+                  <Ionicons name="lock-closed" size={9} color={currentTheme.colors.text} />
+                </View>
+              )}
+            </View>
+            <Text style={[styles.emblemLabel, { color: currentTheme.colors.text }]} numberOfLines={2}>
+              {ic.unlocked ? ic.label : ic.hint}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   const { currentTheme } = useTheme();
   return <Text style={[styles.sectionLabel, { color: currentTheme.colors.text }]}>{children}</Text>;
@@ -795,6 +843,11 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45, textTransform: 'uppercase', marginBottom: 12 },
 
+  emblemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  emblemCell: { width: '21%', alignItems: 'center', gap: 5 },
+  emblemDisc: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  emblemLock: { position: 'absolute', bottom: -2, right: -2, width: 17, height: 17, borderRadius: 8.5, alignItems: 'center', justifyContent: 'center' },
+  emblemLabel: { fontSize: 10, opacity: 0.6, textAlign: 'center', lineHeight: 13 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
   tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },
   tileValue: { fontSize: 18, fontWeight: '700' },
