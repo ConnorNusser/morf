@@ -123,7 +123,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
-            <EmblemsView achievements={data.achievements} />
+            <EmblemsView achievements={data.achievements} equippedId={data.profileIconId} />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -733,7 +733,7 @@ function AchievementTile({
 }
 
 // ---- Emblems: the custom-icon collectible gallery (read-only; equip via the picker) ----
-function EmblemsView({ achievements }: { achievements: Achievement[] }) {
+function EmblemsView({ achievements, equippedId }: { achievements: Achievement[]; equippedId: string }) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
   const icons = getProfileIcons(iconUnlockContext(achievements));
@@ -745,34 +745,41 @@ function EmblemsView({ achievements }: { achievements: Achievement[] }) {
         <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{unlocked}/{icons.length}</Text>
       </View>
       <View style={styles.emblemGrid}>
-        {icons.map(ic => (
-          <View key={ic.id} style={styles.emblemCell}>
-            <View
-              style={[
-                styles.emblemDisc,
-                {
-                  backgroundColor: ic.unlocked ? accent + '1A' : currentTheme.colors.surface,
-                  borderColor: ic.unlocked ? accent : currentTheme.colors.border,
-                  opacity: ic.unlocked ? 1 : 0.55,
-                },
-              ]}
-            >
-              <Ionicons
-                name={ic.icon as keyof typeof Ionicons.glyphMap}
-                size={24}
-                color={ic.unlocked ? accent : currentTheme.colors.text + '55'}
-              />
-              {!ic.unlocked && (
-                <View style={[styles.emblemLock, { backgroundColor: currentTheme.colors.background }]}>
-                  <Ionicons name="lock-closed" size={9} color={currentTheme.colors.text} />
-                </View>
-              )}
+        {icons.map(ic => {
+          const equipped = ic.id === equippedId;
+          return (
+            <View key={ic.id} style={styles.emblemCell}>
+              <View
+                style={[
+                  styles.emblemDisc,
+                  {
+                    backgroundColor: equipped ? accent : ic.unlocked ? accent + '1A' : currentTheme.colors.surface,
+                    borderColor: ic.unlocked ? accent : currentTheme.colors.border,
+                    borderWidth: equipped ? 2 : 1.5,
+                    opacity: ic.unlocked ? 1 : 0.55,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={ic.icon as keyof typeof Ionicons.glyphMap}
+                  size={24}
+                  color={equipped ? currentTheme.colors.surface : ic.unlocked ? accent : currentTheme.colors.text + '55'}
+                />
+                {!ic.unlocked && (
+                  <View style={[styles.emblemLock, { backgroundColor: currentTheme.colors.background }]}>
+                    <Ionicons name="lock-closed" size={9} color={currentTheme.colors.text} />
+                  </View>
+                )}
+              </View>
+              <Text
+                style={[styles.emblemLabel, { color: equipped ? accent : currentTheme.colors.text, opacity: equipped ? 1 : 0.6 }]}
+                numberOfLines={2}
+              >
+                {equipped ? 'Equipped' : ic.unlocked ? ic.label : ic.hint}
+              </Text>
             </View>
-            <Text style={[styles.emblemLabel, { color: currentTheme.colors.text }]} numberOfLines={2}>
-              {ic.unlocked ? ic.label : ic.hint}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </View>
   );
