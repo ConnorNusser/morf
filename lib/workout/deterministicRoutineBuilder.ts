@@ -214,6 +214,34 @@ function buildDay(
     }
   }
 
+  // 3.5 Focus = frequency: make sure each focus muscle is trained on this day even if the
+  //     template doesn't normally hit it (e.g. add a chest move to a Lower day when chest is
+  //     a focus). Injected right after the core anchors so it's trained reasonably fresh.
+  //     Capped per day so multiple focuses don't bloat a single session.
+  const FOCUS_INJECT_CAP = 2;
+  const present = new Set(
+    resolved.map(r => WORKOUT_BY_ID.get(r.ex.id)?.primaryMuscles[0]).filter(Boolean) as MuscleGroup[]
+  );
+  let injected = 0;
+  for (const m of opts.focus as Set<MuscleGroup>) {
+    if (injected >= FOCUS_INJECT_CAP) break;
+    if (opts.ignored.has(m) || present.has(m)) continue;
+    let added: ResolvedExercise | null = null;
+    for (const slot of SLOTS_BY_TARGET[m] || []) {
+      added = resolveSlot(slot, opts.available, used, opts.excluded, opts.ignored);
+      if (added) break;
+    }
+    if (added) {
+      used.add(added.id);
+      const insertAt = resolved.findIndex(r => !r.isCore);
+      const entry = { ex: added, isCore: false };
+      if (insertAt === -1) resolved.push(entry);
+      else resolved.splice(insertAt, 0, entry);
+      present.add(m);
+      injected++;
+    }
+  }
+
   // 4. Backfill: if the day came up short (e.g. after skipping a muscle group, or a
   //    template with few accessories), top it up with extra work from the focus areas
   //    first, then the day's own theme, then any other non-skipped area.
