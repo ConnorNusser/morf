@@ -24,6 +24,8 @@ const STORAGE_KEYS = {
   RETENTION_META: 'retention_meta',
   WEEKLY_GOAL: 'weekly_goal',
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
+  SEEN_ACHIEVEMENTS: 'seen_achievements',
+  PROFILE_ICON: 'profile_icon',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -690,6 +692,46 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE_ADVICE_DISMISSED, String(timestamp));
     } catch (error) {
       console.error('Error saving routine advice flag:', error);
+    }
+  }
+
+  // Achievement IDs the user has already seen unlocked (so newly-earned ones can
+  // be highlighted on the Career card and cleared once viewed).
+  async getSeenAchievements(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.SEEN_ACHIEVEMENTS);
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error loading seen achievements:', error);
+      return [];
+    }
+  }
+
+  async setSeenAchievements(ids: string[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.SEEN_ACHIEVEMENTS, JSON.stringify(ids));
+    } catch (error) {
+      console.error('Error saving seen achievements:', error);
+    }
+  }
+
+
+  // The career emblem id the user picked (null if never chosen).
+  async getProfileIconId(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_ICON);
+    } catch (error) {
+      console.error('Error loading profile icon:', error);
+      return null;
+    }
+  }
+
+  async setProfileIconId(id: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.PROFILE_ICON, id);
+    } catch (error) {
+      console.error('Error saving profile icon:', error);
     }
   }
 

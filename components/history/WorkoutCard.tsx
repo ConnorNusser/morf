@@ -116,7 +116,7 @@ function WorkoutCard({
     >
       {/* Header */}
       <View style={[styles.workoutHeader, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+        <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
           {workout.title}
         </Text>
         <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>

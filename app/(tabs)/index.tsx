@@ -1,5 +1,6 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
+import CareerModal from "@/components/gamification/CareerModal";
 import StreakBanner from "@/components/home/StreakBanner";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
@@ -19,7 +20,8 @@ import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useTutorial } from "@/contexts/TutorialContext";
 import { useUser } from "@/contexts/UserContext";
-import { getStrengthLevelName } from "@/lib/data/strengthStandards";
+import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
+import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
@@ -71,6 +73,7 @@ export default function HomeScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [feedRefreshTrigger, setFeedRefreshTrigger] = useState(0);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
 
@@ -111,7 +114,21 @@ export default function HomeScreen() {
       setLiftFilters(savedFilters);
 
       const unit = profile?.weightUnitPreference || "lbs";
-      setLifetimeStats({ ...getLifetimeTotals(history, unit), unit });
+
+      // Surface the strength tier on the header (gamification).
+      const visibleLifts = userProgressData.filter(
+        (p) => !savedFilters.hiddenLiftIds.includes(p.workoutId),
+      );
+      const overall = visibleLifts.length
+        ? calculateOverallPercentile(visibleLifts.map((p) => p.percentileRanking))
+        : 0;
+
+      setLifetimeStats({
+        ...getLifetimeTotals(history, unit),
+        unit,
+        tier: getStrengthTier(overall),
+        tierProgress: getTierBandProgress(overall).progress,
+      });
 
       setIsLoading(false);
     } catch (error) {
@@ -303,6 +320,7 @@ export default function HomeScreen() {
             viewMode={viewMode}
             onViewModeChange={handleViewModeChange}
             stats={lifetimeStats ?? undefined}
+            onTierPress={() => setShowCareer(true)}
           />
 
           <TodayCard />
@@ -383,6 +401,14 @@ export default function HomeScreen() {
       <LeaderboardModal
         visible={showLeaderboard}
         onClose={() => setShowLeaderboard(false)}
+      />
+
+      <CareerModal
+        visible={showCareer}
+        onClose={() => {
+          setShowCareer(false);
+          loadUserData();
+        }}
       />
 
       <UserProfileModal

@@ -3,6 +3,8 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
@@ -56,6 +58,42 @@ interface WorkoutCompleteScreenProps {
   onSaveAsTemplate: () => void;
   onDone: () => void;
   isSmallScreen?: boolean;
+  rewards?: SessionRewards | null;
+}
+
+// Gamification rewards earned this session: new achievements. Sits below the PR
+// highlights in the celebration screen.
+function RewardsSection({ rewards }: { rewards: SessionRewards }) {
+  const { currentTheme } = useTheme();
+  const { newAchievements } = rewards;
+  const shownAch = newAchievements.slice(0, 3);
+
+  return (
+    <Animated.View entering={FadeIn.delay(450)} style={styles.rewardsSection}>
+      {shownAch.length > 0 && (
+        <View style={styles.achList}>
+          {shownAch.map(a => (
+            <View key={a.id} style={styles.achRow}>
+              <AchievementBadge icon={a.icon} rarity={a.rarity} size={34} />
+              <View style={styles.achTextWrap}>
+                <Text style={[styles.achTitle, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+                  {a.title}
+                </Text>
+                <Text style={[styles.achSub, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+                  Achievement unlocked
+                </Text>
+              </View>
+            </View>
+          ))}
+          {newAchievements.length > shownAch.length && (
+            <Text style={[styles.achMore, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+              +{newAchievements.length - shownAch.length} more unlocked
+            </Text>
+          )}
+        </View>
+      )}
+    </Animated.View>
+  );
 }
 
 // Confetti particle
@@ -278,6 +316,7 @@ export default function WorkoutCompleteScreen({
   onSaveAsTemplate,
   onDone,
   isSmallScreen = false,
+  rewards,
 }: WorkoutCompleteScreenProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -460,6 +499,9 @@ export default function WorkoutCompleteScreen({
               </Animated.View>
             </View>
           )}
+
+          {/* Gamification rewards: newly unlocked achievements */}
+          {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
 
           {/* Interactive Stats */}
           <Animated.View entering={FadeIn.delay(500)} style={[styles.statsContainer, isSmallScreen && styles.statsContainerSmall]}>
@@ -670,6 +712,40 @@ const styles = StyleSheet.create({
   },
   improvementText: {
     fontSize: 13,
+  },
+  // Rewards (gamification)
+  rewardsSection: {
+    width: '100%',
+    marginBottom: 32,
+    gap: 12,
+  },
+  achList: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  achRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'transparent',
+  },
+  achTextWrap: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  achTitle: {
+    fontSize: 15,
+  },
+  achSub: {
+    fontSize: 12,
+    marginTop: 1,
+  },
+  achMore: {
+    fontSize: 13,
+    textAlign: 'center',
   },
   // Stats
   statsContainer: {

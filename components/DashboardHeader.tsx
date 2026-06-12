@@ -1,7 +1,9 @@
+import TierRing from '@/components/gamification/TierRing';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTutorial } from '@/contexts/TutorialContext';
 import { TutorialTarget } from '@/components/tutorial';
 import { getStepsByIndex } from '@/components/tutorial/tutorialSteps';
+import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState, useEffect } from 'react';
@@ -13,22 +15,18 @@ export interface HeaderStats {
   totalVolume: number;
   totalWorkouts: number;
   unit: WeightUnit;
+  tier?: StrengthTier; // strength tier (gamification)
+  tierProgress?: number; // 0..1 toward the next tier
 }
 
 interface DashboardHeaderProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   stats?: HeaderStats;
+  onTierPress?: () => void;
 }
 
-// Compact large numbers: 1840 -> "1.8K", 1_250_000 -> "1.3M".
-function compact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return String(n);
-}
-
-export default function DashboardHeader({ viewMode, onViewModeChange, stats }: DashboardHeaderProps) {
+export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -88,20 +86,16 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats }: D
               </TutorialTarget>
             </View>
 
-            {stats && (
-              <View style={styles.headerStats}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                  {stats.totalWorkouts}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-                    {' '}
-                    {stats.totalWorkouts === 1 ? 'workout' : 'workouts'}
-                  </Text>
-                </Text>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text }]}>
-                  {compact(stats.totalVolume)} {stats.unit}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}> lifted</Text>
-                </Text>
-              </View>
+            {stats?.tier != null && (
+              <TouchableOpacity
+                style={styles.levelButton}
+                onPress={onTierPress}
+                activeOpacity={0.7}
+                disabled={!onTierPress}
+                accessibilityLabel={`${stats.tier} tier, view career`}
+              >
+                <TierRing tier={stats.tier} progress={stats.tierProgress ?? 0} />
+              </TouchableOpacity>
             )}
           </View>
 
@@ -173,25 +167,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerLeft: {
-    flex: 1,
-    minWidth: 0,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  headerStats: {
+  levelButton: {
     flexShrink: 0,
-    alignItems: 'flex-end',
     marginLeft: 12,
-    gap: 2,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  statLabel: {
-    fontSize: 13,
-    opacity: 0.5,
+    padding: 2,
   },
   logo: {
     width: 40,
