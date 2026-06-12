@@ -123,7 +123,11 @@ export default function CareerModal({ visible, onClose }: Props) {
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
-            <EmblemsView achievements={data.achievements} equippedId={data.profileIconId} />
+            <EmblemsView
+              achievements={data.achievements}
+              equippedId={data.profileIconId}
+              onEquip={async id => { await storageService.setProfileIconId(id); load(); }}
+            />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -732,8 +736,16 @@ function AchievementTile({
   );
 }
 
-// ---- Emblems: the custom-icon collectible gallery (read-only; equip via the picker) ----
-function EmblemsView({ achievements, equippedId }: { achievements: Achievement[]; equippedId: string }) {
+// ---- Emblems: the custom-icon collectible gallery; tap an unlocked one to equip ----
+function EmblemsView({
+  achievements,
+  equippedId,
+  onEquip,
+}: {
+  achievements: Achievement[];
+  equippedId: string;
+  onEquip: (id: string) => void;
+}) {
   const { currentTheme } = useTheme();
   const accent = currentTheme.colors.primary;
   const icons = getProfileIcons(iconUnlockContext(achievements));
@@ -748,7 +760,13 @@ function EmblemsView({ achievements, equippedId }: { achievements: Achievement[]
         {icons.map(ic => {
           const equipped = ic.id === equippedId;
           return (
-            <View key={ic.id} style={styles.emblemCell}>
+            <TouchableOpacity
+              key={ic.id}
+              style={styles.emblemCell}
+              activeOpacity={0.7}
+              disabled={!ic.unlocked || equipped}
+              onPress={() => onEquip(ic.id)}
+            >
               <View
                 style={[
                   styles.emblemDisc,
@@ -777,7 +795,7 @@ function EmblemsView({ achievements, equippedId }: { achievements: Achievement[]
               >
                 {equipped ? 'Equipped' : ic.unlocked ? ic.label : ic.hint}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
