@@ -12,7 +12,7 @@ import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { validateRoutines } from '@/lib/workout/trainingAdvancement';
 import { getAvailableWorkouts, getWorkoutsByEquipment } from '@/lib/workout/workouts';
-import { Equipment, TrainingAdvancement } from '@/types';
+import { Equipment, Program, TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -372,13 +372,30 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     if (!generatedProgram || isSaving) return;
     setIsSaving(true);
     try {
+      const programId = `prog-${Date.now()}`;
       const routines = await aiRoutineGenerator.convertToRoutines(generatedProgram, {
         excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined,
+        programId,
       });
       validateRoutines(routines, selectedExperience || 'beginner');
+
+      const program: Program = {
+        id: programId,
+        name: generatedProgram.programName,
+        programStyle: generatedProgram.programStyle,
+        trainingGoal: generatedProgram.trainingGoal,
+        source: generatedProgram.source,
+        createdAt: new Date(),
+        status: 'active',
+        days: routines.length,
+      };
+      await storageService.saveProgram(program);
       for (const routine of routines) {
         await storageService.saveRoutine(routine);
       }
+      // Make this the active program — pauses whatever was active before.
+      await storageService.setActiveProgram(programId);
+
       onRoutinesCreated();
       onClose();
     } catch (error) {

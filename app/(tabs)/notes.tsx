@@ -12,7 +12,7 @@ import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
-import { CalculatedRoutine, GeneratedWorkout, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -61,7 +61,8 @@ export default function NotesScreen() {
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -69,10 +70,12 @@ export default function NotesScreen() {
   // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
-      const [loadedRoutines, history] = await Promise.all([
+      const [loadedRoutines, history, loadedPrograms] = await Promise.all([
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
+        storageService.getPrograms(),
       ]);
+      setPrograms(loadedPrograms);
       // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
@@ -118,38 +121,45 @@ export default function NotesScreen() {
     return map;
   }, [calculatedRoutines]);
 
-  // Separate active and inactive routines
-  const { activeRoutines, inactiveRoutines } = useMemo(() => {
-    const active: CalculatedRoutine[] = [];
-    const inactive: CalculatedRoutine[] = [];
-
-    for (const routine of calculatedRoutines) {
-      // Default to active if isActive is undefined
-      if (routine.isActive === false) {
-        inactive.push(routine);
+  // Group day-routines under their program; routines without a programId are loose.
+  const { programGroups, standaloneRoutines } = useMemo(() => {
+    const byProgram = new Map<string, CalculatedRoutine[]>();
+    const standalone: CalculatedRoutine[] = [];
+    for (const r of calculatedRoutines) {
+      if (r.programId) {
+        const arr = byProgram.get(r.programId);
+        if (arr) arr.push(r); else byProgram.set(r.programId, [r]);
       } else {
-        active.push(routine);
+        standalone.push(r);
       }
     }
+    const rank: Record<Program['status'], number> = { active: 0, paused: 1, archived: 2 };
+    const groups = programs
+      .map(p => ({ program: p, days: byProgram.get(p.id) ?? [] }))
+      .filter(g => g.days.length > 0)
+      .sort((a, b) =>
+        rank[a.program.status] - rank[b.program.status] ||
+        b.program.createdAt.getTime() - a.program.createdAt.getTime()
+      );
+    return { programGroups: groups, standaloneRoutines: standalone };
+  }, [calculatedRoutines, programs]);
 
-    return { activeRoutines: active, inactiveRoutines: inactive };
-  }, [calculatedRoutines]);
+  const activeProgramGroup = useMemo(
+    () => programGroups.find(g => g.program.status === 'active') ?? null,
+    [programGroups]
+  );
 
-  // Get "Up Next" routine - the least recently used active routine
+  // "Up Next" = the least-recently-trained active day of the active program.
   const upNextRoutine = useMemo(() => {
-    if (activeRoutines.length === 0) return null;
-
-    // Sort active routines by lastUsed (oldest first) or never used
-    const sorted = [...activeRoutines].sort((a, b) => {
-      // Never used routines come first
+    const days = (activeProgramGroup?.days ?? []).filter(r => r.isActive !== false);
+    if (days.length === 0) return null;
+    return [...days].sort((a, b) => {
       if (!a.lastUsed && !b.lastUsed) return 0;
       if (!a.lastUsed) return -1;
       if (!b.lastUsed) return 1;
       return new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime();
-    });
-
-    return sorted[0];
-  }, [activeRoutines]);
+    })[0];
+  }, [activeProgramGroup]);
 
   const formatRelativeDate = (date: Date): string => {
     const now = new Date();
@@ -191,56 +201,44 @@ export default function NotesScreen() {
     await loadData();
   }, [loadData]);
 
-  const handlePauseAll = useCallback(() => {
-    const active = routines.filter(r => r.isActive !== false);
-    if (active.length === 0) return;
-    showAlert({
-      title: 'Pause All Routines',
-      message: `Move all ${active.length} active routine${active.length === 1 ? '' : 's'} to Paused?`,
-      type: 'confirm',
-      buttons: [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Pause All',
-          onPress: async () => {
-            for (const routine of active) {
-              await storageService.saveRoutine({ ...routine, isActive: false });
-            }
-            await loadData();
-          },
-        },
-      ],
-    });
-  }, [routines, loadData, showAlert]);
-
-  const handleResumeAll = useCallback(async () => {
-    const paused = routines.filter(r => r.isActive === false);
-    if (paused.length === 0) return;
-    for (const routine of paused) {
-      await storageService.saveRoutine({ ...routine, isActive: true });
-    }
+  // Program-level controls. Starting a program auto-pauses whatever was active.
+  const handleStartProgram = useCallback(async (programId: string) => {
+    await storageService.setActiveProgram(programId);
     await loadData();
-  }, [routines, loadData]);
+  }, [loadData]);
 
-  const handleDeleteAll = useCallback(() => {
-    if (routines.length === 0) return;
+  const handlePauseProgram = useCallback(async (programId: string) => {
+    await storageService.setProgramStatus(programId, 'paused');
+    await loadData();
+  }, [loadData]);
+
+  const handleArchiveProgram = useCallback(async (programId: string) => {
+    await storageService.setProgramStatus(programId, 'archived');
+    await loadData();
+  }, [loadData]);
+
+  const handleDeleteProgram = useCallback((program: Program) => {
     showAlert({
-      title: 'Delete All Routines',
-      message: `Permanently delete all ${routines.length} routine${routines.length === 1 ? '' : 's'}? This can't be undone.`,
+      title: `Delete ${program.name}?`,
+      message: `This permanently deletes the program and all ${program.days} of its day${program.days === 1 ? '' : 's'}. This can't be undone.`,
       type: 'confirm',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete All',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await storageService.clearAllRoutines();
+            await storageService.deleteProgram(program.id);
             await loadData();
           },
         },
       ],
     });
-  }, [routines, loadData, showAlert]);
+  }, [loadData, showAlert]);
+
+  const toggleProgramExpanded = useCallback((programId: string) => {
+    setExpandedProgramId(prev => (prev === programId ? null : programId));
+  }, []);
 
   // Handle manual deload for a specific exercise
   const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
@@ -581,98 +579,96 @@ export default function NotesScreen() {
               </TouchableOpacity>
             </TutorialTarget>
 
-            {/* Up Next Section */}
-            {upNextRoutine && (
-              <RNView style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                  UP NEXT
-                </Text>
-                <TutorialTarget id="notes-routine-card">
-                  {renderRoutineCard(upNextRoutine, true)}
-                </TutorialTarget>
-              </RNView>
-            )}
+            {/* Programs — grouped day-routines; exactly one is active at a time */}
+            {programGroups.map(({ program, days }) => {
+              const isActiveProgram = program.status === 'active';
+              const isExpanded = isActiveProgram || expandedProgramId === program.id;
+              const statusColor = isActiveProgram
+                ? currentTheme.colors.primary
+                : currentTheme.colors.text + (program.status === 'paused' ? '80' : '50');
+              const statusLabel = isActiveProgram ? 'Active' : program.status === 'paused' ? 'Paused' : 'Archived';
+              const orderedDays = isActiveProgram && upNextRoutine
+                ? [upNextRoutine, ...days.filter(d => d.id !== upNextRoutine.id)]
+                : days;
+              return (
+                <RNView key={program.id} style={styles.section}>
+                  <TouchableOpacity
+                    style={styles.programHeader}
+                    activeOpacity={isActiveProgram ? 1 : 0.7}
+                    onPress={() => { if (!isActiveProgram) toggleProgramExpanded(program.id); }}
+                  >
+                    <RNView style={layout.flex1}>
+                      <RNView style={styles.programTitleRow}>
+                        <Text style={[styles.programName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+                          {program.name}
+                        </Text>
+                        <RNView style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
+                          <Text style={[styles.statusPillText, { color: statusColor, fontFamily: currentTheme.fonts.semiBold }]}>{statusLabel}</Text>
+                        </RNView>
+                      </RNView>
+                      <Text style={[styles.programMeta, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                        {program.days} day{program.days === 1 ? '' : 's'}{program.source ? ` · ${program.source.program}` : ''}
+                      </Text>
+                    </RNView>
+                    {!isActiveProgram && (
+                      <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={currentTheme.colors.text + '50'} />
+                    )}
+                  </TouchableOpacity>
 
-            {/* Active Routines Section */}
-            {activeRoutines.filter(r => r.id !== upNextRoutine?.id).length > 0 && (
-              <RNView style={styles.section}>
-                <RNView style={styles.sectionHeader}>
-                  <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
-                    YOUR ROUTINES
-                  </Text>
-                  <RNView style={styles.activeCountBadge}>
-                    <RNView style={styles.activeCountDot} />
-                    <Text style={[styles.activeCountText, { fontFamily: currentTheme.fonts.semiBold }]}>
-                      {activeRoutines.length} active
-                    </Text>
+                  {/* Program controls */}
+                  <RNView style={styles.programActions}>
+                    {isActiveProgram ? (
+                      <>
+                        <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>Pause</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="archive-outline" size={15} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>Archive</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.7}>
+                        <Ionicons name="play" size={15} color={currentTheme.colors.primary} />
+                        <Text style={[styles.bulkButtonText, { color: currentTheme.colors.primary }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
+                      <Ionicons name="trash-outline" size={15} color="#E5484D" />
+                      <Text style={[styles.bulkButtonText, { color: '#E5484D' }]}>Delete</Text>
+                    </TouchableOpacity>
                   </RNView>
+
+                  {/* Days */}
+                  {isExpanded && orderedDays.map((routine) => {
+                    const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
+                    return (
+                      <RNView key={routine.id}>
+                        {isUpNext && (
+                          <Text style={[styles.upNextLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>UP NEXT</Text>
+                        )}
+                        {isUpNext ? (
+                          <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
+                        ) : (
+                          renderRoutineCard(routine)
+                        )}
+                      </RNView>
+                    );
+                  })}
                 </RNView>
-                {activeRoutines
-                  .filter(r => r.id !== upNextRoutine?.id)
-                  .map((routine) => renderRoutineCard(routine))}
-              </RNView>
-            )}
+              );
+            })}
 
-            {/* Paused Routines Section */}
-            {inactiveRoutines.length > 0 && (
+            {/* My Routines — loose routines not tied to a program */}
+            {standaloneRoutines.length > 0 && (
               <RNView style={styles.section}>
-                <TouchableOpacity
-                  style={styles.archivedHeader}
-                  onPress={() => setShowInactive(!showInactive)}
-                  activeOpacity={0.7}
-                >
-                  <RNView style={styles.pausedHeaderContent}>
-                    <Ionicons name="moon-outline" size={14} color={currentTheme.colors.text + '60'} />
-                    <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
-                      PAUSED ({inactiveRoutines.length})
-                    </Text>
-                  </RNView>
-                  <Ionicons
-                    name={showInactive ? 'chevron-up' : 'chevron-down'}
-                    size={16}
-                    color={currentTheme.colors.text + '60'}
-                  />
-                </TouchableOpacity>
-
-                {showInactive && inactiveRoutines.map((routine) => renderRoutineCard(routine))}
+                <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
+                  MY ROUTINES
+                </Text>
+                {standaloneRoutines.map((routine) => renderRoutineCard(routine))}
               </RNView>
             )}
-
-            {/* Bulk actions */}
-            <RNView style={styles.bulkActions}>
-              {activeRoutines.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                  onPress={handlePauseAll}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
-                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
-                    Pause all
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {inactiveRoutines.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                  onPress={handleResumeAll}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="play" size={15} color={currentTheme.colors.text + '99'} />
-                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
-                    Resume all
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                onPress={handleDeleteAll}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={15} color="#E5484D" />
-                <Text style={[styles.bulkButtonText, { color: '#E5484D' }]}>Delete all</Text>
-              </TouchableOpacity>
-            </RNView>
           </>
         ) : (
           <RNView style={styles.emptyState}>
@@ -754,14 +750,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bulkActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 24,
-    marginBottom: 8,
-  },
   bulkButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -774,6 +762,45 @@ const styles = StyleSheet.create({
   bulkButtonText: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  programHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  programTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  programName: {
+    fontSize: 17,
+    flexShrink: 1,
+  },
+  programMeta: {
+    fontSize: 13,
+    marginTop: 2,
+  },
+  statusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  statusPillText: {
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  programActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  upNextLabel: {
+    fontSize: 12,
+    letterSpacing: 0.5,
+    marginBottom: 8,
   },
 
   // Generating banner
@@ -803,43 +830,10 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
   sectionLabel: {
     fontSize: 11,
     letterSpacing: 1.2,
     marginBottom: 12,
-  },
-  activeCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  activeCountDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34C759',
-    marginTop: 3,
-  },
-  activeCountText: {
-    fontSize: 13,
-    color: '#34C759',
-  },
-  archivedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  pausedHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
   },
 
   // Routine card

@@ -162,7 +162,7 @@ class AIRoutineGeneratorService {
    */
   async convertToRoutines(
     program: GeneratedRoutineProgram,
-    options?: { excludedExerciseIds?: string[] }
+    options?: { excludedExerciseIds?: string[]; programId?: string }
   ): Promise<Routine[]> {
     const routines: Routine[] = [];
     const customExercises = await storageService.getCustomExercises();
@@ -226,6 +226,7 @@ class AIRoutineGeneratorService {
         createdAt: new Date(),
         description: day.focus,
         isActive: true,
+        programId: options?.programId,
         progressionState,
       };
 
