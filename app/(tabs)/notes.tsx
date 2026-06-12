@@ -9,6 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
+import { getTodayRoutine } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
@@ -56,6 +57,7 @@ export default function NotesScreen() {
 
   // Routines state
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [currentRoutine, setCurrentRoutine] = useState<Routine | null>(null);
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
@@ -105,10 +107,12 @@ export default function NotesScreen() {
   // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
-      const [loadedRoutines, history] = await Promise.all([
+      const [loadedRoutines, history, current] = await Promise.all([
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
+        storageService.getCurrentRoutine(),
       ]);
+      setCurrentRoutine(current);
       // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
@@ -171,21 +175,14 @@ export default function NotesScreen() {
     return { activeRoutines: active, inactiveRoutines: inactive };
   }, [calculatedRoutines]);
 
-  // Get "Up Next" routine - the least recently used active routine
+  // "Up Next" must be the SAME routine the home dashboard calls "Today" — both go
+  // through getTodayRoutine so they never disagree (previously this used an ad-hoc
+  // sort with the opposite tie-break for never-used routines, so a fresh split
+  // showed one day here and a different one on the dash).
   const upNextRoutine = useMemo(() => {
-    if (activeRoutines.length === 0) return null;
-
-    // Sort active routines by lastUsed (oldest first) or never used
-    const sorted = [...activeRoutines].sort((a, b) => {
-      // Never used routines come first
-      if (!a.lastUsed && !b.lastUsed) return 0;
-      if (!a.lastUsed) return -1;
-      if (!b.lastUsed) return 1;
-      return new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime();
-    });
-
-    return sorted[0];
-  }, [activeRoutines]);
+    const today = getTodayRoutine(routines, currentRoutine);
+    return today ? calculatedRoutines.find(r => r.id === today.id) ?? null : null;
+  }, [routines, currentRoutine, calculatedRoutines]);
 
   const formatRelativeDate = (date: Date): string => {
     const now = new Date();

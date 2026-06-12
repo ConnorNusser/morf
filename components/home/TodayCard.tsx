@@ -215,7 +215,7 @@ export default function TodayCard() {
           },
         ]}
       >
-        {(trainedToday ? "DONE TODAY" : "TODAY") + (label ? ` · ${label.toUpperCase()}` : "")}
+        {(trainedToday ? "DONE TODAY" : "UP NEXT") + (label ? ` · ${label.toUpperCase()}` : "")}
       </Text>
       <Text
         numberOfLines={1}
