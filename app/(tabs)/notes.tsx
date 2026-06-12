@@ -15,9 +15,8 @@ import { layout } from '@/lib/ui/styles';
 import { CalculatedRoutine, GeneratedWorkout, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Animated,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -60,44 +59,9 @@ export default function NotesScreen() {
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
-  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [showInactive, setShowInactive] = useState(false);
-
-  // Animation for generating progress bar
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Animate progress bar when generating
-  useEffect(() => {
-    if (isGeneratingRoutine) {
-      // Reset progress
-      progressAnim.setValue(0);
-
-      // Animate progress bar - fast to 30%, slow to 70%, then very slow
-      Animated.sequence([
-        Animated.timing(progressAnim, { toValue: 0.3, duration: 2000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.6, duration: 8000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.85, duration: 15000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.92, duration: 20000, useNativeDriver: false }),
-      ]).start();
-
-      // Pulse animation for the icon
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ])
-      );
-      pulse.start();
-
-      return () => pulse.stop();
-    } else {
-      // Complete the animation when done
-      Animated.timing(progressAnim, { toValue: 1, duration: 300, useNativeDriver: false }).start();
-    }
-  }, [isGeneratingRoutine, progressAnim, pulseAnim]);
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -578,7 +542,6 @@ export default function NotesScreen() {
               style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.7}
-              disabled={isGeneratingRoutine}
             >
               <Ionicons name="sparkles" size={18} color={currentTheme.colors.primary} />
             </TouchableOpacity>
@@ -592,39 +555,6 @@ export default function NotesScreen() {
           </TouchableOpacity>
         </RNView>
       </RNView>
-
-      {/* Generating Banner */}
-      {isGeneratingRoutine && (
-        <RNView style={[styles.generatingBanner, { backgroundColor: currentTheme.colors.surface }]}>
-          <RNView style={styles.generatingHeader}>
-            <Animated.View style={[styles.generatingIcon, { backgroundColor: currentTheme.colors.primary + '15', transform: [{ scale: pulseAnim }] }]}>
-              <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
-            </Animated.View>
-            <RNView style={styles.generatingTextContainer}>
-              <Text style={[styles.generatingTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Creating your routine
-              </Text>
-              <Text style={[styles.generatingSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                Building exercises and sets...
-              </Text>
-            </RNView>
-          </RNView>
-          <RNView style={[styles.progressBarContainer, { backgroundColor: currentTheme.colors.border }]}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  backgroundColor: currentTheme.colors.primary,
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
-          </RNView>
-        </RNView>
-      )}
 
       {/* Content */}
       <ScrollView
@@ -781,9 +711,7 @@ export default function NotesScreen() {
       <RoutineGeneratorModal
         visible={showRoutineGenerator}
         onClose={() => setShowRoutineGenerator(false)}
-        onGenerationStarted={() => setIsGeneratingRoutine(true)}
         onRoutinesCreated={() => {
-          setIsGeneratingRoutine(false);
           loadData();
         }}
       />
@@ -850,46 +778,6 @@ const styles = StyleSheet.create({
   },
 
   // Generating banner
-  generatingBanner: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 12,
-  },
-  generatingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  generatingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generatingTextContainer: {
-    flex: 1,
-  },
-  generatingTitle: {
-    fontSize: 15,
-  },
-  generatingSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  progressBarContainer: {
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-
   // Scroll content
   scrollContent: {
     paddingHorizontal: 20,

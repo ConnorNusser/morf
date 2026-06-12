@@ -3,14 +3,16 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   aiRoutineGenerator,
+  GenerateRoutineOptions,
   ProgramTemplate,
   TrainingGoal,
   GeneratedRoutineProgram,
 } from '@/lib/ai/aiRoutineGenerator';
+import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { validateRoutines } from '@/lib/workout/trainingAdvancement';
-import { getAvailableWorkouts } from '@/lib/workout/workouts';
-import { TrainingAdvancement } from '@/types';
+import { getAvailableWorkouts, getWorkoutsByEquipment } from '@/lib/workout/workouts';
+import { Equipment, TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -18,7 +20,11 @@ import {
   Animated,
   Dimensions,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Linking,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -31,14 +37,15 @@ interface RoutineGeneratorModalProps {
   visible: boolean;
   onClose: () => void;
   onRoutinesCreated: () => void;
-  onGenerationStarted?: () => void;  // Called when generation starts (for background mode)
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_GAP = 12;
 const CARD_WIDTH = (SCREEN_WIDTH - 48 - CARD_GAP) / 2; // 24px padding each side
 
-type FlowStep = 'goal' | 'focus' | 'experience' | 'days' | 'duration' | 'exercises' | 'generating' | 'success';
+type FlowStep = 'goal' | 'focus' | 'experience' | 'days' | 'duration' | 'exercises' | 'generating' | 'preview';
+
+const INPUT_STEPS: FlowStep[] = ['goal', 'focus', 'experience', 'days', 'duration', 'exercises'];
 
 // Workout duration options with exercise counts
 export type WorkoutDuration = 30 | 60 | 90 | 120;
@@ -77,7 +84,8 @@ const BODY_AREAS = [
   { id: 'core', label: 'Core' },
 ];
 
-// Auto-select program template based on goal and days
+// Suggested split based on goal and days. Handed to the AI as a starting hint — the
+// freeform prompt lets the model adapt the structure to the lifter's choices.
 function selectProgramTemplate(goal: TrainingGoal, days: number): ProgramTemplate {
   if (goal === 'strength') {
     return days <= 3 ? 'full_body' : 'strength';
@@ -93,13 +101,11 @@ function selectProgramTemplate(goal: TrainingGoal, days: number): ProgramTemplat
     return 'powerbuilding';
   }
   if (goal === 'recomp') {
-    // Higher frequency for metabolic effect
     if (days <= 3) return 'full_body';
     if (days === 4) return 'upper_lower';
     return 'ppl';
   }
   if (goal === 'athletic') {
-    // Full body or upper/lower for balanced athletic development
     if (days <= 3) return 'full_body';
     return days === 4 ? 'upper_lower' : 'ppl';
   }
@@ -113,7 +119,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   visible,
   onClose,
   onRoutinesCreated,
-  onGenerationStarted,
 }) => {
   const { currentTheme } = useTheme();
   const [step, setStep] = useState<FlowStep>('goal');
@@ -125,31 +130,50 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const [selectedDuration, setSelectedDuration] = useState<WorkoutDuration | null>(null);
   const [includedExercises, setIncludedExercises] = useState<string[]>([]);
   const [excludedExercises, setExcludedExercises] = useState<string[]>([]);
+  const [customNotes, setCustomNotes] = useState('');
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   const [selectedMuscleFilter, setSelectedMuscleFilter] = useState<string | null>(null);
+  const [userEquipment, setUserEquipment] = useState<Equipment[]>([]);
   const [generatedProgram, setGeneratedProgram] = useState<GeneratedRoutineProgram | null>(null);
   const [statusMessage, setStatusMessage] = useState('');
+  const [refineInstruction, setRefineInstruction] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Options used for the current generation — reused when refining/regenerating.
+  const optionsRef = useRef<GenerateRoutineOptions | null>(null);
 
   // Muscle group filter categories
-  const muscleCategories = useMemo(() => {
-    const categories = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
-    return categories;
+  const muscleCategories = useMemo(() => ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'], []);
+
+  // Load the user's equipment once so the browse list only shows what they can actually do.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const profile = await userService.getRealUserProfile();
+      const equipment = profile?.equipmentFilter?.includedEquipment;
+      if (active && equipment && equipment.length > 0) {
+        setUserEquipment(equipment);
+      }
+    })();
+    return () => { active = false; };
   }, []);
 
-  // Get available exercises for the exercise preferences step
+  // Available exercises for the exercise preferences step (filtered to the user's equipment)
   const availableExercises = useMemo(() => {
-    return getAvailableWorkouts(200).map(e => ({ id: e.id, name: e.name, muscleGroup: e.primaryMuscles[0] || '' }));
-  }, []);
+    const source = userEquipment.length > 0
+      ? getWorkoutsByEquipment(userEquipment, 200)
+      : getAvailableWorkouts(200);
+    return source.map(e => ({ id: e.id, name: e.name, muscleGroup: e.primaryMuscles[0] || '' }));
+  }, [userEquipment]);
 
   const filteredExercises = useMemo(() => {
     let exercises = availableExercises;
 
-    // Filter by muscle group if selected
     if (selectedMuscleFilter) {
       exercises = exercises.filter(e => e.muscleGroup === selectedMuscleFilter);
     }
 
-    // Filter by search query
     if (exerciseSearchQuery.trim()) {
       const query = exerciseSearchQuery.toLowerCase().trim();
       exercises = exercises.filter(e =>
@@ -202,9 +226,15 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         setSelectedDuration(null);
         setIncludedExercises([]);
         setExcludedExercises([]);
+        setCustomNotes('');
         setExerciseSearchQuery('');
+        setSelectedMuscleFilter(null);
         setGeneratedProgram(null);
         setStatusMessage('');
+        setRefineInstruction('');
+        setIsRefining(false);
+        setIsSaving(false);
+        optionsRef.current = null;
       }, 300);
     }
   }, [visible]);
@@ -234,14 +264,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     const isIgnored = ignoredMuscles.includes(areaId);
 
     if (!isFocused && !isIgnored) {
-      // Not selected -> Focus (green)
       setSelectedFocus(prev => [...prev, areaId]);
     } else if (isFocused) {
-      // Focused -> Ignored (red)
       setSelectedFocus(prev => prev.filter(f => f !== areaId));
       setIgnoredMuscles(prev => [...prev, areaId]);
     } else {
-      // Ignored -> Not selected
       setIgnoredMuscles(prev => prev.filter(i => i !== areaId));
     }
   };
@@ -265,73 +292,102 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     animateTransition('exercises');
   };
 
-  const handleToggleIncludedExercise = useCallback((exerciseId: string) => {
-    setIncludedExercises(prev => {
-      if (prev.includes(exerciseId)) {
-        return prev.filter(id => id !== exerciseId);
-      }
-      // Remove from excluded if adding to included
-      setExcludedExercises(exc => exc.filter(id => id !== exerciseId));
-      return [...prev, exerciseId];
-    });
-  }, []);
+  // Cycle through: neutral -> included -> excluded -> neutral
+  const handleExerciseCycle = useCallback((exerciseId: string) => {
+    const isIncluded = includedExercises.includes(exerciseId);
+    const isExcluded = excludedExercises.includes(exerciseId);
 
-  const handleToggleExcludedExercise = useCallback((exerciseId: string) => {
-    setExcludedExercises(prev => {
-      if (prev.includes(exerciseId)) {
-        return prev.filter(id => id !== exerciseId);
-      }
-      // Remove from included if adding to excluded
-      setIncludedExercises(inc => inc.filter(id => id !== exerciseId));
-      return [...prev, exerciseId];
-    });
-  }, []);
+    if (!isIncluded && !isExcluded) {
+      setIncludedExercises(prev => [...prev, exerciseId]);
+    } else if (isIncluded) {
+      setIncludedExercises(prev => prev.filter(id => id !== exerciseId));
+      setExcludedExercises(prev => [...prev, exerciseId]);
+    } else {
+      setExcludedExercises(prev => prev.filter(id => id !== exerciseId));
+    }
+  }, [includedExercises, excludedExercises]);
 
-  const handleExercisesContinue = async () => {
-    // Close modal immediately and generate in background
-    onGenerationStarted?.();
-    onClose();
+  const buildOptions = (): GenerateRoutineOptions => {
+    const experienceLevel = selectedExperience || 'beginner';
+    const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
+    const notes = customNotes.trim();
+    return {
+      programTemplate: selectProgramTemplate(selectedGoal!, selectedDays!),
+      trainingGoal: selectedGoal!,
+      weeklyDays: selectedDays!,
+      focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
+      ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
+      trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
+      workoutDuration: selectedDuration!,
+      exercisesPerWorkout: durationConfig ? { min: durationConfig.min, max: durationConfig.max } : undefined,
+      includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
+      excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
+      customRequest: notes.length > 0 ? notes : undefined,
+    };
+  };
 
+  const runGeneration = async (options: GenerateRoutineOptions) => {
+    optionsRef.current = options;
+    setStatusMessage('Designing your program…');
+    setStep('generating');
     try {
-      const programTemplate = selectProgramTemplate(selectedGoal!, selectedDays!);
-      const experienceLevel = selectedExperience || 'beginner';
-      const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
-
-      const program = await aiRoutineGenerator.generateRoutineProgram({
-        programTemplate,
-        trainingGoal: selectedGoal!,
-        weeklyDays: selectedDays!,
-        focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
-        ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
-        trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
-        workoutDuration: selectedDuration!,
-        exercisesPerWorkout: { min: durationConfig!.min, max: durationConfig!.max },
-        includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
-        excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
-      });
-
-      const routines = await aiRoutineGenerator.convertToRoutines(program, {
-        excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined,
-      });
-
-      // Validate the CONVERTED routines (real exercise IDs) and log results
-      validateRoutines(routines, experienceLevel);
-
-      for (const routine of routines) {
-        await storageService.saveRoutine(routine);
-      }
-
-      // Notify that routines were created
-      onRoutinesCreated();
+      const program = await aiRoutineGenerator.generateRoutineProgram(options);
+      setGeneratedProgram(program);
+      setStep('preview');
     } catch (error) {
       console.error('Error generating routine:', error);
-      // Could add a toast notification here for errors
+      // generateRoutineProgram returns a fallback rather than throwing, so this is rare —
+      // bounce back to the exercises step if it ever happens.
+      setStep('exercises');
     }
   };
 
-  const handleDone = () => {
-    onRoutinesCreated();
-    onClose();
+  const handleExercisesContinue = () => {
+    Keyboard.dismiss();
+    runGeneration(buildOptions());
+  };
+
+  const handleRegenerate = () => {
+    if (optionsRef.current) runGeneration(optionsRef.current);
+  };
+
+  const handleRefine = async () => {
+    const instruction = refineInstruction.trim();
+    if (!instruction || !generatedProgram || !optionsRef.current || isRefining) return;
+    Keyboard.dismiss();
+    setIsRefining(true);
+    try {
+      const updated = await aiRoutineGenerator.refineRoutineProgram(
+        generatedProgram,
+        instruction,
+        optionsRef.current
+      );
+      setGeneratedProgram(updated);
+      setRefineInstruction('');
+    } catch (error) {
+      console.error('Error refining routine:', error);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const handleSaveProgram = async () => {
+    if (!generatedProgram || isSaving) return;
+    setIsSaving(true);
+    try {
+      const routines = await aiRoutineGenerator.convertToRoutines(generatedProgram, {
+        excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined,
+      });
+      validateRoutines(routines, selectedExperience || 'beginner');
+      for (const routine of routines) {
+        await storageService.saveRoutine(routine);
+      }
+      onRoutinesCreated();
+      onClose();
+    } catch (error) {
+      console.error('Error saving routine:', error);
+      setIsSaving(false);
+    }
   };
 
   const handleBack = () => {
@@ -349,18 +405,24 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     } else if (step === 'exercises') {
       animateTransition('duration');
       setSelectedDuration(null);
+    } else if (step === 'preview') {
+      setGeneratedProgram(null);
+      setRefineInstruction('');
+      animateTransition('exercises');
     }
   };
 
   const getStepNumber = () => {
-    const steps: FlowStep[] = ['goal', 'focus', 'experience', 'days', 'duration', 'exercises'];
-    const idx = steps.indexOf(step);
+    const idx = INPUT_STEPS.indexOf(step);
     return idx >= 0 ? idx + 1 : 0;
   };
 
+  const showBackButton = step === 'focus' || step === 'experience' || step === 'days' ||
+    step === 'duration' || step === 'exercises' || step === 'preview';
+
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: colors.bg }]}>
-      {(step === 'focus' || step === 'experience' || step === 'days' || step === 'duration' || step === 'exercises') ? (
+      {showBackButton ? (
         <TouchableOpacity onPress={handleBack} style={styles.headerBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -368,22 +430,22 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         <View style={styles.headerBtn} />
       )}
 
-      {step !== 'generating' && step !== 'success' && (
+      {INPUT_STEPS.includes(step) && (
         <View style={styles.progressBar}>
-          {[1, 2, 3, 4, 5, 6].map((n) => (
+          {INPUT_STEPS.map((_, i) => (
             <View
-              key={n}
+              key={i}
               style={[
                 styles.progressDot,
                 { backgroundColor: colors.surfaceLight },
-                n <= getStepNumber() && { backgroundColor: colors.accent },
+                i + 1 <= getStepNumber() && { backgroundColor: colors.accent },
               ]}
             />
           ))}
         </View>
       )}
 
-      {step !== 'generating' && step !== 'success' ? (
+      {step !== 'generating' ? (
         <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
           <Ionicons name="close" size={24} color={colors.textMuted} />
         </TouchableOpacity>
@@ -445,10 +507,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {BODY_AREAS.map((area) => {
           const isFocused = selectedFocus.includes(area.id);
           const isIgnored = ignoredMuscles.includes(area.id);
-
-          let chipVariant: 'default' | 'focus' | 'ignore' = 'default';
-          if (isFocused) chipVariant = 'focus';
-          if (isIgnored) chipVariant = 'ignore';
 
           return (
             <TouchableOpacity
@@ -585,24 +643,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     </Animated.View>
   );
 
-  // Cycle through: neutral -> included -> excluded -> neutral
-  const handleExerciseCycle = useCallback((exerciseId: string) => {
-    const isIncluded = includedExercises.includes(exerciseId);
-    const isExcluded = excludedExercises.includes(exerciseId);
-
-    if (!isIncluded && !isExcluded) {
-      // Neutral -> Included
-      setIncludedExercises(prev => [...prev, exerciseId]);
-    } else if (isIncluded) {
-      // Included -> Excluded
-      setIncludedExercises(prev => prev.filter(id => id !== exerciseId));
-      setExcludedExercises(prev => [...prev, exerciseId]);
-    } else {
-      // Excluded -> Neutral
-      setExcludedExercises(prev => prev.filter(id => id !== exerciseId));
-    }
-  }, [includedExercises, excludedExercises]);
-
   const renderExerciseItem = ({ item }: { item: { id: string; name: string; muscleGroup: string } }) => {
     const isIncluded = includedExercises.includes(item.id);
     const isExcluded = excludedExercises.includes(item.id);
@@ -653,15 +693,39 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     );
   };
 
+  // Freeform notes + cycling hint, rendered above the exercise list so loose preferences
+  // (injuries, "no overhead pressing", etc.) can be expressed without tapping specifics.
+  const renderExercisesHeader = () => (
+    <View>
+      <View style={[styles.notesBlock, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.notesLabel, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          Anything else for the coach?
+        </Text>
+        <TextInput
+          style={[styles.notesInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
+          placeholder="Injuries, things to avoid, equipment quirks, how you like to train…"
+          placeholderTextColor={colors.textMuted}
+          value={customNotes}
+          onChangeText={setCustomNotes}
+          multiline
+          textAlignVertical="top"
+          maxLength={500}
+        />
+      </View>
+      <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
+        Optionally pick exercises — tap to cycle: include → exclude → reset
+      </Text>
+    </View>
+  );
+
   const renderExercisesStep = () => (
-    <Animated.View style={[styles.stepContent, { opacity: fadeAnim, flex: 1 }]}>
+    <View style={styles.exercisesContainer}>
       {/* Compact header */}
       <View style={styles.exercisesHeader}>
         <View>
           <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 6</Text>
           <Text style={[styles.exercisesTitle, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Exercise preferences</Text>
         </View>
-        {/* Selection summary pill */}
         {(includedExercises.length > 0 || excludedExercises.length > 0) && (
           <View style={[styles.selectionPill, { backgroundColor: colors.surface }]}>
             {includedExercises.length > 0 && (
@@ -681,11 +745,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         )}
       </View>
 
-      <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
-        Tap to cycle: include → exclude → reset
-      </Text>
-
-      {/* Combined search and filter row */}
+      {/* Search */}
       <View style={styles.searchFilterRow}>
         <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
           <Ionicons name="search" size={16} color={colors.textMuted} />
@@ -706,7 +766,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         </View>
       </View>
 
-      {/* Muscle group filter chips - more compact */}
+      {/* Muscle group filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -728,14 +788,17 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         ))}
       </ScrollView>
 
-      {/* Exercise list - takes remaining space */}
+      {/* Exercise list */}
       <FlatList
         data={filteredExercises}
         renderItem={renderExerciseItem}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={renderExercisesHeader}
         style={styles.exerciseList}
         contentContainerStyle={styles.exerciseListContent}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         initialNumToRender={20}
         maxToRenderPerBatch={15}
         windowSize={7}
@@ -749,73 +812,151 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           activeOpacity={0.8}
         >
           <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
-            {includedExercises.length === 0 && excludedExercises.length === 0 ? 'Skip & Generate' : 'Generate Routine'}
+            Generate Routine
           </Text>
           <Ionicons name="sparkles" size={18} color={colors.bg} />
         </TouchableOpacity>
       </View>
-    </Animated.View>
+    </View>
   );
 
   const renderGeneratingStep = () => (
-    <Animated.View style={[styles.centerContent, { opacity: fadeAnim }]}>
+    <View style={styles.centerContent}>
       <Animated.View style={[styles.loadingCircle, { backgroundColor: colors.surface, borderColor: colors.accent + '30', transform: [{ scale: pulseAnim }] }]}>
         <ActivityIndicator size="large" color={colors.accent} />
       </Animated.View>
       <Text style={[styles.loadingLabel, { color: colors.accent, fontFamily: currentTheme.fonts.bold }]}>GENERATING</Text>
       <Text style={[styles.loadingMessage, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{statusMessage}</Text>
-    </Animated.View>
+    </View>
   );
 
-  const renderSuccessStep = () => (
-    <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
-      <View style={styles.successHeader}>
-        <View style={[styles.successIcon, { backgroundColor: colors.success + '15' }]}>
-          <Ionicons name="checkmark" size={36} color={colors.success} />
-        </View>
-        <Text style={[styles.successTitle, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{generatedProgram?.programName}</Text>
-      </View>
+  const renderPreviewStep = () => (
+    <KeyboardAvoidingView
+      style={styles.previewContainer}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={styles.previewScroll}
+        contentContainerStyle={styles.previewScrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Text style={[styles.previewProgramName, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>
+          {generatedProgram?.programName}
+        </Text>
+        <Text style={[styles.previewMeta, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>
+          {generatedProgram?.routines.length} days/week · {generatedProgram?.trainingGoal}
+        </Text>
 
-      <View style={[styles.summaryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{generatedProgram?.routines.length}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Routines</Text>
-          </View>
-          <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{selectedDays}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Days/Week</Text>
-          </View>
-          {selectedFocus.length > 0 && (
-            <>
-              <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{selectedFocus.length}</Text>
-                <Text style={[styles.summaryLabel, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Focus Areas</Text>
-              </View>
-            </>
-          )}
-        </View>
+        {generatedProgram?.source && (
+          <TouchableOpacity
+            style={styles.sourceRow}
+            onPress={() => Linking.openURL(generatedProgram.source!.url)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="document-text-outline" size={13} color={colors.accent} />
+            <Text style={[styles.sourceText, { color: colors.accent, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
+              Based on {generatedProgram.source.program}
+            </Text>
+            <Ionicons name="open-outline" size={12} color={colors.accent} />
+          </TouchableOpacity>
+        )}
 
-        {selectedFocus.length > 0 && (
-          <View style={[styles.focusList, { borderTopColor: colors.border }]}>
-            <Text style={[styles.focusListLabel, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>Prioritizing: </Text>
-            <Text style={[styles.focusListText, { color: colors.accent, fontFamily: currentTheme.fonts.medium }]}>
-              {selectedFocus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
+        {isRefining && (
+          <View style={[styles.updatingRow, { backgroundColor: colors.accent + '12' }]}>
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text style={[styles.updatingText, { color: colors.accent, fontFamily: currentTheme.fonts.medium }]}>
+              Updating your program…
             </Text>
           </View>
         )}
-      </View>
 
-      <TouchableOpacity
-        style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-        onPress={handleDone}
-        activeOpacity={0.8}
-      >
-        <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>View Routines</Text>
-      </TouchableOpacity>
-    </Animated.View>
+        <View style={[{ opacity: isRefining ? 0.4 : 1 }]}>
+          {generatedProgram?.routines.map((day) => (
+            <View key={day.dayNumber} style={[styles.previewDayCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.dayCardHeader}>
+                <Text style={[styles.dayName, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{day.name}</Text>
+                {!!day.estimatedTime && (
+                  <Text style={[styles.dayTime, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>{day.estimatedTime}</Text>
+                )}
+              </View>
+              {!!day.focus && (
+                <Text style={[styles.dayFocus, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{day.focus}</Text>
+              )}
+              {day.exercises.map((ex, i) => (
+                <View key={`${day.dayNumber}-${i}`} style={[styles.exerciseLine, { borderTopColor: colors.border }]}>
+                  <View style={styles.exerciseLineMain}>
+                    <Text style={[styles.exerciseLineName, { color: colors.text, fontFamily: currentTheme.fonts.regular }]} numberOfLines={2}>
+                      {ex.name}
+                    </Text>
+                    {!!ex.notes && (
+                      <Text style={[styles.exerciseNote, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]} numberOfLines={2}>
+                        {ex.notes}
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={[styles.exerciseLineScheme, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>
+                    {ex.sets} × {ex.reps}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity onPress={handleRegenerate} style={styles.regenBtn} activeOpacity={0.7} disabled={isRefining}>
+          <Ionicons name="refresh" size={15} color={colors.textDim} />
+          <Text style={[styles.regenText, { color: colors.textDim, fontFamily: currentTheme.fonts.medium }]}>Regenerate from scratch</Text>
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Refine + Save bar */}
+      <View style={[styles.previewBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
+        <View style={[styles.refineRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <TextInput
+            style={[styles.refineInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
+            placeholder="Tell the coach what to change…"
+            placeholderTextColor={colors.textMuted}
+            value={refineInstruction}
+            onChangeText={setRefineInstruction}
+            editable={!isRefining}
+            returnKeyType="send"
+            onSubmitEditing={handleRefine}
+          />
+          <TouchableOpacity
+            onPress={handleRefine}
+            disabled={isRefining || !refineInstruction.trim()}
+            style={[
+              styles.sendBtn,
+              { backgroundColor: colors.accent },
+              (isRefining || !refineInstruction.trim()) && { opacity: 0.4 },
+            ]}
+            activeOpacity={0.8}
+          >
+            {isRefining
+              ? <ActivityIndicator size="small" color={colors.bg} />
+              : <Ionicons name="arrow-up" size={18} color={colors.bg} />}
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.primaryBtn, { backgroundColor: colors.accent }, isSaving && { opacity: 0.6 }]}
+          onPress={handleSaveProgram}
+          disabled={isSaving || isRefining}
+          activeOpacity={0.8}
+        >
+          {isSaving
+            ? <ActivityIndicator size="small" color={colors.bg} />
+            : (
+              <>
+                <Ionicons name="checkmark" size={18} color={colors.bg} />
+                <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>Save Program</Text>
+              </>
+            )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 
   return (
@@ -823,9 +964,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <SafeAreaView style={[styles.container, { backgroundColor: colors.bg }]}>
         {renderHeader()}
         {step === 'exercises' ? (
-          <View style={styles.exercisesContainer}>
-            {renderExercisesStep()}
-          </View>
+          renderExercisesStep()
+        ) : step === 'preview' ? (
+          renderPreviewStep()
         ) : (
           <ScrollView
             style={styles.scroll}
@@ -838,7 +979,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             {step === 'days' && renderDaysStep()}
             {step === 'duration' && renderDurationStep()}
             {step === 'generating' && renderGeneratingStep()}
-            {step === 'success' && renderSuccessStep()}
           </ScrollView>
         )}
       </SafeAreaView>
@@ -1051,63 +1191,6 @@ const styles = StyleSheet.create({
   loadingMessage: {
     fontSize: 15,
   },
-  // Success
-  successHeader: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  successIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  successTitle: {
-    fontSize: 22,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  summaryCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  summaryItem: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  summaryValue: {
-    fontSize: 28,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-  },
-  focusList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    marginBottom: 12,
-  },
-  focusListLabel: {
-    fontSize: 13,
-  },
-  focusListText: {
-    fontSize: 13,
-  },
   // Duration step
   durationGrid: {
     flexDirection: 'row',
@@ -1138,10 +1221,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 4,
+    marginBottom: 12,
   },
   exercisesTitle: {
     fontSize: 22,
+  },
+  notesBlock: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  notesLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  notesInput: {
+    fontSize: 14,
+    lineHeight: 20,
+    minHeight: 64,
+    padding: 0,
   },
   exercisesHint: {
     fontSize: 13,
@@ -1229,6 +1328,136 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     borderTopWidth: 1,
+  },
+  // Preview / refine step
+  previewContainer: {
+    flex: 1,
+  },
+  previewScroll: {
+    flex: 1,
+  },
+  previewScrollContent: {
+    padding: 24,
+    paddingTop: 8,
+    paddingBottom: 24,
+  },
+  previewProgramName: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  previewMeta: {
+    fontSize: 14,
+    marginBottom: 10,
+    textTransform: 'capitalize',
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 20,
+  },
+  sourceText: {
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  updatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  updatingText: {
+    fontSize: 14,
+  },
+  previewDayCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+  },
+  dayCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dayName: {
+    fontSize: 17,
+    flex: 1,
+  },
+  dayTime: {
+    fontSize: 13,
+    marginLeft: 8,
+  },
+  dayFocus: {
+    fontSize: 13,
+    marginTop: 2,
+    marginBottom: 4,
+  },
+  exerciseLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    marginTop: 6,
+    gap: 12,
+  },
+  exerciseLineMain: {
+    flex: 1,
+  },
+  exerciseLineName: {
+    fontSize: 15,
+  },
+  exerciseNote: {
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  exerciseLineScheme: {
+    fontSize: 14,
+  },
+  regenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  regenText: {
+    fontSize: 14,
+  },
+  previewBottomBar: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  refineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingLeft: 14,
+    paddingRight: 6,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  refineInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: 6,
+  },
+  sendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

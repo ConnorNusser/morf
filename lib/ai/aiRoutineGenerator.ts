@@ -18,6 +18,8 @@ import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
+import { classifyEquipment } from '@/lib/workout/equipmentProfile';
+import { buildDeterministicProgram } from '@/lib/workout/deterministicRoutineBuilder';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
 
@@ -29,7 +31,7 @@ const INTENSITY_MULTIPLIERS: Record<IntensityModifier, number> = {
   light: 0.8,
 };
 
-interface GeneratedRoutineDay {
+export interface GeneratedRoutineDay {
   name: string;
   dayNumber: number;
   focus: string;
@@ -48,9 +50,11 @@ export interface GeneratedRoutineProgram {
   programStyle: ProgramTemplate;
   trainingGoal: TrainingGoal;
   routines: GeneratedRoutineDay[];
+  /** Attribution when the program came from the deterministic template library. */
+  source?: { program: string; url: string };
 }
 
-interface GenerateRoutineOptions {
+export interface GenerateRoutineOptions {
   programTemplate: ProgramTemplate;
   trainingGoal: TrainingGoal;
   weeklyDays: number;
@@ -61,6 +65,7 @@ interface GenerateRoutineOptions {
   exercisesPerWorkout?: { min: number; max: number };  // Exercise count constraints
   includedExercises?: string[];  // Exercises to definitely include
   excludedExercises?: string[];  // Exercises to definitely exclude
+  customRequest?: string;  // Freeform notes from the lifter (injuries, loose avoids, preferences)
 }
 
 class AIRoutineGeneratorService {
@@ -76,20 +81,78 @@ class AIRoutineGeneratorService {
    */
   async generateRoutineProgram(options: GenerateRoutineOptions): Promise<GeneratedRoutineProgram> {
     const userProfile = await userService.getRealUserProfile();
-    const workoutHistory = await storageService.getWorkoutHistory();
-    const customExercises = await storageService.getCustomExercises();
+    const equipmentProfile = classifyEquipment(userProfile?.equipmentFilter?.includedEquipment);
 
+    // Standard equipment → build deterministically from the attributed template library
+    // (fast, consistent, no API call). Limited/odd setups fall through to the AI.
+    if (equipmentProfile.tier === 'standard') {
+      try {
+        return this.buildDeterministic(options, equipmentProfile.available);
+      } catch (error) {
+        console.error('Deterministic build failed, falling back to AI:', error);
+      }
+    }
+
+    // Limited/odd equipment (or a deterministic failure) → AI, with the template library
+    // as the final fallback when the AI is unavailable or errors.
     if (!this.GEMINI_API_KEY) {
-      return this.generateFallbackProgram(userProfile, options);
+      return this.buildDeterministic(options, equipmentProfile.available);
     }
 
     try {
+      const workoutHistory = await storageService.getWorkoutHistory();
+      const customExercises = await storageService.getCustomExercises();
       const prompt = this.buildPrompt(userProfile, workoutHistory, customExercises, options);
-      const response = await this.callAI(prompt, options.programTemplate);
-      return response;
+      return await this.callAI(prompt, options.programTemplate);
     } catch (error) {
-      console.error('AI routine generation failed, using fallback:', error);
-      return this.generateFallbackProgram(userProfile, options);
+      console.error('AI routine generation failed, using template library:', error);
+      return this.buildDeterministic(options, equipmentProfile.available);
+    }
+  }
+
+  /** Build a program from the deterministic template library for the given equipment. */
+  private buildDeterministic(options: GenerateRoutineOptions, equipment: Equipment[]): GeneratedRoutineProgram {
+    return buildDeterministicProgram({
+      goal: options.trainingGoal,
+      days: options.weeklyDays,
+      equipment,
+      exerciseCount: options.exercisesPerWorkout,
+      focusMuscles: options.focusMuscles,
+      ignoredMuscles: options.ignoredMuscles,
+      includedExerciseIds: options.includedExercises,
+      excludedExerciseIds: options.excludedExercises,
+    });
+  }
+
+  /**
+   * Refine an already-generated program in place based on a freeform instruction
+   * (e.g. "swap leg press for hack squat", "more chest volume", "shorten day 1").
+   * Reuses the same lifter context/constraints as generation and asks the AI to
+   * return the full revised program. Falls back to the unchanged program if the AI
+   * is unavailable or errors.
+   */
+  async refineRoutineProgram(
+    currentProgram: GeneratedRoutineProgram,
+    instruction: string,
+    options: GenerateRoutineOptions
+  ): Promise<GeneratedRoutineProgram> {
+    if (!this.GEMINI_API_KEY || !instruction.trim()) {
+      return currentProgram;
+    }
+
+    try {
+      const userProfile = await userService.getRealUserProfile();
+      const workoutHistory = await storageService.getWorkoutHistory();
+      const customExercises = await storageService.getCustomExercises();
+
+      const prompt = this.buildPrompt(userProfile, workoutHistory, customExercises, options, {
+        currentProgram,
+        instruction: instruction.trim(),
+      });
+      return await this.callAI(prompt, options.programTemplate);
+    } catch (error) {
+      console.error('AI routine refinement failed, keeping current program:', error);
+      return currentProgram;
     }
   }
 
@@ -293,7 +356,8 @@ class AIRoutineGeneratorService {
     userProfile: UserProfile | null,
     workoutHistory: GeneratedWorkout[],
     customExercises: CustomExercise[],
-    options: GenerateRoutineOptions
+    options: GenerateRoutineOptions,
+    refine?: { currentProgram: GeneratedRoutineProgram; instruction: string }
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const gender = userProfile?.gender || 'male';
@@ -462,6 +526,9 @@ class AIRoutineGeneratorService {
       exercisesPerWorkout: options.exercisesPerWorkout,
       includedExercises: includedExerciseNames,
       excludedExercises: excludedExerciseNames,
+      customRequest: options.customRequest,
+      currentProgramJson: refine ? JSON.stringify(refine.currentProgram, null, 2) : undefined,
+      refineInstruction: refine?.instruction,
     };
 
     return buildRoutineGenerationPrompt(params);
@@ -526,12 +593,13 @@ class AIRoutineGeneratorService {
       },
     });
 
-    const systemPrompt = `You are an experienced strength and conditioning coach. Create practical, evidence-based workout programs.
+    const systemPrompt = `You are an experienced strength and conditioning coach. Design practical, evidence-based
+workout programs using your own expertise — you have freedom over the split, exercise selection, and set/rep schemes.
 
 STRICT RULES:
 1. ONLY use exercises from the "AVAILABLE EXERCISES" list - do NOT invent, substitute, or add any exercises not explicitly listed
-2. Follow the "CRITICAL REQUIREMENTS" section exactly - these constraints (exercise counts, included exercises, fatigue management) override all other guidelines
-3. If a required exercise is listed, it MUST appear in the program
+2. Respect every item in the "HARD RULES" section exactly - those are the lifter's non-negotiable constraints
+3. If a "must include" exercise is listed, it MUST appear in the program
 4. If an exercise is NOT in the available list, do NOT use it under any circumstances
 
 Return only valid JSON.`;
@@ -568,217 +636,6 @@ Return only valid JSON.`;
     return parsed;
   }
 
-  private generateFallbackProgram(
-    userProfile: UserProfile | null,
-    options: GenerateRoutineOptions
-  ): GeneratedRoutineProgram {
-    const templateInfo = PROGRAM_TEMPLATES[options.programTemplate] || PROGRAM_TEMPLATES.custom;
-
-    // Generate based on days per week
-    const routines: GeneratedRoutineDay[] = [];
-
-    if (options.weeklyDays === 3) {
-      // Full body or PPL condensed
-      if (options.programTemplate === 'full_body' || options.trainingGoal === 'strength') {
-        routines.push(
-          this.createFallbackDay(1, 'Full Body A', 'Squat focus', ['legs', 'chest', 'back'], [
-            { name: 'Squat (Barbell)', sets: 3, reps: 5 },
-            { name: 'Bench Press (Barbell)', sets: 3, reps: 5 },
-            { name: 'Row (Barbell)', sets: 3, reps: 5 },
-            { name: 'Overhead Press (Barbell)', sets: 3, reps: 8 },
-            { name: 'Bicep Curl (Barbell)', sets: 2, reps: 10 },
-          ]),
-          this.createFallbackDay(2, 'Full Body B', 'Deadlift focus', ['back', 'legs', 'shoulders'], [
-            { name: 'Deadlift (Barbell)', sets: 3, reps: 5 },
-            { name: 'Overhead Press (Barbell)', sets: 3, reps: 5 },
-            { name: 'Lat Pulldown (Cables)', sets: 3, reps: 8 },
-            { name: 'Leg Press (Machine)', sets: 3, reps: 10 },
-            { name: 'Face Pull (Cables)', sets: 3, reps: 15 },
-          ]),
-          this.createFallbackDay(3, 'Full Body C', 'Bench focus', ['chest', 'back', 'legs'], [
-            { name: 'Bench Press (Barbell)', sets: 3, reps: 5 },
-            { name: 'Squat (Barbell)', sets: 3, reps: 5 },
-            { name: 'Row (Cables)', sets: 3, reps: 8 },
-            { name: 'Romanian Deadlift (Barbell)', sets: 3, reps: 8 },
-            { name: 'Tricep Pushdown (Cables)', sets: 2, reps: 12 },
-          ])
-        );
-      } else {
-        // PPL condensed
-        routines.push(
-          this.createFallbackDay(1, 'Push', 'Chest, shoulders, triceps', ['chest', 'shoulders', 'triceps'], [
-            { name: 'Bench Press (Barbell)', sets: 4, reps: 8 },
-            { name: 'Overhead Press (Barbell)', sets: 3, reps: 10 },
-            { name: 'Incline Bench Press (Dumbbells)', sets: 3, reps: 10 },
-            { name: 'Lateral Raise (Dumbbells)', sets: 3, reps: 15 },
-            { name: 'Tricep Pushdown (Cables)', sets: 3, reps: 12 },
-          ]),
-          this.createFallbackDay(2, 'Pull', 'Back and biceps', ['back', 'biceps'], [
-            { name: 'Row (Barbell)', sets: 4, reps: 8 },
-            { name: 'Lat Pulldown (Cables)', sets: 3, reps: 10 },
-            { name: 'Row (Cables)', sets: 3, reps: 10 },
-            { name: 'Face Pull (Cables)', sets: 3, reps: 15 },
-            { name: 'Bicep Curl (Barbell)', sets: 3, reps: 10 },
-          ]),
-          this.createFallbackDay(3, 'Legs', 'Quads, hamstrings, glutes', ['legs', 'glutes'], [
-            { name: 'Squat (Barbell)', sets: 4, reps: 6 },
-            { name: 'Romanian Deadlift (Barbell)', sets: 3, reps: 10 },
-            { name: 'Leg Press (Machine)', sets: 3, reps: 12 },
-            { name: 'Leg Curl (Machine)', sets: 3, reps: 12 },
-            { name: 'Calf Raise (Machine)', sets: 4, reps: 15 },
-          ])
-        );
-      }
-    } else if (options.weeklyDays === 4) {
-      // Upper/Lower split (PHUL style)
-      routines.push(
-        this.createFallbackDay(1, 'Upper Power', 'Heavy upper body compounds', ['chest', 'back', 'shoulders'], [
-          { name: 'Bench Press (Barbell)', sets: 4, reps: 5 },
-          { name: 'Row (Barbell)', sets: 4, reps: 5 },
-          { name: 'Overhead Press (Barbell)', sets: 3, reps: 6 },
-          { name: 'Lat Pulldown (Cables)', sets: 3, reps: 8 },
-          { name: 'Bicep Curl (Barbell)', sets: 2, reps: 8 },
-        ]),
-        this.createFallbackDay(2, 'Lower Power', 'Heavy lower body compounds', ['legs', 'glutes'], [
-          { name: 'Squat (Barbell)', sets: 4, reps: 5 },
-          { name: 'Deadlift (Barbell)', sets: 3, reps: 5 },
-          { name: 'Leg Press (Machine)', sets: 3, reps: 8 },
-          { name: 'Leg Curl (Machine)', sets: 3, reps: 8 },
-          { name: 'Calf Raise (Machine)', sets: 4, reps: 10 },
-        ]),
-        this.createFallbackDay(3, 'Upper Hypertrophy', 'Volume upper body work', ['chest', 'back', 'arms'], [
-          { name: 'Incline Bench Press (Dumbbells)', sets: 4, reps: 10 },
-          { name: 'Row (Cables)', sets: 4, reps: 10 },
-          { name: 'Shoulder Press (Dumbbells)', sets: 3, reps: 12 },
-          { name: 'Lateral Raise (Dumbbells)', sets: 3, reps: 15 },
-          { name: 'Bicep Curl (Dumbbells)', sets: 3, reps: 12 },
-          { name: 'Tricep Pushdown (Cables)', sets: 3, reps: 12 },
-        ]),
-        this.createFallbackDay(4, 'Lower Hypertrophy', 'Volume lower body work', ['legs', 'glutes'], [
-          { name: 'Romanian Deadlift (Barbell)', sets: 4, reps: 10 },
-          { name: 'Leg Extension (Machine)', sets: 3, reps: 12 },
-          { name: 'Leg Curl (Machine)', sets: 3, reps: 12 },
-          { name: 'Hip Thrust (Barbell)', sets: 3, reps: 12 },
-          { name: 'Calf Raise (Machine)', sets: 4, reps: 15 },
-        ])
-      );
-    } else if (options.weeklyDays === 5) {
-      // PHAT style or bro split
-      routines.push(
-        this.createFallbackDay(1, 'Upper Power', 'Heavy upper compounds', ['chest', 'back', 'shoulders'], [
-          { name: 'Bench Press (Barbell)', sets: 4, reps: 5 },
-          { name: 'Row (Barbell)', sets: 4, reps: 5 },
-          { name: 'Overhead Press (Barbell)', sets: 3, reps: 6 },
-          { name: 'Lat Pulldown (Cables)', sets: 3, reps: 8 },
-        ]),
-        this.createFallbackDay(2, 'Lower Power', 'Heavy lower compounds', ['legs', 'glutes'], [
-          { name: 'Squat (Barbell)', sets: 4, reps: 5 },
-          { name: 'Deadlift (Barbell)', sets: 3, reps: 5 },
-          { name: 'Leg Press (Machine)', sets: 3, reps: 8 },
-          { name: 'Leg Curl (Machine)', sets: 3, reps: 8 },
-        ]),
-        this.createFallbackDay(3, 'Back & Shoulders', 'Pull hypertrophy', ['back', 'shoulders'], [
-          { name: 'Row (Cables)', sets: 4, reps: 10 },
-          { name: 'Lat Pulldown (Cables)', sets: 4, reps: 10 },
-          { name: 'Shoulder Press (Dumbbells)', sets: 3, reps: 12 },
-          { name: 'Lateral Raise (Dumbbells)', sets: 4, reps: 15 },
-          { name: 'Face Pull (Cables)', sets: 3, reps: 15 },
-        ]),
-        this.createFallbackDay(4, 'Chest & Arms', 'Push hypertrophy', ['chest', 'triceps', 'biceps'], [
-          { name: 'Incline Bench Press (Dumbbells)', sets: 4, reps: 10 },
-          { name: 'Chest Fly (Cables)', sets: 3, reps: 12 },
-          { name: 'Tricep Pushdown (Cables)', sets: 3, reps: 12 },
-          { name: 'Bicep Curl (Dumbbells)', sets: 3, reps: 12 },
-          { name: 'Overhead Tricep Extension (Cables)', sets: 3, reps: 12 },
-        ]),
-        this.createFallbackDay(5, 'Legs Hypertrophy', 'Volume leg work', ['legs', 'glutes'], [
-          { name: 'Hack Squat (Machine)', sets: 4, reps: 10 },
-          { name: 'Romanian Deadlift (Barbell)', sets: 3, reps: 10 },
-          { name: 'Leg Extension (Machine)', sets: 3, reps: 12 },
-          { name: 'Leg Curl (Machine)', sets: 3, reps: 12 },
-          { name: 'Hip Thrust (Barbell)', sets: 3, reps: 12 },
-        ])
-      );
-    } else {
-      // 6-day PPL
-      routines.push(
-        this.createFallbackDay(1, 'Push A', 'Chest focus', ['chest', 'shoulders', 'triceps'], [
-          { name: 'Bench Press (Barbell)', sets: 4, reps: 6 },
-          { name: 'Overhead Press (Barbell)', sets: 3, reps: 8 },
-          { name: 'Incline Bench Press (Dumbbells)', sets: 3, reps: 10 },
-          { name: 'Lateral Raise (Dumbbells)', sets: 3, reps: 15 },
-          { name: 'Tricep Pushdown (Cables)', sets: 3, reps: 12 },
-        ]),
-        this.createFallbackDay(2, 'Pull A', 'Back focus', ['back', 'biceps'], [
-          { name: 'Row (Barbell)', sets: 4, reps: 6 },
-          { name: 'Lat Pulldown (Cables)', sets: 3, reps: 8 },
-          { name: 'Row (Cables)', sets: 3, reps: 10 },
-          { name: 'Face Pull (Cables)', sets: 3, reps: 15 },
-          { name: 'Bicep Curl (Barbell)', sets: 3, reps: 10 },
-        ]),
-        this.createFallbackDay(3, 'Legs A', 'Squat focus', ['legs', 'glutes'], [
-          { name: 'Squat (Barbell)', sets: 4, reps: 6 },
-          { name: 'Romanian Deadlift (Barbell)', sets: 3, reps: 8 },
-          { name: 'Leg Press (Machine)', sets: 3, reps: 10 },
-          { name: 'Leg Curl (Machine)', sets: 3, reps: 10 },
-          { name: 'Calf Raise (Machine)', sets: 4, reps: 15 },
-        ]),
-        this.createFallbackDay(4, 'Push B', 'Shoulder focus', ['shoulders', 'chest', 'triceps'], [
-          { name: 'Overhead Press (Barbell)', sets: 4, reps: 6 },
-          { name: 'Incline Bench Press (Barbell)', sets: 3, reps: 8 },
-          { name: 'Chest Fly (Cables)', sets: 3, reps: 12 },
-          { name: 'Lateral Raise (Cables)', sets: 3, reps: 15 },
-          { name: 'Overhead Tricep Extension (Cables)', sets: 3, reps: 12 },
-        ]),
-        this.createFallbackDay(5, 'Pull B', 'Width focus', ['back', 'biceps'], [
-          { name: 'Lat Pulldown (Cables)', sets: 4, reps: 8 },
-          { name: 'Row (Cables)', sets: 3, reps: 10 },
-          { name: 'Row (Barbell)', sets: 3, reps: 10 },
-          { name: 'Rear Delt Fly (Cables)', sets: 3, reps: 15 },
-          { name: 'Hammer Curl (Dumbbells)', sets: 3, reps: 12 },
-        ]),
-        this.createFallbackDay(6, 'Legs B', 'Deadlift focus', ['legs', 'glutes'], [
-          { name: 'Deadlift (Barbell)', sets: 4, reps: 5 },
-          { name: 'Front Squat (Barbell)', sets: 3, reps: 8 },
-          { name: 'Leg Extension (Machine)', sets: 3, reps: 12 },
-          { name: 'Hip Thrust (Barbell)', sets: 3, reps: 10 },
-          { name: 'Calf Raise (Machine)', sets: 4, reps: 15 },
-        ])
-      );
-    }
-
-    // Apply exercise count constraints if specified
-    const adjustedRoutines = options.exercisesPerWorkout
-      ? routines.map(routine => ({
-          ...routine,
-          exercises: routine.exercises.slice(0, options.exercisesPerWorkout!.max),
-        }))
-      : routines;
-
-    return {
-      programName: `${templateInfo.name} - ${options.weeklyDays} Day Program`,
-      programStyle: options.programTemplate,
-      trainingGoal: options.trainingGoal,
-      routines: adjustedRoutines,
-    };
-  }
-
-  private createFallbackDay(
-    dayNumber: number,
-    name: string,
-    focus: string,
-    targetMuscles: string[],
-    exercises: { name: string; sets: number; reps: number }[]
-  ): GeneratedRoutineDay {
-    return {
-      name,
-      dayNumber,
-      focus,
-      targetMuscles,
-      exercises: exercises.map(e => ({ ...e })),
-      estimatedTime: '50 min',
-    };
-  }
 }
 
 export const aiRoutineGenerator = new AIRoutineGeneratorService();
