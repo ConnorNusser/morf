@@ -327,8 +327,25 @@ export interface Routine {
   createdAt: Date;
   lastUsed?: Date;
   isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
+  programId?: string;  // The program this day belongs to; absent for loose/manual routines
   // Progression tracking per exercise
   progressionState?: Record<string, ExerciseProgressionState>;
+}
+
+// A program groups the day-routines created together. Exactly one program is 'active'
+// at a time — its days are the user's current rotation. Starting a program pauses the
+// previously active one.
+export type ProgramStatus = 'active' | 'paused' | 'archived';
+
+export interface Program {
+  id: string;
+  name: string;
+  programStyle?: string;   // e.g. 'ppl', 'upper_lower'
+  trainingGoal?: string;
+  source?: { program: string; url: string };
+  createdAt: Date;
+  status: ProgramStatus;
+  days: number;            // number of day-routines in the program
 }
 
 // Calculated set with weight

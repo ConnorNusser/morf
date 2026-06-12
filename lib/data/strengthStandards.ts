@@ -165,11 +165,11 @@ export const MALE_STANDARDS: Record<string, StrengthStandard> = {
   },
   // Additional exercises from strengthlevel.com
   'tricep-pushdown-cables': {
-    beginner: 0.25,       // 10th percentile
-    intermediate: 0.50,   // 25th percentile
-    advanced: 0.75,       // 50th percentile
-    elite: 1.00,          // 75th percentile
-    god: 1.50,            // 90th percentile
+    beginner: 0.20,       // SL Beginner
+    intermediate: 0.35,   // SL Novice
+    advanced: 0.60,       // SL Intermediate
+    elite: 0.90,          // SL Advanced
+    god: 1.25,            // SL Elite
   },
   'hammer-curl-dumbbells': {
     beginner: 0.10,       // 10th percentile
@@ -526,11 +526,11 @@ export const FEMALE_STANDARDS: Record<string, StrengthStandard> = {
   },
   // Additional exercises from strengthlevel.com
   'tricep-pushdown-cables': {
-    beginner: 0.15,       // 10th percentile
-    intermediate: 0.25,   // 25th percentile
-    advanced: 0.50,       // 50th percentile
-    elite: 0.75,          // 75th percentile
-    god: 1.05,            // 90th percentile
+    beginner: 0.10,       // SL Beginner
+    intermediate: 0.25,   // SL Novice
+    advanced: 0.40,       // SL Intermediate
+    elite: 0.60,          // SL Advanced
+    god: 0.85,            // SL Elite
   },
   'hammer-curl-dumbbells': {
     beginner: 0.05,       // 10th percentile

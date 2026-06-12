@@ -1,9 +1,23 @@
 import { GeneratedWorkout } from '../types';
-import { getWeekProgress } from '../lib/workout/weeklyGoal';
+import { getWeekProgress, getWeeklyLoad } from '../lib/workout/weeklyGoal';
 
 // Minimal workout fixture — getWeekProgress only reads `createdAt`.
 function w(date: Date): GeneratedWorkout {
   return { id: date.toISOString(), title: 'test', exercises: [], createdAt: date } as unknown as GeneratedWorkout;
+}
+
+// Workout fixture with a single exercise's completed sets (lbs) for load tests.
+function wLoad(date: Date, sets: { weight: number; reps: number; completed?: boolean }[]): GeneratedWorkout {
+  return {
+    id: date.toISOString(),
+    title: 'test',
+    createdAt: date,
+    exercises: [
+      {
+        completedSets: sets.map(s => ({ weight: s.weight, reps: s.reps, unit: 'lbs', completed: s.completed ?? true })),
+      },
+    ],
+  } as unknown as GeneratedWorkout;
 }
 
 // Fixed reference "now": Wednesday, June 10 2026, 20:00 local.
@@ -44,5 +58,40 @@ describe('getWeekProgress', () => {
   it('meets the goal when days trained reaches it', () => {
     const p = getWeekProgress([w(at(5, 8)), w(at(5, 9)), w(at(5, 10))], 3, NOW);
     expect(p.metGoal).toBe(true);
+  });
+});
+
+describe('getWeeklyLoad', () => {
+  it('reports an empty week', () => {
+    expect(getWeeklyLoad([], NOW)).toEqual({ volumeLbs: 0, sets: 0, deltaPct: null });
+  });
+
+  it('sums completed-set volume and set count for this week', () => {
+    const load = getWeeklyLoad([wLoad(at(5, 8), [{ weight: 100, reps: 10 }, { weight: 100, reps: 5 }])], NOW);
+    expect(load.volumeLbs).toBe(1500);
+    expect(load.sets).toBe(2);
+    expect(load.deltaPct).toBeNull(); // no prior-week data
+  });
+
+  it('skips incomplete sets', () => {
+    const load = getWeeklyLoad([wLoad(at(5, 8), [{ weight: 100, reps: 10 }, { weight: 200, reps: 10, completed: false }])], NOW);
+    expect(load.volumeLbs).toBe(1000);
+    expect(load.sets).toBe(1);
+  });
+
+  it('computes the week-over-week volume delta', () => {
+    // Last week (June 1, Monday): 1000 lb. This week (June 8): 1500 lb → +50%.
+    const load = getWeeklyLoad(
+      [wLoad(at(5, 1), [{ weight: 100, reps: 10 }]), wLoad(at(5, 8), [{ weight: 100, reps: 15 }])],
+      NOW
+    );
+    expect(load.volumeLbs).toBe(1500);
+    expect(load.deltaPct).toBe(50);
+  });
+
+  it('ignores workouts older than last week', () => {
+    const load = getWeeklyLoad([wLoad(at(4, 20), [{ weight: 100, reps: 10 }])], NOW);
+    expect(load.volumeLbs).toBe(0);
+    expect(load.deltaPct).toBeNull();
   });
 });

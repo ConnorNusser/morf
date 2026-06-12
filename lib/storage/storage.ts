@@ -1,4 +1,4 @@
-import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
+import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   THEME_PREFERENCE: 'theme_preference',
   LIFT_DISPLAY_FILTERS: 'lift_display_filters',
   ROUTINES: 'routines',
+  PROGRAMS: 'programs',
   CURRENT_ROUTINE: 'current_routine',
   WORKOUT_ROUTINES: 'workout_routines',
   SHARE_COUNT: 'share_count',
@@ -393,6 +394,100 @@ class StorageService {
   async clearAllRoutines(): Promise<void> {
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify([]));
     await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_ROUTINE);
+  }
+
+  // Programs ---------------------------------------------------------------
+  // A program groups the day-routines created together. Exactly one program is
+  // 'active' at a time; its days are the user's active rotation.
+
+  async getPrograms(): Promise<Program[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.PROGRAMS);
+      if (!data) return [];
+      const programs = JSON.parse(data) as (Omit<Program, 'createdAt'> & { createdAt: string })[];
+      return programs.map(p => ({ ...p, createdAt: new Date(p.createdAt) }));
+    } catch (error) {
+      console.error('Error loading programs:', error);
+      return [];
+    }
+  }
+
+  private async savePrograms(programs: Program[]): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.PROGRAMS, JSON.stringify(programs));
+  }
+
+  async saveProgram(program: Program): Promise<void> {
+    try {
+      const programs = await this.getPrograms();
+      const existingIndex = programs.findIndex(p => p.id === program.id);
+      if (existingIndex >= 0) {
+        programs[existingIndex] = { ...program, createdAt: programs[existingIndex].createdAt };
+      } else {
+        programs.push({ ...program, createdAt: program.createdAt || new Date() });
+      }
+      await this.savePrograms(programs);
+    } catch (error) {
+      console.error('Error saving program:', error);
+    }
+  }
+
+  /**
+   * Make one program active: pause every other non-archived program and sync each
+   * program's day-routines' isActive flag to whether their program is now active.
+   * Standalone routines (no programId) are left untouched.
+   */
+  async setActiveProgram(programId: string): Promise<void> {
+    try {
+      const programs = await this.getPrograms();
+      for (const p of programs) {
+        if (p.id === programId) p.status = 'active';
+        else if (p.status === 'active') p.status = 'paused';
+      }
+      await this.savePrograms(programs);
+      await this.syncRoutineActiveFlags(programs);
+    } catch (error) {
+      console.error('Error setting active program:', error);
+    }
+  }
+
+  /** Set a program's status (paused/archived/active) and sync its routines. */
+  async setProgramStatus(programId: string, status: Program['status']): Promise<void> {
+    if (status === 'active') return this.setActiveProgram(programId);
+    try {
+      const programs = await this.getPrograms();
+      const program = programs.find(p => p.id === programId);
+      if (!program) return;
+      program.status = status;
+      await this.savePrograms(programs);
+      await this.syncRoutineActiveFlags(programs);
+    } catch (error) {
+      console.error('Error setting program status:', error);
+    }
+  }
+
+  /** Delete a program and all of its day-routines. */
+  async deleteProgram(programId: string): Promise<void> {
+    try {
+      const programs = (await this.getPrograms()).filter(p => p.id !== programId);
+      await this.savePrograms(programs);
+      const routines = (await this.getRoutines()).filter(r => r.programId !== programId);
+      await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+    } catch (error) {
+      console.error('Error deleting program:', error);
+    }
+  }
+
+  /** Mirror each programmed routine's isActive flag onto whether its program is active. */
+  private async syncRoutineActiveFlags(programs: Program[]): Promise<void> {
+    const statusById = new Map(programs.map(p => [p.id, p.status]));
+    const routines = await this.getRoutines();
+    let changed = false;
+    for (const r of routines) {
+      if (!r.programId) continue;  // leave standalone routines alone
+      const active = statusById.get(r.programId) === 'active';
+      if (r.isActive !== active) { r.isActive = active; changed = true; }
+    }
+    if (changed) await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
   }
 
   async getWorkoutRoutines(): Promise<GeneratedWorkout[]> {

@@ -12,16 +12,17 @@ import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
-import { CalculatedRoutine, GeneratedWorkout, Routine, WeightUnit } from '@/types';
+import { styles } from '@/lib/ui/notesScreenStyles';
+import { CalculatedRoutine, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Animated,
+  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
-  StyleSheet,
+  TextInput,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
@@ -60,44 +61,12 @@ export default function NotesScreen() {
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
-  const [isGeneratingRoutine, setIsGeneratingRoutine] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
-  const [showInactive, setShowInactive] = useState(false);
-
-  // Animation for generating progress bar
-  const progressAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  // Animate progress bar when generating
-  useEffect(() => {
-    if (isGeneratingRoutine) {
-      // Reset progress
-      progressAnim.setValue(0);
-
-      // Animate progress bar - fast to 30%, slow to 70%, then very slow
-      Animated.sequence([
-        Animated.timing(progressAnim, { toValue: 0.3, duration: 2000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.6, duration: 8000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.85, duration: 15000, useNativeDriver: false }),
-        Animated.timing(progressAnim, { toValue: 0.92, duration: 20000, useNativeDriver: false }),
-      ]).start();
-
-      // Pulse animation for the icon
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ])
-      );
-      pulse.start();
-
-      return () => pulse.stop();
-    } else {
-      // Complete the animation when done
-      Animated.timing(progressAnim, { toValue: 1, duration: 300, useNativeDriver: false }).start();
-    }
-  }, [isGeneratingRoutine, progressAnim, pulseAnim]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
+  const [renamingProgram, setRenamingProgram] = useState<Program | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -105,10 +74,12 @@ export default function NotesScreen() {
   // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
-      const [loadedRoutines, history] = await Promise.all([
+      const [loadedRoutines, history, loadedPrograms] = await Promise.all([
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
+        storageService.getPrograms(),
       ]);
+      setPrograms(loadedPrograms);
       // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
@@ -154,38 +125,45 @@ export default function NotesScreen() {
     return map;
   }, [calculatedRoutines]);
 
-  // Separate active and inactive routines
-  const { activeRoutines, inactiveRoutines } = useMemo(() => {
-    const active: CalculatedRoutine[] = [];
-    const inactive: CalculatedRoutine[] = [];
-
-    for (const routine of calculatedRoutines) {
-      // Default to active if isActive is undefined
-      if (routine.isActive === false) {
-        inactive.push(routine);
+  // Group day-routines under their program; routines without a programId are loose.
+  const { programGroups, standaloneRoutines } = useMemo(() => {
+    const byProgram = new Map<string, CalculatedRoutine[]>();
+    const standalone: CalculatedRoutine[] = [];
+    for (const r of calculatedRoutines) {
+      if (r.programId) {
+        const arr = byProgram.get(r.programId);
+        if (arr) arr.push(r); else byProgram.set(r.programId, [r]);
       } else {
-        active.push(routine);
+        standalone.push(r);
       }
     }
+    const rank: Record<Program['status'], number> = { active: 0, paused: 1, archived: 2 };
+    const groups = programs
+      .map(p => ({ program: p, days: byProgram.get(p.id) ?? [] }))
+      .filter(g => g.days.length > 0)
+      .sort((a, b) =>
+        rank[a.program.status] - rank[b.program.status] ||
+        b.program.createdAt.getTime() - a.program.createdAt.getTime()
+      );
+    return { programGroups: groups, standaloneRoutines: standalone };
+  }, [calculatedRoutines, programs]);
 
-    return { activeRoutines: active, inactiveRoutines: inactive };
-  }, [calculatedRoutines]);
+  const activeProgramGroup = useMemo(
+    () => programGroups.find(g => g.program.status === 'active') ?? null,
+    [programGroups]
+  );
 
-  // Get "Up Next" routine - the least recently used active routine
+  // "Up Next" = the least-recently-trained active day of the active program.
   const upNextRoutine = useMemo(() => {
-    if (activeRoutines.length === 0) return null;
-
-    // Sort active routines by lastUsed (oldest first) or never used
-    const sorted = [...activeRoutines].sort((a, b) => {
-      // Never used routines come first
+    const days = (activeProgramGroup?.days ?? []).filter(r => r.isActive !== false);
+    if (days.length === 0) return null;
+    return [...days].sort((a, b) => {
       if (!a.lastUsed && !b.lastUsed) return 0;
       if (!a.lastUsed) return -1;
       if (!b.lastUsed) return 1;
       return new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime();
-    });
-
-    return sorted[0];
-  }, [activeRoutines]);
+    })[0];
+  }, [activeProgramGroup]);
 
   const formatRelativeDate = (date: Date): string => {
     const now = new Date();
@@ -227,56 +205,58 @@ export default function NotesScreen() {
     await loadData();
   }, [loadData]);
 
-  const handlePauseAll = useCallback(() => {
-    const active = routines.filter(r => r.isActive !== false);
-    if (active.length === 0) return;
-    showAlert({
-      title: 'Pause All Routines',
-      message: `Move all ${active.length} active routine${active.length === 1 ? '' : 's'} to Paused?`,
-      type: 'confirm',
-      buttons: [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Pause All',
-          onPress: async () => {
-            for (const routine of active) {
-              await storageService.saveRoutine({ ...routine, isActive: false });
-            }
-            await loadData();
-          },
-        },
-      ],
-    });
-  }, [routines, loadData, showAlert]);
-
-  const handleResumeAll = useCallback(async () => {
-    const paused = routines.filter(r => r.isActive === false);
-    if (paused.length === 0) return;
-    for (const routine of paused) {
-      await storageService.saveRoutine({ ...routine, isActive: true });
-    }
+  // Program-level controls. Starting a program auto-pauses whatever was active.
+  const handleStartProgram = useCallback(async (programId: string) => {
+    await storageService.setActiveProgram(programId);
     await loadData();
-  }, [routines, loadData]);
+  }, [loadData]);
 
-  const handleDeleteAll = useCallback(() => {
-    if (routines.length === 0) return;
+  const handlePauseProgram = useCallback(async (programId: string) => {
+    await storageService.setProgramStatus(programId, 'paused');
+    await loadData();
+  }, [loadData]);
+
+  const handleArchiveProgram = useCallback(async (programId: string) => {
+    await storageService.setProgramStatus(programId, 'archived');
+    await loadData();
+  }, [loadData]);
+
+  const handleDeleteProgram = useCallback((program: Program) => {
     showAlert({
-      title: 'Delete All Routines',
-      message: `Permanently delete all ${routines.length} routine${routines.length === 1 ? '' : 's'}? This can't be undone.`,
+      title: `Delete ${program.name}?`,
+      message: `This permanently deletes the program and all ${program.days} of its day${program.days === 1 ? '' : 's'}. This can't be undone.`,
       type: 'confirm',
       buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete All',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            await storageService.clearAllRoutines();
+            await storageService.deleteProgram(program.id);
             await loadData();
           },
         },
       ],
     });
-  }, [routines, loadData, showAlert]);
+  }, [loadData, showAlert]);
+
+  const toggleProgramExpanded = useCallback((programId: string) => {
+    setExpandedProgramId(prev => (prev === programId ? null : programId));
+  }, []);
+
+  const openRenameProgram = useCallback((program: Program) => {
+    setRenamingProgram(program);
+    setRenameText(program.name);
+  }, []);
+
+  const handleRenameSave = useCallback(async () => {
+    const name = renameText.trim();
+    if (renamingProgram && name && name !== renamingProgram.name) {
+      await storageService.saveProgram({ ...renamingProgram, name });
+      await loadData();
+    }
+    setRenamingProgram(null);
+  }, [renamingProgram, renameText, loadData]);
 
   // Handle manual deload for a specific exercise
   const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
@@ -355,7 +335,7 @@ export default function NotesScreen() {
     }
   };
 
-  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
+  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false, flat = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
@@ -372,8 +352,8 @@ export default function NotesScreen() {
         key={routine.id}
         style={[
           styles.routineCard,
-          { backgroundColor: currentTheme.colors.surface },
-          isUpNext && styles.upNextCard,
+          flat ? styles.routineCardFlat : { backgroundColor: currentTheme.colors.surface },
+          isUpNext && !flat && styles.upNextCard,
         ]}
         onPress={() => toggleRoutineExpanded(routine.id)}
         activeOpacity={0.7}
@@ -384,26 +364,32 @@ export default function NotesScreen() {
           <RNView style={styles.cardInfo}>
             <RNView style={styles.routineNameRow}>
               <Text
+                weight="semiBold"
                 style={[
                   styles.routineName,
-                  { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold },
+                  { color: currentTheme.colors.text },
                   !isActive && { opacity: 0.5 }
                 ]}
                 numberOfLines={1}
               >
                 {routine.name}
               </Text>
+              {isUpNext && (
+                <RNView style={[styles.upNextInline, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+                  <Text weight="semiBold" style={[styles.upNextInlineText, { color: currentTheme.colors.primary }]}>UP NEXT</Text>
+                </RNView>
+              )}
               {!isActive && (
                 <RNView style={[styles.pausedBadge, { backgroundColor: currentTheme.colors.text + '15' }]}>
                   <Ionicons name="moon" size={10} color={currentTheme.colors.text + '50'} />
                 </RNView>
               )}
             </RNView>
-            <Text style={[styles.routineSubtitle, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.routineSubtitle, { color: currentTheme.colors.text + '70' }]}>
               {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
               {muscleGroups.length > 0 && ` · ${muscleGroups.join(', ')}`}
             </Text>
-            <Text style={[styles.routineDate, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.routineDate, { color: currentTheme.colors.text + '40' }]}>
               {routine.lastUsed ? formatRelativeDate(routine.lastUsed) : `Created ${formatRelativeDate(routine.createdAt)}`}
             </Text>
 
@@ -411,7 +397,7 @@ export default function NotesScreen() {
             {!isExpanded && hasExercisesNeedingDeload && (
               <RNView style={[styles.deloadBanner, { backgroundColor: '#FF3B30' + '15' }]}>
                 <Ionicons name="warning" size={12} color="#FF3B30" />
-                <Text style={[styles.deloadBannerText, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                <Text weight="medium" style={[styles.deloadBannerText, { color: '#FF3B30' }]}>
                   {exercisesNeedingDeload.length} exercise{exercisesNeedingDeload.length > 1 ? 's' : ''} stalling
                 </Text>
                 <TouchableOpacity
@@ -424,7 +410,7 @@ export default function NotesScreen() {
                   }}
                   style={[styles.deloadBannerButton, { backgroundColor: '#FF3B30' }]}
                 >
-                  <Text style={[styles.deloadBannerButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text weight="semiBold" style={[styles.deloadBannerButtonText]}>
                     Deload
                   </Text>
                 </TouchableOpacity>
@@ -444,14 +430,14 @@ export default function NotesScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Text style={[styles.startButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>Start</Text>
+            <Text weight="semiBold" style={[styles.startButtonText]}>Start</Text>
           </TouchableOpacity>
         </RNView>
 
         {/* Expand hint - only when collapsed */}
         {!isExpanded && (
           <RNView style={styles.expandHint}>
-            <Text style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3', fontFamily: currentTheme.fonts.medium }]}>
+            <Text weight="medium" style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3' }]}>
               See details
             </Text>
             <Ionicons name="chevron-down" size={12} color={currentTheme.colors.text + 'B3'} />
@@ -470,10 +456,10 @@ export default function NotesScreen() {
                     style={styles.exerciseRow}
                   >
                     <RNView style={styles.exerciseInfo}>
-                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text weight="medium" style={[styles.exerciseName, { color: currentTheme.colors.text }]}>
                         {exercise.exerciseName}
                       </Text>
-                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text weight="regular" style={[styles.exerciseSets, { color: currentTheme.colors.text + '50' }]}>
                         {exercise.sets?.length || 0} sets × {exercise.sets?.[0]?.reps || 0} reps
                       </Text>
                     </RNView>
@@ -482,7 +468,7 @@ export default function NotesScreen() {
                       {exercise.workingWeight > 0 ? (
                         <>
                           <RNView style={styles.weightRow}>
-                            <Text style={[styles.weightValue, { color: currentTheme.colors.text + '90', fontFamily: currentTheme.fonts.medium }]}>
+                            <Text weight="medium" style={[styles.weightValue, { color: currentTheme.colors.text + '90' }]}>
                               {exercise.workingWeight} {exercise.unit}
                             </Text>
                             <Ionicons
@@ -497,14 +483,14 @@ export default function NotesScreen() {
                               onPress={() => handleDeloadExercise(routine, exercise.exerciseId)}
                               style={styles.deloadButton}
                             >
-                              <Text style={[styles.deloadWarning, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>
+                              <Text weight="medium" style={[styles.deloadWarning, { color: '#FF3B30' }]}>
                                 Tap to deload
                               </Text>
                             </TouchableOpacity>
                           )}
                         </>
                       ) : (
-                        <Text style={[styles.noDataText, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text weight="regular" style={[styles.noDataText, { color: currentTheme.colors.text + '30' }]}>
                           —
                         </Text>
                       )}
@@ -524,7 +510,7 @@ export default function NotesScreen() {
                 }}
               >
                 <Ionicons name="options-outline" size={18} color={currentTheme.colors.text + '60'} />
-                <Text style={[styles.actionText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: currentTheme.colors.text + '60' }]}>
                   Edit
                 </Text>
               </TouchableOpacity>
@@ -541,7 +527,7 @@ export default function NotesScreen() {
                   size={18}
                   color={isActive ? '#FF9500' : '#34C759'}
                 />
-                <Text style={[styles.actionText, { color: isActive ? '#FF9500' : '#34C759', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: isActive ? '#FF9500' : '#34C759' }]}>
                   {isActive ? 'Pause' : 'Resume'}
                 </Text>
               </TouchableOpacity>
@@ -554,7 +540,7 @@ export default function NotesScreen() {
                 }}
               >
                 <Ionicons name="close-circle-outline" size={18} color="#FF453A" />
-                <Text style={[styles.actionText, { color: '#FF453A', fontFamily: currentTheme.fonts.regular }]}>
+                <Text weight="regular" style={[styles.actionText, { color: '#FF453A' }]}>
                   Remove
                 </Text>
               </TouchableOpacity>
@@ -569,7 +555,7 @@ export default function NotesScreen() {
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <RNView style={styles.header}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+        <Text weight="bold" style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
           Routines
         </Text>
         <RNView style={styles.headerActions}>
@@ -578,7 +564,6 @@ export default function NotesScreen() {
               style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.7}
-              disabled={isGeneratingRoutine}
             >
               <Ionicons name="sparkles" size={18} color={currentTheme.colors.primary} />
             </TouchableOpacity>
@@ -592,39 +577,6 @@ export default function NotesScreen() {
           </TouchableOpacity>
         </RNView>
       </RNView>
-
-      {/* Generating Banner */}
-      {isGeneratingRoutine && (
-        <RNView style={[styles.generatingBanner, { backgroundColor: currentTheme.colors.surface }]}>
-          <RNView style={styles.generatingHeader}>
-            <Animated.View style={[styles.generatingIcon, { backgroundColor: currentTheme.colors.primary + '15', transform: [{ scale: pulseAnim }] }]}>
-              <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
-            </Animated.View>
-            <RNView style={styles.generatingTextContainer}>
-              <Text style={[styles.generatingTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Creating your routine
-              </Text>
-              <Text style={[styles.generatingSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                Building exercises and sets...
-              </Text>
-            </RNView>
-          </RNView>
-          <RNView style={[styles.progressBarContainer, { backgroundColor: currentTheme.colors.border }]}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  backgroundColor: currentTheme.colors.primary,
-                  width: progressAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0%', '100%'],
-                  }),
-                },
-              ]}
-            />
-          </RNView>
-        </RNView>
-      )}
 
       {/* Content */}
       <ScrollView
@@ -644,115 +596,126 @@ export default function NotesScreen() {
                 activeOpacity={0.7}
               >
                 <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                <Text style={[styles.progressButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                <Text weight="medium" style={[styles.progressButtonText, { color: currentTheme.colors.text }]}>
                   View Progress
                 </Text>
                 <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '30'} />
               </TouchableOpacity>
             </TutorialTarget>
 
-            {/* Up Next Section */}
-            {upNextRoutine && (
-              <RNView style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                  UP NEXT
-                </Text>
-                <TutorialTarget id="notes-routine-card">
-                  {renderRoutineCard(upNextRoutine, true)}
-                </TutorialTarget>
-              </RNView>
-            )}
+            {/* Programs — grouped day-routines; exactly one is active at a time */}
+            {programGroups.map(({ program, days }) => {
+              const isActiveProgram = program.status === 'active';
+              const isExpanded = isActiveProgram || expandedProgramId === program.id;
+              const statusColor = isActiveProgram
+                ? currentTheme.colors.primary
+                : currentTheme.colors.text + (program.status === 'paused' ? '80' : '50');
+              const statusLabel = isActiveProgram ? 'Active' : program.status === 'paused' ? 'Paused' : 'Archived';
+              const orderedDays = isActiveProgram && upNextRoutine
+                ? [upNextRoutine, ...days.filter(d => d.id !== upNextRoutine.id)]
+                : days;
+              return (
+                <RNView key={program.id} style={styles.section}>
+                  <TouchableOpacity
+                    style={styles.programHeader}
+                    activeOpacity={isActiveProgram ? 1 : 0.7}
+                    onPress={() => { if (!isActiveProgram) toggleProgramExpanded(program.id); }}
+                  >
+                    <RNView style={layout.flex1}>
+                      <RNView style={styles.programTitleRow}>
+                        <Text weight="semiBold" style={[styles.programName, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                          {program.name}
+                        </Text>
+                        <RNView style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
+                          <Text weight="semiBold" style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
+                        </RNView>
+                      </RNView>
+                      <Text weight="regular" style={[styles.programMeta, { color: currentTheme.colors.text + '60' }]}>
+                        {program.days} day{program.days === 1 ? '' : 's'}{program.source ? ` · ${program.source.program}` : ''}
+                      </Text>
+                    </RNView>
+                    {!isActiveProgram && (
+                      <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={currentTheme.colors.text + '50'} />
+                    )}
+                  </TouchableOpacity>
 
-            {/* Active Routines Section */}
-            {activeRoutines.filter(r => r.id !== upNextRoutine?.id).length > 0 && (
-              <RNView style={styles.section}>
-                <RNView style={styles.sectionHeader}>
-                  <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
-                    YOUR ROUTINES
-                  </Text>
-                  <RNView style={styles.activeCountBadge}>
-                    <RNView style={styles.activeCountDot} />
-                    <Text style={[styles.activeCountText, { fontFamily: currentTheme.fonts.semiBold }]}>
-                      {activeRoutines.length} active
-                    </Text>
+                  {/* Program controls */}
+                  <RNView style={styles.programActions}>
+                    {isActiveProgram ? (
+                      <>
+                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="pause" size={16} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Pause</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="file-tray-full-outline" size={16} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Archive</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
+                        <Ionicons name="play" size={16} color="#fff" />
+                        <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => openRenameProgram(program)} activeOpacity={0.7}>
+                      <Ionicons name="pencil" size={15} color={currentTheme.colors.text + '99'} />
+                      <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Rename</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: '#E5484D14' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
+                      <Ionicons name="close-circle-outline" size={17} color="#E5484D" />
+                      <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
+                    </TouchableOpacity>
                   </RNView>
+
+                  {/* Days — threaded onto a timeline spine so they read as one program */}
+                  {isExpanded && (
+                    <RNView style={styles.timeline}>
+                      {orderedDays.map((routine, idx) => {
+                        const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
+                        const isFirst = idx === 0;
+                        const isLast = idx === orderedDays.length - 1;
+                        const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
+                        const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
+                        const body = isUpNext
+                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true, true)}</TutorialTarget>
+                          : renderRoutineCard(routine, false, true);
+                        return (
+                          <RNView key={routine.id} style={styles.timelineRow}>
+                            <RNView style={styles.spine}>
+                              {!isFirst && <RNView style={[styles.spineLineTop, { backgroundColor: currentTheme.colors.border }]} />}
+                              {!isLast && <RNView style={[styles.spineLineBottom, { backgroundColor: currentTheme.colors.border }]} />}
+                              <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                            </RNView>
+                            <RNView style={layout.flex1}>{body}</RNView>
+                          </RNView>
+                        );
+                      })}
+                    </RNView>
+                  )}
                 </RNView>
-                {activeRoutines
-                  .filter(r => r.id !== upNextRoutine?.id)
-                  .map((routine) => renderRoutineCard(routine))}
-              </RNView>
-            )}
+              );
+            })}
 
-            {/* Paused Routines Section */}
-            {inactiveRoutines.length > 0 && (
+            {/* My Routines — loose routines not tied to a program */}
+            {standaloneRoutines.length > 0 && (
               <RNView style={styles.section}>
-                <TouchableOpacity
-                  style={styles.archivedHeader}
-                  onPress={() => setShowInactive(!showInactive)}
-                  activeOpacity={0.7}
-                >
-                  <RNView style={styles.pausedHeaderContent}>
-                    <Ionicons name="moon-outline" size={14} color={currentTheme.colors.text + '60'} />
-                    <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.semiBold, marginBottom: 0 }]}>
-                      PAUSED ({inactiveRoutines.length})
-                    </Text>
-                  </RNView>
-                  <Ionicons
-                    name={showInactive ? 'chevron-up' : 'chevron-down'}
-                    size={16}
-                    color={currentTheme.colors.text + '60'}
-                  />
-                </TouchableOpacity>
-
-                {showInactive && inactiveRoutines.map((routine) => renderRoutineCard(routine))}
+                <Text weight="semiBold" style={[styles.sectionLabel, { color: currentTheme.colors.text + '50' }]}>
+                  MY ROUTINES
+                </Text>
+                {standaloneRoutines.map((routine) => renderRoutineCard(routine))}
               </RNView>
             )}
-
-            {/* Bulk actions */}
-            <RNView style={styles.bulkActions}>
-              {activeRoutines.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                  onPress={handlePauseAll}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
-                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
-                    Pause all
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {inactiveRoutines.length > 0 && (
-                <TouchableOpacity
-                  style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                  onPress={handleResumeAll}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="play" size={15} color={currentTheme.colors.text + '99'} />
-                  <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>
-                    Resume all
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]}
-                onPress={handleDeleteAll}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={15} color="#E5484D" />
-                <Text style={[styles.bulkButtonText, { color: '#E5484D' }]}>Delete all</Text>
-              </TouchableOpacity>
-            </RNView>
           </>
         ) : (
           <RNView style={styles.emptyState}>
             <RNView style={[styles.emptyIcon, { backgroundColor: currentTheme.colors.surface }]}>
               <Ionicons name="sparkles" size={32} color={currentTheme.colors.primary} />
             </RNView>
-            <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text weight="semiBold" style={[styles.emptyTitle, { color: currentTheme.colors.text }]}>
               No routines yet
             </Text>
-            <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+            <Text weight="regular" style={[styles.emptyText, { color: currentTheme.colors.text + '50' }]}>
               Generate a personalized program{'\n'}based on your goals
             </Text>
             <TouchableOpacity
@@ -760,8 +723,7 @@ export default function NotesScreen() {
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="sparkles" size={18} color="#fff" />
-              <Text style={[styles.emptyButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text weight="semiBold" style={[styles.emptyButtonText]}>
                 Generate with AI
               </Text>
             </TouchableOpacity>
@@ -781,9 +743,7 @@ export default function NotesScreen() {
       <RoutineGeneratorModal
         visible={showRoutineGenerator}
         onClose={() => setShowRoutineGenerator(false)}
-        onGenerationStarted={() => setIsGeneratingRoutine(true)}
         onRoutinesCreated={() => {
-          setIsGeneratingRoutine(false);
           loadData();
         }}
       />
@@ -797,351 +757,37 @@ export default function NotesScreen() {
         }}
         onDataChanged={loadData}
       />
+
+      {/* Rename Program Modal */}
+      <Modal visible={!!renamingProgram} transparent animationType="fade" onRequestClose={() => setRenamingProgram(null)}>
+        <RNView style={styles.renameOverlay}>
+          <RNView style={[styles.renameCard, { backgroundColor: currentTheme.colors.surface }]}>
+            <Text weight="semiBold" style={[styles.renameTitle, { color: currentTheme.colors.text }]}>
+              Rename program
+            </Text>
+            <TextInput
+              style={[styles.renameInput, { color: currentTheme.colors.text, borderColor: currentTheme.colors.border, fontFamily: currentTheme.fonts.regular }]}
+              value={renameText}
+              onChangeText={setRenameText}
+              placeholder="Program name"
+              placeholderTextColor={currentTheme.colors.text + '50'}
+              autoFocus
+              selectTextOnFocus
+              returnKeyType="done"
+              maxLength={60}
+              onSubmitEditing={handleRenameSave}
+            />
+            <RNView style={styles.renameButtons}>
+              <TouchableOpacity style={styles.renameCancel} onPress={() => setRenamingProgram(null)} activeOpacity={0.7}>
+                <Text weight="medium" style={[styles.renameCancelText, { color: currentTheme.colors.text + '99' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.renameSave, { backgroundColor: currentTheme.colors.primary }]} onPress={handleRenameSave} activeOpacity={0.85}>
+                <Text weight="semiBold" style={[styles.renameSaveText]}>Save</Text>
+              </TouchableOpacity>
+            </RNView>
+          </RNView>
+        </RNView>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 32,
-    letterSpacing: -0.5,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bulkActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  bulkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  bulkButtonText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  // Generating banner
-  generatingBanner: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 12,
-  },
-  generatingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  generatingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generatingTextContainer: {
-    flex: 1,
-  },
-  generatingTitle: {
-    fontSize: 15,
-  },
-  generatingSubtitle: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  progressBarContainer: {
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-
-  // Scroll content
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 120,
-  },
-
-  // Progress Button
-  progressButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    marginBottom: 20,
-    gap: 10,
-  },
-  progressButtonText: {
-    flex: 1,
-    fontSize: 14,
-  },
-
-  // Sections
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    letterSpacing: 1.2,
-    marginBottom: 12,
-  },
-  activeCountBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  activeCountDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#34C759',
-    marginTop: 3,
-  },
-  activeCountText: {
-    fontSize: 13,
-    color: '#34C759',
-  },
-  archivedHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  pausedHeaderContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-
-  // Routine card
-  routineCard: {
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 8,
-  },
-  upNextCard: {
-    // No special styling - cleaner
-  },
-  cardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardInfo: {
-    flex: 1,
-    marginRight: 12,
-  },
-  expandHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 10,
-  },
-  expandHintText: {
-    fontSize: 11,
-  },
-  routineNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 4,
-  },
-  pausedBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  routineName: {
-    fontSize: 16,
-    flexShrink: 1,
-  },
-  routineSubtitle: {
-    fontSize: 13,
-    marginBottom: 2,
-  },
-  routineDate: {
-    fontSize: 12,
-  },
-  startButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  startButtonText: {
-    fontSize: 14,
-    color: '#fff',
-  },
-
-  // Expanded content
-  expandedContent: {
-    marginTop: 16,
-  },
-  exerciseList: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 12,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  exerciseInfo: {
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  exerciseSets: {
-    fontSize: 12,
-  },
-  weightInfo: {
-    alignItems: 'flex-end',
-  },
-  weightRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  weightValue: {
-    fontSize: 14,
-  },
-  noDataText: {
-    fontSize: 13,
-  },
-  deloadWarning: {
-    fontSize: 10,
-  },
-  deloadButton: {
-    marginTop: 4,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
-    backgroundColor: '#FF3B3015',
-  },
-  deloadBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-  },
-  deloadBannerText: {
-    fontSize: 12,
-    flex: 1,
-  },
-  deloadBannerButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  deloadBannerButtonText: {
-    fontSize: 11,
-    color: '#FFFFFF',
-  },
-
-  // Action row
-  actionRow: {
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    marginTop: 12,
-    paddingTop: 12,
-  },
-  actionItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 4,
-  },
-  actionText: {
-    fontSize: 13,
-  },
-
-  // Empty state
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 80,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  emptyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 24,
-  },
-  emptyButtonText: {
-    fontSize: 15,
-    color: '#fff',
-  },
-});
