@@ -3,6 +3,7 @@ import {
   getProfileIcons,
   iconUnlockContext,
   isProfileIconUnlocked,
+  newlyUnlockedEmblems,
   PROFILE_ICONS,
   profileIconName,
   resolveProfileIconId,
@@ -43,6 +44,14 @@ describe('profileIcons', () => {
   it('profileIconName falls back to the default icon', () => {
     expect(profileIconName('flame')).toBe('flame');
     expect(profileIconName('nope')).toBe('barbell');
+  });
+
+  it('newlyUnlockedEmblems returns emblems whose gating achievement just unlocked', () => {
+    expect(newlyUnlockedEmblems(new Set(['streak-7'])).map(d => d.id)).toEqual(['flame']);
+    expect(newlyUnlockedEmblems(new Set(['workouts-100'])).map(d => d.id)).toEqual(['trophy']);
+    expect(newlyUnlockedEmblems(new Set())).toEqual([]);
+    // the default (no achievement gate) is never "newly unlocked"
+    expect(newlyUnlockedEmblems(new Set(['first-workout'])).some(d => d.id === 'barbell')).toBe(false);
   });
 
   it('isProfileIconUnlocked respects the unlock condition', () => {

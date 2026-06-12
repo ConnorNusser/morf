@@ -7,7 +7,7 @@ import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { iconUnlockContext, profileIconName } from '@/lib/gamification/profileIcons';
+import { iconUnlockContext, newlyUnlockedEmblems, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,6 +44,7 @@ export default function CareerSection() {
   const open = () => setShowModal(true);
 
   const band = getTierBandProgress(data.overall);
+  const newEmblems = newlyUnlockedEmblems(data.newIds);
   const streakActive = data.stats.currentStreak > 0;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
@@ -94,6 +95,9 @@ export default function CareerSection() {
               <View style={[styles.heroRankBadge, { backgroundColor: color, borderColor: currentTheme.colors.surface }]}>
                 <Text style={styles.heroRankText}>{data.tier}</Text>
               </View>
+              {newEmblems.length > 0 && (
+                <View style={[styles.emblemNewDot, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.surface }]} />
+              )}
             </TouchableOpacity>
             <View style={styles.heroRight}>
               <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
@@ -198,6 +202,7 @@ export default function CareerSection() {
         visible={showIconPicker}
         onClose={() => setShowIconPicker(false)}
         unlockContext={iconUnlockContext(data.achievements)}
+        newIds={data.newIds}
         currentId={data.profileIconId}
         onSelect={async id => {
           await storageService.setProfileIconId(id);
@@ -224,6 +229,7 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   heroAvatar: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   heroRankBadge: { position: 'absolute', bottom: -4, right: -4, minWidth: 24, height: 22, borderRadius: 11, borderWidth: 2, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
+  emblemNewDot: { position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
   heroRankText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   heroRight: { flex: 1 },
   percentile: { fontSize: 18, fontWeight: '700' },

@@ -8,12 +8,14 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   unlockContext: IconUnlockContext;
+  newIds?: Set<string>; // achievement ids newly unlocked — badges fresh emblems
   currentId: string;
   onSelect: (id: string) => void;
 }
 
-// Bottom sheet to pick the career emblem. Locked emblems show how to unlock them.
-export default function ProfileIconPicker({ visible, onClose, unlockContext, currentId, onSelect }: Props) {
+// Bottom sheet to pick the career emblem. Locked emblems show how to unlock them;
+// freshly-earned emblems get a NEW badge.
+export default function ProfileIconPicker({ visible, onClose, unlockContext, newIds, currentId, onSelect }: Props) {
   const { currentTheme } = useTheme();
   const icons = getProfileIcons(unlockContext);
   const accent = currentTheme.colors.primary;
@@ -39,6 +41,7 @@ export default function ProfileIconPicker({ visible, onClose, unlockContext, cur
           <ScrollView contentContainerStyle={styles.grid} showsVerticalScrollIndicator={false}>
             {icons.map(ic => {
               const selected = ic.id === currentId;
+              const isNew = ic.unlocked && ic.achievementId != null && newIds?.has(ic.achievementId);
               return (
                 <TouchableOpacity
                   key={ic.id}
@@ -65,6 +68,11 @@ export default function ProfileIconPicker({ visible, onClose, unlockContext, cur
                     {!ic.unlocked && (
                       <View style={[styles.lockBadge, { backgroundColor: currentTheme.colors.background }]}>
                         <Ionicons name="lock-closed" size={10} color={currentTheme.colors.text} />
+                      </View>
+                    )}
+                    {isNew && (
+                      <View style={[styles.newBadge, { backgroundColor: accent, borderColor: currentTheme.colors.background }]}>
+                        <Text style={[styles.newBadgeText, { color: currentTheme.colors.surface }]}>NEW</Text>
                       </View>
                     )}
                   </View>
@@ -108,5 +116,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  newBadge: { position: 'absolute', top: -6, right: -10, paddingHorizontal: 4, paddingVertical: 1, borderRadius: 6, borderWidth: 1.5 },
+  newBadgeText: { fontSize: 8, fontWeight: '800', letterSpacing: 0.3 },
   cellLabel: { fontSize: 11, opacity: 0.6, textAlign: 'center', lineHeight: 14 },
 });

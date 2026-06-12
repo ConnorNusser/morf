@@ -53,6 +53,12 @@ export function getProfileIcons(ctx: IconUnlockContext): ProfileIcon[] {
   return PROFILE_ICONS.map(d => ({ ...d, unlocked: defUnlocked(d, ctx) }));
 }
 
+// Emblems that just became available because their gating achievement was newly
+// unlocked — for nudging the lifter to go equip their freshly-earned career icon.
+export function newlyUnlockedEmblems(newAchievementIds: Set<string>): ProfileIconDef[] {
+  return PROFILE_ICONS.filter(d => d.achievementId !== null && newAchievementIds.has(d.achievementId));
+}
+
 // Ionicons name for a chosen id, falling back to the default emblem.
 export function profileIconName(id: string): string {
   return PROFILE_ICONS.find(d => d.id === id)?.icon ?? PROFILE_ICONS[0].icon;
