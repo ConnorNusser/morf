@@ -59,6 +59,18 @@ export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string 
   return volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
 };
 
+/**
+ * Abbreviate a raw number as "1.2k" / "1.2M" with an optional suffix. Shared by the
+ * overview/trends modals (each passes its own suffix / millions flag) so the k/M logic
+ * isn't duplicated. Values below 1000 are returned verbatim (e.g. "850" or "850 lbs").
+ */
+export const formatCompact = (value: number, opts: { suffix?: string; millions?: boolean } = {}): string => {
+  const suffix = opts.suffix ?? '';
+  if (opts.millions && value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M${suffix}`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k${suffix}`;
+  return `${value}${suffix}`;
+};
+
 export { convertWeightToKg, convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====

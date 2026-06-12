@@ -1,6 +1,6 @@
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatCompact, formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -163,12 +163,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const combinedStats = combineWorkoutStats(workoutStatsList);
 
 
-    const formatVolume = (volume: number) => {
-      if (volume >= 1000) {
-        return `${(volume / 1000).toFixed(1)}k`;
-      }
-      return volume.toString();
-    };
+    const formatVolume = (volume: number) => formatCompact(volume);
 
     return {
       totalWorkouts,

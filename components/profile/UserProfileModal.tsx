@@ -1,5 +1,6 @@
 import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
+import { formatDuration } from '@/lib/ui/formatters';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
@@ -59,12 +60,6 @@ const formatRelativeTime = (date: Date): string => {
 };
 
 // Format duration (e.g., "45min", "1h 15min")
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}min`;
-};
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();

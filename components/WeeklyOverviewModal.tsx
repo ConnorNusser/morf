@@ -1,7 +1,7 @@
 import Chart from '@/components/Chart'; // Added import for Chart component
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatCompact, formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo } from 'react';
@@ -172,12 +172,7 @@ export default function WeeklyOverviewModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
   }, [workouts, customExercises]);
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000) {
-      return `${(volume / 1000).toFixed(1)}k lbs`;
-    }
-    return `${volume} lbs`;
-  };
+  const formatVolume = (volume: number) => formatCompact(volume, { suffix: ' lbs' });
 
 
   const getModalTitle = () => {
