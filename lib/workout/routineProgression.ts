@@ -22,6 +22,7 @@ import {
   convertWeight
 } from '@/types';
 import { getWorkoutById } from './workouts';
+import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 
 // Max rep bonus before weight increase
@@ -120,10 +121,6 @@ function calculateNextWeight(
 /**
  * Round weight to nearest plate increment
  */
-function roundWeight(weight: number, unit: WeightUnit): number {
-  const increment = unit === 'kg' ? 2.5 : 5;
-  return Math.round(weight / increment) * increment;
-}
 
 /**
  * Check if exercise was completed successfully

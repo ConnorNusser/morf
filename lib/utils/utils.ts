@@ -76,6 +76,12 @@ export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Round a weight to the nearest loadable increment (2.5 kg / 5 lbs). */
+export function roundWeight(weight: number, unit: WeightUnit): number {
+  const increment = unit === 'kg' ? 2.5 : 5;
+  return Math.round(weight / increment) * increment;
+}
+
 export { convertWeightToKg, convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====
