@@ -1,6 +1,7 @@
 // Schedules local streak/habit reminders so the app reaches back out to solo
 // users. Re-run on app foreground and after a workout. Off until the flag flips.
 import * as Notifications from 'expo-notifications';
+import { dateKey } from '@/lib/utils/utils';
 import { storageService } from '@/lib/storage/storage';
 import { getStreakState, getHabitDay } from '@/lib/workout/retentionSignals';
 
@@ -14,9 +15,6 @@ const MIN_STREAK_FOR_REMINDER = 2;
 const IDENTIFIER_PREFIX = 'retention:';
 const META_RETENTION_DAYS = 14;
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function minuteOfDay(d: Date): number {
   return d.getHours() * 60 + d.getMinutes();

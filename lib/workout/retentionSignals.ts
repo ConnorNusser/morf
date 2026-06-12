@@ -1,11 +1,9 @@
 // Pure helpers behind the retention reminders — streak and training-day pattern.
 // `now` is injectable so the logic is testable without mocking the clock.
 import { GeneratedWorkout } from '@/types';
+import { dateKey } from '@/lib/utils/utils';
 
 // Local YYYY-MM-DD, matching recapStats.
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 export interface StreakState {
   current: number;

@@ -2,15 +2,13 @@
 // matching the style of retentionSignals.ts. Week starts Monday (the common
 // training-week convention); index 0 = Monday … 6 = Sunday.
 import { GeneratedWorkout, convertWeight } from '@/types';
+import { dateKey } from '@/lib/utils/utils';
 
 export const DEFAULT_WEEKLY_GOAL = 4;
 export const WEEKLY_GOAL_MIN = 1;
 export const WEEKLY_GOAL_MAX = 7;
 
 // Local YYYY-MM-DD, matching retentionSignals / recapStats.
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 // Monday 00:00 of the week containing `d`.
 function startOfWeek(d: Date): Date {

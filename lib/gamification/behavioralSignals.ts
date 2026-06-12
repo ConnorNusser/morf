@@ -4,6 +4,7 @@
 // carry the time-of-day), so no new tracking is required — same philosophy as
 // careerStats. Clock-injectable for tests.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
+import { dateKey } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 
@@ -29,9 +30,6 @@ export interface BehavioralSignals {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 // Monday-start week key, so "weekend pair" groups Sat+Sun of the same week.
 function weekKey(d: Date): string {

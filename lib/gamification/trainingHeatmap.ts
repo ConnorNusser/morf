@@ -2,6 +2,7 @@
 // visual. Pure + clock-injectable. Columns are Monday-start weeks; each cell is
 // a day, flagged trained with a relative-volume intensity (0..1).
 import { GeneratedWorkout } from '@/types';
+import { dateKey } from '@/lib/utils/utils';
 
 export interface HeatCell {
   date: Date;
@@ -29,9 +30,6 @@ export function heatLevel(intensity: number): number {
   return 3;
 }
 
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 function startOfWeekMonday(d: Date): Date {
   const s = new Date(d);
