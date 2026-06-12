@@ -690,7 +690,6 @@ export default function NotesScreen() {
               onPress={() => setShowRoutineGenerator(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="sparkles" size={18} color="#fff" />
               <Text style={[styles.emptyButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
                 Generate with AI
               </Text>

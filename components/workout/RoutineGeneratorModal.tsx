@@ -793,7 +793,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
             Generate Routine
           </Text>
-          <Ionicons name="sparkles" size={18} color={colors.bg} />
         </TouchableOpacity>
       </View>
     </View>
