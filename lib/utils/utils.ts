@@ -82,6 +82,22 @@ export function roundWeight(weight: number, unit: WeightUnit): number {
   return Math.round(weight / increment) * increment;
 }
 
+/** Rounded mean of a numeric array (0 for empty). */
+export const roundedAverage = (arr: number[]): number =>
+  arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+/** Color for an exercise's progression direction; `neutralColor` is used for "maintain". */
+export function getProgressionColor(
+  progression: 'increase' | 'maintain' | 'decrease',
+  neutralColor: string
+): string {
+  switch (progression) {
+    case 'increase': return '#34C759';
+    case 'decrease': return '#FF3B30';
+    default: return neutralColor;
+  }
+}
+
 export { convertWeightToKg, convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====

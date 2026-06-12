@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
@@ -113,14 +114,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     return `${count} custom exercise${count === 1 ? '' : 's'}`;
   };
 
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
 
   const filteredCustomExercises = useMemo(() => {
     let result = customExercises;

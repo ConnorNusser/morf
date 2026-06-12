@@ -9,7 +9,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getPercentileColor, AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { calculateOverallPercentile } from '@/lib/utils/utils';
+import { roundedAverage as toAvg, calculateOverallPercentile } from '@/lib/utils/utils';
 import { UserProfile, UserProgress } from '@/types';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Animated, Easing, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
@@ -67,7 +67,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
       });
     });
 
-    const toAvg = (arr: number[]) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0);
     return muscleGroups.map(g => ({ label: g.charAt(0).toUpperCase() + g.slice(1), value: toAvg(groupToValues[g]) }));
   }, [lifts]);
 
