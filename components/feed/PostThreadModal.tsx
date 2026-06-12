@@ -1,4 +1,5 @@
 import IconButton from '@/components/IconButton';
+import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
@@ -59,10 +60,7 @@ export default function PostThreadModal({
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Smooth animation for like button
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   const mediaItems = post?.media || [];
   const hasVideo = mediaItems.some(m => m.type === 'video');
@@ -75,10 +73,7 @@ export default function PostThreadModal({
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.25, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike?.();
   };
 
