@@ -17,10 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
@@ -63,6 +65,8 @@ export default function NotesScreen() {
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
+  const [renamingProgram, setRenamingProgram] = useState<Program | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -239,6 +243,20 @@ export default function NotesScreen() {
   const toggleProgramExpanded = useCallback((programId: string) => {
     setExpandedProgramId(prev => (prev === programId ? null : programId));
   }, []);
+
+  const openRenameProgram = useCallback((program: Program) => {
+    setRenamingProgram(program);
+    setRenameText(program.name);
+  }, []);
+
+  const handleRenameSave = useCallback(async () => {
+    const name = renameText.trim();
+    if (renamingProgram && name && name !== renamingProgram.name) {
+      await storageService.saveProgram({ ...renamingProgram, name });
+      await loadData();
+    }
+    setRenamingProgram(null);
+  }, [renamingProgram, renameText, loadData]);
 
   // Handle manual deload for a specific exercise
   const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
@@ -619,24 +637,28 @@ export default function NotesScreen() {
                   <RNView style={styles.programActions}>
                     {isActiveProgram ? (
                       <>
-                        <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>Pause</Text>
+                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="pause" size={16} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Pause</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="archive-outline" size={15} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.bulkButtonText, { color: currentTheme.colors.text }]}>Archive</Text>
+                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
+                          <Ionicons name="file-tray-full-outline" size={16} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Archive</Text>
                         </TouchableOpacity>
                       </>
                     ) : (
-                      <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.7}>
-                        <Ionicons name="play" size={15} color={currentTheme.colors.primary} />
-                        <Text style={[styles.bulkButtonText, { color: currentTheme.colors.primary }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
+                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
+                        <Ionicons name="play" size={16} color="#fff" />
+                        <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={[styles.bulkButton, { borderColor: currentTheme.colors.border }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
-                      <Ionicons name="trash-outline" size={15} color="#E5484D" />
-                      <Text style={[styles.bulkButtonText, { color: '#E5484D' }]}>Delete</Text>
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => openRenameProgram(program)} activeOpacity={0.7}>
+                      <Ionicons name="pencil" size={15} color={currentTheme.colors.text + '99'} />
+                      <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Rename</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: '#E5484D14' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
+                      <Ionicons name="trash-outline" size={16} color="#E5484D" />
+                      <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
                     </TouchableOpacity>
                   </RNView>
 
@@ -720,6 +742,37 @@ export default function NotesScreen() {
         }}
         onDataChanged={loadData}
       />
+
+      {/* Rename Program Modal */}
+      <Modal visible={!!renamingProgram} transparent animationType="fade" onRequestClose={() => setRenamingProgram(null)}>
+        <RNView style={styles.renameOverlay}>
+          <RNView style={[styles.renameCard, { backgroundColor: currentTheme.colors.surface }]}>
+            <Text style={[styles.renameTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              Rename program
+            </Text>
+            <TextInput
+              style={[styles.renameInput, { color: currentTheme.colors.text, borderColor: currentTheme.colors.border, fontFamily: currentTheme.fonts.regular }]}
+              value={renameText}
+              onChangeText={setRenameText}
+              placeholder="Program name"
+              placeholderTextColor={currentTheme.colors.text + '50'}
+              autoFocus
+              selectTextOnFocus
+              returnKeyType="done"
+              maxLength={60}
+              onSubmitEditing={handleRenameSave}
+            />
+            <RNView style={styles.renameButtons}>
+              <TouchableOpacity style={styles.renameCancel} onPress={() => setRenamingProgram(null)} activeOpacity={0.7}>
+                <Text style={[styles.renameCancelText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.renameSave, { backgroundColor: currentTheme.colors.primary }]} onPress={handleRenameSave} activeOpacity={0.85}>
+                <Text style={[styles.renameSaveText, { fontFamily: currentTheme.fonts.semiBold }]}>Save</Text>
+              </TouchableOpacity>
+            </RNView>
+          </RNView>
+        </RNView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -750,18 +803,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bulkButton: {
+  programChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingVertical: 9,
+    borderRadius: 20,
   },
-  bulkButtonText: {
+  programChipText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   programHeader: {
     flexDirection: 'row',
@@ -801,6 +853,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.5,
     marginBottom: 8,
+  },
+  renameOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  renameCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: 18,
+    padding: 20,
+  },
+  renameTitle: {
+    fontSize: 17,
+    marginBottom: 14,
+  },
+  renameInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+  },
+  renameButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 18,
+  },
+  renameCancel: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  renameCancelText: {
+    fontSize: 15,
+  },
+  renameSave: {
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  renameSaveText: {
+    fontSize: 15,
+    color: '#fff',
   },
 
   // Generating banner
