@@ -1,7 +1,6 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
-import StreakBanner from "@/components/home/StreakBanner";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import LiftDisplayFilter from "@/components/LiftDisplayFilter";
@@ -324,7 +323,6 @@ export default function HomeScreen() {
           />
 
           <TodayCard />
-          <StreakBanner />
           <WeeklyGoalCard />
 
           <TutorialTarget id="home-overall-stats">

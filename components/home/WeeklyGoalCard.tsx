@@ -1,14 +1,16 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { storageService } from '@/lib/storage/storage';
+import { formatVolume } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import {
   DEFAULT_WEEKLY_GOAL,
+  getWeeklyLoad,
   getWeekProgress,
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from '@/lib/workout/weeklyGoal';
-import { GeneratedWorkout } from '@/types';
+import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -37,6 +39,10 @@ function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
 // badge, so hitting a goal reads as the same kind of win across both surfaces.
 const GOAL_MET_COLOR = '#F59E0B';
 
+// Week-over-week volume trend colors (green up / red down).
+const TREND_UP = '#22C55E';
+const TREND_DOWN = '#EF4444';
+
 // Selectable goal values (1..7).
 const GOAL_OPTIONS = Array.from(
   { length: WEEKLY_GOAL_MAX - WEEKLY_GOAL_MIN + 1 },
@@ -47,18 +53,22 @@ export default function WeeklyGoalCard() {
   const { currentTheme } = useTheme();
   const [history, setHistory] = useState<GeneratedWorkout[] | null>(null);
   const [goal, setGoal] = useState(DEFAULT_WEEKLY_GOAL);
+  const [unit, setUnit] = useState<WeightUnit>('lbs');
   const [picking, setPicking] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      Promise.all([storageService.getWorkoutHistory(), storageService.getWeeklyGoal()]).then(
-        ([h, g]) => {
-          if (!active) return;
-          setHistory(h);
-          setGoal(g);
-        }
-      );
+      Promise.all([
+        storageService.getWorkoutHistory(),
+        storageService.getWeeklyGoal(),
+        storageService.getUserProfile(),
+      ]).then(([h, g, profile]) => {
+        if (!active) return;
+        setHistory(h);
+        setGoal(g);
+        setUnit(profile?.weightUnitPreference || 'lbs');
+      });
       return () => {
         active = false;
       };
@@ -69,6 +79,8 @@ export default function WeeklyGoalCard() {
     () => (history ? getWeekProgress(history, goal) : null),
     [history, goal]
   );
+
+  const load = useMemo(() => (history ? getWeeklyLoad(history) : null), [history]);
 
   const selectGoal = useCallback((next: number) => {
     setGoal(next);
@@ -129,6 +141,34 @@ export default function WeeklyGoalCard() {
           </View>
         ))}
       </View>
+
+      {load && load.sets > 0 && (
+        <View style={[styles.loadRow, { borderTopColor: currentTheme.colors.border }]}>
+          <Text style={[styles.loadText, { color: currentTheme.colors.text + 'B0' }]}>
+            <Text style={{ color: currentTheme.colors.text }}>{formatVolume(load.volumeLbs, unit)}</Text>
+            {' lifted · '}
+            <Text style={{ color: currentTheme.colors.text }}>{load.sets}</Text>
+            {load.sets === 1 ? ' set' : ' sets'}
+          </Text>
+          {load.deltaPct !== null && (
+            <View style={styles.trendChip}>
+              <Ionicons
+                name={load.deltaPct > 0 ? 'trending-up' : load.deltaPct < 0 ? 'trending-down' : 'remove'}
+                size={13}
+                color={load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80'}
+              />
+              <Text
+                style={[
+                  styles.trendText,
+                  { color: load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80' },
+                ]}
+              >
+                {load.deltaPct > 0 ? '+' : ''}{load.deltaPct}% vs last week
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
 
       <Modal visible={picking} animationType="slide" transparent onRequestClose={() => setPicking(false)}>
@@ -225,6 +265,26 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 12,
     opacity: 0.6,
+  },
+  loadRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  loadText: {
+    fontSize: 13,
+  },
+  trendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  trendText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   backdrop: {
     flex: 1,
