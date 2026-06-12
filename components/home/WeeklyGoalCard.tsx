@@ -33,10 +33,9 @@ function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
   );
 }
 
-// Accent used once the weekly goal is met/exceeded. Swap to compare aesthetics:
-//   gold    '#F5A623'   emerald '#2ECC71'   violet '#A855F7'
-//   coral   '#FF6B6B'   teal    '#14B8A6'   amber  '#FFB800'
-const GOAL_MET_COLOR = '#F5A623';
+// Accent once the weekly goal is met — the same gold as a "legendary" Career
+// badge, so hitting a goal reads as the same kind of win across both surfaces.
+const GOAL_MET_COLOR = '#F59E0B';
 
 // Selectable goal values (1..7).
 const GOAL_OPTIONS = Array.from(
@@ -107,8 +106,8 @@ export default function WeeklyGoalCard() {
         </Text>
 
         <View style={styles.goalButton}>
+          {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
           <Text style={[styles.count, { color: achieved ? accent : currentTheme.colors.text + '99' }]}>
-            {metGoal ? '✓ ' : ''}
             {daysTrained}/{goal}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
