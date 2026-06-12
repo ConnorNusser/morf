@@ -18,7 +18,6 @@ import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
-import { RoutineQualityReport, summarizeQuality, validateRoutineQuality } from '@/lib/workout/routineQuality';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
 
@@ -102,81 +101,6 @@ class AIRoutineGeneratorService {
   }
 
   /**
-   * Self-improving generation: generate → verify against the quality rubric →
-   * feed the exact violations back as a repair prompt → re-verify, up to
-   * MAX_REPAIRS times. Returns the best-scoring result with its quality report,
-   * and falls back to the deterministic template as a floor. This is the loop —
-   * the verifier (validateRoutineQuality) guides regeneration.
-   */
-  async generateValidatedProgram(
-    options: GenerateRoutineOptions,
-    convertOpts?: { excludedExerciseIds?: string[] },
-  ): Promise<{ program: GeneratedRoutineProgram; routines: Routine[]; quality: RoutineQualityReport }> {
-    const score = async (program: GeneratedRoutineProgram) => {
-      const routines = await this.convertToRoutines(program, convertOpts);
-      const quality = validateRoutineQuality(routines, { goal: options.trainingGoal });
-      return { program, routines, quality };
-    };
-
-    let best = await score(await this.generateRoutineProgram(options)); // pass 1
-    if (best.quality.passed) return best;
-
-    for (let attempt = 1; attempt <= this.MAX_REPAIRS && this.GEMINI_API_KEY; attempt++) {
-      try {
-        const repaired = await this.callAI(
-          this.buildRepairPrompt(best.program, best.quality, options),
-          options.programTemplate,
-        );
-        const candidate = await score(repaired);
-        if (candidate.quality.score > best.quality.score) best = candidate;
-        if (best.quality.passed) return best;
-      } catch (err) {
-        console.warn('[RoutineGenerator] repair pass failed:', err);
-        break;
-      }
-    }
-
-    // Still short of passing — try the deterministic template as a floor.
-    if (!best.quality.passed) {
-      try {
-        const userProfile = await userService.getRealUserProfile();
-        const fb = await score(this.generateFallbackProgram(userProfile, options));
-        if (fb.quality.score >= best.quality.score) best = fb;
-      } catch { /* keep best */ }
-    }
-    console.log(`[RoutineGenerator] final ${summarizeQuality(best.quality)}`);
-    return best;
-  }
-
-  // Hand the model its own program + the exact rubric violations, asking it to fix
-  // only those — the core of verifier-guided self-repair.
-  private buildRepairPrompt(
-    program: GeneratedRoutineProgram,
-    quality: RoutineQualityReport,
-    options: GenerateRoutineOptions,
-  ): string {
-    const issues = quality.issues
-      .filter(i => i.severity !== 'info')
-      .map(i => `- [${i.severity}] ${i.message}`)
-      .join('\n');
-    return `You previously generated this ${options.weeklyDays}-day ${options.trainingGoal} program, but it failed a quality review (score ${quality.score}/100).
-
-CURRENT PROGRAM (JSON):
-${JSON.stringify(program)}
-
-QUALITY ISSUES TO FIX:
-${issues}
-
-Revise the program to resolve EVERY issue above while keeping:
-- the same number of days (${options.weeklyDays})
-- only exercises from the available list (same names/format)
-- compound (multi-joint) lifts before isolation within each day
-- each major muscle trained adequately and push/pull volume balanced
-
-Return the corrected program in the SAME JSON structure. Return only valid JSON.`;
-  }
-
-  /**
    * Convert a generated program to actual Routine objects that can be saved
    */
   async convertToRoutines(
@@ -249,17 +173,6 @@ Return the corrected program in the SAME JSON structure. Return only valid JSON.
       };
 
       routines.push(routine);
-    }
-
-    // Quality gate: score the converted program against traditional split norms
-    // so low-quality generations are observable (ordering, muscle gaps, push/pull
-    // imbalance, absurd volume). Non-blocking — we surface, not suppress.
-    const quality = validateRoutineQuality(routines, { goal: program.trainingGoal });
-    if (!quality.passed) {
-      console.warn(
-        `[routine-gen] ${summarizeQuality(quality)} ` +
-          quality.issues.map(i => `${i.severity}:${i.code}`).join(', '),
-      );
     }
 
     return routines;

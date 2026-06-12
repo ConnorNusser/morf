@@ -1,15 +1,10 @@
 import Chip from '@/components/Chip';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import {
-  aiRoutineGenerator,
-  ProgramTemplate,
-  TrainingGoal,
-  GeneratedRoutineProgram,
-} from '@/lib/ai/aiRoutineGenerator';
+import { TrainingGoal, GeneratedRoutineProgram } from '@/lib/ai/aiRoutineGenerator';
 import { storageService } from '@/lib/storage/storage';
-import { validateRoutines } from '@/lib/workout/trainingAdvancement';
-import { summarizeQuality } from '@/lib/workout/routineQuality';
+import { buildProgram } from '@/lib/workout/routineBuilder';
+import { useUser } from '@/contexts/UserContext';
 import { getAvailableWorkouts } from '@/lib/workout/workouts';
 import { TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,38 +73,6 @@ const BODY_AREAS = [
   { id: 'core', label: 'Core' },
 ];
 
-// Auto-select program template based on goal and days
-function selectProgramTemplate(goal: TrainingGoal, days: number): ProgramTemplate {
-  if (goal === 'strength') {
-    return days <= 3 ? 'full_body' : 'strength';
-  }
-  if (goal === 'hypertrophy') {
-    if (days <= 3) return 'ppl';
-    if (days === 4) return 'upper_lower';
-    return days >= 6 ? 'ppl' : 'bro_split';
-  }
-  if (goal === 'powerbuilding') {
-    if (days <= 3) return 'full_body';
-    if (days === 4) return 'upper_lower';
-    return 'powerbuilding';
-  }
-  if (goal === 'recomp') {
-    // Higher frequency for metabolic effect
-    if (days <= 3) return 'full_body';
-    if (days === 4) return 'upper_lower';
-    return 'ppl';
-  }
-  if (goal === 'athletic') {
-    // Full body or upper/lower for balanced athletic development
-    if (days <= 3) return 'full_body';
-    return days === 4 ? 'upper_lower' : 'ppl';
-  }
-  // general
-  if (days <= 3) return 'full_body';
-  if (days === 4) return 'upper_lower';
-  return 'ppl';
-}
-
 const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   visible,
   onClose,
@@ -117,6 +80,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   onGenerationStarted,
 }) => {
   const { currentTheme } = useTheme();
+  const { userProfile } = useUser();
   const [step, setStep] = useState<FlowStep>('goal');
   const [selectedGoal, setSelectedGoal] = useState<TrainingGoal | null>(null);
   const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
@@ -294,31 +258,18 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     onClose();
 
     try {
-      const programTemplate = selectProgramTemplate(selectedGoal!, selectedDays!);
-      const experienceLevel = selectedExperience || 'beginner';
-      const durationConfig = DURATION_OPTIONS.find(d => d.id === selectedDuration);
+      // Deterministic generation: the goal's prescription (reps/sets/intensity)
+      // stamped onto a hardcoded split. No AI, no validator — correct by build.
+      const history = await storageService.getWorkoutHistory();
+      const unit = userProfile?.weightUnitPreference || 'lbs';
+      const excluded = new Set(excludedExercises);
 
-      // Self-improving generation: generate → verify against the quality rubric →
-      // repair → re-verify, returning the best-scoring program.
-      const { routines, quality } = await aiRoutineGenerator.generateValidatedProgram(
-        {
-          programTemplate,
-          trainingGoal: selectedGoal!,
-          weeklyDays: selectedDays!,
-          focusMuscles: selectedFocus.length > 0 ? selectedFocus : undefined,
-          ignoredMuscles: ignoredMuscles.length > 0 ? ignoredMuscles : undefined,
-          trainingYears: EXPERIENCE_OPTIONS.find(e => e.id === experienceLevel)?.years,
-          workoutDuration: selectedDuration!,
-          exercisesPerWorkout: { min: durationConfig!.min, max: durationConfig!.max },
-          includedExercises: includedExercises.length > 0 ? includedExercises : undefined,
-          excludedExercises: excludedExercises.length > 0 ? excludedExercises : undefined,
-        },
-        { excludedExerciseIds: excludedExercises.length > 0 ? excludedExercises : undefined },
-      );
-      console.log('[RoutineGenerator] ' + summarizeQuality(quality));
-
-      // Fatigue-spacing check (heavy squat+deadlift recovery) — separate concern.
-      validateRoutines(routines, experienceLevel);
+      const routines = buildProgram(selectedGoal!, selectedDays!, { history, unit, now: Date.now() })
+        .map(routine => ({
+          ...routine,
+          exercises: routine.exercises.filter(ex => !excluded.has(ex.exerciseId)),
+        }))
+        .filter(routine => routine.exercises.length > 0);
 
       for (const routine of routines) {
         await storageService.saveRoutine(routine);
