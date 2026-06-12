@@ -64,7 +64,17 @@ const SLOTS_BY_TARGET: Partial<Record<MuscleGroup, ExerciseSlot[]>> = (() => {
 
 const ALL_MUSCLES: MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'glutes', 'arms', 'core'];
 
-/** Fallback day templates (in priority order) used when a whole day is skipped. */
+/** Day template oriented around each muscle — used to replace a skipped day with a focus day. */
+const FOCUS_DAY_TEMPLATE: Partial<Record<MuscleGroup, string>> = {
+  chest: 'chest_day',
+  back: 'back_day',
+  shoulders: 'shoulder_day',
+  arms: 'arm_day',
+  legs: 'leg_day',
+  glutes: 'leg_day',
+};
+
+/** General fallback day templates (in priority order) when there's no focus area to use. */
 const SUBSTITUTE_DAYS = ['upper_gen', 'push', 'pull', 'upper_hyper', 'chest_arms', 'back_shoulders', 'lower_gen'];
 
 function pickRandom<T>(arr: T[]): T {
@@ -118,8 +128,19 @@ function resolveSlot(
   return null;
 }
 
-/** Choose a substitute day template when the original targets only ignored muscles. */
-function substituteDay(ignored: Set<string>): DayTemplate {
+/**
+ * Choose a substitute day template when the original targets only skipped muscles.
+ * Prefer a day built around one of the user's focus areas; otherwise fall back to a
+ * general non-skipped day. `seed` rotates through focus areas so multiple replaced
+ * days (e.g. both Legs days in a 6-day split) don't all become the same day.
+ */
+function substituteDay(ignored: Set<string>, focus: Set<string>, seed = 0): DayTemplate {
+  const focusDays = [...focus]
+    .filter(m => !ignored.has(m) && FOCUS_DAY_TEMPLATE[m as MuscleGroup])
+    .map(m => DAY_TEMPLATES[FOCUS_DAY_TEMPLATE[m as MuscleGroup]!])
+    .filter(dt => dt && !dt.targetMuscles.every(t => ignored.has(t)));
+  if (focusDays.length) return focusDays[seed % focusDays.length];
+
   for (const key of SUBSTITUTE_DAYS) {
     const dt = DAY_TEMPLATES[key];
     if (dt && !dt.targetMuscles.every(m => ignored.has(m))) return dt;
@@ -148,9 +169,10 @@ function buildDay(
   }
 ): GeneratedRoutineDay {
   let template = DAY_TEMPLATES[dayKey];
-  // If the whole day targets only skipped muscles, swap it for a non-skipped day.
+  // If the whole day targets only skipped muscles, replace it — preferring a day built
+  // around one of the user's focus areas, else a general non-skipped day.
   if (template.targetMuscles.every(m => opts.ignored.has(m))) {
-    template = substituteDay(opts.ignored);
+    template = substituteDay(opts.ignored, opts.focus, dayNumber);
   }
 
   const used = new Set<string>();
