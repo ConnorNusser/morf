@@ -59,6 +59,12 @@ export function newlyUnlockedEmblems(newAchievementIds: Set<string>): ProfileIco
   return PROFILE_ICONS.filter(d => d.achievementId !== null && newAchievementIds.has(d.achievementId));
 }
 
+// The emblem an achievement unlocks (if any) — lets the achievement UI advertise
+// "complete this → earn the X emblem", tying the chase to the collectible reward.
+export function emblemForAchievement(achievementId: string): ProfileIconDef | null {
+  return PROFILE_ICONS.find(d => d.achievementId === achievementId) ?? null;
+}
+
 // Ionicons name for a chosen id, falling back to the default emblem.
 export function profileIconName(id: string): string {
   return PROFILE_ICONS.find(d => d.id === id)?.icon ?? PROFILE_ICONS[0].icon;

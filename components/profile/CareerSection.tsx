@@ -7,7 +7,7 @@ import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { iconUnlockContext, newlyUnlockedEmblems, profileIconName } from '@/lib/gamification/profileIcons';
+import { emblemForAchievement, iconUnlockContext, newlyUnlockedEmblems, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +54,7 @@ export default function CareerSection() {
   ];
 
   const { nextUp, unlockedCount, total } = summarizeAchievements(data.achievements);
+  const nextEmblem = nextUp ? emblemForAchievement(nextUp.id) : null;
 
   // Consistency strip: the last 8 weeks, with a count so it reads on its own.
   const recentWeeks = data.heatmap.weeks.slice(-8);
@@ -170,6 +171,14 @@ export default function CareerSection() {
                 <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
                   NEXT · {nextUp.title}
                 </Text>
+                {nextEmblem && (
+                  <View style={styles.nextEmblemRow}>
+                    <Ionicons name={nextEmblem.icon as keyof typeof Ionicons.glyphMap} size={11} color={currentTheme.colors.primary} />
+                    <Text style={[styles.nextEmblemText, { color: currentTheme.colors.primary }]} numberOfLines={1}>
+                      Earns the {nextEmblem.label} emblem
+                    </Text>
+                  </View>
+                )}
                 <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
                   <View
                     style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
@@ -255,6 +264,8 @@ const styles = StyleSheet.create({
   nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 12, fontWeight: '600', marginBottom: 5 },
+  nextEmblemRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2, marginBottom: 6 },
+  nextEmblemText: { fontSize: 10, fontWeight: '600', flex: 1 },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
   nextCount: { fontSize: 12, fontWeight: '700', opacity: 0.6 },

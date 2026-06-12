@@ -1,6 +1,7 @@
 import { Achievement } from '../lib/gamification/achievements';
 import {
   getProfileIcons,
+  emblemForAchievement,
   iconUnlockContext,
   isProfileIconUnlocked,
   newlyUnlockedEmblems,
@@ -44,6 +45,12 @@ describe('profileIcons', () => {
   it('profileIconName falls back to the default icon', () => {
     expect(profileIconName('flame')).toBe('flame');
     expect(profileIconName('nope')).toBe('barbell');
+  });
+
+  it('emblemForAchievement maps a gating achievement to its emblem', () => {
+    expect(emblemForAchievement('streak-7')?.id).toBe('flame');
+    expect(emblemForAchievement('tier-s')?.id).toBe('skull');
+    expect(emblemForAchievement('first-workout')).toBeNull(); // gates no emblem
   });
 
   it('newlyUnlockedEmblems returns emblems whose gating achievement just unlocked', () => {
