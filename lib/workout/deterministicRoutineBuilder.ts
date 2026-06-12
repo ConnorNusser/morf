@@ -101,13 +101,18 @@ function resolveSlot(
   slot: ExerciseSlot,
   available: Set<Equipment>,
   used: Set<string>,
-  excluded: Set<string>
+  excluded: Set<string>,
+  ignored: Set<string>
 ): ResolvedExercise | null {
   for (const id of slot.options) {
     if (used.has(id) || excluded.has(id)) continue;
     const w = WORKOUT_BY_ID.get(id);
     if (!w) continue;
     if (!w.equipment.every(eq => available.has(eq))) continue;
+    // Reject by the exercise's actual primary muscle, not just the slot's label — some
+    // movements live in a slot whose target differs from what they primarily hit
+    // (e.g. shrugs sit in a "back" slot but primarily work the shoulders/traps).
+    if (w.primaryMuscles[0] && ignored.has(w.primaryMuscles[0])) continue;
     return { id, name: w.name, isCompound: w.category === 'compound' };
   }
   return null;
@@ -153,7 +158,7 @@ function buildDay(
 
   const tryAdd = (slot: ExerciseSlot, isCore: boolean) => {
     if (opts.ignored.has(slot.target)) return;
-    const ex = resolveSlot(slot, opts.available, used, opts.excluded);
+    const ex = resolveSlot(slot, opts.available, used, opts.excluded, opts.ignored);
     if (ex) {
       used.add(ex.id);
       resolved.push({ ex, isCore });
