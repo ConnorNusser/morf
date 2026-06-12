@@ -1,4 +1,5 @@
 import Button from '@/components/Button';
+import { useExpandToggle } from '@/hooks/useExpandToggle';
 import Card from '@/components/Card';
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View } from '@/components/Themed';
@@ -21,7 +22,6 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
   const { play: playSound } = useSound('pop');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
   const [availableLifts, setAvailableLifts] = useState<UserProgress[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -43,10 +43,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
     }
   };
 
-  const toggleExpanded = () => {
-    playHapticFeedback('selection', false);
-    setIsExpanded(!isExpanded);
-  };
+  const [isExpanded, toggleExpanded] = useExpandToggle();
 
   const getPreferencesSummary = () => {
     const hiddenCount = filters.hiddenLiftIds.length;
