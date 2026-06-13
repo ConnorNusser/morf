@@ -81,12 +81,17 @@ function WorkoutCard({
             return sum + weightInPreferredUnit * (set.reps || 0);
           }, 0);
 
-          // Compare best set 1RM to exercise stats (use estimated1RM for consistency)
+          // Compare best set 1RM to exercise stats. estimated1RM is stored in the
+          // user's preferred unit and rounded (see loadExerciseStats), so normalize
+          // this set's 1RM the same way before comparing — otherwise kg users compare
+          // an lbs value against a kg value and see false PRs on nearly every exercise,
+          // and rounding can hide the PR on the workout that actually holds the record.
           const exerciseStat = exerciseStats.find(s => s.id === ex.id);
           const bestSetUnit = bestSet.unit || 'lbs';
           const bestSetInLbs = convertWeight(bestSet.weight || 0, bestSetUnit, 'lbs');
           const bestSet1RM = OneRMCalculator.estimate(bestSetInLbs, bestSet.reps || 0);
-          isPR = exerciseStat ? bestSet1RM >= exerciseStat.estimated1RM : false;
+          const bestSet1RMDisplay = Math.round(convertWeight(bestSet1RM, 'lbs', weightUnit));
+          isPR = exerciseStat ? bestSet1RMDisplay >= exerciseStat.estimated1RM : false;
         }
 
         exercises.push({ name, sets, isPR, volume });
