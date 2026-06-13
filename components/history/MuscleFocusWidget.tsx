@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -13,11 +14,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
   const [muscles, setMuscles] = useState<MuscleDistribution[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadMuscleData();
-  }, []);
-
-  const loadMuscleData = async () => {
+  const loadMuscleData = useCallback(async () => {
     try {
       const stats = await calculateRecapStats('week', new Date());
       setMuscles(stats.muscleGroupDistribution.slice(0, 4));
@@ -26,7 +23,16 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Refresh whenever History regains focus (e.g. after logging a workout), matching
+  // the parent screen's useFocusEffect — otherwise this week's focus stays stale while
+  // the workout list and quick stats update around it.
+  useFocusEffect(
+    useCallback(() => {
+      loadMuscleData();
+    }, [loadMuscleData])
+  );
 
   if (loading || muscles.length === 0) {
     return null;

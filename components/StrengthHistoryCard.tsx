@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
 import { formatShortDate as formatDate } from '@/lib/ui/formatters';
 import Svg, { Path, Line, Text as SvgText, Circle } from 'react-native-svg';
@@ -39,9 +40,13 @@ function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
     }
   }, [userId]);
 
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  // Refresh on focus (e.g. after logging a workout updates percentile data), matching
+  // the parent History screen — otherwise this card lags the rest of the page.
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [loadHistory])
+  );
 
   // Don't render if no history or loading
   if (isLoading || history.length === 0) {
