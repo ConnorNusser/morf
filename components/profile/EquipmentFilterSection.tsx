@@ -1,10 +1,10 @@
 import { useTheme } from "@/contexts/ThemeContext";
+import { useExpandToggle } from '@/hooks/useExpandToggle';
 import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/UserContext";
 import playHapticFeedback from "@/lib/utils/haptic";
 import { Equipment } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "../Card";
 import { Text } from "../Themed";
@@ -25,14 +25,10 @@ const EquipmentFilterSection = () => {
   const { currentTheme } = useTheme();
   const { userProfile, updateProfile } = useUser();
   const { play: playSound } = useSound('pop');
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const selectedEquipment = userProfile?.equipmentFilter?.includedEquipment || ALL_EQUIPMENT;
 
-  const toggleExpanded = () => {
-    playHapticFeedback('selection', false);
-    setIsExpanded(!isExpanded);
-  };
+  const [isExpanded, toggleExpanded] = useExpandToggle();
 
   const toggleEquipment = async (equipment: Equipment) => {
     if (!userProfile) return;

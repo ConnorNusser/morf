@@ -1,5 +1,6 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatRelativeDate } from '@/lib/ui/formatters';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
@@ -26,16 +27,6 @@ function WorkoutCard({
 }: WorkoutCardProps) {
   const { currentTheme } = useTheme();
 
-  const formatRelativeDate = (date: Date): string => {
-    const now = new Date();
-    const d = new Date(date);
-    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   // Helper to get tracking type for an exercise
   const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {

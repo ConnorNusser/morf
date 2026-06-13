@@ -1,5 +1,7 @@
 import { useAlert } from '@/components/CustomAlert';
+import { getProgressionColor } from '@/lib/utils/utils';
 import { Text, View } from '@/components/Themed';
+import { formatRelativeDate } from '@/lib/ui/formatters';
 import { TutorialTarget } from '@/components/tutorial/TutorialTarget';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
@@ -165,16 +167,6 @@ export default function NotesScreen() {
     })[0];
   }, [activeProgramGroup]);
 
-  const formatRelativeDate = (date: Date): string => {
-    const now = new Date();
-    const d = new Date(date);
-    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const handleDeleteRoutine = useCallback((routineId: string, routineName: string) => {
     showAlert({
@@ -318,13 +310,6 @@ export default function NotesScreen() {
   }, []);
 
   // Get progression color
-  const getProgressionColor = (progression: 'increase' | 'maintain' | 'decrease') => {
-    switch (progression) {
-      case 'increase': return '#34C759';
-      case 'decrease': return '#FF3B30';
-      default: return currentTheme.colors.text + '60';
-    }
-  };
 
   // Get progression icon
   const getProgressionIcon = (progression: 'increase' | 'maintain' | 'decrease') => {
@@ -474,7 +459,7 @@ export default function NotesScreen() {
                             <Ionicons
                               name={getProgressionIcon(exercise.progression)}
                               size={12}
-                              color={getProgressionColor(exercise.progression)}
+                              color={getProgressionColor(exercise.progression, currentTheme.colors.text + '60')}
                               style={{ marginLeft: 4 }}
                             />
                           </RNView>

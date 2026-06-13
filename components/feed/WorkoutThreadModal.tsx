@@ -1,4 +1,5 @@
 import IconButton from '@/components/IconButton';
+import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -213,10 +214,7 @@ export default function WorkoutThreadModal({
   };
 
   // Smooth animation for like button using reanimated
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   // Calculate PPL breakdown from exercises (must be before early return)
   const pplBreakdown = useMemo(() => {
@@ -266,10 +264,7 @@ export default function WorkoutThreadModal({
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.25, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike?.();
   };
 

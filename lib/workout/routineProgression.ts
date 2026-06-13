@@ -22,6 +22,7 @@ import {
   convertWeight
 } from '@/types';
 import { getWorkoutById } from './workouts';
+import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 
 // Max rep bonus before weight increase
@@ -120,10 +121,6 @@ function calculateNextWeight(
 /**
  * Round weight to nearest plate increment
  */
-function roundWeight(weight: number, unit: WeightUnit): number {
-  const increment = unit === 'kg' ? 2.5 : 5;
-  return Math.round(weight / increment) * increment;
-}
 
 /**
  * Check if exercise was completed successfully
@@ -375,56 +372,3 @@ export function updateRoutineProgression(
   };
 }
 
-/**
- * Get current target for an exercise based on progression state
- */
-export function getExerciseTarget(
-  routine: Routine,
-  exerciseId: string
-): { targetReps: number; targetWeight: number } | null {
-  const state = routine.progressionState?.[exerciseId];
-  if (!state) return null;
-
-  return {
-    targetReps: state.baseReps + state.currentRepBonus,
-    targetWeight: state.currentWeight,
-  };
-}
-
-/**
- * Check if an exercise is in a deload state (just failed multiple times)
- */
-export function isExerciseStalling(
-  routine: Routine,
-  exerciseId: string
-): boolean {
-  const state = routine.progressionState?.[exerciseId];
-  return (state?.consecutiveFailures || 0) >= 2;
-}
-
-/**
- * Get progression summary for display
- */
-export function getProgressionSummary(
-  routine: Routine,
-  exerciseId: string
-): string | null {
-  const state = routine.progressionState?.[exerciseId];
-  if (!state) return null;
-
-  const targetReps = state.baseReps + state.currentRepBonus;
-
-  if (state.consecutiveFailures >= 2) {
-    return `Stalling - try ${targetReps} reps or deload`;
-  }
-
-  if (state.currentRepBonus > 0) {
-    return `+${state.currentRepBonus} reps from base`;
-  }
-
-  if (state.currentRepBonus === 0 && state.currentWeight > 0) {
-    return `Base reps @ ${state.currentWeight}`;
-  }
-
-  return null;
-}

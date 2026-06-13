@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import { useLikePop } from '@/hooks/useLikePop';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
@@ -64,17 +65,11 @@ function CommentItem({
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
   // Like animation
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.3, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike(comment.id);
   };
 

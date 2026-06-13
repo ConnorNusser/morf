@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import { getProgressionColor } from '@/lib/utils/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
@@ -126,13 +127,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
     setExpandedRoutineId(prev => prev === routineId ? null : routineId);
   }, []);
 
-  const getProgressionColor = (progression: 'increase' | 'maintain' | 'decrease') => {
-    switch (progression) {
-      case 'increase': return '#34C759';
-      case 'decrease': return '#FF3B30';
-      default: return currentTheme.colors.text + '60';
-    }
-  };
 
   const getProgressionIcon = (progression: 'increase' | 'maintain' | 'decrease') => {
     switch (progression) {
@@ -240,7 +234,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                                 <Ionicons
                                   name={getProgressionIcon(exercise.progression)}
                                   size={14}
-                                  color={getProgressionColor(exercise.progression)}
+                                  color={getProgressionColor(exercise.progression, currentTheme.colors.text + '60')}
                                   style={{ marginLeft: 4 }}
                                 />
                               </RNView>

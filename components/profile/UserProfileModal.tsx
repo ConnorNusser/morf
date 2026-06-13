@@ -1,5 +1,6 @@
 import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
+import { formatRelativeTime, formatDuration } from '@/lib/ui/formatters';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
@@ -43,28 +44,8 @@ interface UserProfileModalProps {
 const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
 
 // Format relative time (e.g., "2d ago", "1w ago")
-const formatRelativeTime = (date: Date): string => {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const diffWeeks = Math.floor(diffDays / 7);
-
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffWeeks < 4) return `${diffWeeks}w ago`;
-  return date.toLocaleDateString();
-};
 
 // Format duration (e.g., "45min", "1h 15min")
-const formatDuration = (seconds: number): string => {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${mins}m`;
-  return `${mins}min`;
-};
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();

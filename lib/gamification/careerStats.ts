@@ -1,6 +1,7 @@
 // Lifetime "career" stats derived purely from workout history — the foundation
 // of the gamification layer. Pure + clock-injectable so it's unit-testable.
 import { GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
+import { dateKey } from '@/lib/utils/utils';
 
 export interface HeaviestSet {
   weight: number; // in preferred unit
@@ -25,9 +26,6 @@ export interface CareerStats {
 }
 
 // Local YYYY-MM-DD, matching retentionSignals / recapStats.
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 // Longest run of consecutive calendar days present in the set of trained days.
 function longestConsecutive(dayKeys: Set<string>): number {

@@ -28,6 +28,7 @@ import {
   CalculatedRoutine
 } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { roundWeight } from '@/lib/utils/utils';
 import { getWorkoutById } from './workouts';
 
 // Intensity modifiers applied on top of rep-based percentage
@@ -120,10 +121,6 @@ const WARMUP_1RM_PERCENTAGE = 0.60;
 /**
  * Round weight to nearest increment (5 lbs or 2.5 kg)
  */
-function roundWeight(weight: number, unit: WeightUnit): number {
-  const increment = unit === 'kg' ? 2.5 : 5;
-  return Math.round(weight / increment) * increment;
-}
 
 /**
  * Calculate target and expected weights for a single routine exercise

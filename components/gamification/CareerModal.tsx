@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { storageService } from '@/lib/storage/storage';
@@ -35,9 +36,6 @@ function cleanExerciseName(name: string): string {
   return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 }
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
 
 // Stable empty set so a dismissed celebration doesn't allocate on every render.
 const EMPTY_NEW_IDS: Set<string> = new Set();

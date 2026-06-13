@@ -3,7 +3,7 @@ import { analyticsService } from './analytics';
 import { geoService } from './geoService';
 import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
 import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator } from '@/lib/data/strengthStandards';
-import { calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
+import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
 import { userService } from './userService';
 import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
@@ -751,7 +751,6 @@ class UserSyncService {
         });
       });
 
-      const toAvg = (arr: number[]) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0);
       const muscleGroupPercentiles: MuscleGroupPercentiles = {
         chest: toAvg(groupToValues['chest']),
         back: toAvg(groupToValues['back']),

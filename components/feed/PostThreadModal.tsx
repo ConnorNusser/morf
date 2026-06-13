@@ -1,4 +1,6 @@
 import IconButton from '@/components/IconButton';
+import { useImageCarousel } from '@/hooks/useImageCarousel';
+import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
@@ -52,21 +54,17 @@ export default function PostThreadModal({
   const { currentTheme } = useTheme();
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [showFullScreen, setShowFullScreen] = useState(false);
-  const [fullScreenInitialIndex, setFullScreenInitialIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Smooth animation for like button
-  const likeScale = useSharedValue(1);
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
+  const { likeAnimatedStyle, pop } = useLikePop();
 
   const mediaItems = post?.media || [];
   const hasVideo = mediaItems.some(m => m.type === 'video');
   const imageUrls = mediaItems.filter(m => m.type === 'image').map(m => m.url);
+
+  const { currentImageIndex, showFullScreen, fullScreenInitialIndex, setShowFullScreen, handleImagePress, handleImageScroll } = useImageCarousel(imageUrls, MEDIA_WIDTH);
   const firstVideo = mediaItems.find(m => m.type === 'video');
 
   const player = useVideoPlayer(hasVideo && firstVideo?.url ? firstVideo.url : null, player => {
@@ -75,10 +73,7 @@ export default function PostThreadModal({
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    likeScale.value = withSequence(
-      withTiming(1.25, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
+    pop();
     onLike?.();
   };
 
@@ -124,18 +119,7 @@ export default function PostThreadModal({
     }
   };
 
-  const handleImageScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / MEDIA_WIDTH);
-    if (index !== currentImageIndex && index >= 0 && index < imageUrls.length) {
-      setCurrentImageIndex(index);
-    }
-  };
 
-  const handleImagePress = (index: number) => {
-    setFullScreenInitialIndex(index);
-    setShowFullScreen(true);
-  };
 
   const toggleVideo = () => {
     if (player) {

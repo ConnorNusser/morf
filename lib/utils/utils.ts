@@ -1,4 +1,4 @@
-import { WeightUnit, TrackingType } from "@/types";
+import { WeightUnit, TrackingType, GeneratedWorkout } from "@/types";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
@@ -59,6 +59,45 @@ export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string 
   return volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
 };
 
+/**
+ * Abbreviate a raw number as "1.2k" / "1.2M" with an optional suffix. Shared by the
+ * overview/trends modals (each passes its own suffix / millions flag) so the k/M logic
+ * isn't duplicated. Values below 1000 are returned verbatim (e.g. "850" or "850 lbs").
+ */
+export const formatCompact = (value: number, opts: { suffix?: string; millions?: boolean } = {}): string => {
+  const suffix = opts.suffix ?? '';
+  if (opts.millions && value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M${suffix}`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k${suffix}`;
+  return `${value}${suffix}`;
+};
+
+/** Local-date key "YYYY-MM-DD" (not UTC) — used as a per-day bucketing key. */
+export function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Round a weight to the nearest loadable increment (2.5 kg / 5 lbs). */
+export function roundWeight(weight: number, unit: WeightUnit): number {
+  const increment = unit === 'kg' ? 2.5 : 5;
+  return Math.round(weight / increment) * increment;
+}
+
+/** Rounded mean of a numeric array (0 for empty). */
+export const roundedAverage = (arr: number[]): number =>
+  arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+/** Color for an exercise's progression direction; `neutralColor` is used for "maintain". */
+export function getProgressionColor(
+  progression: 'increase' | 'maintain' | 'decrease',
+  neutralColor: string
+): string {
+  switch (progression) {
+    case 'increase': return '#34C759';
+    case 'decrease': return '#FF3B30';
+    default: return neutralColor;
+  }
+}
+
 export { convertWeightToKg, convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====
@@ -77,6 +116,36 @@ export const formatDuration = (seconds: number): string => {
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
+ * Format a whole-minutes duration as "1h 30m" / "30m" (used by the overview/trends modals).
+ */
+export const formatMinutes = (minutes: number): string => {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+};
+
+/**
+ * Categorize a workout into a split bucket from its title (push/pull/legs/upper/full/other).
+ */
+export const getWorkoutCategory = (workout: GeneratedWorkout): string => {
+  const title = workout.title.toLowerCase();
+
+  if (title.includes('push') || title.includes('chest') || title.includes('bench')) {
+    return 'push';
+  } else if (title.includes('pull') || title.includes('back') || title.includes('deadlift')) {
+    return 'pull';
+  } else if (title.includes('leg') || title.includes('squat') || title.includes('glute')) {
+    return 'legs';
+  } else if (title.includes('upper') || title.includes('arm')) {
+    return 'upper';
+  } else if (title.includes('full') || title.includes('total')) {
+    return 'full';
+  } else {
+    return 'other';
+  }
 };
 
 /**
@@ -342,40 +411,6 @@ export const formatWorkoutStatsLine = (
     }
     if (stats.totalCardioDurationSeconds > 0) {
       parts.push(`${formatDuration(stats.totalCardioDurationSeconds)} cardio`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : '—';
-};
-
-/**
- * Format aggregate stats for weekly/monthly totals
- *
- * Example: "125k lbs · 25km · 2h cardio"
- */
-export const formatAggregateStats = (
-  stats: WorkoutStats,
-  options: { unit?: WeightUnit } = {}
-): string => {
-  const { unit = 'lbs' } = options;
-  const parts: string[] = [];
-
-  if (stats.hasWeightedExercises && stats.totalVolumeLbs > 0) {
-    parts.push(formatVolume(stats.totalVolumeLbs, unit));
-  }
-
-  if (stats.hasCardioExercises) {
-    if (stats.totalDistanceMeters > 0) {
-      parts.push(formatDistance(stats.totalDistanceMeters));
-    }
-    if (stats.totalCardioDurationSeconds > 0) {
-      // For aggregates, format as hours if > 1 hour
-      const hours = stats.totalCardioDurationSeconds / 3600;
-      if (hours >= 1) {
-        parts.push(`${hours.toFixed(1)}h cardio`);
-      } else {
-        parts.push(`${formatDuration(stats.totalCardioDurationSeconds)} cardio`);
-      }
     }
   }
 

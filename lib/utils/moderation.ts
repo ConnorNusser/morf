@@ -25,19 +25,3 @@ export function containsProfanity(text: string): boolean {
   }
   return false;
 }
-
-/**
- * Sanitizes text by removing or replacing profane words
- * Returns the sanitized text
- */
-export function sanitizeText(text: string, replacement: string = '***'): string {
-  let result = text;
-  const lower = text.toLowerCase();
-
-  for (const word of BLOCKED_WORDS) {
-    const regex = new RegExp(word, 'gi');
-    result = result.replace(regex, replacement);
-  }
-
-  return result;
-}

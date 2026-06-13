@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { useExpandToggle } from '@/hooks/useExpandToggle';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
@@ -16,7 +17,6 @@ interface LiftDisplayFilterProps {
 export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: LiftDisplayFilterProps) {
   const { currentTheme } = useTheme();
   const { play: playSound } = useSound('pop');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
 
   useEffect(() => {
@@ -32,10 +32,7 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
     }
   };
 
-  const toggleExpanded = () => {
-    playHapticFeedback('selection', false);
-    setIsExpanded(!isExpanded);
-  };
+  const [isExpanded, toggleExpanded] = useExpandToggle();
 
   const toggleLiftVisibility = async (liftId: string) => {
     try {

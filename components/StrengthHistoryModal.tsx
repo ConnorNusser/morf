@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { formatShortDate as formatDate } from '@/lib/ui/formatters';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 import Card from './Card';
 import IconButton from './IconButton';
@@ -148,10 +149,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const tier = getStrengthTier(currentPercentile);
   const tierColor = getTierColor(tier);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
 
   const formatDateLong = (dateStr: string) => {
     const date = new Date(dateStr);
