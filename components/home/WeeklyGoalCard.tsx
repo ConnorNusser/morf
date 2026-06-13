@@ -1,3 +1,4 @@
+import WeeklyOverviewModal from '@/components/WeeklyOverviewModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { storageService } from '@/lib/storage/storage';
@@ -55,6 +56,7 @@ export default function WeeklyGoalCard() {
   const [goal, setGoal] = useState(DEFAULT_WEEKLY_GOAL);
   const [unit, setUnit] = useState<WeightUnit>('lbs');
   const [picking, setPicking] = useState(false);
+  const [overviewOpen, setOverviewOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -90,7 +92,10 @@ export default function WeeklyGoalCard() {
 
   if (!progress) return null;
 
-  const { daysTrained, metGoal, trainedDays, workoutsByDay } = progress;
+  const { daysTrained, metGoal, trainedDays, workoutsByDay, weekStart } = progress;
+
+  // Flattened list of this week's completed workouts, for the overview modal.
+  const thisWeekWorkouts = workoutsByDay.flat();
 
   // Celebrate once the goal is reached: the count takes the accent color.
   const achieved = daysTrained >= goal;
@@ -110,20 +115,25 @@ export default function WeeklyGoalCard() {
         { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
       ]}
       activeOpacity={0.85}
-      onPress={() => setPicking(true)}
+      onPress={() => setOverviewOpen(true)}
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text }]}>
           This week
         </Text>
 
-        <View style={styles.goalButton}>
+        <TouchableOpacity
+          style={styles.goalButton}
+          activeOpacity={0.7}
+          hitSlop={10}
+          onPress={() => setPicking(true)}
+        >
           {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
           <Text style={[styles.count, { color: achieved ? accent : currentTheme.colors.text + '99' }]}>
             {daysTrained}/{goal}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
-        </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.dotRow}>
@@ -170,6 +180,16 @@ export default function WeeklyGoalCard() {
         </View>
       )}
     </TouchableOpacity>
+
+      <WeeklyOverviewModal
+        visible={overviewOpen}
+        onClose={() => setOverviewOpen(false)}
+        invocationType="week"
+        workouts={thisWeekWorkouts}
+        weekStartDate={weekStart}
+        allWorkouts={history ?? undefined}
+        onWeeklyGoalChange={setGoal}
+      />
 
       <Modal visible={picking} animationType="slide" transparent onRequestClose={() => setPicking(false)}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setPicking(false)}>
