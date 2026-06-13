@@ -229,7 +229,7 @@ export default function HistoryHero({ workouts, weightUnit, streak, weekVolume }
       ]}
     >
       {/* aurora field */}
-      <RNView style={StyleSheet.absoluteFill} pointerEvents="none">
+      <RNView style={[StyleSheet.absoluteFill, { opacity: 0.45 }]} pointerEvents="none">
         <AuroraBlob
           size={heroWidth * 0.85}
           colors={[colors.primary, colors.accent]}

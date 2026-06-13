@@ -120,7 +120,7 @@ export function AuroraSurface({ children, style, contentStyle, shimmer = true, i
         style,
       ]}
     >
-      <RNView style={StyleSheet.absoluteFill} pointerEvents="none">
+      <RNView style={[StyleSheet.absoluteFill, { opacity: 0.45 }]} pointerEvents="none">
         <AuroraBlob
           size={w * 0.85}
           colors={[colors.primary, colors.accent]}
