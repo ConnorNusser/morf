@@ -1,11 +1,29 @@
-import Chart from '@/components/Chart'; // Added import for Chart component
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatCompact, formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { storageService } from '@/lib/storage/storage';
+import {
+  calculateWorkoutStats,
+  combineWorkoutStats,
+  formatCompact,
+  formatDistance,
+  formatDuration,
+  formatMinutes as formatTime,
+  getWorkoutCategory,
+  WorkoutStats,
+} from '@/lib/utils/utils';
+import {
+  DEFAULT_WEEKLY_GOAL,
+  WEEKLY_GOAL_MAX,
+  WEEKLY_GOAL_MIN,
+} from '@/lib/workout/weeklyGoal';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
-import React, { useMemo } from 'react';
-import { Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface WeeklyOverviewModalProps {
   visible: boolean;
@@ -15,9 +33,31 @@ interface WeeklyOverviewModalProps {
   selectedDate?: Date;
   weekStartDate?: Date;
   weekEndDate?: Date;
+  /** Full workout history — enables this-week Personal Records detection. */
+  allWorkouts?: GeneratedWorkout[];
+  /** Called when the weekly goal is changed from inside the modal, so parents can sync. */
+  onWeeklyGoalChange?: (goal: number) => void;
 }
 
-const { width: _screenWidth, height: _screenHeight } = Dimensions.get('window');
+// Push/Pull/Legs share the app-wide PPL palette; upper/full keep distinct accents.
+const CATEGORY_COLORS: Record<string, string> = {
+  push: PPL_COLORS.push,
+  pull: PPL_COLORS.pull,
+  legs: PPL_COLORS.legs,
+  upper: '#FFA726',
+  full: '#AB47BC',
+};
+
+const GOAL_OPTIONS = Array.from(
+  { length: WEEKLY_GOAL_MAX - WEEKLY_GOAL_MIN + 1 },
+  (_, i) => WEEKLY_GOAL_MIN + i
+);
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const cleanName = (id: string) =>
+  id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+const fmtDay = (d: Date) =>
+  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 export default function WeeklyOverviewModal({
   visible,
@@ -25,107 +65,97 @@ export default function WeeklyOverviewModal({
   invocationType,
   workouts,
   selectedDate,
-  weekStartDate: _weekStartDate,
-  weekEndDate: _weekEndDate,
+  weekStartDate,
+  weekEndDate,
+  allWorkouts,
+  onWeeklyGoalChange,
 }: WeeklyOverviewModalProps) {
   const { currentTheme } = useTheme();
   const { customExercises } = useCustomExercises();
+  const insets = useSafeAreaInsets();
+  const c = currentTheme.colors;
 
-  // Helper to get tracking type for an exercise
-  const getTrackingType = (exerciseId: string): TrackingType | undefined => {
-    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
-    return exerciseInfo?.trackingType;
+  const [goal, setGoal] = useState<number>(DEFAULT_WEEKLY_GOAL);
+
+  // Load the persisted weekly goal whenever the (week) modal opens.
+  useEffect(() => {
+    if (!visible || invocationType !== 'week') return;
+    let active = true;
+    storageService.getWeeklyGoal().then(g => {
+      if (active && typeof g === 'number') setGoal(g);
+    });
+    return () => {
+      active = false;
+    };
+  }, [visible, invocationType]);
+
+  const changeGoal = (next: number) => {
+    setGoal(next);
+    storageService.saveWeeklyGoal(next);
+    onWeeklyGoalChange?.(next);
   };
 
+  const getTrackingType = (exerciseId: string): TrackingType | undefined =>
+    getWorkoutByIdWithCustom(exerciseId, customExercises)?.trackingType;
 
-  const getCategoryColor = (category: string): string => {
-    switch (category) {
-      case 'push':
-        return '#FF6B6B';
-      case 'pull':
-        return '#4ECDC4';
-      case 'legs':
-        return '#45B7D1';
-      case 'upper':
-        return '#FFA726';
-      case 'full':
-        return '#AB47BC';
-      default:
-        return currentTheme.colors.accent;
-    }
+  const categoryColor = (category: string): string =>
+    CATEGORY_COLORS[category] || c.accent;
+
+  // Push/Pull/Legs bucket for an exercise, via its primary muscle.
+  const pplForExercise = (exerciseId: string): PPLCategory | null => {
+    const muscle = getWorkoutByIdWithCustom(exerciseId, customExercises)?.primaryMuscles?.[0];
+    return muscle ? MUSCLE_TO_PPL[muscle] ?? null : null;
+  };
+
+  const exerciseColor = (exerciseId: string): string => {
+    const ppl = pplForExercise(exerciseId);
+    return ppl ? PPL_COLORS[ppl] : c.primary;
   };
 
   const analyticsData = useMemo(() => {
-    // Calculate combined workout stats using the utility for cardio support
-    const workoutStatsList: WorkoutStats[] = workouts.map(workout =>
-      calculateWorkoutStats(workout.exercises, getTrackingType)
+    const combinedStats = combineWorkoutStats(
+      workouts.map(w => calculateWorkoutStats(w.exercises, getTrackingType))
     );
-    const combinedStats = combineWorkoutStats(workoutStatsList);
 
     const totalVolume = combinedStats.totalVolumeLbs;
-    const totalTime = workouts.reduce((sum, workout) => sum + workout.estimatedDuration, 0);
+    const totalTime = workouts.reduce((s, w) => s + w.estimatedDuration, 0);
     const totalSets = combinedStats.totalSets;
+    const totalReps = workouts.reduce(
+      (s, w) =>
+        s +
+        w.exercises.reduce(
+          (es, ex) => es + ex.completedSets.reduce((ss, set) => ss + (set.reps || 0), 0),
+          0
+        ),
+      0
+    );
 
-    const totalReps = workouts.reduce((sum, workout) => {
-      return sum + workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.reduce((setSum, set) => setSum + (set.reps || 0), 0);
-      }, 0);
-    }, 0);
-
-    // Category breakdown with more detailed metrics
     const categoryBreakdown = workouts.reduce((acc, workout) => {
       const category = getWorkoutCategory(workout);
       if (!acc[category]) {
-        acc[category] = { 
-          count: 0, 
-          volume: 0, 
-          time: 0, 
-          sets: 0, 
-          exercises: 0,
-          avgVolume: 0,
-          avgTime: 0,
-        };
+        acc[category] = { count: 0, volume: 0, time: 0, sets: 0, avgVolume: 0, avgTime: 0 };
       }
       acc[category].count += 1;
       acc[category].time += workout.estimatedDuration;
-      acc[category].exercises += workout.exercises.length;
-      
-      const workoutSets = workout.exercises.reduce((sum, ex) => sum + ex.completedSets.length, 0);
-      acc[category].sets += workoutSets;
-      
-      const workoutVolume = workout.exercises.reduce((exerciseSum, exercise) => {
-        return exerciseSum + exercise.completedSets.reduce((setSum, set) => {
-          return setSum + (set.weight * set.reps);
-        }, 0);
-      }, 0);
-      acc[category].volume += workoutVolume;
-      
+      acc[category].sets += workout.exercises.reduce((s, ex) => s + ex.completedSets.length, 0);
+      acc[category].volume += workout.exercises.reduce(
+        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + set.weight * set.reps, 0),
+        0
+      );
       return acc;
-    }, {} as Record<string, { count: number; volume: number; time: number; sets: number; exercises: number; avgVolume: number; avgTime: number }>);
-
-    // Calculate averages
-    Object.keys(categoryBreakdown).forEach(category => {
-      const data = categoryBreakdown[category];
-      data.avgVolume = data.volume / data.count;
-      data.avgTime = data.time / data.count;
+    }, {} as Record<string, { count: number; volume: number; time: number; sets: number; avgVolume: number; avgTime: number }>);
+    Object.values(categoryBreakdown).forEach(d => {
+      d.avgVolume = d.volume / d.count;
+      d.avgTime = d.time / d.count;
     });
 
-    // Exercise-specific breakdown
-    const exerciseBreakdown = workouts.reduce((acc, workout) => {
+    const exerciseMap = workouts.reduce((acc, workout) => {
       workout.exercises.forEach(exercise => {
         if (!acc[exercise.id]) {
-          acc[exercise.id] = {
-            name: exercise.id,
-            totalVolume: 0,
-            totalSets: 0,
-            sessions: 0,
-            maxWeight: 0,
-            totalReps: 0,
-          };
+          acc[exercise.id] = { name: exercise.id, totalVolume: 0, totalSets: 0, sessions: 0, maxWeight: 0, totalReps: 0 };
         }
         acc[exercise.id].sessions += 1;
         acc[exercise.id].totalSets += exercise.completedSets.length;
-        
         exercise.completedSets.forEach(set => {
           acc[exercise.id].totalVolume += set.weight * set.reps;
           acc[exercise.id].totalReps += set.reps;
@@ -134,25 +164,57 @@ export default function WeeklyOverviewModal({
       });
       return acc;
     }, {} as Record<string, { name: string; totalVolume: number; totalSets: number; sessions: number; maxWeight: number; totalReps: number }>);
+    const topExercises = Object.values(exerciseMap).sort((a, b) => b.totalVolume - a.totalVolume);
 
-    // Get top exercises by volume
-    const topExercises = Object.values(exerciseBreakdown)
-      .sort((a, b) => b.totalVolume - a.totalVolume)
-      .slice(0, 5);
-
-    // Weekly patterns (for week view)
     const dailyBreakdown = workouts.reduce((acc, workout) => {
       const day = new Date(workout.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
-      if (!acc[day]) {
-        acc[day] = { workouts: 0, volume: 0, time: 0 };
-      }
+      if (!acc[day]) acc[day] = { workouts: 0, volume: 0, time: 0 };
       acc[day].workouts += 1;
       acc[day].time += workout.estimatedDuration;
-      acc[day].volume += workout.exercises.reduce((sum, ex) => {
-        return sum + ex.completedSets.reduce((setSum, set) => setSum + (set.weight * set.reps), 0);
-      }, 0);
+      acc[day].volume += workout.exercises.reduce(
+        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + set.weight * set.reps, 0),
+        0
+      );
       return acc;
     }, {} as Record<string, { workouts: number; volume: number; time: number }>);
+
+    const workoutSummaries = [...workouts]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .map(workout => {
+        const stats = calculateWorkoutStats(workout.exercises, getTrackingType);
+        const date = new Date(workout.createdAt);
+        return {
+          id: workout.id,
+          title: workout.title,
+          category: getWorkoutCategory(workout),
+          weekday: date.toLocaleDateString('en-US', { weekday: 'short' }),
+          dayNum: date.getDate(),
+          duration: workout.estimatedDuration,
+          exercises: workout.exercises.length,
+          sets: stats.totalSets,
+          volume: stats.totalVolumeLbs,
+        };
+      });
+
+    const daysTrained = new Set(workouts.map(w => new Date(w.createdAt).toDateString())).size;
+
+    // Push/Pull/Legs split by set count, for the Training Split section.
+    const pplBreakdown: Record<PPLCategory, { sets: number; volume: number }> = {
+      push: { sets: 0, volume: 0 },
+      pull: { sets: 0, volume: 0 },
+      legs: { sets: 0, volume: 0 },
+    };
+    workouts.forEach(workout => {
+      workout.exercises.forEach(exercise => {
+        const ppl = pplForExercise(exercise.id);
+        if (!ppl) return;
+        pplBreakdown[ppl].sets += exercise.completedSets.length;
+        pplBreakdown[ppl].volume += exercise.completedSets.reduce(
+          (s, set) => s + set.weight * set.reps,
+          0
+        );
+      });
+    });
 
     return {
       totalVolume,
@@ -160,722 +222,553 @@ export default function WeeklyOverviewModal({
       totalSets,
       totalReps,
       categoryBreakdown,
-      exerciseBreakdown: topExercises,
+      topExercises,
       dailyBreakdown,
-      avgWorkoutDuration: workouts.length > 0 ? totalTime / workouts.length : 0,
-      avgVolumePerWorkout: workouts.length > 0 ? totalVolume / workouts.length : 0,
-      // Cardio stats
+      workoutSummaries,
+      daysTrained,
+      pplBreakdown,
+      avgWorkoutDuration: workouts.length ? totalTime / workouts.length : 0,
+      avgVolumePerWorkout: workouts.length ? totalVolume / workouts.length : 0,
       hasCardio: combinedStats.hasCardioExercises,
       totalDistanceMeters: combinedStats.totalDistanceMeters,
       totalCardioDurationSeconds: combinedStats.totalCardioDurationSeconds,
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
   }, [workouts, customExercises]);
 
-  const formatVolume = (volume: number) => formatCompact(volume, { suffix: ' lbs' });
+  const a = analyticsData;
+  const fmtVol = (v: number) => formatCompact(v, { suffix: ' lbs' });
 
+  // Personal Records set THIS week — an exercise whose best estimated 1RM this
+  // week beats its best from all prior history. Needs full history + a week
+  // boundary; silently yields none otherwise.
+  const weeklyPRs = useMemo(() => {
+    if (invocationType !== 'week' || !allWorkouts?.length || !weekStartDate) return [];
+    const startMs = weekStartDate.getTime();
 
-  const getModalTitle = () => {
+    const bestBefore = new Map<string, number>();
+    const bestThisWeek = new Map<string, { e1rm: number; weight: number; reps: number }>();
+
+    for (const workout of allWorkouts) {
+      const isThisWeek = new Date(workout.createdAt).getTime() >= startMs;
+      for (const exercise of workout.exercises || []) {
+        for (const set of exercise.completedSets || []) {
+          if (!set.completed || set.weight <= 0) continue;
+          const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
+          if (isThisWeek) {
+            const prev = bestThisWeek.get(exercise.id);
+            if (!prev || e1rm > prev.e1rm) {
+              bestThisWeek.set(exercise.id, { e1rm, weight: set.weight, reps: set.reps });
+            }
+          } else {
+            bestBefore.set(exercise.id, Math.max(bestBefore.get(exercise.id) ?? 0, e1rm));
+          }
+        }
+      }
+    }
+
+    const prs: {
+      exerciseId: string;
+      name: string;
+      e1rm: number;
+      weight: number;
+      reps: number;
+      improvement: number;
+      ppl: PPLCategory | null;
+    }[] = [];
+    for (const [id, week] of bestThisWeek) {
+      const prior = bestBefore.get(id) ?? 0;
+      if (prior > 0 && week.e1rm > prior) {
+        prs.push({
+          exerciseId: id,
+          name: getWorkoutByIdWithCustom(id, customExercises)?.name ?? cleanName(id),
+          e1rm: Math.round(week.e1rm),
+          weight: Math.round(week.weight),
+          reps: week.reps,
+          improvement: Math.round(week.e1rm - prior),
+          ppl: pplForExercise(id),
+        });
+      }
+    }
+    return prs.sort((x, y) => y.improvement - x.improvement);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- helpers are stable
+  }, [invocationType, allWorkouts, weekStartDate, customExercises]);
+
+  const weekRange = useMemo(() => {
+    if (weekStartDate) {
+      const end = weekEndDate ?? new Date(weekStartDate.getTime() + 6 * 86400000);
+      return `${fmtDay(weekStartDate)} – ${fmtDay(end)}`;
+    }
+    if (workouts.length) {
+      const dates = workouts.map(w => new Date(w.createdAt).getTime());
+      return `${fmtDay(new Date(Math.min(...dates)))} – ${fmtDay(new Date(Math.max(...dates)))}`;
+    }
+    return undefined;
+  }, [weekStartDate, weekEndDate, workouts]);
+
+  const headerTitle = (() => {
     switch (invocationType) {
       case 'day':
-        return selectedDate?.toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          month: 'long', 
-          day: 'numeric' 
-        }) || 'Day Workouts';
+        return (
+          selectedDate?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) ||
+          'Day'
+        );
       case 'week':
-        return 'Weekly Analysis';
+        return 'Weekly Overview';
       case 'volume':
-        return 'Volume Analytics';
+        return 'Volume';
       case 'time':
-        return 'Time Analytics';
+        return 'Time';
       default:
-        return 'Workout Details';
+        return 'Overview';
     }
+  })();
+
+  const headerSubtitle = invocationType === 'week' ? weekRange : undefined;
+
+  // ----- shared compact primitives -----
+
+  const Stat = ({ value, label, color }: { value: string | number; label: string; color?: string }) => (
+    <View style={styles.stat}>
+      <Text style={[styles.statValue, { color: color ?? c.text }]} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text style={[styles.statLabel, { color: c.text }]}>{label}</Text>
+    </View>
+  );
+
+  const Bar = ({ pct, color, track }: { pct: number; color: string; track?: boolean }) => (
+    <View style={[styles.barTrack, track !== false && { backgroundColor: c.border }]}>
+      <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, pct))}%`, backgroundColor: color }]} />
+    </View>
+  );
+
+  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
+    <Text style={[styles.sectionLabel, { color: c.text }]}>{children}</Text>
+  );
+
+  const Empty = ({ title, subtitle }: { title: string; subtitle: string }) => (
+    <View style={styles.empty}>
+      <Ionicons name="barbell-outline" size={34} color={c.text + '55'} />
+      <Text style={[styles.emptyText, { color: c.text }]}>{title}</Text>
+      <Text style={[styles.emptySub, { color: c.text }]}>{subtitle}</Text>
+    </View>
+  );
+
+  const cardStyle = [styles.card, { backgroundColor: c.surface, borderColor: c.border }];
+
+  // Inline category bars for a given metric.
+  const renderCategoryBars = (metric: 'count' | 'volume' | 'time') => {
+    const entries = Object.entries(a.categoryBreakdown);
+    if (!entries.length) return null;
+    const max = Math.max(...entries.map(([, d]) => d[metric])) || 1;
+    const fmt = (v: number) =>
+      metric === 'count' ? `${v}` : metric === 'volume' ? fmtVol(v) : formatTime(v);
+    return (
+      <View style={cardStyle}>
+        {entries
+          .sort((x, y) => y[1][metric] - x[1][metric])
+          .map(([cat, d]) => (
+            <View key={cat} style={styles.barRow}>
+              <View style={[styles.legendDot, { backgroundColor: categoryColor(cat) }]} />
+              <Text style={[styles.barLabel, { color: c.text }]}>{cap(cat)}</Text>
+              <Bar pct={(d[metric] / max) * 100} color={categoryColor(cat)} />
+              <Text style={[styles.barValue, { color: c.text }]}>{fmt(d[metric])}</Text>
+            </View>
+          ))}
+      </View>
+    );
   };
 
-  const renderDayContent = () => (
-    <View style={styles.contentContainer}>
-      {workouts.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={[styles.emptyText, { color: currentTheme.colors.text }]}>
-            No workouts on this day
-          </Text>
-          <Text style={[styles.emptySubtext, { color: currentTheme.colors.text }]}>
-            Consider planning a workout for this day
-          </Text>
-        </View>
-      ) : (
-        <>
-          {/* Day Summary */}
-          <View style={[styles.summaryCard, { backgroundColor: currentTheme.colors.surface }]}>
-            <Text style={[styles.summaryTitle, { color: currentTheme.colors.text }]}>
-              Day Summary
-            </Text>
-            <View style={styles.summaryGrid}>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {workouts.length}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Workouts
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {formatTime(analyticsData.totalTime)}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Total Time
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {formatVolume(analyticsData.totalVolume)}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Volume
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {analyticsData.totalSets}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Total Sets
-                </Text>
-              </View>
+  const renderExerciseList = (limit: number) => {
+    const list = a.topExercises.slice(0, limit);
+    if (!list.length) return null;
+    const max = list[0].totalVolume || 1;
+    return (
+      <View style={cardStyle}>
+        {list.map((ex, i) => (
+          <View key={ex.name} style={styles.exRow}>
+            <Text style={[styles.exRank, { color: c.text }]}>{i + 1}</Text>
+            <View style={styles.exMain}>
+              <Text style={[styles.exName, { color: c.text }]} numberOfLines={1}>
+                {cleanName(ex.name)}
+              </Text>
+              <Bar pct={(ex.totalVolume / max) * 100} color={exerciseColor(ex.name)} />
             </View>
-            {/* Cardio stats row */}
-            {analyticsData.hasCardio && (analyticsData.totalDistanceMeters > 0 || analyticsData.totalCardioDurationSeconds > 0) && (
-              <View style={[styles.summaryGrid, { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}>
-                {analyticsData.totalDistanceMeters > 0 && (
-                  <View style={styles.summaryItem}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                      {formatDistance(analyticsData.totalDistanceMeters)}
-                    </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                      Distance
-                    </Text>
-                  </View>
-                )}
-                {analyticsData.totalCardioDurationSeconds > 0 && (
-                  <View style={styles.summaryItem}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                      {formatDuration(analyticsData.totalCardioDurationSeconds)}
-                    </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                      Cardio Time
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* Workout Details */}
-          {workouts.map((workout, index) => (
-            <View key={index} style={[styles.workoutCard, { backgroundColor: currentTheme.colors.surface }]}>
-              <View style={styles.workoutHeader}>
-                <View style={[
-                  styles.categoryDot, 
-                  { backgroundColor: getCategoryColor(getWorkoutCategory(workout)) }
-                ]} />
-                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text }]}>
-                  {workout.title}
-                </Text>
-              </View>
-              
-              <View style={styles.workoutStats}>
-                <Text style={[styles.workoutStatText, { color: currentTheme.colors.text }]}>
-                  {formatTime(workout.estimatedDuration)} • {workout.exercises.length} exercises
-                </Text>
-                <Text style={[styles.workoutStatText, { color: currentTheme.colors.text }]}>
-                  {workout.exercises.reduce((sum, ex) => sum + ex.completedSets.length, 0)} sets completed
-                </Text>
-              </View>
-
-              {/* Exercise breakdown */}
-              <View style={styles.exerciseBreakdown}>
-                <Text style={[styles.breakdownTitle, { color: currentTheme.colors.text }]}>
-                  Exercise Details
-                </Text>
-                {workout.exercises.slice(0, 3).map((exercise, exIndex) => {
-                  const exerciseVolume = exercise.completedSets.reduce((sum, set) => sum + (set.weight * set.reps), 0);
-                  return (
-                    <View key={exIndex} style={styles.exerciseRow}>
-                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text }]}>
-                        {exercise.id.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                      </Text>
-                      <Text style={[styles.exerciseVolume, { color: currentTheme.colors.text }]}>
-                        {formatVolume(exerciseVolume)}
-                      </Text>
-                    </View>
-                  );
-                })}
-                {workout.exercises.length > 3 && (
-                  <Text style={[styles.moreExercises, { color: currentTheme.colors.text }]}>
-                    +{workout.exercises.length - 3} more exercises
-                  </Text>
-                )}
-              </View>
+            <View style={styles.exMeta}>
+              <Text style={[styles.exVal, { color: c.text }]}>{fmtVol(ex.totalVolume)}</Text>
+              <Text style={[styles.exSub, { color: c.text }]}>
+                {ex.totalSets} sets · {ex.sessions}×
+              </Text>
             </View>
-          ))}
-        </>
-      )}
-    </View>
-  );
+          </View>
+        ))}
+      </View>
+    );
+  };
 
-  const renderWeekContent = () => (
-    <View style={styles.contentContainer}>
-      {/* Enhanced Week Summary */}
-      <View style={[styles.summaryCard, { backgroundColor: currentTheme.colors.surface }]}>
-        <Text style={[styles.summaryTitle, { color: currentTheme.colors.text }]}>
-          Weekly Performance
-        </Text>
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {workouts.length}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Workouts
-            </Text>
+  // Push/Pull/Legs split by set count — uses the shared PPL palette + labels.
+  const renderPPLSplit = () => {
+    const entries = (['push', 'pull', 'legs'] as PPLCategory[])
+      .map(k => ({ k, ...a.pplBreakdown[k] }))
+      .filter(e => e.sets > 0)
+      .sort((x, y) => y.sets - x.sets);
+    if (!entries.length) return null;
+    const max = entries[0].sets || 1;
+    return (
+      <View style={cardStyle}>
+        {entries.map(e => (
+          <View key={e.k} style={styles.barRow}>
+            <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[e.k] }]} />
+            <Text style={[styles.barLabel, { color: c.text }]}>{PPL_LABELS[e.k]}</Text>
+            <Bar pct={(e.sets / max) * 100} color={PPL_COLORS[e.k]} />
+            <Text style={[styles.barValue, { color: c.text }]}>{e.sets} sets</Text>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {formatTime(analyticsData.totalTime)}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Time
-            </Text>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPRs = () => {
+    if (!weeklyPRs.length) return null;
+    return (
+      <View style={cardStyle}>
+        {weeklyPRs.map((pr, i) => (
+          <View
+            key={pr.exerciseId}
+            style={[
+              styles.prRow,
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border },
+            ]}
+          >
+            <View style={[styles.prAccent, { backgroundColor: pr.ppl ? PPL_COLORS[pr.ppl] : c.accent }]} />
+            <View style={styles.prMain}>
+              <Text style={[styles.prName, { color: c.text }]} numberOfLines={1}>
+                {pr.name}
+              </Text>
+              <Text style={[styles.prContext, { color: c.text }]}>
+                {pr.weight} lbs × {pr.reps}
+              </Text>
+            </View>
+            <View style={styles.prMeta}>
+              <Text style={[styles.prVal, { color: c.text }]}>{pr.e1rm} lbs</Text>
+              <Text style={[styles.prContext, { color: c.text }]}>est. 1RM · +{pr.improvement}</Text>
+            </View>
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {formatVolume(analyticsData.totalVolume)}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Volume
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {formatTime(Math.round(analyticsData.avgWorkoutDuration))}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Avg Duration
-            </Text>
-          </View>
-        </View>
-        {/* Cardio stats row */}
-        {analyticsData.hasCardio && (analyticsData.totalDistanceMeters > 0 || analyticsData.totalCardioDurationSeconds > 0) && (
-          <View style={[styles.summaryGrid, { marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}>
-            {analyticsData.totalDistanceMeters > 0 && (
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {formatDistance(analyticsData.totalDistanceMeters)}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Distance
-                </Text>
-              </View>
-            )}
-            {analyticsData.totalCardioDurationSeconds > 0 && (
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-                  {formatDuration(analyticsData.totalCardioDurationSeconds)}
-                </Text>
-                <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-                  Cardio Time
-                </Text>
-              </View>
-            )}
-          </View>
+        ))}
+      </View>
+    );
+  };
+
+  const renderCardioStrip = () => {
+    if (!a.hasCardio || (a.totalDistanceMeters <= 0 && a.totalCardioDurationSeconds <= 0)) return null;
+    return (
+      <View style={[styles.secondaryRow, { borderTopColor: c.border }]}>
+        {a.totalDistanceMeters > 0 && (
+          <Text style={[styles.secondaryText, { color: c.text }]}>
+            {formatDistance(a.totalDistanceMeters)} distance
+          </Text>
+        )}
+        {a.totalCardioDurationSeconds > 0 && (
+          <Text style={[styles.secondaryText, { color: c.text }]}>
+            {formatDuration(a.totalCardioDurationSeconds)} cardio
+          </Text>
         )}
       </View>
+    );
+  };
 
-      {/* Workout Category Distribution */}
-      {Object.keys(analyticsData.categoryBreakdown).length > 0 && (
-        <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-          <Chart
-            data={Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => ({
-              label: category.charAt(0).toUpperCase() + category.slice(1),
-              value: data.count,
-              color: getCategoryColor(category),
-            }))}
-            type="pie"
-            height={200}
-            title="Workout Category Distribution"
-            showValues={true}
-          />
+  // ----- weekly goal editor -----
+
+  const renderGoalCard = () => {
+    const pct = goal ? (a.daysTrained / goal) * 100 : 0;
+    const met = a.daysTrained >= goal && goal > 0;
+    const accent = met ? '#F59E0B' : c.primary;
+    return (
+      <View style={[cardStyle, { marginTop: 4 }]}>
+        <View style={styles.goalHeader}>
+          <Text style={[styles.goalTitle, { color: c.text }]}>Weekly Goal</Text>
+          <View style={styles.goalCount}>
+            {met && <Ionicons name="checkmark-circle" size={16} color={accent} />}
+            <Text style={[styles.goalCountText, { color: accent }]}>
+              {a.daysTrained}/{goal} days
+            </Text>
+          </View>
         </View>
-      )}
+        <Bar pct={pct} color={accent} />
+        <Text style={[styles.goalPrompt, { color: c.text }]}>Days you want to train each week</Text>
+        <View style={styles.pillRow}>
+          {GOAL_OPTIONS.map(v => {
+            const selected = v === goal;
+            return (
+              <TouchableOpacity
+                key={v}
+                onPress={() => changeGoal(v)}
+                activeOpacity={0.8}
+                style={[
+                  styles.pill,
+                  selected
+                    ? { backgroundColor: c.primary, borderColor: c.primary }
+                    : { backgroundColor: 'transparent', borderColor: c.border },
+                ]}
+              >
+                <Text style={[styles.pillText, { color: selected ? c.surface : c.text }]}>{v}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
-      {/* Top Exercises Chart */}
-      {analyticsData.exerciseBreakdown.length > 0 && (
-        <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-          <Chart
-            data={analyticsData.exerciseBreakdown.slice(0, 5).map((exercise) => {
-              // Better exercise name truncation
-              const cleanName = exercise.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-              const truncatedName = cleanName.length > 15 ? cleanName.substring(0, 12) + '...' : cleanName;
-              
-              return {
-                label: truncatedName,
-                value: exercise.totalVolume,
-                color: currentTheme.colors.primary,
-                subtitle: `${exercise.totalSets} sets`,
-              };
+  // ----- views -----
+
+  const renderWeek = () => {
+    if (workouts.length === 0) {
+      return (
+        <View style={styles.content}>
+          <Empty title="No workouts this week" subtitle="Complete a workout and it’ll show up here" />
+          <SectionLabel>Weekly Goal</SectionLabel>
+          {renderGoalCard()}
+        </View>
+      );
+    }
+    return (
+      <View style={styles.content}>
+        <View style={cardStyle}>
+          <View style={styles.statStrip}>
+            <Stat value={workouts.length} label="Workouts" />
+            <Stat value={a.daysTrained} label="Days" />
+            <Stat value={formatTime(a.totalTime)} label="Time" />
+            <Stat value={fmtVol(a.totalVolume)} label="Volume" />
+          </View>
+          {renderCardioStrip()}
+        </View>
+
+        {weeklyPRs.length > 0 && (
+          <>
+            <SectionLabel>Personal Records</SectionLabel>
+            {renderPRs()}
+          </>
+        )}
+
+        <SectionLabel>Workouts</SectionLabel>
+        {a.workoutSummaries.map(w => (
+          <View key={w.id} style={[styles.workoutRow, { backgroundColor: c.surface, borderColor: c.border }]}>
+            <View style={[styles.dayCol, { borderRightColor: c.border }]}>
+              <Text style={[styles.weekday, { color: c.text }]}>{w.weekday}</Text>
+              <Text style={[styles.dayNum, { color: c.accent }]}>{w.dayNum}</Text>
+            </View>
+            <View style={styles.workoutInfo}>
+              <View style={styles.workoutTitleRow}>
+                <View style={[styles.legendDot, { backgroundColor: categoryColor(w.category) }]} />
+                <Text style={[styles.workoutTitle, { color: c.text }]} numberOfLines={1}>
+                  {w.title}
+                </Text>
+              </View>
+              <Text style={[styles.workoutMeta, { color: c.text }]}>
+                {formatTime(w.duration)} · {w.exercises} ex · {w.sets} sets
+                {w.volume > 0 ? ` · ${fmtVol(w.volume)}` : ''}
+              </Text>
+            </View>
+          </View>
+        ))}
+
+        {(a.pplBreakdown.push.sets + a.pplBreakdown.pull.sets + a.pplBreakdown.legs.sets) > 0 && (
+          <>
+            <SectionLabel>Training Split</SectionLabel>
+            {renderPPLSplit()}
+          </>
+        )}
+
+        {a.topExercises.length > 0 && (
+          <>
+            <SectionLabel>Top Exercises</SectionLabel>
+            {renderExerciseList(5)}
+          </>
+        )}
+
+        <SectionLabel>Weekly Goal</SectionLabel>
+        {renderGoalCard()}
+      </View>
+    );
+  };
+
+  const renderDay = () => {
+    if (workouts.length === 0) {
+      return (
+        <View style={styles.content}>
+          <Empty title="No workouts on this day" subtitle="Consider planning a workout for this day" />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.content}>
+        <View style={cardStyle}>
+          <View style={styles.statStrip}>
+            <Stat value={workouts.length} label="Workouts" />
+            <Stat value={formatTime(a.totalTime)} label="Time" />
+            <Stat value={a.totalSets} label="Sets" />
+            <Stat value={fmtVol(a.totalVolume)} label="Volume" />
+          </View>
+          {renderCardioStrip()}
+        </View>
+
+        <SectionLabel>Sessions</SectionLabel>
+        {workouts.map((workout, index) => (
+          <View key={index} style={[cardStyle]}>
+            <View style={styles.workoutTitleRow}>
+              <View style={[styles.legendDot, { backgroundColor: categoryColor(getWorkoutCategory(workout)) }]} />
+              <Text style={[styles.workoutTitle, { color: c.text }]}>{workout.title}</Text>
+            </View>
+            <Text style={[styles.workoutMeta, { color: c.text, marginBottom: 8 }]}>
+              {formatTime(workout.estimatedDuration)} · {workout.exercises.length} exercises ·{' '}
+              {workout.exercises.reduce((s, ex) => s + ex.completedSets.length, 0)} sets
+            </Text>
+            {workout.exercises.slice(0, 4).map((exercise, exIndex) => {
+              const vol = exercise.completedSets.reduce((s, set) => s + set.weight * set.reps, 0);
+              return (
+                <View key={exIndex} style={styles.exerciseLine}>
+                  <Text style={[styles.exerciseLineName, { color: c.text }]} numberOfLines={1}>
+                    {cleanName(exercise.id)}
+                  </Text>
+                  <Text style={[styles.exerciseLineVal, { color: c.text }]}>
+                    {exercise.completedSets.length} sets{vol > 0 ? ` · ${fmtVol(vol)}` : ''}
+                  </Text>
+                </View>
+              );
             })}
-            type="horizontal-bar"
-            height={200}
-            title="Top Exercises by Volume"
-            showValues={true}
-          />
-        </View>
-      )}
-
-      {/* Workout Intensity Analysis */}
-      {Object.keys(analyticsData.categoryBreakdown).length > 0 && (
-        <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-          <Chart
-            data={Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => ({
-              label: category.charAt(0).toUpperCase() + category.slice(1),
-              value: Math.round(data.avgVolume / data.avgTime * 10) / 10, // Volume per minute
-              color: getCategoryColor(category),
-            }))}
-            type="bar"
-            height={180}
-            title="Training Intensity (Volume/Min)"
-            showValues={true}
-          />
-        </View>
-      )}
-
-      {/* Exercise Performance Breakdown */}
-      {analyticsData.exerciseBreakdown.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
-            Exercise Performance Breakdown
-          </Text>
-          {analyticsData.exerciseBreakdown.slice(0, 6).map((exercise, index) => (
-            <View key={exercise.name} style={[styles.exerciseBreakdownCard, { backgroundColor: currentTheme.colors.surface }]}>
-              <View style={styles.exerciseBreakdownHeader}>
-                <Text style={[styles.exerciseBreakdownName, { color: currentTheme.colors.text }]}>
-                  {exercise.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Text>
-                <View style={[styles.exerciseRankBadge, { backgroundColor: currentTheme.colors.accent }]}>
-                  <Text style={[styles.exerciseRankText, { color: '#fff' }]}>
-                    #{index + 1}
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.exerciseMetricsGrid}>
-                <View style={styles.exerciseMetricCard}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.accent }]}>
-                    {exercise.maxWeight}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Max Weight (lbs)
-                  </Text>
-                </View>
-                
-                <View style={styles.exerciseMetricCard}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.primary }]}>
-                    {exercise.totalReps}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Total Reps
-                  </Text>
-                </View>
-                
-                <View style={styles.exerciseMetricCard}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.text }]}>
-                    {formatVolume(exercise.totalVolume)}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Total Volume
-                  </Text>
-                </View>
-                
-                <View style={styles.exerciseMetricCard}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.text }]}>
-                    {exercise.sessions}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Sessions
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </>
-      )}
-    </View>
-  );
-
-  const renderVolumeContent = () => (
-    <View style={styles.contentContainer}>
-      <View style={[styles.summaryCard, { backgroundColor: currentTheme.colors.surface }]}>
-        <Text style={[styles.summaryTitle, { color: currentTheme.colors.text }]}>
-          Volume Analytics
-        </Text>
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {formatVolume(analyticsData.totalVolume)}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Volume
-            </Text>
+            {workout.exercises.length > 4 && (
+              <Text style={[styles.moreText, { color: c.text }]}>
+                +{workout.exercises.length - 4} more
+              </Text>
+            )}
           </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {formatVolume(analyticsData.avgVolumePerWorkout)}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Avg Per Workout
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {analyticsData.totalSets}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Sets
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.accent }]}>
-              {analyticsData.totalReps}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Reps
-            </Text>
-          </View>
-        </View>
+        ))}
       </View>
+    );
+  };
 
-      {/* Volume by Category */}
-      <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
-        Volume by Workout Type
-      </Text>
-
-      {Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => (
-        <View key={category} style={[styles.categoryCard, { backgroundColor: currentTheme.colors.surface }]}>
-          <View style={styles.categoryHeader}>
-            <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(category) }]} />
-            <Text style={[styles.categoryName, { color: currentTheme.colors.text }]}>
-              {category.charAt(0).toUpperCase() + category.slice(1)} Training
-            </Text>
-          </View>
-          <View style={styles.categoryDetailGrid}>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Total Volume:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.accent }]}>
-                {formatVolume(data.volume)}
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Avg per Session:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {formatVolume(data.avgVolume)}
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Total Sets:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {data.sets}
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Sessions:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {data.count}
-              </Text>
-            </View>
+  const renderVolume = () => {
+    if (workouts.length === 0) {
+      return (
+        <View style={styles.content}>
+          <Empty title="No volume this week" subtitle="Log some sets to see volume analytics" />
+        </View>
+      );
+    }
+    return (
+      <View style={styles.content}>
+        <View style={cardStyle}>
+          <View style={styles.statStrip}>
+            <Stat value={fmtVol(a.totalVolume)} label="Volume" />
+            <Stat value={fmtVol(a.avgVolumePerWorkout)} label="Avg / Workout" />
+            <Stat value={a.totalSets} label="Sets" />
+            <Stat value={a.totalReps} label="Reps" />
           </View>
         </View>
-      ))}
 
-      {/* Top Volume Contributors */}
-      {analyticsData.exerciseBreakdown.length > 0 && (
-        <>
-          {/* Exercise Volume Chart */}
-          <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-            <Chart
-              data={analyticsData.exerciseBreakdown.slice(0, 4).map((exercise) => {
-                const cleanName = exercise.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                const truncatedName = cleanName.length > 15 ? cleanName.substring(0, 12) + '...' : cleanName;
-                
-                return {
-                  label: truncatedName,
-                  value: exercise.totalVolume,
-                  color: getCategoryColor('push'),
-                };
-              })}
-              type="bar"
-              height={180}
-              title="Top 4 Exercises by Volume"
-              showValues={true}
+        {Object.keys(a.categoryBreakdown).length > 0 && (
+          <>
+            <SectionLabel>Volume by Type</SectionLabel>
+            {renderCategoryBars('volume')}
+          </>
+        )}
+
+        {a.topExercises.length > 0 && (
+          <>
+            <SectionLabel>Highest Volume</SectionLabel>
+            {renderExerciseList(8)}
+          </>
+        )}
+      </View>
+    );
+  };
+
+  const renderTime = () => {
+    if (workouts.length === 0) {
+      return (
+        <View style={styles.content}>
+          <Empty title="No training time this week" subtitle="Finish a workout to see time analytics" />
+        </View>
+      );
+    }
+    const dailyEntries = Object.entries(a.dailyBreakdown);
+    return (
+      <View style={styles.content}>
+        <View style={cardStyle}>
+          <View style={styles.statStrip}>
+            <Stat value={formatTime(a.totalTime)} label="Total" />
+            <Stat value={formatTime(Math.round(a.avgWorkoutDuration))} label="Avg" />
+            <Stat
+              value={a.totalTime > 0 ? `${Math.round((a.totalVolume / a.totalTime) * 10) / 10}` : '0'}
+              label="Vol / Min"
             />
           </View>
-          
-          {/* Exercise Sessions Chart */}
-          <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-            <Chart
-              data={analyticsData.exerciseBreakdown.slice(0, 5).map((exercise) => {
-                const cleanName = exercise.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                const truncatedName = cleanName.length > 15 ? cleanName.substring(0, 12) + '...' : cleanName;
-                
-                return {
-                  label: truncatedName,
-                  value: exercise.sessions,
-                  color: currentTheme.colors.primary,
-                };
-              })}
-              type="horizontal-bar"
-              height={170}
-              title="Exercise Frequency (Sessions)"
-              showValues={true}
-            />
-          </View>
-
-          <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
-            Highest Volume Exercises
-          </Text>
-          {analyticsData.exerciseBreakdown.map((exercise, index) => (
-            <View key={exercise.name} style={[styles.exerciseDetailCard, { backgroundColor: currentTheme.colors.surface }]}>
-              <View style={styles.exerciseDetailHeader}>
-                <View style={styles.exerciseRank}>
-                  <Text style={[styles.rankNumber, { color: currentTheme.colors.accent }]}>
-                    #{index + 1}
-                  </Text>
-                  <Text style={[styles.exerciseDetailName, { color: currentTheme.colors.text }]}>
-                    {exercise.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.exerciseMetrics}>
-                <View style={styles.exerciseMetricItem}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.accent }]}>
-                    {formatVolume(exercise.totalVolume)}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Volume
-                  </Text>
-                </View>
-                <View style={styles.exerciseMetricItem}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.text }]}>
-                    {exercise.maxWeight} lbs
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Max Weight
-                  </Text>
-                </View>
-                <View style={styles.exerciseMetricItem}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.text }]}>
-                    {exercise.totalSets}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Sets
-                  </Text>
-                </View>
-                <View style={styles.exerciseMetricItem}>
-                  <Text style={[styles.exerciseMetricValue, { color: currentTheme.colors.text }]}>
-                    {exercise.sessions}
-                  </Text>
-                  <Text style={[styles.exerciseMetricLabel, { color: currentTheme.colors.text }]}>
-                    Sessions
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </>
-      )}
-    </View>
-  );
-
-  const renderTimeContent = () => (
-    <View style={styles.contentContainer}>
-      <View style={[styles.summaryCard, { backgroundColor: currentTheme.colors.surface }]}>
-        <Text style={[styles.summaryTitle, { color: currentTheme.colors.text }]}>
-          Time Analytics
-        </Text>
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.primary }]}>
-              {formatTime(analyticsData.totalTime)}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Total Time
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.primary }]}>
-              {formatTime(Math.round(analyticsData.avgWorkoutDuration))}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Avg Duration
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.primary }]}>
-              {workouts.length > 0 ? Math.round(analyticsData.totalTime / workouts.length / 60 * 10) / 10 : 0}h
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Daily Avg
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text style={[styles.summaryValue, { color: currentTheme.colors.primary }]}>
-              {workouts.length > 0 ? Math.round(analyticsData.totalVolume / analyticsData.totalTime * 100) / 100 : 0}
-            </Text>
-            <Text style={[styles.summaryLabel, { color: currentTheme.colors.text }]}>
-              Volume/Min
-            </Text>
-          </View>
         </View>
-      </View>
 
-      {/* Time by Category */}
-      <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
-        Time Distribution by Workout Type
-      </Text>
-      
-      {/* Time Distribution Chart */}
-      <View style={[styles.chartCard, { backgroundColor: currentTheme.colors.surface }]}>
-        <Chart
-          data={Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => ({
-            label: category.charAt(0).toUpperCase() + category.slice(1),
-            value: data.time,
-            color: getCategoryColor(category),
-          }))}
-          type="horizontal-bar"
-          height={180}
-          title="Time Distribution (minutes)"
-          showValues={true}
-        />
-      </View>
+        {Object.keys(a.categoryBreakdown).length > 0 && (
+          <>
+            <SectionLabel>Time by Type</SectionLabel>
+            {renderCategoryBars('time')}
+          </>
+        )}
 
-      {Object.entries(analyticsData.categoryBreakdown).map(([category, data]) => (
-        <View key={category} style={[styles.categoryCard, { backgroundColor: currentTheme.colors.surface }]}>
-          <View style={styles.categoryHeader}>
-            <View style={[styles.categoryDot, { backgroundColor: getCategoryColor(category) }]} />
-            <Text style={[styles.categoryName, { color: currentTheme.colors.text }]}>
-              {category.charAt(0).toUpperCase() + category.slice(1)} Training
-            </Text>
-          </View>
-          <View style={styles.categoryDetailGrid}>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Total Time:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.primary }]}>
-                {formatTime(data.time)}
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Avg Duration:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {formatTime(data.avgTime)}
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                Time Efficiency:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {Math.round(data.volume / data.time * 100) / 100} lbs/min
-              </Text>
-            </View>
-            <View style={styles.categoryDetailRow}>
-              <Text style={[styles.categoryDetailLabel, { color: currentTheme.colors.text }]}>
-                % of Total Time:
-              </Text>
-              <Text style={[styles.categoryDetailValue, { color: currentTheme.colors.text }]}>
-                {Math.round(data.time / analyticsData.totalTime * 100)}%
-              </Text>
-            </View>
-          </View>
-        </View>
-      ))}
-
-      {/* Daily Time Breakdown */}
-      {Object.keys(analyticsData.dailyBreakdown).length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
-            Daily Time Breakdown
-          </Text>
-          <View style={[styles.categoryCard, { backgroundColor: currentTheme.colors.surface }]}>
-            {Object.entries(analyticsData.dailyBreakdown).map(([day, data]) => (
-              <View key={day} style={styles.dailyTimeRow}>
-                <Text style={[styles.dayName, { color: currentTheme.colors.text }]}>
-                  {day}
-                </Text>
-                <View style={styles.dailyTimeStats}>
-                  <Text style={[styles.dailyTimeStat, { color: currentTheme.colors.primary }]}>
-                    {formatTime(data.time)}
-                  </Text>
-                  <Text style={[styles.dailyTimeStat, { color: currentTheme.colors.text }]}>
-                    ({data.workouts} session{data.workouts !== 1 ? 's' : ''})
+        {dailyEntries.length > 0 && (
+          <>
+            <SectionLabel>Daily Breakdown</SectionLabel>
+            <View style={cardStyle}>
+              {dailyEntries.map(([day, d]) => (
+                <View key={day} style={styles.dailyRow}>
+                  <Text style={[styles.dailyDay, { color: c.text }]}>{day}</Text>
+                  <Text style={[styles.dailyVal, { color: c.text }]}>
+                    {formatTime(d.time)} · {d.workouts} session{d.workouts !== 1 ? 's' : ''}
                   </Text>
                 </View>
-              </View>
-            ))}
-          </View>
-        </>
-      )}
-    </View>
-  );
+              ))}
+            </View>
+          </>
+        )}
+      </View>
+    );
+  };
 
   const renderContent = () => {
     switch (invocationType) {
       case 'day':
-        return renderDayContent();
+        return renderDay();
       case 'week':
-        return renderWeekContent();
+        return renderWeek();
       case 'volume':
-        return renderVolumeContent();
+        return renderVolume();
       case 'time':
-        return renderTimeContent();
+        return renderTime();
       default:
         return null;
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.text + '20' }]}>
-          <Text style={[styles.title, { color: currentTheme.colors.text }]}>
-            {getModalTitle()}
-          </Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={[styles.closeText, { color: currentTheme.colors.accent }]}>
-              Done
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <View style={[styles.container, { backgroundColor: c.background }]}>
+        <View style={[styles.header, { borderBottomColor: c.border, paddingTop: insets.top + 14 }]}>
+          <View style={styles.headerTitleWrap}>
+            <Text style={[styles.title, { color: c.text }]} numberOfLines={1}>
+              {headerTitle}
             </Text>
+            {headerSubtitle && (
+              <Text style={[styles.headerSubtitle, { color: c.text }]}>{headerSubtitle}</Text>
+            )}
+          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
+            <Text style={[styles.closeText, { color: c.accent }]}>Done</Text>
           </TouchableOpacity>
         </View>
-        
-        <ScrollView style={styles.scrollView}>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 + insets.bottom }]}
+        >
           {renderContent()}
         </ScrollView>
       </View>
@@ -884,365 +777,152 @@ export default function WeeklyOverviewModal({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    padding: 8,
-  },
-  closeText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  workoutCard: {
+  headerTitleWrap: { flex: 1, marginRight: 12 },
+  title: { fontSize: 20, fontWeight: 'bold' },
+  headerSubtitle: { fontSize: 13, opacity: 0.55, marginTop: 2 },
+  closeButton: { paddingVertical: 4, paddingHorizontal: 4 },
+  closeText: { fontSize: 16, fontWeight: '600' },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
+  content: { paddingHorizontal: 16, paddingTop: 14 },
+
+  card: {
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  workoutHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
     marginBottom: 8,
   },
-  categoryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 12,
-  },
-  workoutTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  workoutDate: {
-    fontSize: 14,
-    marginBottom: 4,
-    opacity: 0.7,
-  },
-  workoutTime: {
-    fontSize: 24,
-    opacity: 0.8,
-  },
-  workoutExercises: {
-    fontSize: 24,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  summaryCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  summaryTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 18,
-  },
-  summaryValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  categoryCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  categoryStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
+
+  // stat strip
+  statStrip: { flexDirection: 'row', justifyContent: 'space-between' },
+  stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
+  statValue: { fontSize: 21, fontWeight: '700', letterSpacing: -0.3 },
   statLabel: {
-    fontSize: 16,
-    opacity: 0.7,
+    fontSize: 12,
+    opacity: 0.45,
+    marginTop: 4,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    opacity: 0.6,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 8,
-  },
-  summaryGrid: {
+  secondaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-  },
-  summaryItem: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginVertical: 8,
-  },
-  workoutStats: {
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  workoutStatText: {
-    fontSize: 16,
-    opacity: 0.8,
-  },
-  exerciseBreakdown: {
+    justifyContent: 'center',
+    gap: 18,
     marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  breakdownTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+  secondaryText: { fontSize: 12.5, opacity: 0.7 },
+
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    opacity: 0.4,
+    marginTop: 22,
+    marginBottom: 10,
+    marginLeft: 2,
+  },
+
+  // workout rows (week)
+  workoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 14,
     marginBottom: 8,
   },
-  exerciseRow: {
+  dayCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    paddingRight: 10,
+    marginRight: 10,
+    borderRightWidth: StyleSheet.hairlineWidth,
+  },
+  weekday: { fontSize: 11, textTransform: 'uppercase', opacity: 0.55 },
+  dayNum: { fontSize: 18, fontWeight: 'bold' },
+  workoutInfo: { flex: 1 },
+  workoutTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
+  legendDot: { width: 9, height: 9, borderRadius: 4.5, marginRight: 7 },
+  workoutTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
+  workoutMeta: { fontSize: 12.5, opacity: 0.65 },
+
+  // inline bars
+  barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
+  barLabel: { width: 50, fontSize: 12.5 },
+  barTrack: { flex: 1, height: 8, borderRadius: 4, marginHorizontal: 8, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4 },
+  barValue: { width: 66, textAlign: 'right', fontSize: 12.5, fontWeight: '600' },
+
+  // exercise list
+  exRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
+  exRank: { width: 18, fontSize: 13, fontWeight: '700', opacity: 0.45 },
+  exMain: { flex: 1, marginRight: 10 },
+  exName: { fontSize: 13.5, fontWeight: '500', marginBottom: 5 },
+  exMeta: { alignItems: 'flex-end' },
+  exVal: { fontSize: 13, fontWeight: '600' },
+  exSub: { fontSize: 11, opacity: 0.55, marginTop: 1 },
+
+  // day sessions
+  exerciseLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  exerciseName: {
-    fontSize: 16,
-  },
-  exerciseVolume: {
-    fontSize: 16,
-    color: '#FF6B6B', // Example color for volume
-  },
-  moreExercises: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginTop: 4,
-  },
+  exerciseLineName: { fontSize: 13.5, flex: 1, marginRight: 10 },
+  exerciseLineVal: { fontSize: 12.5, opacity: 0.7 },
+  moreText: { fontSize: 12.5, opacity: 0.55, marginTop: 4 },
+
+  // daily breakdown (time)
   dailyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    paddingVertical: 6,
   },
-  dayName: {
-    fontSize: 16,
-  },
-  dailyStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dailyStat: {
-    fontSize: 16,
-    marginLeft: 15,
-  },
-  exerciseRankRow: {
+  dailyDay: { fontSize: 13.5 },
+  dailyVal: { fontSize: 12.5, opacity: 0.7 },
+
+  // goal editor
+  goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    marginBottom: 10,
   },
-  exerciseRank: {
-    flexDirection: 'row',
+  goalTitle: { fontSize: 15, fontWeight: '700' },
+  goalCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  goalCountText: { fontSize: 14, fontWeight: '600' },
+  goalPrompt: { fontSize: 12.5, opacity: 0.6, marginTop: 12, marginBottom: 10 },
+  pillRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  pill: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  rankNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  exerciseRankStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  exerciseRankStat: {
-    fontSize: 16,
-    marginLeft: 15,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 12,
-  },
-  categoryDetailGrid: {
-    marginTop: 12,
-  },
-  categoryDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  categoryDetailLabel: {
-    fontSize: 16,
-  },
-  categoryDetailValue: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  exerciseDetailCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  exerciseDetailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  exerciseDetailName: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  exerciseMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-  },
-  exerciseMetricItem: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginVertical: 8,
-  },
-  exerciseMetricValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  exerciseMetricLabel: {
-    fontSize: 16,
-    opacity: 0.7,
-  },
-  dailyTimeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  dailyTimeStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  dailyTimeStat: {
-    fontSize: 16,
-    marginLeft: 15,
-  },
-  chartCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  exerciseBreakdownCard: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  exerciseBreakdownHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  exerciseBreakdownName: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  exerciseRankBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  exerciseRankText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  exerciseMetricsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flexWrap: 'wrap',
-  },
-  exerciseMetricCard: {
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginVertical: 8,
-  },
-}); 
+  pillText: { fontSize: 15, fontWeight: '600' },
+
+  // personal records
+  prRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
+  prAccent: { width: 3, height: 30, borderRadius: 1.5, marginRight: 13 },
+  prMain: { flex: 1, marginRight: 10 },
+  prName: { fontSize: 15, fontWeight: '600' },
+  prContext: { fontSize: 12, opacity: 0.45, marginTop: 2 },
+  prMeta: { alignItems: 'flex-end' },
+  prVal: { fontSize: 15, fontWeight: '600' },
+
+  // empty
+  empty: { alignItems: 'center', paddingVertical: 44 },
+  emptyText: { fontSize: 16, fontWeight: '600', opacity: 0.75, marginTop: 12 },
+  emptySub: { fontSize: 13, opacity: 0.5, marginTop: 6, textAlign: 'center' },
+});
