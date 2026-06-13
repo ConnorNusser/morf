@@ -1,9 +1,8 @@
-import { AuroraSurface } from '@/components/history/AuroraSurface';
 import WeeklyOverviewModal from '@/components/WeeklyOverviewModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { storageService } from '@/lib/storage/storage';
-import { formatMinutes as formatTime, formatVolume } from '@/lib/utils/utils';
+import { formatVolume } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import {
   DEFAULT_WEEKLY_GOAL,
@@ -98,14 +97,6 @@ export default function WeeklyGoalCard() {
   // Flattened list of this week's completed workouts, for the overview modal.
   const thisWeekWorkouts = workoutsByDay.flat();
 
-  // Headline stats for the aurora strip: workouts · time · volume.
-  const totalMinutes = thisWeekWorkouts.reduce((sum, w) => sum + (w.estimatedDuration || 0), 0);
-  const weekStats = [
-    { value: `${thisWeekWorkouts.length}`, label: 'Workouts' },
-    { value: formatTime(totalMinutes), label: 'Time' },
-    { value: formatVolume(load?.volumeLbs ?? 0, unit), label: 'Volume' },
-  ];
-
   // Celebrate once the goal is reached: the count takes the accent color.
   const achieved = daysTrained >= goal;
   const accent = achieved ? GOAL_MET_COLOR : currentTheme.colors.primary;
@@ -118,75 +109,76 @@ export default function WeeklyGoalCard() {
 
   return (
     <>
-    <TouchableOpacity activeOpacity={0.85} onPress={() => setOverviewOpen(true)}>
-      <AuroraSurface contentStyle={styles.cardContent}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text }]}>
-            This week
+    <TouchableOpacity
+      style={[
+        styles.card,
+        { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
+      ]}
+      activeOpacity={0.85}
+      onPress={() => setOverviewOpen(true)}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: currentTheme.colors.text }]}>
+          This week
+        </Text>
+
+        <TouchableOpacity
+          style={styles.goalButton}
+          activeOpacity={0.7}
+          hitSlop={10}
+          onPress={() => setPicking(true)}
+        >
+          {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
+          <Text style={[styles.count, { color: achieved ? accent : currentTheme.colors.text + '99' }]}>
+            {daysTrained}/{goal}
           </Text>
+          <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity
-            style={styles.goalButton}
-            activeOpacity={0.7}
-            hitSlop={10}
-            onPress={() => setPicking(true)}
-          >
-            {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
-            <Text style={[styles.count, { color: achieved ? accent : currentTheme.colors.text + '99' }]}>
-              {daysTrained}/{goal}
-            </Text>
-            <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.dotRow}>
-          {trainedDays.map((trained, i) => (
-            <View key={i} style={styles.dayColumn}>
-              <View
-                style={[
-                  styles.dot,
-                  trained
-                    ? { backgroundColor: dayColors[i], borderColor: dayColors[i] }
-                    : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
-                ]}
-              />
-              <Text style={[styles.dayLabel, { color: currentTheme.colors.text }]}>{DAY_LABELS[i]}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Workouts · Time · Volume */}
-        <View style={[styles.statsStrip, { borderTopColor: currentTheme.colors.border }]}>
-          {weekStats.map(stat => (
-            <View key={stat.label} style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                {stat.value}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
-                {stat.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-
-        {load && load.deltaPct !== null && (
-          <View style={styles.trendRow}>
-            <Ionicons
-              name={load.deltaPct > 0 ? 'trending-up' : load.deltaPct < 0 ? 'trending-down' : 'remove'}
-              size={13}
-              color={load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80'}
-            />
-            <Text
+      <View style={styles.dotRow}>
+        {trainedDays.map((trained, i) => (
+          <View key={i} style={styles.dayColumn}>
+            <View
               style={[
-                styles.trendText,
-                { color: load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80' },
+                styles.dot,
+                trained
+                  ? { backgroundColor: dayColors[i], borderColor: dayColors[i] }
+                  : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
               ]}
-            >
-              {load.deltaPct > 0 ? '+' : ''}{load.deltaPct}% vs last week
-            </Text>
+            />
+            <Text style={[styles.dayLabel, { color: currentTheme.colors.text }]}>{DAY_LABELS[i]}</Text>
           </View>
-        )}
-      </AuroraSurface>
+        ))}
+      </View>
+
+      {load && load.sets > 0 && (
+        <View style={[styles.loadRow, { borderTopColor: currentTheme.colors.border }]}>
+          <Text style={[styles.loadText, { color: currentTheme.colors.text + 'B0' }]}>
+            <Text style={{ color: currentTheme.colors.text }}>{formatVolume(load.volumeLbs, unit)}</Text>
+            {' lifted · '}
+            <Text style={{ color: currentTheme.colors.text }}>{load.sets}</Text>
+            {load.sets === 1 ? ' set' : ' sets'}
+          </Text>
+          {load.deltaPct !== null && (
+            <View style={styles.trendChip}>
+              <Ionicons
+                name={load.deltaPct > 0 ? 'trending-up' : load.deltaPct < 0 ? 'trending-down' : 'remove'}
+                size={13}
+                color={load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80'}
+              />
+              <Text
+                style={[
+                  styles.trendText,
+                  { color: load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80' },
+                ]}
+              >
+                {load.deltaPct > 0 ? '+' : ''}{load.deltaPct}% vs last week
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
 
       <WeeklyOverviewModal
@@ -252,9 +244,11 @@ export default function WeeklyGoalCard() {
 }
 
 const styles = StyleSheet.create({
-  cardContent: {
+  card: {
     paddingHorizontal: 16,
     paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   header: {
     flexDirection: 'row',
@@ -292,32 +286,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.6,
   },
-  statsStrip: {
+  loadRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 14,
-    paddingTop: 14,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
+  loadText: {
+    fontSize: 13,
   },
-  statValue: {
-    fontSize: 20,
-    letterSpacing: -0.4,
-  },
-  statLabel: {
-    fontSize: 11,
-    letterSpacing: 0.4,
-    marginTop: 3,
-  },
-  trendRow: {
+  trendChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 10,
+    gap: 3,
   },
   trendText: {
     fontSize: 12,

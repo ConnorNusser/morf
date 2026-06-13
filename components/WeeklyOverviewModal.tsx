@@ -1,3 +1,4 @@
+import { AuroraSurface } from '@/components/history/AuroraSurface';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
@@ -535,7 +536,7 @@ export default function WeeklyOverviewModal({
     }
     return (
       <View style={styles.content}>
-        <View style={cardStyle}>
+        <AuroraSurface style={styles.auroraSummary} contentStyle={styles.auroraSummaryContent}>
           <View style={styles.statStrip}>
             <Stat value={workouts.length} label="Workouts" />
             <Stat value={a.daysTrained} label="Days" />
@@ -543,7 +544,7 @@ export default function WeeklyOverviewModal({
             <Stat value={fmtVol(a.totalVolume)} label="Volume" />
           </View>
           {renderCardioStrip()}
-        </View>
+        </AuroraSurface>
 
         {weeklyPRs.length > 0 && (
           <>
@@ -800,6 +801,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
   },
+  auroraSummary: { marginBottom: 8 },
+  auroraSummaryContent: { padding: 16 },
 
   // stat strip
   statStrip: { flexDirection: 'row', justifyContent: 'space-between' },
