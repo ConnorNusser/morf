@@ -27,10 +27,33 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
 } from 'react-native';
 
 type TabType = 'workouts' | 'exercises';
+type ExerciseSort = '1rm' | 'recent' | 'name' | 'improved';
+
+const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
+  { key: '1rm', label: 'Top 1RM' },
+  { key: 'recent', label: 'Recent' },
+  { key: 'improved', label: 'Improved' },
+  { key: 'name', label: 'A–Z' },
+];
+
+// Improvement in user's preferred unit: latest session best 1RM vs earliest.
+// Returns the absolute estimated-1RM gain (lbs) across the full history.
+function getImprovement(history: ExerciseWithMax['history']): number {
+  if (history.length < 2) return 0;
+  const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const oneRM = (e: ExerciseWithMax['history'][number]) => {
+    const lbs = e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight;
+    return OneRMCalculator.estimate(lbs, e.reps);
+  };
+  const earliest = oneRM(sorted[0]);
+  const latest = Math.max(...sorted.slice(-3).map(oneRM));
+  return latest - earliest;
+}
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
@@ -51,6 +74,10 @@ export default function HistoryScreen() {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseWithMax | null>(null);
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
+
+  // Exercises tab controls
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [exerciseSort, setExerciseSort] = useState<ExerciseSort>('1rm');
 
   // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -294,11 +321,37 @@ export default function HistoryScreen() {
     };
   }, [workouts, weightUnit]);
 
-  // Filter exercises with data for the Your Lifts section
-  const liftsWithData = useMemo(() =>
-    exerciseStats.filter(ex => ex.estimated1RM > 0).slice(0, 10),
+  // Exercises that have at least one recorded set with strength data.
+  const trackedExercises = useMemo(() =>
+    exerciseStats.filter(ex => ex.estimated1RM > 0),
     [exerciseStats]
   );
+
+  // Apply search + sort to the full tracked-exercise list (no arbitrary cap).
+  const liftsWithData = useMemo(() => {
+    const query = exerciseSearch.trim().toLowerCase();
+    const filtered = query
+      ? trackedExercises.filter(ex => ex.name.toLowerCase().includes(query))
+      : trackedExercises;
+
+    const sorted = [...filtered];
+    switch (exerciseSort) {
+      case 'recent':
+        sorted.sort((a, b) => (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0));
+        break;
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'improved':
+        sorted.sort((a, b) => getImprovement(b.history) - getImprovement(a.history));
+        break;
+      case '1rm':
+      default:
+        sorted.sort((a, b) => b.estimated1RM - a.estimated1RM || a.name.localeCompare(b.name));
+        break;
+    }
+    return sorted;
+  }, [trackedExercises, exerciseSearch, exerciseSort]);
 
   return (
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
@@ -476,17 +529,87 @@ export default function HistoryScreen() {
         ) : activeTab === 'exercises' ? (
           <>
             {/* Exercises Tab */}
-            {liftsWithData.length > 0 ? (
-              <View style={styles.section}>
-                {liftsWithData.map((exercise) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    weightUnit={weightUnit}
-                    onPress={setSelectedExercise}
+            {trackedExercises.length > 0 ? (
+              <>
+                {/* Search */}
+                <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                  <TextInput
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                    placeholder="Search exercises..."
+                    placeholderTextColor={currentTheme.colors.text + '40'}
+                    value={exerciseSearch}
+                    onChangeText={setExerciseSearch}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
                   />
-                ))}
-              </View>
+                  {exerciseSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={8}>
+                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Sort chips */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sortRow}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {EXERCISE_SORTS.map(({ key, label }) => {
+                    const active = exerciseSort === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => setExerciseSort(key)}
+                        activeOpacity={0.7}
+                        style={[
+                          styles.sortChip,
+                          {
+                            backgroundColor: active ? currentTheme.colors.primary : currentTheme.colors.surface,
+                            borderColor: active ? currentTheme.colors.primary : currentTheme.colors.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[
+                          styles.sortChipText,
+                          {
+                            color: active ? '#fff' : currentTheme.colors.text + '99',
+                            fontFamily: active ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
+                          },
+                        ]}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {liftsWithData.length > 0 ? (
+                  <View style={styles.section}>
+                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      {liftsWithData.length} exercise{liftsWithData.length !== 1 ? 's' : ''}
+                    </Text>
+                    {liftsWithData.map((exercise) => (
+                      <ExerciseCard
+                        key={exercise.id}
+                        exercise={exercise}
+                        weightUnit={weightUnit}
+                        onPress={setSelectedExercise}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                      No matches for &quot;{exerciseSearch.trim()}&quot;
+                    </Text>
+                  </View>
+                )}
+              </>
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
@@ -657,6 +780,41 @@ const styles = StyleSheet.create({
   },
   quickStatDivider: {
     fontSize: 13,
+  },
+  // Exercises tab: search + sort
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 4,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 12,
+    paddingBottom: 2,
+  },
+  sortChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  sortChipText: {
+    fontSize: 13,
+  },
+  resultCount: {
+    fontSize: 12,
+    marginBottom: 4,
   },
   // Section styles
   section: {
