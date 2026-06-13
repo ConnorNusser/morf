@@ -270,41 +270,43 @@ export default function HistoryScreen() {
     // This month's workouts
     const thisMonthWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfMonth);
 
-    // Calculate streak
+    // Calculate streak as consecutive WEEKS with at least one workout. A day-based
+    // streak is meaningless for lifting, where rest days are mandatory — a normal
+    // 3x/week program would never exceed a 1-day streak. Weeks start Sunday, matching
+    // startOfWeek above.
     let streak = 0;
-    const sortedWorkouts = [...workouts].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    // The Sunday (midnight) that starts the week containing `d`.
+    const weekStartOf = (d: Date) => {
+      const s = new Date(d);
+      s.setHours(0, 0, 0, 0);
+      s.setDate(s.getDate() - s.getDay());
+      return s;
+    };
+    const weekKey = (d: Date) => {
+      const s = weekStartOf(d);
+      return `${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`;
+    };
 
-    if (sortedWorkouts.length > 0) {
-      const workoutDates = new Set<string>();
-      sortedWorkouts.forEach(w => {
-        const date = new Date(w.createdAt);
-        workoutDates.add(`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`);
-      });
+    if (workouts.length > 0) {
+      const workoutWeeks = new Set<string>();
+      workouts.forEach(w => workoutWeeks.add(weekKey(new Date(w.createdAt))));
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const thisWeek = weekStartOf(now);
+      const lastWeek = new Date(thisWeek);
+      lastWeek.setDate(lastWeek.getDate() - 7);
 
-      // Check if worked out today or yesterday
-      const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth()}-${yesterday.getDate()}`;
+      // Start at this week if it has a workout; otherwise last week, since the current
+      // week isn't over yet and shouldn't break a streak prematurely.
+      let cursor: Date | null = workoutWeeks.has(weekKey(thisWeek))
+        ? thisWeek
+        : workoutWeeks.has(weekKey(lastWeek))
+          ? lastWeek
+          : null;
 
-      if (workoutDates.has(todayKey) || workoutDates.has(yesterdayKey)) {
-        // Count consecutive days going back
-        let checkDate = workoutDates.has(todayKey) ? today : yesterday;
-        while (true) {
-          const key = `${checkDate.getFullYear()}-${checkDate.getMonth()}-${checkDate.getDate()}`;
-          if (workoutDates.has(key)) {
-            streak++;
-            checkDate = new Date(checkDate);
-            checkDate.setDate(checkDate.getDate() - 1);
-          } else {
-            break;
-          }
-        }
+      while (cursor && workoutWeeks.has(weekKey(cursor))) {
+        streak++;
+        cursor = new Date(cursor);
+        cursor.setDate(cursor.getDate() - 7);
       }
     }
 
@@ -437,7 +439,7 @@ export default function HistoryScreen() {
                 {quickStats.streak > 0 ? (
                   <>
                     <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                      {quickStats.streak} day streak
+                      {quickStats.streak} week streak
                     </Text>
                     <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
                   </>

@@ -100,8 +100,11 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
   const trend = useMemo(() => {
     if (sessions.length < 2) return null;
     const first = sessions[sessions.length - 1];
-    const latest = sessions[0];
-    const change = latest.bestOneRMDisplay - first.bestOneRMDisplay;
+    // Compare the best of the few most recent sessions against the first, so a single
+    // light/deload day (sessions[0] is the latest) can't flip the progress indicator
+    // negative right after a PR. Mirrors getImprovement()'s "max of last 3" approach.
+    const recentBest = Math.max(...sessions.slice(0, 3).map(s => s.bestOneRMDisplay));
+    const change = recentBest - first.bestOneRMDisplay;
     return { change, firstDate: first.date, sessionCount: sessions.length };
   }, [sessions]);
 
