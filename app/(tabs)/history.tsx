@@ -1,6 +1,7 @@
 import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
+import HistoryHero from '@/components/history/HistoryHero';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -428,6 +429,16 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
+            {/* Animated momentum hero */}
+            {workouts.length > 0 && (
+              <HistoryHero
+                workouts={workouts}
+                weightUnit={weightUnit}
+                streak={quickStats.streak}
+                weekVolume={quickStats.weekVolume}
+              />
+            )}
+
             {/* Weekly Overview */}
             <TutorialTarget id="history-content">
               <WeeklyOverview workoutHistory={workouts} />
