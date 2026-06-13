@@ -1,0 +1,325 @@
+import { Text, View } from '@/components/Themed';
+import { useTheme } from '@/contexts/ThemeContext';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { layout } from '@/lib/ui/styles';
+import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useMemo } from 'react';
+import { Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+
+interface ExerciseHistoryModalProps {
+  exercise: ExerciseWithMax | null;
+  weightUnit: WeightUnit;
+  onClose: () => void;
+}
+
+interface SessionSet {
+  displayWeight: number;
+  reps: number;
+  oneRMLbs: number;
+}
+
+interface Session {
+  dayKey: string;
+  date: Date;
+  sets: SessionSet[];
+  bestOneRMLbs: number;
+  bestOneRMDisplay: number;
+  volume: number; // in preferred unit
+  isPR: boolean;
+}
+
+const dayKeyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistoryModalProps) {
+  const { currentTheme } = useTheme();
+
+  // Group the flat set history into per-day sessions with a best 1RM and volume.
+  const sessions = useMemo<Session[]>(() => {
+    if (!exercise) return [];
+
+    const byDay = new Map<string, Session>();
+
+    for (const entry of exercise.history) {
+      const unit = entry.unit || 'lbs';
+      const weightInLbs = convertWeight(entry.weight, unit, 'lbs');
+      const oneRMLbs = OneRMCalculator.estimate(weightInLbs, entry.reps);
+      const displayWeight = Math.round(convertWeight(entry.weight, unit, weightUnit));
+      const date = new Date(entry.date);
+      const key = dayKeyOf(date);
+
+      let session = byDay.get(key);
+      if (!session) {
+        session = {
+          dayKey: key,
+          date,
+          sets: [],
+          bestOneRMLbs: 0,
+          bestOneRMDisplay: 0,
+          volume: 0,
+          isPR: false,
+        };
+        byDay.set(key, session);
+      }
+
+      session.sets.push({ displayWeight, reps: entry.reps, oneRMLbs });
+      session.volume += convertWeight(entry.weight, unit, weightUnit) * entry.reps;
+      if (oneRMLbs > session.bestOneRMLbs) session.bestOneRMLbs = oneRMLbs;
+    }
+
+    const list = Array.from(byDay.values());
+
+    // Compute the display 1RM and order sets best-first within each session.
+    for (const s of list) {
+      s.bestOneRMDisplay =
+        weightUnit === 'kg'
+          ? Math.round(convertWeight(s.bestOneRMLbs, 'lbs', 'kg'))
+          : Math.round(s.bestOneRMLbs);
+      s.sets.sort((a, b) => b.oneRMLbs - a.oneRMLbs);
+    }
+
+    // Flag the single best session as the all-time PR.
+    const prSession = list.reduce<Session | null>(
+      (best, s) => (!best || s.bestOneRMLbs > best.bestOneRMLbs ? s : best),
+      null
+    );
+    if (prSession) prSession.isPR = true;
+
+    // Most recent session first.
+    list.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return list;
+  }, [exercise, weightUnit]);
+
+  const maxOneRMLbs = useMemo(
+    () => sessions.reduce((m, s) => Math.max(m, s.bestOneRMLbs), 0),
+    [sessions]
+  );
+
+  if (!exercise) return null;
+
+  return (
+    <Modal visible={!!exercise} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+        <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
+          <TouchableOpacity onPress={onClose} hitSlop={8}>
+            <Ionicons name="close" size={28} color={currentTheme.colors.text} />
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+            {exercise.name}
+          </Text>
+          <View style={{ width: 28 }} />
+        </View>
+
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+          {exercise.estimated1RM > 0 && (
+            <View style={[styles.statsBanner, { backgroundColor: currentTheme.colors.surface }]}>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                  {exercise.estimated1RM}
+                </Text>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                  Est. 1RM
+                </Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  {exercise.maxWeight}
+                </Text>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                  Best Weight
+                </Text>
+              </View>
+              <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  {sessions.length}
+                </Text>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                  Session{sessions.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          <Text style={[styles.sectionHeader, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
+            SESSION HISTORY
+          </Text>
+
+          {sessions.length === 0 ? (
+            <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+              No history recorded yet
+            </Text>
+          ) : (
+            sessions.map((session) => {
+              const barPct = maxOneRMLbs > 0 ? Math.max(0.04, session.bestOneRMLbs / maxOneRMLbs) : 0;
+              return (
+                <View
+                  key={session.dayKey}
+                  style={[styles.sessionCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                >
+                  <View style={[styles.sessionTop, { backgroundColor: 'transparent' }]}>
+                    <View style={[styles.sessionDateRow, { backgroundColor: 'transparent' }]}>
+                      <Text style={[styles.sessionDate, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                        {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                      {session.isPR && (
+                        <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary + '18' }]}>
+                          <Ionicons name="trophy" size={10} color={currentTheme.colors.primary} />
+                          <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                            BEST
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.sessionOneRM, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      {session.bestOneRMDisplay}
+                      <Text style={[styles.sessionOneRMLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                        {' '}1RM
+                      </Text>
+                    </Text>
+                  </View>
+
+                  {/* Relative 1RM bar */}
+                  <View style={[styles.barTrack, { backgroundColor: currentTheme.colors.text + '10' }]}>
+                    <View style={[styles.barFill, { width: `${barPct * 100}%`, backgroundColor: currentTheme.colors.primary + (session.isPR ? 'FF' : '80') }]} />
+                  </View>
+
+                  <View style={[styles.sessionSets, { backgroundColor: 'transparent' }]}>
+                    {session.sets.map((set, i) => (
+                      <View key={i} style={[styles.setPill, { backgroundColor: currentTheme.colors.background }]}>
+                        <Text style={[styles.setPillText, { color: currentTheme.colors.text + 'CC', fontFamily: currentTheme.fonts.medium }]}>
+                          {set.displayWeight > 0 ? `${set.displayWeight}×${set.reps}` : `${set.reps} reps`}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.sessionVolume, { color: currentTheme.colors.text + '45', fontFamily: currentTheme.fonts.regular }]}>
+                    {session.sets.length} set{session.sets.length !== 1 ? 's' : ''} · {Math.round(session.volume).toLocaleString()} {weightUnit} volume
+                  </Text>
+                </View>
+              );
+            })
+          )}
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+export default React.memo(ExerciseHistoryModal);
+
+const styles = StyleSheet.create({
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 17,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  modalContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  statsBanner: {
+    flexDirection: 'row',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+  },
+  statLabel: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  sectionHeader: {
+    fontSize: 12,
+    letterSpacing: 1,
+    marginBottom: 12,
+  },
+  noHistoryText: {
+    fontSize: 14,
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  sessionCard: {
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 14,
+    marginBottom: 10,
+  },
+  sessionTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sessionDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sessionDate: {
+    fontSize: 14,
+  },
+  prChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  prChipText: {
+    fontSize: 9,
+    letterSpacing: 0.5,
+  },
+  sessionOneRM: {
+    fontSize: 17,
+  },
+  sessionOneRMLabel: {
+    fontSize: 12,
+  },
+  barTrack: {
+    height: 4,
+    borderRadius: 2,
+    marginTop: 10,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  sessionSets: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  setPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  setPillText: {
+    fontSize: 13,
+  },
+  sessionVolume: {
+    fontSize: 12,
+    marginTop: 10,
+  },
+});

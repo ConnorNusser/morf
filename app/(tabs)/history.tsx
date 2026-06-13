@@ -1,5 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
+import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -14,7 +15,6 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { formatSet } from '@/lib/utils/utils';
 import { userService } from '@/lib/services/userService';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
@@ -22,7 +22,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -648,90 +647,11 @@ export default function HistoryScreen() {
       />
 
       {/* Exercise History Modal */}
-      <Modal visible={!!selectedExercise} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <TouchableOpacity onPress={() => setSelectedExercise(null)}>
-              <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              Exercise History
-            </Text>
-            <View style={{ width: 28 }} />
-          </View>
-          {selectedExercise && (
-            <ScrollView style={styles.modalContent}>
-              <Text style={[styles.modalWorkoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                {selectedExercise.name}
-              </Text>
-
-              {selectedExercise.estimated1RM > 0 && (
-                <View style={[styles.exerciseStatsBanner, { backgroundColor: currentTheme.colors.surface }]}>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.estimated1RM}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Est. 1RM
-                    </Text>
-                  </View>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.maxWeight}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Best Weight
-                    </Text>
-                  </View>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.history.length}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Total Sets
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <Text style={[styles.historyHeader, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
-                SET HISTORY
-              </Text>
-
-              {selectedExercise.history.length === 0 ? (
-                <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-                  No history recorded yet
-                </Text>
-              ) : (
-                selectedExercise.history.map((entry, idx) => {
-                  // Default to 'lbs' for legacy data without unit field
-                  const entryUnit = entry.unit || 'lbs';
-                  // Convert to user's preferred unit for display
-                  const displayWeight = Math.round(convertWeight(entry.weight, entryUnit, weightUnit));
-                  // Calculate 1RM in lbs first, then convert for display
-                  const weightInLbs = convertWeight(entry.weight, entryUnit, 'lbs');
-                  const oneRMInLbs = OneRMCalculator.estimate(weightInLbs, entry.reps);
-                  const displayOneRM = weightUnit === 'kg' ? Math.round(convertWeight(oneRMInLbs, 'lbs', 'kg')) : Math.round(oneRMInLbs);
-
-                  return (
-                    <View key={idx} style={[styles.historyRow, { borderBottomColor: currentTheme.colors.border }]}>
-                      <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                        {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </Text>
-                      <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                        {formatSet({ weight: displayWeight, reps: entry.reps, unit: weightUnit }, { showUnit: true })}
-                      </Text>
-                      <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-                        ~{displayOneRM} 1RM
-                      </Text>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
+      <ExerciseHistoryModal
+        exercise={selectedExercise}
+        weightUnit={weightUnit}
+        onClose={() => setSelectedExercise(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -915,70 +835,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
-  },
-  // Exercise history modal
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalTitle: {
-    fontSize: 17,
-    lineHeight: 22,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  modalWorkoutTitle: {
-    fontSize: 24,
-    marginBottom: 16,
-  },
-  exerciseStatsBanner: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-  },
-  statLabel: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  historyHeader: {
-    fontSize: 12,
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  noHistoryText: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  historyDate: {
-    width: 60,
-    fontSize: 13,
-  },
-  historyValue: {
-    flex: 1,
-    fontSize: 15,
-  },
-  historyOneRM: {
-    fontSize: 13,
   },
 });
