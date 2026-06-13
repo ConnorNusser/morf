@@ -74,7 +74,8 @@ export default function HistoryScreen() {
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
 
-  // Exercises tab controls
+  // Search controls
+  const [workoutSearch, setWorkoutSearch] = useState('');
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exerciseSort, setExerciseSort] = useState<ExerciseSort>('1rm');
 
@@ -240,10 +241,17 @@ export default function HistoryScreen() {
     });
   }, [showAlert, loadHistory, loadExerciseStats]);
 
-  // Get recent workouts (last 5)
+  // Get the workouts to render: a search query filters the full list by
+  // title; otherwise show the 5 most recent (or all when expanded).
+  const workoutQuery = workoutSearch.trim().toLowerCase();
+  const filteredWorkouts = useMemo(() => {
+    if (!workoutQuery) return workouts;
+    return workouts.filter(w => (w.title || '').toLowerCase().includes(workoutQuery));
+  }, [workouts, workoutQuery]);
+
   const recentWorkouts = useMemo(() =>
-    showAllWorkouts ? workouts : workouts.slice(0, 5),
-    [workouts, showAllWorkouts]
+    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 5),
+    [filteredWorkouts, showAllWorkouts, workoutQuery]
   );
 
   // Calculate quick stats
@@ -475,8 +483,36 @@ export default function HistoryScreen() {
             </View>
 
             {/* Recent Workouts */}
-            {recentWorkouts.length > 0 && (
+            {workouts.length > 0 && (
               <View style={styles.section}>
+                {/* Search (only worth showing once there's a backlog) */}
+                {workouts.length >= 5 && (
+                  <View style={[styles.searchBar, styles.workoutSearchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                    <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                    <TextInput
+                      style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                      placeholder="Search workouts..."
+                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      value={workoutSearch}
+                      onChangeText={setWorkoutSearch}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="search"
+                    />
+                    {workoutSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setWorkoutSearch('')} hitSlop={8}>
+                        <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {workoutQuery.length > 0 && (
+                  <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    {recentWorkouts.length} result{recentWorkouts.length !== 1 ? 's' : ''}
+                  </Text>
+                )}
+
                 {recentWorkouts.map((workout) => (
                   <WorkoutCard
                     key={workout.id}
@@ -489,7 +525,17 @@ export default function HistoryScreen() {
                   />
                 ))}
 
-                {workouts.length > 5 && !showAllWorkouts && (
+                {/* No matches for an active search */}
+                {workoutQuery.length > 0 && recentWorkouts.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                      No workouts match &quot;{workoutSearch.trim()}&quot;
+                    </Text>
+                  </View>
+                )}
+
+                {!workoutQuery && workouts.length > 5 && !showAllWorkouts && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(true)}
@@ -499,7 +545,7 @@ export default function HistoryScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {showAllWorkouts && workouts.length > 5 && (
+                {!workoutQuery && showAllWorkouts && workouts.length > 5 && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(false)}
@@ -716,6 +762,9 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     padding: 0,
+  },
+  workoutSearchBar: {
+    marginBottom: 12,
   },
   sortRow: {
     flexDirection: 'row',
