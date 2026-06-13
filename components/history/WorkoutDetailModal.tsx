@@ -2,7 +2,7 @@ import { useAlert } from '@/components/CustomAlert';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
+import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
@@ -252,7 +252,7 @@ export default function WorkoutDetailModal({
               {/* Summary stats - horizontal inline */}
               <View style={styles.summaryRow}>
                 <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                  {statsLine}
+                  {workout.estimatedDuration > 0 ? `${formatMinutes(workout.estimatedDuration)} · ` : ''}{statsLine}
                 </Text>
               </View>
 

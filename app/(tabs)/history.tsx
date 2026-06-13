@@ -19,7 +19,7 @@ import { userService } from '@/lib/services/userService';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
@@ -58,6 +58,7 @@ export default function HistoryScreen() {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
   const { userProfile } = useUser();
+  const router = useRouter();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('workouts');
@@ -578,6 +579,16 @@ export default function HistoryScreen() {
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Start logging to track your progress
                 </Text>
+                <TouchableOpacity
+                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
+                  onPress={() => router.push('/workout')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Start a workout
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
@@ -714,6 +725,16 @@ export default function HistoryScreen() {
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Complete workouts to build your exercise history
                 </Text>
+                <TouchableOpacity
+                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
+                  onPress={() => router.push('/workout')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Start a workout
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
@@ -959,5 +980,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     textAlign: 'center',
+  },
+  emptyCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginTop: 24,
+  },
+  emptyCtaText: {
+    color: '#fff',
+    fontSize: 15,
   },
 });
