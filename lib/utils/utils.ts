@@ -127,6 +127,13 @@ export const formatMinutes = (minutes: number): string => {
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 };
 
+// Compact hours-only form for tight stat strips (e.g. "14.7h", "2h", "0.5h").
+// Avoids the wider "Xh Ym" string ellipsizing in narrow columns.
+export const formatHoursCompact = (minutes: number): string => {
+  const rounded = Math.round((minutes / 60) * 10) / 10;
+  return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}h`;
+};
+
 /**
  * Categorize a workout into a split bucket from its title (push/pull/legs/upper/full/other).
  */

@@ -10,6 +10,7 @@ import {
   formatCompact,
   formatDistance,
   formatDuration,
+  formatHoursCompact,
   formatMinutes as formatTime,
   getWorkoutCategory,
   WorkoutStats,
@@ -540,7 +541,7 @@ export default function WeeklyOverviewModal({
           <View style={styles.statStrip}>
             <Stat value={workouts.length} label="Workouts" />
             <Stat value={a.daysTrained} label="Days" />
-            <Stat value={formatTime(a.totalTime)} label="Time" />
+            <Stat value={formatHoursCompact(a.totalTime)} label="Time" />
             <Stat value={fmtVol(a.totalVolume)} label="Volume" />
           </View>
           {renderCardioStrip()}
