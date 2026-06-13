@@ -334,6 +334,16 @@ export default function HistoryScreen() {
     [exerciseStats]
   );
 
+  // All-time roll-up for the Exercises tab overview strip.
+  const exerciseSummary = useMemo(() => {
+    const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
+    const topLift = trackedExercises.reduce<ExerciseWithMax | null>(
+      (best, ex) => (!best || ex.estimated1RM > best.estimated1RM ? ex : best),
+      null
+    );
+    return { count: trackedExercises.length, totalSets, topLift };
+  }, [trackedExercises]);
+
   // Apply search + sort to the full tracked-exercise list (no arbitrary cap).
   const liftsWithData = useMemo(() => {
     const query = exerciseSearch.trim().toLowerCase();
@@ -576,6 +586,46 @@ export default function HistoryScreen() {
             {/* Exercises Tab */}
             {trackedExercises.length > 0 ? (
               <>
+                {/* All-time overview */}
+                <View style={[styles.exerciseSummary, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      {exerciseSummary.count}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      Exercises
+                    </Text>
+                  </View>
+                  <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
+                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      {exerciseSummary.totalSets.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      Sets logged
+                    </Text>
+                  </View>
+                  {exerciseSummary.topLift && (
+                    <>
+                      <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
+                      <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                        <Text
+                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}
+                          numberOfLines={1}
+                        >
+                          {exerciseSummary.topLift.estimated1RM}
+                        </Text>
+                        <Text
+                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}
+                          numberOfLines={1}
+                        >
+                          Top 1RM
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+
                 {/* Search */}
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
@@ -747,7 +797,32 @@ const styles = StyleSheet.create({
   quickStatDivider: {
     fontSize: 13,
   },
-  // Exercises tab: search + sort
+  // Exercises tab: overview + search + sort
+  exerciseSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    marginTop: 3,
+  },
+  summaryDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 4,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
