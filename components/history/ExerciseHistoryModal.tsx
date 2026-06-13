@@ -95,6 +95,16 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
     [sessions]
   );
 
+  // Estimated-1RM change from the first recorded session to the most recent,
+  // in the user's display unit. Null when there's nothing to compare.
+  const trend = useMemo(() => {
+    if (sessions.length < 2) return null;
+    const first = sessions[sessions.length - 1];
+    const latest = sessions[0];
+    const change = latest.bestOneRMDisplay - first.bestOneRMDisplay;
+    return { change, firstDate: first.date, sessionCount: sessions.length };
+  }, [sessions]);
+
   if (!exercise) return null;
 
   return (
@@ -137,6 +147,22 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                   Session{sessions.length !== 1 ? 's' : ''}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {trend && (
+            <View style={[styles.trendRow, { backgroundColor: 'transparent' }]}>
+              <Ionicons
+                name={trend.change > 0 ? 'trending-up' : trend.change < 0 ? 'trending-down' : 'remove'}
+                size={16}
+                color={trend.change > 0 ? '#00C85C' : trend.change < 0 ? '#FF6B6B' : currentTheme.colors.text + '60'}
+              />
+              <Text style={[styles.trendText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+                {trend.change === 0
+                  ? 'No 1RM change'
+                  : `${trend.change > 0 ? '+' : '−'}${Math.abs(trend.change)} ${weightUnit} 1RM`}
+                {' '}since {trend.firstDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              </Text>
             </View>
           )}
 
@@ -246,6 +272,16 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     marginTop: 4,
+  },
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 18,
+    marginTop: -8,
+  },
+  trendText: {
+    fontSize: 13,
   },
   sectionHeader: {
     fontSize: 12,
