@@ -1,5 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
+import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -14,28 +15,50 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { formatSet } from '@/lib/utils/utils';
 import { userService } from '@/lib/services/userService';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Modal,
   RefreshControl,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  TextInput,
   TouchableOpacity,
 } from 'react-native';
 
 type TabType = 'workouts' | 'exercises';
+type ExerciseSort = '1rm' | 'recent' | 'name' | 'improved';
+
+const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
+  { key: '1rm', label: 'Top 1RM' },
+  { key: 'recent', label: 'Recent' },
+  { key: 'improved', label: 'Improved' },
+  { key: 'name', label: 'A–Z' },
+];
+
+// Improvement in user's preferred unit: latest session best 1RM vs earliest.
+// Returns the absolute estimated-1RM gain (lbs) across the full history.
+function getImprovement(history: ExerciseWithMax['history']): number {
+  if (history.length < 2) return 0;
+  const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
+  const oneRM = (e: ExerciseWithMax['history'][number]) => {
+    const lbs = e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight;
+    return OneRMCalculator.estimate(lbs, e.reps);
+  };
+  const earliest = oneRM(sorted[0]);
+  const latest = Math.max(...sorted.slice(-3).map(oneRM));
+  return latest - earliest;
+}
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
   const { userProfile } = useUser();
+  const router = useRouter();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('workouts');
@@ -51,6 +74,11 @@ export default function HistoryScreen() {
   const [selectedExercise, setSelectedExercise] = useState<ExerciseWithMax | null>(null);
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
+
+  // Search controls
+  const [workoutSearch, setWorkoutSearch] = useState('');
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const [exerciseSort, setExerciseSort] = useState<ExerciseSort>('1rm');
 
   // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -214,10 +242,17 @@ export default function HistoryScreen() {
     });
   }, [showAlert, loadHistory, loadExerciseStats]);
 
-  // Get recent workouts (last 5)
+  // Get the workouts to render: a search query filters the full list by
+  // title; otherwise show the 5 most recent (or all when expanded).
+  const workoutQuery = workoutSearch.trim().toLowerCase();
+  const filteredWorkouts = useMemo(() => {
+    if (!workoutQuery) return workouts;
+    return workouts.filter(w => (w.title || '').toLowerCase().includes(workoutQuery));
+  }, [workouts, workoutQuery]);
+
   const recentWorkouts = useMemo(() =>
-    showAllWorkouts ? workouts : workouts.slice(0, 5),
-    [workouts, showAllWorkouts]
+    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 5),
+    [filteredWorkouts, showAllWorkouts, workoutQuery]
   );
 
   // Calculate quick stats
@@ -294,11 +329,47 @@ export default function HistoryScreen() {
     };
   }, [workouts, weightUnit]);
 
-  // Filter exercises with data for the Your Lifts section
-  const liftsWithData = useMemo(() =>
-    exerciseStats.filter(ex => ex.estimated1RM > 0).slice(0, 10),
+  // Exercises that have at least one recorded set with strength data.
+  const trackedExercises = useMemo(() =>
+    exerciseStats.filter(ex => ex.estimated1RM > 0),
     [exerciseStats]
   );
+
+  // All-time roll-up for the Exercises tab overview strip.
+  const exerciseSummary = useMemo(() => {
+    const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
+    const topLift = trackedExercises.reduce<ExerciseWithMax | null>(
+      (best, ex) => (!best || ex.estimated1RM > best.estimated1RM ? ex : best),
+      null
+    );
+    return { count: trackedExercises.length, totalSets, topLift };
+  }, [trackedExercises]);
+
+  // Apply search + sort to the full tracked-exercise list (no arbitrary cap).
+  const liftsWithData = useMemo(() => {
+    const query = exerciseSearch.trim().toLowerCase();
+    const filtered = query
+      ? trackedExercises.filter(ex => ex.name.toLowerCase().includes(query))
+      : trackedExercises;
+
+    const sorted = [...filtered];
+    switch (exerciseSort) {
+      case 'recent':
+        sorted.sort((a, b) => (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0));
+        break;
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'improved':
+        sorted.sort((a, b) => getImprovement(b.history) - getImprovement(a.history));
+        break;
+      case '1rm':
+      default:
+        sorted.sort((a, b) => b.estimated1RM - a.estimated1RM || a.name.localeCompare(b.name));
+        break;
+    }
+    return sorted;
+  }, [trackedExercises, exerciseSearch, exerciseSort]);
 
   return (
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
@@ -423,8 +494,36 @@ export default function HistoryScreen() {
             </View>
 
             {/* Recent Workouts */}
-            {recentWorkouts.length > 0 && (
+            {workouts.length > 0 && (
               <View style={styles.section}>
+                {/* Search (only worth showing once there's a backlog) */}
+                {workouts.length >= 5 && (
+                  <View style={[styles.searchBar, styles.workoutSearchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                    <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                    <TextInput
+                      style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                      placeholder="Search workouts..."
+                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      value={workoutSearch}
+                      onChangeText={setWorkoutSearch}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="search"
+                    />
+                    {workoutSearch.length > 0 && (
+                      <TouchableOpacity onPress={() => setWorkoutSearch('')} hitSlop={8}>
+                        <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {workoutQuery.length > 0 && (
+                  <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    {recentWorkouts.length} result{recentWorkouts.length !== 1 ? 's' : ''}
+                  </Text>
+                )}
+
                 {recentWorkouts.map((workout) => (
                   <WorkoutCard
                     key={workout.id}
@@ -437,7 +536,17 @@ export default function HistoryScreen() {
                   />
                 ))}
 
-                {workouts.length > 5 && !showAllWorkouts && (
+                {/* No matches for an active search */}
+                {workoutQuery.length > 0 && recentWorkouts.length === 0 && (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                      No workouts match &quot;{workoutSearch.trim()}&quot;
+                    </Text>
+                  </View>
+                )}
+
+                {!workoutQuery && workouts.length > 5 && !showAllWorkouts && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(true)}
@@ -447,7 +556,7 @@ export default function HistoryScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {showAllWorkouts && workouts.length > 5 && (
+                {!workoutQuery && showAllWorkouts && workouts.length > 5 && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(false)}
@@ -470,23 +579,143 @@ export default function HistoryScreen() {
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Start logging to track your progress
                 </Text>
+                <TouchableOpacity
+                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
+                  onPress={() => router.push('/workout')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Start a workout
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
         ) : activeTab === 'exercises' ? (
           <>
             {/* Exercises Tab */}
-            {liftsWithData.length > 0 ? (
-              <View style={styles.section}>
-                {liftsWithData.map((exercise) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    weightUnit={weightUnit}
-                    onPress={setSelectedExercise}
+            {trackedExercises.length > 0 ? (
+              <>
+                {/* All-time overview */}
+                <View style={[styles.exerciseSummary, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      {exerciseSummary.count}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      Exercises
+                    </Text>
+                  </View>
+                  <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
+                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                      {exerciseSummary.totalSets.toLocaleString()}
+                    </Text>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      Sets logged
+                    </Text>
+                  </View>
+                  {exerciseSummary.topLift && (
+                    <>
+                      <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
+                      <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                        <Text
+                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}
+                          numberOfLines={1}
+                        >
+                          {exerciseSummary.topLift.estimated1RM}
+                        </Text>
+                        <Text
+                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}
+                          numberOfLines={1}
+                        >
+                          Top 1RM
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </View>
+
+                {/* Search */}
+                <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                  <TextInput
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                    placeholder="Search exercises..."
+                    placeholderTextColor={currentTheme.colors.text + '40'}
+                    value={exerciseSearch}
+                    onChangeText={setExerciseSearch}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="search"
                   />
-                ))}
-              </View>
+                  {exerciseSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={8}>
+                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Sort chips */}
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.sortRow}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {EXERCISE_SORTS.map(({ key, label }) => {
+                    const active = exerciseSort === key;
+                    return (
+                      <TouchableOpacity
+                        key={key}
+                        onPress={() => setExerciseSort(key)}
+                        activeOpacity={0.7}
+                        style={[
+                          styles.sortChip,
+                          {
+                            backgroundColor: active ? currentTheme.colors.primary : currentTheme.colors.surface,
+                            borderColor: active ? currentTheme.colors.primary : currentTheme.colors.border,
+                          },
+                        ]}
+                      >
+                        <Text style={[
+                          styles.sortChipText,
+                          {
+                            color: active ? '#fff' : currentTheme.colors.text + '99',
+                            fontFamily: active ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
+                          },
+                        ]}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {liftsWithData.length > 0 ? (
+                  <View style={styles.section}>
+                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                      {liftsWithData.length} exercise{liftsWithData.length !== 1 ? 's' : ''}
+                    </Text>
+                    {liftsWithData.map((exercise) => (
+                      <ExerciseCard
+                        key={exercise.id}
+                        exercise={exercise}
+                        weightUnit={weightUnit}
+                        onPress={setSelectedExercise}
+                      />
+                    ))}
+                  </View>
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                      No matches for &quot;{exerciseSearch.trim()}&quot;
+                    </Text>
+                  </View>
+                )}
+              </>
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
@@ -496,6 +725,16 @@ export default function HistoryScreen() {
                 <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
                   Complete workouts to build your exercise history
                 </Text>
+                <TouchableOpacity
+                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
+                  onPress={() => router.push('/workout')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Start a workout
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
           </>
@@ -525,90 +764,11 @@ export default function HistoryScreen() {
       />
 
       {/* Exercise History Modal */}
-      <Modal visible={!!selectedExercise} animationType="slide" presentationStyle="pageSheet">
-        <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <TouchableOpacity onPress={() => setSelectedExercise(null)}>
-              <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              Exercise History
-            </Text>
-            <View style={{ width: 28 }} />
-          </View>
-          {selectedExercise && (
-            <ScrollView style={styles.modalContent}>
-              <Text style={[styles.modalWorkoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                {selectedExercise.name}
-              </Text>
-
-              {selectedExercise.estimated1RM > 0 && (
-                <View style={[styles.exerciseStatsBanner, { backgroundColor: currentTheme.colors.surface }]}>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.estimated1RM}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Est. 1RM
-                    </Text>
-                  </View>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.maxWeight}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Best Weight
-                    </Text>
-                  </View>
-                  <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                      {selectedExercise.history.length}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                      Total Sets
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <Text style={[styles.historyHeader, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
-                SET HISTORY
-              </Text>
-
-              {selectedExercise.history.length === 0 ? (
-                <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-                  No history recorded yet
-                </Text>
-              ) : (
-                selectedExercise.history.map((entry, idx) => {
-                  // Default to 'lbs' for legacy data without unit field
-                  const entryUnit = entry.unit || 'lbs';
-                  // Convert to user's preferred unit for display
-                  const displayWeight = Math.round(convertWeight(entry.weight, entryUnit, weightUnit));
-                  // Calculate 1RM in lbs first, then convert for display
-                  const weightInLbs = convertWeight(entry.weight, entryUnit, 'lbs');
-                  const oneRMInLbs = OneRMCalculator.estimate(weightInLbs, entry.reps);
-                  const displayOneRM = weightUnit === 'kg' ? Math.round(convertWeight(oneRMInLbs, 'lbs', 'kg')) : Math.round(oneRMInLbs);
-
-                  return (
-                    <View key={idx} style={[styles.historyRow, { borderBottomColor: currentTheme.colors.border }]}>
-                      <Text style={[styles.historyDate, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                        {new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </Text>
-                      <Text style={[styles.historyValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                        {formatSet({ weight: displayWeight, reps: entry.reps, unit: weightUnit }, { showUnit: true })}
-                      </Text>
-                      <Text style={[styles.historyOneRM, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-                        ~{displayOneRM} 1RM
-                      </Text>
-                    </View>
-                  );
-                })
-              )}
-            </ScrollView>
-          )}
-        </SafeAreaView>
-      </Modal>
+      <ExerciseHistoryModal
+        exercise={selectedExercise}
+        weightUnit={weightUnit}
+        onClose={() => setSelectedExercise(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -657,6 +817,69 @@ const styles = StyleSheet.create({
   },
   quickStatDivider: {
     fontSize: 13,
+  },
+  // Exercises tab: overview + search + sort
+  exerciseSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  summaryValue: {
+    fontSize: 20,
+  },
+  summaryLabel: {
+    fontSize: 11,
+    marginTop: 3,
+  },
+  summaryDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 4,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    marginTop: 4,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    padding: 0,
+  },
+  workoutSearchBar: {
+    marginBottom: 12,
+  },
+  sortRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 12,
+    paddingBottom: 2,
+  },
+  sortChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  sortChipText: {
+    fontSize: 13,
+  },
+  resultCount: {
+    fontSize: 12,
+    marginBottom: 4,
   },
   // Section styles
   section: {
@@ -758,69 +981,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-  // Exercise history modal
-  modalHeader: {
+  emptyCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalTitle: {
-    fontSize: 17,
-    lineHeight: 22,
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  modalWorkoutTitle: {
-    fontSize: 24,
-    marginBottom: 16,
-  },
-  exerciseStatsBanner: {
-    flexDirection: 'row',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-  },
-  statLabel: {
-    fontSize: 11,
-    marginTop: 4,
-  },
-  historyHeader: {
-    fontSize: 12,
-    letterSpacing: 1,
-    marginBottom: 12,
-  },
-  noHistoryText: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    borderRadius: 24,
+    marginTop: 24,
   },
-  historyDate: {
-    width: 60,
-    fontSize: 13,
-  },
-  historyValue: {
-    flex: 1,
+  emptyCtaText: {
+    color: '#fff',
     fontSize: 15,
-  },
-  historyOneRM: {
-    fontSize: 13,
   },
 });

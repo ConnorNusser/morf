@@ -38,7 +38,10 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
     <TouchableOpacity
       style={[styles.container, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      // Without an onPress handler this widget is purely informational — disable
+      // the press so it doesn't show a misleading tap affordance.
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.7 : 1}
     >
       <RNView style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
