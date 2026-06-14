@@ -1,4 +1,3 @@
-import Card from '@/components/Card';
 import { useAlert } from '@/components/CustomAlert';
 import DashboardHeader from '@/components/DashboardHeader';
 import AppInfoSection from '@/components/profile/AppInfoSection';
@@ -126,20 +125,8 @@ export default function ProfileScreen() {
     <>
     <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
-        {/* Morf Logo and Brand */}
-        <DashboardHeader />
-
-        {/* Header */}
-        <Card style={styles.headerCard} variant="subtle">
-          <Text style={[
-            styles.title,
-            {
-              color: currentTheme.colors.text,
-            }
-          ]}>
-            Profile
-          </Text>
-        </Card>
+        {/* Profile header */}
+        <DashboardHeader title="Profile" />
 
         {/* Career — gamification centerpiece */}
         <CareerSection />

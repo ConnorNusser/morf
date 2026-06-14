@@ -24,9 +24,11 @@ interface DashboardHeaderProps {
   onViewModeChange?: (mode: ViewMode) => void;
   stats?: HeaderStats;
   onTierPress?: () => void;
+  /** Overrides the default "Morf" wordmark when there's no view selector. */
+  title?: string;
 }
 
-export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress }: DashboardHeaderProps) {
+export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress, title }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -147,7 +149,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
             color: currentTheme.colors.text,
           }
         ]}>
-          Morf
+          {title ?? 'Morf'}
         </Text>
       )}
     </View>
