@@ -82,19 +82,22 @@ export default function CareerSection() {
             </View>
           </View>
 
-          {/* Strength hero — full-width now the emblem is gone; the percentile
-              counts up and its progress bar fills on load. */}
+          {/* Strength hero — percentile + tier side by side (like the dashboard's
+              Overall Strength card); the percentile counts up and the bar fills. */}
           <View style={styles.hero}>
-            <View style={styles.heroTopRow}>
-              <TierBadge tier={data.tier} variant="badge" size="small" showTooltip={false} />
-            </View>
-            <View style={styles.percentileRow}>
-              <AnimatedCount
-                value={data.overall}
-                duration={1100}
-                style={[styles.percentile, { color: currentTheme.colors.text }]}
-              />
-              <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
+            <View style={styles.heroStatsRow}>
+              <View style={styles.heroStat}>
+                <AnimatedCount
+                  value={data.overall}
+                  duration={1100}
+                  style={[styles.percentile, { color: currentTheme.colors.text }]}
+                />
+                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>percentile</Text>
+              </View>
+              <View style={styles.heroStat}>
+                <TierBadge tier={data.tier} size="large" variant="text" showTooltip={false} />
+                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>tier</Text>
+              </View>
             </View>
             <AnimatedBar
               progress={band.progress}
@@ -271,11 +274,11 @@ const styles = StyleSheet.create({
   viewAll: { fontSize: 13, fontWeight: '600' },
 
   hero: { gap: 6 },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
-  percentileRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
-  percentile: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5 },
-  percentileLabel: { fontSize: 13, fontWeight: '400', opacity: 0.5 },
-  heroBar: { marginTop: 8 },
+  heroStatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroStat: { alignItems: 'center' },
+  percentile: { fontSize: 36, fontWeight: '800', lineHeight: 40, letterSpacing: -0.5 },
+  heroStatLabel: { fontSize: 13, opacity: 0.55, marginTop: 2 },
+  heroBar: { marginTop: 10 },
   toNext: { fontSize: 12, opacity: 0.55, marginTop: 6 },
 
   statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
