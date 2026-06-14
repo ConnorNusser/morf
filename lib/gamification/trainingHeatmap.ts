@@ -41,8 +41,10 @@ export interface TrainingHeatmap {
 
 // Discrete shade steps for a trained day, so the scale reads as legible buckets
 // (light → heavy volume) instead of a continuous mush. Shared by the card, the
-// modal grid and their legends so all three stay in lockstep.
-export const HEAT_OPACITIES = [0.4, 0.6, 0.8, 1] as const;
+// modal grid and their legends so all three stay in lockstep. The floor is kept
+// high so even a light day still reads as its Push/Pull/Legs color (matching the
+// solid dots on the dashboard) rather than washing out toward the background.
+export const HEAT_OPACITIES = [0.62, 0.75, 0.88, 1] as const;
 
 // Bucket a 0..1 volume intensity into an index into HEAT_OPACITIES.
 export function heatLevel(intensity: number): number {
