@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
@@ -127,87 +128,115 @@ export default function ProfileScreen() {
     <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
         {/* Morf Logo and Brand */}
-        <DashboardHeader />
+        <Animated.View entering={FadeIn.duration(350)}>
+          <DashboardHeader />
+        </Animated.View>
 
         {/* Header */}
-        <Card style={styles.headerCard} variant="subtle">
-          <Text style={[
-            styles.title,
-            {
-              color: currentTheme.colors.text,
-            }
-          ]}>
-            Profile
-          </Text>
-        </Card>
+        <Animated.View entering={FadeInDown.delay(60).duration(450).springify().damping(18)}>
+          <Card style={styles.headerCard} variant="subtle">
+            <Text style={[
+              styles.title,
+              {
+                color: currentTheme.colors.text,
+              }
+            ]}>
+              Profile
+            </Text>
+          </Card>
+        </Animated.View>
 
         {/* Career — gamification centerpiece */}
-        <CareerSection />
+        <Animated.View entering={FadeInDown.delay(130).duration(450).springify().damping(18)}>
+          <CareerSection />
+        </Animated.View>
 
         {/* Social Button */}
-        <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-          onPress={() => setShowSocialModal(true)}
-          activeOpacity={0.7}
-        >
-          <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
-            <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
-            <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                {username ? `@${username}` : 'Set Username'}
-              </Text>
-              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
-              </Text>
+        <Animated.View entering={FadeInDown.delay(200).duration(450).springify().damping(18)}>
+          <TouchableOpacity
+            style={[styles.socialButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+            onPress={() => setShowSocialModal(true)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
+              <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
+              <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
+                <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  {username ? `@${username}` : 'Set Username'}
+                </Text>
+                <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                  {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
+                </Text>
+              </View>
             </View>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
-        </TouchableOpacity>
+            <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+          </TouchableOpacity>
+        </Animated.View>
 
         {/* Personal Information Section */}
-        <TutorialTarget id="profile-personal-info">
-          <PersonalInformationSection
-            userProfile={userProfile}
-            onProfileUpdate={loadUserData}
-          />
-        </TutorialTarget>
+        <Animated.View entering={FadeInDown.delay(270).duration(450).springify().damping(18)}>
+          <TutorialTarget id="profile-personal-info">
+            <PersonalInformationSection
+              userProfile={userProfile}
+              onProfileUpdate={loadUserData}
+            />
+          </TutorialTarget>
+        </Animated.View>
 
         {/* Theme Evolution Section */}
-        <ThemeEvolutionSection />
+        <Animated.View entering={FadeInDown.delay(340).duration(450).springify().damping(18)}>
+          <ThemeEvolutionSection />
+        </Animated.View>
 
         {/* Lift Display Preferences Section */}
-        <LiftDisplayPreferencesSection 
-          onPreferencesUpdate={loadUserData}
-        />
+        <Animated.View entering={FadeInDown.delay(410).duration(450).springify().damping(18)}>
+          <LiftDisplayPreferencesSection
+            onPreferencesUpdate={loadUserData}
+          />
+        </Animated.View>
 
         {/* Weight Unit Preference Section */}
-        <WeightUnitPreferenceSection />
+        <Animated.View entering={FadeInDown.delay(470).duration(450).springify().damping(18)}>
+          <WeightUnitPreferenceSection />
+        </Animated.View>
 
         {/* Notification Reminders Section */}
-        <NotificationPreferencesSection />
+        <Animated.View entering={FadeInDown.delay(530).duration(450).springify().damping(18)}>
+          <NotificationPreferencesSection />
+        </Animated.View>
 
         {/* Equipment Filter Section */}
-        <EquipmentFilterSection />
+        <Animated.View entering={FadeInDown.delay(590).duration(450).springify().damping(18)}>
+          <EquipmentFilterSection />
+        </Animated.View>
 
         {/* Exercises Section */}
-        <ExercisesSection />
+        <Animated.View entering={FadeInDown.delay(640).duration(450).springify().damping(18)}>
+          <ExercisesSection />
+        </Animated.View>
 
         {/* Custom Exercises Section */}
-        <CustomExercisesSection />
+        <Animated.View entering={FadeInDown.delay(690).duration(450).springify().damping(18)}>
+          <CustomExercisesSection />
+        </Animated.View>
 
         {/* App Info Section */}
-        <AppInfoSection />
+        <Animated.View entering={FadeInDown.delay(740).duration(450).springify().damping(18)}>
+          <AppInfoSection />
+        </Animated.View>
 
         {/* Reset Button */}
-        <TouchableOpacity
-          style={styles.resetButton}
-          onPress={handleResetStats}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.resetButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
-            Reset All Data
-          </Text>
-        </TouchableOpacity>
+        <Animated.View entering={FadeIn.delay(820).duration(400)}>
+          <TouchableOpacity
+            style={styles.resetButton}
+            onPress={handleResetStats}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.resetButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+              Reset All Data
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
       <View style={{ marginBottom: 100 }} />
     </ScrollView>

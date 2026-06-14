@@ -13,7 +13,7 @@ import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   LayoutAnimation,
@@ -24,6 +24,17 @@ import {
   UIManager,
   View as RNView,
 } from 'react-native';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  FadeIn,
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -69,6 +80,30 @@ export default function WorkoutScreen() {
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+
+  // Gentle "breathing" pulse on the rest-timer chip while resting — a calm,
+  // living cue that the clock is counting, without nagging the lifter.
+  const restPulse = useSharedValue(1);
+  useEffect(() => {
+    if (isResting) {
+      restPulse.value = withRepeat(
+        withSequence(
+          withTiming(1.05, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+          withTiming(1, { duration: 850, easing: Easing.inOut(Easing.quad) }),
+        ),
+        -1,
+        false,
+      );
+    } else {
+      cancelAnimation(restPulse);
+      restPulse.value = withTiming(1, { duration: 200 });
+    }
+    return () => cancelAnimation(restPulse);
+  }, [isResting, restPulse]);
+
+  const restPulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: restPulse.value }],
+  }));
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -141,7 +176,7 @@ export default function WorkoutScreen() {
       >
         {/* Header */}
         <TutorialTarget id="workout-header-buttons">
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
+          <Animated.View entering={FadeInDown.duration(400).springify().damping(18)} style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted ? (
                 <TouchableOpacity
@@ -174,12 +209,13 @@ export default function WorkoutScreen() {
           <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
             {hasWorkoutStarted ? (
               <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
-                <RNView style={[
+                <Animated.View style={[
                   styles.timerContainer,
                   {
                     backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
                     borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
-                  }
+                  },
+                  restPulseStyle,
                 ]}>
                   <Ionicons
                     name={isResting ? 'hourglass-outline' : 'time-outline'}
@@ -200,7 +236,7 @@ export default function WorkoutScreen() {
                       REST
                     </Text>
                   )}
-                </RNView>
+                </Animated.View>
               </TouchableOpacity>
             ) : (
               <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
@@ -228,12 +264,12 @@ export default function WorkoutScreen() {
               </TouchableOpacity>
             )}
           </View>
-          </View>
+          </Animated.View>
         </TutorialTarget>
 
         {/* Expanded Rest Timer */}
         {isTimerExpanded && hasWorkoutStarted && (
-          <RNView style={[styles.expandedTimer, { backgroundColor: currentTheme.colors.surface }]}>
+          <Animated.View entering={FadeInDown.duration(280).springify().damping(16)} style={[styles.expandedTimer, { backgroundColor: currentTheme.colors.surface }]}>
             <RNView style={styles.expandedTimerRow}>
               {/* Subtract time */}
               <TouchableOpacity
@@ -284,7 +320,7 @@ export default function WorkoutScreen() {
                 </Text>
               </TouchableOpacity>
             </RNView>
-          </RNView>
+          </Animated.View>
         )}
 
         {/* Quick Summary Preview */}
@@ -300,7 +336,7 @@ export default function WorkoutScreen() {
 
         {/* Main Content - Notes Input */}
         <TutorialTarget id="workout-note-input" style={layout.flex1}>
-          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+          <Animated.View entering={FadeIn.delay(120).duration(450)} style={[layout.flex1, { backgroundColor: 'transparent' }]}>
             <WorkoutNoteInput
               ref={noteInputRef}
               value={noteText}
@@ -311,7 +347,7 @@ Examples:
 Bench 135x8, 155x6
 Squats 225 for 5 reps`}
             />
-          </View>
+          </Animated.View>
         </TutorialTarget>
       </KeyboardAvoidingView>
 
