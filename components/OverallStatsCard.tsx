@@ -5,7 +5,6 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
-import TierBadge from './TierBadge';
 
 interface OverallStatsCardProps {
   stats: OverallStats;
@@ -41,13 +40,6 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
           </Text>
           <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
             percentile
-          </Text>
-        </View>
-
-        <View style={styles.statBlock}>
-          <TierBadge tier={stats.strengthLevel as StrengthTier} size="large" variant="text" />
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-            tier
           </Text>
         </View>
       </View>

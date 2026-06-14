@@ -10,7 +10,8 @@ import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
-import { HEAT_OPACITIES, heatLevel, SPLIT_META, TrainingSplit } from '@/lib/gamification/trainingHeatmap';
+import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
+import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -146,7 +147,7 @@ export default function CareerSection() {
                         cell.future
                           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                           : cell.trained
-                            ? { backgroundColor: SPLIT_META[cell.split ?? 'other'].color, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                            ? { backgroundColor: cell.split ? PPL_COLORS[cell.split] : currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
                             : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
                       ]}
                     />
@@ -157,10 +158,10 @@ export default function CareerSection() {
 
             {/* Color = which split (Push/Pull/Legs); opacity = Less→More volume. */}
             <View style={styles.legendRow}>
-              {(['push', 'pull', 'legs'] as TrainingSplit[]).map(s => (
+              {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
                 <View key={s} style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: SPLIT_META[s].color }]} />
-                  <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{SPLIT_META[s].label}</Text>
+                  <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[s] }]} />
+                  <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
                 </View>
               ))}
               <View style={styles.legendSpacer} />

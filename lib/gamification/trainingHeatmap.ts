@@ -1,55 +1,28 @@
 // A GitHub-style training consistency heatmap — the "don't break the chain"
 // visual. Pure + clock-injectable. Columns are Monday-start weeks; each cell is
 // a day, flagged trained with a relative-volume intensity (0..1).
-import { GeneratedWorkout, MuscleGroup } from '@/types';
+import { GeneratedWorkout } from '@/types';
 import { dateKey } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 
-// Which Push/Pull/Legs bucket a day leaned into — color-coded in the heatmap.
-export type TrainingSplit = 'push' | 'pull' | 'legs' | 'other';
+// A day's dominant split == the dashboard's Push/Pull/Legs categories, so the
+// heatmap colors (PPL_COLORS) and classification match the rest of the app.
+export type TrainingSplit = PPLCategory;
 
-// Distinct, legible colors per split — shared by the heatmap cells and legend.
-export const SPLIT_META: Record<TrainingSplit, { label: string; color: string }> = {
-  push: { label: 'Push', color: '#4F8EF7' },
-  pull: { label: 'Pull', color: '#46D6A0' },
-  legs: { label: 'Legs', color: '#F5A623' },
-  other: { label: 'Other', color: '#9B8CFF' },
-};
-
-const MUSCLE_TO_SPLIT: Partial<Record<MuscleGroup, TrainingSplit>> = {
-  chest: 'push',
-  shoulders: 'push',
-  back: 'pull',
-  legs: 'legs',
-  glutes: 'legs',
-  core: 'other',
-  'full-body': 'other',
-};
-
-// Map one exercise to a split. Arms are ambiguous for PPL, so split them by
-// name: curls pull, everything else (extensions/pushdowns/dips) push.
-function classifyExerciseSplit(exerciseId: string): TrainingSplit {
-  const workout = getWorkoutById(exerciseId);
-  const muscle = workout?.primaryMuscles?.[0];
-  if (muscle === 'arms') {
-    return /curl/i.test(workout?.name ?? '') ? 'pull' : 'push';
-  }
-  return (muscle && MUSCLE_TO_SPLIT[muscle]) ?? 'other';
+function classifyExercise(exerciseId: string): PPLCategory | null {
+  const muscle = getWorkoutById(exerciseId)?.primaryMuscles?.[0];
+  return muscle ? MUSCLE_TO_PPL[muscle] : null;
 }
 
-const SPLIT_PRIORITY: TrainingSplit[] = ['push', 'pull', 'legs', 'other'];
-
-// The bucket with the most volume that day (ties broken by SPLIT_PRIORITY).
-function dominantSplit(vols: Record<TrainingSplit, number>): TrainingSplit | null {
-  let best: TrainingSplit | null = null;
-  let bestVol = 0;
-  for (const s of SPLIT_PRIORITY) {
-    if (vols[s] > bestVol) {
-      best = s;
-      bestVol = vols[s];
-    }
-  }
-  return bestVol > 0 ? best : null;
+// The category with the most exercises that day — mirrors WeeklyGoalCard's
+// dominantPPL (count-based, same push>pull>legs tie-break) so a given day reads
+// the same color on the dashboard and in the heatmap.
+function dominantSplit(counts: Record<PPLCategory, number>): PPLCategory | null {
+  if (counts.push + counts.pull + counts.legs === 0) return null;
+  return (['push', 'pull', 'legs'] as PPLCategory[]).reduce((best, c) =>
+    counts[c] > counts[best] ? c : best,
+  );
 }
 
 export interface HeatCell {
@@ -58,7 +31,7 @@ export interface HeatCell {
   intensity: number; // 0..1 relative to the user's biggest training day in range
   volume: number; // that day's training volume (in the unit it was logged), for tooltips
   future: boolean; // day hasn't happened yet (current week tail)
-  split: TrainingSplit | null; // dominant Push/Pull/Legs bucket that day (null if untrained)
+  split: TrainingSplit | null; // dominant Push/Pull/Legs that day (null if untrained / unclassified)
 }
 
 export interface TrainingHeatmap {
@@ -95,20 +68,19 @@ export function computeTrainingHeatmap(
   // Total (un-converted) volume per day — only used for relative intensity —
   // plus per-day volume split into Push/Pull/Legs so each day can be colored.
   const volumeByDay = new Map<string, number>();
-  const splitByDay = new Map<string, Record<TrainingSplit, number>>();
+  const splitByDay = new Map<string, Record<PPLCategory, number>>();
   for (const w of workouts) {
     const key = dateKey(new Date(w.createdAt));
     let vol = 0;
-    const splits = splitByDay.get(key) ?? { push: 0, pull: 0, legs: 0, other: 0 };
+    const counts = splitByDay.get(key) ?? { push: 0, pull: 0, legs: 0 };
     for (const ex of w.exercises || []) {
-      let exVol = 0;
       for (const set of ex.completedSets || []) {
-        if (set.completed) exVol += set.weight * set.reps;
+        if (set.completed) vol += set.weight * set.reps;
       }
-      vol += exVol;
-      splits[classifyExerciseSplit(ex.id)] += exVol;
+      const cat = classifyExercise(ex.id);
+      if (cat) counts[cat] += 1;
     }
-    splitByDay.set(key, splits);
+    splitByDay.set(key, counts);
     volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + vol);
   }
 

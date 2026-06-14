@@ -16,7 +16,8 @@ import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
-import { HeatCell, HEAT_OPACITIES, heatLevel, SPLIT_META, TrainingHeatmap, TrainingSplit } from '@/lib/gamification/trainingHeatmap';
+import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
+import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
@@ -402,9 +403,9 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{range}</Text>
       </View>
       {selected ? (
-        <Text style={[styles.heatCaption, { color: SPLIT_META[selected.split ?? 'other'].color }]}>
+        <Text style={[styles.heatCaption, { color: selected.split ? PPL_COLORS[selected.split] : currentTheme.colors.primary }]}>
           {selected.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ·{' '}
-          {SPLIT_META[selected.split ?? 'other'].label} · {formatCompact(selected.volume)} {unit} lifted
+          {selected.split ? PPL_LABELS[selected.split] : 'Mixed'} · {formatCompact(selected.volume)} {unit} lifted
         </Text>
       ) : (
         <Text style={[styles.heatCaption, { color: currentTheme.colors.text }]}>
@@ -424,7 +425,7 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
                 cell.future
                   ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                   : cell.trained
-                    ? { backgroundColor: SPLIT_META[cell.split ?? 'other'].color, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                    ? { backgroundColor: cell.split ? PPL_COLORS[cell.split] : currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
                     : { backgroundColor: currentTheme.colors.border, opacity: 0.5 },
                 isSel ? { opacity: 1, borderWidth: 1.5, borderColor: currentTheme.colors.text } : null,
               ];
@@ -438,10 +439,10 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         ))}
       </View>
       <View style={styles.heatLegend}>
-        {(['push', 'pull', 'legs'] as TrainingSplit[]).map(s => (
+        {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
           <View key={s} style={styles.heatLegendKey}>
-            <View style={[styles.heatLegendCell, { backgroundColor: SPLIT_META[s].color }]} />
-            <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>{SPLIT_META[s].label}</Text>
+            <View style={[styles.heatLegendCell, { backgroundColor: PPL_COLORS[s] }]} />
+            <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
           </View>
         ))}
         <View style={styles.heatLegendSpacer} />
