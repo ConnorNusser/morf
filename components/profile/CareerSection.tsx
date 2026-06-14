@@ -1,15 +1,18 @@
+import AnimatedBar from '@/components/AnimatedBar';
+import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
-import ProfileIconPicker from '@/components/gamification/ProfileIconPicker';
+import FlipCard from '@/components/gamification/FlipCard';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
-import { summarizeAchievements } from '@/lib/gamification/achievements';
+import { rarityBreakdown, summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
-import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { emblemForAchievement, iconUnlockContext, newlyUnlockedEmblems, profileIconName } from '@/lib/gamification/profileIcons';
+import { RARITY_META } from '@/lib/gamification/rarity';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
+import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -22,7 +25,6 @@ export default function CareerSection() {
   const { currentTheme } = useTheme();
   const [data, setData] = useState<CareerData | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [showIconPicker, setShowIconPicker] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -44,7 +46,6 @@ export default function CareerSection() {
   const open = () => setShowModal(true);
 
   const band = getTierBandProgress(data.overall);
-  const newEmblems = newlyUnlockedEmblems(data.newIds);
   const streakActive = data.stats.currentStreak > 0;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
@@ -54,7 +55,8 @@ export default function CareerSection() {
   ];
 
   const { nextUp, unlockedCount, total } = summarizeAchievements(data.achievements);
-  const nextEmblem = nextUp ? emblemForAchievement(nextUp.id) : null;
+  const rarity = rarityBreakdown(data.achievements);
+  const achProgress = total > 0 ? unlockedCount / total : 0;
 
   // Consistency strip: the last 8 weeks, with a count so it reads on its own.
   const recentWeeks = data.heatmap.weeks.slice(-8);
@@ -80,39 +82,34 @@ export default function CareerSection() {
             </View>
           </View>
 
-          {/* Tier hero — the custom emblem is the identity, the tier its rank badge */}
+          {/* Strength hero — percentile + tier side by side (like the dashboard's
+              Overall Strength card); the percentile counts up and the bar fills. */}
           <View style={styles.hero}>
-            <TouchableOpacity
-              onPress={() => setShowIconPicker(true)}
-              activeOpacity={0.8}
-              hitSlop={6}
-              style={[styles.heroAvatar, { backgroundColor: color + '1A', borderColor: color }]}
-            >
-              <Ionicons
-                name={profileIconName(data.profileIconId) as keyof typeof Ionicons.glyphMap}
-                size={30}
-                color={color}
-              />
-              <View style={[styles.heroRankBadge, { backgroundColor: color, borderColor: currentTheme.colors.surface }]}>
-                <Text style={styles.heroRankText}>{data.tier}</Text>
+            <View style={styles.heroStatsRow}>
+              <View style={styles.heroStat}>
+                <AnimatedCount
+                  value={data.overall}
+                  duration={1100}
+                  style={[styles.percentile, { color: currentTheme.colors.text }]}
+                />
+                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>percentile</Text>
               </View>
-              {newEmblems.length > 0 && (
-                <View style={[styles.emblemNewDot, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.surface }]} />
-              )}
-            </TouchableOpacity>
-            <View style={styles.heroRight}>
-              <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
-              <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
-                {data.overall}
-                <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
-              </Text>
-              <View style={[styles.track, { backgroundColor: currentTheme.colors.border }]}>
-                <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
+              <View style={styles.heroStat}>
+                <TierBadge tier={data.tier} size="large" variant="text" showTooltip={false} />
+                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>tier</Text>
               </View>
-              <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
-                {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
-              </Text>
             </View>
+            <AnimatedBar
+              progress={band.progress}
+              color={color}
+              trackColor={currentTheme.colors.border}
+              height={8}
+              delay={150}
+              style={styles.heroBar}
+            />
+            <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
+              {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
+            </Text>
           </View>
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
@@ -152,7 +149,7 @@ export default function CareerSection() {
                         cell.future
                           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                           : cell.trained
-                            ? { backgroundColor: currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                            ? { backgroundColor: cell.split ? PPL_COLORS[cell.split] : currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
                             : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
                       ]}
                     />
@@ -160,65 +157,108 @@ export default function CareerSection() {
                 </View>
               ))}
             </View>
+
+            {/* Color = Push/Pull/Legs; bolder cells = more volume that day. */}
+            <View style={styles.legendRow}>
+              {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
+                <View key={s} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[s] }]} />
+                  <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
+                </View>
+              ))}
+            </View>
           </View>
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
 
-          {/* Next goal */}
+          {/* Next goal — tap to flip for what it takes */}
           {nextUp && (
-            <View style={styles.nextGoal}>
-              <View style={styles.nextBody}>
-                <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
-                  NEXT · {nextUp.title}
-                </Text>
-                {nextEmblem && (
-                  <View style={styles.nextEmblemRow}>
-                    <Ionicons name={nextEmblem.icon as keyof typeof Ionicons.glyphMap} size={11} color={currentTheme.colors.primary} />
-                    <Text style={[styles.nextEmblemText, { color: currentTheme.colors.primary }]} numberOfLines={1}>
-                      Earns the {nextEmblem.label} emblem
+            <FlipCard
+              height={48}
+              style={styles.nextWrap}
+              front={
+                <View style={styles.nextGoalFace}>
+                  <View style={styles.nextBody}>
+                    <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                      NEXT · {nextUp.title}
                     </Text>
+                    <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
+                      <View
+                        style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
+                      />
+                    </View>
                   </View>
-                )}
-                <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
-                  <View
-                    style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
-                  />
+                  <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+                    {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
+                  </Text>
                 </View>
-              </View>
-              <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
-                {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
-              </Text>
-            </View>
+              }
+              back={
+                <View style={styles.nextGoalBack}>
+                  <Text style={[styles.nextBackText, { color: currentTheme.colors.text }]} numberOfLines={2}>
+                    {nextUp.description}
+                  </Text>
+                  <Text style={[styles.nextBackPct, { color: currentTheme.colors.primary }]}>
+                    {Math.round(nextUp.progress * 100)}%
+                  </Text>
+                </View>
+              }
+            />
           )}
 
-          {/* Achievements — collection count; the full grid lives in the modal */}
-          <View style={styles.achRow}>
-            <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
-              {unlockedCount}/{total} achievements unlocked
-            </Text>
-            {data.newIds.size > 0 && (
-              <Text style={[styles.achNew, { color: currentTheme.colors.primary }]}>
-                {data.newIds.size} new
-              </Text>
-            )}
-          </View>
+          {/* Achievements — a flippable bar: collection progress on the front,
+              rarity breakdown on the back. Full grid lives in the modal. */}
+          <FlipCard
+            height={60}
+            style={styles.achWrap}
+            front={
+              <View style={styles.achFace}>
+                <View style={styles.achTopRow}>
+                  <Text style={[styles.achLabel, { color: currentTheme.colors.text }]}>ACHIEVEMENTS</Text>
+                  <View style={styles.achTopRight}>
+                    {data.newIds.size > 0 && (
+                      <View style={[styles.achNewPill, { backgroundColor: currentTheme.colors.primary }]}>
+                        <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>
+                          {data.newIds.size} NEW
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={[styles.achBig, { color: currentTheme.colors.text }]}>
+                      {unlockedCount}
+                      <Text style={[styles.achBigTotal, { color: currentTheme.colors.text }]}>/{total}</Text>
+                    </Text>
+                  </View>
+                </View>
+                <AnimatedBar
+                  progress={achProgress}
+                  color={currentTheme.colors.primary}
+                  trackColor={currentTheme.colors.border}
+                  height={6}
+                  delay={250}
+                />
+              </View>
+            }
+            back={
+              <View style={styles.achBackFace}>
+                {rarity.map(rb => {
+                  const rc = RARITY_META[rb.rarity].accent;
+                  return (
+                    <View key={rb.rarity} style={styles.rarityCell}>
+                      <View style={[styles.rarityDot, { backgroundColor: rc, opacity: rb.unlocked > 0 ? 1 : 0.3 }]} />
+                      <Text style={[styles.rarityCount, { color: currentTheme.colors.text }]}>
+                        {rb.unlocked}/{rb.total}
+                      </Text>
+                      <Text style={[styles.rarityLabel, { color: rc }]}>{RARITY_META[rb.rarity].label}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            }
+          />
         </Card>
       </TouchableOpacity>
 
       <CareerModal visible={showModal} onClose={() => { setShowModal(false); load(); }} />
-
-      <ProfileIconPicker
-        visible={showIconPicker}
-        onClose={() => setShowIconPicker(false)}
-        unlockContext={iconUnlockContext(data.achievements)}
-        newIds={data.newIds}
-        currentId={data.profileIconId}
-        onSelect={async id => {
-          await storageService.setProfileIconId(id);
-          setShowIconPicker(false);
-          load();
-        }}
-      />
     </>
   );
 }
@@ -233,18 +273,12 @@ const styles = StyleSheet.create({
   newBadgeText: { fontSize: 11, fontWeight: '700' },
   viewAll: { fontSize: 13, fontWeight: '600' },
 
-  axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6, marginBottom: 3 },
-
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  heroAvatar: { width: 60, height: 60, borderRadius: 30, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
-  heroRankBadge: { position: 'absolute', bottom: -4, right: -4, minWidth: 24, height: 22, borderRadius: 11, borderWidth: 2, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' },
-  emblemNewDot: { position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
-  heroRankText: { fontSize: 11, fontWeight: '800', color: '#fff' },
-  heroRight: { flex: 1 },
-  percentile: { fontSize: 18, fontWeight: '700' },
-  percentileLabel: { fontSize: 13, fontWeight: '400', opacity: 0.5 },
-  track: { height: 6, borderRadius: 3, overflow: 'hidden', marginTop: 8 },
-  fill: { height: 6, borderRadius: 3 },
+  hero: { gap: 6 },
+  heroStatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroStat: { alignItems: 'center' },
+  percentile: { fontSize: 36, fontWeight: '800', lineHeight: 40, letterSpacing: -0.5 },
+  heroStatLabel: { fontSize: 13, opacity: 0.55, marginTop: 2 },
+  heroBar: { marginTop: 10 },
   toNext: { fontSize: 12, opacity: 0.55, marginTop: 6 },
 
   statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
@@ -260,17 +294,34 @@ const styles = StyleSheet.create({
   heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 9, height: 9, borderRadius: 3 },
+  legendText: { fontSize: 10, opacity: 0.6 },
 
-  nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextWrap: { width: '100%' },
+  nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextGoalBack: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 12, fontWeight: '600', marginBottom: 5 },
-  nextEmblemRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2, marginBottom: 6 },
-  nextEmblemText: { fontSize: 10, fontWeight: '600', flex: 1 },
+  nextBackText: { flex: 1, fontSize: 12, opacity: 0.7, lineHeight: 16 },
+  nextBackPct: { fontSize: 14, fontWeight: '700' },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
   nextCount: { fontSize: 12, fontWeight: '700', opacity: 0.6 },
 
-  achRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
-  achNew: { fontSize: 13, fontWeight: '700' },
+  achWrap: { width: '100%' },
+  achFace: { width: '100%', height: '100%', justifyContent: 'center', gap: 10 },
+  achTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  achLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.5 },
+  achTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  achNewPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  achNewPillText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  achBig: { fontSize: 18, fontWeight: '800' },
+  achBigTotal: { fontSize: 13, fontWeight: '600', opacity: 0.45 },
+  achBackFace: { width: '100%', height: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rarityCell: { alignItems: 'center', gap: 3, flex: 1 },
+  rarityDot: { width: 8, height: 8, borderRadius: 4 },
+  rarityCount: { fontSize: 13, fontWeight: '800' },
+  rarityLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' },
 });

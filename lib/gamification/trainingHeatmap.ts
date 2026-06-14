@@ -3,6 +3,27 @@
 // a day, flagged trained with a relative-volume intensity (0..1).
 import { GeneratedWorkout } from '@/types';
 import { dateKey } from '@/lib/utils/utils';
+import { getWorkoutById } from '@/lib/workout/workouts';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
+
+// A day's dominant split == the dashboard's Push/Pull/Legs categories, so the
+// heatmap colors (PPL_COLORS) and classification match the rest of the app.
+export type TrainingSplit = PPLCategory;
+
+function classifyExercise(exerciseId: string): PPLCategory | null {
+  const muscle = getWorkoutById(exerciseId)?.primaryMuscles?.[0];
+  return muscle ? MUSCLE_TO_PPL[muscle] : null;
+}
+
+// The category with the most exercises that day — mirrors WeeklyGoalCard's
+// dominantPPL (count-based, same push>pull>legs tie-break) so a given day reads
+// the same color on the dashboard and in the heatmap.
+function dominantSplit(counts: Record<PPLCategory, number>): PPLCategory | null {
+  if (counts.push + counts.pull + counts.legs === 0) return null;
+  return (['push', 'pull', 'legs'] as PPLCategory[]).reduce((best, c) =>
+    counts[c] > counts[best] ? c : best,
+  );
+}
 
 export interface HeatCell {
   date: Date;
@@ -10,6 +31,7 @@ export interface HeatCell {
   intensity: number; // 0..1 relative to the user's biggest training day in range
   volume: number; // that day's training volume (in the unit it was logged), for tooltips
   future: boolean; // day hasn't happened yet (current week tail)
+  split: TrainingSplit | null; // dominant Push/Pull/Legs that day (null if untrained / unclassified)
 }
 
 export interface TrainingHeatmap {
@@ -19,8 +41,10 @@ export interface TrainingHeatmap {
 
 // Discrete shade steps for a trained day, so the scale reads as legible buckets
 // (light → heavy volume) instead of a continuous mush. Shared by the card, the
-// modal grid and their legends so all three stay in lockstep.
-export const HEAT_OPACITIES = [0.4, 0.6, 0.8, 1] as const;
+// modal grid and their legends so all three stay in lockstep. The floor is kept
+// high so even a light day still reads as its Push/Pull/Legs color (matching the
+// solid dots on the dashboard) rather than washing out toward the background.
+export const HEAT_OPACITIES = [0.62, 0.75, 0.88, 1] as const;
 
 // Bucket a 0..1 volume intensity into an index into HEAT_OPACITIES.
 export function heatLevel(intensity: number): number {
@@ -43,16 +67,22 @@ export function computeTrainingHeatmap(
   weeks = 12,
   now: Date = new Date(),
 ): TrainingHeatmap {
-  // Total (un-converted) volume per day — only used for relative intensity.
+  // Total (un-converted) volume per day — only used for relative intensity —
+  // plus per-day volume split into Push/Pull/Legs so each day can be colored.
   const volumeByDay = new Map<string, number>();
+  const splitByDay = new Map<string, Record<PPLCategory, number>>();
   for (const w of workouts) {
+    const key = dateKey(new Date(w.createdAt));
     let vol = 0;
+    const counts = splitByDay.get(key) ?? { push: 0, pull: 0, legs: 0 };
     for (const ex of w.exercises || []) {
       for (const set of ex.completedSets || []) {
         if (set.completed) vol += set.weight * set.reps;
       }
+      const cat = classifyExercise(ex.id);
+      if (cat) counts[cat] += 1;
     }
-    const key = dateKey(new Date(w.createdAt));
+    splitByDay.set(key, counts);
     volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + vol);
   }
 
@@ -81,12 +111,14 @@ export function computeTrainingHeatmap(
       const vol = volumeByDay.get(key) ?? 0;
       const trained = volumeByDay.has(key);
       if (trained) totalDays += 1;
+      const splits = splitByDay.get(key);
       week.push({
         date,
         trained,
         intensity: maxVol > 0 ? vol / maxVol : 0,
         volume: Math.round(vol),
         future: key > todayKey,
+        split: splits ? dominantSplit(splits) : null,
       });
     }
     grid.push(week);

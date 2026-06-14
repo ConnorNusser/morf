@@ -1,8 +1,18 @@
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { useTheme } from '@/contexts/ThemeContext';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import Animated, {
+  Easing,
+  useAnimatedProps,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 interface Props {
   tier: StrengthTier;
@@ -13,6 +23,9 @@ interface Props {
 
 // Compact strength badge: the tier inside a circular progress-to-next-tier ring.
 // Self-contained and tappable (wrap in a touchable) — the lifter's headline rank.
+//
+// The ring sweeps up to its value (from wherever it was) so progress *visibly
+// advances* — e.g. when you return home after a PR — instead of just being there.
 export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Props) {
   const { currentTheme } = useTheme();
   const ring = getTierColor(tier);
@@ -23,11 +36,27 @@ export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Prop
   // Longer tiers (e.g. "S++") need a smaller glyph to fit the ring.
   const tierFont = tier.length >= 3 ? 13 : tier.length === 2 ? 15 : 17;
 
+  const reduced = useReducedMotion();
+  // Starts empty and sweeps to the real value once it arrives (data loads async),
+  // and animates the delta whenever progress changes after that.
+  const fill = useSharedValue(0);
+  useEffect(() => {
+    if (reduced) {
+      fill.value = clamped;
+      return;
+    }
+    fill.value = withDelay(120, withTiming(clamped, { duration: 900, easing: Easing.out(Easing.cubic) }));
+  }, [clamped, reduced, fill]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: c * (1 - fill.value),
+  }));
+
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
         <Circle cx={center} cy={center} r={r} stroke={currentTheme.colors.text + '1F'} strokeWidth={stroke} fill="none" />
-        <Circle
+        <AnimatedCircle
           cx={center}
           cy={center}
           r={r}
@@ -36,7 +65,7 @@ export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Prop
           fill="none"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c * (1 - clamped)}
+          animatedProps={animatedProps}
           transform={`rotate(-90 ${center} ${center})`}
         />
       </Svg>
