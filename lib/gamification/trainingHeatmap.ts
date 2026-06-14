@@ -1,8 +1,56 @@
 // A GitHub-style training consistency heatmap — the "don't break the chain"
 // visual. Pure + clock-injectable. Columns are Monday-start weeks; each cell is
 // a day, flagged trained with a relative-volume intensity (0..1).
-import { GeneratedWorkout } from '@/types';
+import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { dateKey } from '@/lib/utils/utils';
+import { getWorkoutById } from '@/lib/workout/workouts';
+
+// Which Push/Pull/Legs bucket a day leaned into — color-coded in the heatmap.
+export type TrainingSplit = 'push' | 'pull' | 'legs' | 'other';
+
+// Distinct, legible colors per split — shared by the heatmap cells and legend.
+export const SPLIT_META: Record<TrainingSplit, { label: string; color: string }> = {
+  push: { label: 'Push', color: '#4F8EF7' },
+  pull: { label: 'Pull', color: '#46D6A0' },
+  legs: { label: 'Legs', color: '#F5A623' },
+  other: { label: 'Other', color: '#9B8CFF' },
+};
+
+const MUSCLE_TO_SPLIT: Partial<Record<MuscleGroup, TrainingSplit>> = {
+  chest: 'push',
+  shoulders: 'push',
+  back: 'pull',
+  legs: 'legs',
+  glutes: 'legs',
+  core: 'other',
+  'full-body': 'other',
+};
+
+// Map one exercise to a split. Arms are ambiguous for PPL, so split them by
+// name: curls pull, everything else (extensions/pushdowns/dips) push.
+function classifyExerciseSplit(exerciseId: string): TrainingSplit {
+  const workout = getWorkoutById(exerciseId);
+  const muscle = workout?.primaryMuscles?.[0];
+  if (muscle === 'arms') {
+    return /curl/i.test(workout?.name ?? '') ? 'pull' : 'push';
+  }
+  return (muscle && MUSCLE_TO_SPLIT[muscle]) ?? 'other';
+}
+
+const SPLIT_PRIORITY: TrainingSplit[] = ['push', 'pull', 'legs', 'other'];
+
+// The bucket with the most volume that day (ties broken by SPLIT_PRIORITY).
+function dominantSplit(vols: Record<TrainingSplit, number>): TrainingSplit | null {
+  let best: TrainingSplit | null = null;
+  let bestVol = 0;
+  for (const s of SPLIT_PRIORITY) {
+    if (vols[s] > bestVol) {
+      best = s;
+      bestVol = vols[s];
+    }
+  }
+  return bestVol > 0 ? best : null;
+}
 
 export interface HeatCell {
   date: Date;
@@ -10,6 +58,7 @@ export interface HeatCell {
   intensity: number; // 0..1 relative to the user's biggest training day in range
   volume: number; // that day's training volume (in the unit it was logged), for tooltips
   future: boolean; // day hasn't happened yet (current week tail)
+  split: TrainingSplit | null; // dominant Push/Pull/Legs bucket that day (null if untrained)
 }
 
 export interface TrainingHeatmap {
@@ -43,16 +92,23 @@ export function computeTrainingHeatmap(
   weeks = 12,
   now: Date = new Date(),
 ): TrainingHeatmap {
-  // Total (un-converted) volume per day — only used for relative intensity.
+  // Total (un-converted) volume per day — only used for relative intensity —
+  // plus per-day volume split into Push/Pull/Legs so each day can be colored.
   const volumeByDay = new Map<string, number>();
+  const splitByDay = new Map<string, Record<TrainingSplit, number>>();
   for (const w of workouts) {
-    let vol = 0;
-    for (const ex of w.exercises || []) {
-      for (const set of ex.completedSets || []) {
-        if (set.completed) vol += set.weight * set.reps;
-      }
-    }
     const key = dateKey(new Date(w.createdAt));
+    let vol = 0;
+    const splits = splitByDay.get(key) ?? { push: 0, pull: 0, legs: 0, other: 0 };
+    for (const ex of w.exercises || []) {
+      let exVol = 0;
+      for (const set of ex.completedSets || []) {
+        if (set.completed) exVol += set.weight * set.reps;
+      }
+      vol += exVol;
+      splits[classifyExerciseSplit(ex.id)] += exVol;
+    }
+    splitByDay.set(key, splits);
     volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + vol);
   }
 
@@ -81,12 +137,14 @@ export function computeTrainingHeatmap(
       const vol = volumeByDay.get(key) ?? 0;
       const trained = volumeByDay.has(key);
       if (trained) totalDays += 1;
+      const splits = splitByDay.get(key);
       week.push({
         date,
         trained,
         intensity: maxVol > 0 ? vol / maxVol : 0,
         volume: Math.round(vol),
         future: key > todayKey,
+        split: splits ? dominantSplit(splits) : null,
       });
     }
     grid.push(week);

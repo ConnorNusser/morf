@@ -16,7 +16,7 @@ import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
-import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
+import { HeatCell, HEAT_OPACITIES, heatLevel, SPLIT_META, TrainingHeatmap, TrainingSplit } from '@/lib/gamification/trainingHeatmap';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
@@ -378,7 +378,6 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
 // ---- Consistency heatmap: last 12 weeks of training days ----
 function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: string }) {
   const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
   // Tap a day to reveal its date + volume (the "hover" readout).
   const [selected, setSelected] = useState<HeatCell | null>(null);
 
@@ -403,9 +402,9 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{range}</Text>
       </View>
       {selected ? (
-        <Text style={[styles.heatCaption, { color: accent }]}>
+        <Text style={[styles.heatCaption, { color: SPLIT_META[selected.split ?? 'other'].color }]}>
           {selected.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ·{' '}
-          {formatCompact(selected.volume)} {unit} lifted
+          {SPLIT_META[selected.split ?? 'other'].label} · {formatCompact(selected.volume)} {unit} lifted
         </Text>
       ) : (
         <Text style={[styles.heatCaption, { color: currentTheme.colors.text }]}>
@@ -425,7 +424,7 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
                 cell.future
                   ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                   : cell.trained
-                    ? { backgroundColor: accent, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                    ? { backgroundColor: SPLIT_META[cell.split ?? 'other'].color, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
                     : { backgroundColor: currentTheme.colors.border, opacity: 0.5 },
                 isSel ? { opacity: 1, borderWidth: 1.5, borderColor: currentTheme.colors.text } : null,
               ];
@@ -439,12 +438,16 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         ))}
       </View>
       <View style={styles.heatLegend}>
-        <View style={[styles.heatLegendCell, { backgroundColor: currentTheme.colors.border, opacity: 0.5 }]} />
-        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Rest</Text>
+        {(['push', 'pull', 'legs'] as TrainingSplit[]).map(s => (
+          <View key={s} style={styles.heatLegendKey}>
+            <View style={[styles.heatLegendCell, { backgroundColor: SPLIT_META[s].color }]} />
+            <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>{SPLIT_META[s].label}</Text>
+          </View>
+        ))}
         <View style={styles.heatLegendSpacer} />
         <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Less</Text>
         {HEAT_OPACITIES.map(o => (
-          <View key={o} style={[styles.heatLegendCell, { backgroundColor: accent, opacity: o }]} />
+          <View key={o} style={[styles.heatLegendCell, { backgroundColor: currentTheme.colors.text, opacity: o }]} />
         ))}
         <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>More</Text>
       </View>
@@ -893,7 +896,8 @@ const styles = StyleSheet.create({
   heatCol: { gap: 4, position: 'relative' },
   monthLabel: { position: 'absolute', top: -14, left: 0, fontSize: 9, opacity: 0.5, width: 40 },
   heatCell: { width: 15, height: 15, borderRadius: 3 },
-  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 4, marginTop: 12 },
+  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 4, marginTop: 12, flexWrap: 'wrap' },
+  heatLegendKey: { flexDirection: 'row', alignItems: 'center', gap: 3, marginRight: 4 },
   heatLegendText: { fontSize: 10, opacity: 0.4 },
   heatLegendCell: { width: 11, height: 11, borderRadius: 2 },
   heatLegendSpacer: { flex: 1 },

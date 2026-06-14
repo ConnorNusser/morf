@@ -10,7 +10,7 @@ import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
-import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
+import { HEAT_OPACITIES, heatLevel, SPLIT_META, TrainingSplit } from '@/lib/gamification/trainingHeatmap';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
@@ -84,7 +84,6 @@ export default function CareerSection() {
               counts up and its progress bar fills on load. */}
           <View style={styles.hero}>
             <View style={styles.heroTopRow}>
-              <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
               <View style={[styles.tierPill, { backgroundColor: color + '1A', borderColor: color }]}>
                 <Text style={[styles.tierPillText, { color }]}>{data.tier} TIER</Text>
               </View>
@@ -147,13 +146,32 @@ export default function CareerSection() {
                         cell.future
                           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                           : cell.trained
-                            ? { backgroundColor: currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
+                            ? { backgroundColor: SPLIT_META[cell.split ?? 'other'].color, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
                             : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
                       ]}
                     />
                   ))}
                 </View>
               ))}
+            </View>
+
+            {/* Color = which split (Push/Pull/Legs); opacity = Less→More volume. */}
+            <View style={styles.legendRow}>
+              {(['push', 'pull', 'legs'] as TrainingSplit[]).map(s => (
+                <View key={s} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: SPLIT_META[s].color }]} />
+                  <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{SPLIT_META[s].label}</Text>
+                </View>
+              ))}
+              <View style={styles.legendSpacer} />
+              <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>Less</Text>
+              {HEAT_OPACITIES.map((op, i) => (
+                <View
+                  key={i}
+                  style={[styles.legendCell, { backgroundColor: currentTheme.colors.text, opacity: op }]}
+                />
+              ))}
+              <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>More</Text>
             </View>
           </View>
 
@@ -261,10 +279,8 @@ const styles = StyleSheet.create({
   newBadgeText: { fontSize: 11, fontWeight: '700' },
   viewAll: { fontSize: 13, fontWeight: '600' },
 
-  axisLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.6 },
-
   hero: { gap: 6 },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroTopRow: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
   tierPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
   tierPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   percentileRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
@@ -286,6 +302,12 @@ const styles = StyleSheet.create({
   heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  legendDot: { width: 8, height: 8, borderRadius: 2 },
+  legendText: { fontSize: 9, opacity: 0.55 },
+  legendSpacer: { flex: 1, minWidth: 8 },
+  legendCell: { width: 9, height: 9, borderRadius: 2 },
 
   nextWrap: { width: '100%' },
   nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12 },
