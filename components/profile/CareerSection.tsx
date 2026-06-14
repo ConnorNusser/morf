@@ -155,7 +155,7 @@ export default function CareerSection() {
               ))}
             </View>
 
-            {/* Color = which split (Push/Pull/Legs); opacity = Less→More volume. */}
+            {/* Color = Push/Pull/Legs; bolder cells = more volume that day. */}
             <View style={styles.legendRow}>
               {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
                 <View key={s} style={styles.legendItem}>
@@ -163,15 +163,6 @@ export default function CareerSection() {
                   <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
                 </View>
               ))}
-              <View style={styles.legendSpacer} />
-              <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>Less</Text>
-              {HEAT_OPACITIES.map((op, i) => (
-                <View
-                  key={i}
-                  style={[styles.legendCell, { backgroundColor: currentTheme.colors.text, opacity: op }]}
-                />
-              ))}
-              <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>More</Text>
             </View>
           </View>
 
@@ -300,12 +291,10 @@ const styles = StyleSheet.create({
   heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  legendDot: { width: 8, height: 8, borderRadius: 2 },
-  legendText: { fontSize: 9, opacity: 0.55 },
-  legendSpacer: { flex: 1, minWidth: 8 },
-  legendCell: { width: 9, height: 9, borderRadius: 2 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 9, height: 9, borderRadius: 3 },
+  legendText: { fontSize: 10, opacity: 0.6 },
 
   nextWrap: { width: '100%' },
   nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -18,7 +18,7 @@ import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
 import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
-import { RARITY_META } from '@/lib/gamification/rarity';
+import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import FlipCard from '@/components/gamification/FlipCard';
@@ -602,9 +602,12 @@ const ALMOST_THRESHOLD = 0.6;
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
-  const filtered = achievements.filter(a => filter === 'all' || a.category === filter);
+  const [rarityFilter, setRarityFilter] = useState<Rarity | null>(null);
+  // Category narrows first; the rarity (tier) chips narrow within it.
+  const byCategory = achievements.filter(a => filter === 'all' || a.category === filter);
+  const breakdown = rarityBreakdown(byCategory);
+  const filtered = byCategory.filter(a => rarityFilter === null || a.rarity === rarityFilter);
   const unlocked = filtered.filter(a => a.unlocked).length;
-  const breakdown = rarityBreakdown(achievements);
 
   // Group by status so "done", "close", and "not started" read at a glance,
   // instead of one flat grid where completion is hard to spot.
@@ -638,17 +641,32 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
         {breakdown.map(b => {
           const rc = RARITY_META[b.rarity].accent;
           const complete = b.total > 0 && b.unlocked === b.total;
+          const active = rarityFilter === b.rarity;
           return (
-            <View key={b.rarity} style={[styles.rarityChip, { backgroundColor: rc + '14', borderColor: complete ? rc : rc + '33' }]}>
+            <TouchableOpacity
+              key={b.rarity}
+              activeOpacity={0.7}
+              onPress={() => setRarityFilter(prev => (prev === b.rarity ? null : b.rarity))}
+              style={[
+                styles.rarityChip,
+                {
+                  backgroundColor: active ? rc + '33' : rc + '14',
+                  borderColor: active || complete ? rc : rc + '33',
+                  borderWidth: active ? 1.5 : 1,
+                },
+              ]}
+            >
               <Text style={[styles.rarityCellLabel, { color: rc }]}>{RARITY_META[b.rarity].label}</Text>
               <Text style={[styles.rarityCellCount, { color: currentTheme.colors.text }]}>
                 {b.unlocked}/{b.total}
               </Text>
-            </View>
+            </TouchableOpacity>
           );
         })}
       </View>
-      <Text style={[styles.achHint, { color: currentTheme.colors.text }]}>Tap a badge to flip for details</Text>
+      <Text style={[styles.achHint, { color: currentTheme.colors.text }]}>
+        Tap a tier to filter · tap a badge to flip
+      </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
         {ACH_FILTERS.map(f => {
           const active = filter === f.key;
