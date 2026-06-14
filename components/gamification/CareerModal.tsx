@@ -21,6 +21,7 @@ import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gami
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import FlipCard from '@/components/gamification/FlipCard';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -573,21 +574,37 @@ const ACH_FILTERS: { key: 'all' | AchievementCategory; label: string }[] = [
   { key: 'milestone', label: 'Milestones' },
 ];
 
+// A locked achievement counts as "in progress" once it's at least started, and
+// "almost there" once it crosses this bar — which gets a visible highlight.
+const ALMOST_THRESHOLD = 0.6;
+
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
   const filtered = achievements.filter(a => filter === 'all' || a.category === filter);
   const unlocked = filtered.filter(a => a.unlocked).length;
   const breakdown = rarityBreakdown(achievements);
-  // New first, then unlocked, then locked sorted by closest progress.
-  const ordered = [...filtered].sort((a, b) => {
-    const an = newIds.has(a.id) ? 1 : 0;
-    const bn = newIds.has(b.id) ? 1 : 0;
-    if (an !== bn) return bn - an;
-    if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
-    return b.progress - a.progress;
-  });
+
+  // Group by status so "done", "close", and "not started" read at a glance,
+  // instead of one flat grid where completion is hard to spot.
+  const completed = filtered
+    .filter(a => a.unlocked)
+    .sort((a, b) => {
+      const an = newIds.has(a.id) ? 1 : 0;
+      const bn = newIds.has(b.id) ? 1 : 0;
+      return bn - an; // newly unlocked first
+    });
+  const inProgress = filtered
+    .filter(a => !a.unlocked && !a.hidden && a.progress > 0)
+    .sort((a, b) => b.progress - a.progress); // closest first
+  const locked = filtered.filter(a => !a.unlocked && (a.hidden || a.progress <= 0));
+
+  const groups: { key: string; label: string; items: Achievement[] }[] = [
+    { key: 'progress', label: 'In progress', items: inProgress },
+    { key: 'done', label: 'Completed', items: completed },
+    { key: 'locked', label: 'Locked', items: locked },
+  ];
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
@@ -610,11 +627,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
           );
         })}
       </View>
-      {newIds.size > 0 && (
-        <Text style={[styles.achNewBanner, { color: currentTheme.colors.primary }]}>
-          {newIds.size} newly unlocked
-        </Text>
-      )}
+      <Text style={[styles.achHint, { color: currentTheme.colors.text }]}>Tap a badge to flip for details</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
         {ACH_FILTERS.map(f => {
           const active = filter === f.key;
@@ -638,58 +651,45 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
           );
         })}
       </ScrollView>
-      <View style={styles.grid}>
-        {ordered.map(a => (
-          <AchievementTile
-            key={a.id}
-            achievement={a}
-            isNew={newIds.has(a.id)}
-            selected={selectedId === a.id}
-            onPress={() => setSelectedId(id => (id === a.id ? null : a.id))}
-          />
-        ))}
-      </View>
+      {groups.map(g =>
+        g.items.length === 0 ? null : (
+          <View key={g.key} style={styles.achGroup}>
+            <View style={styles.achGroupHead}>
+              <Text style={[styles.achGroupLabel, { color: currentTheme.colors.text }]}>{g.label}</Text>
+              <Text style={[styles.achGroupCount, { color: currentTheme.colors.text }]}>{g.items.length}</Text>
+            </View>
+            <View style={styles.grid}>
+              {g.items.map(a => (
+                <AchievementTile key={a.id} achievement={a} isNew={newIds.has(a.id)} />
+              ))}
+            </View>
+          </View>
+        ),
+      )}
     </View>
   );
 }
 
-function AchievementTile({
-  achievement,
-  isNew,
-  selected,
-  onPress,
-}: {
-  achievement: Achievement;
-  isNew: boolean;
-  selected: boolean;
-  onPress: () => void;
-}) {
+const ACH_TILE_HEIGHT = 150;
+
+function AchievementTile({ achievement, isNew }: { achievement: Achievement; isNew: boolean }) {
   const { currentTheme } = useTheme();
   // Rarity is the one organizing color — the tile frame, wash and progress all
-  // match the badge so the grid reads as a coherent rarity-coded collection
-  // instead of a clash of primary borders over differently-coloured badges.
+  // match the badge so the grid reads as a coherent rarity-coded collection.
   const r = RARITY_META[achievement.rarity].accent;
   const display = achievementDisplay(achievement);
-  // Secret badges never reveal title/progress until earned. Otherwise, tapping
-  // swaps the (truncated) description for exact progress detail.
-  const detail = display.masked
-    ? display.description
-    : selected
-      ? achievement.unlocked
-        ? 'Unlocked'
-        : `${formatCompact(achievement.current)} / ${formatCompact(achievement.target)}`
-      : achievement.description;
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={onPress}
-      style={[
-        styles.achTile,
-        achievement.unlocked
-          ? { backgroundColor: r + '0D', borderColor: isNew ? r : r + '40', borderWidth: isNew ? 2 : 1 }
-          : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 },
-      ]}
-    >
+  const pct = Math.round(achievement.progress * 100);
+  const almost = !achievement.unlocked && !display.masked && achievement.progress >= ALMOST_THRESHOLD;
+
+  const frameStyle = achievement.unlocked
+    ? { backgroundColor: r + '0D', borderColor: isNew ? r : r + '40', borderWidth: isNew ? 2 : 1 }
+    : almost
+      ? { backgroundColor: r + '0A', borderColor: r + '66', borderWidth: 1 }
+      : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 };
+
+  // ---- FRONT: badge, title, and an unmistakable status (check / % / lock) ----
+  const front = (
+    <View style={[styles.achFace, styles.achTile, frameStyle]}>
       <View style={styles.achTileTop}>
         <AchievementBadge
           icon={display.icon}
@@ -698,40 +698,84 @@ function AchievementTile({
           isNew={isNew}
           size={40}
         />
-        {isNew ? (
-          <View style={[styles.achNewPill, { backgroundColor: r }]}>
-            <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>NEW</Text>
+        {achievement.unlocked ? (
+          <View style={[styles.achCheck, { backgroundColor: r }]}>
+            <Ionicons name="checkmark" size={13} color="#fff" />
+          </View>
+        ) : almost ? (
+          <View style={[styles.achAlmostPill, { backgroundColor: r + '22', borderColor: r }]}>
+            <Text style={[styles.achAlmostText, { color: r }]}>{pct}%</Text>
           </View>
         ) : (
-          <Text
-            style={[
-              styles.achRarity,
-              { color: display.masked ? currentTheme.colors.text + '55' : RARITY_META[achievement.rarity].accent },
-            ]}
-          >
-            {display.masked ? 'Secret' : RARITY_META[achievement.rarity].label}
-          </Text>
+          <Ionicons
+            name={display.masked ? 'help' : 'lock-closed'}
+            size={14}
+            color={currentTheme.colors.text + '40'}
+          />
         )}
       </View>
       <Text
-        style={[styles.achTitle, { color: currentTheme.colors.text, opacity: achievement.unlocked ? 1 : 0.55 }]}
+        style={[styles.achTitle, { color: currentTheme.colors.text, opacity: achievement.unlocked ? 1 : 0.6 }]}
         numberOfLines={1}
       >
         {display.title}
       </Text>
-      <Text
-        style={[styles.achDesc, { color: selected ? r : currentTheme.colors.text, opacity: selected ? 1 : 0.5 }]}
-        numberOfLines={1}
-      >
-        {detail}
-      </Text>
+      {achievement.unlocked ? (
+        <Text style={[styles.achStatusLine, { color: r }]} numberOfLines={1}>
+          {isNew ? 'Just unlocked' : 'Unlocked'}
+        </Text>
+      ) : display.masked ? (
+        <Text style={[styles.achDesc, { color: currentTheme.colors.text }]} numberOfLines={1}>
+          Secret achievement
+        </Text>
+      ) : (
+        <Text style={[styles.achDesc, { color: currentTheme.colors.text }]} numberOfLines={1}>
+          {formatCompact(achievement.current)} / {formatCompact(achievement.target)}
+        </Text>
+      )}
       {!achievement.unlocked && !display.masked && (
         <View style={[styles.achTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.achFill, { backgroundColor: r, width: `${Math.round(achievement.progress * 100)}%` }]} />
+          <View style={[styles.achFill, { backgroundColor: r, width: `${pct}%` }]} />
         </View>
       )}
-    </TouchableOpacity>
+      <View style={styles.achFlipHint}>
+        <Ionicons name="sync-outline" size={11} color={currentTheme.colors.text + '40'} />
+      </View>
+    </View>
   );
+
+  // ---- BACK: the full story — what it is and exactly where you stand ----
+  const back = (
+    <View style={[styles.achFace, styles.achTile, styles.achTileBack, frameStyle]}>
+      <Text style={[styles.achBackRarity, { color: r }]}>
+        {display.masked ? 'SECRET' : RARITY_META[achievement.rarity].label.toUpperCase()}
+      </Text>
+      <Text style={[styles.achBackTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
+        {display.title}
+      </Text>
+      <Text style={[styles.achBackDesc, { color: currentTheme.colors.text }]} numberOfLines={3}>
+        {display.description}
+      </Text>
+      <View style={styles.achBackFooter}>
+        {achievement.unlocked ? (
+          <View style={styles.achBackStatusRow}>
+            <Ionicons name="checkmark-circle" size={14} color={r} />
+            <Text style={[styles.achBackStatus, { color: r }]}>Completed</Text>
+          </View>
+        ) : display.masked ? (
+          <Text style={[styles.achBackStatus, { color: currentTheme.colors.text + '80' }]}>
+            Keep training to reveal
+          </Text>
+        ) : (
+          <Text style={[styles.achBackStatus, { color: currentTheme.colors.text }]}>
+            {formatCompact(achievement.current)} / {formatCompact(achievement.target)} · {pct}%
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+
+  return <FlipCard front={front} back={back} height={ACH_TILE_HEIGHT} style={styles.achTileWrap} />;
 }
 
 // ---- Emblems: the custom-icon collectible gallery; tap an unlocked one to equip ----
@@ -931,8 +975,27 @@ const styles = StyleSheet.create({
   achTabs: { gap: 8, paddingBottom: 12 },
   achTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
   achTabText: { fontSize: 12, fontWeight: '600' },
-  achTile: { width: '48%', borderRadius: 12, borderWidth: 1, padding: 12, gap: 4 },
+  achTileWrap: { width: '48%' },
+  achFace: { width: '100%', height: '100%' },
+  achTile: { borderRadius: 12, padding: 12, gap: 4 },
+  achTileBack: { justifyContent: 'flex-start' },
   achTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  achCheck: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  achAlmostPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
+  achAlmostText: { fontSize: 10, fontWeight: '800' },
+  achStatusLine: { fontSize: 11, fontWeight: '700' },
+  achFlipHint: { position: 'absolute', bottom: 8, right: 10 },
+  achHint: { fontSize: 11, opacity: 0.45, marginTop: 2 },
+  achGroup: { marginTop: 6, gap: 8 },
+  achGroupHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  achGroupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, opacity: 0.55, textTransform: 'uppercase' },
+  achGroupCount: { fontSize: 12, fontWeight: '700', opacity: 0.4 },
+  achBackRarity: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
+  achBackTitle: { fontSize: 14, fontWeight: '700', marginTop: 4 },
+  achBackDesc: { fontSize: 11, opacity: 0.65, marginTop: 4, lineHeight: 15, flex: 1 },
+  achBackFooter: { marginTop: 6 },
+  achBackStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  achBackStatus: { fontSize: 11, fontWeight: '700' },
   achRarity: { fontSize: 10, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   achNewPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
   achNewPillText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
