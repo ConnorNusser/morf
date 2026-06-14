@@ -37,8 +37,10 @@ export default function AnimatedCount({
   numberOfLines,
 }: AnimatedCountProps) {
   const reduced = useReducedMotion();
-  const progress = useSharedValue(value);
-  const [display, setDisplay] = useState(value);
+  // Start at 0 so the first mount actually counts up; later value changes tween
+  // from wherever the shared value currently is.
+  const progress = useSharedValue(0);
+  const [display, setDisplay] = useState(0);
 
   useEffect(() => {
     if (reduced) {
