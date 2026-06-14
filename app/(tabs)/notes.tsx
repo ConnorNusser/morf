@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
+import { getUpNextRoutine } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
@@ -150,22 +151,12 @@ export default function NotesScreen() {
     return { programGroups: groups, standaloneRoutines: standalone };
   }, [calculatedRoutines, programs]);
 
-  const activeProgramGroup = useMemo(
-    () => programGroups.find(g => g.program.status === 'active') ?? null,
-    [programGroups]
+  // "Up Next" = the same routine the home dashboard surfaces, computed by the
+  // shared resolver so the two screens always agree.
+  const upNextRoutine = useMemo(
+    () => getUpNextRoutine(calculatedRoutines, programs),
+    [calculatedRoutines, programs]
   );
-
-  // "Up Next" = the least-recently-trained active day of the active program.
-  const upNextRoutine = useMemo(() => {
-    const days = (activeProgramGroup?.days ?? []).filter(r => r.isActive !== false);
-    if (days.length === 0) return null;
-    return [...days].sort((a, b) => {
-      if (!a.lastUsed && !b.lastUsed) return 0;
-      if (!a.lastUsed) return -1;
-      if (!b.lastUsed) return 1;
-      return new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime();
-    })[0];
-  }, [activeProgramGroup]);
 
 
   const handleDeleteRoutine = useCallback((routineId: string, routineName: string) => {
@@ -320,9 +311,11 @@ export default function NotesScreen() {
     }
   };
 
-  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false, flat = false) => {
+  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
+    // Only an active up-next day earns the highlighted treatment.
+    const highlight = isUpNext && isActive;
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
 
@@ -337,8 +330,12 @@ export default function NotesScreen() {
         key={routine.id}
         style={[
           styles.routineCard,
-          flat ? styles.routineCardFlat : { backgroundColor: currentTheme.colors.surface },
-          isUpNext && !flat && styles.upNextCard,
+          { backgroundColor: currentTheme.colors.surface },
+          highlight && {
+            backgroundColor: currentTheme.colors.primary + '12',
+            borderWidth: 1,
+            borderColor: currentTheme.colors.primary + '40',
+          },
         ]}
         onPress={() => toggleRoutineExpanded(routine.id)}
         activeOpacity={0.7}
@@ -403,11 +400,16 @@ export default function NotesScreen() {
             )}
           </RNView>
 
-          {/* Right: Start button */}
+          {/* Right: Start button — prominent on the up-next day, quiet elsewhere
+              so the day you should train stands out. */}
           <TouchableOpacity
             style={[
               styles.startButton,
-              { backgroundColor: isActive ? currentTheme.colors.primary : currentTheme.colors.text + '30' }
+              highlight
+                ? { backgroundColor: currentTheme.colors.primary }
+                : isActive
+                  ? { backgroundColor: currentTheme.colors.primary + '15' }
+                  : { backgroundColor: currentTheme.colors.text + '15' },
             ]}
             onPress={(e) => {
               e.stopPropagation();
@@ -415,17 +417,22 @@ export default function NotesScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Text weight="semiBold" style={[styles.startButtonText]}>Start</Text>
+            <Text
+              weight="semiBold"
+              style={[
+                styles.startButtonText,
+                !highlight && { color: isActive ? currentTheme.colors.primary : currentTheme.colors.text + '60' },
+              ]}
+            >
+              Start
+            </Text>
           </TouchableOpacity>
         </RNView>
 
-        {/* Expand hint - only when collapsed */}
+        {/* Expand affordance — a single quiet chevron, no repeated label. */}
         {!isExpanded && (
           <RNView style={styles.expandHint}>
-            <Text weight="medium" style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3' }]}>
-              See details
-            </Text>
-            <Ionicons name="chevron-down" size={12} color={currentTheme.colors.text + 'B3'} />
+            <Ionicons name="chevron-down" size={14} color={currentTheme.colors.text + '35'} />
           </RNView>
         )}
 
@@ -663,8 +670,8 @@ export default function NotesScreen() {
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
                         const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
                         const body = isUpNext
-                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true, true)}</TutorialTarget>
-                          : renderRoutineCard(routine, false, true);
+                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
+                          : renderRoutineCard(routine, false);
                         return (
                           <RNView key={routine.id} style={styles.timelineRow}>
                             <RNView style={styles.spine}>

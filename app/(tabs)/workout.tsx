@@ -6,13 +6,11 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -81,16 +79,6 @@ export default function WorkoutScreen() {
     setNoteText(text);
     setShowRoutineImport(false);
   }, [setNoteText]);
-
-  // Check for pending routine text from Routines tab
-  useFocusEffect(
-    useCallback(() => {
-      const text = getPendingRoutine();
-      if (text) {
-        setNoteText(text);
-      }
-    }, [setNoteText])
-  );
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {

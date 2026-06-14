@@ -114,13 +114,6 @@ export const styles = StyleSheet.create({
     left: 11,
     width: 2,
   },
-  routineCardFlat: {
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    padding: 0,
-    paddingVertical: 12,
-    marginBottom: 0,
-  },
   renameOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -204,12 +197,9 @@ export const styles = StyleSheet.create({
 
   // Routine card
   routineCard: {
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-  },
-  upNextCard: {
-    // No special styling - cleaner
   },
   cardContent: {
     flexDirection: 'row',
@@ -221,14 +211,9 @@ export const styles = StyleSheet.create({
     marginRight: 12,
   },
   expandHint: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    marginTop: 10,
-  },
-  expandHintText: {
-    fontSize: 11,
+    marginTop: 8,
   },
   routineNameRow: {
     flexDirection: 'row',

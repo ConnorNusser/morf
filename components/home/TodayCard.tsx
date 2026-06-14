@@ -4,7 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { getTodayRoutine } from "@/lib/workout/activeRoutine";
+import { getUpNextRoutine } from "@/lib/workout/activeRoutine";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
@@ -58,11 +58,11 @@ export default function TodayCard() {
   // context only loads once at startup, which is why it went stale before.)
   const load = useCallback(async () => {
     try {
-      const [history, dismissedAt, routines, currentRoutine] = await Promise.all([
+      const [history, dismissedAt, routines, programs] = await Promise.all([
         storageService.getWorkoutHistory(),
         storageService.getRoutineAdviceDismissedAt(),
         storageService.getRoutines(),
-        storageService.getCurrentRoutine(),
+        storageService.getPrograms(),
       ]);
       setTrainedToday(getStreakState(history).trainedToday);
 
@@ -77,7 +77,7 @@ export default function TodayCard() {
       }, null);
       setLastWorkoutAt(latest);
 
-      const today = getTodayRoutine(routines, currentRoutine);
+      const today = getUpNextRoutine(routines, programs);
       setCalculated(today ? calculateRoutine(today, history, weightUnit) : null);
     } catch (err) {
       console.error("TodayCard: failed to load", err);
