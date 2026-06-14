@@ -41,7 +41,6 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ViewMode = HomeViewMode;
@@ -316,64 +315,54 @@ export default function HomeScreen() {
             { paddingTop: contentTopPadding, backgroundColor: "transparent" },
           ]}
         >
-          <Animated.View entering={FadeIn.duration(350)}>
-            <DashboardHeader
-              viewMode={viewMode}
-              onViewModeChange={handleViewModeChange}
-              stats={lifetimeStats ?? undefined}
-              onTierPress={() => setShowCareer(true)}
-            />
-          </Animated.View>
+          <DashboardHeader
+            viewMode={viewMode}
+            onViewModeChange={handleViewModeChange}
+            stats={lifetimeStats ?? undefined}
+            onTierPress={() => setShowCareer(true)}
+          />
 
-          <Animated.View entering={FadeInDown.delay(60).duration(450).springify().damping(18)}>
-            <TodayCard />
-          </Animated.View>
-          <Animated.View entering={FadeInDown.delay(130).duration(450).springify().damping(18)}>
-            <WeeklyGoalCard />
-          </Animated.View>
+          <TodayCard />
+          <WeeklyGoalCard />
 
-          <Animated.View entering={FadeInDown.delay(200).duration(450).springify().damping(18)}>
-            <TutorialTarget id="home-overall-stats">
-              <OverallStatsCard stats={overallStats} />
-            </TutorialTarget>
-          </Animated.View>
+          <TutorialTarget id="home-overall-stats">
+            <OverallStatsCard stats={overallStats} />
+          </TutorialTarget>
 
-          <Animated.View entering={FadeInDown.delay(270).duration(450).springify().damping(18)}>
-            <TutorialTarget id="home-leaderboard-button">
-              <TouchableOpacity
+          <TutorialTarget id="home-leaderboard-button">
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                {
+                  backgroundColor: currentTheme.colors.surface,
+                  borderColor: currentTheme.colors.border,
+                },
+              ]}
+              onPress={() => setShowLeaderboard(true)}
+              activeOpacity={0.7}
+            >
+              <Text
                 style={[
-                  styles.actionButton,
+                  styles.actionButtonText,
                   {
-                    backgroundColor: currentTheme.colors.surface,
-                    borderColor: currentTheme.colors.border,
+                    color: currentTheme.colors.text,
+                    fontFamily: currentTheme.fonts.medium,
                   },
                 ]}
-                onPress={() => setShowLeaderboard(true)}
-                activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.actionButtonText,
-                    {
-                      color: currentTheme.colors.text,
-                      fontFamily: currentTheme.fonts.medium,
-                    },
-                  ]}
-                >
-                  View Leaderboards
-                </Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={currentTheme.colors.text + "60"}
-                />
-              </TouchableOpacity>
-            </TutorialTarget>
-          </Animated.View>
+                View Leaderboards
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={currentTheme.colors.text + "60"}
+              />
+            </TouchableOpacity>
+          </TutorialTarget>
 
           {userProgress.length > 0 && (
             <>
-              <Animated.View entering={FadeInDown.delay(340).duration(450).springify().damping(18)}>
+              <View>
                 <Text
                   style={[
                     styles.sectionTitle,
@@ -389,17 +378,15 @@ export default function HomeScreen() {
                   availableLifts={userProgress}
                   onFiltersChanged={handleFiltersChanged}
                 />
-              </Animated.View>
+              </View>
 
               <TutorialTarget id="home-lift-cards">
                 <View style={gap.gap20}>
-                  {filteredProgress.map((progress, i) => (
-                    <Animated.View
+                  {filteredProgress.map((progress) => (
+                    <WorkoutStatsCard
                       key={progress.workoutId}
-                      entering={FadeInDown.delay(400 + i * 70).duration(450).springify().damping(18)}
-                    >
-                      <WorkoutStatsCard stats={progress} />
-                    </Animated.View>
+                      stats={progress}
+                    />
                   ))}
                 </View>
               </TutorialTarget>

@@ -21,6 +21,7 @@ import {
 import Animated, {
   Easing,
   FadeIn,
+  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -30,6 +31,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -157,8 +159,8 @@ const PulsingBadge = ({ text, color }: { text: string; color: string }) => {
   }));
 
   return (
-    <Animated.View style={[styles.prBadge, { backgroundColor: color }, animatedStyle]}>
-      <Text style={[styles.prBadgeText, { fontFamily: currentTheme.fonts.bold }]}>
+    <Animated.View style={[styles.prBadge, { backgroundColor: color, borderColor: color }, animatedStyle]}>
+      <Text style={[styles.prBadgeText, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}>
         {text}
       </Text>
     </Animated.View>
@@ -324,6 +326,8 @@ export default function WorkoutCompleteScreen({
 
   // Simple scale animation for checkmark
   const checkScale = useSharedValue(0);
+  // Breathing gold glow around the PR card — makes a new PR feel earned.
+  const prGlow = useSharedValue(0);
 
   // Generate confetti particles
   const particles = useMemo(() => {
@@ -396,11 +400,34 @@ export default function WorkoutCompleteScreen({
   // Start celebration animation on mount
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
+    // Land the celebration with a haptic — a heavier "success" when a PR was set.
+    playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
+    if (prs.length > 0) {
+      prGlow.value = withDelay(
+        500,
+        withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
+      );
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: checkScale.value }],
+  }));
+
+  // Pulsing border + soft halo on the PR card.
+  const prGlowStyle = useAnimatedStyle(() => ({
+    borderWidth: 1.5,
+    borderColor: interpolateColor(
+      prGlow.value,
+      [0, 1],
+      ['rgba(255,215,0,0.18)', 'rgba(255,215,0,0.85)'],
+    ),
+    shadowColor: '#FFD700',
+    shadowOpacity: 0.25 + prGlow.value * 0.45,
+    shadowRadius: 8 + prGlow.value * 16,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4 + prGlow.value * 8,
   }));
 
   const handleStatPress = useCallback((type: 'exercises' | 'sets') => {
@@ -453,18 +480,18 @@ export default function WorkoutCompleteScreen({
           {/* PR Highlights Section */}
           {prs.length > 0 && (
             <View style={styles.prSection}>
-              <View style={[styles.prBadge, { backgroundColor: '#3B82F6', borderColor: '#3B82F6' }]}>
-                <Text style={[styles.prBadgeText, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}>
-                  {prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRs`}
-                </Text>
-              </View>
+              <PulsingBadge
+                text={prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRs`}
+                color="#3B82F6"
+              />
               <Animated.View
                 entering={FadeIn.delay(500)}
                 style={[
                   styles.prCard,
                   {
                     backgroundColor: 'rgba(255,255,255,0.06)',
-                  }
+                  },
+                  prGlowStyle,
                 ]}
               >
                 {prs.map((pr, index) => (
@@ -478,9 +505,12 @@ export default function WorkoutCompleteScreen({
                         {pr.exerciseName}
                       </Text>
                       <View style={[styles.prValueRow, { backgroundColor: 'transparent' }]}>
-                        <Text style={[styles.prValue, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}>
-                          {pr.newPR}
-                        </Text>
+                        <AnimatedCounter
+                          value={pr.newPR}
+                          delay={650 + index * 100}
+                          duration={1200}
+                          style={[styles.prValue, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}
+                        />
                         <Text style={[styles.prUnit, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
                           {weightUnit}
                         </Text>

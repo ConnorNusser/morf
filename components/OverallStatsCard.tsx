@@ -6,7 +6,6 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import ProgressBar from './ProgressBar';
 import TierBadge from './TierBadge';
-import AnimatedCount from './ui/AnimatedCount';
 
 interface OverallStatsCardProps {
   stats: OverallStats;
@@ -37,11 +36,9 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 
       <View style={styles.statsContainer}>
         <View style={styles.statBlock}>
-          <AnimatedCount
-            value={percentile}
-            duration={1100}
-            style={[styles.statValue, { color: tierColor }]}
-          />
+          <Text style={[styles.statValue, { color: tierColor }]}>
+            {percentile}
+          </Text>
           <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
             percentile
           </Text>
