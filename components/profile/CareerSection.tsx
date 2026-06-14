@@ -3,6 +3,7 @@ import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
 import FlipCard from '@/components/gamification/FlipCard';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { rarityBreakdown, summarizeAchievements } from '@/lib/gamification/achievements';
@@ -85,9 +86,7 @@ export default function CareerSection() {
               counts up and its progress bar fills on load. */}
           <View style={styles.hero}>
             <View style={styles.heroTopRow}>
-              <View style={[styles.tierPill, { backgroundColor: color + '1A', borderColor: color }]}>
-                <Text style={[styles.tierPillText, { color }]}>{data.tier} TIER</Text>
-              </View>
+              <TierBadge tier={data.tier} variant="badge" size="small" showTooltip={false} />
             </View>
             <View style={styles.percentileRow}>
               <AnimatedCount
@@ -282,8 +281,6 @@ const styles = StyleSheet.create({
 
   hero: { gap: 6 },
   heroTopRow: { flexDirection: 'row', justifyContent: 'flex-start', alignItems: 'center' },
-  tierPill: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999, borderWidth: 1 },
-  tierPillText: { fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   percentileRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
   percentile: { fontSize: 30, fontWeight: '800', letterSpacing: -0.5 },
   percentileLabel: { fontSize: 13, fontWeight: '400', opacity: 0.5 },
