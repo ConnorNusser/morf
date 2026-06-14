@@ -14,7 +14,6 @@ import {
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
 import { MuscleMastery } from '@/lib/gamification/muscleMastery';
-import { getProfileIcons, iconUnlockContext } from '@/lib/gamification/profileIcons';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
@@ -122,11 +121,6 @@ export default function CareerModal({ visible, onClose }: Props) {
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
-            <EmblemsView
-              achievements={data.achievements}
-              equippedId={data.profileIconId}
-              onEquip={async id => { await storageService.setProfileIconId(id); load(); }}
-            />
             <View style={{ height: 24 }} />
           </ScrollView>
         )}
@@ -230,24 +224,47 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
   const { nextUp } = summarizeAchievements(achievements);
   if (!nextUp) return null;
   const accent = currentTheme.colors.primary;
+  const frame = { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border };
   return (
-    <View style={[styles.nextGoal, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-      <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
-        <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={20} color={accent} />
-      </View>
-      <View style={styles.nextBody}>
-        <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>NEXT GOAL</Text>
-        <Text style={[styles.nextTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
-          {nextUp.title}
-        </Text>
-        <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.nextFill, { backgroundColor: accent, width: `${Math.round(nextUp.progress * 100)}%` }]} />
+    <FlipCard
+      height={76}
+      style={styles.nextWrap}
+      front={
+        <View style={[styles.nextFaceFrame, frame]}>
+          <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
+            <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={20} color={accent} />
+          </View>
+          <View style={styles.nextBody}>
+            <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>NEXT GOAL</Text>
+            <Text style={[styles.nextTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
+              {nextUp.title}
+            </Text>
+            <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
+              <View style={[styles.nextFill, { backgroundColor: accent, width: `${Math.round(nextUp.progress * 100)}%` }]} />
+            </View>
+          </View>
+          <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+            {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
+          </Text>
         </View>
-      </View>
-      <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
-        {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
-      </Text>
-    </View>
+      }
+      back={
+        <View style={[styles.nextFaceFrame, frame]}>
+          <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={accent} />
+          </View>
+          <View style={styles.nextBody}>
+            <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>WHAT IT TAKES</Text>
+            <Text style={[styles.nextBackDesc, { color: currentTheme.colors.text }]} numberOfLines={2}>
+              {nextUp.description}
+            </Text>
+          </View>
+          <Text style={[styles.nextCount, { color: accent }]}>
+            {Math.round(nextUp.progress * 100)}%
+          </Text>
+        </View>
+      }
+    />
   );
 }
 
@@ -778,73 +795,6 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
   return <FlipCard front={front} back={back} height={ACH_TILE_HEIGHT} style={styles.achTileWrap} />;
 }
 
-// ---- Emblems: the custom-icon collectible gallery; tap an unlocked one to equip ----
-function EmblemsView({
-  achievements,
-  equippedId,
-  onEquip,
-}: {
-  achievements: Achievement[];
-  equippedId: string;
-  onEquip: (id: string) => void;
-}) {
-  const { currentTheme } = useTheme();
-  const accent = currentTheme.colors.primary;
-  const icons = getProfileIcons(iconUnlockContext(achievements));
-  const unlocked = icons.filter(i => i.unlocked).length;
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeaderRow}>
-        <SectionLabel>Emblems</SectionLabel>
-        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{unlocked}/{icons.length}</Text>
-      </View>
-      <View style={styles.emblemGrid}>
-        {icons.map(ic => {
-          const equipped = ic.id === equippedId;
-          return (
-            <TouchableOpacity
-              key={ic.id}
-              style={styles.emblemCell}
-              activeOpacity={0.7}
-              disabled={!ic.unlocked || equipped}
-              onPress={() => onEquip(ic.id)}
-            >
-              <View
-                style={[
-                  styles.emblemDisc,
-                  {
-                    backgroundColor: equipped ? accent : ic.unlocked ? accent + '1A' : currentTheme.colors.surface,
-                    borderColor: ic.unlocked ? accent : currentTheme.colors.border,
-                    borderWidth: equipped ? 2 : 1.5,
-                    opacity: ic.unlocked ? 1 : 0.55,
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={ic.icon as keyof typeof Ionicons.glyphMap}
-                  size={24}
-                  color={equipped ? currentTheme.colors.surface : ic.unlocked ? accent : currentTheme.colors.text + '55'}
-                />
-                {!ic.unlocked && (
-                  <View style={[styles.emblemLock, { backgroundColor: currentTheme.colors.background }]}>
-                    <Ionicons name="lock-closed" size={9} color={currentTheme.colors.text} />
-                  </View>
-                )}
-              </View>
-              <Text
-                style={[styles.emblemLabel, { color: equipped ? accent : currentTheme.colors.text, opacity: equipped ? 1 : 0.6 }]}
-                numberOfLines={2}
-              >
-                {equipped ? 'Equipped' : ic.unlocked ? ic.label : ic.hint}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
-  );
-}
-
 function SectionLabel({ children }: { children: React.ReactNode }) {
   const { currentTheme } = useTheme();
   return <Text style={[styles.sectionLabel, { color: currentTheme.colors.text }]}>{children}</Text>;
@@ -889,19 +839,22 @@ const styles = StyleSheet.create({
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
 
-  nextGoal: {
+  nextWrap: { marginTop: 12 },
+  nextFaceFrame: {
+    width: '100%',
+    height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderRadius: 12,
     borderWidth: 1,
     padding: 12,
-    marginTop: 12,
   },
   nextIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   nextTitle: { fontSize: 15, fontWeight: '600', marginTop: 1, marginBottom: 6 },
+  nextBackDesc: { fontSize: 12, opacity: 0.6, marginTop: 4, lineHeight: 16 },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
   nextCount: { fontSize: 13, fontWeight: '700', opacity: 0.6 },

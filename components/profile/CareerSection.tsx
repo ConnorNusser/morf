@@ -1,5 +1,7 @@
+import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
+import FlipCard from '@/components/gamification/FlipCard';
 import ProfileIconPicker from '@/components/gamification/ProfileIconPicker';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
@@ -7,7 +9,7 @@ import { summarizeAchievements } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { storageService } from '@/lib/storage/storage';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { emblemForAchievement, iconUnlockContext, newlyUnlockedEmblems, profileIconName } from '@/lib/gamification/profileIcons';
+import { iconUnlockContext, profileIconName } from '@/lib/gamification/profileIcons';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,7 +46,6 @@ export default function CareerSection() {
   const open = () => setShowModal(true);
 
   const band = getTierBandProgress(data.overall);
-  const newEmblems = newlyUnlockedEmblems(data.newIds);
   const streakActive = data.stats.currentStreak > 0;
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
@@ -54,7 +55,6 @@ export default function CareerSection() {
   ];
 
   const { nextUp, unlockedCount, total } = summarizeAchievements(data.achievements);
-  const nextEmblem = nextUp ? emblemForAchievement(nextUp.id) : null;
 
   // Consistency strip: the last 8 weeks, with a count so it reads on its own.
   const recentWeeks = data.heatmap.weeks.slice(-8);
@@ -96,16 +96,17 @@ export default function CareerSection() {
               <View style={[styles.heroRankBadge, { backgroundColor: color, borderColor: currentTheme.colors.surface }]}>
                 <Text style={styles.heroRankText}>{data.tier}</Text>
               </View>
-              {newEmblems.length > 0 && (
-                <View style={[styles.emblemNewDot, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.surface }]} />
-              )}
             </TouchableOpacity>
             <View style={styles.heroRight}>
               <Text style={[styles.axisLabel, { color }]}>STRENGTH</Text>
-              <Text style={[styles.percentile, { color: currentTheme.colors.text }]}>
-                {data.overall}
+              <View style={styles.percentileRow}>
+                <AnimatedCount
+                  value={data.overall}
+                  duration={1100}
+                  style={[styles.percentile, { color: currentTheme.colors.text }]}
+                />
                 <Text style={[styles.percentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
-              </Text>
+              </View>
               <View style={[styles.track, { backgroundColor: currentTheme.colors.border }]}>
                 <View style={[styles.fill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
               </View>
@@ -164,31 +165,39 @@ export default function CareerSection() {
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
 
-          {/* Next goal */}
+          {/* Next goal — tap to flip for what it takes */}
           {nextUp && (
-            <View style={styles.nextGoal}>
-              <View style={styles.nextBody}>
-                <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
-                  NEXT · {nextUp.title}
-                </Text>
-                {nextEmblem && (
-                  <View style={styles.nextEmblemRow}>
-                    <Ionicons name={nextEmblem.icon as keyof typeof Ionicons.glyphMap} size={11} color={currentTheme.colors.primary} />
-                    <Text style={[styles.nextEmblemText, { color: currentTheme.colors.primary }]} numberOfLines={1}>
-                      Earns the {nextEmblem.label} emblem
+            <FlipCard
+              height={48}
+              style={styles.nextWrap}
+              front={
+                <View style={styles.nextGoalFace}>
+                  <View style={styles.nextBody}>
+                    <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                      NEXT · {nextUp.title}
                     </Text>
+                    <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
+                      <View
+                        style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
+                      />
+                    </View>
                   </View>
-                )}
-                <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
-                  <View
-                    style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
-                  />
+                  <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+                    {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
+                  </Text>
                 </View>
-              </View>
-              <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
-                {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
-              </Text>
-            </View>
+              }
+              back={
+                <View style={styles.nextGoalBack}>
+                  <Text style={[styles.nextBackText, { color: currentTheme.colors.text }]} numberOfLines={2}>
+                    {nextUp.description}
+                  </Text>
+                  <Text style={[styles.nextBackPct, { color: currentTheme.colors.primary }]}>
+                    {Math.round(nextUp.progress * 100)}%
+                  </Text>
+                </View>
+              }
+            />
           )}
 
           {/* Achievements — collection count; the full grid lives in the modal */}
@@ -241,6 +250,7 @@ const styles = StyleSheet.create({
   emblemNewDot: { position: 'absolute', top: -3, right: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2 },
   heroRankText: { fontSize: 11, fontWeight: '800', color: '#fff' },
   heroRight: { flex: 1 },
+  percentileRow: { flexDirection: 'row', alignItems: 'baseline' },
   percentile: { fontSize: 18, fontWeight: '700' },
   percentileLabel: { fontSize: 13, fontWeight: '400', opacity: 0.5 },
   track: { height: 6, borderRadius: 3, overflow: 'hidden', marginTop: 8 },
@@ -261,11 +271,13 @@ const styles = StyleSheet.create({
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
 
-  nextGoal: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextWrap: { width: '100%' },
+  nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextGoalBack: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 12, fontWeight: '600', marginBottom: 5 },
-  nextEmblemRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: -2, marginBottom: 6 },
-  nextEmblemText: { fontSize: 10, fontWeight: '600', flex: 1 },
+  nextBackText: { flex: 1, fontSize: 12, opacity: 0.7, lineHeight: 16 },
+  nextBackPct: { fontSize: 14, fontWeight: '700' },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
   nextCount: { fontSize: 12, fontWeight: '700', opacity: 0.6 },
