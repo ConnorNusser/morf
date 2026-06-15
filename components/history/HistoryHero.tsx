@@ -1,9 +1,12 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, StyleSheet, View as RNView } from 'react-native';
+import { getNextTierInfo, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
+import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
+import { userService } from '@/lib/services/userService';
+import { storageService } from '@/lib/storage/storage';
+import { calculateOverallPercentile } from '@/lib/utils/utils';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View as RNView } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -13,84 +16,64 @@ import Animated, {
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Line, Path } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const PAGE_PADDING = 20; // matches history.tsx scrollContent
-const CARD_PADDING = 18;
-const RECENT_DAYS = 28; // "last 4 weeks"
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const MOVE_THRESHOLD = 1.5; // % change before a lift counts as climbing/slipping
-const MAX_ROWS = 5;
-const DELTA_CLAMP = 12; // % change that reaches the top/bottom of the chart
+const RING = 112;
+const STROKE = 9;
+const R = (RING - STROKE) / 2;
+const CIRC = 2 * Math.PI * R;
 
-const CHART_H = 122;
-const UP = '#34C759';
-const DOWN = '#FF3B30';
+// Base-tier → the word the app already uses for it (see TierBadge tooltips).
+const TIER_NAME: Record<string, string> = {
+  S: 'Elite',
+  A: 'Advanced',
+  B: 'Intermediate',
+  C: 'Developing',
+  D: 'Novice',
+  E: 'Beginner',
+};
 
-type Trend = 'climbing' | 'holding' | 'slipping';
-
-interface PulseLift {
-  name: string;
-  trend: Trend;
-  deltaPct: number;
-  recentSessions: number;
-}
-
-interface HistoryHeroProps {
-  /** Per-exercise rollups (history + estimated 1RM), from the parent. */
-  exerciseStats: ExerciseWithMax[];
-  weightUnit: WeightUnit;
+interface RankState {
+  loaded: boolean;
+  hasLifts: boolean;
+  overall: number; // 0-100 overall percentile
 }
 
 // ── data ───────────────────────────────────────────────────────────────────
 
-function useProgressPulse(exerciseStats: ExerciseWithMax[]) {
-  return useMemo(() => {
-    const cutoff = Date.now() - RECENT_DAYS * MS_PER_DAY;
-    const e1rmLbs = (e: { weight: number; reps: number; unit: WeightUnit }) =>
-      OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
-
-    const lifts: PulseLift[] = [];
-    for (const ex of exerciseStats) {
-      if (!ex.history?.length) continue;
-      let recentBest = 0;
-      let priorBest = 0;
-      const recentDays = new Set<string>();
-      for (const h of ex.history) {
-        const t = new Date(h.date).getTime();
-        const r = e1rmLbs(h);
-        if (t >= cutoff) {
-          recentBest = Math.max(recentBest, r);
-          recentDays.add(new Date(h.date).toDateString());
-        } else {
-          priorBest = Math.max(priorBest, r);
-        }
+function useRank(): RankState {
+  const [state, setState] = useState<RankState>({ loaded: false, hasLifts: false, overall: 0 });
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [lifts, filters] = await Promise.all([
+          userService.getAllFeaturedLifts(),
+          storageService.getLiftDisplayFilters(),
+        ]);
+        const visible = lifts.filter(l => !filters.hiddenLiftIds.includes(l.workoutId));
+        const pcts = visible.map(l => l.percentileRanking);
+        const overall = pcts.length ? calculateOverallPercentile(pcts) : 0;
+        if (alive) setState({ loaded: true, hasLifts: visible.length > 0, overall });
+      } catch {
+        if (alive) setState({ loaded: true, hasLifts: false, overall: 0 });
       }
-      if (recentDays.size === 0 || recentBest <= 0) continue; // not trained in window
-
-      let trend: Trend = 'holding';
-      let deltaPct = 0;
-      if (priorBest > 0) {
-        deltaPct = ((recentBest - priorBest) / priorBest) * 100;
-        if (deltaPct >= MOVE_THRESHOLD) trend = 'climbing';
-        else if (deltaPct <= -MOVE_THRESHOLD) trend = 'slipping';
-      }
-      lifts.push({ name: ex.name, trend, deltaPct, recentSessions: recentDays.size });
-    }
-
-    const top = lifts.sort((a, b) => b.recentSessions - a.recentSessions).slice(0, MAX_ROWS);
-    const climbing = top.filter(l => l.trend === 'climbing').length;
-    return { lifts: top, climbing, total: top.length, hasAnyHistory: exerciseStats.some(e => e.history?.length) };
-  }, [exerciseStats]);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return state;
 }
 
 // ── count-up ─────────────────────────────────────────────────────────────────
 
-function useCountUp(target: number, duration = 700, delay = 300) {
+function useCountUp(target: number, run: boolean, duration = 900, delay = 250) {
   const [value, setValue] = useState(0);
   useEffect(() => {
+    if (!run) return;
     let raf = 0;
     let started = 0;
     const ease = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -103,70 +86,59 @@ function useCountUp(target: number, duration = 700, delay = 300) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration, delay]);
+  }, [target, run, duration, delay]);
   return value;
 }
 
-// ── one momentum trail (draws on from the origin) ──────────────────────────────
+// ── ring ───────────────────────────────────────────────────────────────────
 
-function Trail({ d, length, color, delay }: { d: string; length: number; color: string; delay: number }) {
+function RankRing({ progress, color, track }: { progress: number; color: string; track: string }) {
   const p = useSharedValue(0);
   useEffect(() => {
-    p.value = withDelay(delay, withTiming(1, { duration: 820, easing: Easing.out(Easing.cubic) }));
-  }, [p, delay, d]);
-  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: length * (1 - p.value) }));
+    p.value = withDelay(220, withTiming(progress, { duration: 1000, easing: Easing.out(Easing.cubic) }));
+  }, [p, progress]);
+  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: CIRC * (1 - p.value) }));
   return (
-    <AnimatedPath
-      d={d}
-      stroke={color}
-      strokeWidth={2.5}
-      fill="none"
-      strokeLinecap="round"
-      strokeDasharray={length}
-      animatedProps={animatedProps}
-    />
+    <Svg width={RING} height={RING}>
+      <Circle cx={RING / 2} cy={RING / 2} r={R} stroke={track} strokeWidth={STROKE} fill="none" />
+      <AnimatedCircle
+        cx={RING / 2}
+        cy={RING / 2}
+        r={R}
+        stroke={color}
+        strokeWidth={STROKE}
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray={CIRC}
+        animatedProps={animatedProps}
+        transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+      />
+    </Svg>
   );
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const trendColor = (t: Trend, neutral: string) => (t === 'climbing' ? UP : t === 'slipping' ? DOWN : neutral);
-
-export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroProps) {
+export default function HistoryHero() {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
 
-  const { lifts, climbing, total, hasAnyHistory } = useProgressPulse(exerciseStats);
-  const climbingCount = Math.round(useCountUp(climbing));
+  const { loaded, hasLifts, overall } = useRank();
+  const ranked = loaded && hasLifts && overall > 0;
 
-  const chartW = Dimensions.get('window').width - PAGE_PADDING * 2 - CARD_PADDING * 2;
+  const band = getTierBandProgress(overall);
+  const next = getNextTierInfo(overall);
+  const tier = getStrengthTier(overall);
+  const tierColor = getTierColor(tier);
+  const baseLetter = tier.charAt(0);
+  const subTier = tier.slice(1);
+  const tierName = TIER_NAME[baseLetter] ?? '';
 
-  // Lay out each lift as a trail from a shared left origin (4 weeks ago, neutral)
-  // to the right, rising/falling by its % change. Endpoints are relaxed apart so
-  // labels never collide, while sign + color still read as climbing/slipping.
-  const layout = useMemo(() => {
-    const originX = 3;
-    const endX = chartW * 0.6;
-    const midY = CHART_H / 2;
-    const amp = CHART_H / 2 - 16;
-    const yOf = (d: number) => midY - (Math.max(-DELTA_CLAMP, Math.min(DELTA_CLAMP, d)) / DELTA_CLAMP) * amp;
+  const pctVal = Math.round(useCountUp(overall, ranked));
 
-    const pts = lifts.map(l => ({ l, y: yOf(l.deltaPct) })).sort((a, b) => a.y - b.y);
-    const gap = 23;
-    for (let i = 1; i < pts.length; i++) {
-      if (pts[i].y - pts[i - 1].y < gap) pts[i].y = pts[i - 1].y + gap;
-    }
-    const overflow = pts.length ? pts[pts.length - 1].y - (CHART_H - 10) : 0;
-    if (overflow > 0) pts.forEach(p => (p.y -= overflow));
-    pts.forEach(p => (p.y = Math.max(10, p.y)));
-
-    const cx = originX + (endX - originX) * 0.55;
-    return pts.map(({ l, y }) => {
-      const d = `M ${originX} ${midY} C ${cx} ${midY}, ${cx} ${y}, ${endX} ${y}`;
-      const length = Math.hypot(endX - originX, y - midY) * 1.25 + 40;
-      return { lift: l, y, endX, d, length };
-    });
-  }, [lifts, chartW]);
+  if (!loaded) {
+    return <RNView style={[styles.card, styles.placeholder, { borderRadius: currentTheme.borderRadius, backgroundColor: colors.surface, borderColor: colors.border }]} />;
+  }
 
   return (
     <Animated.View
@@ -177,72 +149,54 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
       ]}
     >
       <RNView style={styles.header}>
-        <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Progress</Text>
-        <Text style={[styles.kickerSub, { color: colors.text + '55', fontFamily: fonts.medium }]}>vs 4 weeks ago</Text>
+        <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength rank</Text>
+        {ranked && (
+          <Text style={[styles.kickerSub, { color: colors.text + '55', fontFamily: fonts.medium }]}>
+            across your main lifts
+          </Text>
+        )}
       </RNView>
 
-      {total > 0 ? (
-        <>
-          <RNView style={{ height: CHART_H }}>
-            <Svg width={chartW} height={CHART_H} style={StyleSheet.absoluteFill}>
-              {/* no-change reference line */}
-              <Line
-                x1={3}
-                y1={CHART_H / 2}
-                x2={chartW * 0.6}
-                y2={CHART_H / 2}
-                stroke={colors.text + '14'}
-                strokeWidth={1}
-                strokeDasharray="3 4"
-              />
-              {layout.map((t, i) => (
-                <Trail key={t.lift.name} d={t.d} length={t.length} color={trendColor(t.lift.trend, colors.text + '55')} delay={180 + i * 90} />
-              ))}
-            </Svg>
-
-            {/* origin node — where every trail starts */}
-            <RNView style={[styles.origin, { top: CHART_H / 2 - 4, backgroundColor: colors.text + '40' }]} />
-
-            {/* endpoint dots + labels */}
-            {layout.map((t, i) => {
-              const color = trendColor(t.lift.trend, colors.text + '70');
-              return (
-                <React.Fragment key={t.lift.name}>
-                  <Animated.View
-                    entering={FadeIn.delay(560 + i * 90).duration(320)}
-                    style={[styles.dot, { left: t.endX - 4, top: t.y - 4, backgroundColor: color }]}
-                  />
-                  <Animated.View
-                    entering={FadeIn.delay(620 + i * 90).duration(320)}
-                    style={[styles.label, { left: t.endX + 10, top: t.y - 9, maxWidth: chartW - t.endX - 12 }]}
-                  >
-                    <Text numberOfLines={1} style={[styles.labelName, { color: colors.text + 'DD', fontFamily: fonts.medium }]}>
-                      {t.lift.name}
-                    </Text>
-                    {t.lift.trend !== 'holding' && (
-                      <Text style={[styles.labelDelta, { color, fontFamily: fonts.bold }]}>
-                        {t.lift.deltaPct > 0 ? '+' : ''}{Math.round(t.lift.deltaPct)}%
-                      </Text>
-                    )}
-                  </Animated.View>
-                </React.Fragment>
-              );
-            })}
+      {ranked ? (
+        <RNView style={styles.body}>
+          <RNView style={[styles.ringWrap, { shadowColor: tierColor }]}>
+            <RankRing progress={band.progress} color={tierColor} track={colors.text + '12'} />
+            <Animated.View entering={FadeIn.delay(320).duration(420)} style={StyleSheet.absoluteFill}>
+              <RNView style={styles.ringCenter}>
+                <RNView style={styles.tierRow}>
+                  <Text style={[styles.tierLetter, { color: tierColor, fontFamily: fonts.bold }]}>{baseLetter}</Text>
+                  {!!subTier && (
+                    <Text style={[styles.tierSub, { color: tierColor, fontFamily: fonts.bold }]}>{subTier}</Text>
+                  )}
+                </RNView>
+                <Text style={[styles.tierPct, { color: colors.text + '99', fontFamily: fonts.medium }]}>{pctVal}th %ile</Text>
+              </RNView>
+            </Animated.View>
           </RNView>
 
-          <Text style={[styles.summary, { color: colors.text + '99', fontFamily: fonts.medium }]}>
-            <Text style={[styles.summaryNum, { color: climbing > 0 ? UP : colors.text + '99', fontFamily: fonts.bold }]}>
-              {climbingCount}
+          <Animated.View entering={FadeInDown.delay(360).duration(420)} style={styles.info}>
+            <Text style={[styles.tierName, { color: colors.text, fontFamily: fonts.bold }]}>{tierName}</Text>
+            <Text style={[styles.tierGrade, { color: tierColor, fontFamily: fonts.semiBold }]}>
+              {tier} tier
             </Text>
-            {` of ${total} lift${total === 1 ? '' : 's'} trending up`}
-          </Text>
-        </>
+            <RNView style={[styles.toNext, { borderTopColor: colors.border }]}>
+              {next.next ? (
+                <Text style={[styles.toNextText, { color: colors.text + 'B0', fontFamily: fonts.medium }]}>
+                  <Text style={{ color: tierColor, fontFamily: fonts.bold }}>+{Math.max(1, next.needed)}%</Text>
+                  {` to ${next.next} tier`}
+                </Text>
+              ) : (
+                <Text style={[styles.toNextText, { color: tierColor, fontFamily: fonts.semiBold }]}>Top tier reached</Text>
+              )}
+            </RNView>
+          </Animated.View>
+        </RNView>
       ) : (
         <RNView style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
-            {hasAnyHistory
-              ? 'No lifts trained in the last 4 weeks — log a session to see your momentum.'
-              : 'Log a few weighted sets and your lifts’ momentum will show up here.'}
+            {hasLifts
+              ? 'Add your bodyweight in your profile to rank your lifts.'
+              : 'Log your main lifts to unlock your strength rank.'}
           </Text>
         </RNView>
       )}
@@ -253,44 +207,49 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
 const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
-    padding: CARD_PADDING,
+    padding: 18,
     marginBottom: 16,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
+  placeholder: { height: 168, opacity: 0.5 },
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   kicker: { fontSize: 13, letterSpacing: 0.2 },
   kickerSub: { fontSize: 11, letterSpacing: 0.3 },
-  origin: {
-    position: 'absolute',
-    left: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  dot: {
-    position: 'absolute',
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  label: {
-    position: 'absolute',
+  body: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 20,
   },
-  labelName: { fontSize: 13, letterSpacing: -0.1, flexShrink: 1 },
-  labelDelta: { fontSize: 12, letterSpacing: 0 },
-  summary: { fontSize: 13, letterSpacing: 0.1, marginTop: 16 },
-  summaryNum: { fontSize: 14 },
-  empty: { paddingVertical: 20, alignItems: 'center' },
+  ringWrap: {
+    width: RING,
+    height: RING,
+    // soft tier-colored glow
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+  },
+  ringCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  tierRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  tierLetter: { fontSize: 44, letterSpacing: -1, lineHeight: 48 },
+  tierSub: { fontSize: 18, letterSpacing: -0.5, marginTop: 4, marginLeft: 1 },
+  tierPct: { fontSize: 11, letterSpacing: 0.2, marginTop: 1 },
+  info: { flex: 1 },
+  tierName: { fontSize: 22, letterSpacing: -0.3 },
+  tierGrade: { fontSize: 13, letterSpacing: 0.3, marginTop: 1 },
+  toNext: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  toNextText: { fontSize: 13, letterSpacing: 0.1 },
+  empty: { paddingVertical: 22, alignItems: 'center' },
   emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
 });

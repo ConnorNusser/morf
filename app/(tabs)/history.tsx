@@ -431,10 +431,7 @@ export default function HistoryScreen() {
           <>
             {/* Animated momentum hero */}
             {workouts.length > 0 && (
-              <HistoryHero
-                exerciseStats={exerciseStats}
-                weightUnit={weightUnit}
-              />
+              <HistoryHero />
             )}
 
             {/* Weekly Overview */}
