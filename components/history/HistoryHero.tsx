@@ -9,11 +9,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, View as RNView } from 'react-native';
 import Animated, {
   Easing,
-  FadeIn,
   FadeInDown,
   interpolate,
-  SlideInLeft,
-  SlideInRight,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -24,42 +21,21 @@ import Animated, {
 const PAGE_PADDING = 20; // matches history.tsx scrollContent
 const HERO_PADDING = 18;
 const HERO_HEIGHT = 212;
-const RACK_HEIGHT = 96;
-const PR_WINDOW_DAYS = 30; // "recent" PR window
+const PR_WINDOW_DAYS = 30;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Plate loading order is heaviest-first (loads from the collar inward, like real
-// life), capped so a monster lift still fits the bar.
-const BAR_WEIGHT: Record<WeightUnit, number> = { lbs: 45, kg: 20 };
-const PLATE_SIZES: Record<WeightUnit, number[]> = {
-  lbs: [45, 35, 25, 10, 5, 2.5],
-  kg: [25, 20, 15, 10, 5, 2.5, 1.25],
-};
-const MAX_PLATES_PER_SIDE = 6;
+// Split-flap character sets — tiles riffle forward through these to their target,
+// the way a real departure board scrolls through the alphabet.
+const ALPHA_SET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-./'";
+const DIGIT_SET = ' 0123456789';
+const FLAP_STEP_MS = 58; // time per intermediate character
+const FLAP_COL_STAGGER = 55; // ripple delay between columns
+const CYCLE_MS = 3800; // how long each record holds before flipping to the next
 
-// Color-coded like competition bumper plates — lifters read these at a glance,
-// which is what keeps it from feeling like a generic chart. Height/width scale
-// with the denomination so the stack has real heft.
-interface PlateLook { h: number; w: number; color: string }
-const PLATE_LOOK: Record<WeightUnit, Record<number, PlateLook>> = {
-  lbs: {
-    45: { h: 74, w: 13, color: '#3B5BDB' },
-    35: { h: 66, w: 12, color: '#F2B705' },
-    25: { h: 56, w: 11, color: '#2F9E44' },
-    10: { h: 44, w: 10, color: '#E8590C' },
-    5: { h: 36, w: 9, color: '#E03131' },
-    2.5: { h: 30, w: 8, color: '#ADB5BD' },
-  },
-  kg: {
-    25: { h: 74, w: 13, color: '#E03131' },
-    20: { h: 68, w: 12, color: '#3B5BDB' },
-    15: { h: 60, w: 11, color: '#F2B705' },
-    10: { h: 50, w: 10, color: '#2F9E44' },
-    5: { h: 40, w: 9, color: '#E9ECEF' },
-    2.5: { h: 32, w: 8, color: '#868E96' },
-    1.25: { h: 28, w: 7, color: '#ADB5BD' },
-  },
-};
+// Board geometry (dark "device" tiles, theme-independent — that's its identity).
+const NAME_COLS_MIN = 5;
+const NAME_COLS_MAX = 10;
+const TILE = { board: '#0D0E11', text: '#F4F1E8', seam: '#00000088' };
 
 interface HistoryHeroProps {
   /** Per-exercise rollups (history + estimated 1RM), from the parent. */
@@ -69,7 +45,6 @@ interface HistoryHeroProps {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// Perceived luminance of a #rrggbb color → pick blur tint / overlay polarity.
 const isDarkColor = (hex: string) => {
   const m = hex.replace('#', '');
   if (m.length < 6) return false;
@@ -79,38 +54,21 @@ const isDarkColor = (hex: string) => {
   return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 };
 
-// Greedy plate breakdown for one side of the bar, heaviest-first.
-function platesForSide(total: number, unit: WeightUnit): number[] {
-  const bar = BAR_WEIGHT[unit];
-  let perSide = Math.max(0, (total - bar) / 2);
-  const out: number[] = [];
-  for (const s of PLATE_SIZES[unit]) {
-    while (perSide >= s - 1e-6 && out.length < MAX_PLATES_PER_SIDE) {
-      out.push(s);
-      perSide -= s;
-    }
+// Forward-walk (wrapping) the character set from `from` to `to`, returning each
+// character passed through — the riffle sequence for one tile.
+function flapSequence(from: string, to: string, set: string): string[] {
+  const a = Math.max(0, set.indexOf(from));
+  const b = set.indexOf(to);
+  if (b < 0) return [to]; // off-set char: just land on it
+  const out: string[] = [];
+  let i = a;
+  let guard = 0;
+  while (i !== b && guard < set.length) {
+    i = (i + 1) % set.length;
+    out.push(set[i]);
+    guard++;
   }
-  return out;
-}
-
-// requestAnimationFrame count-up with an ease-out cubic. Runs once per target.
-function useCountUp(target: number, duration = 1300) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    let raf = 0;
-    let start = 0;
-    const ease = (t: number) => 1 - Math.pow(1 - t, 3);
-    const tick = (ts: number) => {
-      if (!start) start = ts;
-      const p = Math.min(1, (ts - start) / duration);
-      setValue(target * ease(p));
-      if (p < 1) raf = requestAnimationFrame(tick);
-      else setValue(target);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
-  return value;
+  return out.length ? out : [to];
 }
 
 // ── drifting aurora blob ─────────────────────────────────────────────────────
@@ -156,20 +114,18 @@ function AuroraBlob({ size, colors, from, to, duration, delay }: BlobProps) {
   );
 }
 
-// ── lift / PR derivation ──────────────────────────────────────────────────────
+// ── records to flip through ────────────────────────────────────────────────────
 
-// The headline lift: the one that hit a fresh estimated-1RM best in the last 30
-// days with the biggest jump; otherwise the heaviest lift on record. e1RM is the
-// right number to "put on the bar" — it's what you could theoretically rack.
-function useHeadlineLift(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit) {
+interface FlipRecord { name: string; weight: number; gain: number; isPR: boolean }
+
+function useFlipRecords(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit) {
   return useMemo(() => {
     const cutoff = Date.now() - PR_WINDOW_DAYS * MS_PER_DAY;
     const e1rmLbs = (e: { weight: number; reps: number; unit: WeightUnit }) =>
       OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
     const toUnit = (lbs: number) => (weightUnit === 'kg' ? convertWeight(lbs, 'lbs', 'kg') : lbs);
 
-    type Lift = { name: string; weight: number; prev: number; isPR: boolean };
-    const lifts: Lift[] = [];
+    const lifts: FlipRecord[] = [];
     for (const ex of exerciseStats) {
       if (!ex.history?.length) continue;
       let bestRecent: number | null = null;
@@ -182,56 +138,79 @@ function useHeadlineLift(exerciseStats: ExerciseWithMax[], weightUnit: WeightUni
       const bestLbs = Math.max(bestRecent ?? 0, bestPrior ?? 0);
       if (bestLbs <= 0) continue;
       const isPR = bestRecent != null && (bestPrior == null || bestRecent > bestPrior + 1);
-      lifts.push({
-        name: ex.name,
-        weight: Math.round(toUnit(bestLbs)),
-        prev: bestPrior != null ? Math.round(toUnit(bestPrior)) : 0,
-        isPR,
-      });
+      const weight = Math.round(toUnit(bestLbs));
+      const prev = bestPrior != null ? Math.round(toUnit(bestPrior)) : 0;
+      lifts.push({ name: ex.name, weight, gain: isPR ? weight - prev : 0, isPR });
     }
 
-    const prs = lifts.filter(l => l.isPR).sort((a, b) => (b.weight - b.prev) - (a.weight - a.prev));
+    const prs = lifts.filter(l => l.isPR).sort((a, b) => b.gain - a.gain);
     const heaviest = [...lifts].sort((a, b) => b.weight - a.weight);
-    const headline = prs[0] ?? heaviest[0] ?? null;
-    return { headline, prCount: prs.length, hasLifts: lifts.length > 0 };
+    const records = (prs.length ? prs : heaviest).slice(0, 4);
+    return { records, hasPRs: prs.length > 0, hasLifts: lifts.length > 0 };
   }, [exerciseStats, weightUnit]);
 }
 
-// ── one weight plate ───────────────────────────────────────────────────────────
+// ── one split-flap tile ────────────────────────────────────────────────────────
 
-function Plate({
-  look,
-  side,
-  loadIndex,
-  dark,
+function FlapTile({
+  target,
+  delay,
+  set,
+  width,
+  height,
+  fontSize,
+  fontFamily,
+  onLand,
 }: {
-  look: PlateLook;
-  side: 'left' | 'right';
-  loadIndex: number; // 0 = heaviest, loaded first
-  dark: boolean;
+  target: string;
+  delay: number;
+  set: string;
+  width: number;
+  height: number;
+  fontSize: number;
+  fontFamily: string;
+  onLand?: () => void;
 }) {
-  const entering = (side === 'left' ? SlideInLeft : SlideInRight)
-    .delay(340 + loadIndex * 120)
-    .springify()
-    .damping(15)
-    .stiffness(150)
-    .mass(0.7);
+  const [ch, setCh] = useState(' ');
+  const flip = useSharedValue(1);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    setCh(prev => {
+      const seq = flapSequence(prev, target, set);
+      seq.forEach((c, i) => {
+        timers.push(
+          setTimeout(() => {
+            if (cancelled) return;
+            setCh(c);
+            flip.value = 0;
+            flip.value = withTiming(1, { duration: 60, easing: Easing.out(Easing.quad) });
+            if (i === seq.length - 1) onLand?.();
+          }, delay + i * FLAP_STEP_MS)
+        );
+      });
+      return prev;
+    });
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
+
+  const charStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 220 }, { rotateX: `${interpolate(flip.value, [0, 1], [-82, 0])}deg` }],
+    opacity: interpolate(flip.value, [0, 1], [0.35, 1]),
+  }));
+
   return (
-    <Animated.View
-      entering={entering}
-      style={[
-        styles.plate,
-        {
-          width: look.w,
-          height: look.h,
-          backgroundColor: look.color,
-          borderColor: dark ? '#FFFFFF30' : '#00000020',
-        },
-      ]}
-    >
-      {/* glossy top edge so the plate reads as solid, not a flat rectangle */}
-      <RNView style={[styles.plateSheen, { backgroundColor: dark ? '#FFFFFF38' : '#FFFFFF55' }]} />
-    </Animated.View>
+    <RNView style={[styles.tile, { width, height }]}>
+      <Animated.Text style={[styles.tileChar, { fontSize, fontFamily, color: TILE.text }, charStyle]}>
+        {ch === ' ' ? '' : ch}
+      </Animated.Text>
+      <RNView pointerEvents="none" style={styles.seam} />
+    </RNView>
   );
 }
 
@@ -244,16 +223,44 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
 
   const heroWidth = Dimensions.get('window').width - PAGE_PADDING * 2;
 
-  const { headline, prCount, hasLifts } = useHeadlineLift(exerciseStats, weightUnit);
-  const weight = headline?.weight ?? 0;
-  const plates = useMemo(() => platesForSide(weight, weightUnit), [weight, weightUnit]);
-  const gain = headline?.isPR ? headline.weight - headline.prev : 0;
-  const weightVal = useCountUp(weight);
+  const { records, hasLifts } = useFlipRecords(exerciseStats, weightUnit);
+  const cards: FlipRecord[] = useMemo(
+    () => (records.length ? records : [{ name: hasLifts ? 'TOP LIFT' : 'GET LIFTING', weight: 0, gain: 0, isPR: false }]),
+    [records, hasLifts]
+  );
 
-  // Right sleeve loads heaviest→outward; left mirrors it. Track each plate's
-  // load order so both sides clink on in sync.
-  const rightPlates = plates.map((size, i) => ({ size, loadIndex: i }));
-  const leftPlates = [...rightPlates].reverse();
+  // Cycle through the records on a timer (only if there's more than one).
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (cards.length < 2) return;
+    const id = setInterval(() => setPage(p => (p + 1) % cards.length), CYCLE_MS);
+    return () => clearInterval(id);
+  }, [cards.length]);
+  const current = cards[Math.min(page, cards.length - 1)];
+
+  // Fixed board width so the flaps stay aligned as records cycle.
+  const nameCols = useMemo(
+    () => Math.min(NAME_COLS_MAX, Math.max(NAME_COLS_MIN, ...cards.map(c => c.name.length))),
+    [cards]
+  );
+  const weightCols = useMemo(
+    () => Math.max(3, ...cards.map(c => String(c.weight).length)),
+    [cards]
+  );
+
+  const nameStr = current.name.toUpperCase().slice(0, nameCols).padEnd(nameCols, ' ');
+  const weightStr = String(current.weight).padStart(weightCols, ' ');
+
+  // Clink as the weight flaps settle (native only). Re-fires each time the board flips.
+  useEffect(() => {
+    if (Platform.OS === 'web' || current.weight <= 0) return;
+    const timers = Array.from({ length: weightCols }, (_, i) =>
+      setTimeout(() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }, 300 + i * FLAP_COL_STAGGER)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [current.name, current.weight, weightCols]);
 
   // Horizontal shimmer sweep across the whole hero.
   const shimmer = useSharedValue(0);
@@ -265,28 +272,19 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
       { translateX: interpolate(shimmer.value, [0, 1], [-heroWidth, heroWidth]) },
       { rotateZ: '18deg' },
     ],
-    opacity: interpolate(shimmer.value, [0, 0.5, 1], [0, 0.55, 0]),
+    opacity: interpolate(shimmer.value, [0, 0.5, 1], [0, 0.45, 0]),
   }));
 
-  // Clink a haptic as each plate seats, timed to the slide-on stagger. Heaviest
-  // plate lands with a meatier thud.
-  useEffect(() => {
-    if (Platform.OS === 'web') return;
-    const timers = plates.map((_, i) =>
-      setTimeout(() => {
-        Haptics.impactAsync(
-          i === 0 ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light
-        ).catch(() => {});
-      }, 340 + i * 120 + 180)
-    );
-    return () => timers.forEach(clearTimeout);
-  }, [plates]);
+  const nameTileW = 22;
+  const nameTileH = 30;
+  const weightTileW = 38;
+  const weightTileH = 56;
 
-  const subtitle = !hasLifts
-    ? 'Log a weighted set and load up the bar'
-    : gain > 0
-      ? `+${gain} ${weightUnit} since last month${prCount > 1 ? ` · ${prCount} PRs` : ''}`
-      : 'your heaviest estimated 1RM';
+  const caption = !hasLifts
+    ? 'log a weighted set'
+    : current.isPR && current.gain > 0
+      ? `NEW PR · +${current.gain} ${weightUnit}`
+      : 'estimated 1RM';
 
   return (
     <Animated.View
@@ -324,21 +322,18 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
         />
       </RNView>
 
-      {/* smear the blobs into an aurora */}
       <BlurView
         intensity={Platform.OS === 'android' ? 28 : 36}
         tint={dark ? 'dark' : 'light'}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      {/* contrast scrim — subtle darken/lighten toward the bottom for legibility */}
       <LinearGradient
         pointerEvents="none"
         colors={[colors.surface + '00', colors.surface + (dark ? '55' : '7A')]}
         style={StyleSheet.absoluteFill}
       />
 
-      {/* shimmer sweep */}
       <RNView style={StyleSheet.absoluteFill} pointerEvents="none">
         <Animated.View style={[styles.shimmer, { width: heroWidth * 0.4 }, shimmerStyle]}>
           <LinearGradient
@@ -350,53 +345,68 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
         </Animated.View>
       </RNView>
 
-      {/* content */}
+      {/* split-flap board */}
       <RNView style={styles.content}>
-        {/* the barbell */}
-        <RNView style={styles.rack}>
-          {/* steel bar behind the plates (rounded ends = sleeves) */}
-          <LinearGradient
-            pointerEvents="none"
-            colors={dark ? ['#CED4DA', '#868E96', '#495057'] : ['#F1F3F5', '#ADB5BD', '#868E96']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.bar}
-          />
-          <RNView style={styles.platesRow}>
-            <RNView style={styles.group}>
-              {leftPlates.map((p, i) => (
-                <Plate key={`l-${i}`} look={PLATE_LOOK[weightUnit][p.size]} side="left" loadIndex={p.loadIndex} dark={dark} />
-              ))}
-            </RNView>
-            {/* bare knurled grip in the middle */}
-            <RNView style={styles.grip} />
-            <RNView style={styles.group}>
-              {rightPlates.map((p, i) => (
-                <Plate key={`r-${i}`} look={PLATE_LOOK[weightUnit][p.size]} side="right" loadIndex={p.loadIndex} dark={dark} />
-              ))}
-            </RNView>
+        <RNView style={styles.boardWrap}>
+          {/* lift name row */}
+          <RNView style={styles.flapRow}>
+            {nameStr.split('').map((c, i) => (
+              <FlapTile
+                key={`n-${i}`}
+                target={c}
+                delay={i * FLAP_COL_STAGGER}
+                set={ALPHA_SET}
+                width={nameTileW}
+                height={nameTileH}
+                fontSize={16}
+                fontFamily={fonts.bold}
+              />
+            ))}
+          </RNView>
+
+          {/* weight row */}
+          <RNView style={styles.flapRow}>
+            {weightStr.split('').map((c, i) => (
+              <FlapTile
+                key={`w-${i}`}
+                target={c}
+                delay={300 + i * FLAP_COL_STAGGER}
+                set={DIGIT_SET}
+                width={weightTileW}
+                height={weightTileH}
+                fontSize={36}
+                fontFamily={fonts.bold}
+              />
+            ))}
+            <Text style={[styles.unit, { color: colors.text + '90', fontFamily: fonts.semiBold }]}>{weightUnit}</Text>
           </RNView>
         </RNView>
 
-        {/* readout */}
-        <Animated.View entering={FadeIn.delay(500).duration(500)} style={styles.readout}>
-          <RNView style={styles.readoutLine}>
-            {headline ? (
-              <Text numberOfLines={1} style={[styles.liftName, { color: colors.text + 'C0', fontFamily: fonts.semiBold }]}>
-                {headline.name.toUpperCase()}
-              </Text>
-            ) : (
-              <Text style={[styles.liftName, { color: colors.text + 'C0', fontFamily: fonts.semiBold }]}>EMPTY BAR</Text>
-            )}
-            <Text style={[styles.weight, { color: colors.text, fontFamily: fonts.bold }]}>
-              {Math.round(weightVal)}
-              <Text style={[styles.weightUnit, { color: colors.text + '80', fontFamily: fonts.medium }]}> {weightUnit}</Text>
-            </Text>
-          </RNView>
-          <Text numberOfLines={1} style={[styles.subtitle, { color: gain > 0 ? colors.primary : colors.text + '80', fontFamily: fonts.medium }]}>
-            {subtitle}
+        {/* caption + page dots */}
+        <RNView style={styles.captionRow}>
+          <Text
+            numberOfLines={1}
+            style={[
+              styles.caption,
+              { color: current.isPR && current.gain > 0 ? colors.primary : colors.text + '80', fontFamily: fonts.semiBold },
+            ]}
+          >
+            {caption}
           </Text>
-        </Animated.View>
+          {cards.length > 1 && (
+            <RNView style={styles.dots}>
+              {cards.map((_, i) => (
+                <RNView
+                  key={i}
+                  style={[
+                    styles.dot,
+                    { backgroundColor: i === page ? colors.primary : colors.text + '30' },
+                  ]}
+                />
+              ))}
+            </RNView>
+          )}
+        </RNView>
       </RNView>
     </Animated.View>
   );
@@ -411,55 +421,65 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: HERO_PADDING,
-    justifyContent: 'space-between',
-  },
-  rack: {
-    flex: 1,
     justifyContent: 'center',
-    width: '100%',
+    gap: 14,
   },
-  bar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 6,
-    top: RACK_HEIGHT / 2 - 3,
-    borderRadius: 3,
+  boardWrap: {
+    alignItems: 'center',
+    gap: 8,
   },
-  platesRow: {
+  flapRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: RACK_HEIGHT,
   },
-  group: { flexDirection: 'row', alignItems: 'center' },
-  grip: { width: 48 },
-  plate: {
+  tile: {
     marginHorizontal: 2,
     borderRadius: 4,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: TILE.board,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#FFFFFF14',
   },
-  plateSheen: {
+  tileChar: {
+    letterSpacing: 0.5,
+    includeFontPadding: false,
+    textAlign: 'center',
+  },
+  seam: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
-    height: 5,
-    opacity: 0.7,
+    top: '50%',
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: TILE.seam,
   },
-  readout: {
-    alignItems: 'flex-start',
+  unit: {
+    fontSize: 15,
+    marginLeft: 8,
+    letterSpacing: 0.5,
   },
-  readoutLine: {
+  captionRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
   },
-  liftName: { fontSize: 14, letterSpacing: 2, flex: 1, marginRight: 12 },
-  weight: { fontSize: 30, letterSpacing: -0.5 },
-  weightUnit: { fontSize: 14, letterSpacing: 0 },
-  subtitle: { fontSize: 12, letterSpacing: 0.2, marginTop: 2 },
+  caption: {
+    fontSize: 11.5,
+    letterSpacing: 1,
+  },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
   shimmer: { position: 'absolute', top: -40, bottom: -40, left: 0 },
 });
