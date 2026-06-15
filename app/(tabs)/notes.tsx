@@ -12,7 +12,7 @@ import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { getUpNextRoutine } from '@/lib/workout/activeRoutine';
-import { calculateAllRoutines, getStrengthTrend } from '@/lib/workout/progressiveOverload';
+import { calculateAllRoutines, getExerciseAdherenceStatus, type AdherenceStatus } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
@@ -311,6 +311,16 @@ export default function NotesScreen() {
     }
   };
 
+  // How an exercise reads against the program's own prescription (not est 1RM).
+  const adherenceMeta = (status: AdherenceStatus): { label: string; color: string } => {
+    switch (status) {
+      case 'improving': return { label: 'Improving', color: '#34C759' };
+      case 'easing': return { label: 'Easing back', color: '#FF3B30' };
+      case 'holding': return { label: 'On track', color: currentTheme.colors.text + '70' };
+      default: return { label: 'Not started', color: currentTheme.colors.text + '40' };
+    }
+  };
+
   const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
@@ -446,12 +456,11 @@ export default function NotesScreen() {
             {routine.exercises?.length > 0 && (
               <RNView style={[styles.exerciseList, { borderTopColor: currentTheme.colors.border }]}>
                 {routine.exercises.map((exercise, index) => {
-                  const trend = getStrengthTrend(exercise.exerciseId, workoutHistory, weightUnit);
-                  const trendColor = trend?.direction === 'up' ? '#34C759'
-                    : trend?.direction === 'down' ? '#FF3B30'
-                    : currentTheme.colors.text + '40';
-                  const trendIcon = trend?.direction === 'up' ? 'trending-up'
-                    : trend?.direction === 'down' ? 'trending-down' : 'remove';
+                  // Improving/holding is judged against the program's own
+                  // prescription (rep bonuses, working weight), not est 1RM —
+                  // the routine rarely asks for a true max, so e1RM would
+                  // contradict a lifter who's hitting every prescribed mark.
+                  const adherence = adherenceMeta(getExerciseAdherenceStatus(exercise));
                   return (
                   <RNView
                     key={`${exercise.exerciseId}-${index}`}
@@ -464,19 +473,9 @@ export default function NotesScreen() {
                       <Text weight="regular" style={[styles.exerciseSets, { color: currentTheme.colors.text + '50' }]}>
                         {exercise.sets?.length || 0} sets × {exercise.sets?.[0]?.reps || 0} reps
                       </Text>
-                      {trend && trend.current1RM > 0 && (
-                        <RNView style={styles.trendRow}>
-                          <Ionicons name={trendIcon} size={12} color={trendColor} />
-                          <Text weight="regular" style={[styles.trendText, { color: currentTheme.colors.text + '55' }]}>
-                            {trend.current1RM} {exercise.unit} 1RM
-                          </Text>
-                          {trend.sessions >= 2 && trend.deltaPercent !== 0 && (
-                            <Text weight="semiBold" style={[styles.trendDelta, { color: trendColor }]}>
-                              {trend.deltaPercent > 0 ? '+' : ''}{trend.deltaPercent}%
-                            </Text>
-                          )}
-                        </RNView>
-                      )}
+                      <Text weight="semiBold" style={[styles.adherenceText, { color: adherence.color }]}>
+                        {adherence.label}
+                      </Text>
                     </RNView>
 
                     <RNView style={styles.weightInfo}>
@@ -645,15 +644,24 @@ export default function NotesScreen() {
               const completedThisCycle = isActiveProgram
                 ? days.filter(d => (d.lastUsed ? new Date(d.lastUsed).getTime() : 0) > cycleBaselineMs).length
                 : 0;
-              // Program-level lift momentum: strength trend across every distinct
-              // exercise in the program, summarized once above the day list (one
-              // signal beats a strip on every card).
-              const programExerciseIds = Array.from(
-                new Set(days.flatMap(d => d.exercises?.map(e => e.exerciseId) ?? []))
-              );
-              const programTrends = programExerciseIds.map(id => getStrengthTrend(id, workoutHistory, weightUnit));
-              const programImproving = programTrends.filter(t => t?.direction === 'up').length;
-              const programHasTrend = programTrends.some(Boolean);
+              // Program-level lift momentum: how each distinct exercise is
+              // tracking against the program's prescription (rep bonuses /
+              // working weight), summarized once above the day list. Adherence —
+              // not est 1RM — so the bar agrees with each exercise row.
+              const programExercises = new Map<string, typeof days[number]['exercises'][number]>();
+              for (const d of days) {
+                for (const e of d.exercises ?? []) {
+                  const existing = programExercises.get(e.exerciseId);
+                  // Keep the instance that has been logged, so a lift trained on
+                  // one day isn't shown as "new" because another day hasn't run.
+                  if (!existing || (!existing.lastPerformed && e.lastPerformed)) {
+                    programExercises.set(e.exerciseId, e);
+                  }
+                }
+              }
+              const programStatuses = Array.from(programExercises.values()).map(getExerciseAdherenceStatus);
+              const programImproving = programStatuses.filter(s => s === 'improving').length;
+              const programHasTrend = programStatuses.some(s => s !== 'new');
               return (
                 <RNView key={program.id} style={styles.section}>
                   <TouchableOpacity
@@ -692,21 +700,21 @@ export default function NotesScreen() {
                     )}
                   </TouchableOpacity>
 
-                  {/* Lift momentum — one strength-trend summary for the whole
-                      program, above the days (kept off the cards to avoid clutter). */}
+                  {/* Lift momentum — one adherence summary for the whole program,
+                      above the days (kept off the cards to avoid clutter). */}
                   {isExpanded && programHasTrend && (
                     <RNView style={styles.programMomentum}>
                       <RNView style={styles.momentumBar}>
-                        {programTrends.map((t, i) => {
-                          const segColor = t?.direction === 'up' ? '#34C759'
-                            : t?.direction === 'down' ? '#FF3B30'
-                            : t ? currentTheme.colors.text + '40'   // has data, holding
-                            : currentTheme.colors.text + '15';      // no data yet
+                        {programStatuses.map((s, i) => {
+                          const segColor = s === 'improving' ? '#34C759'
+                            : s === 'easing' ? '#FF3B30'
+                            : s === 'holding' ? currentTheme.colors.text + '40'  // on track, no recent gain
+                            : currentTheme.colors.text + '15';                   // not started yet
                           return <RNView key={i} style={[styles.momentumSeg, { backgroundColor: segColor }]} />;
                         })}
                       </RNView>
                       <Text weight="medium" style={[styles.momentumLabel, { color: currentTheme.colors.text + '66' }]}>
-                        {programImproving} of {programExerciseIds.length} lifts improving
+                        {programImproving} of {programStatuses.length} lifts improving
                       </Text>
                     </RNView>
                   )}

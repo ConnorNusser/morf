@@ -362,3 +362,24 @@ export function getStrengthTrend(
     sessions: sessions.length,
   };
 }
+
+// Whether a routine exercise is progressing *against the program's own
+// prescription* — rep bonuses earned, working weight climbing, or stalling out.
+// This deliberately ignores estimated 1RM: a routine rarely asks for a true max,
+// so raw e1RM bounces with rep/weight selection and reads as "declining" even
+// when the lifter is hitting every prescribed mark. Adherence is the source of
+// truth for "improving"; e1RM is left to the analytics/strength screens.
+//   improving — beating the prescription (rep bonus or weight up)
+//   holding   — meeting it, no recent gain (includes intentional post-deload)
+//   easing    — repeated misses; the program is backing the weight off
+//   new       — never logged, nothing to judge yet
+export type AdherenceStatus = 'improving' | 'holding' | 'easing' | 'new';
+
+export function getExerciseAdherenceStatus(
+  exercise: CalculatedRoutineExercise
+): AdherenceStatus {
+  if (!exercise.lastPerformed) return 'new';
+  if (exercise.progression === 'increase') return 'improving';
+  if (exercise.progression === 'decrease') return 'easing';
+  return 'holding';
+}

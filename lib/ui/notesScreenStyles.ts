@@ -330,19 +330,11 @@ export const styles = StyleSheet.create({
   exerciseSets: {
     fontSize: 12,
   },
-  // Per-exercise strength trend (est 1RM + delta) under the sets line.
-  trendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  // Per-exercise adherence verdict (improving / on track / easing back),
+  // judged against the program's prescription, under the sets line.
+  adherenceText: {
+    fontSize: 11.5,
     marginTop: 3,
-  },
-  trendText: {
-    fontSize: 11.5,
-  },
-  trendDelta: {
-    fontSize: 11.5,
-    fontWeight: '600',
   },
   weightInfo: {
     alignItems: 'flex-end',
