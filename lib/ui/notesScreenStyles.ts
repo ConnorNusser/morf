@@ -100,6 +100,14 @@ export const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 2,
   },
+  // Completed-day marker — sized/positioned to sit centered on the spine where
+  // the plain dot would be (dot is 13px at top:18/left:6; this 17px icon centers
+  // on the same point).
+  spineCheck: {
+    position: 'absolute',
+    top: 16,
+    left: 4,
+  },
   spineLineTop: {
     position: 'absolute',
     top: 0,

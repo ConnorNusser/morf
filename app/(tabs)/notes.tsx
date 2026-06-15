@@ -665,6 +665,13 @@ export default function NotesScreen() {
                     <RNView style={styles.timeline}>
                       {orderedDays.map((routine, idx) => {
                         const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
+                        // "Completed this cycle" = trained more recently than the
+                        // most-due (up next) day. This makes a day you did out of
+                        // order still read as done within the rotation, and clears
+                        // once that day becomes due again next cycle.
+                        const upNextLastUsed = upNextRoutine?.lastUsed ? new Date(upNextRoutine.lastUsed).getTime() : 0;
+                        const routineLastUsed = routine.lastUsed ? new Date(routine.lastUsed).getTime() : 0;
+                        const isCompleted = isActiveProgram && !isUpNext && routine.isActive !== false && routineLastUsed > upNextLastUsed;
                         const isFirst = idx === 0;
                         const isLast = idx === orderedDays.length - 1;
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
@@ -677,7 +684,11 @@ export default function NotesScreen() {
                             <RNView style={styles.spine}>
                               {!isFirst && <RNView style={[styles.spineLineTop, { backgroundColor: currentTheme.colors.border }]} />}
                               {!isLast && <RNView style={[styles.spineLineBottom, { backgroundColor: currentTheme.colors.border }]} />}
-                              <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                              {isCompleted ? (
+                                <Ionicons name="checkmark-circle" size={17} color={currentTheme.colors.primary} style={styles.spineCheck} />
+                              ) : (
+                                <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                              )}
                             </RNView>
                             <RNView style={layout.flex1}>{body}</RNView>
                           </RNView>
