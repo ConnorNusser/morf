@@ -9,25 +9,57 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, View as RNView } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
   FadeInDown,
   interpolate,
-  useAnimatedProps,
+  SlideInLeft,
+  SlideInRight,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from 'react-native-svg';
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const PAGE_PADDING = 20; // matches history.tsx scrollContent
 const HERO_PADDING = 18;
 const HERO_HEIGHT = 212;
-const WEEKS = 12; // sparkline window
+const RACK_HEIGHT = 96;
 const PR_WINDOW_DAYS = 30; // "recent" PR window
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Plate loading order is heaviest-first (loads from the collar inward, like real
+// life), capped so a monster lift still fits the bar.
+const BAR_WEIGHT: Record<WeightUnit, number> = { lbs: 45, kg: 20 };
+const PLATE_SIZES: Record<WeightUnit, number[]> = {
+  lbs: [45, 35, 25, 10, 5, 2.5],
+  kg: [25, 20, 15, 10, 5, 2.5, 1.25],
+};
+const MAX_PLATES_PER_SIDE = 6;
+
+// Color-coded like competition bumper plates — lifters read these at a glance,
+// which is what keeps it from feeling like a generic chart. Height/width scale
+// with the denomination so the stack has real heft.
+interface PlateLook { h: number; w: number; color: string }
+const PLATE_LOOK: Record<WeightUnit, Record<number, PlateLook>> = {
+  lbs: {
+    45: { h: 74, w: 13, color: '#3B5BDB' },
+    35: { h: 66, w: 12, color: '#F2B705' },
+    25: { h: 56, w: 11, color: '#2F9E44' },
+    10: { h: 44, w: 10, color: '#E8590C' },
+    5: { h: 36, w: 9, color: '#E03131' },
+    2.5: { h: 30, w: 8, color: '#ADB5BD' },
+  },
+  kg: {
+    25: { h: 74, w: 13, color: '#E03131' },
+    20: { h: 68, w: 12, color: '#3B5BDB' },
+    15: { h: 60, w: 11, color: '#F2B705' },
+    10: { h: 50, w: 10, color: '#2F9E44' },
+    5: { h: 40, w: 9, color: '#E9ECEF' },
+    2.5: { h: 32, w: 8, color: '#868E96' },
+    1.25: { h: 28, w: 7, color: '#ADB5BD' },
+  },
+};
 
 interface HistoryHeroProps {
   /** Per-exercise rollups (history + estimated 1RM), from the parent. */
@@ -36,13 +68,6 @@ interface HistoryHeroProps {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-const weekStartOf = (d: Date) => {
-  const s = new Date(d);
-  s.setHours(0, 0, 0, 0);
-  s.setDate(s.getDate() - s.getDay()); // Sunday-start, matches history.tsx
-  return s;
-};
 
 // Perceived luminance of a #rrggbb color → pick blur tint / overlay polarity.
 const isDarkColor = (hex: string) => {
@@ -54,8 +79,22 @@ const isDarkColor = (hex: string) => {
   return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 };
 
+// Greedy plate breakdown for one side of the bar, heaviest-first.
+function platesForSide(total: number, unit: WeightUnit): number[] {
+  const bar = BAR_WEIGHT[unit];
+  let perSide = Math.max(0, (total - bar) / 2);
+  const out: number[] = [];
+  for (const s of PLATE_SIZES[unit]) {
+    while (perSide >= s - 1e-6 && out.length < MAX_PLATES_PER_SIDE) {
+      out.push(s);
+      perSide -= s;
+    }
+  }
+  return out;
+}
+
 // requestAnimationFrame count-up with an ease-out cubic. Runs once per target.
-function useCountUp(target: number, duration = 1100) {
+function useCountUp(target: number, duration = 1300) {
   const [value, setValue] = useState(0);
   useEffect(() => {
     let raf = 0;
@@ -119,25 +158,18 @@ function AuroraBlob({ size, colors, from, to, duration, delay }: BlobProps) {
 
 // ── lift / PR derivation ──────────────────────────────────────────────────────
 
-interface LiftRow {
-  name: string;
-  current: number; // best estimated 1RM in display unit
-  prev: number;    // best before the PR window (0 if none)
-  isPR: boolean;   // beat the prior best within the last 30 days
-}
-
-// Strength story for the hero: which lifts hit a fresh estimated-1RM best in the
-// last 30 days, and the top lift's 12-week e1RM line for the sparkline. e1RM is
-// the right currency here — it's the strength tab's language, and (unlike volume)
-// it persists across weeks, so a flat line means "holding", not "did nothing".
-function useLiftStory(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit) {
+// The headline lift: the one that hit a fresh estimated-1RM best in the last 30
+// days with the biggest jump; otherwise the heaviest lift on record. e1RM is the
+// right number to "put on the bar" — it's what you could theoretically rack.
+function useHeadlineLift(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit) {
   return useMemo(() => {
     const cutoff = Date.now() - PR_WINDOW_DAYS * MS_PER_DAY;
     const e1rmLbs = (e: { weight: number; reps: number; unit: WeightUnit }) =>
       OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
     const toUnit = (lbs: number) => (weightUnit === 'kg' ? convertWeight(lbs, 'lbs', 'kg') : lbs);
 
-    const lifts: (LiftRow & { ex: ExerciseWithMax })[] = [];
+    type Lift = { name: string; weight: number; prev: number; isPR: boolean };
+    const lifts: Lift[] = [];
     for (const ex of exerciseStats) {
       if (!ex.history?.length) continue;
       let bestRecent: number | null = null;
@@ -149,94 +181,56 @@ function useLiftStory(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit) 
       }
       const bestLbs = Math.max(bestRecent ?? 0, bestPrior ?? 0);
       if (bestLbs <= 0) continue;
-      // A PR needs a clear beat (≥1 unit) so rounding noise doesn't fake one.
       const isPR = bestRecent != null && (bestPrior == null || bestRecent > bestPrior + 1);
       lifts.push({
         name: ex.name,
-        current: Math.round(toUnit(bestLbs)),
+        weight: Math.round(toUnit(bestLbs)),
         prev: bestPrior != null ? Math.round(toUnit(bestPrior)) : 0,
         isPR,
-        ex,
       });
     }
 
-    // PRs first (biggest jump leads), then the heaviest lifts as fallback content.
-    const prs = lifts.filter(l => l.isPR).sort((a, b) => (b.current - b.prev) - (a.current - a.prev));
-    const byStrength = [...lifts].sort((a, b) => b.current - a.current);
-    const rows = (prs.length ? prs : byStrength).slice(0, 2);
-
-    // Sparkline = the headline lift's e1RM across the last 12 weeks, carried
-    // forward through gap weeks (strength holds; it doesn't drop to zero).
-    const topLift = rows[0]?.ex ?? byStrength[0]?.ex;
-    let series: number[] = [];
-    if (topLift) {
-      const weekly = new Map<number, number>();
-      for (const h of topLift.history) {
-        const k = weekStartOf(new Date(h.date)).getTime();
-        weekly.set(k, Math.max(weekly.get(k) ?? 0, toUnit(e1rmLbs(h))));
-      }
-      const thisWeek = weekStartOf(new Date());
-      let last = 0;
-      for (let i = WEEKS - 1; i >= 0; i--) {
-        const wk = new Date(thisWeek);
-        wk.setDate(wk.getDate() - i * 7);
-        const v = weekly.get(wk.getTime());
-        if (v != null) last = v;
-        series.push(last);
-      }
-      // Backfill the leading zeros (before first data) to the first known value
-      // so the line starts at a level, not on the floor.
-      const firstReal = series.find(v => v > 0) ?? 0;
-      series = series.map(v => (v === 0 ? firstReal : v));
-    }
-
-    return {
-      rows,
-      prCount: prs.length,
-      hasPRs: prs.length > 0,
-      hasLifts: lifts.length > 0,
-      topLiftName: topLift?.name ?? '',
-      series,
-    };
+    const prs = lifts.filter(l => l.isPR).sort((a, b) => (b.weight - b.prev) - (a.weight - a.prev));
+    const heaviest = [...lifts].sort((a, b) => b.weight - a.weight);
+    const headline = prs[0] ?? heaviest[0] ?? null;
+    return { headline, prCount: prs.length, hasLifts: lifts.length > 0 };
   }, [exerciseStats, weightUnit]);
 }
 
-// ── PR row (count-up on the headline number) ──────────────────────────────────
+// ── one weight plate ───────────────────────────────────────────────────────────
 
-function LiftStatRow({
-  row,
-  unit,
-  showPrev,
-  accent,
-  textColor,
-  fonts,
-  delay,
+function Plate({
+  look,
+  side,
+  loadIndex,
+  dark,
 }: {
-  row: LiftRow;
-  unit: WeightUnit;
-  showPrev: boolean;
-  accent: string;
-  textColor: string;
-  fonts: { medium: string; bold: string; regular: string };
-  delay: number;
+  look: PlateLook;
+  side: 'left' | 'right';
+  loadIndex: number; // 0 = heaviest, loaded first
+  dark: boolean;
 }) {
-  const v = useCountUp(row.current);
+  const entering = (side === 'left' ? SlideInLeft : SlideInRight)
+    .delay(340 + loadIndex * 120)
+    .springify()
+    .damping(15)
+    .stiffness(150)
+    .mass(0.7);
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(480)} style={styles.liftRow}>
-      <Text numberOfLines={1} style={[styles.liftName, { color: textColor, fontFamily: fonts.medium }]}>
-        {row.name}
-      </Text>
-      <RNView style={styles.liftValue}>
-        {showPrev && row.prev > 0 && (
-          <Text style={[styles.liftPrev, { color: textColor + '66', fontFamily: fonts.regular }]}>
-            {row.prev} →
-          </Text>
-        )}
-        <Text style={[styles.liftNew, { color: accent, fontFamily: fonts.bold }]}>
-          {Math.round(v)}
-          <Text style={[styles.liftUnit, { color: textColor + '80', fontFamily: fonts.medium }]}> {unit}</Text>
-        </Text>
-      </RNView>
+    <Animated.View
+      entering={entering}
+      style={[
+        styles.plate,
+        {
+          width: look.w,
+          height: look.h,
+          backgroundColor: look.color,
+          borderColor: dark ? '#FFFFFF30' : '#00000020',
+        },
+      ]}
+    >
+      {/* glossy top edge so the plate reads as solid, not a flat rectangle */}
+      <RNView style={[styles.plateSheen, { backgroundColor: dark ? '#FFFFFF38' : '#FFFFFF55' }]} />
     </Animated.View>
   );
 }
@@ -249,46 +243,17 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
   const dark = isDarkColor(colors.background);
 
   const heroWidth = Dimensions.get('window').width - PAGE_PADDING * 2;
-  const sparkWidth = heroWidth - HERO_PADDING * 2;
-  const sparkHeight = 44;
 
-  const { rows, prCount, hasPRs, hasLifts, topLiftName, series } = useLiftStory(exerciseStats, weightUnit);
+  const { headline, prCount, hasLifts } = useHeadlineLift(exerciseStats, weightUnit);
+  const weight = headline?.weight ?? 0;
+  const plates = useMemo(() => platesForSide(weight, weightUnit), [weight, weightUnit]);
+  const gain = headline?.isPR ? headline.weight - headline.prev : 0;
+  const weightVal = useCountUp(weight);
 
-  // Build smooth sparkline + area paths from the series.
-  const { linePath, areaPath, pathLen } = useMemo(() => {
-    if (series.length < 2) return { linePath: '', areaPath: '', pathLen: 0 };
-    const max = Math.max(...series, 1);
-    const min = Math.min(...series);
-    const span = max - min || 1; // scale to the visible range so trend reads clearly
-    const n = series.length;
-    const stepX = n > 1 ? sparkWidth / (n - 1) : sparkWidth;
-    const padY = 6;
-    const pts = series.map((v, i) => ({
-      x: i * stepX,
-      y: padY + (1 - (v - min) / span) * (sparkHeight - padY * 2),
-    }));
-
-    let line = `M ${pts[0].x} ${pts[0].y}`;
-    let len = 0;
-    for (let i = 1; i < pts.length; i++) {
-      const p = pts[i];
-      const prev = pts[i - 1];
-      const midX = (prev.x + p.x) / 2;
-      line += ` C ${midX} ${prev.y}, ${midX} ${p.y}, ${p.x} ${p.y}`;
-      len += Math.hypot(p.x - prev.x, p.y - prev.y);
-    }
-    const area = `${line} L ${pts[n - 1].x} ${sparkHeight} L ${pts[0].x} ${sparkHeight} Z`;
-    return { linePath: line, areaPath: area, pathLen: Math.ceil(len) + 8 };
-  }, [series, sparkWidth]);
-
-  // Draw-on: stroke the line from 0 → full length.
-  const draw = useSharedValue(0);
-  useEffect(() => {
-    draw.value = withDelay(260, withTiming(1, { duration: 1000, easing: Easing.out(Easing.cubic) }));
-  }, [draw]);
-  const lineAnimProps = useAnimatedProps(() => ({
-    strokeDashoffset: pathLen * (1 - draw.value),
-  }));
+  // Right sleeve loads heaviest→outward; left mirrors it. Track each plate's
+  // load order so both sides clink on in sync.
+  const rightPlates = plates.map((size, i) => ({ size, loadIndex: i }));
+  const leftPlates = [...rightPlates].reverse();
 
   // Horizontal shimmer sweep across the whole hero.
   const shimmer = useSharedValue(0);
@@ -303,20 +268,25 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
     opacity: interpolate(shimmer.value, [0, 0.5, 1], [0, 0.55, 0]),
   }));
 
-  // Mount haptic (native only).
+  // Clink a haptic as each plate seats, timed to the slide-on stagger. Heaviest
+  // plate lands with a meatier thud.
   useEffect(() => {
-    if (Platform.OS !== 'web') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    }
-  }, []);
+    if (Platform.OS === 'web') return;
+    const timers = plates.map((_, i) =>
+      setTimeout(() => {
+        Haptics.impactAsync(
+          i === 0 ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light
+        ).catch(() => {});
+      }, 340 + i * 120 + 180)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [plates]);
 
-  const kicker = hasPRs ? 'GETTING STRONGER' : hasLifts ? 'PERSONAL BESTS' : 'KEEP LOGGING';
-  const kickerRight = hasPRs ? `last ${PR_WINDOW_DAYS} days` : hasLifts ? 'estimated 1RM' : '';
-  const footer = hasPRs
-    ? `${prCount} PR${prCount === 1 ? '' : 's'} this month`
-    : hasLifts
-      ? 'No new PRs in 30 days — keep pushing'
-      : 'Log a few weighted sets to track your lifts';
+  const subtitle = !hasLifts
+    ? 'Log a weighted set and load up the bar'
+    : gain > 0
+      ? `+${gain} ${weightUnit} since last month${prCount > 1 ? ` · ${prCount} PRs` : ''}`
+      : 'your heaviest estimated 1RM';
 
   return (
     <Animated.View
@@ -364,7 +334,7 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
       {/* contrast scrim — subtle darken/lighten toward the bottom for legibility */}
       <LinearGradient
         pointerEvents="none"
-        colors={[colors.surface + '00', colors.surface + (dark ? '40' : '66')]}
+        colors={[colors.surface + '00', colors.surface + (dark ? '55' : '7A')]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -382,72 +352,51 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
 
       {/* content */}
       <RNView style={styles.content}>
-        <RNView style={styles.headerRow}>
-          <RNView style={styles.headerLeft}>
-            <RNView style={[styles.dot, { backgroundColor: colors.accent }]} />
-            <Text style={[styles.kicker, { color: colors.text + 'B0', fontFamily: fonts.semiBold }]}>{kicker}</Text>
+        {/* the barbell */}
+        <RNView style={styles.rack}>
+          {/* steel bar behind the plates (rounded ends = sleeves) */}
+          <LinearGradient
+            pointerEvents="none"
+            colors={dark ? ['#CED4DA', '#868E96', '#495057'] : ['#F1F3F5', '#ADB5BD', '#868E96']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.bar}
+          />
+          <RNView style={styles.platesRow}>
+            <RNView style={styles.group}>
+              {leftPlates.map((p, i) => (
+                <Plate key={`l-${i}`} look={PLATE_LOOK[weightUnit][p.size]} side="left" loadIndex={p.loadIndex} dark={dark} />
+              ))}
+            </RNView>
+            {/* bare knurled grip in the middle */}
+            <RNView style={styles.grip} />
+            <RNView style={styles.group}>
+              {rightPlates.map((p, i) => (
+                <Plate key={`r-${i}`} look={PLATE_LOOK[weightUnit][p.size]} side="right" loadIndex={p.loadIndex} dark={dark} />
+              ))}
+            </RNView>
           </RNView>
-          {kickerRight ? (
-            <Text style={[styles.kickerRight, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-              {kickerRight}
-            </Text>
-          ) : null}
         </RNView>
 
-        {/* lift list — PR jumps (prev → new) or current bests */}
-        <RNView style={styles.liftList}>
-          {rows.length > 0 ? (
-            rows.map((row, i) => (
-              <LiftStatRow
-                key={row.name}
-                row={row}
-                unit={weightUnit}
-                showPrev={hasPRs}
-                accent={hasPRs ? colors.primary : colors.text}
-                textColor={colors.text}
-                fonts={{ medium: fonts.medium, bold: fonts.bold, regular: fonts.regular }}
-                delay={120 + i * 90}
-              />
-            ))
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.text + '90', fontFamily: fonts.medium }]}>
-              Add weighted sets and your lifts will show up here.
+        {/* readout */}
+        <Animated.View entering={FadeIn.delay(500).duration(500)} style={styles.readout}>
+          <RNView style={styles.readoutLine}>
+            {headline ? (
+              <Text numberOfLines={1} style={[styles.liftName, { color: colors.text + 'C0', fontFamily: fonts.semiBold }]}>
+                {headline.name.toUpperCase()}
+              </Text>
+            ) : (
+              <Text style={[styles.liftName, { color: colors.text + 'C0', fontFamily: fonts.semiBold }]}>EMPTY BAR</Text>
+            )}
+            <Text style={[styles.weight, { color: colors.text, fontFamily: fonts.bold }]}>
+              {Math.round(weightVal)}
+              <Text style={[styles.weightUnit, { color: colors.text + '80', fontFamily: fonts.medium }]}> {weightUnit}</Text>
             </Text>
-          )}
-        </RNView>
-
-        {/* top-lift e1RM sparkline */}
-        {series.length >= 2 && (
-          <Animated.View entering={FadeInDown.delay(380).duration(480)} style={styles.sparkWrap}>
-            <Svg width={sparkWidth} height={sparkHeight}>
-              <Defs>
-                <SvgLinearGradient id="heroLine" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0" stopColor={colors.accent} />
-                  <Stop offset="1" stopColor={colors.primary} />
-                </SvgLinearGradient>
-                <SvgLinearGradient id="heroArea" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={colors.primary} stopOpacity={0.28} />
-                  <Stop offset="1" stopColor={colors.primary} stopOpacity={0} />
-                </SvgLinearGradient>
-              </Defs>
-              <Path d={areaPath} fill="url(#heroArea)" />
-              <AnimatedPath
-                d={linePath}
-                stroke="url(#heroLine)"
-                strokeWidth={2.5}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeDasharray={pathLen}
-                animatedProps={lineAnimProps}
-              />
-            </Svg>
-          </Animated.View>
-        )}
-
-        <Text style={[styles.footer, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
-          {topLiftName && series.length >= 2 ? `${topLiftName} · ${footer}` : footer}
-        </Text>
+          </RNView>
+          <Text numberOfLines={1} style={[styles.subtitle, { color: gain > 0 ? colors.primary : colors.text + '80', fontFamily: fonts.medium }]}>
+            {subtitle}
+          </Text>
+        </Animated.View>
       </RNView>
     </Animated.View>
   );
@@ -464,28 +413,53 @@ const styles = StyleSheet.create({
     padding: HERO_PADDING,
     justifyContent: 'space-between',
   },
-  headerRow: {
+  rack: {
+    flex: 1,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 6,
+    top: RACK_HEIGHT / 2 - 3,
+    borderRadius: 3,
+  },
+  platesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    height: RACK_HEIGHT,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  dot: { width: 7, height: 7, borderRadius: 4 },
-  kicker: { fontSize: 12, letterSpacing: 1.5 },
-  kickerRight: { fontSize: 11, letterSpacing: 0.3 },
-  liftList: { gap: 6 },
-  liftRow: {
+  group: { flexDirection: 'row', alignItems: 'center' },
+  grip: { width: 48 },
+  plate: {
+    marginHorizontal: 2,
+    borderRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: 'hidden',
+  },
+  plateSheen: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 5,
+    opacity: 0.7,
+  },
+  readout: {
+    alignItems: 'flex-start',
+  },
+  readoutLine: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
+    width: '100%',
   },
-  liftName: { fontSize: 15, letterSpacing: -0.2, flex: 1, marginRight: 12 },
-  liftValue: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  liftPrev: { fontSize: 13, letterSpacing: 0 },
-  liftNew: { fontSize: 22, letterSpacing: -0.5 },
-  liftUnit: { fontSize: 12, letterSpacing: 0 },
-  emptyText: { fontSize: 13, letterSpacing: 0 },
-  sparkWrap: { marginTop: 2 },
-  footer: { fontSize: 11, letterSpacing: 0.3 },
+  liftName: { fontSize: 14, letterSpacing: 2, flex: 1, marginRight: 12 },
+  weight: { fontSize: 30, letterSpacing: -0.5 },
+  weightUnit: { fontSize: 14, letterSpacing: 0 },
+  subtitle: { fontSize: 12, letterSpacing: 0.2, marginTop: 2 },
   shimmer: { position: 'absolute', top: -40, bottom: -40, left: 0 },
 });
