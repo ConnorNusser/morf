@@ -12,7 +12,7 @@ import { getWorkoutById } from '@/lib/workout/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { updateRoutineProgression } from '@/lib/workout/routineProgression';
 import { FEATURED_SECONDARY_LIFTS, isMainLift, UserLift, WeightUnit } from '@/types';
-import { getPendingRoutineId } from '@/lib/workout/pendingRoutine';
+import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -83,26 +83,21 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // First check for a new routine ID from pending (user just clicked Start)
-        const pendingRoutineId = getPendingRoutineId();
-        if (pendingRoutineId) {
-          setStartedRoutineId(pendingRoutineId);
-        }
-
         // Load user preferences
         const profile = await userService.getRealUserProfile();
         if (profile?.weightUnitPreference) {
           setWeightUnit(profile.weightUnitPreference);
         }
 
-        // Load saved note session
+        // Load saved note session. Any pending routine the user just started is
+        // consumed by the focus effect below (which runs every time the screen
+        // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
         if (savedSession && savedSession.noteText) {
           setNoteText(savedSession.noteText);
           setWorkoutStartTime(savedSession.startTime);
           setElapsedTime(calculateElapsedTime(savedSession.startTime));
-          // Restore routine ID from saved session if not already set from pending
-          if (!pendingRoutineId && savedSession.routineId) {
+          if (savedSession.routineId) {
             setStartedRoutineId(savedSession.routineId);
           }
         }
@@ -114,6 +109,24 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     };
     loadInitialData();
   }, [calculateElapsedTime]);
+
+  // Consume any routine the user just started (text + id) on every focus, not
+  // just on mount. The Workout tab stays mounted, so a mount-only read meant the
+  // second (and every later) routine started from Home/Routines never attached
+  // its id here — completing it then failed to update progression or lastUsed,
+  // which broke "Up Next" cycling when training out of order.
+  useFocusEffect(
+    useCallback(() => {
+      const text = getPendingRoutine();
+      if (text !== null) {
+        setNoteText(text);
+        // A routine launch always carries an id; a plain freestyle launch never
+        // reaches here (it sets no pending text), so this won't clear an id by
+        // accident. Read the id regardless to keep the pending slot clean.
+        setStartedRoutineId(getPendingRoutineId());
+      }
+    }, [])
+  );
 
   // Save session whenever noteText, workoutStartTime, or routineId changes
   useEffect(() => {

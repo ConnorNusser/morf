@@ -27,15 +27,16 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   programChip: {
-    flexDirection: 'row',
+    // Equal-width so Pause/Archive/Rename/Delete always share one row.
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   programChipText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   programHeader: {
@@ -47,7 +48,34 @@ export const styles = StyleSheet.create({
   programTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
+  },
+  // Plain status label, right-aligned on the program name row (green = active).
+  statusText: {
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  // Cycle progress — one segment per program day, with a small count to the
+  // right of the bar (no verbose caption; the timeline carries 'up next').
+  cycleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  cycleBar: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  cycleSegment: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+  },
+  cycleCount: {
+    fontSize: 11.5,
   },
   programName: {
     fontSize: 17,
@@ -55,22 +83,17 @@ export const styles = StyleSheet.create({
   },
   programMeta: {
     fontSize: 13,
-    marginTop: 2,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  statusPillText: {
-    fontSize: 11,
-    letterSpacing: 0.3,
+    marginTop: 5,
   },
   programActions: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 14,
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  programDivider: {
+    height: 1,
+    marginTop: 14,
   },
   upNextInline: {
     paddingHorizontal: 7,
@@ -100,6 +123,14 @@ export const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 2,
   },
+  // Completed-day marker — sized/positioned to sit centered on the spine where
+  // the plain dot would be (dot is 13px at top:18/left:6; this 17px icon centers
+  // on the same point).
+  spineCheck: {
+    position: 'absolute',
+    top: 16,
+    left: 4,
+  },
   spineLineTop: {
     position: 'absolute',
     top: 0,
@@ -113,13 +144,6 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 11,
     width: 2,
-  },
-  routineCardFlat: {
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    padding: 0,
-    paddingVertical: 12,
-    marginBottom: 0,
   },
   renameOverlay: {
     flex: 1,
@@ -181,9 +205,9 @@ export const styles = StyleSheet.create({
   progressButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     marginBottom: 20,
     gap: 10,
   },
@@ -204,12 +228,9 @@ export const styles = StyleSheet.create({
 
   // Routine card
   routineCard: {
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     marginBottom: 8,
-  },
-  upNextCard: {
-    // No special styling - cleaner
   },
   cardContent: {
     flexDirection: 'row',
@@ -220,15 +241,32 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  expandHint: {
+  // Program-level lift-momentum row above the day list: a segment per distinct
+  // exercise + a count, mirroring the cycle bar's layout.
+  programMomentum: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    marginTop: 10,
+    gap: 8,
+    marginTop: 4,
+    marginBottom: 16,
   },
-  expandHintText: {
-    fontSize: 11,
+  momentumBar: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 3,
+  },
+  momentumSeg: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
+  },
+  momentumLabel: {
+    fontSize: 11.5,
+  },
+  expandHint: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
   },
   routineNameRow: {
     flexDirection: 'row',
@@ -249,10 +287,12 @@ export const styles = StyleSheet.create({
   },
   routineSubtitle: {
     fontSize: 13,
-    marginBottom: 2,
+    marginTop: 3,
+    marginBottom: 4,
   },
   routineDate: {
     fontSize: 12,
+    marginTop: 1,
   },
   startButton: {
     paddingHorizontal: 16,
@@ -289,6 +329,20 @@ export const styles = StyleSheet.create({
   },
   exerciseSets: {
     fontSize: 12,
+  },
+  // Per-exercise strength trend (est 1RM + delta) under the sets line.
+  trendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  trendText: {
+    fontSize: 11.5,
+  },
+  trendDelta: {
+    fontSize: 11.5,
+    fontWeight: '600',
   },
   weightInfo: {
     alignItems: 'flex-end',

@@ -11,7 +11,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
-import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
+import { getUpNextRoutine } from '@/lib/workout/activeRoutine';
+import { calculateAllRoutines, getStrengthTrend } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
@@ -150,22 +151,12 @@ export default function NotesScreen() {
     return { programGroups: groups, standaloneRoutines: standalone };
   }, [calculatedRoutines, programs]);
 
-  const activeProgramGroup = useMemo(
-    () => programGroups.find(g => g.program.status === 'active') ?? null,
-    [programGroups]
+  // "Up Next" = the same routine the home dashboard surfaces, computed by the
+  // shared resolver so the two screens always agree.
+  const upNextRoutine = useMemo(
+    () => getUpNextRoutine(calculatedRoutines, programs),
+    [calculatedRoutines, programs]
   );
-
-  // "Up Next" = the least-recently-trained active day of the active program.
-  const upNextRoutine = useMemo(() => {
-    const days = (activeProgramGroup?.days ?? []).filter(r => r.isActive !== false);
-    if (days.length === 0) return null;
-    return [...days].sort((a, b) => {
-      if (!a.lastUsed && !b.lastUsed) return 0;
-      if (!a.lastUsed) return -1;
-      if (!b.lastUsed) return 1;
-      return new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime();
-    })[0];
-  }, [activeProgramGroup]);
 
 
   const handleDeleteRoutine = useCallback((routineId: string, routineName: string) => {
@@ -320,9 +311,11 @@ export default function NotesScreen() {
     }
   };
 
-  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false, flat = false) => {
+  const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
+    // Only an active up-next day earns the highlighted treatment.
+    const highlight = isUpNext && isActive;
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
 
@@ -337,8 +330,13 @@ export default function NotesScreen() {
         key={routine.id}
         style={[
           styles.routineCard,
-          flat ? styles.routineCardFlat : { backgroundColor: currentTheme.colors.surface },
-          isUpNext && !flat && styles.upNextCard,
+          // Transparent on the background with a hairline outline, matching the
+          // ghost control chips, so the cards read as outlined not filled.
+          { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' },
+          highlight && {
+            backgroundColor: currentTheme.colors.primary + '12',
+            borderColor: currentTheme.colors.primary + '40',
+          },
         ]}
         onPress={() => toggleRoutineExpanded(routine.id)}
         activeOpacity={0.7}
@@ -374,9 +372,11 @@ export default function NotesScreen() {
               {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
               {muscleGroups.length > 0 && ` · ${muscleGroups.join(', ')}`}
             </Text>
-            <Text weight="regular" style={[styles.routineDate, { color: currentTheme.colors.text + '40' }]}>
-              {routine.lastUsed ? formatRelativeDate(routine.lastUsed) : `Created ${formatRelativeDate(routine.createdAt)}`}
-            </Text>
+            {routine.lastUsed && (
+              <Text weight="regular" style={[styles.routineDate, { color: currentTheme.colors.text + '40' }]}>
+                {formatRelativeDate(routine.lastUsed)}
+              </Text>
+            )}
 
             {/* Deload Warning Banner - shown when collapsed and exercises need deload */}
             {!isExpanded && hasExercisesNeedingDeload && (
@@ -403,11 +403,16 @@ export default function NotesScreen() {
             )}
           </RNView>
 
-          {/* Right: Start button */}
+          {/* Right: Start button — prominent on the up-next day, quiet elsewhere
+              so the day you should train stands out. */}
           <TouchableOpacity
             style={[
               styles.startButton,
-              { backgroundColor: isActive ? currentTheme.colors.primary : currentTheme.colors.text + '30' }
+              highlight
+                ? { backgroundColor: currentTheme.colors.primary }
+                : isActive
+                  ? { backgroundColor: currentTheme.colors.primary + '15' }
+                  : { backgroundColor: currentTheme.colors.text + '15' },
             ]}
             onPress={(e) => {
               e.stopPropagation();
@@ -415,17 +420,22 @@ export default function NotesScreen() {
             }}
             activeOpacity={0.8}
           >
-            <Text weight="semiBold" style={[styles.startButtonText]}>Start</Text>
+            <Text
+              weight="semiBold"
+              style={[
+                styles.startButtonText,
+                !highlight && { color: isActive ? currentTheme.colors.primary : currentTheme.colors.text + '60' },
+              ]}
+            >
+              Start
+            </Text>
           </TouchableOpacity>
         </RNView>
 
-        {/* Expand hint - only when collapsed */}
+        {/* Expand affordance — a single quiet chevron, no repeated label. */}
         {!isExpanded && (
           <RNView style={styles.expandHint}>
-            <Text weight="medium" style={[styles.expandHintText, { color: currentTheme.colors.text + 'B3' }]}>
-              See details
-            </Text>
-            <Ionicons name="chevron-down" size={12} color={currentTheme.colors.text + 'B3'} />
+            <Ionicons name="chevron-down" size={14} color={currentTheme.colors.text + '35'} />
           </RNView>
         )}
 
@@ -435,7 +445,14 @@ export default function NotesScreen() {
             {/* Exercise List */}
             {routine.exercises?.length > 0 && (
               <RNView style={[styles.exerciseList, { borderTopColor: currentTheme.colors.border }]}>
-                {routine.exercises.map((exercise, index) => (
+                {routine.exercises.map((exercise, index) => {
+                  const trend = getStrengthTrend(exercise.exerciseId, workoutHistory, weightUnit);
+                  const trendColor = trend?.direction === 'up' ? '#34C759'
+                    : trend?.direction === 'down' ? '#FF3B30'
+                    : currentTheme.colors.text + '40';
+                  const trendIcon = trend?.direction === 'up' ? 'trending-up'
+                    : trend?.direction === 'down' ? 'trending-down' : 'remove';
+                  return (
                   <RNView
                     key={`${exercise.exerciseId}-${index}`}
                     style={styles.exerciseRow}
@@ -447,6 +464,19 @@ export default function NotesScreen() {
                       <Text weight="regular" style={[styles.exerciseSets, { color: currentTheme.colors.text + '50' }]}>
                         {exercise.sets?.length || 0} sets × {exercise.sets?.[0]?.reps || 0} reps
                       </Text>
+                      {trend && trend.current1RM > 0 && (
+                        <RNView style={styles.trendRow}>
+                          <Ionicons name={trendIcon} size={12} color={trendColor} />
+                          <Text weight="regular" style={[styles.trendText, { color: currentTheme.colors.text + '55' }]}>
+                            {trend.current1RM} {exercise.unit} 1RM
+                          </Text>
+                          {trend.sessions >= 2 && trend.deltaPercent !== 0 && (
+                            <Text weight="semiBold" style={[styles.trendDelta, { color: trendColor }]}>
+                              {trend.deltaPercent > 0 ? '+' : ''}{trend.deltaPercent}%
+                            </Text>
+                          )}
+                        </RNView>
+                      )}
                     </RNView>
 
                     <RNView style={styles.weightInfo}>
@@ -481,7 +511,8 @@ export default function NotesScreen() {
                       )}
                     </RNView>
                   </RNView>
-                ))}
+                  );
+                })}
               </RNView>
             )}
 
@@ -536,6 +567,11 @@ export default function NotesScreen() {
     );
   };
 
+  // Shared ghost treatment for the quiet program-utility chips (Pause/Archive/
+  // Rename) — a hairline outline on transparent so they read as secondary next
+  // to the filled primary actions.
+  const ghostChip = { backgroundColor: 'transparent', borderColor: currentTheme.colors.text + '1A' };
+
   return (
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
@@ -576,7 +612,7 @@ export default function NotesScreen() {
             {/* View Progress Button */}
             <TutorialTarget id="notes-progress-button">
               <TouchableOpacity
-                style={[styles.progressButton, { backgroundColor: currentTheme.colors.surface }]}
+                style={[styles.progressButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' }]}
                 onPress={() => setShowRoutineProgress(true)}
                 activeOpacity={0.7}
               >
@@ -593,12 +629,31 @@ export default function NotesScreen() {
               const isActiveProgram = program.status === 'active';
               const isExpanded = isActiveProgram || expandedProgramId === program.id;
               const statusColor = isActiveProgram
-                ? currentTheme.colors.primary
+                ? '#34C759'
                 : currentTheme.colors.text + (program.status === 'paused' ? '80' : '50');
               const statusLabel = isActiveProgram ? 'Active' : program.status === 'paused' ? 'Paused' : 'Archived';
+              // Hoist the up-next day to the top so the next thing to train always
+              // leads; the rest follow in their program-day order.
               const orderedDays = isActiveProgram && upNextRoutine
                 ? [upNextRoutine, ...days.filter(d => d.id !== upNextRoutine.id)]
                 : days;
+              // Cycle progress: a day counts as done when it was trained more
+              // recently than the most-due (up-next) day — same rule as the
+              // timeline checkmarks, so the bar and the checks always agree.
+              const cycleBaselineMs = isActiveProgram && upNextRoutine?.lastUsed
+                ? new Date(upNextRoutine.lastUsed).getTime() : 0;
+              const completedThisCycle = isActiveProgram
+                ? days.filter(d => (d.lastUsed ? new Date(d.lastUsed).getTime() : 0) > cycleBaselineMs).length
+                : 0;
+              // Program-level lift momentum: strength trend across every distinct
+              // exercise in the program, summarized once above the day list (one
+              // signal beats a strip on every card).
+              const programExerciseIds = Array.from(
+                new Set(days.flatMap(d => d.exercises?.map(e => e.exerciseId) ?? []))
+              );
+              const programTrends = programExerciseIds.map(id => getStrengthTrend(id, workoutHistory, weightUnit));
+              const programImproving = programTrends.filter(t => t?.direction === 'up').length;
+              const programHasTrend = programTrends.some(Boolean);
               return (
                 <RNView key={program.id} style={styles.section}>
                   <TouchableOpacity
@@ -611,66 +666,80 @@ export default function NotesScreen() {
                         <Text weight="semiBold" style={[styles.programName, { color: currentTheme.colors.text }]} numberOfLines={1}>
                           {program.name}
                         </Text>
-                        <RNView style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
-                          <Text weight="semiBold" style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
-                        </RNView>
+                        <Text weight="semiBold" style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
                       </RNView>
                       <Text weight="regular" style={[styles.programMeta, { color: currentTheme.colors.text + '60' }]}>
                         {program.days} day{program.days === 1 ? '' : 's'}{program.source ? ` · ${program.source.program}` : ''}
                       </Text>
+                      {isActiveProgram && days.length > 0 && (
+                        <RNView style={styles.cycleRow}>
+                          <RNView style={styles.cycleBar}>
+                            {days.map((d, i) => (
+                              <RNView
+                                key={d.id}
+                                style={[styles.cycleSegment, { backgroundColor: i < completedThisCycle ? '#34C759' : currentTheme.colors.text + '15' }]}
+                              />
+                            ))}
+                          </RNView>
+                          <Text weight="medium" style={[styles.cycleCount, { color: currentTheme.colors.text + '66' }]}>
+                            {completedThisCycle}/{days.length}
+                          </Text>
+                        </RNView>
+                      )}
                     </RNView>
                     {!isActiveProgram && (
                       <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={currentTheme.colors.text + '50'} />
                     )}
                   </TouchableOpacity>
 
-                  {/* Program controls */}
-                  <RNView style={styles.programActions}>
-                    {isActiveProgram ? (
-                      <>
-                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="pause" size={16} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Pause</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="file-tray-full-outline" size={16} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Archive</Text>
-                        </TouchableOpacity>
-                      </>
-                    ) : (
-                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
-                        <Ionicons name="play" size={16} color="#fff" />
-                        <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => openRenameProgram(program)} activeOpacity={0.7}>
-                      <Ionicons name="pencil" size={15} color={currentTheme.colors.text + '99'} />
-                      <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Rename</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.programChip, { backgroundColor: '#E5484D14' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
-                      <Ionicons name="close-circle-outline" size={17} color="#E5484D" />
-                      <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
-                    </TouchableOpacity>
-                  </RNView>
+                  {/* Lift momentum — one strength-trend summary for the whole
+                      program, above the days (kept off the cards to avoid clutter). */}
+                  {isExpanded && programHasTrend && (
+                    <RNView style={styles.programMomentum}>
+                      <RNView style={styles.momentumBar}>
+                        {programTrends.map((t, i) => {
+                          const segColor = t?.direction === 'up' ? '#34C759'
+                            : t?.direction === 'down' ? '#FF3B30'
+                            : t ? currentTheme.colors.text + '40'   // has data, holding
+                            : currentTheme.colors.text + '15';      // no data yet
+                          return <RNView key={i} style={[styles.momentumSeg, { backgroundColor: segColor }]} />;
+                        })}
+                      </RNView>
+                      <Text weight="medium" style={[styles.momentumLabel, { color: currentTheme.colors.text + '66' }]}>
+                        {programImproving} of {programExerciseIds.length} lifts improving
+                      </Text>
+                    </RNView>
+                  )}
 
                   {/* Days — threaded onto a timeline spine so they read as one program */}
                   {isExpanded && (
                     <RNView style={styles.timeline}>
                       {orderedDays.map((routine, idx) => {
                         const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
+                        // "Completed this cycle" = trained more recently than the
+                        // most-due (up next) day. This makes a day you did out of
+                        // order still read as done within the rotation, and clears
+                        // once that day becomes due again next cycle.
+                        const upNextLastUsed = upNextRoutine?.lastUsed ? new Date(upNextRoutine.lastUsed).getTime() : 0;
+                        const routineLastUsed = routine.lastUsed ? new Date(routine.lastUsed).getTime() : 0;
+                        const isCompleted = isActiveProgram && !isUpNext && routine.isActive !== false && routineLastUsed > upNextLastUsed;
                         const isFirst = idx === 0;
                         const isLast = idx === orderedDays.length - 1;
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
                         const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
                         const body = isUpNext
-                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true, true)}</TutorialTarget>
-                          : renderRoutineCard(routine, false, true);
+                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
+                          : renderRoutineCard(routine, false);
                         return (
                           <RNView key={routine.id} style={styles.timelineRow}>
                             <RNView style={styles.spine}>
                               {!isFirst && <RNView style={[styles.spineLineTop, { backgroundColor: currentTheme.colors.border }]} />}
                               {!isLast && <RNView style={[styles.spineLineBottom, { backgroundColor: currentTheme.colors.border }]} />}
-                              <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                              {isCompleted ? (
+                                <Ionicons name="checkmark-circle" size={17} color="#34C759" style={styles.spineCheck} />
+                              ) : (
+                                <RNView style={[styles.spineDot, { backgroundColor: dotFill, borderColor: dotBorder }]} />
+                              )}
                             </RNView>
                             <RNView style={layout.flex1}>{body}</RNView>
                           </RNView>
@@ -678,6 +747,35 @@ export default function NotesScreen() {
                       })}
                     </RNView>
                   )}
+
+                  {/* Program controls — below the day list so the days you train
+                      lead and program management reads as a footer. */}
+                  <RNView style={styles.programActions}>
+                    {isActiveProgram ? (
+                      <>
+                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.6}>
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Pause</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.6}>
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Archive</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
+                        <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => openRenameProgram(program)} activeOpacity={0.6}>
+                      <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Rename</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: 'transparent', borderColor: '#E5484D33' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.6}>
+                      <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
+                    </TouchableOpacity>
+                  </RNView>
+
+                  {/* Bottom rule — closes the program block so the header, days
+                      and controls read as one grouped unit. */}
+                  <RNView style={[styles.programDivider, { backgroundColor: currentTheme.colors.border }]} />
                 </RNView>
               );
             })}
