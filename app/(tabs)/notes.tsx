@@ -65,11 +65,22 @@ export default function NotesScreen() {
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  // Program a new day is being added to (null = editing a loose/standalone routine).
+  const [addDayProgramId, setAddDayProgramId] = useState<string | null>(null);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
   const [renamingProgram, setRenamingProgram] = useState<Program | null>(null);
   const [renameText, setRenameText] = useState('');
+  // Program whose days are being reordered (null = none). In this mode the
+  // up-next hoist is suspended so the manual order is what the user sees.
+  const [reorderingProgramId, setReorderingProgramId] = useState<string | null>(null);
+  // Which day the up-next ring points at (set by flipping on the home dashboard
+  // or advanced on workout completion); resolves the highlighted up-next day.
+  const [upNextPointerId, setUpNextPointerId] = useState<string | null>(null);
+  // Day ids actually trained this cycle — drives the completed checkmarks.
+  // Flipping the pointer doesn't add to this; only finishing a workout does.
+  const [cycleCompletedIds, setCycleCompletedIds] = useState<string[]>([]);
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -77,12 +88,16 @@ export default function NotesScreen() {
   // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
-      const [loadedRoutines, history, loadedPrograms] = await Promise.all([
+      const [loadedRoutines, history, loadedPrograms, pointerId, completedIds] = await Promise.all([
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
         storageService.getPrograms(),
+        storageService.getUpNextPointerId(),
+        storageService.getCycleCompletedIds(),
       ]);
       setPrograms(loadedPrograms);
+      setUpNextPointerId(pointerId);
+      setCycleCompletedIds(completedIds);
       // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
@@ -140,6 +155,14 @@ export default function NotesScreen() {
         standalone.push(r);
       }
     }
+    // Days sort by the user-chosen order; routines without one fall back to
+    // creation order so legacy programs keep a stable sequence.
+    for (const arr of byProgram.values()) {
+      arr.sort((a, b) =>
+        (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
+        a.createdAt.getTime() - b.createdAt.getTime()
+      );
+    }
     const rank: Record<Program['status'], number> = { active: 0, paused: 1, archived: 2 };
     const groups = programs
       .map(p => ({ program: p, days: byProgram.get(p.id) ?? [] }))
@@ -154,8 +177,8 @@ export default function NotesScreen() {
   // "Up Next" = the same routine the home dashboard surfaces, computed by the
   // shared resolver so the two screens always agree.
   const upNextRoutine = useMemo(
-    () => getUpNextRoutine(calculatedRoutines, programs),
-    [calculatedRoutines, programs]
+    () => getUpNextRoutine(calculatedRoutines, programs, upNextPointerId),
+    [calculatedRoutines, programs, upNextPointerId]
   );
 
 
@@ -223,6 +246,16 @@ export default function NotesScreen() {
     });
   }, [loadData, showAlert]);
 
+  // Move a day up/down within its program and persist the new order.
+  const handleMoveDay = useCallback(async (programId: string, dayIds: string[], index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= dayIds.length) return;
+    const next = [...dayIds];
+    [next[index], next[target]] = [next[target], next[index]];
+    await storageService.reorderProgramDays(programId, next);
+    await loadData();
+  }, [loadData]);
+
   const toggleProgramExpanded = useCallback((programId: string) => {
     setExpandedProgramId(prev => (prev === programId ? null : programId));
   }, []);
@@ -273,17 +306,27 @@ export default function NotesScreen() {
 
   const handleCreateRoutine = useCallback(() => {
     setEditingRoutine(null);
+    setAddDayProgramId(null);
     setShowRoutineEditor(true);
   }, []);
 
   const handleEditRoutine = useCallback((routine: Routine) => {
     setEditingRoutine(routine);
+    setAddDayProgramId(null);
+    setShowRoutineEditor(true);
+  }, []);
+
+  // Open the editor to create a brand-new day inside an existing program.
+  const handleAddDay = useCallback((programId: string) => {
+    setEditingRoutine(null);
+    setAddDayProgramId(programId);
     setShowRoutineEditor(true);
   }, []);
 
   const handleRoutineEditorClose = useCallback(() => {
     setShowRoutineEditor(false);
     setEditingRoutine(null);
+    setAddDayProgramId(null);
   }, []);
 
   const handleRoutineEditorSave = useCallback(async () => {
@@ -626,23 +669,22 @@ export default function NotesScreen() {
             {/* Programs — grouped day-routines; exactly one is active at a time */}
             {programGroups.map(({ program, days }) => {
               const isActiveProgram = program.status === 'active';
-              const isExpanded = isActiveProgram || expandedProgramId === program.id;
+              const isReordering = reorderingProgramId === program.id;
+              const isExpanded = isActiveProgram || expandedProgramId === program.id || isReordering;
+              const dayIds = days.map(d => d.id);
               const statusColor = isActiveProgram
                 ? '#34C759'
                 : currentTheme.colors.text + (program.status === 'paused' ? '80' : '50');
               const statusLabel = isActiveProgram ? 'Active' : program.status === 'paused' ? 'Paused' : 'Archived';
-              // Hoist the up-next day to the top so the next thing to train always
-              // leads; the rest follow in their program-day order.
-              const orderedDays = isActiveProgram && upNextRoutine
-                ? [upNextRoutine, ...days.filter(d => d.id !== upNextRoutine.id)]
-                : days;
-              // Cycle progress: a day counts as done when it was trained more
-              // recently than the most-due (up-next) day — same rule as the
-              // timeline checkmarks, so the bar and the checks always agree.
-              const cycleBaselineMs = isActiveProgram && upNextRoutine?.lastUsed
-                ? new Date(upNextRoutine.lastUsed).getTime() : 0;
+              // Always show days in their manual program order so Reorder is
+              // authoritative; the up-next day is flagged in place via the
+              // per-row isUpNext badge rather than hoisted to the top.
+              const orderedDays = days;
+              // Cycle progress reflects days actually trained this cycle (not
+              // merely flipped past). The up-next day itself stays "up next"
+              // even if trained earlier, so it's excluded from the done count.
               const completedThisCycle = isActiveProgram
-                ? days.filter(d => (d.lastUsed ? new Date(d.lastUsed).getTime() : 0) > cycleBaselineMs).length
+                ? days.filter(d => d.id !== upNextRoutine?.id && cycleCompletedIds.includes(d.id)).length
                 : 0;
               // Program-level lift momentum: how each distinct exercise is
               // tracking against the program's prescription (rep bonuses /
@@ -719,18 +761,46 @@ export default function NotesScreen() {
                     </RNView>
                   )}
 
+                  {/* Reorder mode — compact rows with up/down controls */}
+                  {isExpanded && isReordering && (
+                    <RNView style={styles.timeline}>
+                      {orderedDays.map((routine, idx) => (
+                        <RNView key={routine.id} style={[styles.reorderRow, { borderColor: currentTheme.colors.text + '1A' }]}>
+                          <Text weight="medium" style={[styles.reorderName, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                            {routine.name}
+                          </Text>
+                          <RNView style={styles.reorderControls}>
+                            <TouchableOpacity
+                              onPress={() => handleMoveDay(program.id, dayIds, idx, -1)}
+                              disabled={idx === 0}
+                              hitSlop={8}
+                              style={[styles.reorderBtn, idx === 0 && styles.reorderBtnDisabled]}
+                            >
+                              <Ionicons name="chevron-up" size={20} color={currentTheme.colors.text} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleMoveDay(program.id, dayIds, idx, 1)}
+                              disabled={idx === orderedDays.length - 1}
+                              hitSlop={8}
+                              style={[styles.reorderBtn, idx === orderedDays.length - 1 && styles.reorderBtnDisabled]}
+                            >
+                              <Ionicons name="chevron-down" size={20} color={currentTheme.colors.text} />
+                            </TouchableOpacity>
+                          </RNView>
+                        </RNView>
+                      ))}
+                    </RNView>
+                  )}
+
                   {/* Days — threaded onto a timeline spine so they read as one program */}
-                  {isExpanded && (
+                  {isExpanded && !isReordering && (
                     <RNView style={styles.timeline}>
                       {orderedDays.map((routine, idx) => {
                         const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
-                        // "Completed this cycle" = trained more recently than the
-                        // most-due (up next) day. This makes a day you did out of
-                        // order still read as done within the rotation, and clears
-                        // once that day becomes due again next cycle.
-                        const upNextLastUsed = upNextRoutine?.lastUsed ? new Date(upNextRoutine.lastUsed).getTime() : 0;
-                        const routineLastUsed = routine.lastUsed ? new Date(routine.lastUsed).getTime() : 0;
-                        const isCompleted = isActiveProgram && !isUpNext && routine.isActive !== false && routineLastUsed > upNextLastUsed;
+                        // Done only if actually trained this cycle (flipping the
+                        // pointer past a day never marks it done). The up-next day
+                        // keeps its highlight even if it was trained earlier.
+                        const isCompleted = isActiveProgram && !isUpNext && cycleCompletedIds.includes(routine.id);
                         const isFirst = idx === 0;
                         const isLast = idx === orderedDays.length - 1;
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
@@ -756,29 +826,56 @@ export default function NotesScreen() {
                     </RNView>
                   )}
 
+                  {/* Add a new day to the program */}
+                  {isExpanded && !isReordering && (
+                    <TouchableOpacity
+                      style={[styles.addDayButton, { borderColor: currentTheme.colors.primary + '40' }]}
+                      onPress={() => handleAddDay(program.id)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons name="add" size={16} color={currentTheme.colors.primary} />
+                      <Text weight="medium" style={[styles.addDayText, { color: currentTheme.colors.primary }]}>
+                        Add day
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
                   {/* Program controls — below the day list so the days you train
                       lead and program management reads as a footer. */}
                   <RNView style={styles.programActions}>
-                    {isActiveProgram ? (
+                    {isReordering ? (
+                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => setReorderingProgramId(null)} activeOpacity={0.85}>
+                        <Text style={[styles.programChipText, { color: '#fff' }]}>Done</Text>
+                      </TouchableOpacity>
+                    ) : (
                       <>
-                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.6}>
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Pause</Text>
+                        {isActiveProgram ? (
+                          <>
+                            <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.6}>
+                              <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Pause</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.6}>
+                              <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Archive</Text>
+                            </TouchableOpacity>
+                          </>
+                        ) : (
+                          <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
+                            <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
+                          </TouchableOpacity>
+                        )}
+                        {days.length > 1 && (
+                          <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => { setExpandedProgramId(program.id); setReorderingProgramId(program.id); }} activeOpacity={0.6}>
+                            <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Reorder</Text>
+                          </TouchableOpacity>
+                        )}
+                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => openRenameProgram(program)} activeOpacity={0.6}>
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Rename</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.6}>
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Archive</Text>
+                        <TouchableOpacity style={[styles.programChip, { backgroundColor: 'transparent', borderColor: '#E5484D33' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.6}>
+                          <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
                         </TouchableOpacity>
                       </>
-                    ) : (
-                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
-                        <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
-                      </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => openRenameProgram(program)} activeOpacity={0.6}>
-                      <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Rename</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.programChip, { backgroundColor: 'transparent', borderColor: '#E5484D33' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.6}>
-                      <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
-                    </TouchableOpacity>
                   </RNView>
 
                   {/* Bottom rule — closes the program block so the header, days
@@ -826,6 +923,7 @@ export default function NotesScreen() {
       <RoutineEditorModal
         visible={showRoutineEditor}
         routine={editingRoutine}
+        programId={addDayProgramId}
         onClose={handleRoutineEditorClose}
         onSave={handleRoutineEditorSave}
       />

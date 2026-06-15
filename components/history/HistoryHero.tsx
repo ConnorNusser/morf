@@ -2,18 +2,20 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View as RNView } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
   FadeOutUp,
+  runOnJS,
   useAnimatedProps,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Defs, Line, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -23,16 +25,23 @@ const N = 14; // samples per lift (fixed so curves can morph into each other)
 const CHART_H = 116;
 const TOP = 8;
 const USABLE_H = CHART_H - TOP * 2;
-const CYCLE_MS = 3400;
 const MORPH_MS = 820;
 const MIN_SESSIONS = 3; // need a few points to draw a progression
+const SWIPE_THRESHOLD = 40; // px of horizontal travel to flip to the next lift
 
 interface LiftSeries {
   name: string;
   norm: number[]; // N values 0..1, the lift's cumulative-best curve scaled to itself
   current: number; // latest best e1RM, display unit
-  gainPct: number; // all-time gain across the logged window
+  gainLbs: number; // all-time gain across the logged window, display unit
   sessions: number;
+  startDate: Date; // first logged session
+  endDate: Date; // latest logged session
+}
+
+function fmtMonth(d: Date) {
+  const date = new Date(d);
+  return `${date.toLocaleDateString(undefined, { month: 'short' })} '${String(date.getFullYear()).slice(-2)}`;
 }
 
 interface HistoryHeroProps {
@@ -91,9 +100,16 @@ function useLiftSeries(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit)
       const max = Math.max(...pts);
       const norm = pts.map(v => (max > min ? (v - min) / (max - min) : 0.5));
       const current = Math.round(toUnit(cum[L - 1]));
-      const first = cum[0];
-      const gainPct = first > 0 ? Math.round(((cum[L - 1] - first) / first) * 100) : 0;
-      out.push({ name: ex.name, norm, current, gainPct, sessions: L });
+      const gainLbs = Math.round(toUnit(cum[L - 1]) - toUnit(cum[0]));
+      out.push({
+        name: ex.name,
+        norm,
+        current,
+        gainLbs,
+        sessions: L,
+        startDate: sorted[0].date,
+        endDate: sorted[L - 1].date,
+      });
     }
     // most-logged lifts first, capped
     return out.sort((a, b) => b.sessions - a.sessions).slice(0, 6);
@@ -119,12 +135,28 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
 
   const [index, setIndex] = useState(0);
 
-  // auto-cycle lift → lift
+  // keep the index in range if the lift list shrinks
   useEffect(() => {
-    if (lifts.length < 2) return;
-    const id = setInterval(() => setIndex(i => (i + 1) % lifts.length), CYCLE_MS);
-    return () => clearInterval(id);
+    setIndex(i => Math.min(i, Math.max(0, lifts.length - 1)));
   }, [lifts.length]);
+
+  const step = useCallback(
+    (dir: number) => setIndex(i => Math.min(lifts.length - 1, Math.max(0, i + dir))),
+    [lifts.length]
+  );
+
+  // swipe left/right to move through lifts (replaces auto-cycling)
+  const swipe = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-12, 12])
+        .failOffsetY([-16, 16])
+        .onEnd(e => {
+          if (e.translationX <= -SWIPE_THRESHOLD) runOnJS(step)(1);
+          else if (e.translationX >= SWIPE_THRESHOLD) runOnJS(step)(-1);
+        }),
+    [step]
+  );
 
   // morph to the active lift whenever it (or the data) changes
   useEffect(() => {
@@ -162,7 +194,8 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
       </RNView>
 
       {active ? (
-        <>
+        <GestureDetector gesture={swipe}>
+          <RNView>
           {/* swapping lift label + value */}
           <RNView style={styles.titleRow}>
             <Animated.View key={active.name} entering={FadeInDown.duration(320)} exiting={FadeOutUp.duration(200)} style={styles.titleSwap}>
@@ -170,8 +203,10 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
                 <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontFamily: fonts.bold }]}>
                   {active.name}
                 </Text>
-                {active.gainPct > 0 && (
-                  <Text style={[styles.gain, { color: '#34C759', fontFamily: fonts.semiBold }]}>+{active.gainPct}% all-time</Text>
+                {active.gainLbs > 0 && (
+                  <Text style={[styles.gain, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
+                    +{active.gainLbs} {weightUnit} all-time
+                  </Text>
                 )}
               </RNView>
               <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
@@ -203,15 +238,35 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
+              {/* x-axis baseline */}
+              <Line
+                x1={X0}
+                y1={TOP + USABLE_H}
+                x2={X0 + (N - 1) * DX}
+                y2={TOP + USABLE_H}
+                stroke={colors.text + '1A'}
+                strokeWidth={1}
+              />
             </Svg>
+          </RNView>
+
+          {/* timeline x-axis */}
+          <RNView style={[styles.axisRow, { width: chartW }]}>
+            <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              {fmtMonth(active.startDate)}
+            </Text>
+            <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              {fmtMonth(active.endDate)}
+            </Text>
           </RNView>
 
           <Animated.View key={`cap-${active.name}`} entering={FadeIn.delay(150).duration(360)}>
             <Text style={[styles.caption, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-              {active.sessions} sessions logged · estimated 1RM
+              {active.sessions} sessions logged · estimated 1RM{lifts.length > 1 ? ' · swipe to compare lifts' : ''}
             </Text>
           </Animated.View>
-        </>
+          </RNView>
+        </GestureDetector>
       ) : (
         <RNView style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
@@ -254,6 +309,8 @@ const styles = StyleSheet.create({
   gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
   value: { fontSize: 26, letterSpacing: -0.6 },
   valueUnit: { fontSize: 13, letterSpacing: 0 },
+  axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  axisLabel: { fontSize: 11, letterSpacing: 0.2 },
   caption: { fontSize: 11.5, letterSpacing: 0.2, marginTop: 8 },
   empty: { paddingVertical: 22, alignItems: 'center' },
   emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19 },

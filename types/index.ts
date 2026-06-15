@@ -281,6 +281,7 @@ export interface Routine {
   lastUsed?: Date;
   isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
   programId?: string;  // The program this day belongs to; absent for loose/manual routines
+  order?: number;      // Day position within its program (ascending); absent falls back to createdAt
   // Progression tracking per exercise
   progressionState?: Record<string, ExerciseProgressionState>;
 }

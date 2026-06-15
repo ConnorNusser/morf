@@ -1,14 +1,16 @@
 // Single source of truth for "which routine is up next".
 //
-// Both the home dashboard (TodayCard) and the Routines screen render an
-// "up next" suggestion. They used to compute it independently — over different
-// candidate sets and with opposite tie-breaks — so they routinely disagreed
-// (most visibly right after generating a program, when no day has been used
-// yet). Everything here is shared so the two screens can never drift apart.
+// Up next is a position on a cyclic ring of the active program's days, taken in
+// the user's manual (Reorder) order — NOT a lastUsed "most-due" computation,
+// which felt wonky when days were trained out of order or skipped. A stored
+// pointer marks the current day; flipping on the home dashboard moves it, and
+// finishing a workout advances it to the next day, wrapping the last day back
+// to the first. The home dashboard and the Routines screen both resolve up next
+// through here, so they can never drift apart.
 import { Program, Routine } from '@/types';
 
 // The minimal shape both Routine and CalculatedRoutine satisfy.
-type RoutineLike = Pick<Routine, 'id' | 'createdAt' | 'isActive' | 'programId'> & { lastUsed?: Date };
+type RoutineLike = Pick<Routine, 'id' | 'createdAt' | 'isActive' | 'programId'> & { lastUsed?: Date; order?: number };
 
 function lastUsedTime(r: RoutineLike): number {
   return r.lastUsed ? new Date(r.lastUsed).getTime() : 0; // never-used sorts most-due
@@ -32,19 +34,54 @@ export function getActiveRoutines<T extends RoutineLike>(routines: T[]): T[] {
   return orderByDue(routines.filter(r => r.isActive !== false));
 }
 
-// The up-next routine, shared by the dashboard and the Routines screen.
-//
-// Scope: if a program is active, only its active days are candidates (the user
-// is following that rotation). Otherwise every active routine is a candidate.
-// Returns null only when there are no active candidates.
+// The ring the up-next pointer moves along: when a program is active, its
+// active days in manual program order (the Reorder order, ties broken by
+// createdAt then id for stability). With no active program, every active
+// routine, most-due first as a sensible default. Shared by the dashboard
+// (the flip carousel) and the Routines screen (cycle progress).
+export function getUpNextCandidates<T extends RoutineLike>(
+  routines: T[],
+  programs: Pick<Program, 'id' | 'status'>[],
+): T[] {
+  const activeProgram = programs.find(p => p.status === 'active') ?? null;
+  if (!activeProgram) return getActiveRoutines(routines);
+  const days = routines.filter(r => r.programId === activeProgram.id && r.isActive !== false);
+  return [...days].sort((a, b) => {
+    const order = (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER);
+    if (order !== 0) return order;
+    const created = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (created !== 0) return created;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
+
+// The up-next day: the day `pointerId` marks, or the first day on the ring when
+// the pointer is unset or stale (its day was deleted, paused, or the active
+// program changed). Returns null only when the ring is empty.
 export function getUpNextRoutine<T extends RoutineLike>(
   routines: T[],
   programs: Pick<Program, 'id' | 'status'>[],
+  pointerId: string | null = null,
 ): T | null {
-  const activeProgram = programs.find(p => p.status === 'active') ?? null;
-  const candidates = activeProgram
-    ? routines.filter(r => r.programId === activeProgram.id && r.isActive !== false)
-    : routines.filter(r => r.isActive !== false);
+  const candidates = getUpNextCandidates(routines, programs);
+  if (pointerId) {
+    const pointed = candidates.find(r => r.id === pointerId);
+    if (pointed) return pointed;
+  }
+  return candidates[0] ?? null;
+}
 
-  return orderByDue(candidates)[0] ?? null;
+// The day after `currentId` on the ring, wrapping the last day back to the
+// first — used to advance the pointer once a day is trained. Falls back to the
+// first day when `currentId` isn't on the ring.
+export function getNextInCycle<T extends RoutineLike>(
+  routines: T[],
+  programs: Pick<Program, 'id' | 'status'>[],
+  currentId: string | null,
+): T | null {
+  const candidates = getUpNextCandidates(routines, programs);
+  if (candidates.length === 0) return null;
+  const i = candidates.findIndex(r => r.id === currentId);
+  if (i < 0) return candidates[0];
+  return candidates[(i + 1) % candidates.length];
 }

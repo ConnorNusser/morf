@@ -2,6 +2,7 @@ import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Prog
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
+import { getNextInCycle, getUpNextCandidates } from '@/lib/workout/activeRoutine';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -27,6 +28,8 @@ const STORAGE_KEYS = {
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
   SEEN_ACHIEVEMENTS: 'seen_achievements',
   PROFILE_ICON: 'profile_icon',
+  UP_NEXT_POINTER: 'up_next_pointer',
+  CYCLE_COMPLETED: 'cycle_completed',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -384,6 +387,63 @@ class StorageService {
     }
   }
 
+  // The day the up-next ring currently points at, or null to start from the
+  // top of the program. Flipping on the home dashboard sets this; finishing a
+  // workout advances it (see advanceUpNext).
+  async getUpNextPointerId(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.UP_NEXT_POINTER);
+    } catch (error) {
+      console.error('Error loading up-next pointer:', error);
+      return null;
+    }
+  }
+
+  async setUpNextPointerId(routineId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.UP_NEXT_POINTER, routineId);
+    } catch (error) {
+      console.error('Error saving up-next pointer:', error);
+    }
+  }
+
+  // Day ids the user has actually trained in the current cycle — drives the
+  // "completed" checkmarks and the cycle progress bar. Only finishing a workout
+  // adds to this (see recordDayTrained); flipping the up-next pointer does not.
+  async getCycleCompletedIds(): Promise<string[]> {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.CYCLE_COMPLETED);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error loading cycle completed days:', error);
+      return [];
+    }
+  }
+
+  // Record that a day was trained: advance the up-next pointer to the next day
+  // (wrapping at the end) and add the day to the cycle's completed set. Once
+  // every day in the program has been trained, the set resets so a fresh cycle
+  // begins. Called on workout completion — never on a manual flip.
+  async recordDayTrained(trainedRoutineId: string): Promise<void> {
+    try {
+      const [routines, programs] = await Promise.all([this.getRoutines(), this.getPrograms()]);
+      const ringIds = getUpNextCandidates(routines, programs).map(r => r.id);
+
+      const next = getNextInCycle(routines, programs, trainedRoutineId);
+      if (next) await AsyncStorage.setItem(STORAGE_KEYS.UP_NEXT_POINTER, next.id);
+
+      const prev = await this.getCycleCompletedIds();
+      const done = new Set(prev.filter(id => ringIds.includes(id)));
+      done.add(trainedRoutineId);
+      // Whole program trained → reset to an empty cycle.
+      const completed = ringIds.length > 0 && ringIds.every(id => done.has(id)) ? [] : Array.from(done);
+      await AsyncStorage.setItem(STORAGE_KEYS.CYCLE_COMPLETED, JSON.stringify(completed));
+    } catch (error) {
+      console.error('Error recording trained day:', error);
+    }
+  }
+
   async deleteRoutine(routineId: string): Promise<void> {
     const routines = await this.getRoutines();
     const filtered = routines.filter(r => r.id !== routineId);
@@ -474,6 +534,54 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
     } catch (error) {
       console.error('Error deleting program:', error);
+    }
+  }
+
+  /**
+   * Add a new day-routine to an existing program: stamps it with the programId,
+   * places it at the end of the day order, matches the program's active state, and
+   * keeps the program's `days` count in sync with the actual number of days.
+   */
+  async addProgramDay(programId: string, routine: Routine): Promise<void> {
+    try {
+      const programs = await this.getPrograms();
+      const program = programs.find(p => p.id === programId);
+      if (!program) return;
+
+      const routines = await this.getRoutines();
+      const dayRoutines = routines.filter(r => r.programId === programId);
+      const maxOrder = dayRoutines.reduce((m, r) => Math.max(m, r.order ?? -1), -1);
+
+      const day: Routine = {
+        ...routine,
+        programId,
+        order: maxOrder + 1,
+        isActive: program.status === 'active',
+      };
+      await this.saveRoutine(day);
+
+      program.days = dayRoutines.length + 1;
+      await this.savePrograms(programs);
+    } catch (error) {
+      console.error('Error adding program day:', error);
+    }
+  }
+
+  /**
+   * Persist a user-chosen day order within a program. `orderedDayIds` is the
+   * program's day-routine ids in their new top-to-bottom order; each gets an
+   * `order` matching its index so day lists sort by it everywhere.
+   */
+  async reorderProgramDays(programId: string, orderedDayIds: string[]): Promise<void> {
+    try {
+      const routines = await this.getRoutines();
+      const rank = new Map(orderedDayIds.map((id, i) => [id, i]));
+      for (const r of routines) {
+        if (r.programId === programId && rank.has(r.id)) r.order = rank.get(r.id);
+      }
+      await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+    } catch (error) {
+      console.error('Error reordering program days:', error);
     }
   }
 

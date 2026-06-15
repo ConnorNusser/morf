@@ -104,6 +104,47 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.5,
   },
+  // Reorder mode (compact day rows with up/down controls)
+  reorderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  reorderName: {
+    flex: 1,
+    fontSize: 15,
+    marginRight: 12,
+  },
+  reorderControls: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  reorderBtn: {
+    padding: 2,
+  },
+  reorderBtnDisabled: {
+    opacity: 0.25,
+  },
+  // "Add day" affordance below a program's day list
+  addDayButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginTop: 4,
+  },
+  addDayText: {
+    fontSize: 14,
+  },
   // Program timeline (days threaded onto a left spine)
   timeline: {
     marginTop: 2,

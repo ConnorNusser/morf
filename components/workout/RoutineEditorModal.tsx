@@ -23,6 +23,9 @@ import {
 interface RoutineEditorModalProps {
   visible: boolean;
   routine?: Routine | null;
+  // When set (and no `routine` is supplied), the editor creates a new day inside
+  // this program instead of a loose routine.
+  programId?: string | null;
   onClose: () => void;
   onSave: () => void;
 }
@@ -184,6 +187,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
 const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   visible,
   routine,
+  programId,
   onClose,
   onSave,
 }) => {
@@ -277,6 +281,10 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
     try {
       const routineToSave: Routine = {
+        // Preserve every field on the original routine (programId, isActive,
+        // splitType, description, progressionState, …) so editing a program day
+        // doesn't detach it from its program or reset its progression.
+        ...(routine ?? {}),
         id: routine?.id || `routine_${Date.now()}`,
         name: name.trim(),
         exercises,
@@ -284,7 +292,13 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         lastUsed: routine?.lastUsed,
       };
 
-      await storageService.saveRoutine(routineToSave);
+      // New routine + a target program → add it as a program day (stamps
+      // programId, order, active state, and bumps the program's day count).
+      if (!routine && programId) {
+        await storageService.addProgramDay(programId, routineToSave);
+      } else {
+        await storageService.saveRoutine(routineToSave);
+      }
       onSave();
       onClose();
     } catch (error) {
@@ -297,7 +311,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     } finally {
       setIsSaving(false);
     }
-  }, [name, exercises, routine, onSave, onClose, showAlert]);
+  }, [name, exercises, routine, programId, onSave, onClose, showAlert]);
 
   const handleClose = useCallback(() => {
     if (name.trim() || exercises.length > 0) {
@@ -337,7 +351,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               <Ionicons name="close" size={28} color={currentTheme.colors.text} />
             </TouchableOpacity>
             <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              {routine ? 'Edit Routine' : 'New Routine'}
+              {routine ? 'Edit Routine' : programId ? 'New Day' : 'New Routine'}
             </Text>
             <TouchableOpacity onPress={handleSave} disabled={isSaving}>
               <Text style={[

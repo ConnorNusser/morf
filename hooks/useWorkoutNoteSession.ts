@@ -432,9 +432,11 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       durationSeconds: elapsedTime,
     });
 
-    // Update routine lastUsed for UP NEXT cycling (only if started from a routine)
+    // Record the training time (for "last trained" display), mark the day done
+    // for this cycle, and advance the up-next ring to the next day.
     if (startedRoutineId) {
       await storageService.updateRoutineLastUsed(startedRoutineId);
+      await storageService.recordDayTrained(startedRoutineId);
     }
   }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
 

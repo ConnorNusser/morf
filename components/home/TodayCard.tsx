@@ -4,13 +4,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { getUpNextRoutine } from "@/lib/workout/activeRoutine";
+import { getUpNextCandidates, getUpNextRoutine } from "@/lib/workout/activeRoutine";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import { CalculatedRoutine } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -45,6 +46,8 @@ export default function TodayCard() {
   const router = useRouter();
 
   const [calculated, setCalculated] = useState<CalculatedRoutine | null>(null);
+  // The active program's days in ring order, so the user can flip through them.
+  const [days, setDays] = useState<CalculatedRoutine[]>([]);
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
@@ -58,11 +61,12 @@ export default function TodayCard() {
   // context only loads once at startup, which is why it went stale before.)
   const load = useCallback(async () => {
     try {
-      const [history, dismissedAt, routines, programs] = await Promise.all([
+      const [history, dismissedAt, routines, programs, pointerId] = await Promise.all([
         storageService.getWorkoutHistory(),
         storageService.getRoutineAdviceDismissedAt(),
         storageService.getRoutines(),
         storageService.getPrograms(),
+        storageService.getUpNextPointerId(),
       ]);
       setTrainedToday(getStreakState(history).trainedToday);
 
@@ -77,7 +81,9 @@ export default function TodayCard() {
       }, null);
       setLastWorkoutAt(latest);
 
-      const today = getUpNextRoutine(routines, programs);
+      const candidates = getUpNextCandidates(routines, programs);
+      setDays(candidates.map((rt) => calculateRoutine(rt, history, weightUnit)));
+      const today = getUpNextRoutine(routines, programs, pointerId);
       setCalculated(today ? calculateRoutine(today, history, weightUnit) : null);
     } catch (err) {
       console.error("TodayCard: failed to load", err);
@@ -95,6 +101,22 @@ export default function TodayCard() {
     useCallback(() => {
       load();
     }, [load]),
+  );
+
+  // Flip to the previous/next day in the program ring and remember the choice,
+  // so both this card and the Routines screen treat it as the new up-next.
+  const flip = useCallback(
+    (dir: -1 | 1) => {
+      setCalculated((prev) => {
+        if (days.length < 2 || !prev) return prev;
+        const idx = days.findIndex((d) => d.id === prev.id);
+        const base = idx < 0 ? 0 : idx;
+        const next = days[(base + dir + days.length) % days.length];
+        storageService.setUpNextPointerId(next.id);
+        return next;
+      });
+    },
+    [days],
   );
 
   const handleStart = useCallback(() => {
@@ -217,20 +239,57 @@ export default function TodayCard() {
       >
         {(trainedToday ? "DONE TODAY" : "TODAY") + (label ? ` · ${label.toUpperCase()}` : "")}
       </Text>
+      <View style={styles.pagerRow}>
+        {days.length > 1 && (
+          <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
+            <Ionicons name="chevron-back" size={22} color={currentTheme.colors.text} />
+          </TouchableOpacity>
+        )}
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.routineName,
+            {
+              color: currentTheme.colors.text,
+              flex: 1,
+              textAlign: days.length > 1 ? "center" : "left",
+            },
+          ]}
+        >
+          {calculated.name}
+        </Text>
+        {days.length > 1 && (
+          <TouchableOpacity onPress={() => flip(1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
+            <Ionicons name="chevron-forward" size={22} color={currentTheme.colors.text} />
+          </TouchableOpacity>
+        )}
+      </View>
       <Text
-        numberOfLines={1}
         style={[
-          styles.routineName,
-          {
-            color: currentTheme.colors.text,
-          },
+          styles.subtle,
+          { color: currentTheme.colors.text, textAlign: days.length > 1 ? "center" : "left" },
         ]}
       >
-        {calculated.name}
-      </Text>
-      <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
         {calculated.exercises.length} exercises · {totalSets} sets
       </Text>
+      {days.length > 1 && (
+        <View style={styles.dots}>
+          {days.map((d) => (
+            <View
+              key={d.id}
+              style={[
+                styles.dot,
+                {
+                  backgroundColor:
+                    d.id === calculated.id
+                      ? currentTheme.colors.primary
+                      : currentTheme.colors.text + "30",
+                },
+              ]}
+            />
+          ))}
+        </View>
+      )}
 
       <View style={styles.exerciseList}>
         {exercises.map((ex, i) => {
@@ -343,6 +402,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginTop: 2,
     fontWeight: "700",
+  },
+  pagerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pagerBtn: {
+    paddingVertical: 2,
+  },
+  dots: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   emptyTitle: {
     fontSize: 20,

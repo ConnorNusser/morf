@@ -1,10 +1,10 @@
 import { Program, Routine } from '../types';
-import { getActiveRoutines, getUpNextRoutine, orderByDue } from '../lib/workout/activeRoutine';
+import { getActiveRoutines, getNextInCycle, getUpNextCandidates, getUpNextRoutine, orderByDue } from '../lib/workout/activeRoutine';
 
 // Minimal routine fixture — the resolver only reads these fields.
 function r(
   id: string,
-  opts: { lastUsed?: Date; createdAt?: Date; isActive?: boolean; programId?: string } = {}
+  opts: { lastUsed?: Date; createdAt?: Date; isActive?: boolean; programId?: string; order?: number } = {}
 ): Routine {
   return {
     id,
@@ -14,6 +14,7 @@ function r(
     lastUsed: opts.lastUsed,
     isActive: opts.isActive,
     programId: opts.programId,
+    order: opts.order,
   } as unknown as Routine;
 }
 
@@ -52,18 +53,53 @@ describe('getActiveRoutines', () => {
   });
 });
 
-describe('getUpNextRoutine', () => {
-  it('returns the most-due day of the ACTIVE program only', () => {
+describe('getUpNextCandidates', () => {
+  it('returns the ACTIVE program days in manual (order) sequence', () => {
     const routines = [
-      r('p1-push', { programId: 'p1', createdAt: days(10) }),
-      r('p1-legs', { programId: 'p1', createdAt: days(9), lastUsed: days(2) }),
-      r('p2-day', { programId: 'p2', createdAt: days(8) }), // paused program — ignored
+      r('legs', { programId: 'p1', order: 2 }),
+      r('push', { programId: 'p1', order: 0 }),
+      r('pull', { programId: 'p1', order: 1 }),
+      r('p2-day', { programId: 'p2', order: 0 }), // paused program — excluded
     ];
     const programs = [prog('p1', 'active'), prog('p2', 'paused')];
-    expect(getUpNextRoutine(routines, programs)?.id).toBe('p1-push');
+    expect(getUpNextCandidates(routines, programs).map(x => x.id)).toEqual(['push', 'pull', 'legs']);
   });
 
-  it('falls back to all active routines when no program is active', () => {
+  it('excludes paused days within the active program', () => {
+    const routines = [
+      r('a', { programId: 'p1', order: 0 }),
+      r('b', { programId: 'p1', order: 1, isActive: false }),
+    ];
+    expect(getUpNextCandidates(routines, [prog('p1', 'active')]).map(x => x.id)).toEqual(['a']);
+  });
+});
+
+describe('getUpNextRoutine', () => {
+  it('defaults to the first day on the ring when the pointer is unset', () => {
+    const routines = [
+      r('push', { programId: 'p1', order: 0 }),
+      r('pull', { programId: 'p1', order: 1 }),
+    ];
+    expect(getUpNextRoutine(routines, [prog('p1', 'active')])?.id).toBe('push');
+  });
+
+  it('honors the pointer when it marks a valid day', () => {
+    const routines = [
+      r('push', { programId: 'p1', order: 0 }),
+      r('pull', { programId: 'p1', order: 1 }),
+    ];
+    expect(getUpNextRoutine(routines, [prog('p1', 'active')], 'pull')?.id).toBe('pull');
+  });
+
+  it('falls back to the first day when the pointer is stale', () => {
+    const routines = [
+      r('push', { programId: 'p1', order: 0 }),
+      r('pull', { programId: 'p1', order: 1 }),
+    ];
+    expect(getUpNextRoutine(routines, [prog('p1', 'active')], 'deleted')?.id).toBe('push');
+  });
+
+  it('falls back to all active routines (most-due) when no program is active', () => {
     const routines = [
       r('a', { lastUsed: days(1) }),
       r('b', { lastUsed: days(5) }),
@@ -71,21 +107,29 @@ describe('getUpNextRoutine', () => {
     expect(getUpNextRoutine(routines, [prog('p1', 'paused')])?.id).toBe('b');
   });
 
-  it('dashboard and routines screen agree on a fresh program (no day used)', () => {
-    // Regression: the two screens previously tie-broke in opposite directions,
-    // so a brand-new program showed different "up next" days on each.
-    const routines = [
-      r('push', { programId: 'p1', createdAt: new Date(2026, 0, 1, 0, 0, 0) }),
-      r('pull', { programId: 'p1', createdAt: new Date(2026, 0, 1, 0, 0, 1) }),
-      r('legs', { programId: 'p1', createdAt: new Date(2026, 0, 1, 0, 0, 2) }),
-    ];
-    const programs = [prog('p1', 'active')];
-    // Both screens call this same function, so they cannot disagree.
-    expect(getUpNextRoutine(routines, programs)?.id).toBe('push');
-  });
-
   it('returns null when there are no active candidates', () => {
     expect(getUpNextRoutine([], [])).toBeNull();
     expect(getUpNextRoutine([r('x', { isActive: false })], [])).toBeNull();
+  });
+});
+
+describe('getNextInCycle', () => {
+  const routines = [
+    r('push', { programId: 'p1', order: 0 }),
+    r('pull', { programId: 'p1', order: 1 }),
+    r('legs', { programId: 'p1', order: 2 }),
+  ];
+  const programs = [prog('p1', 'active')];
+
+  it('advances to the next day in order', () => {
+    expect(getNextInCycle(routines, programs, 'push')?.id).toBe('pull');
+  });
+
+  it('wraps the last day back to the first', () => {
+    expect(getNextInCycle(routines, programs, 'legs')?.id).toBe('push');
+  });
+
+  it('falls back to the first day for an unknown current day', () => {
+    expect(getNextInCycle(routines, programs, 'gone')?.id).toBe('push');
   });
 });
