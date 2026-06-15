@@ -162,11 +162,6 @@ export default function WeeklyGoalCard() {
           </Text>
           {load.deltaPct !== null && (
             <View style={styles.trendChip}>
-              <Ionicons
-                name={load.deltaPct > 0 ? 'trending-up' : load.deltaPct < 0 ? 'trending-down' : 'remove'}
-                size={13}
-                color={load.deltaPct > 0 ? TREND_UP : load.deltaPct < 0 ? TREND_DOWN : currentTheme.colors.text + '80'}
-              />
               <Text
                 style={[
                   styles.trendText,
