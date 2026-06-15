@@ -543,6 +543,11 @@ export default function NotesScreen() {
     );
   };
 
+  // Shared ghost treatment for the quiet program-utility chips (Pause/Archive/
+  // Rename) — a hairline outline on transparent so they read as secondary next
+  // to the filled primary actions.
+  const ghostChip = { backgroundColor: 'transparent', borderColor: currentTheme.colors.text + '1A' };
+
   return (
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
@@ -618,7 +623,8 @@ export default function NotesScreen() {
                         <Text weight="semiBold" style={[styles.programName, { color: currentTheme.colors.text }]} numberOfLines={1}>
                           {program.name}
                         </Text>
-                        <RNView style={[styles.statusPill, { backgroundColor: statusColor + '20' }]}>
+                        <RNView style={[styles.statusPill, { backgroundColor: statusColor + '1F' }]}>
+                          <RNView style={[styles.statusDot, { backgroundColor: statusColor }]} />
                           <Text weight="semiBold" style={[styles.statusPillText, { color: statusColor }]}>{statusLabel}</Text>
                         </RNView>
                       </RNView>
@@ -635,27 +641,27 @@ export default function NotesScreen() {
                   <RNView style={styles.programActions}>
                     {isActiveProgram ? (
                       <>
-                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="pause" size={16} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Pause</Text>
+                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handlePauseProgram(program.id)} activeOpacity={0.6}>
+                          <Ionicons name="pause" size={15} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Pause</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.7}>
-                          <Ionicons name="file-tray-full-outline" size={16} color={currentTheme.colors.text + '99'} />
-                          <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Archive</Text>
+                        <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => handleArchiveProgram(program.id)} activeOpacity={0.6}>
+                          <Ionicons name="file-tray-full-outline" size={15} color={currentTheme.colors.text + '99'} />
+                          <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Archive</Text>
                         </TouchableOpacity>
                       </>
                     ) : (
-                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
-                        <Ionicons name="play" size={16} color="#fff" />
+                      <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => handleStartProgram(program.id)} activeOpacity={0.85}>
+                        <Ionicons name="play" size={15} color="#fff" />
                         <Text style={[styles.programChipText, { color: '#fff' }]}>{program.status === 'archived' ? 'Restart' : 'Start'}</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.surface }]} onPress={() => openRenameProgram(program)} activeOpacity={0.7}>
-                      <Ionicons name="pencil" size={15} color={currentTheme.colors.text + '99'} />
-                      <Text style={[styles.programChipText, { color: currentTheme.colors.text }]}>Rename</Text>
+                    <TouchableOpacity style={[styles.programChip, ghostChip]} onPress={() => openRenameProgram(program)} activeOpacity={0.6}>
+                      <Ionicons name="pencil" size={14} color={currentTheme.colors.text + '99'} />
+                      <Text style={[styles.programChipText, { color: currentTheme.colors.text + 'CC' }]}>Rename</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.programChip, { backgroundColor: '#E5484D14' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.7}>
-                      <Ionicons name="close-circle-outline" size={17} color="#E5484D" />
+                    <TouchableOpacity style={[styles.programChip, { backgroundColor: 'transparent', borderColor: '#E5484D33' }]} onPress={() => handleDeleteProgram(program)} activeOpacity={0.6}>
+                      <Ionicons name="trash-outline" size={14} color="#E5484D" />
                       <Text style={[styles.programChipText, { color: '#E5484D' }]}>Delete</Text>
                     </TouchableOpacity>
                   </RNView>

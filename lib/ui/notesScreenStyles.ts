@@ -29,13 +29,14 @@ export const styles = StyleSheet.create({
   programChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
   },
   programChipText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   programHeader: {
@@ -58,13 +59,22 @@ export const styles = StyleSheet.create({
     marginTop: 2,
   },
   statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 7,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusPillText: {
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 10.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   programActions: {
     flexDirection: 'row',
