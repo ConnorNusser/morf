@@ -2,17 +2,30 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View as RNView } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { Dimensions, StyleSheet, View as RNView } from 'react-native';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeInDown,
+  useAnimatedProps,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Line, Path } from 'react-native-svg';
 
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+const PAGE_PADDING = 20; // matches history.tsx scrollContent
+const CARD_PADDING = 18;
 const RECENT_DAYS = 28; // "last 4 weeks"
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MOVE_THRESHOLD = 1.5; // % change before a lift counts as climbing/slipping
 const MAX_ROWS = 5;
+const DELTA_CLAMP = 12; // % change that reaches the top/bottom of the chart
 
-// Semantic colors used app-wide (green = progress, red = regression).
+const CHART_H = 122;
 const UP = '#34C759';
 const DOWN = '#FF3B30';
 
@@ -32,8 +45,6 @@ interface HistoryHeroProps {
 }
 
 // ── data ───────────────────────────────────────────────────────────────────
-
-const TREND_RANK: Record<Trend, number> = { climbing: 0, holding: 1, slipping: 2 };
 
 function useProgressPulse(exerciseStats: ExerciseWithMax[]) {
   return useMemo(() => {
@@ -57,8 +68,7 @@ function useProgressPulse(exerciseStats: ExerciseWithMax[]) {
           priorBest = Math.max(priorBest, r);
         }
       }
-      // Only lifts trained in the window belong in a "last 4 weeks" pulse.
-      if (recentSessionsGuard(recentDays.size, recentBest)) continue;
+      if (recentDays.size === 0 || recentBest <= 0) continue; // not trained in window
 
       let trend: Trend = 'holding';
       let deltaPct = 0;
@@ -70,24 +80,15 @@ function useProgressPulse(exerciseStats: ExerciseWithMax[]) {
       lifts.push({ name: ex.name, trend, deltaPct, recentSessions: recentDays.size });
     }
 
-    // Most-trained lifts lead the selection, then group by trend for display.
     const top = lifts.sort((a, b) => b.recentSessions - a.recentSessions).slice(0, MAX_ROWS);
-    top.sort((a, b) => TREND_RANK[a.trend] - TREND_RANK[b.trend] || Math.abs(b.deltaPct) - Math.abs(a.deltaPct));
-
     const climbing = top.filter(l => l.trend === 'climbing').length;
-    const slipping = top.filter(l => l.trend === 'slipping').length;
-    return { lifts: top, climbing, slipping, total: top.length, hasAnyHistory: exerciseStats.some(e => e.history?.length) };
+    return { lifts: top, climbing, total: top.length, hasAnyHistory: exerciseStats.some(e => e.history?.length) };
   }, [exerciseStats]);
-}
-
-// A lift counts only if it was actually trained recently.
-function recentSessionsGuard(recentDays: number, recentBest: number): boolean {
-  return recentDays === 0 || recentBest <= 0;
 }
 
 // ── count-up ─────────────────────────────────────────────────────────────────
 
-function useCountUp(target: number, duration = 700, delay = 250) {
+function useCountUp(target: number, duration = 700, delay = 300) {
   const [value, setValue] = useState(0);
   useEffect(() => {
     let raf = 0;
@@ -106,22 +107,66 @@ function useCountUp(target: number, duration = 700, delay = 250) {
   return value;
 }
 
+// ── one momentum trail (draws on from the origin) ──────────────────────────────
+
+function Trail({ d, length, color, delay }: { d: string; length: number; color: string; delay: number }) {
+  const p = useSharedValue(0);
+  useEffect(() => {
+    p.value = withDelay(delay, withTiming(1, { duration: 820, easing: Easing.out(Easing.cubic) }));
+  }, [p, delay, d]);
+  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: length * (1 - p.value) }));
+  return (
+    <AnimatedPath
+      d={d}
+      stroke={color}
+      strokeWidth={2.5}
+      fill="none"
+      strokeLinecap="round"
+      strokeDasharray={length}
+      animatedProps={animatedProps}
+    />
+  );
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
-const TREND_META: Record<Trend, { word: string; icon: keyof typeof Ionicons.glyphMap; color: (text: string) => string }> = {
-  climbing: { word: 'climbing', icon: 'trending-up', color: () => UP },
-  holding: { word: 'holding', icon: 'remove', color: text => text + '55' },
-  slipping: { word: 'slipping', icon: 'trending-down', color: () => DOWN },
-};
+const trendColor = (t: Trend, neutral: string) => (t === 'climbing' ? UP : t === 'slipping' ? DOWN : neutral);
 
-export default function HistoryHero({ exerciseStats }: HistoryHeroProps) {
+export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroProps) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
 
   const { lifts, climbing, total, hasAnyHistory } = useProgressPulse(exerciseStats);
   const climbingCount = Math.round(useCountUp(climbing));
 
-  const segColor = (t: Trend) => (t === 'climbing' ? UP : t === 'slipping' ? DOWN : colors.text + '26');
+  const chartW = Dimensions.get('window').width - PAGE_PADDING * 2 - CARD_PADDING * 2;
+
+  // Lay out each lift as a trail from a shared left origin (4 weeks ago, neutral)
+  // to the right, rising/falling by its % change. Endpoints are relaxed apart so
+  // labels never collide, while sign + color still read as climbing/slipping.
+  const layout = useMemo(() => {
+    const originX = 3;
+    const endX = chartW * 0.6;
+    const midY = CHART_H / 2;
+    const amp = CHART_H / 2 - 16;
+    const yOf = (d: number) => midY - (Math.max(-DELTA_CLAMP, Math.min(DELTA_CLAMP, d)) / DELTA_CLAMP) * amp;
+
+    const pts = lifts.map(l => ({ l, y: yOf(l.deltaPct) })).sort((a, b) => a.y - b.y);
+    const gap = 23;
+    for (let i = 1; i < pts.length; i++) {
+      if (pts[i].y - pts[i - 1].y < gap) pts[i].y = pts[i - 1].y + gap;
+    }
+    const overflow = pts.length ? pts[pts.length - 1].y - (CHART_H - 10) : 0;
+    if (overflow > 0) pts.forEach(p => (p.y -= overflow));
+    pts.forEach(p => (p.y = Math.max(10, p.y)));
+
+    const cx = originX + (endX - originX) * 0.55;
+    return pts.map(({ l, y }) => {
+      const d = `M ${originX} ${midY} C ${cx} ${midY}, ${cx} ${y}, ${endX} ${y}`;
+      const length = Math.hypot(endX - originX, y - midY) * 1.25 + 40;
+      return { lift: l, y, endX, d, length };
+    });
+  }, [lifts, chartW]);
 
   return (
     <Animated.View
@@ -133,42 +178,54 @@ export default function HistoryHero({ exerciseStats }: HistoryHeroProps) {
     >
       <RNView style={styles.header}>
         <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Progress</Text>
-        <Text style={[styles.kickerSub, { color: colors.text + '55', fontFamily: fonts.medium }]}>last 4 weeks</Text>
+        <Text style={[styles.kickerSub, { color: colors.text + '55', fontFamily: fonts.medium }]}>vs 4 weeks ago</Text>
       </RNView>
 
       {total > 0 ? (
         <>
-          {/* glanceable mix of climbing / holding / slipping */}
-          <RNView style={styles.pulseBar}>
-            {lifts.map((l, i) => (
-              <Animated.View
-                key={l.name}
-                entering={FadeIn.delay(160 + i * 70).duration(360)}
-                style={[styles.pulseSeg, { backgroundColor: segColor(l.trend) }]}
+          <RNView style={{ height: CHART_H }}>
+            <Svg width={chartW} height={CHART_H} style={StyleSheet.absoluteFill}>
+              {/* no-change reference line */}
+              <Line
+                x1={3}
+                y1={CHART_H / 2}
+                x2={chartW * 0.6}
+                y2={CHART_H / 2}
+                stroke={colors.text + '14'}
+                strokeWidth={1}
+                strokeDasharray="3 4"
               />
-            ))}
-          </RNView>
+              {layout.map((t, i) => (
+                <Trail key={t.lift.name} d={t.d} length={t.length} color={trendColor(t.lift.trend, colors.text + '55')} delay={180 + i * 90} />
+              ))}
+            </Svg>
 
-          {/* per-lift detail */}
-          <RNView style={styles.list}>
-            {lifts.map((l, i) => {
-              const meta = TREND_META[l.trend];
-              const color = meta.color(colors.text);
+            {/* origin node — where every trail starts */}
+            <RNView style={[styles.origin, { top: CHART_H / 2 - 4, backgroundColor: colors.text + '40' }]} />
+
+            {/* endpoint dots + labels */}
+            {layout.map((t, i) => {
+              const color = trendColor(t.lift.trend, colors.text + '70');
               return (
-                <Animated.View key={l.name} entering={FadeInDown.delay(220 + i * 70).duration(380)} style={styles.row}>
-                  <Text numberOfLines={1} style={[styles.name, { color: colors.text + 'E6', fontFamily: fonts.medium }]}>
-                    {l.name}
-                  </Text>
-                  <RNView style={styles.trendWrap}>
-                    {l.trend !== 'holding' && l.deltaPct !== 0 && (
-                      <Text style={[styles.delta, { color, fontFamily: fonts.semiBold }]}>
-                        {l.deltaPct > 0 ? '+' : ''}{Math.round(l.deltaPct)}%
+                <React.Fragment key={t.lift.name}>
+                  <Animated.View
+                    entering={FadeIn.delay(560 + i * 90).duration(320)}
+                    style={[styles.dot, { left: t.endX - 4, top: t.y - 4, backgroundColor: color }]}
+                  />
+                  <Animated.View
+                    entering={FadeIn.delay(620 + i * 90).duration(320)}
+                    style={[styles.label, { left: t.endX + 10, top: t.y - 9, maxWidth: chartW - t.endX - 12 }]}
+                  >
+                    <Text numberOfLines={1} style={[styles.labelName, { color: colors.text + 'DD', fontFamily: fonts.medium }]}>
+                      {t.lift.name}
+                    </Text>
+                    {t.lift.trend !== 'holding' && (
+                      <Text style={[styles.labelDelta, { color, fontFamily: fonts.bold }]}>
+                        {t.lift.deltaPct > 0 ? '+' : ''}{Math.round(t.lift.deltaPct)}%
                       </Text>
                     )}
-                    <Text style={[styles.trendWord, { color, fontFamily: fonts.semiBold }]}>{meta.word}</Text>
-                    <Ionicons name={meta.icon} size={14} color={color} />
-                  </RNView>
-                </Animated.View>
+                  </Animated.View>
+                </React.Fragment>
               );
             })}
           </RNView>
@@ -177,15 +234,15 @@ export default function HistoryHero({ exerciseStats }: HistoryHeroProps) {
             <Text style={[styles.summaryNum, { color: climbing > 0 ? UP : colors.text + '99', fontFamily: fonts.bold }]}>
               {climbingCount}
             </Text>
-            {` of ${total} lift${total === 1 ? '' : 's'} moving up`}
+            {` of ${total} lift${total === 1 ? '' : 's'} trending up`}
           </Text>
         </>
       ) : (
         <RNView style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
             {hasAnyHistory
-              ? 'No lifts trained in the last 4 weeks — log a session to see your progress pulse.'
-              : 'Log a few weighted sets and your lifts’ progress will show up here.'}
+              ? 'No lifts trained in the last 4 weeks — log a session to see your momentum.'
+              : 'Log a few weighted sets and your lifts’ momentum will show up here.'}
           </Text>
         </RNView>
       )}
@@ -196,7 +253,7 @@ export default function HistoryHero({ exerciseStats }: HistoryHeroProps) {
 const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
-    padding: 18,
+    padding: CARD_PADDING,
     marginBottom: 16,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -211,31 +268,28 @@ const styles = StyleSheet.create({
   },
   kicker: { fontSize: 13, letterSpacing: 0.2 },
   kickerSub: { fontSize: 11, letterSpacing: 0.3 },
-  pulseBar: {
-    flexDirection: 'row',
-    gap: 4,
-    marginBottom: 16,
+  origin: {
+    position: 'absolute',
+    left: 0,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  pulseSeg: {
-    flex: 1,
-    height: 6,
-    borderRadius: 3,
+  dot: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
-  list: { gap: 11 },
-  row: {
+  label: {
+    position: 'absolute',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
   },
-  name: { fontSize: 14, letterSpacing: -0.1, flex: 1, marginRight: 12 },
-  trendWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  delta: { fontSize: 12, letterSpacing: 0 },
-  trendWord: { fontSize: 13, letterSpacing: 0.1 },
-  summary: {
-    fontSize: 13,
-    letterSpacing: 0.1,
-    marginTop: 14,
-  },
+  labelName: { fontSize: 13, letterSpacing: -0.1, flexShrink: 1 },
+  labelDelta: { fontSize: 12, letterSpacing: 0 },
+  summary: { fontSize: 13, letterSpacing: 0.1, marginTop: 16 },
   summaryNum: { fontSize: 14 },
   empty: { paddingVertical: 20, alignItems: 'center' },
   emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
