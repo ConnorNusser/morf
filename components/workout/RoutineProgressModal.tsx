@@ -7,7 +7,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
-import { GeneratedWorkout, Routine } from '@/types';
+import { getWorkoutById } from '@/lib/workout/workouts';
+import { GeneratedWorkout, MuscleGroup, Routine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -18,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 
 interface RoutineProgressModalProps {
   visible: boolean;
@@ -239,6 +241,36 @@ export default function RoutineProgressModal({
       totalDeclining,
     };
   }, [routineProgressList]);
+
+  // Muscle balance — completed working sets per major muscle group across all
+  // history, for the radar. Glutes fold into Legs; full-body lifts are skipped
+  // (no single axis). Powers the "are you training in balance" view.
+  const muscleBalance = useMemo(() => {
+    const axes: { key: MuscleGroup; label: string }[] = [
+      { key: 'chest', label: 'Chest' },
+      { key: 'shoulders', label: 'Shoulders' },
+      { key: 'arms', label: 'Arms' },
+      { key: 'legs', label: 'Legs' },
+      { key: 'core', label: 'Core' },
+      { key: 'back', label: 'Back' },
+    ];
+    const counts: Record<string, number> = {};
+    axes.forEach(a => { counts[a.key] = 0; });
+    for (const workout of workoutHistory) {
+      for (const ex of workout.exercises) {
+        const sets = ex.completedSets?.filter(s => s.completed && s.weight > 0).length ?? 0;
+        if (!sets) continue;
+        let muscle = getWorkoutById(ex.id)?.primaryMuscles?.[0] as MuscleGroup | undefined;
+        if (!muscle || muscle === 'full-body') continue;
+        if (muscle === 'glutes') muscle = 'legs';
+        if (counts[muscle] !== undefined) counts[muscle] += sets;
+      }
+    }
+    const values = axes.map(a => counts[a.key]);
+    const max = Math.max(1, ...values);
+    const total = values.reduce((sum, v) => sum + v, 0);
+    return { axes, values, max, total };
+  }, [workoutHistory]);
 
   const toggleFilter = (filter: ExerciseStatus) => {
     setStatusFilter(prev => prev === filter ? null : filter);
@@ -466,6 +498,63 @@ export default function RoutineProgressModal({
     );
   };
 
+  // Muscle-balance radar — drawn with SVG so it matches the app's flat style.
+  const MuscleRadar = ({ axes, values, max }: { axes: { key: MuscleGroup; label: string }[]; values: number[]; max: number }) => {
+    const size = 230;
+    const cx = size / 2;
+    const cy = size / 2;
+    const r = size / 2 - 34; // leave room for labels
+    const n = axes.length;
+    const angleFor = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2; // start at top
+    const at = (i: number, frac: number) => ({
+      x: cx + Math.cos(angleFor(i)) * r * frac,
+      y: cy + Math.sin(angleFor(i)) * r * frac,
+    });
+    const ringFracs = [0.34, 0.67, 1];
+    const ringPoly = (frac: number) =>
+      axes.map((_, i) => { const p = at(i, frac); return `${p.x},${p.y}`; }).join(' ');
+    const dataPoly = values.map((v, i) => { const p = at(i, max > 0 ? v / max : 0); return `${p.x},${p.y}`; }).join(' ');
+    const grid = colors.text + '18';
+    const green = '#34C759';
+
+    return (
+      <Svg width={size} height={size}>
+        {/* concentric grid rings */}
+        {ringFracs.map((f, idx) => (
+          <Polygon key={`ring-${idx}`} points={ringPoly(f)} fill="none" stroke={grid} strokeWidth={1} />
+        ))}
+        {/* spokes */}
+        {axes.map((_, i) => {
+          const p = at(i, 1);
+          return <Line key={`spoke-${i}`} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke={grid} strokeWidth={1} />;
+        })}
+        {/* data polygon */}
+        <Polygon points={dataPoly} fill={green + '33'} stroke={green} strokeWidth={2} />
+        {/* vertices */}
+        {values.map((v, i) => { const p = at(i, max > 0 ? v / max : 0); return <Circle key={`v-${i}`} cx={p.x} cy={p.y} r={2.5} fill={green} />; })}
+        {/* axis labels */}
+        {axes.map((a, i) => {
+          const lp = at(i, 1);
+          const lx = cx + (lp.x - cx) * 1.18;
+          const ly = cy + (lp.y - cy) * 1.18;
+          return (
+            <SvgText
+              key={`label-${i}`}
+              x={lx}
+              y={ly + 3}
+              fill={colors.text + '99'}
+              fontSize={11}
+              fontFamily={fonts.medium}
+              textAnchor="middle"
+            >
+              {a.label}
+            </SvgText>
+          );
+        })}
+      </Svg>
+    );
+  };
+
   if (!visible) return null;
 
   return (
@@ -478,13 +567,13 @@ export default function RoutineProgressModal({
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="chevron-down" size={28} color={colors.text} />
-          </TouchableOpacity>
+          <View style={{ width: 36 }} />
           <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.semiBold }]}>
             Progress
           </Text>
-          <View style={{ width: 36 }} />
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <Ionicons name="close" size={26} color={colors.text} />
+          </TouchableOpacity>
         </View>
 
         {routineProgressList.length === 0 ? (
@@ -505,9 +594,24 @@ export default function RoutineProgressModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
+            {/* Muscle balance radar */}
+            {muscleBalance.total > 0 && (
+              <View style={[styles.radarCard, { borderColor: colors.text + '1A' }]}>
+                <Text style={[styles.radarTitle, { color: colors.text, fontFamily: fonts.semiBold }]}>
+                  Muscle Balance
+                </Text>
+                <Text style={[styles.radarCaption, { color: colors.text + '55', fontFamily: fonts.regular }]}>
+                  Working sets by muscle group · all time
+                </Text>
+                <View style={styles.radarWrap}>
+                  <MuscleRadar axes={muscleBalance.axes} values={muscleBalance.values} max={muscleBalance.max} />
+                </View>
+              </View>
+            )}
+
             {/* Summary Cards - Tappable filters */}
             <View style={styles.summaryRow}>
-              <View style={[styles.summaryCard, { backgroundColor: colors.surface }]}>
+              <View style={[styles.summaryCard, { borderColor: colors.text + '1A' }]}>
                 <Text style={[styles.summaryValue, { color: colors.text, fontFamily: fonts.semiBold }]}>
                   {overallStats.totalSessions}
                 </Text>
@@ -520,9 +624,8 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'improving' ? '#22c55e20' : colors.surface,
-                    borderWidth: statusFilter === 'improving' ? 1 : 0,
-                    borderColor: '#22c55e',
+                    backgroundColor: statusFilter === 'improving' ? '#22c55e20' : 'transparent',
+                    borderColor: statusFilter === 'improving' ? '#22c55e' : colors.text + '1A',
                   },
                 ]}
                 onPress={() => toggleFilter('improving')}
@@ -540,9 +643,8 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'stable' ? colors.text + '10' : colors.surface,
-                    borderWidth: statusFilter === 'stable' ? 1 : 0,
-                    borderColor: colors.text + '40',
+                    backgroundColor: statusFilter === 'stable' ? colors.text + '10' : 'transparent',
+                    borderColor: statusFilter === 'stable' ? colors.text + '40' : colors.text + '1A',
                   },
                 ]}
                 onPress={() => toggleFilter('stable')}
@@ -560,9 +662,8 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'declining' ? '#ef444420' : colors.surface,
-                    borderWidth: statusFilter === 'declining' ? 1 : 0,
-                    borderColor: '#ef4444',
+                    backgroundColor: statusFilter === 'declining' ? '#ef444420' : 'transparent',
+                    borderColor: statusFilter === 'declining' ? '#ef4444' : colors.text + '1A',
                   },
                 ]}
                 onPress={() => toggleFilter('declining')}
@@ -579,7 +680,23 @@ export default function RoutineProgressModal({
 
             {/* Filtered Exercise List - flat view when filter is active */}
             {statusFilter && (
-              <View style={[styles.exerciseList, { backgroundColor: colors.surface, marginBottom: 12 }]}>
+              <>
+              {/* Clear-filter bar — explicit way back to the full view, since the
+                  summary cards only deselect on an exact re-tap. */}
+              <View style={styles.filterBar}>
+                <Text style={[styles.filterBarLabel, { color: colors.text + '99', fontFamily: fonts.medium }]}>
+                  Showing {statusFilter}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setStatusFilter(null)}
+                  style={[styles.clearChip, { borderColor: colors.text + '1A' }]}
+                  activeOpacity={0.6}
+                >
+                  <Ionicons name="close" size={13} color={colors.text + 'CC'} />
+                  <Text style={[styles.clearChipText, { color: colors.text + 'CC', fontFamily: fonts.medium }]}>Show all</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A', marginBottom: 12 }]}>
                 {routineProgressList.flatMap(routine =>
                   routine.exercises
                     .filter(e => e.status === statusFilter)
@@ -676,6 +793,7 @@ export default function RoutineProgressModal({
                   );
                 })}
               </View>
+              </>
             )}
 
             {/* Routines - normal view when no filter */}
@@ -686,7 +804,7 @@ export default function RoutineProgressModal({
                 <View key={routine.id} style={styles.routineSection}>
                   {/* Routine Header */}
                   <TouchableOpacity
-                    style={[styles.routineHeader, { backgroundColor: colors.surface }]}
+                    style={[styles.routineHeader, { backgroundColor: 'transparent', borderColor: colors.text + '1A' }]}
                     onPress={() => toggleRoutine(routine.id)}
                     activeOpacity={0.7}
                   >
@@ -722,11 +840,25 @@ export default function RoutineProgressModal({
                         {routine.completions} sessions · Last: {formatLastWorkout(routine.daysSinceLastWorkout)}
                       </Text>
                     </View>
+
+                    {/* Per-exercise status strip — one segment per lift, colored
+                        by trend (matches the routines-screen momentum bar). */}
+                    {routine.exercises.length > 0 && (
+                      <View style={styles.distBar}>
+                        {routine.exercises.map((ex, i) => {
+                          const c = ex.status === 'improving' ? '#34C759'
+                            : ex.status === 'declining' ? '#ef4444'
+                            : ex.status === 'stable' ? colors.text + '40'
+                            : colors.text + '15';
+                          return <View key={`${ex.exerciseId}-${i}`} style={[styles.distSeg, { backgroundColor: c }]} />;
+                        })}
+                      </View>
+                    )}
                   </TouchableOpacity>
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <View style={[styles.exerciseList, { backgroundColor: colors.surface }]}>
+                    <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A' }]}>
                       {routine.exercises.map((exercise, index) => {
                         const isExerciseExpanded = expandedExerciseId === exercise.exerciseId;
                         const weightGain = exercise.currentWeight - exercise.startWeight;
@@ -895,6 +1027,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: 10,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
     alignItems: 'center',
   },
   summaryValue: {
@@ -903,6 +1037,62 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 11,
     marginTop: 2,
+  },
+
+  // Radar
+  radarCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  radarTitle: {
+    fontSize: 15,
+  },
+  radarCaption: {
+    fontSize: 12,
+    marginTop: 3,
+  },
+  radarWrap: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+
+  // Clear-filter bar above the filtered list
+  filterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  filterBarLabel: {
+    fontSize: 13,
+    textTransform: 'capitalize',
+  },
+  clearChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  clearChipText: {
+    fontSize: 12.5,
+  },
+
+  // Per-exercise status strip (routine header)
+  distBar: {
+    flexDirection: 'row',
+    gap: 3,
+    marginTop: 10,
+  },
+  distSeg: {
+    flex: 1,
+    height: 6,
+    borderRadius: 3,
   },
 
   // Progress dots
