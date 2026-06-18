@@ -62,49 +62,56 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
+
+  // One reference shown at a time; the header pill flips between them.
+  const hasTarget = !!exercise.target?.length;
+  const hasPrevious = !!exercise.previous?.length;
+  const [refMode, setRefMode] = React.useState<'target' | 'previous'>(hasTarget ? 'target' : 'previous');
+  const canFlip = hasTarget && hasPrevious;
+  const activeMode: 'target' | 'previous' = refMode === 'target' && hasTarget ? 'target' : hasPrevious ? 'previous' : 'target';
+  const activeRef = activeMode === 'target' ? exercise.target : exercise.previous;
+  const refLabel = activeMode === 'target' ? 'Target' : 'Last time';
+  const flipRef = () => { if (canFlip) { playHapticFeedback('light', false); setRefMode(m => (m === 'target' ? 'previous' : 'target')); } };
+
   return (
     <RNView style={styles.section}>
-      <TouchableOpacity
-        style={styles.sectionHeader}
-        activeOpacity={0.6}
-        onLongPress={() => {
-          playHapticFeedback('medium', false);
-          onRemoveExercise(exercise.key);
-        }}
-      >
+      <RNView style={styles.sectionHeader}>
         {exercise.recognized && (
           <Ionicons name="checkmark-circle" size={15} color={currentTheme.colors.primary} style={{ marginRight: 6 }} />
         )}
-        <Text style={[styles.exName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
-          {exercise.name || 'Unnamed exercise'}
-        </Text>
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.exNameWrap}
+          activeOpacity={0.6}
+          onLongPress={() => { playHapticFeedback('medium', false); onRemoveExercise(exercise.key); }}
+        >
+          <Text style={[styles.exName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+            {exercise.name || 'Unnamed exercise'}
+          </Text>
+        </TouchableOpacity>
+        {(hasTarget || hasPrevious) && (
+          <TouchableOpacity
+            style={[styles.refPill, { borderColor: currentTheme.colors.border }]}
+            onPress={flipRef}
+            activeOpacity={canFlip ? 0.6 : 1}
+          >
+            <Text style={[styles.refPillText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>{refLabel}</Text>
+            {canFlip && <Ionicons name="swap-horizontal" size={13} color={currentTheme.colors.text + '99'} />}
+          </TouchableOpacity>
+        )}
+      </RNView>
 
-      {exercise.sets.length === 0 && (exercise.target || exercise.previous) ? (
-        /* Autofill: offer the prescription and/or last time, in one tap each */
+      {exercise.sets.length === 0 && activeRef ? (
+        /* Autofill from the selected reference (toggle in the header) */
         <RNView style={styles.autofill}>
-          <RNView style={styles.autofillText}>
-            {exercise.target && (
-              <Text style={[styles.autofillSets, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
-                <Text style={{ color: currentTheme.colors.primary }}>target </Text>{setSummary(exercise.target, weightUnit)}
-              </Text>
-            )}
-            {exercise.previous && (
-              <Text style={[styles.autofillSets, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
-                prev {setSummary(exercise.previous, weightUnit)}
-              </Text>
-            )}
-          </RNView>
-          {exercise.target && (
-            <TouchableOpacity style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]} onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, 'target'); }}>
-              <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Use target</Text>
-            </TouchableOpacity>
-          )}
-          {exercise.previous && (
-            <TouchableOpacity style={[styles.autofillBtnAlt, { borderColor: currentTheme.colors.border }]} onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, 'previous'); }}>
-              <Text style={[styles.autofillBtnAltText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>Last time</Text>
-            </TouchableOpacity>
-          )}
+          <Text style={[styles.autofillSets, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+            {setSummary(activeRef, weightUnit)}
+          </Text>
+          <TouchableOpacity
+            style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]}
+            onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, activeMode); }}
+          >
+            <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Autofill</Text>
+          </TouchableOpacity>
           <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onDismissAutofill(exercise.key); }}>
             <Ionicons name="close" size={18} color={currentTheme.colors.text + '40'} />
           </TouchableOpacity>
@@ -112,8 +119,8 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
       ) : (
         <>
           {exercise.sets.map((set, i) => {
-            const ghost = exercise.target?.[i] ?? exercise.previous?.[i];
-            const ghostLabel = exercise.target?.[i] ? 'target' : 'prev';
+            const ref = activeRef?.[i];
+            const ghost = ref ? `${refLabel.toLowerCase()} ${refSummary(ref, weightUnit)}` : '';
             return (
               <RNView
                 key={i}
@@ -144,9 +151,9 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
                     theme={currentTheme}
                   />
                 </RNView>
-                {ghost && (
+                {!!ghost && (
                   <Text style={[styles.ghost, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
-                    {ghostLabel} {refSummary(ghost, weightUnit)}
+                    {ghost}
                   </Text>
                 )}
                 <TouchableOpacity
@@ -209,8 +216,19 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
   summary: { fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', paddingBottom: 12 },
   section: { marginBottom: 22 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingBottom: 4 },
-  exName: { fontSize: 17, flex: 1 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 },
+  exNameWrap: { flex: 1 },
+  exName: { fontSize: 17 },
+  refPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 13,
+    borderWidth: 1,
+  },
+  refPillText: { fontSize: 12 },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,13 +247,10 @@ const styles = StyleSheet.create({
   times: { fontSize: 15 },
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10 },
   addSetText: { fontSize: 13 },
-  autofill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, flexWrap: 'wrap' },
-  autofillText: { flex: 1, minWidth: 120, gap: 1 },
-  autofillSets: { fontSize: 13 },
+  autofill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  autofillSets: { flex: 1, fontSize: 14 },
   autofillBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
   autofillBtnText: { color: '#fff', fontSize: 13 },
-  autofillBtnAlt: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
-  autofillBtnAltText: { fontSize: 13 },
   ghost: { fontSize: 12 },
   removeSet: { marginLeft: 'auto', paddingLeft: 4 },
 });
