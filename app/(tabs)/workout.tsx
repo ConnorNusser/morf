@@ -8,28 +8,34 @@ import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/Work
 import EditableWorkout from '@/components/workout/EditableWorkout';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAlert } from '@/components/CustomAlert';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
   Modal,
   Platform,
-  SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   UIManager,
   View as RNView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// Matches the absolute tab bar height in app/(tabs)/_layout.tsx so the composer
+// sits clear of it (the bar overlays content). Collapsed when the keyboard is up.
+const TAB_BAR_CLEARANCE = 85;
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -59,11 +65,34 @@ export default function WorkoutScreen() {
     handleSaveWorkout,
     handleFinishComplete,
     handleFinishCancel,
+    discardWorkout,
     hasWorkoutStarted,
     weightUnit,
     lastWorkoutTitle,
     prefillLastWorkout,
   } = useWorkoutNoteSession();
+  const { showAlert } = useAlert();
+
+  // Collapse the tab-bar clearance under the composer while the keyboard is up.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  // Discard the current workout (from the overflow menu), with a confirm.
+  const handleDiscard = useCallback(() => {
+    setShowActions(false);
+    showAlert({
+      title: 'Discard workout?',
+      message: "This clears everything you've logged in this session. It can't be undone.",
+      buttons: [
+        { text: 'Keep going', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => discardWorkout() },
+      ],
+    });
+  }, [showAlert, discardWorkout]);
 
   // Repeat the last workout into the editable draft.
   const handleRepeatLast = useCallback(() => {
@@ -157,7 +186,7 @@ export default function WorkoutScreen() {
   }, [handleFinishWorkout]);
 
   return (
-    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView edges={['top']} style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <KeyboardAvoidingView
         style={layout.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -320,7 +349,7 @@ export default function WorkoutScreen() {
         </View>
 
         {/* Composer (bottom) — type or speak a set; it's added to the workout above */}
-        <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
+        <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 6 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
           <RNView style={styles.composerRow}>
             <RNView style={styles.composerInput}>
               <WorkoutNoteInput
@@ -403,6 +432,15 @@ export default function WorkoutScreen() {
                 <Text style={[styles.actionLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{a.label}</Text>
               </TouchableOpacity>
             ))}
+            {hasWorkoutStarted && (
+              <TouchableOpacity
+                style={[styles.actionRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}
+                onPress={handleDiscard}
+              >
+                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+                <Text style={[styles.actionLabel, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>Discard workout</Text>
+              </TouchableOpacity>
+            )}
           </RNView>
         </TouchableOpacity>
       </Modal>
@@ -412,16 +450,15 @@ export default function WorkoutScreen() {
 
 const styles = StyleSheet.create({
   composerBar: {
-    height: 76,
     borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 8,
   },
   composerRow: {
-    flex: 1,
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 12,
-    paddingVertical: 8,
     backgroundColor: 'transparent',
   },
   composerInput: {

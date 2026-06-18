@@ -76,6 +76,7 @@ export interface UseWorkoutNoteSessionReturn {
   handleSaveWorkout: (parsedWorkout: ParsedWorkout) => Promise<void>;
   handleFinishComplete: () => Promise<void>;
   handleFinishCancel: () => void;
+  discardWorkout: () => Promise<void>;
 
   // Session state
   isSessionLoaded: boolean;
@@ -606,6 +607,17 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setShowFinishModal(false);
   }, []);
 
+  // Discard the in-progress workout without saving (clears draft, timer, session).
+  const discardWorkout = useCallback(async () => {
+    setDraft([]);
+    setComposerText('');
+    setWorkoutStartTime(null);
+    setElapsedTime(0);
+    setParsedExercises([]);
+    setStartedRoutineId(null);
+    await storageService.clearNoteSession();
+  }, []);
+
   // Handle reset workout timer
   const resetWorkoutTimer = useCallback(() => {
     setWorkoutStartTime(new Date());
@@ -665,6 +677,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     handleSaveWorkout,
     handleFinishComplete,
     handleFinishCancel,
+    discardWorkout,
 
     // Session state
     isSessionLoaded,
