@@ -388,13 +388,11 @@ export default function WorkoutScreen() {
             {/* Composer (open) — auto-growing input + mic + send. Done lives in the
                 keyboard accessory on iOS; Android gets an inline Done. */}
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
-              {Platform.OS !== 'ios' && (
-                <RNView style={styles.composerDoneRow}>
-                  <TouchableOpacity onPress={closeComposer} hitSlop={8} style={styles.doneChip}>
-                    <Text style={[styles.doneChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>
-                  </TouchableOpacity>
-                </RNView>
-              )}
+              <RNView style={[styles.composerDoneRow, { borderBottomColor: currentTheme.colors.border }]}>
+                <TouchableOpacity onPress={closeComposer} style={[styles.doneChip, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+                  <Text style={[styles.doneChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>
+                </TouchableOpacity>
+              </RNView>
               <RNView style={styles.composerRow}>
                 <RNView style={styles.composerInput}>
                   <TutorialTarget id="workout-note-input" style={layout.flex1}>
@@ -403,7 +401,6 @@ export default function WorkoutScreen() {
                       value={composerText}
                       onChangeText={setComposerText}
                       autoGrow
-                      onDonePress={closeComposer}
                       placeholder="Type or speak a set — e.g. Bench 135x8, 155x6"
                     />
                   </TutorialTarget>
@@ -542,11 +539,17 @@ const styles = StyleSheet.create({
   composerDoneRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   doneChip: {
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   doneChipText: {
     fontSize: 15,
