@@ -14,7 +14,10 @@ import { workoutToNoteText } from '@/lib/workout/workoutNoteFormat';
 import {
   DraftSet,
   WorkoutDraft,
+  addNamedExercise,
   addSet as addSetToDraft,
+  applySuggestion as applySuggestionInDraft,
+  dismissSuggestion as dismissSuggestionInDraft,
   draftFromParsed,
   draftToNoteText,
   mergeParsed,
@@ -22,6 +25,8 @@ import {
   removeSet as removeSetFromDraft,
   updateSet as updateSetInDraft,
 } from '@/lib/workout/workoutDraft';
+import { getLastSetsFor } from '@/lib/workout/autofill';
+import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateRoutineProgression } from '@/lib/workout/routineProgression';
 import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
@@ -42,6 +47,8 @@ export interface UseWorkoutNoteSessionReturn {
   addSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
+  acceptAutofill: (key: string) => void;
+  dismissAutofill: (key: string) => void;
 
   // Derived note text (serialized draft) — feeds the finish/save pipeline.
   noteText: string;
@@ -104,37 +111,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setDraft(draftFromParsed(workoutNoteParser.parseLocal(normalized)));
   }, []);
 
-  // Parse some text and merge it into the draft. Local parse first (free /
-  // instant); only escalate to the AI parser when the local pass reads nothing.
-  // Returns true if anything was added. Used by both the composer and voice.
-  const commitText = useCallback(async (text: string): Promise<boolean> => {
-    const trimmed = text.trim();
-    if (!trimmed) return false;
-
-    const local = workoutNoteParser.parseLocal(trimmed);
-    if (local.exercises.length > 0) {
-      setDraft(d => mergeParsed(d, local.exercises));
-      return true;
-    }
-    try {
-      const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
-      if (ai.exercises.length > 0) {
-        setDraft(d => mergeParsed(d, ai.exercises));
-        return true;
-      }
-    } catch {
-      // fall through to the hint below
-    }
-    showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
-    return false;
-  }, [showAlert]);
-
-  // Commit the composer box: merge what's typed, then clear it on success.
-  const commitComposer = useCallback(async () => {
-    const ok = await commitText(composerText);
-    if (ok) setComposerText('');
-  }, [commitText, composerText]);
-
   // Traditional-UI edits to the synthesized cards.
   const editSet = useCallback((key: string, index: number, patch: Partial<DraftSet>) => {
     setDraft(d => updateSetInDraft(d, key, index, patch));
@@ -142,6 +118,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
+  const acceptAutofill = useCallback((key: string) => setDraft(d => applySuggestionInDraft(d, key)), []);
+  const dismissAutofill = useCallback((key: string) => setDraft(d => dismissSuggestionInDraft(d, key)), []);
 
   // Quick summary state
   const [showSummary, setShowSummary] = useState(false);
@@ -161,6 +139,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Most recent saved workout, kept around so the user can repeat it in one tap.
   const [lastWorkout, setLastWorkout] = useState<GeneratedWorkout | null>(null);
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
+  // Full history powers per-exercise "autofill last time" suggestions.
+  const [history, setHistory] = useState<GeneratedWorkout[]>([]);
 
   // Pull the newest saved workout (+ custom exercises for name resolution) so
   // "repeat last workout" can pre-fill the note box. Refreshed on focus too,
@@ -175,11 +155,52 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         return !latest || new Date(w.createdAt) > new Date(latest.createdAt) ? w : latest;
       }, null);
       setLastWorkout(newest);
+      setHistory(history);
       setCustomExercises(custom);
     } catch (error) {
       console.error('Error loading last workout for prefill:', error);
     }
   }, []);
+
+  // Parse some text and merge it into the draft. Local parse first (free /
+  // instant); only escalate to the AI parser when the local pass reads nothing.
+  // Returns true if anything was added. Used by both the composer and voice.
+  const commitText = useCallback(async (text: string): Promise<boolean> => {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+
+    const local = workoutNoteParser.parseLocal(trimmed);
+    if (local.exercises.length > 0) {
+      setDraft(d => mergeParsed(d, local.exercises));
+      return true;
+    }
+    // No sets, but it names a known exercise — add it and offer to autofill the
+    // last time they trained it (Fitbod-style smart prefill).
+    const namedId = matchExerciseByName(trimmed);
+    if (namedId) {
+      const suggestion = getLastSetsFor(namedId, history, weightUnit) ?? undefined;
+      const name = getWorkoutById(namedId)?.name ?? trimmed;
+      setDraft(d => addNamedExercise(d, { name, exerciseId: namedId, recognized: true, suggestion }));
+      return true;
+    }
+    try {
+      const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
+      if (ai.exercises.length > 0) {
+        setDraft(d => mergeParsed(d, ai.exercises));
+        return true;
+      }
+    } catch {
+      // fall through to the hint below
+    }
+    showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
+    return false;
+  }, [showAlert, history, weightUnit]);
+
+  // Commit the composer box: merge what's typed, then clear it on success.
+  const commitComposer = useCallback(async () => {
+    const ok = await commitText(composerText);
+    if (ok) setComposerText('');
+  }, [commitText, composerText]);
 
   // Calculate elapsed time from start time (works even after app restart)
   const calculateElapsedTime = useCallback((startTime: Date | null): number => {
@@ -603,6 +624,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     addSetTo,
     removeSetFrom,
     removeExerciseFrom,
+    acceptAutofill,
+    dismissAutofill,
     noteText,
 
     // Timer state

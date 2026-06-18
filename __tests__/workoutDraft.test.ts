@@ -6,6 +6,10 @@ import {
   addSet,
   removeSet,
   removeExercise,
+  addNamedExercise,
+  applySuggestion,
+  dismissSuggestion,
+  totalVolume,
   WorkoutDraft,
 } from '../lib/workout/workoutDraft';
 import { ParsedExercise } from '../lib/workout/workoutNoteParser';
@@ -79,5 +83,43 @@ describe('edit helpers', () => {
   it('removeExercise drops the whole card', () => {
     const d = base();
     expect(removeExercise(d, d[0].key)).toHaveLength(0);
+  });
+});
+
+describe('autofill suggestions', () => {
+  const suggestion = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
+
+  it('addNamedExercise adds a set-less exercise carrying a suggestion', () => {
+    const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
+    expect(d).toHaveLength(1);
+    expect(d[0].sets).toHaveLength(0);
+    expect(d[0].suggestion).toEqual(suggestion);
+  });
+
+  it('addNamedExercise is a no-op when the exercise is already present', () => {
+    const d1 = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true });
+    const d2 = addNamedExercise(d1, { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true });
+    expect(d2).toBe(d1);
+  });
+
+  it('applySuggestion turns the suggestion into the working sets', () => {
+    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
+    d = applySuggestion(d, d[0].key);
+    expect(d[0].sets).toEqual(suggestion);
+    expect(d[0].suggestion).toBeUndefined();
+  });
+
+  it('dismissSuggestion clears it, leaving an empty exercise', () => {
+    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
+    d = dismissSuggestion(d, d[0].key);
+    expect(d[0].suggestion).toBeUndefined();
+    expect(d[0].sets).toHaveLength(0);
+  });
+});
+
+describe('totalVolume', () => {
+  it('sums weight × reps across the draft', () => {
+    const d = draftFromParsed({ exercises: [ex('Bench', [[100, 10], [100, 5]])], confidence: 1, rawText: '' });
+    expect(totalVolume(d)).toBe(1500);
   });
 });

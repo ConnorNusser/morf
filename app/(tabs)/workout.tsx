@@ -47,6 +47,8 @@ export default function WorkoutScreen() {
     addSetTo,
     removeSetFrom,
     removeExerciseFrom,
+    acceptAutofill,
+    dismissAutofill,
     noteText,
     elapsedTime,
     formatTime,
@@ -287,6 +289,8 @@ export default function WorkoutScreen() {
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
             onRemoveExercise={removeExerciseFrom}
+            onAcceptAutofill={acceptAutofill}
+            onDismissAutofill={dismissAutofill}
           />
           {!hasWorkoutStarted && (
             <RNView style={styles.empty}>

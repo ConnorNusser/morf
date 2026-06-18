@@ -5,7 +5,8 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { DraftExercise, DraftSet, WorkoutDraft } from '@/lib/workout/workoutDraft';
+import { DraftExercise, DraftSet, WorkoutDraft, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
+import { formatCompact } from '@/lib/gamification/careerStats';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -18,6 +19,14 @@ interface EditableWorkoutProps {
   onAddSet: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
+  onAcceptAutofill: (key: string) => void;
+  onDismissAutofill: (key: string) => void;
+}
+
+function setSummary(sets: DraftSet[], unit: WeightUnit): string {
+  return sets
+    .map(s => (s.weight > 0 ? `${s.weight}${unit}×${s.reps}` : `×${s.reps}`))
+    .join(', ');
 }
 
 // A small numeric field that commits on blur so typing intermediate values
@@ -49,7 +58,7 @@ function NumberField({ value, suffix, onCommit, theme }: {
   );
 }
 
-function ExerciseCard({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSet, onRemoveExercise }: {
+function ExerciseCard({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
@@ -75,54 +84,93 @@ function ExerciseCard({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSet, 
         </TouchableOpacity>
       </RNView>
 
-      {exercise.sets.map((set, i) => (
-        <RNView key={i} style={[styles.setRow, { borderTopColor: currentTheme.colors.border + '80' }]}>
-          <Text style={[styles.setLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
-            Set {i + 1}
-          </Text>
-          <RNView style={styles.fields}>
-            <NumberField
-              value={set.weight}
-              suffix={weightUnit}
-              theme={currentTheme}
-              onCommit={n => onEditSet(exercise.key, i, { weight: n })}
-            />
-            <Text style={[styles.times, { color: currentTheme.colors.text + '66' }]}>×</Text>
-            <NumberField
-              value={set.reps}
-              suffix="reps"
-              theme={currentTheme}
-              onCommit={n => onEditSet(exercise.key, i, { reps: n })}
-            />
+      {exercise.suggestion && exercise.sets.length === 0 ? (
+        /* Algorithmic autofill: offer last time's sets in one tap */
+        <RNView style={[styles.autofill, { borderTopColor: currentTheme.colors.border + '80' }]}>
+          <RNView style={styles.autofillText}>
+            <Text style={[styles.autofillLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+              Last time
+            </Text>
+            <Text style={[styles.autofillSets, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
+              {setSummary(exercise.suggestion, weightUnit)}
+            </Text>
           </RNView>
+          <TouchableOpacity
+            style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]}
+            onPress={() => {
+              playHapticFeedback('medium', false);
+              onAcceptAutofill(exercise.key);
+            }}
+          >
+            <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Autofill</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             hitSlop={8}
             onPress={() => {
               playHapticFeedback('light', false);
-              onRemoveSet(exercise.key, i);
+              onDismissAutofill(exercise.key);
             }}
           >
-            <Ionicons name="close" size={16} color={currentTheme.colors.text + '40'} />
+            <Ionicons name="close" size={18} color={currentTheme.colors.text + '40'} />
           </TouchableOpacity>
         </RNView>
-      ))}
+      ) : (
+        <>
+          {exercise.sets.map((set, i) => (
+            <RNView key={i} style={[styles.setRow, { borderTopColor: currentTheme.colors.border + '80' }]}>
+              <Text style={[styles.setLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                Set {i + 1}
+              </Text>
+              <RNView style={styles.fields}>
+                <NumberField
+                  value={set.weight}
+                  suffix={weightUnit}
+                  theme={currentTheme}
+                  onCommit={n => onEditSet(exercise.key, i, { weight: n })}
+                />
+                <Text style={[styles.times, { color: currentTheme.colors.text + '66' }]}>×</Text>
+                <NumberField
+                  value={set.reps}
+                  suffix="reps"
+                  theme={currentTheme}
+                  onCommit={n => onEditSet(exercise.key, i, { reps: n })}
+                />
+              </RNView>
+              <TouchableOpacity
+                hitSlop={8}
+                onPress={() => {
+                  playHapticFeedback('light', false);
+                  onRemoveSet(exercise.key, i);
+                }}
+              >
+                <Ionicons name="close" size={16} color={currentTheme.colors.text + '40'} />
+              </TouchableOpacity>
+            </RNView>
+          ))}
 
-      <TouchableOpacity
-        style={styles.addSet}
-        onPress={() => {
-          playHapticFeedback('light', false);
-          onAddSet(exercise.key);
-        }}
-      >
-        <Ionicons name="add" size={16} color={currentTheme.colors.primary} />
-        <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>Add set</Text>
-      </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addSet}
+            onPress={() => {
+              playHapticFeedback('light', false);
+              onAddSet(exercise.key);
+            }}
+          >
+            <Ionicons name="add" size={16} color={currentTheme.colors.primary} />
+            <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>Add set</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </RNView>
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet, onRemoveSet, onRemoveExercise }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
+  const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
+
+  const sets = totalSets(draft);
+  const volume = totalVolume(draft);
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -130,6 +178,12 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator
     >
+      {/* Synthesized summary — live rollup of the workout */}
+      <Text style={[styles.summary, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+        {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
+        {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
+      </Text>
+
       {draft.map(ex => (
         <ExerciseCard
           key={ex.key}
@@ -139,6 +193,8 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}
           onRemoveExercise={onRemoveExercise}
+          onAcceptAutofill={onAcceptAutofill}
+          onDismissAutofill={onDismissAutofill}
         />
       ))}
     </ScrollView>
@@ -148,6 +204,19 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: 'transparent' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 24, gap: 10 },
+  summary: { fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 2, paddingBottom: 2 },
+  autofill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  autofillText: { flex: 1 },
+  autofillLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
+  autofillSets: { fontSize: 14, marginTop: 1 },
+  autofillBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
+  autofillBtnText: { color: '#fff', fontSize: 13 },
   card: {
     borderRadius: 14,
     borderWidth: 1,

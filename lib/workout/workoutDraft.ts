@@ -19,6 +19,7 @@ export interface DraftExercise {
   exerciseId?: string; // matched catalog/custom id, if recognized
   recognized: boolean;
   sets: DraftSet[];
+  suggestion?: DraftSet[]; // "last time" sets offered for one-tap autofill
 }
 
 export type WorkoutDraft = DraftExercise[];
@@ -82,6 +83,46 @@ export function draftToNoteText(draft: WorkoutDraft): string {
 
 export function totalSets(draft: WorkoutDraft): number {
   return draft.reduce((n, e) => n + e.sets.length, 0);
+}
+
+/** Total volume (Σ weight × reps) across the draft, in the preferred unit. */
+export function totalVolume(draft: WorkoutDraft): number {
+  return draft.reduce((sum, e) => sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0);
+}
+
+/**
+ * Add a recognized exercise the user named without any sets yet, attaching a
+ * "last time" suggestion for one-tap autofill. No-op if it's already present.
+ */
+export function addNamedExercise(
+  draft: WorkoutDraft,
+  exercise: { name: string; exerciseId?: string; recognized: boolean; suggestion?: DraftSet[] },
+): WorkoutDraft {
+  const ckey = consolidationKey(exercise.exerciseId, exercise.name);
+  if (draft.some(e => consolidationKey(e.exerciseId, e.name) === ckey)) return draft;
+  return [
+    ...draft,
+    {
+      key: nextKey(),
+      name: exercise.name,
+      exerciseId: exercise.exerciseId,
+      recognized: exercise.recognized,
+      sets: [],
+      suggestion: exercise.suggestion,
+    },
+  ];
+}
+
+/** Accept the autofill suggestion: its sets become the exercise's sets. */
+export function applySuggestion(draft: WorkoutDraft, key: string): WorkoutDraft {
+  return mapExercise(draft, key, ex =>
+    ex.suggestion ? { ...ex, sets: ex.suggestion.map(s => ({ ...s })), suggestion: undefined } : ex,
+  );
+}
+
+/** Dismiss the autofill suggestion, leaving the exercise to be filled manually. */
+export function dismissSuggestion(draft: WorkoutDraft, key: string): WorkoutDraft {
+  return mapExercise(draft, key, ex => ({ ...ex, suggestion: undefined }));
 }
 
 // ---- immutable edit helpers (traditional-UI editing of the cards) ----
