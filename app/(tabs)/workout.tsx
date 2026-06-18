@@ -46,6 +46,7 @@ export default function WorkoutScreen() {
     editSet,
     addSetTo,
     removeSetFrom,
+    toggleSetDone,
     removeExerciseFrom,
     acceptAutofill,
     dismissAutofill,
@@ -288,6 +289,7 @@ export default function WorkoutScreen() {
             onEditSet={editSet}
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
+            onToggleDone={toggleSetDone}
             onRemoveExercise={removeExerciseFrom}
             onAcceptAutofill={acceptAutofill}
             onDismissAutofill={dismissAutofill}

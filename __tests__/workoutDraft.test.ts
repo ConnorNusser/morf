@@ -9,6 +9,7 @@ import {
   addNamedExercise,
   applySuggestion,
   dismissSuggestion,
+  toggleSetDone,
   totalVolume,
   WorkoutDraft,
 } from '../lib/workout/workoutDraft';
@@ -65,6 +66,14 @@ describe('edit helpers', () => {
     const next = updateSet(d, d[0].key, 1, { reps: 6, weight: 145 });
     expect(next[0].sets[1]).toMatchObject({ weight: 145, reps: 6 });
     expect(d[0].sets[1]).toMatchObject({ weight: 135, reps: 8 }); // original untouched
+  });
+
+  it('toggleSetDone flips the done flag on one set', () => {
+    const d = base();
+    const next = toggleSetDone(d, d[0].key, 0);
+    expect(next[0].sets[0].done).toBe(true);
+    expect(next[0].sets[1].done).toBeFalsy();
+    expect(toggleSetDone(next, d[0].key, 0)[0].sets[0].done).toBe(false);
   });
 
   it('addSet duplicates the last set', () => {

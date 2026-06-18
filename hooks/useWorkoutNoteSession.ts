@@ -23,6 +23,7 @@ import {
   mergeParsed,
   removeExercise as removeExerciseFromDraft,
   removeSet as removeSetFromDraft,
+  toggleSetDone as toggleSetDoneInDraft,
   updateSet as updateSetInDraft,
 } from '@/lib/workout/workoutDraft';
 import { getLastSetsFor } from '@/lib/workout/autofill';
@@ -46,6 +47,7 @@ export interface UseWorkoutNoteSessionReturn {
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
   addSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
+  toggleSetDone: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
   acceptAutofill: (key: string) => void;
   dismissAutofill: (key: string) => void;
@@ -117,6 +119,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, []);
   const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
+  const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
   const acceptAutofill = useCallback((key: string) => setDraft(d => applySuggestionInDraft(d, key)), []);
   const dismissAutofill = useCallback((key: string) => setDraft(d => dismissSuggestionInDraft(d, key)), []);
@@ -623,6 +626,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     editSet,
     addSetTo,
     removeSetFrom,
+    toggleSetDone,
     removeExerciseFrom,
     acceptAutofill,
     dismissAutofill,

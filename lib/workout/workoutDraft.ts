@@ -11,6 +11,7 @@ export interface DraftSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
+  done?: boolean; // checked off during the session (green row)
 }
 
 export interface DraftExercise {
@@ -138,10 +139,18 @@ export function updateSet(draft: WorkoutDraft, key: string, index: number, patch
   }));
 }
 
+/** Toggle a set's done state (drives the green check-off row). */
+export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): WorkoutDraft {
+  return mapExercise(draft, key, ex => ({
+    ...ex,
+    sets: ex.sets.map((s, i) => (i === index ? { ...s, done: !s.done } : s)),
+  }));
+}
+
 export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const last = ex.sets[ex.sets.length - 1];
-    const blank: DraftSet = last ? { ...last } : { weight: 0, reps: 0, unit: 'lbs' };
+    const blank: DraftSet = last ? { ...last, done: false } : { weight: 0, reps: 0, unit: 'lbs' };
     return { ...ex, sets: [...ex.sets, blank] };
   });
 }
