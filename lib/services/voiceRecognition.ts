@@ -1,13 +1,16 @@
 // Crash-safe access to the optional native speech-recognition module.
 //
-// expo-speech-recognition resolves its native side with requireNativeModule(),
-// which THROWS if the dev client hasn't been rebuilt to include the native
-// module. A static import would therefore crash the whole Workout screen on an
-// un-rebuilt binary. To avoid that, we load the module lazily behind try/catch
-// and expose a null-safe surface: if voice isn't available, every call is a
-// no-op and isVoiceAvailable() returns false (so the UI just hides the mic).
+// expo-speech-recognition's entrypoint resolves its native side at module-eval
+// time with requireNativeModule(), which THROWS if the dev client hasn't been
+// rebuilt to include the native module. In dev that throw escapes a plain
+// try/catch around require() (it surfaces as a render-time error), so instead
+// we first probe with requireOptionalNativeModule() — which returns null rather
+// than throwing — and only require the package when the native module is really
+// present. If voice isn't available, every call is a no-op and
+// isVoiceAvailable() returns false, so the UI simply hides the mic.
 //
 // Requires `npx expo prebuild` + a dev-client rebuild before voice works.
+import { requireOptionalNativeModule } from 'expo';
 
 type VoiceSubscription = { remove: () => void };
 
@@ -22,13 +25,16 @@ let cached: any;
 
 function getModule(): any | null {
   if (cached === undefined) {
-    try {
-      // Lazy require (not a static import) so requireNativeModule throwing on an
-      // un-rebuilt binary is caught here instead of crashing app startup.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      cached = require('expo-speech-recognition').ExpoSpeechRecognitionModule ?? null;
-    } catch {
+    // Probe without throwing; the native module only exists in a rebuilt binary.
+    if (!requireOptionalNativeModule('ExpoSpeechRecognition')) {
       cached = null;
+    } else {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        cached = require('expo-speech-recognition').ExpoSpeechRecognitionModule ?? null;
+      } catch {
+        cached = null;
+      }
     }
   }
   return cached;
