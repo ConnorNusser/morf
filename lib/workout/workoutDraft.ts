@@ -189,8 +189,9 @@ export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): 
 export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const last = ex.sets[ex.sets.length - 1];
-    const blank: DraftSet = last ? { ...last, done: false } : { weight: 0, reps: 0, unit: 'lbs' };
-    return { ...ex, sets: [...ex.sets, blank] };
+    // Duplicating a real set means you logged another set you did → mark it done.
+    const added: DraftSet = last ? { ...last, done: true } : { weight: 0, reps: 0, unit: 'lbs', done: false };
+    return { ...ex, sets: [...ex.sets, added] };
   });
 }
 

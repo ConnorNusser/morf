@@ -385,13 +385,16 @@ export default function WorkoutScreen() {
             {/* Predictive card — previews the paused composer text, tap to commit */}
             <PredictiveCard text={composerText} weightUnit={weightUnit} onCommit={handleComposerSend} />
 
-            {/* Composer (open) — auto-growing input + mic + send, with Done to collapse */}
+            {/* Composer (open) — auto-growing input + mic + send. Done lives in the
+                keyboard accessory on iOS; Android gets an inline Done. */}
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
-              <RNView style={styles.composerDoneRow}>
-                <TouchableOpacity onPress={closeComposer} hitSlop={8} style={styles.doneChip}>
-                  <Text style={[styles.doneChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>
-                </TouchableOpacity>
-              </RNView>
+              {Platform.OS !== 'ios' && (
+                <RNView style={styles.composerDoneRow}>
+                  <TouchableOpacity onPress={closeComposer} hitSlop={8} style={styles.doneChip}>
+                    <Text style={[styles.doneChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>
+                  </TouchableOpacity>
+                </RNView>
+              )}
               <RNView style={styles.composerRow}>
                 <RNView style={styles.composerInput}>
                   <TutorialTarget id="workout-note-input" style={layout.flex1}>
@@ -400,6 +403,7 @@ export default function WorkoutScreen() {
                       value={composerText}
                       onChangeText={setComposerText}
                       autoGrow
+                      onDonePress={closeComposer}
                       placeholder="Type or speak a set — e.g. Bench 135x8, 155x6"
                     />
                   </TutorialTarget>
@@ -423,8 +427,18 @@ export default function WorkoutScreen() {
             </RNView>
           </>
         ) : (
-          /* Collapsed — floating compose + voice buttons */
+          /* Collapsed — a compose bar that opens the composer, plus a mic */
           <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE }}>
+            <TouchableOpacity
+              style={[styles.collapsedInput, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              onPress={openComposer}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={18} color={currentTheme.colors.text + '88'} />
+              <Text style={[styles.collapsedPlaceholder, { color: currentTheme.colors.text + '88', fontFamily: currentTheme.fonts.regular }]}>
+                Log a set — type or speak
+              </Text>
+            </TouchableOpacity>
             {voice.available && (
               <TouchableOpacity
                 style={[styles.fabCircle, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
@@ -433,10 +447,6 @@ export default function WorkoutScreen() {
                 <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[styles.composeFab, { backgroundColor: currentTheme.colors.primary }]} onPress={openComposer}>
-              <Ionicons name="create-outline" size={20} color="#fff" />
-              <Text style={[styles.composeFabText, { fontFamily: currentTheme.fonts.semiBold }]}>Log a set</Text>
-            </TouchableOpacity>
           </RNView>
         )}
       </KeyboardAvoidingView>
@@ -551,12 +561,24 @@ const styles = StyleSheet.create({
   },
   collapsedBar: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 16,
     paddingTop: 8,
     backgroundColor: 'transparent',
+  },
+  collapsedInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  collapsedPlaceholder: {
+    fontSize: 15,
   },
   fabCircle: {
     width: 48,
@@ -565,18 +587,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  composeFab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    height: 48,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-  },
-  composeFabText: {
-    color: '#fff',
-    fontSize: 15,
   },
   composerInput: {
     flex: 1,

@@ -25,6 +25,8 @@ interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
   compact?: boolean;
   // Auto-grow mode: the field hugs its content (min→max) and scrolls past max.
   autoGrow?: boolean;
+  // What the keyboard-accessory "Done" does (defaults to dismissing the keyboard).
+  onDonePress?: () => void;
 }
 
 export interface WorkoutNoteInputRef {
@@ -37,7 +39,7 @@ const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
-  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
+  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, onDonePress, ...props }, ref) => {
     const { currentTheme } = useTheme();
     const _colorScheme = useColorScheme();
     const inputRef = useRef<TextInput>(null);
@@ -162,7 +164,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
               <RNView style={[styles.accessoryContainer, { borderTopColor: currentTheme.colors.border }]}>
                 <RNView style={{ flex: 1 }} />
                 <TouchableOpacity
-                  onPress={() => Keyboard.dismiss()}
+                  onPress={() => (onDonePress ? onDonePress() : Keyboard.dismiss())}
                   style={[styles.doneButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
                 >
                   <Text style={[styles.doneButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
