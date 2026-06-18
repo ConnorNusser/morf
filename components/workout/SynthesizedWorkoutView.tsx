@@ -1,13 +1,15 @@
-// The "synthesized workout" that sits below the composer: every line of the
-// note feed is folded into one consolidated, structured workout shown here as
-// the user types or dictates. Local parsing is instant and free (cached per
-// line); lines the local parser can't read are escalated to the AI parser once
-// each, so tokens are spent only on genuinely ambiguous input — never per
-// keystroke and never on the whole sheet.
+// The synthesized workout — the hero of the logging screen. Every line of the
+// note feed is folded into a structured workout and rendered here as proper
+// exercise cards with set rows, so what you type/dictate immediately becomes
+// the workout you'll save. Local parsing is instant and free (cached per line);
+// lines the local parser can't read are escalated to the AI parser once each,
+// so tokens are spent only on genuinely ambiguous input. Changes animate in as
+// you finish each line.
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ParsedSet } from '@/lib/workout/workoutNoteParser';
 import {
+  SynthesizedExercise,
   SynthesizedWorkout,
   synthesize,
   upgradeEntryWithAI,
@@ -15,7 +17,11 @@ import {
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View as RNView } from 'react-native';
+import { ActivityIndicator, LayoutAnimation, Platform, ScrollView, StyleSheet, UIManager, View as RNView } from 'react-native';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 interface SynthesizedWorkoutViewProps {
   noteText: string;
@@ -25,30 +31,67 @@ interface SynthesizedWorkoutViewProps {
 const DEBOUNCE_MS = 350;
 const EMPTY: SynthesizedWorkout = { exercises: [], totalSets: 0, lowConfidenceLines: [] };
 
-function setToken(set: ParsedSet): string {
+function setValue(set: ParsedSet, unit: WeightUnit): string {
   if (set.duration && set.duration > 0) {
     const mins = Math.round(set.duration / 60);
-    return mins >= 1 ? `${mins}min` : `${set.duration}s`;
+    return mins >= 1 ? `${mins} min` : `${set.duration}s`;
   }
-  if (set.weight > 0) return `${set.weight}×${set.reps}`;
-  return `×${set.reps}`;
+  if (set.weight > 0) return `${set.weight} ${unit} × ${set.reps}`;
+  return `${set.reps} reps`;
+}
+
+function ExerciseCard({ exercise, unit }: { exercise: SynthesizedExercise; unit: WeightUnit }) {
+  const { currentTheme } = useTheme();
+  return (
+    <RNView style={[styles.card, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+      <RNView style={styles.cardHeader}>
+        <Ionicons
+          name={exercise.recognized ? 'checkmark-circle' : 'ellipse-outline'}
+          size={16}
+          color={exercise.recognized ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
+        />
+        <Text style={[styles.exName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+          {exercise.name || 'Unnamed exercise'}
+        </Text>
+        <Text style={[styles.setCount, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.medium }]}>
+          {exercise.sets.length} {exercise.sets.length === 1 ? 'set' : 'sets'}
+        </Text>
+      </RNView>
+      {exercise.sets.map((set, i) => (
+        <RNView key={i} style={[styles.setRow, { borderTopColor: currentTheme.colors.border + '80' }]}>
+          <Text style={[styles.setLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+            Set {i + 1}
+          </Text>
+          <Text style={[styles.setValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+            {setValue(set, unit)}
+          </Text>
+        </RNView>
+      ))}
+    </RNView>
+  );
 }
 
 export default function SynthesizedWorkoutView({ noteText, weightUnit }: SynthesizedWorkoutViewProps) {
   const { currentTheme } = useTheme();
   const [synth, setSynth] = useState<SynthesizedWorkout>(EMPTY);
   const [interpreting, setInterpreting] = useState(false);
-  // Lines we've already sent to the AI parser, so we never re-escalate them.
+  // Lines already sent to the AI parser, so we never re-escalate them.
   const attempted = useRef<Set<string>>(new Set());
+
+  // Animate every synthesis update so cards/sets slide in as the log builds.
+  const applySynth = (next: SynthesizedWorkout) => {
+    LayoutAnimation.configureNext(LayoutAnimation.create(180, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
+    setSynth(next);
+  };
 
   useEffect(() => {
     if (!noteText.trim()) {
-      setSynth(EMPTY);
+      applySynth(EMPTY);
       return;
     }
     const handle = setTimeout(async () => {
       const local = synthesize(noteText, weightUnit);
-      setSynth(local);
+      applySynth(local);
 
       const fresh = local.lowConfidenceLines.filter(l => !attempted.current.has(l));
       if (fresh.length === 0) return;
@@ -60,40 +103,34 @@ export default function SynthesizedWorkoutView({ noteText, weightUnit }: Synthes
         changed = (await upgradeEntryWithAI(line, weightUnit)) || changed;
       }
       setInterpreting(false);
-      if (changed) setSynth(synthesize(noteText, weightUnit));
+      if (changed) applySynth(synthesize(noteText, weightUnit));
     }, DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [noteText, weightUnit]);
 
   const hasContent = synth.exercises.length > 0;
-  if (!noteText.trim() || (!hasContent && !interpreting)) return null;
+
+  if (!noteText.trim()) return null;
 
   return (
-    <RNView style={[styles.container, { borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }]}>
+    <RNView style={styles.container}>
       <RNView style={styles.header}>
-        <Text style={[styles.title, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.medium }]}>
+        <Text style={[styles.title, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.semiBold }]}>
           {hasContent
             ? `${synth.exercises.length} ${synth.exercises.length === 1 ? 'exercise' : 'exercises'} · ${synth.totalSets} ${synth.totalSets === 1 ? 'set' : 'sets'}`
-            : 'Interpreting…'}
+            : 'Reading your workout…'}
         </Text>
         {interpreting && <ActivityIndicator size="small" color={currentTheme.colors.primary} />}
       </RNView>
 
-      <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator
+        keyboardShouldPersistTaps="handled"
+      >
         {synth.exercises.map(ex => (
-          <RNView key={ex.key} style={styles.row}>
-            <Ionicons
-              name={ex.recognized ? 'checkmark-circle' : 'ellipse-outline'}
-              size={15}
-              color={ex.recognized ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
-            />
-            <Text style={[styles.exName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
-              {ex.name || 'Unnamed'}
-            </Text>
-            <Text style={[styles.exSets, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
-              {ex.sets.map(setToken).join(', ')}
-            </Text>
-          </RNView>
+          <ExerciseCard key={ex.key} exercise={ex} unit={weightUnit} />
         ))}
       </ScrollView>
     </RNView>
@@ -102,44 +139,64 @@ export default function SynthesizedWorkoutView({ noteText, weightUnit }: Synthes
 
 const styles = StyleSheet.create({
   container: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    maxHeight: 200,
-    paddingTop: 8,
-    paddingBottom: 4,
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 6,
+    paddingTop: 4,
+    paddingBottom: 8,
     backgroundColor: 'transparent',
   },
   title: {
     fontSize: 12,
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
-  list: {
+  scroll: {
+    flex: 1,
     backgroundColor: 'transparent',
   },
-  listContent: {
+  scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
-    gap: 8,
+    paddingBottom: 16,
+    gap: 10,
   },
-  row: {
+  card: {
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'transparent',
+    paddingBottom: 8,
   },
   exName: {
-    fontSize: 14,
+    fontSize: 16,
     flexShrink: 1,
   },
-  exSets: {
-    fontSize: 13,
+  setCount: {
+    fontSize: 12,
     marginLeft: 'auto',
-    flexShrink: 0,
+  },
+  setRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  setLabel: {
+    fontSize: 13,
+  },
+  setValue: {
+    fontSize: 15,
   },
 });

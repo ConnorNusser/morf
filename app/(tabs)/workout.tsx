@@ -342,14 +342,28 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Main Content - Notes Input */}
-        <TutorialTarget id="workout-note-input" style={layout.flex1}>
-          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+        {/* Synthesized workout — the hero. Returns null until you start typing,
+            then fills the screen as cards while the input shrinks below. */}
+        <SynthesizedWorkoutView noteText={noteText} weightUnit={weightUnit} />
+
+        {/* Composer — full-height when empty, a compose bar once you've started.
+            Kept in a stable tree position so it never remounts / loses focus. */}
+        <TutorialTarget id="workout-note-input" style={hasWorkoutStarted ? undefined : layout.flex1}>
+          <View
+            style={
+              hasWorkoutStarted
+                ? [styles.composer, { borderTopColor: currentTheme.colors.border }]
+                : [layout.flex1, { backgroundColor: 'transparent' }]
+            }
+          >
             <WorkoutNoteInput
               ref={noteInputRef}
               value={noteText}
               onChangeText={setNoteText}
-              placeholder={`Start typing your workout...
+              compact={hasWorkoutStarted}
+              placeholder={hasWorkoutStarted
+                ? 'Add a set — type or tap the mic…'
+                : `Start typing your workout...
 
 Examples:
 Bench 135x8, 155x6
@@ -357,11 +371,6 @@ Squats 225 for 5 reps`}
             />
           </View>
         </TutorialTarget>
-
-        {/* Synthesized workout — the note feed folded into a structured log */}
-        {hasWorkoutStarted && (
-          <SynthesizedWorkoutView noteText={noteText} weightUnit={weightUnit} />
-        )}
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
@@ -399,6 +408,11 @@ Squats 225 for 5 reps`}
 }
 
 const styles = StyleSheet.create({
+  composer: {
+    maxHeight: 140,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'transparent',
+  },
   repeatRow: {
     paddingHorizontal: 16,
     paddingTop: 4,
