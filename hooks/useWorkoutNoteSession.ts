@@ -10,8 +10,9 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { workoutToNoteText } from '@/lib/workout/workoutNoteFormat';
 import { updateRoutineProgression } from '@/lib/workout/routineProgression';
-import { FEATURED_SECONDARY_LIFTS, isMainLift, UserLift, WeightUnit } from '@/types';
+import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -47,6 +48,10 @@ export interface UseWorkoutNoteSessionReturn {
   isSessionLoaded: boolean;
   hasWorkoutStarted: boolean;
   weightUnit: WeightUnit;
+
+  // Repeat-last-workout prefill
+  lastWorkoutTitle: string | null; // null when there's nothing to repeat
+  prefillLastWorkout: () => void;
 }
 
 export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
@@ -72,6 +77,29 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
   // Track which routine this workout is from (for UP NEXT cycling)
   const [startedRoutineId, setStartedRoutineId] = useState<string | null>(null);
+
+  // Most recent saved workout, kept around so the user can repeat it in one tap.
+  const [lastWorkout, setLastWorkout] = useState<GeneratedWorkout | null>(null);
+  const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
+
+  // Pull the newest saved workout (+ custom exercises for name resolution) so
+  // "repeat last workout" can pre-fill the note box. Refreshed on focus too,
+  // so the day after a session the prefill reflects what was just logged.
+  const refreshLastWorkout = useCallback(async () => {
+    try {
+      const [history, custom] = await Promise.all([
+        storageService.getWorkoutHistory(),
+        storageService.getCustomExercises(),
+      ]);
+      const newest = history.reduce<GeneratedWorkout | null>((latest, w) => {
+        return !latest || new Date(w.createdAt) > new Date(latest.createdAt) ? w : latest;
+      }, null);
+      setLastWorkout(newest);
+      setCustomExercises(custom);
+    } catch (error) {
+      console.error('Error loading last workout for prefill:', error);
+    }
+  }, []);
 
   // Calculate elapsed time from start time (works even after app restart)
   const calculateElapsedTime = useCallback((startTime: Date | null): number => {
@@ -108,7 +136,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       }
     };
     loadInitialData();
-  }, [calculateElapsedTime]);
+    refreshLastWorkout();
+  }, [calculateElapsedTime, refreshLastWorkout]);
 
   // Consume any routine the user just started (text + id) on every focus, not
   // just on mount. The Workout tab stays mounted, so a mount-only read meant the
@@ -450,7 +479,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setStartedRoutineId(null);
     // Clear saved session
     await storageService.clearNoteSession();
-  }, []);
+    // The just-finished session is now the one to repeat next time.
+    refreshLastWorkout();
+  }, [refreshLastWorkout]);
 
   // Handle cancel from finish modal
   const handleFinishCancel = useCallback(() => {
@@ -462,6 +493,19 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setWorkoutStartTime(new Date());
     setElapsedTime(0);
   }, []);
+
+  // Pre-fill the note box with the most recent workout so the user can repeat
+  // it and just tweak the numbers — the freeform answer to Hevy's prefilled rows.
+  const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout, customExercises) : '';
+  const lastWorkoutTitle = lastWorkoutNote ? (lastWorkout?.title || 'last workout') : null;
+
+  const prefillLastWorkout = useCallback(() => {
+    if (!lastWorkoutNote) return;
+    setNoteText(lastWorkoutNote);
+    // A repeat is freestyle — it isn't advancing a routine's up-next cycle.
+    setStartedRoutineId(null);
+    if (!workoutStartTime) setWorkoutStartTime(new Date());
+  }, [lastWorkoutNote, workoutStartTime]);
 
   // Workout has started only if there's text
   const hasWorkoutStarted = noteText.length > 0;
@@ -496,5 +540,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     isSessionLoaded,
     hasWorkoutStarted,
     weightUnit,
+
+    // Repeat-last-workout prefill
+    lastWorkoutTitle,
+    prefillLastWorkout,
   };
 }

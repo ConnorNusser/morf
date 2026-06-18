@@ -202,6 +202,18 @@ class WorkoutNoteParser {
   }
 
   /**
+   * Synchronous, offline regex parse. Fast and cost-free, so it can run on
+   * every keystroke to power the live preview chips — where the Gemini round
+   * trip would be far too slow and would burn API calls. Lower fidelity than
+   * parseWorkoutNote (no AI disambiguation); the full AI parse still runs at
+   * finish, so this is only ever a best-effort preview.
+   */
+  parseLocal(text: string, defaultUnit: WeightUnit = 'lbs'): ParsedWorkout {
+    if (!text.trim()) return { exercises: [], confidence: 0, rawText: text };
+    return this.fallbackParse(text, defaultUnit);
+  }
+
+  /**
    * Build the AI prompt for parsing
    */
   private buildParsePrompt(text: string, defaultUnit: WeightUnit): string {

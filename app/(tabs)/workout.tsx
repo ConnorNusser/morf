@@ -5,6 +5,8 @@ import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
+import LiveParsePreview from '@/components/workout/LiveParsePreview';
+import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
@@ -51,7 +53,27 @@ export default function WorkoutScreen() {
     handleFinishCancel,
     hasWorkoutStarted,
     weightUnit,
+    lastWorkoutTitle,
+    prefillLastWorkout,
   } = useWorkoutNoteSession();
+
+  // Repeat the last workout, then focus the box so the user can tweak numbers.
+  const handleRepeatLast = useCallback(() => {
+    playHapticFeedback('medium', false);
+    prefillLastWorkout();
+    noteInputRef.current?.focus();
+  }, [prefillLastWorkout]);
+
+  // Voice dictation appends each finished phrase to the note as a new line.
+  const handleVoiceTranscript = useCallback((text: string) => {
+    playHapticFeedback('light', false);
+    noteInputRef.current?.appendText(text);
+  }, []);
+  const voice = useVoiceDictation(handleVoiceTranscript);
+  const handleMicPress = useCallback(() => {
+    playHapticFeedback('medium', false);
+    voice.toggle();
+  }, [voice]);
 
   // Rest timer hook
   const {
@@ -132,15 +154,25 @@ export default function WorkoutScreen() {
           <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted ? (
-                <TouchableOpacity
-                  style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
-                  onPress={handleQuickSummary}
-                >
-                  <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    Summary
-                  </Text>
-                </TouchableOpacity>
+                <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
+                  <TouchableOpacity
+                    style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
+                    onPress={handleQuickSummary}
+                  >
+                    <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
+                    <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      Summary
+                    </Text>
+                  </TouchableOpacity>
+                  {voice.available && (
+                    <TouchableOpacity
+                      style={[styles.iconButton, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                      onPress={handleMicPress}
+                    >
+                      <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={18} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                    </TouchableOpacity>
+                  )}
+                </View>
               ) : (
                 <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
                   <TouchableOpacity
@@ -149,6 +181,14 @@ export default function WorkoutScreen() {
                   >
                     <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
                   </TouchableOpacity>
+                  {voice.available && (
+                    <TouchableOpacity
+                      style={[styles.iconButton, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                      onPress={handleMicPress}
+                    >
+                      <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                     onPress={() => setShowHelpModal(true)}
@@ -286,6 +326,22 @@ export default function WorkoutScreen() {
           onDismiss={() => setShowSummary(false)}
         />
 
+        {/* Repeat last workout — freeform's answer to Hevy's prefilled rows */}
+        {!hasWorkoutStarted && lastWorkoutTitle && (
+          <RNView style={styles.repeatRow}>
+            <TouchableOpacity
+              style={[styles.repeatButton, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary + '40' }]}
+              onPress={handleRepeatLast}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="repeat" size={16} color={currentTheme.colors.primary} />
+              <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                Repeat last workout
+              </Text>
+            </TouchableOpacity>
+          </RNView>
+        )}
+
         {/* Main Content - Notes Input */}
         <TutorialTarget id="workout-note-input" style={layout.flex1}>
           <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
@@ -301,6 +357,11 @@ Squats 225 for 5 reps`}
             />
           </View>
         </TutorialTarget>
+
+        {/* Live structured confirmation of what the parser sees as you type */}
+        {hasWorkoutStarted && (
+          <LiveParsePreview noteText={noteText} weightUnit={weightUnit} />
+        )}
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
@@ -338,6 +399,25 @@ Squats 225 for 5 reps`}
 }
 
 const styles = StyleSheet.create({
+  repeatRow: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+    backgroundColor: 'transparent',
+    alignItems: 'flex-start',
+  },
+  repeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  repeatButtonText: {
+    fontSize: 13,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
