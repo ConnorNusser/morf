@@ -11,17 +11,40 @@ import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { workoutToNoteText } from '@/lib/workout/workoutNoteFormat';
+import {
+  DraftSet,
+  WorkoutDraft,
+  addSet as addSetToDraft,
+  draftFromParsed,
+  draftToNoteText,
+  mergeParsed,
+  removeExercise as removeExerciseFromDraft,
+  removeSet as removeSetFromDraft,
+  updateSet as updateSetInDraft,
+} from '@/lib/workout/workoutDraft';
 import { updateRoutineProgression } from '@/lib/workout/routineProgression';
 import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
 export interface UseWorkoutNoteSessionReturn {
-  // Note state
+  // Composer (transient input) + structured draft (the editable source of truth)
+  composerText: string;
+  setComposerText: (text: string) => void;
+  commitComposer: () => Promise<void>;
+  commitText: (text: string) => Promise<boolean>; // voice / programmatic entry
+  draft: WorkoutDraft;
+  loadDraftFromText: (text: string) => void; // plan builder / routine import / voice
+  // Direct, traditional-UI edits to the synthesized cards:
+  editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
+  addSetTo: (key: string) => void;
+  removeSetFrom: (key: string, index: number) => void;
+  removeExerciseFrom: (key: string) => void;
+
+  // Derived note text (serialized draft) — feeds the finish/save pipeline.
   noteText: string;
-  setNoteText: (text: string) => void;
 
   // Timer state
   elapsedTime: number;
@@ -58,10 +81,67 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const { refreshProfile } = useUser();
   const { showAlert } = useAlert();
 
-  // Workout note state
-  const [noteText, setNoteText] = useState('');
+  // Structured draft is the source of truth; composer text is transient input.
+  const [draft, setDraft] = useState<WorkoutDraft>([]);
+  const [composerText, setComposerText] = useState('');
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  // The note text the finish/save/persistence pipeline consumes is just the
+  // serialized draft — so editing cards or committing the composer both flow
+  // through one place.
+  const noteText = useMemo(() => draftToNoteText(draft), [draft]);
+
+  // Parse free text into a fresh draft (routine import, plan builder, restore).
+  // Local-only (no API calls): a routine template's "Target:/Actual:" lines are
+  // folded onto their exercise so the prescription seeds editable working sets.
+  const loadDraftFromText = useCallback((text: string) => {
+    if (!text.trim()) {
+      setDraft([]);
+      return;
+    }
+    const normalized = text.replace(/\n[ \t]*(target|actual)s?:[ \t]*/gi, ' ');
+    setDraft(draftFromParsed(workoutNoteParser.parseLocal(normalized)));
+  }, []);
+
+  // Parse some text and merge it into the draft. Local parse first (free /
+  // instant); only escalate to the AI parser when the local pass reads nothing.
+  // Returns true if anything was added. Used by both the composer and voice.
+  const commitText = useCallback(async (text: string): Promise<boolean> => {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+
+    const local = workoutNoteParser.parseLocal(trimmed);
+    if (local.exercises.length > 0) {
+      setDraft(d => mergeParsed(d, local.exercises));
+      return true;
+    }
+    try {
+      const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
+      if (ai.exercises.length > 0) {
+        setDraft(d => mergeParsed(d, ai.exercises));
+        return true;
+      }
+    } catch {
+      // fall through to the hint below
+    }
+    showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
+    return false;
+  }, [showAlert]);
+
+  // Commit the composer box: merge what's typed, then clear it on success.
+  const commitComposer = useCallback(async () => {
+    const ok = await commitText(composerText);
+    if (ok) setComposerText('');
+  }, [commitText, composerText]);
+
+  // Traditional-UI edits to the synthesized cards.
+  const editSet = useCallback((key: string, index: number, patch: Partial<DraftSet>) => {
+    setDraft(d => updateSetInDraft(d, key, index, patch));
+  }, []);
+  const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
+  const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
+  const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
 
   // Quick summary state
   const [showSummary, setShowSummary] = useState(false);
@@ -122,7 +202,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
         if (savedSession && savedSession.noteText) {
-          setNoteText(savedSession.noteText);
+          loadDraftFromText(savedSession.noteText);
           setWorkoutStartTime(savedSession.startTime);
           setElapsedTime(calculateElapsedTime(savedSession.startTime));
           if (savedSession.routineId) {
@@ -137,7 +217,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     };
     loadInitialData();
     refreshLastWorkout();
-  }, [calculateElapsedTime, refreshLastWorkout]);
+  }, [calculateElapsedTime, refreshLastWorkout, loadDraftFromText]);
 
   // Consume any routine the user just started (text + id) on every focus, not
   // just on mount. The Workout tab stays mounted, so a mount-only read meant the
@@ -148,13 +228,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     useCallback(() => {
       const text = getPendingRoutine();
       if (text !== null) {
-        setNoteText(text);
+        loadDraftFromText(text);
         // A routine launch always carries an id; a plain freestyle launch never
         // reaches here (it sets no pending text), so this won't clear an id by
         // accident. Read the id regardless to keep the pending slot clean.
         setStartedRoutineId(getPendingRoutineId());
       }
-    }, [])
+    }, [loadDraftFromText])
   );
 
   // Save session whenever noteText, workoutStartTime, or routineId changes
@@ -227,7 +307,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         if (!noteText && isSessionLoaded) {
           const savedSession = await storageService.getNoteSession();
           if (savedSession?.noteText) {
-            setNoteText(savedSession.noteText);
+            loadDraftFromText(savedSession.noteText);
             setWorkoutStartTime(savedSession.startTime);
             setElapsedTime(calculateElapsedTime(savedSession.startTime));
             // Also recover routine ID if it was lost
@@ -241,7 +321,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [workoutStartTime, noteText, isSessionLoaded, calculateElapsedTime]);
+  }, [workoutStartTime, noteText, isSessionLoaded, calculateElapsedTime, loadDraftFromText]);
 
   // Format elapsed time
   const formatTime = useCallback((seconds: number): string => {
@@ -472,7 +552,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Handle finish modal complete - reset workout state
   const handleFinishComplete = useCallback(async () => {
     setShowFinishModal(false);
-    setNoteText('');
+    setDraft([]);
+    setComposerText('');
     setWorkoutStartTime(null);
     setElapsedTime(0);
     setParsedExercises([]);
@@ -494,26 +575,35 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setElapsedTime(0);
   }, []);
 
-  // Pre-fill the note box with the most recent workout so the user can repeat
-  // it and just tweak the numbers — the freeform answer to Hevy's prefilled rows.
+  // Pre-fill the draft with the most recent workout so the user can repeat it
+  // and just tweak the numbers — the freeform answer to Hevy's prefilled rows.
   const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout, customExercises) : '';
   const lastWorkoutTitle = lastWorkoutNote ? (lastWorkout?.title || 'last workout') : null;
 
   const prefillLastWorkout = useCallback(() => {
     if (!lastWorkoutNote) return;
-    setNoteText(lastWorkoutNote);
+    loadDraftFromText(lastWorkoutNote);
     // A repeat is freestyle — it isn't advancing a routine's up-next cycle.
     setStartedRoutineId(null);
     if (!workoutStartTime) setWorkoutStartTime(new Date());
-  }, [lastWorkoutNote, workoutStartTime]);
+  }, [lastWorkoutNote, workoutStartTime, loadDraftFromText]);
 
-  // Workout has started only if there's text
-  const hasWorkoutStarted = noteText.length > 0;
+  // A workout is underway once the draft has anything in it.
+  const hasWorkoutStarted = draft.length > 0;
 
   return {
-    // Note state
+    // Composer + structured draft
+    composerText,
+    setComposerText,
+    commitComposer,
+    commitText,
+    draft,
+    loadDraftFromText,
+    editSet,
+    addSetTo,
+    removeSetFrom,
+    removeExerciseFrom,
     noteText,
-    setNoteText,
 
     // Timer state
     elapsedTime,

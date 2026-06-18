@@ -5,7 +5,7 @@ import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
-import SynthesizedWorkoutView from '@/components/workout/SynthesizedWorkoutView';
+import EditableWorkout from '@/components/workout/EditableWorkout';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -36,8 +36,17 @@ export default function WorkoutScreen() {
 
   // Workout session hook (handles note, timer, persistence, saving)
   const {
+    composerText,
+    setComposerText,
+    commitComposer,
+    commitText,
+    draft,
+    loadDraftFromText,
+    editSet,
+    addSetTo,
+    removeSetFrom,
+    removeExerciseFrom,
     noteText,
-    setNoteText,
     elapsedTime,
     formatTime,
     resetWorkoutTimer,
@@ -57,18 +66,23 @@ export default function WorkoutScreen() {
     prefillLastWorkout,
   } = useWorkoutNoteSession();
 
-  // Repeat the last workout, then focus the box so the user can tweak numbers.
+  // Repeat the last workout into the editable draft.
   const handleRepeatLast = useCallback(() => {
     playHapticFeedback('medium', false);
     prefillLastWorkout();
-    noteInputRef.current?.focus();
   }, [prefillLastWorkout]);
 
-  // Voice dictation appends each finished phrase to the note as a new line.
+  // Commit the composer text into the structured workout.
+  const handleComposerSend = useCallback(() => {
+    playHapticFeedback('medium', false);
+    commitComposer();
+  }, [commitComposer]);
+
+  // Voice: each finished phrase is parsed straight into the workout, hands-free.
   const handleVoiceTranscript = useCallback((text: string) => {
     playHapticFeedback('light', false);
-    noteInputRef.current?.appendText(text);
-  }, []);
+    commitText(text);
+  }, [commitText]);
   const voice = useVoiceDictation(handleVoiceTranscript);
   const handleMicPress = useCallback(() => {
     playHapticFeedback('medium', false);
@@ -92,15 +106,15 @@ export default function WorkoutScreen() {
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
-    setNoteText(planText);
+    loadDraftFromText(planText);
     setShowPlanBuilder(false);
-  }, [setNoteText]);
+  }, [loadDraftFromText]);
 
   // Handle routine import
   const handleRoutineImport = useCallback((text: string, _routineId: string) => {
-    setNoteText(text);
+    loadDraftFromText(text);
     setShowRoutineImport(false);
-  }, [setNoteText]);
+  }, [loadDraftFromText]);
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -164,14 +178,6 @@ export default function WorkoutScreen() {
                       Summary
                     </Text>
                   </TouchableOpacity>
-                  {voice.available && (
-                    <TouchableOpacity
-                      style={[styles.iconButton, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
-                      onPress={handleMicPress}
-                    >
-                      <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={18} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-                    </TouchableOpacity>
-                  )}
                 </View>
               ) : (
                 <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
@@ -181,14 +187,6 @@ export default function WorkoutScreen() {
                   >
                     <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
                   </TouchableOpacity>
-                  {voice.available && (
-                    <TouchableOpacity
-                      style={[styles.iconButton, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
-                      onPress={handleMicPress}
-                    >
-                      <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-                    </TouchableOpacity>
-                  )}
                   <TouchableOpacity
                     style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                     onPress={() => setShowHelpModal(true)}
@@ -326,7 +324,37 @@ export default function WorkoutScreen() {
           onDismiss={() => setShowSummary(false)}
         />
 
-        {/* Repeat last workout — freeform's answer to Hevy's prefilled rows */}
+        {/* Composer (top) — type or speak a set; it's parsed into the workout below */}
+        <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, borderBottomColor: currentTheme.colors.border }}>
+          <RNView style={styles.composerRow}>
+            <RNView style={styles.composerInput}>
+              <WorkoutNoteInput
+                ref={noteInputRef}
+                value={composerText}
+                onChangeText={setComposerText}
+                compact
+                placeholder="Type or speak a set — e.g. Bench 135x8, 155x6"
+              />
+            </RNView>
+            {voice.available && (
+              <TouchableOpacity
+                style={[styles.composerBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                onPress={handleMicPress}
+              >
+                <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.composerBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
+              onPress={handleComposerSend}
+              disabled={!composerText.trim()}
+            >
+              <Ionicons name="arrow-up" size={20} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
+            </TouchableOpacity>
+          </RNView>
+        </TutorialTarget>
+
+        {/* Repeat last workout — only before anything's been logged */}
         {!hasWorkoutStarted && lastWorkoutTitle && (
           <RNView style={styles.repeatRow}>
             <TouchableOpacity
@@ -342,32 +370,25 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Synthesized workout — the hero. Returns null until you start typing,
-            then fills the screen as cards while the input shrinks below. */}
-        <SynthesizedWorkoutView noteText={noteText} weightUnit={weightUnit} />
-
-        {/* Composer — full-height when empty, a compose bar once you've started.
-            Kept in a stable tree position so it never remounts / loses focus. */}
-        <TutorialTarget
-          id="workout-note-input"
-          style={hasWorkoutStarted ? { ...styles.composer, borderTopColor: currentTheme.colors.border } : layout.flex1}
-        >
-          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
-            <WorkoutNoteInput
-              ref={noteInputRef}
-              value={noteText}
-              onChangeText={setNoteText}
-              compact={hasWorkoutStarted}
-              placeholder={hasWorkoutStarted
-                ? 'Add a set — type or tap the mic…'
-                : `Start typing your workout...
-
-Examples:
-Bench 135x8, 155x6
-Squats 225 for 5 reps`}
-            />
-          </View>
-        </TutorialTarget>
+        {/* Editable structured workout (below) — the source of truth */}
+        <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+          <EditableWorkout
+            draft={draft}
+            weightUnit={weightUnit}
+            onEditSet={editSet}
+            onAddSet={addSetTo}
+            onRemoveSet={removeSetFrom}
+            onRemoveExercise={removeExerciseFrom}
+          />
+          {!hasWorkoutStarted && (
+            <RNView style={styles.emptyHint}>
+              <Ionicons name="barbell-outline" size={28} color={currentTheme.colors.text + '30'} />
+              <Text style={[styles.emptyHintText, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]}>
+                Type or speak a set above and it’ll appear here, ready to edit.
+              </Text>
+            </RNView>
+          )}
+        </View>
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
@@ -405,10 +426,47 @@ Squats 225 for 5 reps`}
 }
 
 const styles = StyleSheet.create({
-  composer: {
-    height: 124,
-    borderTopWidth: StyleSheet.hairlineWidth,
+  composerBar: {
+    height: 92,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     backgroundColor: 'transparent',
+  },
+  composerRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'transparent',
+  },
+  composerInput: {
+    flex: 1,
+    alignSelf: 'stretch',
+  },
+  composerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHint: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 40,
+    backgroundColor: 'transparent',
+  },
+  emptyHintText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
   },
   repeatRow: {
     paddingHorizontal: 16,
