@@ -348,14 +348,11 @@ export default function WorkoutScreen() {
 
         {/* Composer — full-height when empty, a compose bar once you've started.
             Kept in a stable tree position so it never remounts / loses focus. */}
-        <TutorialTarget id="workout-note-input" style={hasWorkoutStarted ? undefined : layout.flex1}>
-          <View
-            style={
-              hasWorkoutStarted
-                ? [styles.composer, { borderTopColor: currentTheme.colors.border }]
-                : [layout.flex1, { backgroundColor: 'transparent' }]
-            }
-          >
+        <TutorialTarget
+          id="workout-note-input"
+          style={hasWorkoutStarted ? { ...styles.composer, borderTopColor: currentTheme.colors.border } : layout.flex1}
+        >
+          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
             <WorkoutNoteInput
               ref={noteInputRef}
               value={noteText}
@@ -409,7 +406,7 @@ Squats 225 for 5 reps`}
 
 const styles = StyleSheet.create({
   composer: {
-    maxHeight: 140,
+    height: 124,
     borderTopWidth: StyleSheet.hairlineWidth,
     backgroundColor: 'transparent',
   },
