@@ -7,8 +7,9 @@ import {
   removeSet,
   removeExercise,
   addNamedExercise,
-  applySuggestion,
-  dismissSuggestion,
+  applyReference,
+  attachPrevious,
+  buildDraft,
   toggleSetDone,
   totalVolume,
   WorkoutDraft,
@@ -95,34 +96,37 @@ describe('edit helpers', () => {
   });
 });
 
-describe('autofill suggestions', () => {
-  const suggestion = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
+describe('references + autofill', () => {
+  const prev = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
+  const target = [{ weight: 185, reps: 5, unit: 'lbs' as const }];
 
-  it('addNamedExercise adds a set-less exercise carrying a suggestion', () => {
-    const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
-    expect(d).toHaveLength(1);
+  it('addNamedExercise adds a set-less exercise carrying its references', () => {
+    const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, previous: prev });
     expect(d[0].sets).toHaveLength(0);
-    expect(d[0].suggestion).toEqual(suggestion);
+    expect(d[0].previous).toEqual(prev);
   });
 
-  it('addNamedExercise is a no-op when the exercise is already present', () => {
-    const d1 = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true });
-    const d2 = addNamedExercise(d1, { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true });
-    expect(d2).toBe(d1);
+  it('applyReference fills sets from previous or target and keeps the reference', () => {
+    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, previous: prev, target });
+    const fromTarget = applyReference(d, d[0].key, 'target');
+    expect(fromTarget[0].sets).toEqual(target.map(s => ({ ...s, done: false })));
+    expect(fromTarget[0].target).toEqual(target); // reference persists for the ghost
+
+    const fromPrev = applyReference(d, d[0].key, 'previous');
+    expect(fromPrev[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
   });
 
-  it('applySuggestion turns the suggestion into the working sets', () => {
-    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
-    d = applySuggestion(d, d[0].key);
-    expect(d[0].sets).toEqual(suggestion);
-    expect(d[0].suggestion).toBeUndefined();
-  });
-
-  it('dismissSuggestion clears it, leaving an empty exercise', () => {
-    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, suggestion });
-    d = dismissSuggestion(d, d[0].key);
-    expect(d[0].suggestion).toBeUndefined();
+  it('buildDraft(asTarget) leaves sets empty and stores the prescription', () => {
+    const parsed = { exercises: [ex('Bench', [[185, 5], [185, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' };
+    const d = buildDraft(parsed, { asTarget: true });
     expect(d[0].sets).toHaveLength(0);
+    expect(d[0].target).toHaveLength(2);
+  });
+
+  it('attachPrevious fills in references only where missing', () => {
+    const d = mergeParsed([], [ex('Bench', [[135, 8]], 'bench-press-barbell')]);
+    const out = attachPrevious(d, () => prev);
+    expect(out[0].previous).toEqual(prev);
   });
 });
 

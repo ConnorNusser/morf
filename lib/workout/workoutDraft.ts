@@ -20,7 +20,8 @@ export interface DraftExercise {
   exerciseId?: string; // matched catalog/custom id, if recognized
   recognized: boolean;
   sets: DraftSet[];
-  suggestion?: DraftSet[]; // "last time" sets offered for one-tap autofill
+  previous?: DraftSet[]; // last time's sets — per-set ghost + autofill
+  target?: DraftSet[]; // prescribed sets when following a routine — ghost + autofill
 }
 
 export type WorkoutDraft = DraftExercise[];
@@ -68,6 +69,31 @@ export function draftFromParsed(parsed: ParsedWorkout): WorkoutDraft {
   return mergeParsed([], parsed.exercises);
 }
 
+/**
+ * Build a draft from a parsed workout, attaching references. When `asTarget`,
+ * the parsed sets become the prescription (target) and working sets start empty
+ * so the user fills from target/previous; otherwise they're the working sets.
+ */
+export function buildDraft(
+  parsed: ParsedWorkout,
+  opts: { asTarget?: boolean; previousFor?: (exerciseId: string | undefined, name: string) => DraftSet[] | null } = {},
+): WorkoutDraft {
+  return parsed.exercises.map(pex => {
+    const name = displayName(pex);
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }));
+    const previous = opts.previousFor?.(pex.matchedExerciseId, name) ?? undefined;
+    return {
+      key: nextKey(),
+      name,
+      exerciseId: pex.matchedExerciseId,
+      recognized: !!pex.matchedExerciseId && !pex.isCustom,
+      sets: opts.asTarget ? [] : sets,
+      target: opts.asTarget ? sets : undefined,
+      previous,
+    };
+  });
+}
+
 /** Serialize a draft back to note syntax for the finish/save pipeline. */
 export function draftToNoteText(draft: WorkoutDraft): string {
   return draft
@@ -97,7 +123,7 @@ export function totalVolume(draft: WorkoutDraft): number {
  */
 export function addNamedExercise(
   draft: WorkoutDraft,
-  exercise: { name: string; exerciseId?: string; recognized: boolean; suggestion?: DraftSet[] },
+  exercise: { name: string; exerciseId?: string; recognized: boolean; previous?: DraftSet[]; target?: DraftSet[] },
 ): WorkoutDraft {
   const ckey = consolidationKey(exercise.exerciseId, exercise.name);
   if (draft.some(e => consolidationKey(e.exerciseId, e.name) === ckey)) return draft;
@@ -109,21 +135,32 @@ export function addNamedExercise(
       exerciseId: exercise.exerciseId,
       recognized: exercise.recognized,
       sets: [],
-      suggestion: exercise.suggestion,
+      previous: exercise.previous,
+      target: exercise.target,
     },
   ];
 }
 
-/** Accept the autofill suggestion: its sets become the exercise's sets. */
-export function applySuggestion(draft: WorkoutDraft, key: string): WorkoutDraft {
-  return mapExercise(draft, key, ex =>
-    ex.suggestion ? { ...ex, sets: ex.suggestion.map(s => ({ ...s })), suggestion: undefined } : ex,
-  );
+export type ReferenceSource = 'previous' | 'target';
+
+/** Autofill an exercise's sets from a reference (last time or the prescription).
+ *  The reference is kept so it can still show as a per-set ghost afterward. */
+export function applyReference(draft: WorkoutDraft, key: string, source: ReferenceSource): WorkoutDraft {
+  return mapExercise(draft, key, ex => {
+    const ref = source === 'target' ? ex.target : ex.previous;
+    return ref && ref.length ? { ...ex, sets: ref.map(s => ({ ...s, done: false })) } : ex;
+  });
 }
 
-/** Dismiss the autofill suggestion, leaving the exercise to be filled manually. */
-export function dismissSuggestion(draft: WorkoutDraft, key: string): WorkoutDraft {
-  return mapExercise(draft, key, ex => ({ ...ex, suggestion: undefined }));
+/** Attach a "previous" reference to recognized exercises that don't have one. */
+export function attachPrevious(
+  draft: WorkoutDraft,
+  previousFor: (exerciseId: string, name: string) => DraftSet[] | null,
+): WorkoutDraft {
+  return draft.map(ex => {
+    if (ex.previous || !ex.exerciseId) return ex;
+    return { ...ex, previous: previousFor(ex.exerciseId, ex.name) ?? undefined };
+  });
 }
 
 // ---- immutable edit helpers (traditional-UI editing of the cards) ----

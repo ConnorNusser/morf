@@ -106,13 +106,13 @@ export default function WorkoutScreen() {
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
-    loadDraftFromText(planText);
+    loadDraftFromText(planText, { asTarget: true });
     setShowPlanBuilder(false);
   }, [loadDraftFromText]);
 
   // Handle routine import
   const handleRoutineImport = useCallback((text: string, _routineId: string) => {
-    loadDraftFromText(text);
+    loadDraftFromText(text, { asTarget: true });
     setShowRoutineImport(false);
   }, [loadDraftFromText]);
 

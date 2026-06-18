@@ -23,8 +23,12 @@ interface EditableWorkoutProps {
   onRemoveSet: (key: string, index: number) => void;
   onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
-  onAcceptAutofill: (key: string) => void;
+  onAcceptAutofill: (key: string, source: 'previous' | 'target') => void;
   onDismissAutofill: (key: string) => void;
+}
+
+function refSummary(set: DraftSet, unit: WeightUnit): string {
+  return set.weight > 0 ? `${set.weight}${unit}×${set.reps}` : `×${set.reps}`;
 }
 
 function setSummary(sets: DraftSet[], unit: WeightUnit): string {
@@ -82,59 +86,68 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSe
         </Text>
       </TouchableOpacity>
 
-      {exercise.suggestion && exercise.sets.length === 0 ? (
-        /* Algorithmic autofill: offer last time's sets in one tap */
+      {exercise.sets.length === 0 && (exercise.target || exercise.previous) ? (
+        /* Autofill: offer the prescription and/or last time, in one tap each */
         <RNView style={styles.autofill}>
           <RNView style={styles.autofillText}>
-            <Text style={[styles.autofillLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>Last time</Text>
-            <Text style={[styles.autofillSets, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
-              {setSummary(exercise.suggestion, weightUnit)}
-            </Text>
+            {exercise.target && (
+              <Text style={[styles.autofillSets, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
+                <Text style={{ color: currentTheme.colors.primary }}>target </Text>{setSummary(exercise.target, weightUnit)}
+              </Text>
+            )}
+            {exercise.previous && (
+              <Text style={[styles.autofillSets, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+                prev {setSummary(exercise.previous, weightUnit)}
+              </Text>
+            )}
           </RNView>
-          <TouchableOpacity
-            style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]}
-            onPress={() => {
-              playHapticFeedback('medium', false);
-              onAcceptAutofill(exercise.key);
-            }}
-          >
-            <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Autofill</Text>
-          </TouchableOpacity>
+          {exercise.target && (
+            <TouchableOpacity style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]} onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, 'target'); }}>
+              <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Use target</Text>
+            </TouchableOpacity>
+          )}
+          {exercise.previous && (
+            <TouchableOpacity style={[styles.autofillBtnAlt, { borderColor: currentTheme.colors.border }]} onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, 'previous'); }}>
+              <Text style={[styles.autofillBtnAltText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>Last time</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onDismissAutofill(exercise.key); }}>
             <Ionicons name="close" size={18} color={currentTheme.colors.text + '40'} />
           </TouchableOpacity>
         </RNView>
       ) : (
         <>
-          {exercise.sets.map((set, i) => (
-            <TouchableOpacity
-              key={i}
-              activeOpacity={1}
-              onLongPress={() => { playHapticFeedback('medium', false); onRemoveSet(exercise.key, i); }}
-              style={[
-                styles.setRow,
-                { borderTopColor: currentTheme.colors.border + '60' },
-                set.done && { backgroundColor: DONE_GREEN + '1A' },
-              ]}
-            >
+          {exercise.sets.map((set, i) => {
+            const ghost = exercise.target?.[i] ?? exercise.previous?.[i];
+            const ghostLabel = exercise.target?.[i] ? 'target' : 'prev';
+            return (
               <TouchableOpacity
-                hitSlop={8}
-                onPress={() => { playHapticFeedback('light', false); onToggleDone(exercise.key, i); }}
+                key={i}
+                activeOpacity={1}
+                onLongPress={() => { playHapticFeedback('medium', false); onRemoveSet(exercise.key, i); }}
+                style={[
+                  styles.setRow,
+                  { borderTopColor: currentTheme.colors.border + '60' },
+                  set.done && { backgroundColor: DONE_GREEN + '1A' },
+                ]}
               >
-                <Ionicons
-                  name={set.done ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={24}
-                  color={set.done ? DONE_GREEN : currentTheme.colors.text + '33'}
-                />
+                <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onToggleDone(exercise.key, i); }}>
+                  <Ionicons name={set.done ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={set.done ? DONE_GREEN : currentTheme.colors.text + '33'} />
+                </TouchableOpacity>
+                <Text style={[styles.setIndex, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.regular }]}>{i + 1}</Text>
+                <RNView style={styles.fields}>
+                  <NumberField value={set.weight} suffix={weightUnit} theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { weight: n })} />
+                  <Text style={[styles.times, { color: currentTheme.colors.text + '55' }]}>×</Text>
+                  <NumberField value={set.reps} suffix="reps" theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { reps: n })} />
+                </RNView>
+                {ghost && (
+                  <Text style={[styles.ghost, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+                    {ghostLabel} {refSummary(ghost, weightUnit)}
+                  </Text>
+                )}
               </TouchableOpacity>
-              <Text style={[styles.setIndex, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.regular }]}>{i + 1}</Text>
-              <RNView style={styles.fields}>
-                <NumberField value={set.weight} suffix={weightUnit} theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { weight: n })} />
-                <Text style={[styles.times, { color: currentTheme.colors.text + '55' }]}>×</Text>
-                <NumberField value={set.reps} suffix="reps" theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { reps: n })} />
-              </RNView>
-            </TouchableOpacity>
-          ))}
+            );
+          })}
 
           <TouchableOpacity style={styles.addSet} onPress={() => { playHapticFeedback('light', false); onAddSet(exercise.key); }}>
             <Ionicons name="add" size={15} color={currentTheme.colors.primary} />
@@ -203,10 +216,12 @@ const styles = StyleSheet.create({
   times: { fontSize: 15 },
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10 },
   addSetText: { fontSize: 13 },
-  autofill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  autofillText: { flex: 1 },
-  autofillLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
-  autofillSets: { fontSize: 14, marginTop: 1 },
-  autofillBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
+  autofill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, flexWrap: 'wrap' },
+  autofillText: { flex: 1, minWidth: 120, gap: 1 },
+  autofillSets: { fontSize: 13 },
+  autofillBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
   autofillBtnText: { color: '#fff', fontSize: 13 },
+  autofillBtnAlt: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, borderWidth: 1 },
+  autofillBtnAltText: { fontSize: 13 },
+  ghost: { fontSize: 12 },
 });
