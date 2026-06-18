@@ -115,10 +115,8 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
             const ghost = exercise.target?.[i] ?? exercise.previous?.[i];
             const ghostLabel = exercise.target?.[i] ? 'target' : 'prev';
             return (
-              <TouchableOpacity
+              <RNView
                 key={i}
-                activeOpacity={1}
-                onLongPress={() => { playHapticFeedback('medium', false); onRemoveSet(exercise.key, i); }}
                 style={[
                   styles.setRow,
                   { borderTopColor: currentTheme.colors.border + '60' },
@@ -158,7 +156,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
                 >
                   <Ionicons name="close" size={17} color={currentTheme.colors.text + '40'} />
                 </TouchableOpacity>
-              </TouchableOpacity>
+              </RNView>
             );
           })}
 
