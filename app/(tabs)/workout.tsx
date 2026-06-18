@@ -17,6 +17,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   LayoutAnimation,
+  Modal,
   Platform,
   SafeAreaView,
   StyleSheet,
@@ -50,11 +51,6 @@ export default function WorkoutScreen() {
     elapsedTime,
     formatTime,
     resetWorkoutTimer,
-    showSummary,
-    setShowSummary,
-    summaryLoading,
-    parsedExercises,
-    handleQuickSummary,
     showFinishModal,
     handleFinishWorkout,
     handleSaveWorkout,
@@ -103,6 +99,7 @@ export default function WorkoutScreen() {
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -163,97 +160,65 @@ export default function WorkoutScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
+        {/* Header — overflow (utilities) · timer/title · Finish */}
         <TutorialTarget id="workout-header-buttons">
           <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
+            <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
+              <TouchableOpacity
+                style={[styles.circleBtn, { backgroundColor: currentTheme.colors.text + '10' }]}
+                onPress={() => setShowActions(true)}
+              >
+                <Ionicons name="ellipsis-horizontal" size={20} color={currentTheme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted ? (
-                <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
-                  <TouchableOpacity
-                    style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
-                    onPress={handleQuickSummary}
-                  >
-                    <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                    <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                      Summary
+                <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
+                  <RNView style={[
+                    styles.timerContainer,
+                    {
+                      backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
+                      borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
+                    }
+                  ]}>
+                    <Ionicons
+                      name={isResting ? 'hourglass-outline' : 'time-outline'}
+                      size={16}
+                      color={isResting ? '#fff' : currentTheme.colors.accent}
+                    />
+                    <Text style={[
+                      styles.timerText,
+                      { color: isResting ? '#fff' : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }
+                    ]}>
+                      {isResting ? formattedRestTime : formatTime(elapsedTime)}
                     </Text>
-                  </TouchableOpacity>
-                </View>
+                    {isResting && (
+                      <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
+                        REST
+                      </Text>
+                    )}
+                  </RNView>
+                </TouchableOpacity>
               ) : (
-                <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
-                  <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                    onPress={() => setShowPlanBuilder(true)}
-                  >
-                    <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
-                    onPress={() => setShowHelpModal(true)}
-                  >
-                    <Ionicons name="information-circle-outline" size={20} color={currentTheme.colors.text} />
-                  </TouchableOpacity>
-                </View>
+                <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Workout
+                </Text>
               )}
             </View>
 
-          <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
-            {hasWorkoutStarted ? (
-              <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
-                <RNView style={[
-                  styles.timerContainer,
-                  {
-                    backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
-                    borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
-                  }
-                ]}>
-                  <Ionicons
-                    name={isResting ? 'hourglass-outline' : 'time-outline'}
-                    size={16}
-                    color={isResting ? '#fff' : currentTheme.colors.accent}
-                  />
-                  <Text style={[
-                    styles.timerText,
-                    {
-                      color: isResting ? '#fff' : currentTheme.colors.text,
-                      fontFamily: currentTheme.fonts.semiBold
-                    }
-                  ]}>
-                    {isResting ? formattedRestTime : formatTime(elapsedTime)}
+            <View style={[styles.headerSide, { alignItems: 'flex-end', backgroundColor: 'transparent' }]}>
+              {hasWorkoutStarted && (
+                <TouchableOpacity
+                  style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
+                  onPress={handleFinishPress}
+                >
+                  <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    Finish
                   </Text>
-                  {isResting && (
-                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
-                      REST
-                    </Text>
-                  )}
-                </RNView>
-              </TouchableOpacity>
-            ) : (
-              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Workout
-              </Text>
-            )}
-          </View>
-
-          <View style={[styles.headerRight, { backgroundColor: 'transparent' }]}>
-            {hasWorkoutStarted ? (
-              <TouchableOpacity
-                style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
-                onPress={handleFinishPress}
-              >
-                <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
-                  Finish
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                onPress={() => setShowRoutineImport(true)}
-              >
-                <Ionicons name="download-outline" size={20} color={currentTheme.colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </TutorialTarget>
 
@@ -313,19 +278,43 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Quick Summary Preview */}
-        <WorkoutFinishModal
-          visible={showSummary}
-          noteText={noteText}
-          duration={elapsedTime}
-          isPreviewMode={true}
-          exercises={parsedExercises}
-          isLoading={summaryLoading}
-          onDismiss={() => setShowSummary(false)}
-        />
+        {/* Workout (fills) — the editable source of truth, with one empty state */}
+        <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+          <EditableWorkout
+            draft={draft}
+            weightUnit={weightUnit}
+            onEditSet={editSet}
+            onAddSet={addSetTo}
+            onRemoveSet={removeSetFrom}
+            onRemoveExercise={removeExerciseFrom}
+          />
+          {!hasWorkoutStarted && (
+            <RNView style={styles.empty}>
+              <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                Log your workout
+              </Text>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                Type or speak a set below — it appears here, ready to edit.
+              </Text>
+              {lastWorkoutTitle && (
+                <TouchableOpacity
+                  style={[styles.repeatButton, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary + '40' }]}
+                  onPress={handleRepeatLast}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="repeat" size={16} color={currentTheme.colors.primary} />
+                  <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                    Repeat last workout
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </RNView>
+          )}
+        </View>
 
-        {/* Composer (top) — type or speak a set; it's parsed into the workout below */}
-        <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, borderBottomColor: currentTheme.colors.border }}>
+        {/* Composer (bottom) — type or speak a set; it's added to the workout above */}
+        <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
           <RNView style={styles.composerRow}>
             <RNView style={styles.composerInput}>
               <WorkoutNoteInput
@@ -338,14 +327,14 @@ export default function WorkoutScreen() {
             </RNView>
             {voice.available && (
               <TouchableOpacity
-                style={[styles.composerBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
                 onPress={handleMicPress}
               >
                 <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={[styles.composerBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
+              style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
               onPress={handleComposerSend}
               disabled={!composerText.trim()}
             >
@@ -353,42 +342,6 @@ export default function WorkoutScreen() {
             </TouchableOpacity>
           </RNView>
         </TutorialTarget>
-
-        {/* Repeat last workout — only before anything's been logged */}
-        {!hasWorkoutStarted && lastWorkoutTitle && (
-          <RNView style={styles.repeatRow}>
-            <TouchableOpacity
-              style={[styles.repeatButton, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary + '40' }]}
-              onPress={handleRepeatLast}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="repeat" size={16} color={currentTheme.colors.primary} />
-              <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
-                Repeat last workout
-              </Text>
-            </TouchableOpacity>
-          </RNView>
-        )}
-
-        {/* Editable structured workout (below) — the source of truth */}
-        <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
-          <EditableWorkout
-            draft={draft}
-            weightUnit={weightUnit}
-            onEditSet={editSet}
-            onAddSet={addSetTo}
-            onRemoveSet={removeSetFrom}
-            onRemoveExercise={removeExerciseFrom}
-          />
-          {!hasWorkoutStarted && (
-            <RNView style={styles.emptyHint}>
-              <Ionicons name="barbell-outline" size={28} color={currentTheme.colors.text + '30'} />
-              <Text style={[styles.emptyHintText, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]}>
-                Type or speak a set above and it’ll appear here, ready to edit.
-              </Text>
-            </RNView>
-          )}
-        </View>
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
@@ -421,15 +374,40 @@ export default function WorkoutScreen() {
         visible={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
+
+      {/* Overflow actions — the utilities that used to clutter the header */}
+      <Modal visible={showActions} transparent animationType="fade" onRequestClose={() => setShowActions(false)}>
+        <TouchableOpacity style={styles.actionsBackdrop} activeOpacity={1} onPress={() => setShowActions(false)}>
+          <RNView style={[styles.actionsSheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+            {[
+              { icon: 'sparkles' as const, label: 'Generate a plan', run: () => setShowPlanBuilder(true) },
+              { icon: 'download-outline' as const, label: 'Import a routine', run: () => setShowRoutineImport(true) },
+              { icon: 'help-circle-outline' as const, label: 'How logging works', run: () => setShowHelpModal(true) },
+            ].map((a, i) => (
+              <TouchableOpacity
+                key={a.label}
+                style={[styles.actionRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}
+                onPress={() => {
+                  playHapticFeedback('light', false);
+                  setShowActions(false);
+                  a.run();
+                }}
+              >
+                <Ionicons name={a.icon} size={20} color={currentTheme.colors.primary} />
+                <Text style={[styles.actionLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{a.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </RNView>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   composerBar: {
-    height: 92,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    backgroundColor: 'transparent',
+    height: 76,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   composerRow: {
     flex: 1,
@@ -444,14 +422,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignSelf: 'stretch',
   },
-  composerBtn: {
+  circleBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyHint: {
+  empty: {
     position: 'absolute',
     top: 0,
     left: 0,
@@ -459,53 +437,69 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 40,
     backgroundColor: 'transparent',
   },
-  emptyHintText: {
+  emptyTitle: {
+    fontSize: 17,
+    marginTop: 4,
+  },
+  emptyText: {
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 19,
-  },
-  repeatRow: {
-    paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 8,
-    backgroundColor: 'transparent',
-    alignItems: 'flex-start',
+    marginBottom: 6,
   },
   repeatButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 1,
   },
   repeatButtonText: {
     fontSize: 13,
   },
+  actionsBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  actionsSheet: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  actionLabel: {
+    fontSize: 15,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
   },
-  headerLeft: {
-    minWidth: 90,
-    alignItems: 'flex-start',
+  headerSide: {
+    width: 88,
+    justifyContent: 'center',
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-  },
-  headerRight: {
-    minWidth: 90,
-    alignItems: 'flex-end',
   },
   timerContainer: {
     flexDirection: 'row',
@@ -585,38 +579,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
   },
-  summaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-  },
-  summaryButtonText: {
-    fontSize: 14,
-  },
   finishButton: {
     height: 40,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   finishButtonText: {
     color: '#fff',
     fontSize: 14,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerButtonGroup: {
-    flexDirection: 'row',
-    gap: 8,
   },
 });
