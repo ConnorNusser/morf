@@ -41,13 +41,15 @@ function consolidationKey(exerciseId: string | undefined, name: string): string 
   return exerciseId || name.toLowerCase().trim();
 }
 
-/** Append parsed exercises into a draft, merging sets into an existing match. */
-export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[]): WorkoutDraft {
+/** Append parsed exercises into a draft, merging sets into an existing match.
+ *  `done` marks the added sets complete (composer/voice entries are sets you
+ *  just did, so they land checked off). */
+export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts: { done?: boolean } = {}): WorkoutDraft {
   const next: WorkoutDraft = draft.map(e => ({ ...e, sets: [...e.sets] }));
   for (const pex of parsed) {
     const name = displayName(pex);
     const ckey = consolidationKey(pex.matchedExerciseId, name);
-    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }));
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, done: opts.done }));
     const existing = next.find(e => consolidationKey(e.exerciseId, e.name) === ckey);
     if (existing) {
       existing.sets.push(...sets);

@@ -7,6 +7,7 @@ import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpMo
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
 import PredictiveCard from '@/components/workout/PredictiveCard';
+import NumberPad from '@/components/workout/NumberPad';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAlert } from '@/components/CustomAlert';
@@ -133,6 +134,13 @@ export default function WorkoutScreen() {
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  // Which set field the custom number pad is editing.
+  const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
+  const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
+    Keyboard.dismiss();
+    playHapticFeedback('light', false);
+    setEditing({ key, index, field });
+  }, []);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -325,6 +333,8 @@ export default function WorkoutScreen() {
             draft={draft}
             weightUnit={weightUnit}
             onEditSet={editSet}
+            onEditField={openNumberPad}
+            activeField={editing}
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
             onToggleDone={toggleSetDone}
@@ -447,6 +457,29 @@ export default function WorkoutScreen() {
           </RNView>
         </TouchableOpacity>
       </Modal>
+
+      {/* Custom number pad for editing a set's weight / reps */}
+      {(() => {
+        if (!editing) return null;
+        const set = draft.find(e => e.key === editing.key)?.sets[editing.index];
+        if (!set) return null;
+        const isWeight = editing.field === 'weight';
+        return (
+          <NumberPad
+            visible
+            seedKey={`${editing.key}-${editing.index}-${editing.field}`}
+            label={isWeight ? 'Weight' : 'Reps'}
+            unit={isWeight ? weightUnit : undefined}
+            value={isWeight ? set.weight : set.reps}
+            allowDecimal={isWeight}
+            increments={isWeight ? (weightUnit === 'kg' ? [-5, -2.5, 2.5, 5] : [-10, -5, 5, 10]) : [-1, 1, 2, 5]}
+            hasNext={isWeight}
+            onChange={n => editSet(editing.key, editing.index, { [editing.field]: n })}
+            onNext={() => setEditing(e => (e ? { ...e, field: 'reps' } : e))}
+            onClose={() => setEditing(null)}
+          />
+        );
+      })()}
     </SafeAreaView>
   );
 }

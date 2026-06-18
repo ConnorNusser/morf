@@ -11,7 +11,7 @@ import { DraftExercise, DraftSet, WorkoutDraft, totalSets, totalVolume } from '@
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View as RNView } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 const DONE_GREEN = '#34C759';
 
@@ -19,6 +19,8 @@ interface EditableWorkoutProps {
   draft: WorkoutDraft;
   weightUnit: WeightUnit;
   onEditSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
+  onEditField: (key: string, index: number, field: 'weight' | 'reps') => void;
+  activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
   onAddSet: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
   onToggleDone: (key: string, index: number) => void;
@@ -35,36 +37,28 @@ function setSummary(sets: DraftSet[], unit: WeightUnit): string {
   return sets.map(s => (s.weight > 0 ? `${s.weight}${unit}×${s.reps}` : `×${s.reps}`)).join(', ');
 }
 
-// A flat, underlined numeric field — commits on blur so mid-edit values don't
-// fight the controlled value.
-function NumberField({ value, suffix, onCommit, theme }: {
+// A flat, underlined value that opens the custom number pad on tap (no OS
+// keyboard). Highlights while it's the field being edited.
+function NumberField({ value, suffix, active, onPress, theme }: {
   value: number;
-  suffix?: string;
-  onCommit: (n: number) => void;
+  suffix: string;
+  active: boolean;
+  onPress: () => void;
   theme: ReturnType<typeof useTheme>['currentTheme'];
 }) {
-  const [text, setText] = React.useState(String(value));
-  React.useEffect(() => setText(String(value)), [value]);
   return (
-    <RNView style={[styles.field, { borderBottomColor: theme.colors.border }]}>
-      <TextInput
-        style={[styles.fieldInput, { color: theme.colors.text, fontFamily: theme.fonts.semiBold }]}
-        value={text}
-        onChangeText={setText}
-        onBlur={() => {
-          const n = parseFloat(text);
-          onCommit(Number.isFinite(n) ? n : 0);
-        }}
-        keyboardType="numeric"
-        selectTextOnFocus
-        returnKeyType="done"
-      />
-      {!!suffix && <Text style={[styles.fieldSuffix, { color: theme.colors.text + '66', fontFamily: theme.fonts.regular }]}>{suffix}</Text>}
-    </RNView>
+    <TouchableOpacity
+      style={[styles.field, { borderBottomColor: active ? theme.colors.primary : theme.colors.border }]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <Text style={[styles.fieldValue, { color: theme.colors.text, fontFamily: theme.fonts.semiBold }]}>{value}</Text>
+      <Text style={[styles.fieldSuffix, { color: theme.colors.text + '66', fontFamily: theme.fonts.regular }]}>{suffix}</Text>
+    </TouchableOpacity>
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
+function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
@@ -136,9 +130,21 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSe
                 </TouchableOpacity>
                 <Text style={[styles.setIndex, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.regular }]}>{i + 1}</Text>
                 <RNView style={styles.fields}>
-                  <NumberField value={set.weight} suffix={weightUnit} theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { weight: n })} />
+                  <NumberField
+                    value={set.weight}
+                    suffix={weightUnit}
+                    active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
+                    onPress={() => onEditField(exercise.key, i, 'weight')}
+                    theme={currentTheme}
+                  />
                   <Text style={[styles.times, { color: currentTheme.colors.text + '55' }]}>×</Text>
-                  <NumberField value={set.reps} suffix="reps" theme={currentTheme} onCommit={n => onEditSet(exercise.key, i, { reps: n })} />
+                  <NumberField
+                    value={set.reps}
+                    suffix="reps"
+                    active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'reps'}
+                    onPress={() => onEditField(exercise.key, i, 'reps')}
+                    theme={currentTheme}
+                  />
                 </RNView>
                 {ghost && (
                   <Text style={[styles.ghost, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
@@ -166,7 +172,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onAddSet, onRemoveSe
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
   const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
 
@@ -186,6 +192,8 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onAddSet
           exercise={ex}
           weightUnit={weightUnit}
           onEditSet={onEditSet}
+          onEditField={onEditField}
+          activeField={activeField}
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}
           onToggleDone={onToggleDone}
@@ -217,8 +225,8 @@ const styles = StyleSheet.create({
   },
   setIndex: { fontSize: 13, width: 12 },
   fields: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  field: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, borderBottomWidth: 1, paddingBottom: 2, minWidth: 52 },
-  fieldInput: { fontSize: 16, minWidth: 28, padding: 0 },
+  field: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, borderBottomWidth: 1, paddingBottom: 3, minWidth: 56 },
+  fieldValue: { fontSize: 16 },
   fieldSuffix: { fontSize: 11, paddingBottom: 2 },
   times: { fontSize: 15 },
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10 },

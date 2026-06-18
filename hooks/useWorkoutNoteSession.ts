@@ -187,7 +187,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     const local = workoutNoteParser.parseLocal(trimmed);
     if (local.exercises.length > 0) {
-      setDraft(d => attachPrevious(mergeParsed(d, local.exercises), previousFor));
+      // Typed/spoken sets are work you just did → land them checked off.
+      setDraft(d => attachPrevious(mergeParsed(d, local.exercises, { done: true }), previousFor));
       return true;
     }
     // No sets, but it names a known exercise — add it and offer to autofill the
@@ -202,7 +203,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     try {
       const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
       if (ai.exercises.length > 0) {
-        setDraft(d => mergeParsed(d, ai.exercises));
+        setDraft(d => attachPrevious(mergeParsed(d, ai.exercises, { done: true }), previousFor));
         return true;
       }
     } catch {
