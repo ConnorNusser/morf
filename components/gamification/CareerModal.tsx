@@ -205,7 +205,7 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
   const items = [
     { v: `${formatCompact(stats.totalVolume)} ${stats.unit}`, l: 'lifted' },
     { v: formatCompact(stats.totalWorkouts), l: 'workouts' },
-    { v: `${stats.longestStreak}d`, l: 'best streak' },
+    { v: `${stats.longestStreak}w`, l: 'best streak' },
   ];
   return (
     <View style={styles.shareStrip}>
@@ -277,7 +277,7 @@ function StatGrid({ stats }: { stats: CareerStats }) {
     { label: 'Total lifted', value: `${formatCompact(stats.totalVolume)} ${stats.unit}` },
     { label: 'Workouts', value: formatCompact(stats.totalWorkouts) },
     { label: 'Days active', value: formatCompact(stats.daysActive) },
-    { label: 'Longest streak', value: `${stats.longestStreak}d` },
+    { label: 'Longest streak', value: `${stats.longestStreak}w` },
     { label: 'Total sets', value: formatCompact(stats.totalSets) },
     { label: 'Total reps', value: formatCompact(stats.totalReps) },
   ];

@@ -11,7 +11,7 @@ const WEEKLY_CAP = 3;
 const EARLIEST_MINUTE = 9 * 60;
 const STREAK_DEFAULT_MINUTE = 19 * 60;
 const HABIT_FALLBACK_MINUTE = 17 * 60 + 30;
-const MIN_STREAK_FOR_REMINDER = 2;
+const MIN_STREAK_FOR_REMINDER = 2; // weeks — only protect a streak worth keeping
 const IDENTIFIER_PREFIX = 'retention:';
 const META_RETENTION_DAYS = 14;
 
@@ -114,8 +114,12 @@ class RetentionNotificationService {
     const latest = prefs.quietHoursEndMinute;
 
     if (prefs.streakReminders) {
-      const { current, trainedToday } = getStreakState(workouts, now);
-      if (current >= MIN_STREAK_FOR_REMINDER && !trainedToday) {
+      const { current, trainedThisWeek } = getStreakState(workouts, now);
+      // Week streaks only break when a full week passes empty, so only nudge
+      // once the week is nearly over (Sat/Sun) and nothing's been logged yet.
+      const fromMonday = (now.getDay() + 6) % 7; // 0 = Mon … 6 = Sun
+      const weekEnding = fromMonday >= 5;
+      if (current >= MIN_STREAK_FOR_REMINDER && !trainedThisWeek && weekEnding) {
         // Prefer 7pm; if it's already past, nudge a couple hours out.
         let minute = STREAK_DEFAULT_MINUTE;
         if (nowMinute >= STREAK_DEFAULT_MINUTE) minute = nowMinute + 120;
@@ -123,10 +127,10 @@ class RetentionNotificationService {
           return {
             type: 'streak',
             fireAt: atMinute(now, minute),
-            title: `${current}-day streak`,
-            body: current >= 7
-              ? `${current} days without missing. Don't let today be the first.`
-              : `Get a workout in today so you don't lose it.`,
+            title: `${current}-week streak`,
+            body: current >= 4
+              ? `${current} weeks strong. Get a workout in before the week's out.`
+              : `Train this week so you don't lose your streak.`,
           };
         }
       }

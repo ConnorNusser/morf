@@ -12,38 +12,46 @@ const NOW = new Date(2026, 5, 10, 20, 0, 0);
 const day = (offset: number, hour = 18, minute = 0) =>
   new Date(2026, 5, 10 - offset, hour, minute, 0);
 
-describe('getStreakState', () => {
+// NOW = Wed Jun 10 2026 → week of Mon Jun 8. day(offset) = Jun (10-offset):
+//   day 0..2  → this week (Jun 8–10)
+//   day 3..9  → last week (Jun 1–7)
+//   day 10+   → two+ weeks ago
+describe('getStreakState (week-based)', () => {
   it('returns zero for no workouts', () => {
-    expect(getStreakState([], NOW)).toEqual({ current: 0, trainedToday: false });
+    expect(getStreakState([], NOW)).toEqual({ current: 0, trainedThisWeek: false, trainedToday: false });
   });
 
-  it('counts a single workout today as streak 1 and trainedToday', () => {
-    expect(getStreakState([w(day(0))], NOW)).toEqual({ current: 1, trainedToday: true });
+  it('counts this week as a 1-week streak, flags trainedToday', () => {
+    expect(getStreakState([w(day(0))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
   });
 
-  it('counts consecutive days ending today', () => {
-    const workouts = [w(day(0)), w(day(1)), w(day(2))];
-    expect(getStreakState(workouts, NOW)).toEqual({ current: 3, trainedToday: true });
+  it('counts the week even when today is a rest day', () => {
+    // trained Tuesday this week, resting Wednesday — streak intact, not today
+    expect(getStreakState([w(day(1))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: false });
   });
 
-  it('keeps the streak alive when trained yesterday but not today', () => {
-    const workouts = [w(day(1)), w(day(2))];
-    expect(getStreakState(workouts, NOW)).toEqual({ current: 2, trainedToday: false });
+  it('treats a rest week in progress as still alive off last week', () => {
+    // nothing this week yet, trained last week → streak holds at 1
+    expect(getStreakState([w(day(3))], NOW)).toEqual({ current: 1, trainedThisWeek: false, trainedToday: false });
   });
 
-  it('breaks the streak when the last workout was 2+ days ago', () => {
-    expect(getStreakState([w(day(2)), w(day(3))], NOW)).toEqual({ current: 0, trainedToday: false });
+  it('counts consecutive trained weeks', () => {
+    // this week (day 0) + last week (day 7) = 2-week streak
+    expect(getStreakState([w(day(0)), w(day(7))], NOW)).toEqual({ current: 2, trainedThisWeek: true, trainedToday: true });
   });
 
-  it('stops counting at a gap', () => {
-    // today, yesterday, then a gap (skips day 2), then day 3
-    const workouts = [w(day(0)), w(day(1)), w(day(3)), w(day(4))];
-    expect(getStreakState(workouts, NOW)).toEqual({ current: 2, trainedToday: true });
+  it('breaks when a full week passed with no workout', () => {
+    // trained two weeks ago only; last week empty → broken
+    expect(getStreakState([w(day(14))], NOW)).toEqual({ current: 0, trainedThisWeek: false, trainedToday: false });
   });
 
-  it('dedupes multiple workouts on the same day', () => {
-    const workouts = [w(day(0, 8)), w(day(0, 19)), w(day(1))];
-    expect(getStreakState(workouts, NOW)).toEqual({ current: 2, trainedToday: true });
+  it('stops counting at a skipped week', () => {
+    // this week + two weeks ago, but last week skipped → only this week counts
+    expect(getStreakState([w(day(0)), w(day(14))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
+  });
+
+  it('dedupes multiple workouts within the same week', () => {
+    expect(getStreakState([w(day(0)), w(day(1)), w(day(2))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
   });
 });
 

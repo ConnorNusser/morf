@@ -2,6 +2,7 @@
 // of the gamification layer. Pure + clock-injectable so it's unit-testable.
 import { GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
 import { dateKey } from '@/lib/utils/utils';
+import { getWeekStreak } from '@/lib/workout/streak';
 
 export interface HeaviestSet {
   weight: number; // in preferred unit
@@ -16,8 +17,9 @@ export interface CareerStats {
   totalSets: number;
   totalReps: number;
   daysActive: number; // distinct calendar days trained
-  currentStreak: number; // consecutive days up to today/yesterday
-  longestStreak: number; // best consecutive-day run ever
+  currentStreak: number; // consecutive trained *weeks* (rest days don't break it)
+  longestStreak: number; // best consecutive trained-week run ever
+  longestDayStreak: number; // best consecutive-day run ever (powers day-streak achievements)
   firstWorkoutAt: Date | null;
   daysSinceStart: number; // days from first workout to now (membership length)
   heaviestSet: HeaviestSet | null; // single heaviest completed set
@@ -88,19 +90,9 @@ export function computeCareerStats(
     if (sessionVolume > biggestSessionVolume) biggestSessionVolume = sessionVolume;
   }
 
-  // Streaks via the same day-key logic the retention reminders use.
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  let currentStreak = 0;
-  if (dayKeys.has(dateKey(today)) || dayKeys.has(dateKey(yesterday))) {
-    const cursor = new Date(dayKeys.has(dateKey(today)) ? today : yesterday);
-    while (dayKeys.has(dateKey(cursor))) {
-      currentStreak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    }
-  }
+  // Headline streak is week-based (rest days shouldn't break it); the raw
+  // consecutive-day run is kept separately for the day-streak achievements.
+  const week = getWeekStreak(workouts, now);
 
   const daysSinceStart = firstWorkoutAt
     ? Math.max(1, Math.floor((now.getTime() - firstWorkoutAt.getTime()) / (24 * 60 * 60 * 1000)) + 1)
@@ -112,8 +104,9 @@ export function computeCareerStats(
     totalSets,
     totalReps,
     daysActive: dayKeys.size,
-    currentStreak,
-    longestStreak: longestConsecutive(dayKeys),
+    currentStreak: week.current,
+    longestStreak: week.longest,
+    longestDayStreak: longestConsecutive(dayKeys),
     firstWorkoutAt,
     daysSinceStart,
     heaviestSet,

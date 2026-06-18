@@ -2,43 +2,22 @@
 // `now` is injectable so the logic is testable without mocking the clock.
 import { GeneratedWorkout } from '@/types';
 import { dateKey } from '@/lib/utils/utils';
+import { getWeekStreak } from '@/lib/workout/streak';
 
 // Local YYYY-MM-DD, matching recapStats.
 
 export interface StreakState {
-  current: number;
+  current: number; // consecutive trained *weeks* — see lib/workout/streak.ts
+  trainedThisWeek: boolean;
   trainedToday: boolean;
 }
 
-// Like recapStats' streak count, but also reports whether they've trained today
-// (which decides whether a streak reminder is still worth firing).
+// Thin wrapper over the shared week-streak so the reminder layer can reason
+// about an at-risk streak (multi-week run + nothing logged yet this week) and
+// still tell whether they've already trained today.
 export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Date()): StreakState {
-  if (workouts.length === 0) return { current: 0, trainedToday: false };
-
-  const keys = new Set(workouts.map(w => dateKey(new Date(w.createdAt))));
-
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
-  const todayKey = dateKey(today);
-  const trainedToday = keys.has(todayKey);
-
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayKey = dateKey(yesterday);
-
-  // A streak only counts if the most recent training day is today or yesterday.
-  if (!trainedToday && !keys.has(yesterdayKey)) {
-    return { current: 0, trainedToday };
-  }
-
-  const cursor = new Date(trainedToday ? today : yesterday);
-  let current = 0;
-  while (keys.has(dateKey(cursor))) {
-    current += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return { current, trainedToday };
+  const { current, trainedThisWeek, trainedToday } = getWeekStreak(workouts, now);
+  return { current, trainedThisWeek, trainedToday };
 }
 
 export interface HabitDay {

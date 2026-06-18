@@ -35,6 +35,7 @@ describe('computeCareerStats', () => {
     expect(s.totalVolume).toBe(0);
     expect(s.currentStreak).toBe(0);
     expect(s.longestStreak).toBe(0);
+    expect(s.longestDayStreak).toBe(0);
     expect(s.firstWorkoutAt).toBeNull();
     expect(s.heaviestSet).toBeNull();
   });
@@ -56,8 +57,10 @@ describe('computeCareerStats', () => {
     expect(s.biggestSessionVolume).toBe(1800); // day(0): 1000 + 800
   });
 
-  it('counts current and longest streaks', () => {
-    // trained today, yesterday, then a gap, then a 4-day run earlier
+  it('counts week-based current/longest streaks plus the raw day streak', () => {
+    // NOW = Wed Jun 10 (week of Mon Jun 8). day(0..1) land this week; day(4..7)
+    // land in the prior week (Mon Jun 1) — so two consecutive trained weeks, and
+    // the longest consecutive-day run is Jun 3–6 (4 days).
     const s = computeCareerStats(
       [
         workout(day(0), [{ weight: 100, reps: 5 }]),
@@ -70,8 +73,9 @@ describe('computeCareerStats', () => {
       'lbs',
       NOW,
     );
-    expect(s.currentStreak).toBe(2); // today + yesterday
-    expect(s.longestStreak).toBe(4); // day4..day7
+    expect(s.currentStreak).toBe(2); // this week + last week
+    expect(s.longestStreak).toBe(2); // two consecutive trained weeks
+    expect(s.longestDayStreak).toBe(4); // Jun 3..Jun 6
     expect(s.daysActive).toBe(6);
   });
 
