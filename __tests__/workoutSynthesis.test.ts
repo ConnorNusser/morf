@@ -27,15 +27,12 @@ describe('synthesize', () => {
   });
 
   it('marks recognized vs unmatched exercises', () => {
-    // Use a real exercise whose name has no hyphen/digit — the local regex name
-    // pattern is [a-zA-Z\s()]+, so it truncates names like "Push-up (Bodyweight)"
-    // (a known limitation that AI escalation exists to cover).
-    const realName = getAvailableWorkouts(100).find(e => /^[a-zA-Z ()]+$/.test(e.name))!.name;
-    const out = synthesize(`${realName} 135x8\nFlumboxes 100x5`, 'lbs');
-    const real = out.exercises.find(e => e.name === realName);
-    const made = out.exercises.find(e => /flumbox/i.test(e.name));
-    expect(real?.recognized).toBe(true);
-    expect(made?.recognized).toBe(false);
+    // A real exercise name resolves to a known exercise (recognized); a made-up
+    // one does not. We assert recognition directly rather than by display name,
+    // since the matcher may canonicalize to a specific equipment variant.
+    const realName = getAvailableWorkouts(100)[0].name;
+    expect(synthesize(`${realName} 135x8`, 'lbs').exercises[0]?.recognized).toBe(true);
+    expect(synthesize('Flumboxes 100x5', 'lbs').exercises[0]?.recognized).toBe(false);
   });
 });
 

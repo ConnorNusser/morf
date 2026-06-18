@@ -5,6 +5,7 @@ import { analyticsService } from '@/lib/services/analytics';
 import { exerciseNameToId } from '@/lib/data/exerciseUtils';
 import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
 import { storageService } from '@/lib/storage/storage';
+import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
 import { getAvailableWorkouts, getWorkoutById } from './workouts';
 
 // Types for parsed workout data
@@ -278,91 +279,22 @@ class WorkoutNoteParser {
   }
 
   /**
-   * Fallback parser when AI is not available
+   * Fallback / offline parser. Delegates to the forgiving local tokenizer, then
+   * augments any unmatched exercise with custom-exercise id matching (the
+   * tokenizer only knows the built-in catalog).
    */
   private fallbackParse(text: string, defaultUnit: WeightUnit): ParsedWorkout {
-    const lines = text.split('\n').filter(line => line.trim());
-    const exercises: ParsedExercise[] = [];
-
-    for (const line of lines) {
-      const parsed = this.parseLineRegex(line, defaultUnit);
-      if (parsed) {
-        exercises.push(parsed);
-      }
-    }
-
-    return {
-      exercises,
-      confidence: exercises.length > 0 ? 0.6 : 0,
-      rawText: text,
-    };
-  }
-
-  /**
-   * Parse a single line using regex (fallback)
-   */
-  private parseLineRegex(line: string, defaultUnit: WeightUnit): ParsedExercise | null {
-    // Try to extract exercise name (everything before numbers)
-    const nameMatch = line.match(/^([a-zA-Z\s()]+)/);
-    if (!nameMatch) return null;
-
-    const name = nameMatch[1].trim();
-    if (!name) return null;
-
-    // Extract all numbers from the line
-    const numbers = line.match(/\d+/g)?.map(Number) || [];
-    if (numbers.length === 0) {
-      // Bodyweight exercise with no numbers
-      const match = this.matchExercise(name);
-      return {
-        name,
-        matchedExerciseId: match?.id,
-        isCustom: match ? match.isCustom : true,
-        sets: [{ weight: 0, reps: 10, unit: defaultUnit }],
-      };
-    }
-
-    const sets: ParsedSet[] = [];
-
-    // Pattern: 135x8 or 135 x 8
-    const weightRepsPattern = line.match(/(\d+)\s*[x×]\s*(\d+)/gi);
-    if (weightRepsPattern) {
-      for (const pattern of weightRepsPattern) {
-        const [, weight, reps] = pattern.match(/(\d+)\s*[x×]\s*(\d+)/i) || [];
-        if (weight && reps) {
-          sets.push({
-            weight: parseInt(weight),
-            reps: parseInt(reps),
-            unit: defaultUnit,
-          });
+    const local = parseWorkoutTextLocal(text, defaultUnit);
+    for (const ex of local.exercises) {
+      if (!ex.matchedExerciseId) {
+        const match = this.matchExercise(ex.name);
+        if (match) {
+          ex.matchedExerciseId = match.id;
+          ex.isCustom = match.isCustom;
         }
       }
     }
-
-    // Fallback: just use the numbers we found
-    if (sets.length === 0 && numbers.length >= 2) {
-      sets.push({
-        weight: numbers[0],
-        reps: numbers[1],
-        unit: defaultUnit,
-      });
-    } else if (sets.length === 0 && numbers.length === 1) {
-      sets.push({
-        weight: 0,
-        reps: numbers[0],
-        unit: defaultUnit,
-      });
-    }
-
-    if (sets.length === 0) return null;
-
-    const match = this.matchExercise(name);
-    return {
-      name,
-      matchedExerciseId: match?.id,
-      isCustom: match ? match.isCustom : true,
-      sets,
-    };
+    return local;
   }
 
   /**
