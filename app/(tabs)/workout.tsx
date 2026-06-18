@@ -5,7 +5,7 @@ import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
-import LiveParsePreview from '@/components/workout/LiveParsePreview';
+import SynthesizedWorkoutView from '@/components/workout/SynthesizedWorkoutView';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -358,9 +358,9 @@ Squats 225 for 5 reps`}
           </View>
         </TutorialTarget>
 
-        {/* Live structured confirmation of what the parser sees as you type */}
+        {/* Synthesized workout — the note feed folded into a structured log */}
         {hasWorkoutStarted && (
-          <LiveParsePreview noteText={noteText} weightUnit={weightUnit} />
+          <SynthesizedWorkoutView noteText={noteText} weightUnit={weightUnit} />
         )}
       </KeyboardAvoidingView>
 
