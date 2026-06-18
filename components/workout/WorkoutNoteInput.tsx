@@ -23,6 +23,8 @@ interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
   placeholder?: string;
   // Composer mode: shrinks the box so the synthesized workout can be the hero.
   compact?: boolean;
+  // Auto-grow mode: the field hugs its content (min→max) and scrolls past max.
+  autoGrow?: boolean;
 }
 
 export interface WorkoutNoteInputRef {
@@ -35,7 +37,7 @@ const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
-  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, ...props }, ref) => {
+  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
     const _colorScheme = useColorScheme();
     const inputRef = useRef<TextInput>(null);
@@ -126,12 +128,13 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
 
     return (
       <>
-        <RNView style={[styles.container, compact && styles.containerCompact]}>
+        <RNView style={[styles.container, compact && styles.containerCompact, autoGrow && styles.containerAuto]}>
           <TextInput
             ref={inputRef}
             style={[
               styles.input,
               compact && styles.inputCompact,
+              autoGrow && styles.inputAuto,
               {
                 color: currentTheme.colors.text,
               }
@@ -187,6 +190,10 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 6,
   },
+  containerAuto: {
+    flex: 0,
+    paddingVertical: 6,
+  },
   input: {
     flex: 1,
     fontSize: 16,
@@ -195,6 +202,11 @@ const styles = StyleSheet.create({
   },
   inputCompact: {
     minHeight: 0,
+  },
+  inputAuto: {
+    flex: 0,
+    minHeight: 38,
+    maxHeight: 120,
   },
   accessoryBlur: {
     overflow: 'hidden',
