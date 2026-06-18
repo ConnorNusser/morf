@@ -196,12 +196,20 @@ export default function WorkoutScreen() {
         <TutorialTarget id="workout-header-buttons">
           <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
-              <TouchableOpacity
-                style={[styles.circleBtn, { backgroundColor: currentTheme.colors.text + '10' }]}
-                onPress={() => setShowActions(true)}
-              >
-                <Ionicons name="ellipsis-horizontal" size={20} color={currentTheme.colors.text} />
-              </TouchableOpacity>
+              {hasWorkoutStarted ? (
+                <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
+                  <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.circleBtn, { backgroundColor: currentTheme.colors.text + '10' }]}
+                  onPress={() => setShowActions(true)}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={20} color={currentTheme.colors.text} />
+                </TouchableOpacity>
+              )}
             </View>
 
             <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
@@ -432,15 +440,6 @@ export default function WorkoutScreen() {
                 <Text style={[styles.actionLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{a.label}</Text>
               </TouchableOpacity>
             ))}
-            {hasWorkoutStarted && (
-              <TouchableOpacity
-                style={[styles.actionRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}
-                onPress={handleDiscard}
-              >
-                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-                <Text style={[styles.actionLabel, { color: '#FF3B30', fontFamily: currentTheme.fonts.medium }]}>Discard workout</Text>
-              </TouchableOpacity>
-            )}
           </RNView>
         </TouchableOpacity>
       </Modal>
@@ -539,6 +538,14 @@ const styles = StyleSheet.create({
   headerSide: {
     width: 88,
     justifyContent: 'center',
+  },
+  cancelButton: {
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  cancelButtonText: {
+    fontSize: 15,
   },
   headerCenter: {
     flex: 1,
