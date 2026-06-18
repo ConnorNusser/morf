@@ -50,12 +50,12 @@ const DEFS: AchievementDef[] = [
   { id: 'workouts-500', title: 'Iron Legend', description: 'Log 500 workouts', icon: 'ribbon', category: 'milestone', rarity: 'legendary', target: 500, metric: s => s.totalWorkouts },
 
   // Consistency — streaks & active days
-  { id: 'streak-3', title: 'Warming Up', description: 'Train 3 days in a row', icon: 'flame', category: 'consistency', rarity: 'common', target: 3, metric: s => s.longestStreak },
-  { id: 'streak-7', title: 'Full Week', description: '7-day training streak', icon: 'flame', category: 'consistency', rarity: 'common', target: 7, metric: s => s.longestStreak },
-  { id: 'streak-14', title: 'Locked In', description: '14-day training streak', icon: 'flame', category: 'consistency', rarity: 'rare', target: 14, metric: s => s.longestStreak },
-  { id: 'streak-30', title: 'Unstoppable', description: '30-day training streak', icon: 'flame', category: 'consistency', rarity: 'rare', target: 30, metric: s => s.longestStreak },
-  { id: 'streak-60', title: 'Iron Will', description: '60-day training streak', icon: 'flame', category: 'consistency', rarity: 'epic', target: 60, metric: s => s.longestStreak },
-  { id: 'streak-100', title: 'Relentless', description: '100-day training streak', icon: 'flame', category: 'consistency', rarity: 'legendary', target: 100, metric: s => s.longestStreak },
+  { id: 'streak-3', title: 'Warming Up', description: 'Train 3 days in a row', icon: 'flame', category: 'consistency', rarity: 'common', target: 3, metric: s => s.longestDayStreak },
+  { id: 'streak-7', title: 'Full Week', description: '7-day training streak', icon: 'flame', category: 'consistency', rarity: 'common', target: 7, metric: s => s.longestDayStreak },
+  { id: 'streak-14', title: 'Locked In', description: '14-day training streak', icon: 'flame', category: 'consistency', rarity: 'rare', target: 14, metric: s => s.longestDayStreak },
+  { id: 'streak-30', title: 'Unstoppable', description: '30-day training streak', icon: 'flame', category: 'consistency', rarity: 'rare', target: 30, metric: s => s.longestDayStreak },
+  { id: 'streak-60', title: 'Iron Will', description: '60-day training streak', icon: 'flame', category: 'consistency', rarity: 'epic', target: 60, metric: s => s.longestDayStreak },
+  { id: 'streak-100', title: 'Relentless', description: '100-day training streak', icon: 'flame', category: 'consistency', rarity: 'legendary', target: 100, metric: s => s.longestDayStreak },
   { id: 'member-365', title: 'Veteran', description: 'One year with Morf', icon: 'time', category: 'consistency', rarity: 'rare', target: 365, metric: s => s.daysSinceStart },
   { id: 'days-100', title: 'Regular', description: 'Train on 100 different days', icon: 'calendar', category: 'consistency', rarity: 'rare', target: 100, metric: s => s.daysActive },
   { id: 'days-365', title: 'Year of Iron', description: 'Train on 365 different days', icon: 'calendar', category: 'consistency', rarity: 'epic', target: 365, metric: s => s.daysActive },

@@ -35,6 +35,7 @@ function stats(partial: Partial<CareerStats>): CareerStats {
     daysActive: 0,
     currentStreak: 0,
     longestStreak: 0,
+    longestDayStreak: 0,
     firstWorkoutAt: null,
     daysSinceStart: 0,
     heaviestSet: null,
@@ -52,7 +53,7 @@ describe('computeAchievements', () => {
   });
 
   it('unlocks milestones once thresholds are met', () => {
-    const a = computeAchievements(stats({ totalWorkouts: 60, longestStreak: 8, totalVolume: 1_200_000 }), 58);
+    const a = computeAchievements(stats({ totalWorkouts: 60, longestDayStreak: 8, totalVolume: 1_200_000 }), 58);
     const by = (id: string) => a.find(x => x.id === id)!;
     expect(by('first-workout').unlocked).toBe(true);
     expect(by('workouts-50').unlocked).toBe(true);

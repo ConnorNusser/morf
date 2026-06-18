@@ -50,7 +50,7 @@ export default function CareerSection() {
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
     { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts', accent: false },
-    { v: `${data.stats.currentStreak}`, u: 'd', l: 'streak', accent: streakActive },
+    { v: `${data.stats.currentStreak}`, u: 'w', l: 'streak', accent: streakActive },
     { v: formatCompact(data.stats.daysActive), u: '', l: 'days', accent: false },
   ];
 
