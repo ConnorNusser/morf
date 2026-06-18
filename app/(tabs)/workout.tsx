@@ -6,6 +6,7 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
+import PredictiveCard from '@/components/workout/PredictiveCard';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAlert } from '@/components/CustomAlert';
@@ -355,6 +356,9 @@ export default function WorkoutScreen() {
             </RNView>
           )}
         </View>
+
+        {/* Predictive card — previews the paused composer text, tap to commit */}
+        <PredictiveCard text={composerText} weightUnit={weightUnit} onCommit={handleComposerSend} />
 
         {/* Composer (bottom) — type or speak a set; it's added to the workout above */}
         <TutorialTarget id="workout-note-input" style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 6 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
