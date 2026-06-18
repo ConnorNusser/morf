@@ -179,35 +179,50 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, [previousFor]);
 
   // Parse some text and merge it into the draft. Local parse first (free /
-  // instant); only escalate to the AI parser when the local pass reads nothing.
-  // Returns true if anything was added. Used by both the composer and voice.
+  // instant); fall back to the AI parser when local can't *reasonably* read it —
+  // i.e. it found nothing, mangled the sets, or couldn't recognize the exercise
+  // (abbreviations like "db press", "rdl"). Returns true if anything was added.
   const commitText = useCallback(async (text: string): Promise<boolean> => {
     const trimmed = text.trim();
     if (!trimmed) return false;
 
+    const mergeInto = (exercises: ParsedWorkout['exercises']) =>
+      setDraft(d => attachPrevious(mergeParsed(d, exercises, { done: true }), previousFor));
+
     const local = workoutNoteParser.parseLocal(trimmed);
-    if (local.exercises.length > 0) {
-      // Typed/spoken sets are work you just did → land them checked off.
-      setDraft(d => attachPrevious(mergeParsed(d, local.exercises, { done: true }), previousFor));
+    const localReasonable =
+      local.exercises.length > 0 &&
+      local.exercises.every(ex => !!ex.matchedExerciseId && ex.sets.length > 0 && ex.sets.every(s => s.reps > 0));
+    if (localReasonable) {
+      mergeInto(local.exercises); // typed/spoken sets are work you did → checked off
       return true;
     }
+
     // No sets, but it names a known exercise — add it and offer to autofill the
     // last time they trained it (Fitbod-style smart prefill).
     const namedId = matchExerciseByName(trimmed);
-    if (namedId) {
+    if (namedId && local.exercises.length === 0) {
       const previous = getLastSetsFor(namedId, history, weightUnit) ?? undefined;
       const name = getWorkoutById(namedId)?.name ?? trimmed;
       setDraft(d => addNamedExercise(d, { name, exerciseId: namedId, recognized: true, previous }));
       return true;
     }
+
+    // Local couldn't reasonably parse it → let the AI parser try.
     try {
       const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
       if (ai.exercises.length > 0) {
-        setDraft(d => attachPrevious(mergeParsed(d, ai.exercises, { done: true }), previousFor));
+        mergeInto(ai.exercises);
         return true;
       }
     } catch {
-      // fall through to the hint below
+      // fall through
+    }
+
+    // AI unavailable/failed — fall back to whatever local managed, if anything.
+    if (local.exercises.length > 0) {
+      mergeInto(local.exercises);
+      return true;
     }
     showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
     return false;
@@ -255,7 +270,11 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     };
     loadInitialData();
     refreshLastWorkout();
-  }, [calculateElapsedTime, refreshLastWorkout, loadDraftFromText]);
+    // Run once on mount. Listing loadDraftFromText/refreshLastWorkout here would
+    // loop: refreshLastWorkout sets a fresh history array → previousFor →
+    // loadDraftFromText change → effect refires → refresh → … (pins the UI).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Consume any routine the user just started (text + id) on every focus, not
   // just on mount. The Workout tab stays mounted, so a mount-only read meant the
