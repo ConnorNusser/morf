@@ -207,9 +207,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   inputAuto: {
-    // Height is driven explicitly by onContentSizeChange (see autoHeight); no
-    // minHeight here or it would fight the measured single-line height.
+    // Height is driven explicitly by onContentSizeChange (see autoHeight).
+    // minHeight: 0 is required to cancel the base `input` minHeight (200) — that
+    // would otherwise win over the measured height and pin the box ~200pt tall.
     flex: 0,
+    minHeight: 0,
     paddingTop: 9,
     paddingBottom: 9,
   },
