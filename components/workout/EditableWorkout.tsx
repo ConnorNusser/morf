@@ -23,6 +23,7 @@ interface EditableWorkoutProps {
   activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
   onAddSet: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
+  onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
   onAcceptAutofill: (key: string, source: 'previous' | 'target') => void;
   onDismissAutofill: (key: string) => void;
@@ -55,7 +56,7 @@ function NumberField({ value, active, onPress, theme }: {
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
+function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
@@ -83,8 +84,11 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
         </Text>
       </TouchableOpacity>
 
-      {/* Column header: reference toggle (tap to flip) + lbs / reps labels */}
+      {/* Column header: check spacer · lbs · reps · target/prev toggle (right) */}
       <RNView style={styles.colHeader}>
+        <RNView style={styles.checkCol} />
+        <Text style={[styles.colLabelCol, { color: text + '55' }]}>{weightUnit}</Text>
+        <Text style={[styles.colLabelCol, { color: text + '55' }]}>reps</Text>
         {hasRef ? (
           <TouchableOpacity style={styles.refToggle} onPress={flipRef} activeOpacity={canFlip ? 0.6 : 1}>
             <Text style={[styles.colLabel, { color: text + '99' }]}>{refLabel}</Text>
@@ -93,8 +97,6 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
         ) : (
           <RNView style={styles.refToggle} />
         )}
-        <Text style={[styles.colLabelCol, { color: text + '55' }]}>{weightUnit}</Text>
-        <Text style={[styles.colLabelCol, { color: text + '55' }]}>reps</Text>
         <RNView style={styles.removeCol} />
       </RNView>
 
@@ -123,11 +125,13 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
                 key={i}
                 style={[styles.setRow, set.done && { backgroundColor: DONE_GREEN + '14' }]}
               >
-                {ref ? (
-                  <Text style={[styles.ghost, { color: text + '55' }]} numberOfLines={1}>{refSummary(ref, weightUnit)}</Text>
-                ) : (
-                  <RNView style={{ flex: 1 }} />
-                )}
+                <TouchableOpacity
+                  style={styles.checkCol}
+                  hitSlop={6}
+                  onPress={() => { playHapticFeedback('light', false); onToggleDone(exercise.key, i); }}
+                >
+                  <Ionicons name={set.done ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={set.done ? DONE_GREEN : text + '33'} />
+                </TouchableOpacity>
                 <NumberField
                   value={set.weight}
                   active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
@@ -140,6 +144,11 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
                   onPress={() => onEditField(exercise.key, i, 'reps')}
                   theme={currentTheme}
                 />
+                {ref ? (
+                  <Text style={[styles.ghost, { color: text + '55' }]} numberOfLines={1}>{refSummary(ref, weightUnit)}</Text>
+                ) : (
+                  <RNView style={{ flex: 1 }} />
+                )}
                 <TouchableOpacity
                   hitSlop={8}
                   style={styles.removeCol}
@@ -161,7 +170,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
   const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
 
@@ -185,6 +194,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
           activeField={activeField}
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}
+          onToggleDone={onToggleDone}
           onRemoveExercise={onRemoveExercise}
           onAcceptAutofill={onAcceptAutofill}
           onDismissAutofill={onDismissAutofill}
@@ -197,6 +207,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
 // Column geometry — fields + header labels share a width so they line up.
 const FIELD_W = 60;
 const REMOVE_W = 28;
+const CHECK_W = 28;
 const ROW_GAP = 10;
 
 const styles = StyleSheet.create({
@@ -207,7 +218,8 @@ const styles = StyleSheet.create({
   exName: { fontSize: 17, paddingBottom: 2 },
 
   colHeader: { flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingBottom: 4 },
-  refToggle: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  checkCol: { width: CHECK_W, alignItems: 'center', justifyContent: 'center' },
+  refToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   colLabel: { fontSize: 12 },
   colLabelCol: { width: FIELD_W, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
   removeCol: { width: REMOVE_W, alignItems: 'center' },
@@ -221,7 +233,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     borderRadius: 8,
   },
-  ghost: { flex: 1, fontSize: 12 },
+  ghost: { flex: 1, fontSize: 12, textAlign: 'right' },
   field: { width: FIELD_W, alignItems: 'center', borderBottomWidth: 1, borderRadius: 6, paddingVertical: 4 },
   fieldValue: { fontSize: 17 },
 
