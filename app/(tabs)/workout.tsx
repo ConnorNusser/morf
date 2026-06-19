@@ -95,14 +95,21 @@ export default function WorkoutScreen() {
     setComposerOpen(true);
     setTimeout(() => noteInputRef.current?.focus(), 60);
   }, []);
-  // The composer collapses when the input loses focus — scrolling the workout,
-  // tapping outside, or swiping the keyboard down all blur it. We drive this off
-  // the input's own onBlur (see handleComposerBlur) rather than global keyboard
+  // The composer collapses when the input loses focus. We drive this off the
+  // input's own onBlur (see handleComposerBlur) rather than global keyboard
   // events: in the simulator (and during the open animation) a phantom
   // keyboardWillHide can fire even though the field is still focused, which would
   // slam the composer shut the instant you open it. The typed text lives in
   // `composerText` and is left untouched, so reopening resumes where you left off.
   const handleComposerBlur = useCallback(() => setComposerOpen(false), []);
+  // Explicit collapse for scrolling the workout: keyboardDismissMode only blurs
+  // the field when a software keyboard is actually up, so on the simulator (and
+  // with a hardware keyboard) a scroll wouldn't fire onBlur. Drive it directly.
+  const closeComposer = useCallback(() => {
+    noteInputRef.current?.blur();
+    Keyboard.dismiss();
+    setComposerOpen(false);
+  }, []);
 
   // Collapse the tab-bar clearance under the composer while the keyboard is up.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -490,6 +497,7 @@ export default function WorkoutScreen() {
             onRemoveExercise={removeExerciseFrom}
             onAcceptAutofill={acceptAutofill}
             onDismissAutofill={dismissAutofill}
+            onScrollBeginDrag={closeComposer}
           />
           {!hasWorkoutStarted && (
             recentWorkouts.length > 0 ? (
@@ -534,32 +542,30 @@ export default function WorkoutScreen() {
             {/* Composer (open) — auto-growing input + mic + send. No Done button:
                 scrolling the workout, tapping outside, or swiping the keyboard down
                 collapses it (the typed text stays cached for next time). */}
-            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
+            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                  <RNView style={layout.flex1}>
-                    <WorkoutNoteInput
-                      ref={noteInputRef}
-                      value={composerText}
-                      onChangeText={setComposerText}
-                      onBlur={handleComposerBlur}
-                      autoGrow
-                      placeholder="Log a set — e.g. Bench 135×8"
-                    />
-                  </RNView>
+                  <WorkoutNoteInput
+                    ref={noteInputRef}
+                    value={composerText}
+                    onChangeText={setComposerText}
+                    onBlur={handleComposerBlur}
+                    autoGrow
+                    placeholder="Log a set — Bench 135×8"
+                  />
                 </RNView>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
                   onPress={handleMicPress}
                 >
-                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
                   onPress={handleComposerSend}
                   disabled={!composerText.trim()}
                 >
-                  <Ionicons name="arrow-up" size={20} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
+                  <Ionicons name="arrow-up" size={22} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
                 </TouchableOpacity>
               </RNView>
             </RNView>
@@ -690,16 +696,17 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    alignSelf: 'stretch',
-    minHeight: 40,
-    justifyContent: 'center',
+    // Hug the input's measured height (WorkoutNoteInput drives it). overflow
+    // hidden clips the text to the rounded border so glyphs can't spill out
+    // past the corners as it grows or scrolls at max height.
     borderRadius: 20,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   circleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -32,6 +32,14 @@ export interface WorkoutNoteInputRef {
 const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
+// Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field matches the 44pt
+// composer buttons (42 content + 1pt border top/bottom). A multiline TextInput
+// grows itself with content; minHeight/maxHeight just bound it (then it scrolls
+// past the max). The parent pill clips with overflow:hidden so glyphs stay in the
+// rounded box.
+const AUTO_MIN_HEIGHT = 42;
+const AUTO_MAX_HEIGHT = 124;
+
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
@@ -138,6 +146,11 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
           placeholder={placeholder}
           placeholderTextColor={currentTheme.colors.text + '40'}
           multiline
+          // Keep scroll enabled always: with it off, an iOS multiline TextInput
+          // won't report a contentSize taller than its current frame, so
+          // onContentSizeChange never sees the growth and the box stays stuck at
+          // its starting height. Below the max there's nothing to scroll anyway
+          // (the height hugs the content); past the max it scrolls.
           scrollEnabled
           textAlignVertical="top"
           autoCapitalize="sentences"
@@ -168,6 +181,7 @@ const styles = StyleSheet.create({
   },
   containerAuto: {
     flex: 0,
+    alignSelf: 'stretch',
     paddingHorizontal: 14,
     paddingVertical: 0,
   },
@@ -181,11 +195,14 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   inputAuto: {
+    // Let the multiline field grow itself between these bounds (then scroll).
+    // These override the base `input` minHeight (200) which would otherwise pin
+    // the box ~200pt tall.
     flex: 0,
-    minHeight: 40,
-    maxHeight: 120,
-    paddingTop: 10,
-    paddingBottom: 10,
+    minHeight: AUTO_MIN_HEIGHT,
+    maxHeight: AUTO_MAX_HEIGHT,
+    paddingTop: 11,
+    paddingBottom: 11,
   },
 });
 
