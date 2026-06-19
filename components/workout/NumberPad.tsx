@@ -53,7 +53,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   const keyColor = currentTheme.colors.text;
   const Btn = ({ label: l, onPress, flex = 1 }: { label: React.ReactNode; onPress: () => void; flex?: number }) => (
     <TouchableOpacity style={[styles.key, { flex, backgroundColor: currentTheme.colors.text + '0D' }]} onPress={onPress} activeOpacity={0.6}>
-      {typeof l === 'string' ? <Text style={[styles.keyText, { color: keyColor, fontFamily: currentTheme.fonts.medium }]}>{l}</Text> : l}
+      {typeof l === 'string' ? <Text style={[styles.keyText, { color: keyColor }]}>{l}</Text> : l}
     </TouchableOpacity>
   );
 
@@ -62,8 +62,8 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       <RNView style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
         <RNView style={styles.readout}>
-          <Text style={[styles.label, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>{label}</Text>
-          <Text style={[styles.value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+          <Text style={[styles.label, { color: currentTheme.colors.text + '99' }]}>{label}</Text>
+          <Text style={[styles.value, { color: currentTheme.colors.text }]}>
             {buffer}{unit ? <Text style={[styles.valueUnit, { color: currentTheme.colors.text + '66' }]}> {unit}</Text> : null}
           </Text>
         </RNView>
@@ -71,7 +71,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
         <RNView style={styles.chipRow}>
           {increments.map(inc => (
             <TouchableOpacity key={inc} style={[styles.chip, { borderColor: currentTheme.colors.border }]} onPress={() => bump(inc)} activeOpacity={0.6}>
-              <Text style={[styles.chipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{inc > 0 ? `+${fmt(inc)}` : fmt(inc)}</Text>
+              <Text style={[styles.chipText, { color: currentTheme.colors.text }]}>{inc > 0 ? `+${fmt(inc)}` : fmt(inc)}</Text>
             </TouchableOpacity>
           ))}
         </RNView>
@@ -91,7 +91,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
           style={[styles.done, { backgroundColor: currentTheme.colors.primary }]}
           onPress={() => { playHapticFeedback('medium', false); if (hasNext) onNext(); else onClose(); }}
         >
-          <Text style={[styles.doneText, { fontFamily: currentTheme.fonts.semiBold }]}>{hasNext ? 'Next: reps' : 'Done'}</Text>
+          <Text style={[styles.doneText, { }]}>{hasNext ? 'Next: reps' : 'Done'}</Text>
         </TouchableOpacity>
       </RNView>
     </Modal>

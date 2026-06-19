@@ -68,11 +68,11 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       >
         <RNView style={styles.body}>
           {lines.map((line, i) => (
-            <Text key={i} style={[styles.line, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
-              {line.name}  <Text style={{ color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }}>{line.summary}</Text>
+            <Text key={i} style={[styles.line, { color: currentTheme.colors.text }]} numberOfLines={1}>
+              {line.name}  <Text style={{ color: currentTheme.colors.text + '99' }}>{line.summary}</Text>
             </Text>
           ))}
-          <Text style={[styles.hint, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>Tap to add</Text>
+          <Text style={[styles.hint, { color: currentTheme.colors.primary }]}>Tap to add</Text>
         </RNView>
         <RNView style={[styles.addBtn, { backgroundColor: currentTheme.colors.primary }]}>
           <Ionicons name="add" size={22} color="#fff" />

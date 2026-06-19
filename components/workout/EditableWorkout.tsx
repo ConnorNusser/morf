@@ -23,7 +23,6 @@ interface EditableWorkoutProps {
   activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
   onAddSet: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
-  onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
   onAcceptAutofill: (key: string, source: 'previous' | 'target') => void;
   onDismissAutofill: (key: string) => void;
@@ -38,34 +37,34 @@ function setSummary(sets: DraftSet[], unit: WeightUnit): string {
 }
 
 // A flat, underlined value that opens the custom number pad on tap (no OS
-// keyboard). Highlights while it's the field being edited.
-function NumberField({ value, suffix, active, onPress, theme }: {
+// keyboard). The unit/reps label lives in the column header, not per cell.
+function NumberField({ value, active, onPress, theme }: {
   value: number;
-  suffix: string;
   active: boolean;
   onPress: () => void;
   theme: ReturnType<typeof useTheme>['currentTheme'];
 }) {
   return (
     <TouchableOpacity
-      style={[styles.field, { borderBottomColor: active ? theme.colors.primary : theme.colors.border }]}
+      style={[styles.field, { borderBottomColor: active ? theme.colors.primary : theme.colors.border, backgroundColor: active ? theme.colors.primary + '12' : 'transparent' }]}
       onPress={onPress}
       activeOpacity={0.6}
     >
-      <Text style={[styles.fieldValue, { color: theme.colors.text, fontFamily: theme.fonts.semiBold }]}>{value}</Text>
-      <Text style={[styles.fieldSuffix, { color: theme.colors.text + '66', fontFamily: theme.fonts.regular }]}>{suffix}</Text>
+      <Text style={[styles.fieldValue, { color: theme.colors.text }]}>{value}</Text>
     </TouchableOpacity>
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
+function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
+  const text = currentTheme.colors.text;
 
-  // One reference shown at a time; the header pill flips between them.
+  // One reference shown at a time; the column header flips between them.
   const hasTarget = !!exercise.target?.length;
   const hasPrevious = !!exercise.previous?.length;
+  const hasRef = hasTarget || hasPrevious;
   const [refMode, setRefMode] = React.useState<'target' | 'previous'>(hasTarget ? 'target' : 'previous');
   const canFlip = hasTarget && hasPrevious;
   const activeMode: 'target' | 'previous' = refMode === 'target' && hasTarget ? 'target' : hasPrevious ? 'previous' : 'target';
@@ -75,93 +74,78 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
 
   return (
     <RNView style={styles.section}>
-      <RNView style={styles.sectionHeader}>
-        {exercise.recognized && (
-          <Ionicons name="checkmark-circle" size={15} color={currentTheme.colors.primary} style={{ marginRight: 6 }} />
-        )}
-        <TouchableOpacity
-          style={styles.exNameWrap}
-          activeOpacity={0.6}
-          onLongPress={() => { playHapticFeedback('medium', false); onRemoveExercise(exercise.key); }}
-        >
-          <Text style={[styles.exName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
-            {exercise.name || 'Unnamed exercise'}
-          </Text>
-        </TouchableOpacity>
-        {(hasTarget || hasPrevious) && (
-          <TouchableOpacity
-            style={[styles.refPill, { borderColor: currentTheme.colors.border }]}
-            onPress={flipRef}
-            activeOpacity={canFlip ? 0.6 : 1}
-          >
-            <Text style={[styles.refPillText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>{refLabel}</Text>
-            {canFlip && <Ionicons name="swap-horizontal" size={13} color={currentTheme.colors.text + '99'} />}
+      <TouchableOpacity
+        activeOpacity={0.6}
+        onLongPress={() => { playHapticFeedback('medium', false); onRemoveExercise(exercise.key); }}
+      >
+        <Text style={[styles.exName, { color: text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+          {exercise.name || 'Unnamed exercise'}
+        </Text>
+      </TouchableOpacity>
+
+      {/* Column header: reference toggle (tap to flip) + lbs / reps labels */}
+      <RNView style={styles.colHeader}>
+        {hasRef ? (
+          <TouchableOpacity style={styles.refToggle} onPress={flipRef} activeOpacity={canFlip ? 0.6 : 1}>
+            <Text style={[styles.colLabel, { color: text + '99' }]}>{refLabel}</Text>
+            {canFlip && <Ionicons name="swap-horizontal" size={13} color={text + '99'} style={{ marginLeft: 3 }} />}
           </TouchableOpacity>
+        ) : (
+          <RNView style={styles.refToggle} />
         )}
+        <Text style={[styles.colLabelCol, { color: text + '55' }]}>{weightUnit}</Text>
+        <Text style={[styles.colLabelCol, { color: text + '55' }]}>reps</Text>
+        <RNView style={styles.removeCol} />
       </RNView>
 
       {exercise.sets.length === 0 && activeRef ? (
-        /* Autofill from the selected reference (toggle in the header) */
+        /* Autofill from the selected reference (toggle in the column header) */
         <RNView style={styles.autofill}>
-          <Text style={[styles.autofillSets, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+          <Text style={[styles.autofillSets, { color: text + 'AA' }]} numberOfLines={1}>
             {setSummary(activeRef, weightUnit)}
           </Text>
           <TouchableOpacity
             style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]}
             onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, activeMode); }}
           >
-            <Text style={[styles.autofillBtnText, { fontFamily: currentTheme.fonts.semiBold }]}>Autofill</Text>
+            <Text style={styles.autofillBtnText}>Autofill</Text>
           </TouchableOpacity>
           <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onDismissAutofill(exercise.key); }}>
-            <Ionicons name="close" size={18} color={currentTheme.colors.text + '40'} />
+            <Ionicons name="close" size={18} color={text + '40'} />
           </TouchableOpacity>
         </RNView>
       ) : (
         <>
           {exercise.sets.map((set, i) => {
             const ref = activeRef?.[i];
-            const ghost = ref ? `${refLabel.toLowerCase()} ${refSummary(ref, weightUnit)}` : '';
             return (
               <RNView
                 key={i}
-                style={[
-                  styles.setRow,
-                  { borderTopColor: currentTheme.colors.border + '60' },
-                  set.done && { backgroundColor: DONE_GREEN + '1A' },
-                ]}
+                style={[styles.setRow, set.done && { backgroundColor: DONE_GREEN + '14' }]}
               >
-                <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onToggleDone(exercise.key, i); }}>
-                  <Ionicons name={set.done ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={set.done ? DONE_GREEN : currentTheme.colors.text + '33'} />
-                </TouchableOpacity>
-                <Text style={[styles.setIndex, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.regular }]}>{i + 1}</Text>
-                <RNView style={styles.fields}>
-                  <NumberField
-                    value={set.weight}
-                    suffix={weightUnit}
-                    active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
-                    onPress={() => onEditField(exercise.key, i, 'weight')}
-                    theme={currentTheme}
-                  />
-                  <Text style={[styles.times, { color: currentTheme.colors.text + '55' }]}>×</Text>
-                  <NumberField
-                    value={set.reps}
-                    suffix="reps"
-                    active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'reps'}
-                    onPress={() => onEditField(exercise.key, i, 'reps')}
-                    theme={currentTheme}
-                  />
-                </RNView>
-                {!!ghost && (
-                  <Text style={[styles.ghost, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
-                    {ghost}
-                  </Text>
+                {ref ? (
+                  <Text style={[styles.ghost, { color: text + '55' }]} numberOfLines={1}>{refSummary(ref, weightUnit)}</Text>
+                ) : (
+                  <RNView style={{ flex: 1 }} />
                 )}
+                <NumberField
+                  value={set.weight}
+                  active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
+                  onPress={() => onEditField(exercise.key, i, 'weight')}
+                  theme={currentTheme}
+                />
+                <NumberField
+                  value={set.reps}
+                  active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'reps'}
+                  onPress={() => onEditField(exercise.key, i, 'reps')}
+                  theme={currentTheme}
+                />
                 <TouchableOpacity
                   hitSlop={8}
-                  style={styles.removeSet}
+                  style={styles.removeCol}
                   onPress={() => { playHapticFeedback('light', false); onRemoveSet(exercise.key, i); }}
                 >
-                  <Ionicons name="close" size={17} color={currentTheme.colors.text + '40'} />
+                  <Ionicons name="close" size={17} color={text + '40'} />
                 </TouchableOpacity>
               </RNView>
             );
@@ -169,7 +153,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
 
           <TouchableOpacity style={styles.addSet} onPress={() => { playHapticFeedback('light', false); onAddSet(exercise.key); }}>
             <Ionicons name="add" size={15} color={currentTheme.colors.primary} />
-            <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>Add set</Text>
+            <Text style={[styles.addSetText, { color: currentTheme.colors.primary }]}>Add set</Text>
           </TouchableOpacity>
         </>
       )}
@@ -177,7 +161,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
   const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
 
@@ -186,7 +170,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator>
-      <Text style={[styles.summary, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+      <Text style={[styles.summary, { color: currentTheme.colors.text + '99' }]}>
         {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
         {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
       </Text>
@@ -201,7 +185,6 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
           activeField={activeField}
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}
-          onToggleDone={onToggleDone}
           onRemoveExercise={onRemoveExercise}
           onAcceptAutofill={onAcceptAutofill}
           onDismissAutofill={onDismissAutofill}
@@ -211,46 +194,42 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
   );
 }
 
+// Column geometry — fields + header labels share a width so they line up.
+const FIELD_W = 60;
+const REMOVE_W = 28;
+const ROW_GAP = 10;
+
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: 'transparent' },
   scrollContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 28 },
   summary: { fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', paddingBottom: 12 },
   section: { marginBottom: 22 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 6 },
-  exNameWrap: { flex: 1 },
-  exName: { fontSize: 17 },
-  refPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 13,
-    borderWidth: 1,
-  },
-  refPillText: { fontSize: 12 },
+  exName: { fontSize: 17, paddingBottom: 2 },
+
+  colHeader: { flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingBottom: 4 },
+  refToggle: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  colLabel: { fontSize: 12 },
+  colLabelCol: { width: FIELD_W, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
+  removeCol: { width: REMOVE_W, alignItems: 'center' },
+
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 10,
+    gap: ROW_GAP,
+    paddingVertical: 9,
     paddingHorizontal: 6,
     marginHorizontal: -6,
     borderRadius: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  setIndex: { fontSize: 13, width: 12 },
-  fields: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
-  field: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, borderBottomWidth: 1, paddingBottom: 3, minWidth: 56 },
-  fieldValue: { fontSize: 16 },
-  fieldSuffix: { fontSize: 11, paddingBottom: 2 },
-  times: { fontSize: 15 },
+  ghost: { flex: 1, fontSize: 12 },
+  field: { width: FIELD_W, alignItems: 'center', borderBottomWidth: 1, borderRadius: 6, paddingVertical: 4 },
+  fieldValue: { fontSize: 17 },
+
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10 },
   addSetText: { fontSize: 13 },
+
   autofill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   autofillSets: { flex: 1, fontSize: 14 },
   autofillBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
   autofillBtnText: { color: '#fff', fontSize: 13 },
-  ghost: { fontSize: 12 },
-  removeSet: { marginLeft: 'auto', paddingLeft: 4 },
 });

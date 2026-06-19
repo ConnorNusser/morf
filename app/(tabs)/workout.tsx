@@ -54,7 +54,6 @@ export default function WorkoutScreen() {
     editSet,
     addSetTo,
     removeSetFrom,
-    toggleSetDone,
     removeExerciseFrom,
     acceptAutofill,
     dismissAutofill,
@@ -220,7 +219,7 @@ export default function WorkoutScreen() {
             <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted ? (
                 <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
-                  <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99' }]}>
                     Cancel
                   </Text>
                 </TouchableOpacity>
@@ -251,12 +250,12 @@ export default function WorkoutScreen() {
                     />
                     <Text style={[
                       styles.timerText,
-                      { color: isResting ? '#fff' : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }
+                      { color: isResting ? '#fff' : currentTheme.colors.text }
                     ]}>
                       {isResting ? formattedRestTime : formatTime(elapsedTime)}
                     </Text>
                     {isResting && (
-                      <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
+                      <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)' }]}>
                         REST
                       </Text>
                     )}
@@ -275,7 +274,7 @@ export default function WorkoutScreen() {
                   style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
                   onPress={handleFinishPress}
                 >
-                  <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.finishButtonText, { }]}>
                     Finish
                   </Text>
                 </TouchableOpacity>
@@ -298,10 +297,10 @@ export default function WorkoutScreen() {
 
               {/* Rest timer display */}
               <RNView style={styles.expandedTimerCenter}>
-                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary }]}>
                   {formattedRestTime}
                 </Text>
-                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60' }]}>
                   rest remaining
                 </Text>
               </RNView>
@@ -322,7 +321,7 @@ export default function WorkoutScreen() {
                 style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                 onPress={handleResetWorkoutTimer}
               >
-                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80' }]}>
                   Restart Workout ({formatTime(elapsedTime)})
                 </Text>
               </TouchableOpacity>
@@ -332,7 +331,7 @@ export default function WorkoutScreen() {
                 style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishRest}
               >
-                <Text style={[styles.doneRestButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.doneRestButtonText, { }]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -350,7 +349,6 @@ export default function WorkoutScreen() {
             activeField={editing}
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
-            onToggleDone={toggleSetDone}
             onRemoveExercise={removeExerciseFrom}
             onAcceptAutofill={acceptAutofill}
             onDismissAutofill={dismissAutofill}
@@ -361,7 +359,7 @@ export default function WorkoutScreen() {
               <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
                 Log your workout
               </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
                 Type or speak a set below — it appears here, ready to edit.
               </Text>
               {lastWorkoutTitle && (
@@ -371,7 +369,7 @@ export default function WorkoutScreen() {
                   activeOpacity={0.7}
                 >
                   <Ionicons name="repeat" size={16} color={currentTheme.colors.primary} />
-                  <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary }]}>
                     Repeat last workout
                   </Text>
                 </TouchableOpacity>
@@ -390,7 +388,7 @@ export default function WorkoutScreen() {
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
               <RNView style={[styles.composerDoneRow, { borderBottomColor: currentTheme.colors.border }]}>
                 <TouchableOpacity onPress={closeComposer} style={[styles.doneChip, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                  <Text style={[styles.doneChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>
+                  <Text style={[styles.doneChipText, { color: currentTheme.colors.text }]}>Done</Text>
                 </TouchableOpacity>
               </RNView>
               <RNView style={styles.composerRow}>
@@ -432,7 +430,7 @@ export default function WorkoutScreen() {
               activeOpacity={0.7}
             >
               <Ionicons name="create-outline" size={18} color={currentTheme.colors.text + '88'} />
-              <Text style={[styles.collapsedPlaceholder, { color: currentTheme.colors.text + '88', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.collapsedPlaceholder, { color: currentTheme.colors.text + '88' }]}>
                 Log a set — type or speak
               </Text>
             </TouchableOpacity>
@@ -498,7 +496,7 @@ export default function WorkoutScreen() {
                 }}
               >
                 <Ionicons name={a.icon} size={20} color={currentTheme.colors.primary} />
-                <Text style={[styles.actionLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{a.label}</Text>
+                <Text style={[styles.actionLabel, { color: currentTheme.colors.text }]}>{a.label}</Text>
               </TouchableOpacity>
             ))}
           </RNView>
