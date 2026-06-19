@@ -27,6 +27,9 @@ interface PreviewLine {
 
 function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string; sets: ParsedSet[] }[] }, unit: WeightUnit): PreviewLine[] {
   return parsed.exercises
+    // A real set has reps. The AI sometimes guesses an exercise name from a
+    // fragment and returns a 0×0 set — drop those so they don't render as blanks.
+    .map(ex => ({ ...ex, sets: ex.sets.filter(s => s.reps > 0) }))
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
       name: ex.matchedExerciseId ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name : ex.name,
@@ -69,10 +72,12 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
         setLoading(false);
       }
 
-      // Escalate to AI only when local wasn't confident (e.g. "DL"), purely to
-      // refine the names. A failed or empty AI result must never blank a preview
-      // local already produced.
-      if (!localIsReasonable(local)) {
+      // Escalate to AI only when the text actually looks like it carries a set
+      // (has digits) but local wasn't confident — e.g. "DL 225x5". A bare name
+      // fragment ("be") has nothing to preview, so calling the AI just burns a
+      // request and returns a 0×0 guess that renders as nothing.
+      const looksLikeSet = /\d/.test(text);
+      if (looksLikeSet && !localIsReasonable(local)) {
         try {
           const ai = await workoutNoteParser.parseWorkoutNote(text, weightUnit);
           const aiLines = toLines(ai, weightUnit);

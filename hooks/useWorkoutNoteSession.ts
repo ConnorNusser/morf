@@ -229,16 +229,21 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return true;
     }
 
-    // Local couldn't reasonably parse it → let the AI parser try. Cap the wait so
-    // a slow/hanging AI call can never strand the add — we fall back to local.
-    try {
-      const ai = await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000);
-      if (ai.exercises.length > 0) {
-        mergeInto(ai.exercises);
-        return true;
+    // Local couldn't reasonably parse it → let the AI parser try, but only when
+    // the text actually carries set data (digits). On a bare fragment the AI
+    // guesses an exercise with a 0×0 set, which would add an empty card. Cap the
+    // wait so a slow/hanging call can never strand the add — we fall back to local.
+    if (/\d/.test(trimmed)) {
+      try {
+        const ai = await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000);
+        const real = ai.exercises.filter(ex => ex.sets.some(s => s.reps > 0));
+        if (real.length > 0) {
+          mergeInto(real);
+          return true;
+        }
+      } catch {
+        // fall through
       }
-    } catch {
-      // fall through
     }
 
     // AI unavailable/failed — fall back to whatever local managed, if anything.
