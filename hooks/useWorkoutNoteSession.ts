@@ -36,6 +36,15 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
+// Reject if a promise hasn't settled in `ms` — used to cap AI parse latency so a
+// slow/hanging call falls back to the local parse instead of stranding the user.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 export interface UseWorkoutNoteSessionReturn {
   // Composer (transient input) + structured draft (the editable source of truth)
   composerText: string;
@@ -220,9 +229,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return true;
     }
 
-    // Local couldn't reasonably parse it → let the AI parser try.
+    // Local couldn't reasonably parse it → let the AI parser try. Cap the wait so
+    // a slow/hanging AI call can never strand the add — we fall back to local.
     try {
-      const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
+      const ai = await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000);
       if (ai.exercises.length > 0) {
         mergeInto(ai.exercises);
         return true;

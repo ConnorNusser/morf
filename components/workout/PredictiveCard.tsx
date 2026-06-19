@@ -59,20 +59,29 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
     const id = ++reqId.current;
     const handle = setTimeout(async () => {
       const local = workoutNoteParser.parseLocal(text, weightUnit);
-      if (localIsReasonable(local)) {
-        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
-        return;
+      const localLines = toLines(local, weightUnit);
+
+      // Show whatever local could read right away — a typed set should never
+      // vanish (or hang on "reading…") just because the name didn't match the
+      // catalog. Local is best-effort but always honest about the sets it found.
+      if (id === reqId.current && localLines.length > 0) {
+        setLines(localLines);
+        setLoading(false);
       }
-      // Local couldn't recognize it (e.g. "DL") — let the AI interpret it.
-      try {
-        const ai = await workoutNoteParser.parseWorkoutNote(text, weightUnit);
-        if (id === reqId.current) {
-          setLines(toLines(ai.exercises.length > 0 ? ai : local, weightUnit));
-          setLoading(false);
+
+      // Escalate to AI only when local wasn't confident (e.g. "DL"), purely to
+      // refine the names. A failed or empty AI result must never blank a preview
+      // local already produced.
+      if (!localIsReasonable(local)) {
+        try {
+          const ai = await workoutNoteParser.parseWorkoutNote(text, weightUnit);
+          const aiLines = toLines(ai, weightUnit);
+          if (id === reqId.current && aiLines.length > 0) setLines(aiLines);
+        } catch {
+          // keep the local preview
         }
-      } catch {
-        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
       }
+      if (id === reqId.current) setLoading(false);
     }, PAUSE_MS);
     return () => clearTimeout(handle);
   }, [text, weightUnit]);

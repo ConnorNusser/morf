@@ -20,35 +20,40 @@ interface NumberPadProps {
   hasNext: boolean;
   onChange: (n: number) => void;
   onNext: () => void;
-  onClose: () => void;
+  onDone: () => void; // final "Done" — commits and auto-completes the set
+  onClose: () => void; // dismissed (backdrop / hardware back) — commits, no complete
 }
 
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
 }
 
-export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onNext, onClose }: NumberPadProps) {
+export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onNext, onDone, onClose }: NumberPadProps) {
   const { currentTheme } = useTheme();
   const [buffer, setBuffer] = useState(fmt(value));
 
   // Reseed whenever the target field changes (new set / weight↔reps).
   useEffect(() => { setBuffer(fmt(value)); }, [seedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const commit = (next: string) => {
-    setBuffer(next);
-    onChange(parseFloat(next) || 0);
-  };
+  // Editing stays local to the buffer; we only push to the draft when the user
+  // moves on (Next/Done/dismiss). Pushing on every digit re-rendered the whole
+  // workout (and wrote storage) per keystroke, which made typing lag badly.
+  const flush = () => onChange(parseFloat(buffer) || 0);
+  const next = (nextBuffer: string) => setBuffer(nextBuffer);
 
   const press = (digit: string) => {
     playHapticFeedback('light', false);
-    commit(buffer === '0' && digit !== '.' ? digit : buffer + digit);
+    next(buffer === '0' && digit !== '.' ? digit : buffer + digit);
   };
   const dot = () => { if (allowDecimal && !buffer.includes('.')) press('.'); };
-  const back = () => { playHapticFeedback('light', false); commit(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
+  const back = () => { playHapticFeedback('light', false); next(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
   const bump = (delta: number) => {
     playHapticFeedback('light', false);
-    commit(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
+    next(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
   };
+
+  // Dismissing (backdrop / hardware back) still keeps what was typed.
+  const dismiss = () => { flush(); onClose(); };
 
   const keyColor = currentTheme.colors.text;
   const Btn = ({ label: l, onPress, flex = 1 }: { label: React.ReactNode; onPress: () => void; flex?: number }) => (
@@ -58,8 +63,8 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={dismiss}>
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={dismiss} />
       <RNView style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
         <RNView style={styles.readout}>
           <Text style={[styles.label, { color: currentTheme.colors.text + '99' }]}>{label}</Text>
@@ -89,7 +94,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
 
         <TouchableOpacity
           style={[styles.done, { backgroundColor: currentTheme.colors.primary }]}
-          onPress={() => { playHapticFeedback('medium', false); if (hasNext) onNext(); else onClose(); }}
+          onPress={() => { playHapticFeedback('medium', false); flush(); if (hasNext) onNext(); else onDone(); }}
         >
           <Text style={[styles.doneText, { }]}>{hasNext ? 'Next: reps' : 'Done'}</Text>
         </TouchableOpacity>

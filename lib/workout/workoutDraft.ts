@@ -124,6 +124,12 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
       sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: !!s.done })),
+      // Carry the routine prescription through so progression can compare actual
+      // vs target. Without this, targetSets is lost and a missed session reads as
+      // a success (defaults to "passed"), wrongly adding a rep.
+      targetSets: ex.target?.length
+        ? ex.target.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }))
+        : undefined,
     }));
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
 }

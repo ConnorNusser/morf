@@ -139,6 +139,25 @@ describe('draftToParsedWorkout', () => {
     expect(parsed.exercises[0].sets[0].completed).toBe(true);
     expect(parsed.exercises[0].sets[1].completed).toBe(false);
   });
+
+  it('carries the routine prescription into targetSets so progression can grade it', () => {
+    // Start a routine (target 3×190×8), autofill, then log lighter actuals.
+    const parsed = { exercises: [ex('Bench', [[190, 8], [190, 8], [190, 8]], 'bench-press-barbell')], confidence: 1, rawText: '' };
+    let d = buildDraft(parsed, { asTarget: true });
+    d = applyReference(d, d[0].key, 'target');
+    d = updateSet(d, d[0].key, 1, { weight: 165, reps: 5 });
+    const out = draftToParsedWorkout(d);
+    expect(out.exercises[0].targetSets).toEqual([
+      { weight: 190, reps: 8, unit: 'lbs' },
+      { weight: 190, reps: 8, unit: 'lbs' },
+      { weight: 190, reps: 8, unit: 'lbs' },
+    ]);
+  });
+
+  it('omits targetSets for a freestyle workout (no prescription)', () => {
+    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8]])], confidence: 1, rawText: '' });
+    expect(draftToParsedWorkout(d).exercises[0].targetSets).toBeUndefined();
+  });
 });
 
 describe('totalVolume', () => {
