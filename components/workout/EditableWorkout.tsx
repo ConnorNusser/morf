@@ -27,6 +27,8 @@ interface EditableWorkoutProps {
   onRemoveExercise: (key: string) => void;
   onAcceptAutofill: (key: string, source: 'previous' | 'target') => void;
   onDismissAutofill: (key: string) => void;
+  // Fired when the user starts dragging the list — used to collapse the composer.
+  onScrollBeginDrag?: () => void;
 }
 
 function refSummary(set: DraftSet, unit: WeightUnit): string {
@@ -150,7 +152,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill, onScrollBeginDrag }: EditableWorkoutProps) {
   const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
 
@@ -158,7 +160,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
   const volume = totalVolume(draft);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={onScrollBeginDrag} showsVerticalScrollIndicator>
       <Text style={[styles.summary, { color: currentTheme.colors.text + '99' }]}>
         {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
         {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}

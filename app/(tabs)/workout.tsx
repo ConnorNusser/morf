@@ -95,14 +95,21 @@ export default function WorkoutScreen() {
     setComposerOpen(true);
     setTimeout(() => noteInputRef.current?.focus(), 60);
   }, []);
-  // The composer collapses when the input loses focus — scrolling the workout,
-  // tapping outside, or swiping the keyboard down all blur it. We drive this off
-  // the input's own onBlur (see handleComposerBlur) rather than global keyboard
+  // The composer collapses when the input loses focus. We drive this off the
+  // input's own onBlur (see handleComposerBlur) rather than global keyboard
   // events: in the simulator (and during the open animation) a phantom
   // keyboardWillHide can fire even though the field is still focused, which would
   // slam the composer shut the instant you open it. The typed text lives in
   // `composerText` and is left untouched, so reopening resumes where you left off.
   const handleComposerBlur = useCallback(() => setComposerOpen(false), []);
+  // Explicit collapse for scrolling the workout: keyboardDismissMode only blurs
+  // the field when a software keyboard is actually up, so on the simulator (and
+  // with a hardware keyboard) a scroll wouldn't fire onBlur. Drive it directly.
+  const closeComposer = useCallback(() => {
+    noteInputRef.current?.blur();
+    Keyboard.dismiss();
+    setComposerOpen(false);
+  }, []);
 
   // Collapse the tab-bar clearance under the composer while the keyboard is up.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -490,6 +497,7 @@ export default function WorkoutScreen() {
             onRemoveExercise={removeExerciseFrom}
             onAcceptAutofill={acceptAutofill}
             onDismissAutofill={dismissAutofill}
+            onScrollBeginDrag={closeComposer}
           />
           {!hasWorkoutStarted && (
             recentWorkouts.length > 0 ? (
@@ -534,7 +542,7 @@ export default function WorkoutScreen() {
             {/* Composer (open) — auto-growing input + mic + send. No Done button:
                 scrolling the workout, tapping outside, or swiping the keyboard down
                 collapses it (the typed text stays cached for next time). */}
-            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
+            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
                   <RNView style={layout.flex1}>
