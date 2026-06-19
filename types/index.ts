@@ -589,9 +589,4 @@ export const formatHeight = (height: UserProfile['height']): string => {
     return `${feet}'${inches}"`;
   }
   return `${height.value} cm`;
-};
-
-// Format weight for display
-export const formatWeight = (weight: UserProfile['weight']): string => {
-  return `${weight.value} ${weight.unit}`;
 }; 

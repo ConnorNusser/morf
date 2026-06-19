@@ -211,7 +211,7 @@ export type MovementPattern =
  * Map exercises to their primary movement pattern
  * This enables fatigue tracking at the pattern level
  */
-export const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
+const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
   // Squat pattern
   'squat-barbell': 'squat',
   'front-squat-barbell': 'squat',

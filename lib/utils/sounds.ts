@@ -1,5 +1,5 @@
 // Sound registry - automatically import and export all sound files
-export const SOUNDS = {
+const SOUNDS = {
   notification: require('../../assets/sounds/notification.mp3'),
   beep: require('../../assets/sounds/beep.mp3'),
   pop: require('../../assets/sounds/pop.mp3'),

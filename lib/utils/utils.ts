@@ -111,7 +111,7 @@ export function getProgressionColor(
   }
 }
 
-export { convertWeightToKg, convertWeightToLbs };
+export { convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====
 
@@ -264,7 +264,7 @@ export const formatSet = (
  * Format a set for compact display (used in feed, cards)
  * Always uses compact format: "135×8", "20:00", "1:30 · 5km"
  */
-export const formatSetCompact = (
+const formatSetCompact = (
   set: SetFormatData,
   trackingType: TrackingType = 'reps'
 ): string => {

@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // Perceived luminance of a #rrggbb color → pick blur tint / overlay polarity.
-export const isDarkColor = (hex: string) => {
+const isDarkColor = (hex: string) => {
   const m = hex.replace('#', '');
   if (m.length < 6) return false;
   const r = parseInt(m.slice(0, 2), 16);

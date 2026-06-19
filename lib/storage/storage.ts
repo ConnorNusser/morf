@@ -49,7 +49,7 @@ export interface NotificationPreferences {
   quietHoursEndMinute: number;
 }
 
-export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   streakReminders: true,
   habitReminders: true,
   quietHoursEndMinute: 21 * 60 + 30,

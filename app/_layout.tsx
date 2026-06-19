@@ -1,7 +1,6 @@
 import { AlertProvider } from '@/components/CustomAlert';
 import ThemeOverlay from '@/components/ThemeOverlay';
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
-import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { TutorialProvider } from '@/contexts/TutorialContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
@@ -242,19 +241,17 @@ function ThemedApp() {
         <VideoPlayerProvider>
           <TutorialProvider>
             <CustomExercisesProvider>
-              <RoutineProvider>
-                <WorkoutProvider>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor: currentTheme.colors.background },
-                      animation: 'fade',
-                    }}
-                  >
-                    <Stack.Screen name="(tabs)" />
-                  </Stack>
-                </WorkoutProvider>
-              </RoutineProvider>
+              <WorkoutProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: currentTheme.colors.background },
+                    animation: 'fade',
+                  }}
+                >
+                  <Stack.Screen name="(tabs)" />
+                </Stack>
+              </WorkoutProvider>
             </CustomExercisesProvider>
           </TutorialProvider>
         </VideoPlayerProvider>

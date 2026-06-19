@@ -58,10 +58,3 @@ export const formatShortDate = (dateStr: string): string => {
 export const formatFullDate = (date: Date | string): string => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
-
-/**
- * Format weight with unit (e.g., "185 lbs", "84 kg")
- */
-export const formatWeight = (weight: number, unit: 'lbs' | 'kg' = 'lbs'): string => {
-  return `${Math.round(weight)} ${unit}`;
-};

@@ -127,7 +127,7 @@ const WARMUP_1RM_PERCENTAGE = 0.60;
  * If progressionState is provided, uses tracked progression (weight + rep bonus)
  * Otherwise falls back to 1RM-based calculation from history
  */
-export function calculateRoutineExerciseWeights(
+function calculateRoutineExerciseWeights(
   exercise: RoutineExercise,
   workoutHistory: GeneratedWorkout[],
   weightUnit: WeightUnit,

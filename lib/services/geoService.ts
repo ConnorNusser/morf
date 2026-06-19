@@ -17,7 +17,7 @@ export const getCountryFlag = (countryCode: string | null | undefined): string =
 };
 
 // Country code to country name mapping (common countries)
-export const COUNTRY_NAMES: Record<string, string> = {
+const COUNTRY_NAMES: Record<string, string> = {
   'US': 'United States',
   'GB': 'United Kingdom',
   'CA': 'Canada',

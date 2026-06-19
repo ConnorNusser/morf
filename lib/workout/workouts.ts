@@ -50,14 +50,6 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
   );
 };
 
-// Helper function to get user's current theme level
-export const getUserThemeLevel = (userPercentile: number): ThemeLevel => {
-  if (userPercentile >= getThemeRequiredPercentile('god')) return 'god';
-  if (userPercentile >= getThemeRequiredPercentile('advanced')) return 'advanced';
-  if (userPercentile >= getThemeRequiredPercentile('intermediate')) return 'intermediate';
-  return 'beginner';
-};
-
 // Helper function to get workouts by equipment
 export const getWorkoutsByEquipment = (
   equipment: Equipment[],
