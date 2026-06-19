@@ -288,14 +288,14 @@ export default function WorkoutScreen() {
                   </Text>
                 </TouchableOpacity>
               ) : (
-                <RNView style={[styles.unitSegment, { borderColor: currentTheme.colors.border }]}>
+                <RNView style={[styles.unitSegment, { backgroundColor: currentTheme.colors.text + '0F' }]}>
                   {(['lbs', 'kg'] as const).map(u => (
                     <TouchableOpacity
                       key={u}
-                      style={[styles.unitSegmentBtn, weightUnit === u && { backgroundColor: currentTheme.colors.primary }]}
+                      style={[styles.unitSegmentBtn, weightUnit === u && { backgroundColor: currentTheme.colors.surface }]}
                       onPress={() => { playHapticFeedback('selection', false); setWeightUnitPref(u); }}
                     >
-                      <Text style={[styles.unitSegmentText, { color: weightUnit === u ? '#fff' : currentTheme.colors.text + '99' }]}>{u}</Text>
+                      <Text style={[styles.unitSegmentText, { color: weightUnit === u ? currentTheme.colors.text : currentTheme.colors.text + '66' }]}>{u}</Text>
                     </TouchableOpacity>
                   ))}
                 </RNView>
@@ -669,19 +669,19 @@ const styles = StyleSheet.create({
   },
   unitSegment: {
     flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
+    borderRadius: 999,
+    padding: 2,
   },
   unitSegmentBtn: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
+    borderRadius: 999,
     alignItems: 'center',
   },
   unitSegmentText: {
     fontSize: 12,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   headerCenter: {
     flex: 1,
