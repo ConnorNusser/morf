@@ -2,8 +2,8 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-private let kAccent = Color(red: 0.42, green: 0.45, blue: 0.96) // indigo brand accent
-private let kCard = Color(white: 0.07)
+// Modern emerald accent (swapped from indigo). Easy to retune in one place.
+private let kAccent = Color(red: 0.16, green: 0.80, blue: 0.52) // ~#29CC85
 
 // Widget extension entry point.
 @main
@@ -20,13 +20,14 @@ struct MorfLiveActivityWidget: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: MorfLiveActivityAttributes.self) { context in
       LockScreen(s: context.state)
-        .padding(14)
-        .activityBackgroundTint(kCard)
+        .padding(.horizontal, 14).padding(.vertical, 11)
+        // Translucent tint over the system material → glassy, wallpaper shows through.
+        .activityBackgroundTint(Color.black.opacity(0.28))
         .activitySystemActionForegroundColor(.white)
     } dynamicIsland: { context in
       DynamicIsland {
         DynamicIslandExpandedRegion(.center) {
-          LockScreen(s: context.state).padding(.vertical, 4)
+          LockScreen(s: context.state).padding(.vertical, 2)
         }
       } compactLeading: {
         Image(systemName: context.state.mode == "rest" ? "timer" : "dumbbell.fill")
@@ -54,20 +55,20 @@ struct LockScreen: View {
 private struct ArtTile: View {
   let symbol: String
   var body: some View {
-    RoundedRectangle(cornerRadius: 12, style: .continuous)
-      .fill(LinearGradient(colors: [kAccent, kAccent.opacity(0.55)], startPoint: .topLeading, endPoint: .bottomTrailing))
-      .frame(width: 46, height: 46)
-      .overlay(Image(systemName: symbol).font(.system(size: 20, weight: .bold)).foregroundStyle(.white))
+    RoundedRectangle(cornerRadius: 10, style: .continuous)
+      .fill(LinearGradient(colors: [kAccent, kAccent.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
+      .frame(width: 38, height: 38)
+      .overlay(Image(systemName: symbol).font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
   }
 }
 
 @available(iOS 16.2, *)
 private func stepIcon(_ name: String) -> some View {
   Image(systemName: name)
-    .font(.system(size: 15, weight: .bold))
+    .font(.system(size: 14, weight: .bold))
     .foregroundStyle(.white)
-    .frame(width: 32, height: 32)
-    .background(Color.white.opacity(0.14), in: Circle())
+    .frame(width: 30, height: 30)
+    .background(.ultraThinMaterial, in: Circle())
 }
 
 // MARK: - Set card
@@ -80,20 +81,20 @@ struct SetCard: View {
   private var wStr: String { let w = s.weight ?? 0; return w == w.rounded() ? String(Int(w)) : String(w) }
 
   var body: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 12) {
+    VStack(spacing: 9) {
+      HStack(spacing: 10) {
         ArtTile(symbol: "dumbbell.fill")
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
           Text(s.setExerciseName ?? "Exercise")
-            .font(.system(.title3, design: .rounded).weight(.bold))
+            .font(.system(.headline, design: .rounded).weight(.bold))
             .foregroundStyle(.white).lineLimit(1)
           Text("Set \(s.setNumber ?? 0) of \(s.totalSets ?? 0)")
-            .font(.subheadline).foregroundStyle(.white.opacity(0.5))
+            .font(.caption).foregroundStyle(.white.opacity(0.5))
         }
         Spacer(minLength: 0)
       }
 
-      HStack(spacing: 10) {
+      HStack(spacing: 9) {
         weightStepper
         repsStepper
       }
@@ -103,50 +104,50 @@ struct SetCard: View {
   }
 
   @ViewBuilder private var weightStepper: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 6) {
       if #available(iOS 17.0, *) {
         Button(intent: AdjustWeightIntent(delta: -wDelta)) { stepIcon("minus") }.buttonStyle(.plain)
       }
       VStack(spacing: 0) {
-        Text(wStr).font(.system(.title3, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
+        Text(wStr).font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
         Text(unit).font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
         Button(intent: AdjustWeightIntent(delta: wDelta)) { stepIcon("plus") }.buttonStyle(.plain)
       }
     }
-    .padding(.vertical, 8).padding(.horizontal, 10)
-    .background(Color.white.opacity(0.06), in: Capsule())
+    .padding(.vertical, 5).padding(.horizontal, 8)
+    .background(.ultraThinMaterial, in: Capsule())
     .frame(maxWidth: .infinity)
   }
 
   @ViewBuilder private var repsStepper: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 6) {
       if #available(iOS 17.0, *) {
         Button(intent: AdjustRepsIntent(delta: -1)) { stepIcon("minus") }.buttonStyle(.plain)
       }
       VStack(spacing: 0) {
-        Text("\(s.reps ?? 0)").font(.system(.title3, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
+        Text("\(s.reps ?? 0)").font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
         Text("reps").font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
         Button(intent: AdjustRepsIntent(delta: 1)) { stepIcon("plus") }.buttonStyle(.plain)
       }
     }
-    .padding(.vertical, 8).padding(.horizontal, 10)
-    .background(Color.white.opacity(0.06), in: Capsule())
+    .padding(.vertical, 5).padding(.horizontal, 8)
+    .background(.ultraThinMaterial, in: Capsule())
     .frame(maxWidth: .infinity)
   }
 
   @ViewBuilder private var completeButton: some View {
     if #available(iOS 17.0, *) {
       Button(intent: CompleteSetIntent()) {
-        HStack(spacing: 6) {
+        HStack(spacing: 5) {
           Image(systemName: "checkmark.circle.fill")
-          Text("Complete set").font(.system(.headline, design: .rounded))
+          Text("Complete set").font(.system(.subheadline, design: .rounded).weight(.semibold))
         }
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity).padding(.vertical, 11)
+        .foregroundStyle(.black)
+        .frame(maxWidth: .infinity).padding(.vertical, 9)
         .background(kAccent, in: Capsule())
       }.buttonStyle(.plain)
     } else {
@@ -162,19 +163,19 @@ struct RestCard: View {
   let s: MorfLiveActivityAttributes.State
 
   var body: some View {
-    VStack(spacing: 12) {
-      HStack(spacing: 12) {
+    VStack(spacing: 10) {
+      HStack(spacing: 10) {
         ArtTile(symbol: "timer")
-        VStack(alignment: .leading, spacing: 2) {
-          Text("REST").font(.caption.weight(.bold)).tracking(1.5).foregroundStyle(kAccent)
+        VStack(alignment: .leading, spacing: 1) {
+          Text("REST").font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(kAccent)
           Text(s.nextLabel ?? s.restExerciseName ?? "Recovering")
-            .font(.subheadline).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+            .font(.caption).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
         }
         Spacer(minLength: 8)
         if let end = s.restEndTime {
           Text(timerInterval: Date()...end, countsDown: true)
-            .font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
-            .foregroundStyle(.white).frame(minWidth: 78).multilineTextAlignment(.trailing)
+            .font(.system(size: 28, weight: .bold, design: .rounded)).monospacedDigit()
+            .foregroundStyle(.white).frame(minWidth: 74).multilineTextAlignment(.trailing)
         }
       }
 
@@ -183,8 +184,8 @@ struct RestCard: View {
           restPill("−30s", intent: AddRestIntent(seconds: -30))
           Button(intent: EndRestIntent()) {
             Text("End").font(.system(.subheadline, design: .rounded).weight(.semibold))
-              .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 9)
-              .background(Color.white.opacity(0.14), in: Capsule())
+              .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 8)
+              .background(.ultraThinMaterial, in: Capsule())
           }.buttonStyle(.plain)
           restPill("+30s", intent: AddRestIntent(seconds: 30))
         }
@@ -198,8 +199,8 @@ struct RestCard: View {
   private func restPill(_ label: String, intent: AddRestIntent) -> some View {
     Button(intent: intent) {
       Text(label).font(.system(.subheadline, design: .rounded).weight(.semibold))
-        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 9)
-        .background(Color.white.opacity(0.06), in: Capsule())
+        .foregroundStyle(.white).frame(maxWidth: .infinity).padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
     }.buttonStyle(.plain)
   }
 }
