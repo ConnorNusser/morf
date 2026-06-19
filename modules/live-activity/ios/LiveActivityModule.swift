@@ -17,6 +17,11 @@ public class LiveActivityModule: Module {
 
     AsyncFunction("start") { (content: [String: Any]) -> String? in
       guard #available(iOS 16.2, *) else { return nil }
+      // Only one activity at a time — clear any existing before starting a new one
+      // (otherwise each set check-off stacks another rest card).
+      for activity in Activity<MorfLiveActivityAttributes>.activities {
+        await activity.end(nil, dismissalPolicy: .immediate)
+      }
       let state = Self.state(from: content)
       do {
         let activity = try Activity.request(

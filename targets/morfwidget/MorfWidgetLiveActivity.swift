@@ -18,7 +18,8 @@ struct MorfLiveActivityWidget: Widget {
     ActivityConfiguration(for: MorfLiveActivityAttributes.self) { context in
       LockScreenView(state: context.state)
         .padding(16)
-        .activityBackgroundTint(Color.black.opacity(0.9))
+        .foregroundStyle(.white) // base text color so nothing renders dark-on-dark
+        .activityBackgroundTint(Color(white: 0.09))
         .activitySystemActionForegroundColor(.white)
     } dynamicIsland: { context in
       DynamicIsland {
