@@ -5,6 +5,18 @@ import WidgetKit
 // Modern emerald accent (swapped from indigo). Easy to retune in one place.
 private let kAccent = Color(red: 0.16, green: 0.80, blue: 0.52) // ~#29CC85
 
+private extension View {
+  // Crisp rolling-digit update. numericText is iOS 17+ inside app extensions, so
+  // gate it; below 17 the value just changes without the transition.
+  @ViewBuilder func numericRoll(_ value: Double) -> some View {
+    if #available(iOS 17.0, *) {
+      contentTransition(.numericText(value: value))
+    } else {
+      self
+    }
+  }
+}
+
 // Widget extension entry point.
 @main
 struct MorfWidgetBundle: WidgetBundle {
@@ -110,7 +122,7 @@ struct SetCard: View {
       }
       VStack(spacing: 0) {
         Text(wStr).font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
-          .monospacedDigit().contentTransition(.numericText(value: s.weight ?? 0))
+          .monospacedDigit().numericRoll(s.weight ?? 0)
         Text(unit).font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
@@ -129,7 +141,7 @@ struct SetCard: View {
       }
       VStack(spacing: 0) {
         Text("\(s.reps ?? 0)").font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
-          .monospacedDigit().contentTransition(.numericText(value: Double(s.reps ?? 0)))
+          .monospacedDigit().numericRoll(Double(s.reps ?? 0))
         Text("reps").font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
