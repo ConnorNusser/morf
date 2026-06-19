@@ -19,8 +19,10 @@ Pod::Spec.new do |s|
 
   s.swift_version  = '5.9'
 
-  # The module's own Swift + the Attributes/AppGroupStore shared with the widget
-  # extension. Compiling the SAME files into both targets is what lets ActivityKit
-  # match the activity type across the app and the widget. See docs/SPIKE.md.
-  s.source_files = '*.swift', '../../../targets/morfwidget/Shared/*.swift'
+  # CocoaPods only compiles files inside the pod's own dir, so the module keeps
+  # its own copy of the Attributes/AppGroupStore types (mirrors
+  # targets/morfwidget/Shared/*). The app and widget are separate binaries either
+  # way — ActivityKit matches the activity by the type NAME, so identical copies
+  # in each target interoperate. Keep the two copies in sync.
+  s.source_files = '*.swift'
 end
