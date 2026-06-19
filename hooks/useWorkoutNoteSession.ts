@@ -219,7 +219,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return true;
     }
 
-    // No sets, but it names a known exercise — add it and offer to autofill the
+    // No sets, but it names a known exercise — add it; its sets autofill from the
     // last time they trained it (Fitbod-style smart prefill).
     const namedId = matchExerciseByName(trimmed);
     if (namedId && local.exercises.length === 0) {
@@ -227,6 +227,24 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       const name = getWorkoutById(namedId)?.name ?? trimmed;
       setDraft(d => addNamedExercise(d, { name, exerciseId: namedId, recognized: true, previous }));
       return true;
+    }
+
+    // A name with no sets that we don't recognize offline — ask the AI what
+    // exercise it is and add it (sets autofill from last time). No digits means
+    // there are no sets to parse, so we only need the recognized name.
+    if (local.exercises.length === 0 && !/\d/.test(trimmed)) {
+      try {
+        const first = (await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000)).exercises[0];
+        if (first) {
+          const id = first.matchedExerciseId;
+          const name = id ? getWorkoutById(id)?.name ?? first.name : first.name;
+          const previous = id ? getLastSetsFor(id, history, weightUnit) ?? undefined : undefined;
+          setDraft(d => addNamedExercise(d, { name, exerciseId: id, recognized: !!id && !first.isCustom, previous }));
+          return true;
+        }
+      } catch {
+        // fall through
+      }
     }
 
     // Local couldn't reasonably parse it → let the AI parser try, but only when

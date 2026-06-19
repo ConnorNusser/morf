@@ -83,4 +83,8 @@ describe('matchExerciseByName', () => {
   it('returns null for an unknown movement', () => {
     expect(matchExerciseByName('flumbox press')).toBeNull();
   });
+  it('expands common shorthand (bp -> bench press)', () => {
+    expect(matchExerciseByName('bp')).toBe(matchExerciseByName('bench press'));
+    expect(matchExerciseByName('rdl')).toBe(matchExerciseByName('romanian deadlift'));
+  });
 });

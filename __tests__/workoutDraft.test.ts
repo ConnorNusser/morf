@@ -101,10 +101,15 @@ describe('references + autofill', () => {
   const prev = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
   const target = [{ weight: 185, reps: 5, unit: 'lbs' as const }];
 
-  it('addNamedExercise adds a set-less exercise carrying its references', () => {
+  it('addNamedExercise autofills sets from the reference and keeps it as a ghost', () => {
     const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, previous: prev });
-    expect(d[0].sets).toHaveLength(0);
+    expect(d[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
     expect(d[0].previous).toEqual(prev);
+  });
+
+  it('addNamedExercise with no reference starts with no sets', () => {
+    const d = addNamedExercise([], { name: 'Cable Fly', exerciseId: 'cable-fly', recognized: true });
+    expect(d[0].sets).toHaveLength(0);
   });
 
   it('applyReference fills sets from previous or target and keeps the reference', () => {
@@ -117,10 +122,11 @@ describe('references + autofill', () => {
     expect(fromPrev[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
   });
 
-  it('buildDraft(asTarget) leaves sets empty and stores the prescription', () => {
+  it('buildDraft(asTarget) autofills working sets from the prescription and keeps it as target', () => {
     const parsed = { exercises: [ex('Bench', [[185, 5], [185, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' };
     const d = buildDraft(parsed, { asTarget: true });
-    expect(d[0].sets).toHaveLength(0);
+    expect(d[0].sets).toHaveLength(2);
+    expect(d[0].sets.every(s => s.done === false)).toBe(true);
     expect(d[0].target).toHaveLength(2);
   });
 

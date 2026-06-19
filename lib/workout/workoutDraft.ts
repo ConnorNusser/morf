@@ -89,7 +89,9 @@ export function buildDraft(
       name,
       exerciseId: pex.matchedExerciseId,
       recognized: !!pex.matchedExerciseId && !pex.isCustom,
-      sets: opts.asTarget ? [] : sets,
+      // Following a routine: pre-fill the working sets from the prescription (and
+      // keep it as the target ghost) so there's nothing to tap — you just adjust.
+      sets: opts.asTarget ? sets.map(s => ({ ...s, done: false })) : sets,
       target: opts.asTarget ? sets : undefined,
       previous,
     };
@@ -149,6 +151,9 @@ export function addNamedExercise(
 ): WorkoutDraft {
   const ckey = consolidationKey(exercise.exerciseId, exercise.name);
   if (draft.some(e => consolidationKey(e.exerciseId, e.name) === ckey)) return draft;
+  // Auto-fill the working sets from the best reference we have (prescription, else
+  // last time) so naming an exercise drops in ready-to-adjust sets — no button.
+  const ref = exercise.target?.length ? exercise.target : exercise.previous;
   return [
     ...draft,
     {
@@ -156,7 +161,7 @@ export function addNamedExercise(
       name: exercise.name,
       exerciseId: exercise.exerciseId,
       recognized: exercise.recognized,
-      sets: [],
+      sets: ref?.length ? ref.map(s => ({ ...s, done: false })) : [],
       previous: exercise.previous,
       target: exercise.target,
     },
