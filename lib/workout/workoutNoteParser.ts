@@ -226,11 +226,6 @@ class WorkoutNoteParser {
    * Call the AI API (Gemini 2.5 Flash)
    */
   private async callAI(prompt: string, inputText: string): Promise<AIParseResponse> {
-    const startTime = Date.now();
-    console.log(`[WorkoutNoteParser] Starting Gemini API call...`);
-    console.log(`[WorkoutNoteParser] Input text length: ${inputText.length} chars`);
-    console.log(`[WorkoutNoteParser] Prompt length: ${prompt.length} chars`);
-
     const model = this.genAI.getGenerativeModel({
       model: 'gemini-3.1-flash-lite',
       generationConfig: {
@@ -240,15 +235,9 @@ class WorkoutNoteParser {
 
     const fullPrompt = `You are a workout log parser. Parse natural language workout notes into structured JSON. Return ONLY valid JSON.\n\n${prompt}`;
 
-    console.log(`[WorkoutNoteParser] Calling generateContent...`);
     const result = await model.generateContent(fullPrompt);
-    console.log(`[WorkoutNoteParser] Got result, extracting response...`);
     const response = result.response;
     const content = response.text();
-
-    const elapsed = Date.now() - startTime;
-    console.log(`[WorkoutNoteParser] AI call took ${elapsed}ms (model: gemini-3.1-flash-lite)`);
-    console.log(`[WorkoutNoteParser] Response length: ${content?.length || 0} chars`);
 
     if (!content) {
       throw new Error('No content received from AI');
@@ -261,12 +250,6 @@ class WorkoutNoteParser {
     }
 
     const parsed = JSON.parse(cleanedContent);
-
-    // Debug: Log what AI returned
-    console.log(`[Parser] AI returned ${parsed.exercises?.length || 0} exercises`);
-    for (const ex of parsed.exercises || []) {
-      console.log(`[Parser] AI exercise "${ex.name}": targetSets=${ex.targetSets?.length || 0}, sets=${ex.sets?.length || 0}`);
-    }
 
     // Track AI usage analytics
     analyticsService.trackAIUsage({
@@ -384,12 +367,6 @@ class WorkoutNoteParser {
 
     // Build exercises array in original order
     const exercises: WorkoutExerciseSession[] = parsed.exercises.map((ex, index) => {
-      // Debug: Log what the parser received
-      console.log(`[Parser] Exercise "${ex.name}": parsed targetSets=${ex.targetSets?.length || 0}, sets=${ex.sets?.length || 0}`);
-      if (ex.targetSets?.length) {
-        console.log(`[Parser] Exercise "${ex.name}" targetSets:`, ex.targetSets.map(s => `${s.weight}x${s.reps}`));
-      }
-
       const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, setIndex) => ({
         setNumber: setIndex + 1,
         weight: set.weight,
@@ -412,8 +389,6 @@ class WorkoutNoteParser {
 
       // Use mapped ID or generate from name as final fallback
       const finalId = exerciseIdMap.get(index) || exerciseNameToId(ex.name);
-
-      console.log(`[Parser] Exercise "${ex.name}" -> id="${finalId}", targetSets converted=${targetSets?.length || 0}`);
 
       return {
         id: finalId,
