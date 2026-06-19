@@ -12,7 +12,6 @@ import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import { Text, View } from '@/components/Themed';
-import { TutorialTarget } from '@/components/tutorial';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/services/analytics';
@@ -152,12 +151,10 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         {/* Personal Information Section */}
-        <TutorialTarget id="profile-personal-info">
-          <PersonalInformationSection
-            userProfile={userProfile}
-            onProfileUpdate={loadUserData}
-          />
-        </TutorialTarget>
+        <PersonalInformationSection
+          userProfile={userProfile}
+          onProfileUpdate={loadUserData}
+        />
 
         {/* Theme Evolution Section */}
         <ThemeEvolutionSection />

@@ -11,13 +11,11 @@ import SkeletonCard from "@/components/SkeletonCard";
 import Spacer from "@/components/Spacer";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { Text, View } from "@/components/Themed";
-import { TutorialTarget } from "@/components/tutorial";
 import UnlockNotificationModal, {
   NotificationType,
 } from "@/components/UnlockNotificationModal";
 import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useTutorial } from "@/contexts/TutorialContext";
 import { useUser } from "@/contexts/UserContext";
 import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
@@ -51,7 +49,6 @@ export default function HomeScreen() {
   // hardcoded 60px, which left a big gap above the Today card on most devices.
   const contentTopPadding = insets.top - 2;
   const { currentTheme, setThemeLevel } = useTheme();
-  const { tutorialState } = useTutorial();
   const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [pendingProgress, setPendingProgress] =
@@ -196,9 +193,7 @@ export default function HomeScreen() {
 
   // Check for unlock notifications (seasonal themes, etc.)
   const checkUnlockNotifications = useCallback(async () => {
-    // Only show to logged-in users who completed tutorial
     if (!userProfile) return;
-    if (!tutorialState.hasCompletedAppTutorial) return;
 
     // Check Winter theme (Dec 1 - Mar 20)
     if (isSeasonalThemeAvailable("winter_2026")) {
@@ -209,7 +204,7 @@ export default function HomeScreen() {
         return;
       }
     }
-  }, [userProfile, tutorialState.hasCompletedAppTutorial]);
+  }, [userProfile]);
 
   const handleDismissUnlock = useCallback(async () => {
     if (unlockNotification === "winter_theme") {
@@ -325,40 +320,36 @@ export default function HomeScreen() {
           <TodayCard />
           <WeeklyGoalCard />
 
-          <TutorialTarget id="home-overall-stats">
-            <OverallStatsCard stats={overallStats} />
-          </TutorialTarget>
+          <OverallStatsCard stats={overallStats} />
 
-          <TutorialTarget id="home-leaderboard-button">
-            <TouchableOpacity
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: currentTheme.colors.surface,
+                borderColor: currentTheme.colors.border,
+              },
+            ]}
+            onPress={() => setShowLeaderboard(true)}
+            activeOpacity={0.7}
+          >
+            <Text
               style={[
-                styles.actionButton,
+                styles.actionButtonText,
                 {
-                  backgroundColor: currentTheme.colors.surface,
-                  borderColor: currentTheme.colors.border,
+                  color: currentTheme.colors.text,
+                  fontFamily: currentTheme.fonts.medium,
                 },
               ]}
-              onPress={() => setShowLeaderboard(true)}
-              activeOpacity={0.7}
             >
-              <Text
-                style={[
-                  styles.actionButtonText,
-                  {
-                    color: currentTheme.colors.text,
-                    fontFamily: currentTheme.fonts.medium,
-                  },
-                ]}
-              >
-                View Leaderboards
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={currentTheme.colors.text + "60"}
-              />
-            </TouchableOpacity>
-          </TutorialTarget>
+              View Leaderboards
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={currentTheme.colors.text + "60"}
+            />
+          </TouchableOpacity>
 
           {userProgress.length > 0 && (
             <>
@@ -380,16 +371,14 @@ export default function HomeScreen() {
                 />
               </View>
 
-              <TutorialTarget id="home-lift-cards">
-                <View style={gap.gap20}>
-                  {filteredProgress.map((progress) => (
-                    <WorkoutStatsCard
-                      key={progress.workoutId}
-                      stats={progress}
-                    />
-                  ))}
-                </View>
-              </TutorialTarget>
+              <View style={gap.gap20}>
+                {filteredProgress.map((progress) => (
+                  <WorkoutStatsCard
+                    key={progress.workoutId}
+                    stats={progress}
+                  />
+                ))}
+              </View>
             </>
           )}
         </View>

@@ -8,7 +8,6 @@ import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import StrengthHistoryCard from '@/components/StrengthHistoryCard';
 import { Text, View } from '@/components/Themed';
-import { TutorialTarget } from '@/components/tutorial';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -438,9 +437,7 @@ export default function HistoryScreen() {
             )}
 
             {/* Weekly Overview */}
-            <TutorialTarget id="history-content">
-              <WeeklyOverview workoutHistory={workouts} />
-            </TutorialTarget>
+            <WeeklyOverview workoutHistory={workouts} />
 
             {/* Quick Stats - Inline */}
             {workouts.length > 0 && (

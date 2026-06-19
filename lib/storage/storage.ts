@@ -18,7 +18,6 @@ const STORAGE_KEYS = {
   SHARE_COUNT: 'share_count',
   CUSTOM_EXERCISES: 'custom_exercises',
   WORKOUT_TEMPLATES: 'workout_templates',
-  TUTORIAL_STATE: 'tutorial_state',
   HOME_VIEW_MODE: 'home_view_mode',
   PENDING_STRENGTH_PROGRESS: 'pending_strength_progress',
   SHOWN_NOTIFICATIONS: 'shown_notifications',
@@ -59,16 +58,6 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
 export interface RetentionMeta {
   /** Date keys (YYYY-MM-DD) we've scheduled a retention reminder for. */
   scheduledDateKeys: string[];
-}
-
-export interface TutorialState {
-  hasCompletedAppTutorial: boolean;
-  tutorialsCompleted: {
-    home: boolean;
-    workout: boolean;
-    history: boolean;
-    profile: boolean;
-  };
 }
 
 export { ExerciseMax, LiftDisplayFilters, ThemeLevel };
@@ -809,32 +798,6 @@ class StorageService {
     }
   }
 
-  // Tutorial State
-  async getTutorialState(): Promise<TutorialState | null> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.TUTORIAL_STATE);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.error('Error loading tutorial state:', error);
-      return null;
-    }
-  }
-
-  async saveTutorialState(state: TutorialState): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.TUTORIAL_STATE, JSON.stringify(state));
-    } catch (error) {
-      console.error('Error saving tutorial state:', error);
-    }
-  }
-
-  async clearTutorialState(): Promise<void> {
-    try {
-      await AsyncStorage.removeItem(STORAGE_KEYS.TUTORIAL_STATE);
-    } catch (error) {
-      console.error('Error clearing tutorial state:', error);
-    }
-  }
 
   // Home View Mode
   async saveHomeViewMode(mode: HomeViewMode): Promise<void> {
