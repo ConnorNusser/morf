@@ -558,14 +558,14 @@ export default function WorkoutScreen() {
                   style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
                   onPress={handleMicPress}
                 >
-                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
                   onPress={handleComposerSend}
                   disabled={!composerText.trim()}
                 >
-                  <Ionicons name="arrow-up" size={20} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
+                  <Ionicons name="arrow-up" size={22} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
                 </TouchableOpacity>
               </RNView>
             </RNView>
@@ -704,9 +704,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   circleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -32,12 +32,13 @@ export interface WorkoutNoteInputRef {
 const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
-// Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field lines up with the
-// 40pt composer buttons (38 + 1pt border top/bottom). A multiline TextInput grows
-// itself with content; minHeight/maxHeight just bound it (then it scrolls past the
-// max). The parent pill clips with overflow:hidden so glyphs stay in the rounded box.
-const AUTO_MIN_HEIGHT = 38;
-const AUTO_MAX_HEIGHT = 120;
+// Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field matches the 44pt
+// composer buttons (42 content + 1pt border top/bottom). A multiline TextInput
+// grows itself with content; minHeight/maxHeight just bound it (then it scrolls
+// past the max). The parent pill clips with overflow:hidden so glyphs stay in the
+// rounded box.
+const AUTO_MIN_HEIGHT = 42;
+const AUTO_MAX_HEIGHT = 124;
 
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
@@ -200,8 +201,8 @@ const styles = StyleSheet.create({
     flex: 0,
     minHeight: AUTO_MIN_HEIGHT,
     maxHeight: AUTO_MAX_HEIGHT,
-    paddingTop: 9,
-    paddingBottom: 9,
+    paddingTop: 11,
+    paddingBottom: 11,
   },
 });
 
