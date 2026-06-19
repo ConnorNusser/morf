@@ -10,6 +10,7 @@ import {
   applyReference,
   attachPrevious,
   buildDraft,
+  draftToParsedWorkout,
   toggleSetDone,
   totalVolume,
   WorkoutDraft,
@@ -127,6 +128,16 @@ describe('references + autofill', () => {
     const d = mergeParsed([], [ex('Bench', [[135, 8]], 'bench-press-barbell')]);
     const out = attachPrevious(d, () => prev);
     expect(out[0].previous).toEqual(prev);
+  });
+});
+
+describe('draftToParsedWorkout', () => {
+  it('carries each set\'s done state into completed', () => {
+    let d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' });
+    d = toggleSetDone(d, d[0].key, 0); // mark only the first set done
+    const parsed = draftToParsedWorkout(d);
+    expect(parsed.exercises[0].sets[0].completed).toBe(true);
+    expect(parsed.exercises[0].sets[1].completed).toBe(false);
   });
 });
 

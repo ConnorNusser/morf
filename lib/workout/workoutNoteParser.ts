@@ -13,6 +13,7 @@ export interface ParsedSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
+  completed?: boolean; // per-set check-off (draft); undefined = treat as done
   // For timed/cardio exercises
   duration?: number;  // Duration in seconds
   distance?: number;  // Distance in meters
@@ -394,7 +395,8 @@ class WorkoutNoteParser {
         weight: set.weight,
         reps: set.reps,
         unit: set.unit,
-        completed: true,
+        // Honor the per-set check-off when present (draft); text parses are all done.
+        completed: set.completed ?? true,
         duration: set.duration,
         distance: set.distance,
       }));
@@ -462,7 +464,7 @@ class WorkoutNoteParser {
         weight: set.weight,
         reps: set.reps,
         unit: set.unit,
-        completed: true,
+        completed: set.completed ?? true,
         duration: set.duration,
         distance: set.distance,
       }));

@@ -266,8 +266,14 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         // consumed by the focus effect below (which runs every time the screen
         // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
-        if (savedSession && savedSession.noteText) {
-          loadDraftFromText(savedSession.noteText);
+        if (savedSession && (savedSession.noteText || (savedSession.draft as WorkoutDraft | null)?.length || savedSession.manuallyStarted)) {
+          const savedDraft = savedSession.draft as WorkoutDraft | null;
+          if (savedDraft && savedDraft.length) {
+            setDraft(savedDraft); // preserves per-set done + target/previous refs
+          } else if (savedSession.noteText) {
+            loadDraftFromText(savedSession.noteText);
+          }
+          setManuallyStarted(savedSession.manuallyStarted);
           setWorkoutStartTime(savedSession.startTime);
           setElapsedTime(calculateElapsedTime(savedSession.startTime));
           if (savedSession.routineId) {
@@ -307,24 +313,27 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }, [loadDraftFromText])
   );
 
-  // Save session whenever noteText, workoutStartTime, or routineId changes
+  // Persist the in-progress session (incl. the structured draft, so per-set
+  // check-off survives closing/reopening the app).
   useEffect(() => {
     if (!isSessionLoaded) return; // Don't save until we've loaded
 
+    const active = draft.length > 0 || manuallyStarted;
     const saveSession = async () => {
-      if (noteText && workoutStartTime) {
+      if (active && workoutStartTime) {
         await storageService.saveNoteSession({
           noteText,
+          draft,
+          manuallyStarted,
           startTime: workoutStartTime,
           routineId: startedRoutineId,
         });
-      } else if (!noteText) {
-        // Clear session if note is empty
+      } else if (!active) {
         await storageService.clearNoteSession();
       }
     };
     saveSession();
-  }, [noteText, workoutStartTime, startedRoutineId, isSessionLoaded]);
+  }, [noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded]);
 
   // Start timer when user starts logging, reset when everything's cleared
   // (unless they explicitly Quick-started an empty session).
@@ -375,16 +384,16 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
         // Check if state was lost during background transition and recover from storage
         // This handles the edge case where component state gets reset but storage still has data
-        if (!noteText && isSessionLoaded) {
+        if (draft.length === 0 && !manuallyStarted && isSessionLoaded) {
           const savedSession = await storageService.getNoteSession();
-          if (savedSession?.noteText) {
-            loadDraftFromText(savedSession.noteText);
+          const savedDraft = savedSession?.draft as WorkoutDraft | null;
+          if (savedSession && (savedDraft?.length || savedSession.noteText || savedSession.manuallyStarted)) {
+            if (savedDraft && savedDraft.length) setDraft(savedDraft);
+            else if (savedSession.noteText) loadDraftFromText(savedSession.noteText);
+            setManuallyStarted(savedSession.manuallyStarted);
             setWorkoutStartTime(savedSession.startTime);
             setElapsedTime(calculateElapsedTime(savedSession.startTime));
-            // Also recover routine ID if it was lost
-            if (savedSession.routineId) {
-              setStartedRoutineId(savedSession.routineId);
-            }
+            if (savedSession.routineId) setStartedRoutineId(savedSession.routineId);
           }
         }
       }
@@ -392,7 +401,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [workoutStartTime, noteText, isSessionLoaded, calculateElapsedTime, loadDraftFromText]);
+  }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, loadDraftFromText]);
 
   // Format elapsed time
   const formatTime = useCallback((seconds: number): string => {

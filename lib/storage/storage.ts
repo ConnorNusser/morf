@@ -259,19 +259,22 @@ class StorageService {
   }
 
   // Note-based workout session (for the freeform notes workout screen)
-  async saveNoteSession(session: { noteText: string; startTime: Date; routineId?: string | null }): Promise<void> {
+  async saveNoteSession(session: { noteText: string; startTime: Date; routineId?: string | null; draft?: unknown; manuallyStarted?: boolean }): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION, JSON.stringify({
         noteText: session.noteText,
         startTime: session.startTime.toISOString(),
         routineId: session.routineId || null,
+        // The structured draft preserves per-set check-off (done) across restarts.
+        draft: session.draft ?? null,
+        manuallyStarted: session.manuallyStarted ?? false,
       }));
     } catch (error) {
       console.error('Error saving note session:', error);
     }
   }
 
-  async getNoteSession(): Promise<{ noteText: string; startTime: Date; routineId: string | null } | null> {
+  async getNoteSession(): Promise<{ noteText: string; startTime: Date; routineId: string | null; draft: unknown; manuallyStarted: boolean } | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION);
       if (!data) return null;
@@ -281,6 +284,8 @@ class StorageService {
         noteText: session.noteText,
         startTime: new Date(session.startTime),
         routineId: session.routineId || null,
+        draft: session.draft ?? null,
+        manuallyStarted: !!session.manuallyStarted,
       };
     } catch (error) {
       console.error('Error loading note session:', error);

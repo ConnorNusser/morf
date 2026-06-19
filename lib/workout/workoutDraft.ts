@@ -123,7 +123,7 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       name: ex.name,
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
-      sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit })),
+      sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: !!s.done })),
     }));
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
 }
