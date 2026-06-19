@@ -17,7 +17,11 @@
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Morf needs access to your photo library to let you upload a profile picture.",
-        "NSLocationWhenInUseUsageDescription": "Morf uses your location to show your country on leaderboards and connect you with nearby lifters."
+        "NSLocationWhenInUseUsageDescription": "Morf uses your location to show your country on leaderboards and connect you with nearby lifters.",
+        "NSSupportsLiveActivities": true
+      },
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.vanquil.morfai"]
       }
     },
     "android": {
@@ -35,6 +39,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "@bacons/apple-targets",
       "expo-router",
       [
         "expo-splash-screen",
