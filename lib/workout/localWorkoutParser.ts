@@ -92,20 +92,25 @@ function parseSegment(
   const s = seg.trim();
   if (!s) return [];
 
-  // weight (unit?) x reps (x sets?)
-  let m = s.match(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*[x×]\s*(\d+)(?:\s*[x×]\s*(\d+))?/i);
-  if (m) {
-    const weight = parseFloat(m[1]);
-    const unit = unitFrom(m[2], defaultUnit);
-    const reps = parseInt(m[3], 10);
-    const count = m[4] ? parseInt(m[4], 10) : 1;
-    carry.weight = weight;
-    carry.unit = unit;
-    return Array.from({ length: Math.min(count, 20) }, () => ({ weight, reps, unit }));
+  // weight (unit?) x reps (x sets?) — global, so space-separated sets in one
+  // segment ("135x8 135x8") and "135x8x3" both expand to multiple sets.
+  const xMatches = [...s.matchAll(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*[x×]\s*(\d+)(?:\s*[x×]\s*(\d+))?/gi)];
+  if (xMatches.length > 0) {
+    const out: ParsedSet[] = [];
+    for (const xm of xMatches) {
+      const weight = parseFloat(xm[1]);
+      const unit = unitFrom(xm[2], defaultUnit);
+      const reps = parseInt(xm[3], 10);
+      const count = xm[4] ? parseInt(xm[4], 10) : 1;
+      carry.weight = weight;
+      carry.unit = unit;
+      for (let k = 0; k < Math.min(count, 20); k++) out.push({ weight, reps, unit });
+    }
+    return out;
   }
 
   // weight (unit?) for reps
-  m = s.match(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*for\s*(\d+)/i);
+  let m = s.match(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*for\s*(\d+)/i);
   if (m) {
     const weight = parseFloat(m[1]);
     const unit = unitFrom(m[2], defaultUnit);

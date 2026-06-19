@@ -190,9 +190,14 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       setDraft(d => attachPrevious(mergeParsed(d, exercises, { done: true }), previousFor));
 
     const local = workoutNoteParser.parseLocal(trimmed);
+    // "Known" = matched the built-in catalog OR one of the user's custom
+    // exercises (by name). Anything unknown is what the AI should synthesize.
+    const norm = (s: string) => s.toLowerCase().trim();
+    const isKnown = (ex: ParsedWorkout['exercises'][number]) =>
+      !!ex.matchedExerciseId || customExercises.some(c => norm(c.name) === norm(ex.name));
     const localReasonable =
       local.exercises.length > 0 &&
-      local.exercises.every(ex => !!ex.matchedExerciseId && ex.sets.length > 0 && ex.sets.every(s => s.reps > 0));
+      local.exercises.every(ex => isKnown(ex) && ex.sets.length > 0 && ex.sets.every(s => s.reps > 0));
     if (localReasonable) {
       mergeInto(local.exercises); // typed/spoken sets are work you did → checked off
       return true;
@@ -226,7 +231,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
     showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
     return false;
-  }, [showAlert, history, weightUnit, previousFor]);
+  }, [showAlert, history, weightUnit, previousFor, customExercises]);
 
   // Commit the composer box: merge what's typed, then clear it on success.
   const commitComposer = useCallback(async () => {

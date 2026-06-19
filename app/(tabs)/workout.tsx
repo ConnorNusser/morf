@@ -129,8 +129,16 @@ export default function WorkoutScreen() {
   const voice = useVoiceDictation(handleVoiceTranscript);
   const handleMicPress = useCallback(() => {
     playHapticFeedback('medium', false);
+    if (!voice.available) {
+      showAlert({ title: 'Voice not available', message: 'Voice logging needs a dev-client rebuild (npx expo prebuild) and microphone permission.', type: 'info' });
+      return;
+    }
     voice.toggle();
-  }, [voice]);
+  }, [voice, showAlert]);
+  // Surface voice errors (permissions, recognizer failures) so they're not silent.
+  useEffect(() => {
+    if (voice.error) showAlert({ title: 'Voice', message: voice.error, type: 'info' });
+  }, [voice.error, showAlert]);
 
   // Rest timer hook
   const {
@@ -405,14 +413,12 @@ export default function WorkoutScreen() {
                     />
                   </TutorialTarget>
                 </RNView>
-                {voice.available && (
-                  <TouchableOpacity
-                    style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
-                    onPress={handleMicPress}
-                  >
-                    <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                  onPress={handleMicPress}
+                >
+                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
                   onPress={handleComposerSend}
@@ -425,7 +431,7 @@ export default function WorkoutScreen() {
           </>
         ) : (
           /* Collapsed — a compose bar that opens the composer, plus a mic */
-          <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE }}>
+          <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE + 14 }}>
             <TouchableOpacity
               style={[styles.collapsedInput, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
               onPress={openComposer}
@@ -436,14 +442,12 @@ export default function WorkoutScreen() {
                 Log a set — type or speak
               </Text>
             </TouchableOpacity>
-            {voice.available && (
-              <TouchableOpacity
-                style={[styles.fabCircle, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-                onPress={handleMicPress}
-              >
-                <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-              </TouchableOpacity>
-            )}
+            <TouchableOpacity
+              style={[styles.fabCircle, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              onPress={handleMicPress}
+            >
+              <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+            </TouchableOpacity>
           </RNView>
         )}
       </KeyboardAvoidingView>

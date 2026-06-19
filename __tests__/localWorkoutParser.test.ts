@@ -12,6 +12,14 @@ describe('parseLine — set formats', () => {
     ]);
   });
 
+  it('counts space-separated sets in one segment as multiple', () => {
+    expect(sets('Bench 135x8 135x8')).toEqual([
+      { weight: 135, reps: 8, unit: 'lbs' },
+      { weight: 135, reps: 8, unit: 'lbs' },
+    ]);
+    expect(sets('Bench 135x8 155x6')).toHaveLength(2);
+  });
+
   it('weight x reps x sets expands the set count', () => {
     expect(sets('Squat 225x5x3')).toEqual([
       { weight: 225, reps: 5, unit: 'lbs' },
