@@ -33,11 +33,9 @@ const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
 // Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field lines up with the
-// 40pt composer buttons (38 + 1pt border top/bottom); it grows with content up to
-// AUTO_MAX_HEIGHT, then scrolls. Driving the height off onContentSizeChange — not
-// just min/maxHeight styles — is what keeps the text inside the rounded box: iOS
-// doesn't reliably clamp a multiline TextInput by style alone, so the glyphs spill
-// past the border. Measuring the content and setting an explicit height fixes that.
+// 40pt composer buttons (38 + 1pt border top/bottom). A multiline TextInput grows
+// itself with content; minHeight/maxHeight just bound it (then it scrolls past the
+// max). The parent pill clips with overflow:hidden so glyphs stay in the rounded box.
 const AUTO_MIN_HEIGHT = 38;
 const AUTO_MAX_HEIGHT = 120;
 
@@ -51,18 +49,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const pressStartPosition = useRef<{ x: number; y: number } | null>(null);
     const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Measured height for auto-grow mode (clamped). See AUTO_MIN/MAX_HEIGHT.
-    const [autoHeight, setAutoHeight] = useState(AUTO_MIN_HEIGHT);
-    const handleContentSizeChange = useCallback((e: { nativeEvent: { contentSize: { height: number } } }) => {
-      const h = e.nativeEvent.contentSize.height;
-      setAutoHeight(Math.min(AUTO_MAX_HEIGHT, Math.max(AUTO_MIN_HEIGHT, h)));
-    }, []);
-    // Collapse straight back to one line when the text is cleared (e.g. after send),
-    // since an empty field can skip firing onContentSizeChange.
-    useEffect(() => {
-      if (autoGrow && value === '') setAutoHeight(AUTO_MIN_HEIGHT);
-    }, [autoGrow, value]);
 
     // Listen for actual keyboard show/hide events - this is the source of truth
     useEffect(() => {
@@ -150,14 +136,12 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
             styles.input,
             compact && styles.inputCompact,
             autoGrow && styles.inputAuto,
-            autoGrow && { height: autoHeight },
             {
               color: currentTheme.colors.text,
             }
           ]}
           value={value}
           onChangeText={onChangeText}
-          onContentSizeChange={autoGrow ? handleContentSizeChange : props.onContentSizeChange}
           placeholder={placeholder}
           placeholderTextColor={currentTheme.colors.text + '40'}
           multiline
@@ -210,11 +194,12 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   inputAuto: {
-    // Height is driven explicitly by onContentSizeChange (see autoHeight).
-    // minHeight: 0 is required to cancel the base `input` minHeight (200) — that
-    // would otherwise win over the measured height and pin the box ~200pt tall.
+    // Let the multiline field grow itself between these bounds (then scroll).
+    // These override the base `input` minHeight (200) which would otherwise pin
+    // the box ~200pt tall.
     flex: 0,
-    minHeight: 0,
+    minHeight: AUTO_MIN_HEIGHT,
+    maxHeight: AUTO_MAX_HEIGHT,
     paddingTop: 9,
     paddingBottom: 9,
   },
