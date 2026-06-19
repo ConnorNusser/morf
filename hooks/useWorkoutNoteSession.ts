@@ -86,6 +86,9 @@ export interface UseWorkoutNoteSessionReturn {
   // Repeat-last-workout prefill
   lastWorkoutTitle: string | null; // null when there's nothing to repeat
   prefillLastWorkout: () => void;
+  recentWorkouts: GeneratedWorkout[]; // last 5, newest first (empty-state list)
+  prefillWorkout: (w: GeneratedWorkout) => void;
+  customExercises: CustomExercise[];
 }
 
 export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
@@ -662,6 +665,21 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (!workoutStartTime) setWorkoutStartTime(new Date());
   }, [lastWorkoutNote, workoutStartTime, loadDraftFromText]);
 
+  // Load any past workout into the draft to repeat/edit it.
+  const prefillWorkout = useCallback((w: GeneratedWorkout) => {
+    const text = workoutToNoteText(w, customExercises);
+    if (!text) return;
+    loadDraftFromText(text);
+    setStartedRoutineId(null);
+    if (!workoutStartTime) setWorkoutStartTime(new Date());
+  }, [customExercises, workoutStartTime, loadDraftFromText]);
+
+  // The five most recent sessions, newest first (for the empty-state list).
+  const recentWorkouts = useMemo(
+    () => [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
+    [history],
+  );
+
   // A workout is underway once the draft has anything in it.
   const hasWorkoutStarted = draft.length > 0;
 
@@ -712,5 +730,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Repeat-last-workout prefill
     lastWorkoutTitle,
     prefillLastWorkout,
+    recentWorkouts,
+    prefillWorkout,
+    customExercises,
   };
 }

@@ -6,6 +6,7 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
+import RecentWorkouts from '@/components/workout/RecentWorkouts';
 import PredictiveCard from '@/components/workout/PredictiveCard';
 import NumberPad from '@/components/workout/NumberPad';
 import { useVoiceDictation } from '@/hooks/useVoiceDictation';
@@ -70,8 +71,9 @@ export default function WorkoutScreen() {
     discardWorkout,
     hasWorkoutStarted,
     weightUnit,
-    lastWorkoutTitle,
-    prefillLastWorkout,
+    recentWorkouts,
+    prefillWorkout,
+    customExercises,
   } = useWorkoutNoteSession();
   const { showAlert } = useAlert();
 
@@ -109,11 +111,27 @@ export default function WorkoutScreen() {
     });
   }, [showAlert, discardWorkout]);
 
-  // Repeat the last workout into the editable draft.
-  const handleRepeatLast = useCallback(() => {
-    playHapticFeedback('medium', false);
-    prefillLastWorkout();
-  }, [prefillLastWorkout]);
+  // Rest timer hook
+  const {
+    isResting,
+    formattedTime: formattedRestTime,
+    startTimer: startRestTimer,
+    skipTimer: skipRestTimer,
+    addTime: addRestTime,
+  } = useRestTimer();
+
+  // Pick a recent workout to repeat/edit.
+  const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {
+    prefillWorkout(w);
+  }, [prefillWorkout]);
+
+  // Checking a set off (becoming done) auto-starts the rest countdown.
+  const handleToggleDone = useCallback((key: string, index: number) => {
+    const set = draft.find(e => e.key === key)?.sets[index];
+    const becomingDone = set ? !set.done : false;
+    toggleSetDone(key, index);
+    if (becomingDone) startRestTimer(120);
+  }, [draft, toggleSetDone, startRestTimer]);
 
   // Commit the composer text into the structured workout.
   const handleComposerSend = useCallback(() => {
@@ -139,15 +157,6 @@ export default function WorkoutScreen() {
   useEffect(() => {
     if (voice.error) showAlert({ title: 'Voice', message: voice.error, type: 'info' });
   }, [voice.error, showAlert]);
-
-  // Rest timer hook
-  const {
-    isResting,
-    formattedTime: formattedRestTime,
-    startTimer: startRestTimer,
-    skipTimer: skipRestTimer,
-    addTime: addRestTime,
-  } = useRestTimer();
 
   // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
@@ -358,33 +367,25 @@ export default function WorkoutScreen() {
             activeField={editing}
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
-            onToggleDone={toggleSetDone}
+            onToggleDone={handleToggleDone}
             onRemoveExercise={removeExerciseFrom}
             onAcceptAutofill={acceptAutofill}
             onDismissAutofill={dismissAutofill}
           />
           {!hasWorkoutStarted && (
-            <RNView style={styles.empty}>
-              <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Log your workout
-              </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
-                Type or speak a set below — it appears here, ready to edit.
-              </Text>
-              {lastWorkoutTitle && (
-                <TouchableOpacity
-                  style={[styles.repeatButton, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary + '40' }]}
-                  onPress={handleRepeatLast}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="repeat" size={16} color={currentTheme.colors.primary} />
-                  <Text style={[styles.repeatButtonText, { color: currentTheme.colors.primary }]}>
-                    Repeat last workout
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </RNView>
+            recentWorkouts.length > 0 ? (
+              <RecentWorkouts workouts={recentWorkouts} customExercises={customExercises} onPick={handlePickRecent} />
+            ) : (
+              <RNView style={styles.empty}>
+                <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Log your workout
+                </Text>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+                  Type or speak a set below — it appears here, ready to edit.
+                </Text>
+              </RNView>
+            )
           )}
         </View>
 
