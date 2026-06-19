@@ -454,54 +454,6 @@ class WorkoutNoteParser {
     };
   }
 
-  /**
-   * Sync version for backwards compatibility
-   */
-  toGeneratedWorkout(parsed: ParsedWorkout, duration: number): GeneratedWorkout {
-    const exercises: WorkoutExerciseSession[] = parsed.exercises.map(ex => {
-      const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, index) => ({
-        setNumber: index + 1,
-        weight: set.weight,
-        reps: set.reps,
-        unit: set.unit,
-        completed: set.completed ?? true,
-        duration: set.duration,
-        distance: set.distance,
-      }));
-
-      // Use matched ID or generate from name
-      const finalId = ex.matchedExerciseId || exerciseNameToId(ex.name);
-
-      return {
-        id: finalId,
-        sets: ex.sets.length,
-        reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
-        completedSets,
-        isCompleted: true,
-      };
-    });
-
-    const totalVolume = parsed.exercises.reduce((total, ex) => {
-      return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
-    }, 0);
-
-    // Extract title from raw text if it starts with # (e.g., "# Push Day")
-    let title = `Workout - ${new Date().toLocaleDateString()}`;
-    const firstLine = parsed.rawText?.trim().split('\n')[0];
-    if (firstLine?.startsWith('#')) {
-      title = firstLine.replace(/^#\s*/, '').trim() || title;
-    }
-
-    return {
-      id: `notes_workout_${Date.now()}`,
-      title,
-      description: `Logged via notes. Total volume: ${totalVolume.toLocaleString()} lbs`,
-      exercises,
-      estimatedDuration: duration,
-      difficulty: 'Completed',
-      createdAt: new Date(),
-    };
-  }
 }
 
 export const workoutNoteParser = new WorkoutNoteParser();
