@@ -95,17 +95,19 @@ export default function WorkoutScreen() {
     setComposerOpen(true);
     setTimeout(() => noteInputRef.current?.focus(), 60);
   }, []);
-  const closeComposer = useCallback(() => {
-    noteInputRef.current?.blur();
-    Keyboard.dismiss();
-    setComposerOpen(false);
-  }, []);
-
-  // Collapse the tab-bar clearance under the composer while the keyboard is up.
+  // Collapse the tab-bar clearance under the composer while the keyboard is up,
+  // and treat the keyboard going away (scroll-to-dismiss, tap-outside, swipe-down)
+  // as the signal to collapse the composer. The typed text lives in `composerText`
+  // and is left untouched, so reopening picks up exactly where you left off.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener(hideEvt, () => {
+      setKeyboardVisible(false);
+      setComposerOpen(false);
+    });
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -343,7 +345,7 @@ export default function WorkoutScreen() {
         keyboardVerticalOffset={0}
       >
         {/* Header — overflow (utilities) · timer/title · Finish */}
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
+        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted && (
                 <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
@@ -526,23 +528,19 @@ export default function WorkoutScreen() {
             {/* Predictive card — previews the paused composer text, tap to commit */}
             <PredictiveCard text={composerText} weightUnit={weightUnit} onCommit={handleComposerSend} />
 
-            {/* Composer (open) — auto-growing input + mic + send. Done lives in the
-                keyboard accessory on iOS; Android gets an inline Done. */}
+            {/* Composer (open) — auto-growing input + mic + send. No Done button:
+                scrolling the workout, tapping outside, or swiping the keyboard down
+                collapses it (the typed text stays cached for next time). */}
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
-              <RNView style={[styles.composerDoneRow, { borderBottomColor: currentTheme.colors.border }]}>
-                <TouchableOpacity onPress={closeComposer} style={[styles.doneChip, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                  <Text style={[styles.doneChipText, { color: currentTheme.colors.text }]}>Done</Text>
-                </TouchableOpacity>
-              </RNView>
               <RNView style={styles.composerRow}>
-                <RNView style={styles.composerInput}>
+                <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
                   <RNView style={layout.flex1}>
                     <WorkoutNoteInput
                       ref={noteInputRef}
                       value={composerText}
                       onChangeText={setComposerText}
                       autoGrow
-                      placeholder="Type or speak a set — e.g. Bench 135x8, 155x6"
+                      placeholder="Log a set — e.g. Bench 135×8"
                     />
                   </RNView>
                 </RNView>
@@ -647,25 +645,7 @@ export default function WorkoutScreen() {
 const styles = StyleSheet.create({
   composerBar: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 4,
-  },
-  composerDoneRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 12,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  doneChip: {
-    height: 34,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  doneChipText: {
-    fontSize: 15,
+    paddingTop: 8,
   },
   composerRow: {
     flexDirection: 'row',
@@ -707,6 +687,10 @@ const styles = StyleSheet.create({
   composerInput: {
     flex: 1,
     alignSelf: 'stretch',
+    minHeight: 40,
+    justifyContent: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
   },
   circleBtn: {
     width: 40,
