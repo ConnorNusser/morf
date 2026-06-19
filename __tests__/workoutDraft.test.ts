@@ -101,10 +101,15 @@ describe('references + autofill', () => {
   const prev = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
   const target = [{ weight: 185, reps: 5, unit: 'lbs' as const }];
 
-  it('addNamedExercise adds a set-less exercise carrying its references', () => {
+  it('addNamedExercise autofills sets from the reference and keeps it as a ghost', () => {
     const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, previous: prev });
-    expect(d[0].sets).toHaveLength(0);
+    expect(d[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
     expect(d[0].previous).toEqual(prev);
+  });
+
+  it('addNamedExercise with no reference starts with no sets', () => {
+    const d = addNamedExercise([], { name: 'Cable Fly', exerciseId: 'cable-fly', recognized: true });
+    expect(d[0].sets).toHaveLength(0);
   });
 
   it('applyReference fills sets from previous or target and keeps the reference', () => {
@@ -117,10 +122,11 @@ describe('references + autofill', () => {
     expect(fromPrev[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
   });
 
-  it('buildDraft(asTarget) leaves sets empty and stores the prescription', () => {
+  it('buildDraft(asTarget) autofills working sets from the prescription and keeps it as target', () => {
     const parsed = { exercises: [ex('Bench', [[185, 5], [185, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' };
     const d = buildDraft(parsed, { asTarget: true });
-    expect(d[0].sets).toHaveLength(0);
+    expect(d[0].sets).toHaveLength(2);
+    expect(d[0].sets.every(s => s.done === false)).toBe(true);
     expect(d[0].target).toHaveLength(2);
   });
 
@@ -138,6 +144,25 @@ describe('draftToParsedWorkout', () => {
     const parsed = draftToParsedWorkout(d);
     expect(parsed.exercises[0].sets[0].completed).toBe(true);
     expect(parsed.exercises[0].sets[1].completed).toBe(false);
+  });
+
+  it('carries the routine prescription into targetSets so progression can grade it', () => {
+    // Start a routine (target 3×190×8), autofill, then log lighter actuals.
+    const parsed = { exercises: [ex('Bench', [[190, 8], [190, 8], [190, 8]], 'bench-press-barbell')], confidence: 1, rawText: '' };
+    let d = buildDraft(parsed, { asTarget: true });
+    d = applyReference(d, d[0].key, 'target');
+    d = updateSet(d, d[0].key, 1, { weight: 165, reps: 5 });
+    const out = draftToParsedWorkout(d);
+    expect(out.exercises[0].targetSets).toEqual([
+      { weight: 190, reps: 8, unit: 'lbs' },
+      { weight: 190, reps: 8, unit: 'lbs' },
+      { weight: 190, reps: 8, unit: 'lbs' },
+    ]);
+  });
+
+  it('omits targetSets for a freestyle workout (no prescription)', () => {
+    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8]])], confidence: 1, rawText: '' });
+    expect(draftToParsedWorkout(d).exercises[0].targetSets).toBeUndefined();
   });
 });
 

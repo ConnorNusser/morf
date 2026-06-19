@@ -36,6 +36,15 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
+// Reject if a promise hasn't settled in `ms` — used to cap AI parse latency so a
+// slow/hanging call falls back to the local parse instead of stranding the user.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 export interface UseWorkoutNoteSessionReturn {
   // Composer (transient input) + structured draft (the editable source of truth)
   composerText: string;
@@ -210,7 +219,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return true;
     }
 
-    // No sets, but it names a known exercise — add it and offer to autofill the
+    // No sets, but it names a known exercise — add it; its sets autofill from the
     // last time they trained it (Fitbod-style smart prefill).
     const namedId = matchExerciseByName(trimmed);
     if (namedId && local.exercises.length === 0) {
@@ -220,15 +229,39 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return true;
     }
 
-    // Local couldn't reasonably parse it → let the AI parser try.
-    try {
-      const ai = await workoutNoteParser.parseWorkoutNote(trimmed);
-      if (ai.exercises.length > 0) {
-        mergeInto(ai.exercises);
-        return true;
+    // A name with no sets that we don't recognize offline — ask the AI what
+    // exercise it is and add it (sets autofill from last time). No digits means
+    // there are no sets to parse, so we only need the recognized name.
+    if (local.exercises.length === 0 && !/\d/.test(trimmed)) {
+      try {
+        const first = (await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000)).exercises[0];
+        if (first) {
+          const id = first.matchedExerciseId;
+          const name = id ? getWorkoutById(id)?.name ?? first.name : first.name;
+          const previous = id ? getLastSetsFor(id, history, weightUnit) ?? undefined : undefined;
+          setDraft(d => addNamedExercise(d, { name, exerciseId: id, recognized: !!id && !first.isCustom, previous }));
+          return true;
+        }
+      } catch {
+        // fall through
       }
-    } catch {
-      // fall through
+    }
+
+    // Local couldn't reasonably parse it → let the AI parser try, but only when
+    // the text actually carries set data (digits). On a bare fragment the AI
+    // guesses an exercise with a 0×0 set, which would add an empty card. Cap the
+    // wait so a slow/hanging call can never strand the add — we fall back to local.
+    if (/\d/.test(trimmed)) {
+      try {
+        const ai = await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000);
+        const real = ai.exercises.filter(ex => ex.sets.some(s => s.reps > 0));
+        if (real.length > 0) {
+          mergeInto(real);
+          return true;
+        }
+      } catch {
+        // fall through
+      }
     }
 
     // AI unavailable/failed — fall back to whatever local managed, if anything.

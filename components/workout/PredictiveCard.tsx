@@ -6,6 +6,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getWorkoutById } from '@/lib/workout/workouts';
+import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { ParsedSet, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,11 +23,14 @@ interface PredictiveCardProps {
 
 interface PreviewLine {
   name: string;
-  summary: string;
+  summary?: string; // set summary; absent = a recognized exercise to add (no sets yet)
 }
 
 function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string; sets: ParsedSet[] }[] }, unit: WeightUnit): PreviewLine[] {
   return parsed.exercises
+    // A real set has reps. The AI sometimes guesses an exercise name from a
+    // fragment and returns a 0×0 set — drop those so they don't render as blanks.
+    .map(ex => ({ ...ex, sets: ex.sets.filter(s => s.reps > 0) }))
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
       name: ex.matchedExerciseId ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name : ex.name,
@@ -58,21 +62,46 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
     setLoading(true); // typing → show the skeleton until we settle
     const id = ++reqId.current;
     const handle = setTimeout(async () => {
+      const settle = (next: PreviewLine[]) => { if (id === reqId.current) { setLines(next); setLoading(false); } };
+      const refine = (next: PreviewLine[]) => { if (id === reqId.current && next.length > 0) setLines(next); };
+
       const local = workoutNoteParser.parseLocal(text, weightUnit);
-      if (localIsReasonable(local)) {
-        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
+      const localLines = toLines(local, weightUnit);
+      const looksLikeSet = /\d/.test(text);
+      const trimmed = text.trim();
+
+      // 1) Local read sets — show them now, and refine names via AI in the
+      //    background (never blanking what we already showed).
+      if (localLines.length > 0) {
+        settle(localLines);
+        if (!localIsReasonable(local)) {
+          try { refine(toLines(await workoutNoteParser.parseWorkoutNote(text, weightUnit), weightUnit)); } catch { /* keep local */ }
+        }
         return;
       }
-      // Local couldn't recognize it (e.g. "DL") — let the AI interpret it.
-      try {
-        const ai = await workoutNoteParser.parseWorkoutNote(text, weightUnit);
-        if (id === reqId.current) {
-          setLines(toLines(ai.exercises.length > 0 ? ai : local, weightUnit));
-          setLoading(false);
-        }
-      } catch {
-        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
+
+      // 2) Looks like a set we couldn't read (e.g. "DL 225x5", odd phrasing) —
+      //    let the AI interpret it once.
+      if (looksLikeSet) {
+        try { settle(toLines(await workoutNoteParser.parseWorkoutNote(text, weightUnit), weightUnit)); }
+        catch { settle([]); }
+        return;
       }
+
+      // 3) Name only, no sets yet — recognize the exercise so it can be added
+      //    (its sets autofill from last time). Local abbreviations resolve free;
+      //    fall back to AI for names the matcher doesn't know.
+      const localId = matchExerciseByName(trimmed);
+      if (localId) { settle([{ name: getWorkoutById(localId)?.name || trimmed }]); return; }
+      if (/[a-z]/i.test(trimmed) && trimmed.length >= 3) {
+        try {
+          const first = (await workoutNoteParser.parseWorkoutNote(text, weightUnit)).exercises[0];
+          const nm = first ? (first.matchedExerciseId ? getWorkoutById(first.matchedExerciseId)?.name || first.name : first.name) : null;
+          settle(nm ? [{ name: nm }] : []);
+        } catch { settle([]); }
+        return;
+      }
+      settle([]);
     }, PAUSE_MS);
     return () => clearTimeout(handle);
   }, [text, weightUnit]);
@@ -117,7 +146,7 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
         <RNView style={styles.body}>
           {lines.map((line, i) => (
             <Text key={i} style={[styles.line, { color: colors.text }]} numberOfLines={1}>
-              {line.name}  <Text style={{ color: colors.text + '99' }}>{line.summary}</Text>
+              {line.name}  <Text style={{ color: colors.text + (line.summary ? '99' : '66') }}>{line.summary || 'add exercise'}</Text>
             </Text>
           ))}
         </RNView>

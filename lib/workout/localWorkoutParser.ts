@@ -59,10 +59,29 @@ function prefer(matches: IndexedExercise[]): IndexedExercise {
   );
 }
 
+// Common gym shorthand → a searchable canonical name, so "bp"/"ohp"/"rdl"
+// resolve instantly without an AI round-trip. Only whole-input matches apply.
+const ABBREVIATIONS: Record<string, string> = {
+  bp: 'bench press',
+  ohp: 'overhead press',
+  dl: 'deadlift',
+  rdl: 'romanian deadlift',
+  sldl: 'romanian deadlift',
+  sq: 'squat',
+  fsq: 'front squat',
+  ht: 'hip thrust',
+  bor: 'bent over row',
+  cgbp: 'close grip bench press',
+  lat: 'lat pulldown',
+  pulldown: 'lat pulldown',
+  bss: 'bulgarian split squat',
+};
+
 /** Resolve a typed exercise name to a known exercise id, or null if unknown. */
 export function matchExerciseByName(name: string): string | null {
-  const t = normalize(name);
+  let t = normalize(name);
   if (!t) return null;
+  if (ABBREVIATIONS[t]) t = normalize(ABBREVIATIONS[t]); // expand whole-input shorthand
   const index = getIndex();
 
   let matches = index.filter(e => e.base === t);

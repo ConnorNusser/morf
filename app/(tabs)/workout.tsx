@@ -182,6 +182,18 @@ export default function WorkoutScreen() {
     setEditing({ key, index, field });
   }, []);
 
+  // Tapping "Done" on the number pad finalizes the set: check it off (starting
+  // rest) and close the pad. The pad has already flushed the typed value.
+  const handleNumberPadDone = useCallback(() => {
+    if (!editing) return;
+    const set = draft.find(e => e.key === editing.key)?.sets[editing.index];
+    if (set && !set.done) {
+      editSet(editing.key, editing.index, { done: true });
+      startRestTimer(120);
+    }
+    setEditing(null);
+  }, [editing, draft, editSet, startRestTimer]);
+
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
     loadDraftFromText(planText, { asTarget: true });
@@ -536,6 +548,7 @@ export default function WorkoutScreen() {
             hasNext={isWeight}
             onChange={n => editSet(editing.key, editing.index, { [editing.field]: n })}
             onNext={() => setEditing(e => (e ? { ...e, field: 'reps' } : e))}
+            onDone={handleNumberPadDone}
             onClose={() => setEditing(null)}
           />
         );

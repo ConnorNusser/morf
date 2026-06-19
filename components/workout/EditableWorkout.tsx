@@ -33,10 +33,6 @@ function refSummary(set: DraftSet, unit: WeightUnit): string {
   return set.weight > 0 ? `${set.weight}${unit}×${set.reps}` : `×${set.reps}`;
 }
 
-function setSummary(sets: DraftSet[], unit: WeightUnit): string {
-  return sets.map(s => (s.weight > 0 ? `${s.weight}${unit}×${s.reps}` : `×${s.reps}`)).join(', ');
-}
-
 // A flat, underlined value that opens the custom number pad on tap (no OS
 // keyboard). The unit/reps label lives in the column header, not per cell.
 function NumberField({ value, active, onPress, theme }: {
@@ -100,23 +96,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
         <RNView style={styles.removeCol} />
       </RNView>
 
-      {exercise.sets.length === 0 && activeRef ? (
-        /* Autofill from the selected reference (toggle in the column header) */
-        <RNView style={styles.autofill}>
-          <Text style={[styles.autofillSets, { color: text + 'AA' }]} numberOfLines={1}>
-            {setSummary(activeRef, weightUnit)}
-          </Text>
-          <TouchableOpacity
-            style={[styles.autofillBtn, { backgroundColor: currentTheme.colors.primary }]}
-            onPress={() => { playHapticFeedback('medium', false); onAcceptAutofill(exercise.key, activeMode); }}
-          >
-            <Text style={styles.autofillBtnText}>Autofill</Text>
-          </TouchableOpacity>
-          <TouchableOpacity hitSlop={8} onPress={() => { playHapticFeedback('light', false); onDismissAutofill(exercise.key); }}>
-            <Ionicons name="close" size={18} color={text + '40'} />
-          </TouchableOpacity>
-        </RNView>
-      ) : (
+      {(
         <>
           {exercise.sets.map((set, i) => {
             const ref = activeRef?.[i];
@@ -239,9 +219,4 @@ const styles = StyleSheet.create({
 
   addSet: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 10 },
   addSetText: { fontSize: 13 },
-
-  autofill: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  autofillSets: { flex: 1, fontSize: 14 },
-  autofillBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16 },
-  autofillBtnText: { color: '#fff', fontSize: 13 },
 });
