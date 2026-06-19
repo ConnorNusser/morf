@@ -545,16 +545,14 @@ export default function WorkoutScreen() {
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                  <RNView style={layout.flex1}>
-                    <WorkoutNoteInput
-                      ref={noteInputRef}
-                      value={composerText}
-                      onChangeText={setComposerText}
-                      onBlur={handleComposerBlur}
-                      autoGrow
-                      placeholder="Log a set — e.g. Bench 135×8"
-                    />
-                  </RNView>
+                  <WorkoutNoteInput
+                    ref={noteInputRef}
+                    value={composerText}
+                    onChangeText={setComposerText}
+                    onBlur={handleComposerBlur}
+                    autoGrow
+                    placeholder="Log a set — Bench 135×8"
+                  />
                 </RNView>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
@@ -698,11 +696,12 @@ const styles = StyleSheet.create({
   },
   composerInput: {
     flex: 1,
-    alignSelf: 'stretch',
-    minHeight: 40,
-    justifyContent: 'center',
+    // Hug the input's measured height (WorkoutNoteInput drives it). overflow
+    // hidden clips the text to the rounded border so glyphs can't spill out
+    // past the corners as it grows or scrolls at max height.
     borderRadius: 20,
     borderWidth: 1,
+    overflow: 'hidden',
   },
   circleBtn: {
     width: 40,

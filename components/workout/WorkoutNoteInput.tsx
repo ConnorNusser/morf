@@ -32,6 +32,15 @@ export interface WorkoutNoteInputRef {
 const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
+// Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field lines up with the
+// 40pt composer buttons (38 + 1pt border top/bottom); it grows with content up to
+// AUTO_MAX_HEIGHT, then scrolls. Driving the height off onContentSizeChange — not
+// just min/maxHeight styles — is what keeps the text inside the rounded box: iOS
+// doesn't reliably clamp a multiline TextInput by style alone, so the glyphs spill
+// past the border. Measuring the content and setting an explicit height fixes that.
+const AUTO_MIN_HEIGHT = 38;
+const AUTO_MAX_HEIGHT = 120;
+
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
@@ -42,6 +51,18 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const pressStartPosition = useRef<{ x: number; y: number } | null>(null);
     const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Measured height for auto-grow mode (clamped). See AUTO_MIN/MAX_HEIGHT.
+    const [autoHeight, setAutoHeight] = useState(AUTO_MIN_HEIGHT);
+    const handleContentSizeChange = useCallback((e: { nativeEvent: { contentSize: { height: number } } }) => {
+      const h = e.nativeEvent.contentSize.height;
+      setAutoHeight(Math.min(AUTO_MAX_HEIGHT, Math.max(AUTO_MIN_HEIGHT, h)));
+    }, []);
+    // Collapse straight back to one line when the text is cleared (e.g. after send),
+    // since an empty field can skip firing onContentSizeChange.
+    useEffect(() => {
+      if (autoGrow && value === '') setAutoHeight(AUTO_MIN_HEIGHT);
+    }, [autoGrow, value]);
 
     // Listen for actual keyboard show/hide events - this is the source of truth
     useEffect(() => {
@@ -129,16 +150,20 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
             styles.input,
             compact && styles.inputCompact,
             autoGrow && styles.inputAuto,
+            autoGrow && { height: autoHeight },
             {
               color: currentTheme.colors.text,
             }
           ]}
           value={value}
           onChangeText={onChangeText}
+          onContentSizeChange={autoGrow ? handleContentSizeChange : props.onContentSizeChange}
           placeholder={placeholder}
           placeholderTextColor={currentTheme.colors.text + '40'}
           multiline
-          scrollEnabled
+          // Only let it scroll once it's hit the max height; below that the box
+          // hugs the content so there's nothing to scroll (and no jitter).
+          scrollEnabled={!autoGrow || autoHeight >= AUTO_MAX_HEIGHT}
           textAlignVertical="top"
           autoCapitalize="sentences"
           autoCorrect={false}
@@ -168,6 +193,7 @@ const styles = StyleSheet.create({
   },
   containerAuto: {
     flex: 0,
+    alignSelf: 'stretch',
     paddingHorizontal: 14,
     paddingVertical: 0,
   },
@@ -181,11 +207,11 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   inputAuto: {
+    // Height is driven explicitly by onContentSizeChange (see autoHeight); no
+    // minHeight here or it would fight the measured single-line height.
     flex: 0,
-    minHeight: 40,
-    maxHeight: 120,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: 9,
+    paddingBottom: 9,
   },
 });
 
