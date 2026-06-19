@@ -8,7 +8,10 @@ Pod::Spec.new do |s|
   s.summary        = 'Drive iOS Live Activities (rest timer + interactive set logging) from JS.'
   s.author         = package['author'] || ''
   s.homepage       = 'https://github.com/ConnorNusser/morf'
-  s.platforms      = { :ios => '16.2' }
+  # Must be <= the app's deployment target or autolinking drops this pod from the
+  # modules provider. All ActivityKit/App Intents code is @available-guarded, so a
+  # lower floor is safe.
+  s.platforms      = { :ios => '15.1' }
   s.source         = { git: '' }
   s.static_framework = true
 

@@ -11,6 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vanquil.morfai",
+      "appleTeamId": "C24TFJT58Y",
       "jsEngine": "hermes",
       "config": {
         "usesNonExemptEncryption": false
