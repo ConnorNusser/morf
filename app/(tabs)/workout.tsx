@@ -197,7 +197,13 @@ export default function WorkoutScreen() {
     else if (a.type === 'adjustWeight') editSet(a.exerciseKey, a.setIndex, { weight: a.weight });
     else if (a.type === 'addRest') addRestTime(a.seconds);
     else if (a.type === 'skipRest') skipRestTimer();
-  }, [editSet, addRestTime, skipRestTimer]);
+    else if (a.type === 'startRest') {
+      // A set was completed on the Lock Screen — resume its rest with the time
+      // that's actually left (the countdown started when they tapped).
+      const remaining = Math.round((a.endTime - Date.now()) / 1000);
+      if (remaining > 1) startRestTimer(remaining);
+    }
+  }, [editSet, addRestTime, skipRestTimer, startRestTimer]);
   useEffect(() => {
     const drain = async () => { (await pullPendingActions()).forEach(applyPending); };
     drain();

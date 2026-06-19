@@ -127,40 +127,38 @@ struct SetCard: View {
   }
 
   @ViewBuilder private var weightStepper: some View {
-    HStack(spacing: 6) {
+    HStack(spacing: 12) {
       if #available(iOS 17.0, *) {
         Button(intent: AdjustWeightIntent(delta: -wDelta)) { stepIcon("minus") }.buttonStyle(.plain)
       }
-      VStack(spacing: 0) {
-        Text(wStr).font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
+      VStack(spacing: -1) {
+        Text(wStr).font(.system(.title2, design: .rounded).weight(.semibold)).foregroundStyle(.white)
           .monospacedDigit().numericRoll(s.weight ?? 0)
-        Text(unit).font(.caption2).foregroundStyle(.white.opacity(0.45))
-      }.frame(maxWidth: .infinity)
+        Text(unit).font(.system(size: 10, weight: .medium)).textCase(.uppercase)
+          .tracking(0.6).foregroundStyle(.white.opacity(0.4))
+      }
       if #available(iOS 17.0, *) {
         Button(intent: AdjustWeightIntent(delta: wDelta)) { stepIcon("plus") }.buttonStyle(.plain)
       }
     }
-    .padding(.vertical, 5).padding(.horizontal, 8)
-    .background(.ultraThinMaterial, in: Capsule())
     .frame(maxWidth: .infinity)
   }
 
   @ViewBuilder private var repsStepper: some View {
-    HStack(spacing: 6) {
+    HStack(spacing: 12) {
       if #available(iOS 17.0, *) {
         Button(intent: AdjustRepsIntent(delta: -1)) { stepIcon("minus") }.buttonStyle(.plain)
       }
-      VStack(spacing: 0) {
-        Text("\(s.reps ?? 0)").font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
+      VStack(spacing: -1) {
+        Text("\(s.reps ?? 0)").font(.system(.title2, design: .rounded).weight(.semibold)).foregroundStyle(.white)
           .monospacedDigit().numericRoll(Double(s.reps ?? 0))
-        Text("reps").font(.caption2).foregroundStyle(.white.opacity(0.45))
-      }.frame(maxWidth: .infinity)
+        Text("reps").font(.system(size: 10, weight: .medium)).textCase(.uppercase)
+          .tracking(0.6).foregroundStyle(.white.opacity(0.4))
+      }
       if #available(iOS 17.0, *) {
         Button(intent: AdjustRepsIntent(delta: 1)) { stepIcon("plus") }.buttonStyle(.plain)
       }
     }
-    .padding(.vertical, 5).padding(.horizontal, 8)
-    .background(.ultraThinMaterial, in: Capsule())
     .frame(maxWidth: .infinity)
   }
 

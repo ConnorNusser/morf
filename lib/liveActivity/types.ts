@@ -57,4 +57,5 @@ export type PendingAction =
   | { type: 'adjustReps'; exerciseKey: string; setIndex: number; reps: number }
   | { type: 'adjustWeight'; exerciseKey: string; setIndex: number; weight: number }
   | { type: 'addRest'; seconds: number }
+  | { type: 'startRest'; endTime: number }
   | { type: 'skipRest' };

@@ -38,34 +38,56 @@ enum LiveActivityMutator {
     }
   }
 
+  private static let kRestSeconds = 120.0
+
   static func completeSet() async {
     guard let activity = current() else { return }
     let s = activity.content.state
     guard s.mode == "set", let key = s.exerciseKey, let n = s.setNumber else { return }
 
+    let restEnd = Date().addingTimeInterval(kRestSeconds)
     AppGroupStore.appendPendingAction([
       "type": "completeSet", "exerciseKey": key, "setIndex": n - 1,
       "reps": s.reps ?? 0, "weight": s.weight ?? 0,
     ])
+    AppGroupStore.appendPendingAction([
+      "type": "startRest", "endTime": restEnd.timeIntervalSince1970 * 1000,
+    ])
 
-    // Jump to the next not-done set, computed from the shared snapshot — so the
-    // Lock Screen advances (across exercises) even with the app suspended.
-    if let next = AppGroupStore.completeAndAdvance(exerciseKey: key, setNumber: n) {
-      let ns = MorfLiveActivityAttributes.State(
-        mode: "set",
-        workoutTitle: s.workoutTitle,
-        exerciseKey: next["exerciseKey"] as? String,
-        setExerciseName: next["exerciseName"] as? String,
-        setNumber: next["setNumber"] as? Int,
-        totalSets: next["totalSets"] as? Int,
-        reps: next["reps"] as? Int,
-        weight: next["weight"] as? Double,
-        unit: next["unit"] as? String
-      )
-      await activity.update(.init(state: ns, staleDate: nil))
-    } else {
-      await activity.end(nil, dismissalPolicy: .immediate)
+    // Mark it done, then start a rest countdown (matches the in-app behavior).
+    // The next set resumes when rest ends (End button or app reconcile).
+    _ = AppGroupStore.completeAndAdvance(exerciseKey: key, setNumber: n)
+    let next = nextNotDone()
+    let nextLabel: String? = next.flatMap {
+      guard let name = $0["exerciseName"] as? String, let sn = $0["setNumber"] as? Int else { return nil }
+      return "Next: \(name) · Set \(sn)"
     }
+    let rest = MorfLiveActivityAttributes.State(
+      mode: "rest",
+      workoutTitle: s.workoutTitle,
+      restEndTime: restEnd,
+      restExerciseName: s.setExerciseName,
+      nextLabel: nextLabel
+    )
+    await activity.update(.init(state: rest, staleDate: nil))
+  }
+
+  private static func nextNotDone() -> [String: Any]? {
+    AppGroupStore.loadSnapshot().first { ($0["done"] as? Bool) != true }
+  }
+
+  private static func setState(_ from: [String: Any], workoutTitle: String) -> MorfLiveActivityAttributes.State {
+    MorfLiveActivityAttributes.State(
+      mode: "set",
+      workoutTitle: workoutTitle,
+      exerciseKey: from["exerciseKey"] as? String,
+      setExerciseName: from["exerciseName"] as? String,
+      setNumber: from["setNumber"] as? Int,
+      totalSets: from["totalSets"] as? Int,
+      reps: from["reps"] as? Int,
+      weight: from["weight"] as? Double,
+      unit: from["unit"] as? String
+    )
   }
 
   // MARK: rest mode
@@ -86,8 +108,12 @@ enum LiveActivityMutator {
   }
 
   static func endRest() async {
+    guard let activity = current() else { return }
     AppGroupStore.appendPendingAction(["type": "skipRest"])
-    if let activity = current() {
+    // Rest over → resume the next not-done set; end the activity if none left.
+    if let next = nextNotDone() {
+      await activity.update(.init(state: setState(next, workoutTitle: activity.content.state.workoutTitle), staleDate: nil))
+    } else {
       await activity.end(nil, dismissalPolicy: .immediate)
     }
   }
