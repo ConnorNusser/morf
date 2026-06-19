@@ -13,14 +13,17 @@ import {
   GeneratedWorkout,
   TrainingAdvancement,
   TrainingAdvancementResult,
-  UserProfile
+  UserProfile,
+  convertWeight
 } from '@/types';
 import {
   calculateStrengthPercentile,
   MALE_STANDARDS,
-  FEMALE_STANDARDS
+  FEMALE_STANDARDS,
+  OneRMCalculator
 } from '@/lib/data/strengthStandards';
 import { analyticsService } from '@/lib/services/analytics';
+import { bestCompletedSet, completedWorkingSets } from './setStats';
 import { getWorkoutById } from './workouts';
 
 // ===== TRAINING ADVANCEMENT DETERMINATION =====
@@ -76,7 +79,9 @@ function calculatePercentiles(
   userProfile: UserProfile
 ): number[] {
   const gender = userProfile.gender || 'male';
-  const bodyWeight = userProfile.weight.value;
+  // Standards compare an estimated 1RM against bodyweight as a ratio, so both must
+  // be in the same unit — normalize to lbs (matching every other percentile caller).
+  const bodyWeightLbs = convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs');
   const standards = gender === 'male' ? MALE_STANDARDS : FEMALE_STANDARDS;
   const percentiles: number[] = [];
 
@@ -84,14 +89,15 @@ function calculatePercentiles(
   for (const workout of workoutHistory.slice(-20)) {
     for (const ex of workout.exercises) {
       if (standards[ex.id]) {
-        const bestSet = ex.completedSets?.reduce((best, current) =>
-          (current.weight > best.weight) ? current : best,
-          { weight: 0, reps: 0 }
-        );
-        if (bestSet && bestSet.weight > 0) {
+        const bestSet = bestCompletedSet(completedWorkingSets(ex.completedSets), 'e1rm');
+        if (bestSet) {
+          const estimated1RMLbs = OneRMCalculator.estimate(
+            convertWeight(bestSet.weight, bestSet.unit, 'lbs'),
+            bestSet.reps
+          );
           const percentile = calculateStrengthPercentile(
-            bestSet.weight,
-            bodyWeight,
+            estimated1RMLbs,
+            bodyWeightLbs,
             gender,
             ex.id
           );

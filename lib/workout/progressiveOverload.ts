@@ -29,6 +29,7 @@ import {
 } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { roundWeight } from '@/lib/utils/utils';
+import { bestCompletedSet, completedWorkingSets } from './setStats';
 import { getWorkoutById } from './workouts';
 
 // Intensity modifiers applied on top of rep-based percentage
@@ -61,18 +62,10 @@ function getExerciseHistory(
   for (const workout of workoutHistory) {
     for (const exercise of workout.exercises) {
       if (exercise.id === exerciseId && exercise.completedSets?.length > 0) {
-        // Get the heaviest working set from this session
-        const completedSets = exercise.completedSets.filter(s => s.completed && s.weight > 0);
-        if (completedSets.length === 0) continue;
-
-        // Find the best set by estimated 1RM
-        const bestSet = completedSets.reduce((best, current) => {
-          const bestWeight = best.unit === 'kg' ? convertWeight(best.weight, 'kg', 'lbs') : best.weight;
-          const currentWeight = current.unit === 'kg' ? convertWeight(current.weight, 'kg', 'lbs') : current.weight;
-          const best1RM = OneRMCalculator.estimate(bestWeight, best.reps);
-          const current1RM = OneRMCalculator.estimate(currentWeight, current.reps);
-          return current1RM > best1RM ? current : best;
-        }, completedSets[0]);
+        // Get the heaviest working set from this session (best by estimated 1RM)
+        const completedSets = completedWorkingSets(exercise.completedSets);
+        const bestSet = bestCompletedSet(completedSets, 'e1rm');
+        if (!bestSet) continue;
 
         // Calculate if they completed all planned sets
         const targetSets = exercise.sets || completedSets.length;
@@ -83,7 +76,7 @@ function getExerciseHistory(
           reps: bestSet.reps,
           sets: completedSets.length,
           date: new Date(workout.createdAt),
-          unit: bestSet.unit || 'lbs',
+          unit: bestSet.unit,
           completedAllSets,
         });
       }

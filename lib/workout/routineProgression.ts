@@ -24,6 +24,7 @@ import {
 import { getWorkoutById } from './workouts';
 import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { bestCompletedSet, completedWorkingSets } from './setStats';
 
 // Max rep bonus before weight increase
 const MAX_REP_BONUS = 3;
@@ -218,18 +219,9 @@ function getWorkoutWeight(
   const exercise = workout.exercises.find(e => e.id === exerciseId);
   if (!exercise?.completedSets?.length) return 0;
 
-  // Find heaviest working set
-  const weights = exercise.completedSets
-    .filter(s => s.completed && s.weight > 0)
-    .map(s => {
-      // Convert to target unit if needed
-      if (s.unit && s.unit !== unit) {
-        return convertWeight(s.weight, s.unit, unit);
-      }
-      return s.weight;
-    });
-
-  return weights.length > 0 ? Math.max(...weights) : 0;
+  // Heaviest working set, expressed in the target unit
+  const best = bestCompletedSet(completedWorkingSets(exercise.completedSets), 'weight');
+  return best ? convertWeight(best.weight, best.unit, unit) : 0;
 }
 
 /**
