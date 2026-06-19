@@ -109,7 +109,8 @@ struct SetCard: View {
         Button(intent: AdjustWeightIntent(delta: -wDelta)) { stepIcon("minus") }.buttonStyle(.plain)
       }
       VStack(spacing: 0) {
-        Text(wStr).font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
+        Text(wStr).font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
+          .monospacedDigit().contentTransition(.numericText(value: s.weight ?? 0))
         Text(unit).font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
@@ -127,7 +128,8 @@ struct SetCard: View {
         Button(intent: AdjustRepsIntent(delta: -1)) { stepIcon("minus") }.buttonStyle(.plain)
       }
       VStack(spacing: 0) {
-        Text("\(s.reps ?? 0)").font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white).monospacedDigit()
+        Text("\(s.reps ?? 0)").font(.system(.body, design: .rounded).weight(.semibold)).foregroundStyle(.white)
+          .monospacedDigit().contentTransition(.numericText(value: Double(s.reps ?? 0)))
         Text("reps").font(.caption2).foregroundStyle(.white.opacity(0.45))
       }.frame(maxWidth: .infinity)
       if #available(iOS 17.0, *) {
