@@ -1,4 +1,3 @@
-import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -6,14 +5,11 @@ import {
   AppState,
   AppStateStatus,
   GestureResponderEvent,
-  InputAccessoryView,
   Keyboard,
-  Platform,
   View as RNView,
   StyleSheet,
   TextInput,
   TextInputProps,
-  TouchableOpacity,
   useColorScheme,
 } from 'react-native';
 
@@ -21,6 +17,10 @@ interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  // Composer mode: shrinks the box so the synthesized workout can be the hero.
+  compact?: boolean;
+  // Auto-grow mode: the field hugs its content (min→max) and scrolls past max.
+  autoGrow?: boolean;
 }
 
 export interface WorkoutNoteInputRef {
@@ -33,11 +33,10 @@ const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
-  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", ...props }, ref) => {
+  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
     const _colorScheme = useColorScheme();
     const inputRef = useRef<TextInput>(null);
-    const inputAccessoryViewID = 'workoutNoteAccessory';
 
     // Track actual keyboard visibility via event listeners (not local state that can get corrupted)
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -123,50 +122,33 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     }, [clearFocusTimeout]);
 
     return (
-      <>
-        <RNView style={styles.container}>
-          <TextInput
-            ref={inputRef}
-            style={[
-              styles.input,
-              {
-                color: currentTheme.colors.text,
-              }
-            ]}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor={currentTheme.colors.text + '40'}
-            multiline
-            scrollEnabled
-            textAlignVertical="top"
-            autoCapitalize="sentences"
-            autoCorrect={false}
-            showSoftInputOnFocus={true}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            inputAccessoryViewID={inputAccessoryViewID}
-            {...props}
-          />
-        </RNView>
-        {/* Keyboard accessory with Done button - only when keyboard is visible */}
-        {Platform.OS === 'ios' && isKeyboardVisible && (
-          <InputAccessoryView nativeID={inputAccessoryViewID}>
-              <RNView style={[styles.accessoryContainer, { borderTopColor: currentTheme.colors.border }]}>
-                <RNView style={{ flex: 1 }} />
-                <TouchableOpacity
-                  onPress={() => Keyboard.dismiss()}
-                  style={[styles.doneButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
-                >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    Done
-                  </Text>
-                </TouchableOpacity>
-              </RNView>
-          </InputAccessoryView>
-        )}
-      </>
+      <RNView style={[styles.container, compact && styles.containerCompact, autoGrow && styles.containerAuto]}>
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.input,
+            compact && styles.inputCompact,
+            autoGrow && styles.inputAuto,
+            {
+              color: currentTheme.colors.text,
+            }
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={currentTheme.colors.text + '40'}
+          multiline
+          scrollEnabled
+          textAlignVertical="top"
+          autoCapitalize="sentences"
+          autoCorrect={false}
+          showSoftInputOnFocus={true}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          {...props}
+        />
+      </RNView>
     );
   }
 );
@@ -180,31 +162,27 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  containerCompact: {
+    paddingTop: 6,
+    paddingBottom: 6,
+  },
+  containerAuto: {
+    flex: 0,
+    paddingVertical: 6,
+  },
   input: {
     flex: 1,
     fontSize: 16,
     lineHeight: 22,
     minHeight: 200,
   },
-  accessoryBlur: {
-    overflow: 'hidden',
+  inputCompact: {
+    minHeight: 0,
   },
-  accessoryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  doneButton: {
-    height: 36,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  doneButtonText: {
-    fontSize: 15,
+  inputAuto: {
+    flex: 0,
+    minHeight: 38,
+    maxHeight: 120,
   },
 });
 

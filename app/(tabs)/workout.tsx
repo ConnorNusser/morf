@@ -5,28 +5,40 @@ import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
+import EditableWorkout from '@/components/workout/EditableWorkout';
+import { draftToParsedWorkout } from '@/lib/workout/workoutDraft';
+import RecentWorkouts from '@/components/workout/RecentWorkouts';
+import PredictiveCard from '@/components/workout/PredictiveCard';
+import NumberPad from '@/components/workout/NumberPad';
+import { useVoiceDictation } from '@/hooks/useVoiceDictation';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAlert } from '@/components/CustomAlert';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
-  SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   UIManager,
   View as RNView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+// Matches the absolute tab bar height in app/(tabs)/_layout.tsx so the composer
+// sits clear of it (the bar overlays content). Collapsed when the keyboard is up.
+const TAB_BAR_CLEARANCE = 85;
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -34,24 +46,71 @@ export default function WorkoutScreen() {
 
   // Workout session hook (handles note, timer, persistence, saving)
   const {
+    composerText,
+    setComposerText,
+    commitComposer,
+    commitText,
+    draft,
+    loadDraftFromText,
+    editSet,
+    addSetTo,
+    removeSetFrom,
+    toggleSetDone,
+    removeExerciseFrom,
+    acceptAutofill,
+    dismissAutofill,
     noteText,
-    setNoteText,
     elapsedTime,
     formatTime,
     resetWorkoutTimer,
-    showSummary,
-    setShowSummary,
-    summaryLoading,
-    parsedExercises,
-    handleQuickSummary,
     showFinishModal,
     handleFinishWorkout,
     handleSaveWorkout,
     handleFinishComplete,
     handleFinishCancel,
+    discardWorkout,
     hasWorkoutStarted,
     weightUnit,
+    setWeightUnitPref,
+    recentWorkouts,
+    prefillWorkout,
+    startEmptyWorkout,
+    customExercises,
   } = useWorkoutNoteSession();
+  const { showAlert } = useAlert();
+
+  // Composer collapses to floating compose + mic buttons; opens to the full bar.
+  const [composerOpen, setComposerOpen] = useState(false);
+  const openComposer = useCallback(() => {
+    playHapticFeedback('light', false);
+    setComposerOpen(true);
+    setTimeout(() => noteInputRef.current?.focus(), 60);
+  }, []);
+  const closeComposer = useCallback(() => {
+    noteInputRef.current?.blur();
+    Keyboard.dismiss();
+    setComposerOpen(false);
+  }, []);
+
+  // Collapse the tab-bar clearance under the composer while the keyboard is up.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', () => setKeyboardVisible(true));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboardVisible(false));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  // Discard the current workout (from the Cancel button), with a confirm.
+  const handleDiscard = useCallback(() => {
+    showAlert({
+      title: 'Discard workout?',
+      message: "This clears everything you've logged in this session. It can't be undone.",
+      buttons: [
+        { text: 'Keep going', style: 'cancel' },
+        { text: 'Discard', style: 'destructive', onPress: () => discardWorkout() },
+      ],
+    });
+  }, [showAlert, discardWorkout]);
 
   // Rest timer hook
   const {
@@ -62,23 +121,78 @@ export default function WorkoutScreen() {
     addTime: addRestTime,
   } = useRestTimer();
 
+  // Pick a recent workout to repeat/edit.
+  const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {
+    prefillWorkout(w);
+  }, [prefillWorkout]);
+
+  // Stable structured workout for the finish modal (rebuilt only when the draft
+  // changes) — an inline object would re-fire the modal's parse effect every render.
+  const finishWorkout = useMemo(() => draftToParsedWorkout(draft), [draft]);
+
+  // Quick start: enter the active empty workout, then open the composer.
+  const handleQuickStart = useCallback(() => {
+    startEmptyWorkout();
+    openComposer();
+  }, [startEmptyWorkout, openComposer]);
+
+  // Checking a set off (becoming done) auto-starts the rest countdown.
+  const handleToggleDone = useCallback((key: string, index: number) => {
+    const set = draft.find(e => e.key === key)?.sets[index];
+    const becomingDone = set ? !set.done : false;
+    toggleSetDone(key, index);
+    if (becomingDone) startRestTimer(120);
+  }, [draft, toggleSetDone, startRestTimer]);
+
+  // Commit the composer text into the structured workout.
+  const handleComposerSend = useCallback(() => {
+    playHapticFeedback('medium', false);
+    commitComposer();
+  }, [commitComposer]);
+
+  // Voice: each finished phrase is parsed straight into the workout, hands-free.
+  const handleVoiceTranscript = useCallback((text: string) => {
+    playHapticFeedback('light', false);
+    commitText(text);
+  }, [commitText]);
+  const voice = useVoiceDictation(handleVoiceTranscript);
+  const handleMicPress = useCallback(() => {
+    playHapticFeedback('medium', false);
+    if (!voice.available) {
+      showAlert({ title: 'Voice not available', message: 'Voice logging needs a dev-client rebuild (npx expo prebuild) and microphone permission.', type: 'info' });
+      return;
+    }
+    voice.toggle();
+  }, [voice, showAlert]);
+  // Surface voice errors (permissions, recognizer failures) so they're not silent.
+  useEffect(() => {
+    if (voice.error) showAlert({ title: 'Voice', message: voice.error, type: 'info' });
+  }, [voice.error, showAlert]);
+
   // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  // Which set field the custom number pad is editing.
+  const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
+  const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
+    Keyboard.dismiss();
+    playHapticFeedback('light', false);
+    setEditing({ key, index, field });
+  }, []);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
-    setNoteText(planText);
+    loadDraftFromText(planText, { asTarget: true });
     setShowPlanBuilder(false);
-  }, [setNoteText]);
+  }, [loadDraftFromText]);
 
   // Handle routine import
   const handleRoutineImport = useCallback((text: string, _routineId: string) => {
-    setNoteText(text);
+    loadDraftFromText(text, { asTarget: true });
     setShowRoutineImport(false);
-  }, [setNoteText]);
+  }, [loadDraftFromText]);
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -121,101 +235,84 @@ export default function WorkoutScreen() {
   }, [handleFinishWorkout]);
 
   return (
-    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView edges={['top']} style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <KeyboardAvoidingView
         style={layout.flex1}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}
       >
-        {/* Header */}
+        {/* Header — overflow (utilities) · timer/title · Finish */}
         <TutorialTarget id="workout-header-buttons">
           <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.headerLeft, { backgroundColor: 'transparent' }]}>
-              {hasWorkoutStarted ? (
-                <TouchableOpacity
-                  style={[styles.summaryButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 }]}
-                  onPress={handleQuickSummary}
-                >
-                  <Ionicons name="list-outline" size={16} color={currentTheme.colors.text} />
-                  <Text style={[styles.summaryButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    Summary
+            <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
+              {hasWorkoutStarted && (
+                <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
+                  <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99' }]}>
+                    Cancel
                   </Text>
                 </TouchableOpacity>
-              ) : (
-                <View style={[styles.headerButtonGroup, { backgroundColor: 'transparent' }]}>
-                  <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                    onPress={() => setShowPlanBuilder(true)}
-                  >
-                    <Ionicons name="sparkles" size={20} color={currentTheme.colors.primary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.iconButton, { backgroundColor: currentTheme.colors.text + '10' }]}
-                    onPress={() => setShowHelpModal(true)}
-                  >
-                    <Ionicons name="information-circle-outline" size={20} color={currentTheme.colors.text} />
-                  </TouchableOpacity>
-                </View>
               )}
             </View>
 
-          <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
-            {hasWorkoutStarted ? (
-              <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
-                <RNView style={[
-                  styles.timerContainer,
-                  {
-                    backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
-                    borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
-                  }
-                ]}>
-                  <Ionicons
-                    name={isResting ? 'hourglass-outline' : 'time-outline'}
-                    size={16}
-                    color={isResting ? '#fff' : currentTheme.colors.accent}
-                  />
-                  <Text style={[
-                    styles.timerText,
+            <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
+              {hasWorkoutStarted ? (
+                <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
+                  <RNView style={[
+                    styles.timerContainer,
                     {
-                      color: isResting ? '#fff' : currentTheme.colors.text,
-                      fontFamily: currentTheme.fonts.semiBold
+                      backgroundColor: isResting ? currentTheme.colors.primary : currentTheme.colors.surface,
+                      borderColor: isResting ? currentTheme.colors.primary : currentTheme.colors.border,
                     }
                   ]}>
-                    {isResting ? formattedRestTime : formatTime(elapsedTime)}
-                  </Text>
-                  {isResting && (
-                    <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.medium }]}>
-                      REST
+                    <Ionicons
+                      name={isResting ? 'hourglass-outline' : 'time-outline'}
+                      size={16}
+                      color={isResting ? '#fff' : currentTheme.colors.accent}
+                    />
+                    <Text style={[
+                      styles.timerText,
+                      { color: isResting ? '#fff' : currentTheme.colors.text }
+                    ]}>
+                      {isResting ? formattedRestTime : formatTime(elapsedTime)}
                     </Text>
-                  )}
-                </RNView>
-              </TouchableOpacity>
-            ) : (
-              <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Workout
-              </Text>
-            )}
-          </View>
-
-          <View style={[styles.headerRight, { backgroundColor: 'transparent' }]}>
-            {hasWorkoutStarted ? (
-              <TouchableOpacity
-                style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
-                onPress={handleFinishPress}
-              >
-                <Text style={[styles.finishButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
-                  Finish
+                    {isResting && (
+                      <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)' }]}>
+                        REST
+                      </Text>
+                    )}
+                  </RNView>
+                </TouchableOpacity>
+              ) : (
+                <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Workout
                 </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.iconButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
-                onPress={() => setShowRoutineImport(true)}
-              >
-                <Ionicons name="download-outline" size={20} color={currentTheme.colors.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
+              )}
+            </View>
+
+            <View style={[styles.headerSide, { alignItems: 'flex-end', backgroundColor: 'transparent' }]}>
+              {hasWorkoutStarted ? (
+                <TouchableOpacity
+                  style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
+                  onPress={handleFinishPress}
+                >
+                  <Text style={[styles.finishButtonText, { }]}>
+                    Finish
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <RNView style={[styles.unitSegment, { backgroundColor: currentTheme.colors.text + '0F' }]}>
+                  {(['lbs', 'kg'] as const).map(u => (
+                    <TouchableOpacity
+                      key={u}
+                      style={[styles.unitSegmentBtn, weightUnit === u && { backgroundColor: currentTheme.colors.surface }]}
+                      onPress={() => { playHapticFeedback('selection', false); setWeightUnitPref(u); }}
+                    >
+                      <Text style={[styles.unitSegmentText, { color: weightUnit === u ? currentTheme.colors.text : currentTheme.colors.text + '66' }]}>{u}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </RNView>
+              )}
+            </View>
           </View>
         </TutorialTarget>
 
@@ -233,10 +330,10 @@ export default function WorkoutScreen() {
 
               {/* Rest timer display */}
               <RNView style={styles.expandedTimerCenter}>
-                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary }]}>
                   {formattedRestTime}
                 </Text>
-                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60' }]}>
                   rest remaining
                 </Text>
               </RNView>
@@ -257,7 +354,7 @@ export default function WorkoutScreen() {
                 style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
                 onPress={handleResetWorkoutTimer}
               >
-                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80' }]}>
                   Restart Workout ({formatTime(elapsedTime)})
                 </Text>
               </TouchableOpacity>
@@ -267,7 +364,7 @@ export default function WorkoutScreen() {
                 style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
                 onPress={handleFinishRest}
               >
-                <Text style={[styles.doneRestButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.doneRestButtonText, { }]}>
                   Done
                 </Text>
               </TouchableOpacity>
@@ -275,38 +372,125 @@ export default function WorkoutScreen() {
           </RNView>
         )}
 
-        {/* Quick Summary Preview */}
-        <WorkoutFinishModal
-          visible={showSummary}
-          noteText={noteText}
-          duration={elapsedTime}
-          isPreviewMode={true}
-          exercises={parsedExercises}
-          isLoading={summaryLoading}
-          onDismiss={() => setShowSummary(false)}
-        />
+        {/* Workout (fills) — the editable source of truth, with one empty state */}
+        <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+          <EditableWorkout
+            draft={draft}
+            weightUnit={weightUnit}
+            onEditSet={editSet}
+            onEditField={openNumberPad}
+            activeField={editing}
+            onAddSet={addSetTo}
+            onRemoveSet={removeSetFrom}
+            onToggleDone={handleToggleDone}
+            onRemoveExercise={removeExerciseFrom}
+            onAcceptAutofill={acceptAutofill}
+            onDismissAutofill={dismissAutofill}
+          />
+          {!hasWorkoutStarted && (
+            recentWorkouts.length > 0 ? (
+              <RecentWorkouts
+                workouts={recentWorkouts}
+                customExercises={customExercises}
+                onPick={handlePickRecent}
+                onQuickStart={handleQuickStart}
+                onGenerate={() => setShowPlanBuilder(true)}
+                onImport={() => setShowRoutineImport(true)}
+              />
+            ) : (
+              <RNView style={styles.empty}>
+                <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Log your workout
+                </Text>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+                  Type or speak a set below — it appears here, ready to edit.
+                </Text>
+              </RNView>
+            )
+          )}
+          {hasWorkoutStarted && draft.length === 0 && (
+            <RNView style={styles.empty}>
+              <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                Empty workout
+              </Text>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+                Add your first set below — type or speak it.
+              </Text>
+            </RNView>
+          )}
+        </View>
 
-        {/* Main Content - Notes Input */}
-        <TutorialTarget id="workout-note-input" style={layout.flex1}>
-          <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
-            <WorkoutNoteInput
-              ref={noteInputRef}
-              value={noteText}
-              onChangeText={setNoteText}
-              placeholder={`Start typing your workout...
+        {composerOpen ? (
+          <>
+            {/* Predictive card — previews the paused composer text, tap to commit */}
+            <PredictiveCard text={composerText} weightUnit={weightUnit} onCommit={handleComposerSend} />
 
-Examples:
-Bench 135x8, 155x6
-Squats 225 for 5 reps`}
-            />
-          </View>
-        </TutorialTarget>
+            {/* Composer (open) — auto-growing input + mic + send. Done lives in the
+                keyboard accessory on iOS; Android gets an inline Done. */}
+            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
+              <RNView style={[styles.composerDoneRow, { borderBottomColor: currentTheme.colors.border }]}>
+                <TouchableOpacity onPress={closeComposer} style={[styles.doneChip, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+                  <Text style={[styles.doneChipText, { color: currentTheme.colors.text }]}>Done</Text>
+                </TouchableOpacity>
+              </RNView>
+              <RNView style={styles.composerRow}>
+                <RNView style={styles.composerInput}>
+                  <TutorialTarget id="workout-note-input" style={layout.flex1}>
+                    <WorkoutNoteInput
+                      ref={noteInputRef}
+                      value={composerText}
+                      onChangeText={setComposerText}
+                      autoGrow
+                      placeholder="Type or speak a set — e.g. Bench 135x8, 155x6"
+                    />
+                  </TutorialTarget>
+                </RNView>
+                <TouchableOpacity
+                  style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                  onPress={handleMicPress}
+                >
+                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={20} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
+                  onPress={handleComposerSend}
+                  disabled={!composerText.trim()}
+                >
+                  <Ionicons name="arrow-up" size={20} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
+                </TouchableOpacity>
+              </RNView>
+            </RNView>
+          </>
+        ) : (
+          /* Collapsed — a compose bar that opens the composer, plus a mic */
+          <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE + 14 }}>
+            <TouchableOpacity
+              style={[styles.collapsedInput, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              onPress={openComposer}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="create-outline" size={18} color={currentTheme.colors.text + '88'} />
+              <Text style={[styles.collapsedPlaceholder, { color: currentTheme.colors.text + '88' }]}>
+                Log a set — type or speak
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.fabCircle, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              onPress={handleMicPress}
+            >
+              <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+            </TouchableOpacity>
+          </RNView>
+        )}
       </KeyboardAvoidingView>
 
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
       <WorkoutFinishModal
         visible={showFinishModal}
         noteText={noteText}
+        prebuiltWorkout={finishWorkout}
         duration={elapsedTime}
         weightUnit={weightUnit}
         onSave={handleSaveWorkout}
@@ -333,30 +517,199 @@ Squats 225 for 5 reps`}
         visible={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
+
+      {/* Custom number pad for editing a set's weight / reps */}
+      {(() => {
+        if (!editing) return null;
+        const set = draft.find(e => e.key === editing.key)?.sets[editing.index];
+        if (!set) return null;
+        const isWeight = editing.field === 'weight';
+        return (
+          <NumberPad
+            visible
+            seedKey={`${editing.key}-${editing.index}-${editing.field}`}
+            label={isWeight ? 'Weight' : 'Reps'}
+            unit={isWeight ? weightUnit : undefined}
+            value={isWeight ? set.weight : set.reps}
+            allowDecimal={isWeight}
+            increments={isWeight ? (weightUnit === 'kg' ? [-5, -2.5, 2.5, 5] : [-10, -5, 5, 10]) : [-1, 1, 2, 5]}
+            hasNext={isWeight}
+            onChange={n => editSet(editing.key, editing.index, { [editing.field]: n })}
+            onNext={() => setEditing(e => (e ? { ...e, field: 'reps' } : e))}
+            onClose={() => setEditing(null)}
+          />
+        );
+      })()}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  composerBar: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 4,
+  },
+  composerDoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  doneChip: {
+    height: 34,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneChipText: {
+    fontSize: 15,
+  },
+  composerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 6,
+    backgroundColor: 'transparent',
+  },
+  collapsedBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    backgroundColor: 'transparent',
+  },
+  collapsedInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 48,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  collapsedPlaceholder: {
+    fontSize: 15,
+  },
+  fabCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  composerInput: {
+    flex: 1,
+    alignSelf: 'stretch',
+  },
+  circleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  empty: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 40,
+    backgroundColor: 'transparent',
+  },
+  emptyTitle: {
+    fontSize: 17,
+    marginTop: 4,
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 6,
+  },
+  repeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  repeatButtonText: {
+    fontSize: 13,
+  },
+  actionsBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+    padding: 16,
+  },
+  actionsSheet: {
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+  },
+  actionLabel: {
+    fontSize: 15,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 8,
   },
-  headerLeft: {
-    minWidth: 90,
-    alignItems: 'flex-start',
+  headerSide: {
+    width: 88,
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  cancelButtonText: {
+    fontSize: 15,
+  },
+  unitSegment: {
+    flexDirection: 'row',
+    borderRadius: 999,
+    padding: 2,
+  },
+  unitSegmentBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    alignItems: 'center',
+  },
+  unitSegmentText: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-  },
-  headerRight: {
-    minWidth: 90,
-    alignItems: 'flex-end',
   },
   timerContainer: {
     flexDirection: 'row',
@@ -436,38 +789,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
   },
-  summaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    height: 40,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-  },
-  summaryButtonText: {
-    fontSize: 14,
-  },
   finishButton: {
     height: 40,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
   finishButtonText: {
     color: '#fff',
     fontSize: 14,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerButtonGroup: {
-    flexDirection: 'row',
-    gap: 8,
   },
 });

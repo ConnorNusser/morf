@@ -68,7 +68,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Morf uses your microphone so you can log sets hands-free by voice.",
+          "speechRecognitionPermission": "Morf uses speech recognition to turn your spoken sets into a workout log."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

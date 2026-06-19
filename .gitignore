@@ -9,7 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native (Expo prebuild output — generated via `expo prebuild`, not committed)
+/android/
+/ios/
 .kotlin/
 *.orig.*
 *.jks
