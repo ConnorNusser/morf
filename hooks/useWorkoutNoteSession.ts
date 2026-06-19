@@ -82,6 +82,7 @@ export interface UseWorkoutNoteSessionReturn {
   isSessionLoaded: boolean;
   hasWorkoutStarted: boolean;
   weightUnit: WeightUnit;
+  setWeightUnitPref: (unit: WeightUnit) => void;
 
   // Repeat-last-workout prefill
   lastWorkoutTitle: string | null; // null when there's nothing to repeat
@@ -92,7 +93,7 @@ export interface UseWorkoutNoteSessionReturn {
 }
 
 export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
-  const { refreshProfile } = useUser();
+  const { refreshProfile, userProfile, updateProfile } = useUser();
   const { showAlert } = useAlert();
 
   // Structured draft is the source of truth; composer text is transient input.
@@ -652,6 +653,18 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setElapsedTime(0);
   }, []);
 
+  // Toggle the preferred unit (lbs/kg) and persist it to the profile.
+  const setWeightUnitPref = useCallback(async (unit: WeightUnit) => {
+    setWeightUnit(unit);
+    try {
+      if (userProfile) {
+        await updateProfile({ ...userProfile, age: userProfile.age || 28, weightUnitPreference: unit });
+      }
+    } catch (error) {
+      console.error('Error saving weight unit:', error);
+    }
+  }, [userProfile, updateProfile]);
+
   // Pre-fill the draft with the most recent workout so the user can repeat it
   // and just tweak the numbers — the freeform answer to Hevy's prefilled rows.
   const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout, customExercises) : '';
@@ -726,6 +739,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     isSessionLoaded,
     hasWorkoutStarted,
     weightUnit,
+    setWeightUnitPref,
 
     // Repeat-last-workout prefill
     lastWorkoutTitle,

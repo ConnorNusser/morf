@@ -71,6 +71,7 @@ export default function WorkoutScreen() {
     discardWorkout,
     hasWorkoutStarted,
     weightUnit,
+    setWeightUnitPref,
     recentWorkouts,
     prefillWorkout,
     customExercises,
@@ -374,7 +375,16 @@ export default function WorkoutScreen() {
           />
           {!hasWorkoutStarted && (
             recentWorkouts.length > 0 ? (
-              <RecentWorkouts workouts={recentWorkouts} customExercises={customExercises} onPick={handlePickRecent} onQuickStart={openComposer} />
+              <RecentWorkouts
+                workouts={recentWorkouts}
+                customExercises={customExercises}
+                weightUnit={weightUnit}
+                onPick={handlePickRecent}
+                onQuickStart={openComposer}
+                onGenerate={() => setShowPlanBuilder(true)}
+                onImport={() => setShowRoutineImport(true)}
+                onSetUnit={setWeightUnitPref}
+              />
             ) : (
               <RNView style={styles.empty}>
                 <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
