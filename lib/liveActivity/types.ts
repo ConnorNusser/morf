@@ -56,4 +56,5 @@ export type PendingAction =
   | { type: 'completeSet'; exerciseKey: string; setIndex: number; reps: number; weight: number }
   | { type: 'adjustReps'; exerciseKey: string; setIndex: number; reps: number }
   | { type: 'adjustWeight'; exerciseKey: string; setIndex: number; weight: number }
+  | { type: 'addRest'; seconds: number }
   | { type: 'skipRest' };

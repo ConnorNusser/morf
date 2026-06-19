@@ -195,7 +195,9 @@ export default function WorkoutScreen() {
     if (a.type === 'completeSet') editSet(a.exerciseKey, a.setIndex, { done: true });
     else if (a.type === 'adjustReps') editSet(a.exerciseKey, a.setIndex, { reps: a.reps });
     else if (a.type === 'adjustWeight') editSet(a.exerciseKey, a.setIndex, { weight: a.weight });
-  }, [editSet]);
+    else if (a.type === 'addRest') addRestTime(a.seconds);
+    else if (a.type === 'skipRest') skipRestTimer();
+  }, [editSet, addRestTime, skipRestTimer]);
   useEffect(() => {
     const drain = async () => { (await pullPendingActions()).forEach(applyPending); };
     drain();

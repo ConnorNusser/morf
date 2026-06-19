@@ -1,13 +1,16 @@
 import ActivityKit
 import AppIntents
 
-// Mutates the running activity from the widget extension process. Runs on a tight
-// background budget, so it only touches ActivityKit + the App Group — never JS.
+// Mutates the running activity from an App Intent. The perform() of a
+// LiveActivityIntent runs in the APP process, so this file is compiled into both
+// the widget extension AND the app (module pod) — see docs/SPIKE.md.
 @available(iOS 16.2, *)
 enum LiveActivityMutator {
   static func current() -> Activity<MorfLiveActivityAttributes>? {
     Activity<MorfLiveActivityAttributes>.activities.first
   }
+
+  // MARK: set mode
 
   static func adjustReps(by delta: Int) async {
     guard let activity = current() else { return }
@@ -46,7 +49,7 @@ enum LiveActivityMutator {
     ])
 
     // Jump to the next not-done set, computed from the shared snapshot — so the
-    // Lock Screen advances even with the app suspended.
+    // Lock Screen advances (across exercises) even with the app suspended.
     if let next = AppGroupStore.completeAndAdvance(exerciseKey: key, setNumber: n) {
       let ns = MorfLiveActivityAttributes.State(
         mode: "set",
@@ -61,6 +64,30 @@ enum LiveActivityMutator {
       )
       await activity.update(.init(state: ns, staleDate: nil))
     } else {
+      await activity.end(nil, dismissalPolicy: .immediate)
+    }
+  }
+
+  // MARK: rest mode
+
+  static func addRest(seconds: Int) async {
+    guard let activity = current() else { return }
+    var s = activity.content.state
+    guard s.mode == "rest", let end = s.restEndTime else { return }
+    let newEnd = end.addingTimeInterval(Double(seconds))
+    if newEnd <= Date() {
+      AppGroupStore.appendPendingAction(["type": "skipRest"])
+      await activity.end(nil, dismissalPolicy: .immediate)
+      return
+    }
+    s.restEndTime = newEnd
+    await activity.update(.init(state: s, staleDate: nil))
+    AppGroupStore.appendPendingAction(["type": "addRest", "seconds": seconds])
+  }
+
+  static func endRest() async {
+    AppGroupStore.appendPendingAction(["type": "skipRest"])
+    if let activity = current() {
       await activity.end(nil, dismissalPolicy: .immediate)
     }
   }
@@ -96,6 +123,28 @@ struct CompleteSetIntent: LiveActivityIntent {
   init() {}
   func perform() async throws -> some IntentResult {
     await LiveActivityMutator.completeSet()
+    return .result()
+  }
+}
+
+@available(iOS 17.0, *)
+struct AddRestIntent: LiveActivityIntent {
+  static var title: LocalizedStringResource = "Adjust rest"
+  @Parameter(title: "Seconds") var seconds: Int
+  init() {}
+  init(seconds: Int) { self.seconds = seconds }
+  func perform() async throws -> some IntentResult {
+    await LiveActivityMutator.addRest(seconds: seconds)
+    return .result()
+  }
+}
+
+@available(iOS 17.0, *)
+struct EndRestIntent: LiveActivityIntent {
+  static var title: LocalizedStringResource = "End rest"
+  init() {}
+  func perform() async throws -> some IntentResult {
+    await LiveActivityMutator.endRest()
     return .result()
   }
 }
