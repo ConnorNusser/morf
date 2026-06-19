@@ -374,7 +374,7 @@ export default function WorkoutScreen() {
           />
           {!hasWorkoutStarted && (
             recentWorkouts.length > 0 ? (
-              <RecentWorkouts workouts={recentWorkouts} customExercises={customExercises} onPick={handlePickRecent} />
+              <RecentWorkouts workouts={recentWorkouts} customExercises={customExercises} onPick={handlePickRecent} onQuickStart={openComposer} />
             ) : (
               <RNView style={styles.empty}>
                 <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />

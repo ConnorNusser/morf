@@ -86,7 +86,7 @@ export interface UseWorkoutNoteSessionReturn {
   // Repeat-last-workout prefill
   lastWorkoutTitle: string | null; // null when there's nothing to repeat
   prefillLastWorkout: () => void;
-  recentWorkouts: GeneratedWorkout[]; // last 5, newest first (empty-state list)
+  recentWorkouts: GeneratedWorkout[]; // recent sessions, newest first (empty-state list)
   prefillWorkout: (w: GeneratedWorkout) => void;
   customExercises: CustomExercise[];
 }
@@ -674,9 +674,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (!workoutStartTime) setWorkoutStartTime(new Date());
   }, [customExercises, workoutStartTime, loadDraftFromText]);
 
-  // The five most recent sessions, newest first (for the empty-state list).
+  // Recent sessions, newest first (for the empty-state list; the view scrolls).
   const recentWorkouts = useMemo(
-    () => [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5),
+    () => [...history].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 15),
     [history],
   );
 
