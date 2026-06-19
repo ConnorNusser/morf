@@ -5,6 +5,9 @@ import Foundation
 // (via LiveActivity.podspec) and the widget extension (it lives in the target).
 // Mirrors lib/liveActivity/types.ts — keep the two in sync.
 
+// Compiled into the 15.1 module pod too, so the conformance to ActivityKit's
+// (16.1+) ActivityAttributes must be availability-annotated.
+@available(iOS 16.1, *)
 public struct MorfLiveActivityAttributes: ActivityAttributes {
   public typealias ContentState = State
 
