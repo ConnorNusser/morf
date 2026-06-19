@@ -8,8 +8,6 @@ import { userService } from './userService';
 import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
 import { containsProfanity } from '@/lib/utils/moderation';
-// Re-export feed types and service for backwards compatibility
-export { feedService, type FeedLike, type FeedComment, type WorkoutFeedData, type WorkoutExerciseSummary, type WorkoutSummary, type PostFeedData, type FeedPost, type CreatePostInput, type FeedWorkout, type WorkoutSetData } from './feedService';
 
 class UserSyncService {
   private currentUserId: string | null = null;
@@ -206,14 +204,6 @@ class UserSyncService {
   }
 
   /**
-   * Check if a username is available (returns boolean)
-   */
-  async isUsernameAvailable(username: string): Promise<boolean> {
-    const error = await this.validateUsername(username);
-    return error === null;
-  }
-
-  /**
    * Search users by username (partial match)
    */
   async searchUsers(query: string): Promise<RemoteUser[]> {
@@ -381,7 +371,7 @@ class UserSyncService {
   /**
    * Sync user's country code to Supabase
    */
-  async syncCountryCode(countryCode: string): Promise<boolean> {
+  private async syncCountryCode(countryCode: string): Promise<boolean> {
     if (!supabase) return false;
 
     try {
@@ -427,38 +417,6 @@ class UserSyncService {
     } catch (error) {
       console.error('Error syncing user country:', error);
       return null;
-    }
-  }
-
-  /**
-   * Get list of unique countries from users who have lift data
-   */
-  async getAvailableCountries(): Promise<string[]> {
-    if (!supabase) return [];
-
-    try {
-      // Query from the leaderboard view to only get countries with lift data
-      const { data, error } = await supabase
-        .from('exercise_leaderboard')
-        .select('country_code')
-        .not('country_code', 'is', null);
-
-      if (error) {
-        console.error('Error getting countries:', error);
-        return [];
-      }
-
-      // Get unique country codes
-      const countries = [...new Set(
-        (data || [])
-          .map(row => row.country_code as string)
-          .filter(Boolean)
-      )].sort();
-
-      return countries;
-    } catch (error) {
-      console.error('Error getting countries:', error);
-      return [];
     }
   }
 
@@ -598,16 +556,9 @@ class UserSyncService {
   }
 
   /**
-   * Get leaderboard for a specific exercise
-   */
-  async getExerciseLeaderboard(exerciseId: string): Promise<LeaderboardEntry[]> {
-    return this.getLeaderboard([exerciseId]);
-  }
-
-  /**
    * Sync user's overall percentile data to Supabase
    */
-  async syncPercentileData(
+  private async syncPercentileData(
     overallPercentile: number,
     strengthLevel: string,
     muscleGroups: MuscleGroupPercentiles,

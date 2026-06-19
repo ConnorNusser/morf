@@ -10,7 +10,7 @@ export interface PredictionModel {
  * Asymptotic regression model - accounts for diminishing returns
  * as you approach genetic potential
  */
-export const asymptoticRegression = (data: UserProgress[], targetDays: number): number => {
+const asymptoticRegression = (data: UserProgress[], targetDays: number): number => {
   if (data.length === 0) return 0;
   if (data.length < 3) {
     // Use simple linear extrapolation for insufficient data
@@ -43,7 +43,7 @@ export const asymptoticRegression = (data: UserProgress[], targetDays: number): 
 /**
  * Exponential smoothing model - weighted recent performance with trend analysis
  */
-export const exponentialSmoothing = (data: UserProgress[], targetDays: number): number => {
+const exponentialSmoothing = (data: UserProgress[], targetDays: number): number => {
   if (data.length === 0) return 0;
   if (data.length === 1) return data[0].personalRecord;
 

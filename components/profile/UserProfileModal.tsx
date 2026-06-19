@@ -8,7 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryName } from '@/lib/services/geoService';
 import { gap, layout } from '@/lib/ui/styles';
 import { supabase } from '@/lib/services/supabase';
-import { userSyncService, WorkoutSummary } from '@/lib/services/userSyncService';
+import { userSyncService } from '@/lib/services/userSyncService';
+import { WorkoutSummary } from '@/lib/services/feedService';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
@@ -1008,9 +1009,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-  },
-  headerSpacer: {
-    width: 40,
   },
   scrollContent: {
     padding: 16,

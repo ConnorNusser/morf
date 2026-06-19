@@ -137,24 +137,13 @@ function yearsToAdvancement(years: number): TrainingAdvancement {
 export interface ProgrammingConfig {
   // Fatigue management
   allowHeavySquatAndDeadliftSameDay: boolean;
-  allowHeavyLightSameDay: boolean;
   maxSetsPerMusclePerSession: number;
-  minRestDaysBetweenHeavySamePattern: number;
 
   // Frequency recommendations
   suggestedFrequency: {
     squat: number;
     bench: number;
     deadlift: number;
-  };
-
-  // Intensity thresholds
-  heavyThreshold: number;  // % of 1RM considered "heavy"
-
-  // Volume landmarks (sets per muscle per week)
-  volumeRange: {
-    min: number;
-    max: number;
   };
 }
 
@@ -175,54 +164,33 @@ export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> =
   beginner: {
     // Loose rules - low absolute loads, fast recovery
     allowHeavySquatAndDeadliftSameDay: true,  // Fine at low weights
-    allowHeavyLightSameDay: true,
     maxSetsPerMusclePerSession: 12,
-    minRestDaysBetweenHeavySamePattern: 1,
     suggestedFrequency: {
       squat: 3,    // More practice, technique acquisition
       bench: 3,
       deadlift: 2,
-    },
-    heavyThreshold: 0.85,  // 85%+ is "heavy"
-    volumeRange: {
-      min: 10,
-      max: 20,
     },
   },
 
   intermediate: {
     // Moderate rules - flag concerns but don't block
     allowHeavySquatAndDeadliftSameDay: false,  // Flag this combination
-    allowHeavyLightSameDay: true,              // Heavy squat + light RDL is fine
     maxSetsPerMusclePerSession: 10,
-    minRestDaysBetweenHeavySamePattern: 1,
     suggestedFrequency: {
       squat: 2,
       bench: 3,    // Upper body recovers faster
       deadlift: 1.5,
-    },
-    heavyThreshold: 0.80,  // 80%+ is "heavy"
-    volumeRange: {
-      min: 12,
-      max: 22,
     },
   },
 
   advanced: {
     // Strict rules - high absolute loads require more recovery
     allowHeavySquatAndDeadliftSameDay: false,
-    allowHeavyLightSameDay: true,
     maxSetsPerMusclePerSession: 8,
-    minRestDaysBetweenHeavySamePattern: 2,
     suggestedFrequency: {
       squat: 2,
       bench: 2,
       deadlift: 1,
-    },
-    heavyThreshold: 0.75,  // 75%+ is "heavy" for advanced (higher absolute loads)
-    volumeRange: {
-      min: 12,
-      max: 20,  // Lower ceiling - harder to recover from
     },
   },
 };
