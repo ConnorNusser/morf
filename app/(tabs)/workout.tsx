@@ -18,7 +18,7 @@ import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -125,6 +125,10 @@ export default function WorkoutScreen() {
   const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {
     prefillWorkout(w);
   }, [prefillWorkout]);
+
+  // Stable structured workout for the finish modal (rebuilt only when the draft
+  // changes) — an inline object would re-fire the modal's parse effect every render.
+  const finishWorkout = useMemo(() => draftToParsedWorkout(draft), [draft]);
 
   // Quick start: enter the active empty workout, then open the composer.
   const handleQuickStart = useCallback(() => {
@@ -486,7 +490,7 @@ export default function WorkoutScreen() {
       <WorkoutFinishModal
         visible={showFinishModal}
         noteText={noteText}
-        prebuiltWorkout={draftToParsedWorkout(draft)}
+        prebuiltWorkout={finishWorkout}
         duration={elapsedTime}
         weightUnit={weightUnit}
         onSave={handleSaveWorkout}
