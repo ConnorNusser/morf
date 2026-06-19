@@ -10,4 +10,8 @@ module.exports = {
   // for the interactive buttons (iOS 17+).
   frameworks: ['SwiftUI', 'ActivityKit', 'WidgetKit', 'AppIntents'],
   deploymentTarget: '16.2',
+  // NOTE: the Morf mark lives in this target's committed Assets.xcassets
+  // (MorfLogo.imageset) → Image("MorfLogo"). We don't use apple-targets' `images`
+  // config because its mod breaks incremental prebuild (removeFromProject); the
+  // file-system-synchronized target group bundles the catalog automatically.
 };

@@ -4,6 +4,7 @@ import WidgetKit
 
 // Modern emerald accent (swapped from indigo). Easy to retune in one place.
 private let kAccent = Color(red: 0.16, green: 0.80, blue: 0.52) // ~#29CC85
+private let kBlue = Color(red: 0.20, green: 0.52, blue: 1.0)    // modern blue CTA ~#3385FF
 
 private extension View {
   // Crisp rolling-digit update. numericText is iOS 17+ inside app extensions, so
@@ -62,7 +63,7 @@ struct LockScreen: View {
   }
 }
 
-// "Album art" style tile.
+// "Album art" style tile — an SF Symbol on an accent gradient (e.g. the rest timer).
 @available(iOS 16.2, *)
 private struct ArtTile: View {
   let symbol: String
@@ -71,6 +72,16 @@ private struct ArtTile: View {
       .fill(LinearGradient(colors: [kAccent, kAccent.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
       .frame(width: 38, height: 38)
       .overlay(Image(systemName: symbol).font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
+  }
+}
+
+// The Morf mark as the set card's "album art".
+@available(iOS 16.2, *)
+private struct LogoTile: View {
+  var body: some View {
+    Image("MorfLogo").resizable().aspectRatio(contentMode: .fill)
+      .frame(width: 38, height: 38)
+      .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
   }
 }
 
@@ -95,7 +106,7 @@ struct SetCard: View {
   var body: some View {
     VStack(spacing: 9) {
       HStack(spacing: 10) {
-        ArtTile(symbol: "dumbbell.fill")
+        LogoTile()
         VStack(alignment: .leading, spacing: 1) {
           Text(s.setExerciseName ?? "Exercise")
             .font(.system(.headline, design: .rounded).weight(.bold))
@@ -160,9 +171,9 @@ struct SetCard: View {
           Image(systemName: "checkmark.circle.fill")
           Text("Complete set").font(.system(.subheadline, design: .rounded).weight(.semibold))
         }
-        .foregroundStyle(.black)
+        .foregroundStyle(.white)
         .frame(maxWidth: .infinity).padding(.vertical, 9)
-        .background(kAccent, in: Capsule())
+        .background(kBlue, in: Capsule())
       }.buttonStyle(.plain)
     } else {
       Text("Open Morf to log this set").font(.footnote).foregroundStyle(.white.opacity(0.5))
