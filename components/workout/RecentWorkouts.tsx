@@ -4,7 +4,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { CustomExercise, GeneratedWorkout, WeightUnit } from '@/types';
+import { CustomExercise, GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -12,12 +12,10 @@ import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-
 interface RecentWorkoutsProps {
   workouts: GeneratedWorkout[];
   customExercises: CustomExercise[];
-  weightUnit: WeightUnit;
   onPick: (w: GeneratedWorkout) => void;
   onQuickStart: () => void;
   onGenerate: () => void;
   onImport: () => void;
-  onSetUnit: (u: WeightUnit) => void;
 }
 
 function dateLabel(value: Date | string): string {
@@ -32,26 +30,11 @@ function summarize(w: GeneratedWorkout, custom: CustomExercise[]): string {
   return extra > 0 ? `${shown} +${extra}` : shown;
 }
 
-export default function RecentWorkouts({ workouts, customExercises, weightUnit, onPick, onQuickStart, onGenerate, onImport, onSetUnit }: RecentWorkoutsProps) {
+export default function RecentWorkouts({ workouts, customExercises, onPick, onQuickStart, onGenerate, onImport }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator>
-      {/* Units toggle */}
-      <RNView style={styles.topRow}>
-        <RNView style={[styles.segment, { borderColor: colors.border }]}>
-          {(['lbs', 'kg'] as const).map(u => (
-            <TouchableOpacity
-              key={u}
-              style={[styles.segmentBtn, weightUnit === u && { backgroundColor: colors.primary }]}
-              onPress={() => { playHapticFeedback('selection', false); onSetUnit(u); }}
-            >
-              <Text style={[styles.segmentText, { color: weightUnit === u ? '#fff' : colors.text + '99' }]}>{u}</Text>
-            </TouchableOpacity>
-          ))}
-        </RNView>
-      </RNView>
-
       {/* Generate / Import */}
       <RNView style={styles.actionRow}>
         <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>
@@ -73,36 +56,35 @@ export default function RecentWorkouts({ workouts, customExercises, weightUnit, 
         <Text style={[styles.quickStartText, { fontFamily: currentTheme.fonts.semiBold }]}>Quick start — empty workout</Text>
       </TouchableOpacity>
 
-      <Text style={[styles.title, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.semiBold }]}>
+      <Text style={[styles.title, { color: colors.text + '99', fontFamily: currentTheme.fonts.semiBold }]}>
         Recent workouts
       </Text>
-      {workouts.map(w => (
-        <TouchableOpacity
-          key={w.id}
-          style={[styles.row, { borderColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }]}
-          activeOpacity={0.7}
-          onPress={() => { playHapticFeedback('medium', false); onPick(w); }}
-        >
-          <RNView style={styles.rowText}>
-            <Text style={[styles.date, { color: currentTheme.colors.text }]}>{dateLabel(w.createdAt)}</Text>
-            <Text style={[styles.summary, { color: currentTheme.colors.text + '99' }]} numberOfLines={1}>
-              {summarize(w, customExercises) || 'Workout'}
-            </Text>
-          </RNView>
-          <Ionicons name="repeat" size={18} color={currentTheme.colors.primary} />
-        </TouchableOpacity>
-      ))}
+      {/* One card that grows downward, rows split by hairlines */}
+      <RNView style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {workouts.map((w, i) => (
+          <TouchableOpacity
+            key={w.id}
+            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+            activeOpacity={0.6}
+            onPress={() => { playHapticFeedback('medium', false); onPick(w); }}
+          >
+            <RNView style={styles.rowText}>
+              <Text style={[styles.date, { color: colors.text }]}>{dateLabel(w.createdAt)}</Text>
+              <Text style={[styles.summary, { color: colors.text + '99' }]} numberOfLines={1}>
+                {summarize(w, customExercises) || 'Workout'}
+              </Text>
+            </RNView>
+            <Ionicons name="repeat" size={18} color={colors.primary} />
+          </TouchableOpacity>
+        ))}
+      </RNView>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: 'transparent' },
-  content: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24, gap: 8 },
-  topRow: { flexDirection: 'row', justifyContent: 'flex-end', paddingBottom: 2 },
-  segment: { flexDirection: 'row', borderWidth: 1, borderRadius: 18, overflow: 'hidden' },
-  segmentBtn: { paddingHorizontal: 16, paddingVertical: 6, minWidth: 48, alignItems: 'center' },
-  segmentText: { fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.3 },
+  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 8 },
   actionRow: { flexDirection: 'row', gap: 10 },
   secondaryBtn: {
     flex: 1,
@@ -125,14 +107,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   quickStartText: { color: '#fff', fontSize: 15 },
-  title: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 4, paddingBottom: 2 },
+  title: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
+  card: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
   rowText: { flex: 1, gap: 2 },
   date: { fontSize: 15 },

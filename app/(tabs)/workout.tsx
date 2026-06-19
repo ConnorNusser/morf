@@ -22,7 +22,6 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
-  Modal,
   Platform,
   StyleSheet,
   TouchableOpacity,
@@ -99,9 +98,8 @@ export default function WorkoutScreen() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
-  // Discard the current workout (from the overflow menu), with a confirm.
+  // Discard the current workout (from the Cancel button), with a confirm.
   const handleDiscard = useCallback(() => {
-    setShowActions(false);
     showAlert({
       title: 'Discard workout?',
       message: "This clears everything you've logged in this session. It can't be undone.",
@@ -164,7 +162,6 @@ export default function WorkoutScreen() {
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showActions, setShowActions] = useState(false);
   // Which set field the custom number pad is editing.
   const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
   const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
@@ -236,18 +233,11 @@ export default function WorkoutScreen() {
         <TutorialTarget id="workout-header-buttons">
           <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
-              {hasWorkoutStarted ? (
+              {hasWorkoutStarted && (
                 <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
                   <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99' }]}>
                     Cancel
                   </Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={[styles.circleBtn, { backgroundColor: currentTheme.colors.text + '10' }]}
-                  onPress={() => setShowActions(true)}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={20} color={currentTheme.colors.text} />
                 </TouchableOpacity>
               )}
             </View>
@@ -288,7 +278,7 @@ export default function WorkoutScreen() {
             </View>
 
             <View style={[styles.headerSide, { alignItems: 'flex-end', backgroundColor: 'transparent' }]}>
-              {hasWorkoutStarted && (
+              {hasWorkoutStarted ? (
                 <TouchableOpacity
                   style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
                   onPress={handleFinishPress}
@@ -297,6 +287,18 @@ export default function WorkoutScreen() {
                     Finish
                   </Text>
                 </TouchableOpacity>
+              ) : (
+                <RNView style={[styles.unitSegment, { borderColor: currentTheme.colors.border }]}>
+                  {(['lbs', 'kg'] as const).map(u => (
+                    <TouchableOpacity
+                      key={u}
+                      style={[styles.unitSegmentBtn, weightUnit === u && { backgroundColor: currentTheme.colors.primary }]}
+                      onPress={() => { playHapticFeedback('selection', false); setWeightUnitPref(u); }}
+                    >
+                      <Text style={[styles.unitSegmentText, { color: weightUnit === u ? '#fff' : currentTheme.colors.text + '99' }]}>{u}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </RNView>
               )}
             </View>
           </View>
@@ -378,12 +380,10 @@ export default function WorkoutScreen() {
               <RecentWorkouts
                 workouts={recentWorkouts}
                 customExercises={customExercises}
-                weightUnit={weightUnit}
                 onPick={handlePickRecent}
                 onQuickStart={openComposer}
                 onGenerate={() => setShowPlanBuilder(true)}
                 onImport={() => setShowRoutineImport(true)}
-                onSetUnit={setWeightUnitPref}
               />
             ) : (
               <RNView style={styles.empty}>
@@ -493,32 +493,6 @@ export default function WorkoutScreen() {
         visible={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
-
-      {/* Overflow actions — the utilities that used to clutter the header */}
-      <Modal visible={showActions} transparent animationType="fade" onRequestClose={() => setShowActions(false)}>
-        <TouchableOpacity style={styles.actionsBackdrop} activeOpacity={1} onPress={() => setShowActions(false)}>
-          <RNView style={[styles.actionsSheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-            {[
-              { icon: 'sparkles' as const, label: 'Generate a plan', run: () => setShowPlanBuilder(true) },
-              { icon: 'download-outline' as const, label: 'Import a routine', run: () => setShowRoutineImport(true) },
-              { icon: 'help-circle-outline' as const, label: 'How logging works', run: () => setShowHelpModal(true) },
-            ].map((a, i) => (
-              <TouchableOpacity
-                key={a.label}
-                style={[styles.actionRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: currentTheme.colors.border }]}
-                onPress={() => {
-                  playHapticFeedback('light', false);
-                  setShowActions(false);
-                  a.run();
-                }}
-              >
-                <Ionicons name={a.icon} size={20} color={currentTheme.colors.primary} />
-                <Text style={[styles.actionLabel, { color: currentTheme.colors.text }]}>{a.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </RNView>
-        </TouchableOpacity>
-      </Modal>
 
       {/* Custom number pad for editing a set's weight / reps */}
       {(() => {
@@ -692,6 +666,22 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 15,
+  },
+  unitSegment: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  unitSegmentBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  unitSegmentText: {
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   headerCenter: {
     flex: 1,
