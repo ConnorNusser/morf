@@ -1,12 +1,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
+import { endLiveActivity, startLiveActivity, updateLiveActivity } from '@/lib/liveActivity/liveActivity';
+
 const REST_TIMER_KEY = 'activeRestTimer';
 
 interface RestTimerData {
   startTime: string; // ISO string
   duration: number; // seconds
 }
+
+// Optional context shown on the Lock Screen Live Activity for this rest.
+interface RestContext {
+  workoutTitle?: string;
+  exerciseName?: string;
+  nextLabel?: string;
+}
+
+// Epoch ms when a rest ends — the Live Activity self-ticks down to this.
+const restEndTime = (d: RestTimerData): number => new Date(d.startTime).getTime() + d.duration * 1000;
 
 export const useRestTimer = () => {
   const [isResting, setIsResting] = useState(false);
@@ -76,7 +88,7 @@ export const useRestTimer = () => {
     }
   };
 
-  const startTimer = async (duration: number = 90) => {
+  const startTimer = async (duration: number = 90, context?: RestContext) => {
     try {
       const timerData: RestTimerData = {
         startTime: new Date().toISOString(),
@@ -86,6 +98,18 @@ export const useRestTimer = () => {
       await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(timerData));
       setIsResting(true);
       setRemainingTime(duration);
+
+      // Surface the countdown on the Lock Screen / Dynamic Island. No-op until
+      // the native target is built; self-ticks to endTime without further updates.
+      startLiveActivity({
+        mode: 'rest',
+        workoutTitle: context?.workoutTitle ?? 'Workout',
+        rest: {
+          endTime: restEndTime(timerData),
+          exerciseName: context?.exerciseName ?? 'Rest',
+          nextLabel: context?.nextLabel,
+        },
+      });
     } catch (error) {
       console.error('Error starting rest timer:', error);
     }
@@ -116,6 +140,13 @@ export const useRestTimer = () => {
         await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(newTimerData));
         setRemainingTime(newRemaining);
 
+        // Push the new end time to the Live Activity so its countdown re-syncs.
+        updateLiveActivity({
+          mode: 'rest',
+          workoutTitle: 'Workout',
+          rest: { endTime: restEndTime(newTimerData), exerciseName: 'Rest' },
+        });
+
         // If we subtracted all time, end the timer
         if (newRemaining <= 0) {
           await endTimer();
@@ -130,6 +161,7 @@ export const useRestTimer = () => {
     await clearTimer();
     setIsResting(false);
     setRemainingTime(0);
+    endLiveActivity();
   };
 
   const clearTimer = async () => {

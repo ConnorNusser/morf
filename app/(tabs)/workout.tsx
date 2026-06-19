@@ -17,9 +17,19 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
+import {
+  endLiveActivity,
+  isLiveActivitySupported,
+  pullPendingActions,
+  saveWorkoutSnapshot,
+  startLiveActivity,
+  updateLiveActivity,
+} from '@/lib/liveActivity/liveActivity';
+import type { LiveActivityContent, PendingAction, SnapshotSet } from '@/lib/liveActivity/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AppState,
   Keyboard,
   KeyboardAvoidingView,
   LayoutAnimation,
@@ -120,6 +130,86 @@ export default function WorkoutScreen() {
     skipTimer: skipRestTimer,
     addTime: addRestTime,
   } = useRestTimer();
+
+  // ── Live Activity: the current-set card (Lock Screen / Dynamic Island) ──────
+  // Flat, ordered list of every working set — drives the "current set" shown and
+  // the native "complete → next not-done set" advance (mirrored to the App Group
+  // so the Lock Screen can jump exercises with the app suspended).
+  const snapshot: SnapshotSet[] = useMemo(
+    () =>
+      draft.flatMap(ex =>
+        ex.sets.map((s, i) => ({
+          exerciseKey: ex.key,
+          exerciseName: ex.name || 'Exercise',
+          setNumber: i + 1,
+          totalSets: ex.sets.length,
+          reps: s.reps,
+          weight: s.weight,
+          unit: s.unit,
+          done: !!s.done,
+        })),
+      ),
+    [draft],
+  );
+  const currentSet = useMemo(() => snapshot.find(s => !s.done) ?? null, [snapshot]);
+
+  // We own the SET-mode activity; useRestTimer owns REST-mode. While resting it
+  // takes over the single activity, so we stand down and re-publish the current
+  // set once rest ends.
+  const setActivityLive = useRef(false);
+  const lastSetKey = useRef('');
+  useEffect(() => {
+    if (!isLiveActivitySupported()) return;
+    if (isResting) { setActivityLive.current = false; lastSetKey.current = ''; return; }
+
+    if (!hasWorkoutStarted || !currentSet) {
+      if (setActivityLive.current) { endLiveActivity(); setActivityLive.current = false; }
+      lastSetKey.current = '';
+      return;
+    }
+
+    const content: LiveActivityContent = {
+      mode: 'set',
+      workoutTitle: 'Workout',
+      set: {
+        exerciseKey: currentSet.exerciseKey,
+        exerciseName: currentSet.exerciseName,
+        setNumber: currentSet.setNumber,
+        totalSets: currentSet.totalSets,
+        reps: currentSet.reps,
+        weight: currentSet.weight,
+        unit: currentSet.unit,
+      },
+    };
+    saveWorkoutSnapshot(snapshot); // keep the App Group fresh for the intents
+    const key = JSON.stringify(content);
+    if (setActivityLive.current && key === lastSetKey.current) return;
+    lastSetKey.current = key;
+    if (setActivityLive.current) updateLiveActivity(content);
+    else { setActivityLive.current = true; startLiveActivity(content); }
+  }, [isResting, hasWorkoutStarted, currentSet, snapshot]);
+
+  // Fold Lock-Screen taps (queued by the App Intents) back into the draft when we
+  // return to the foreground.
+  const applyPending = useCallback((a: PendingAction) => {
+    if (a.type === 'completeSet') editSet(a.exerciseKey, a.setIndex, { done: true });
+    else if (a.type === 'adjustReps') editSet(a.exerciseKey, a.setIndex, { reps: a.reps });
+    else if (a.type === 'adjustWeight') editSet(a.exerciseKey, a.setIndex, { weight: a.weight });
+    else if (a.type === 'addRest') addRestTime(a.seconds);
+    else if (a.type === 'skipRest') skipRestTimer();
+    else if (a.type === 'startRest') {
+      // A set was completed on the Lock Screen — resume its rest with the time
+      // that's actually left (the countdown started when they tapped).
+      const remaining = Math.round((a.endTime - Date.now()) / 1000);
+      if (remaining > 1) startRestTimer(remaining);
+    }
+  }, [editSet, addRestTime, skipRestTimer, startRestTimer]);
+  useEffect(() => {
+    const drain = async () => { (await pullPendingActions()).forEach(applyPending); };
+    drain();
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') drain(); });
+    return () => sub.remove();
+  }, [applyPending]);
 
   // Pick a recent workout to repeat/edit.
   const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {

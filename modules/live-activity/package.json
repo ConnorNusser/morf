@@ -1,0 +1,7 @@
+{
+  "name": "live-activity",
+  "version": "1.0.0",
+  "description": "Drive iOS Live Activities (rest timer + interactive set logging) from JS.",
+  "main": "index.ts",
+  "private": true
+}
