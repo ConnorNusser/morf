@@ -25,8 +25,7 @@ interface PreviewLine {
   summary: string;
 }
 
-function buildPreview(text: string, unit: WeightUnit): PreviewLine[] {
-  const parsed = workoutNoteParser.parseLocal(text, unit);
+function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string; sets: ParsedSet[] }[] }, unit: WeightUnit): PreviewLine[] {
   return parsed.exercises
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
@@ -35,12 +34,20 @@ function buildPreview(text: string, unit: WeightUnit): PreviewLine[] {
     }));
 }
 
+// The local parse is "good enough" only if it recognized the exercise and got
+// real sets; otherwise we let the AI interpret it (abbreviations like "DL").
+function localIsReasonable(parsed: { exercises: { matchedExerciseId?: string; sets: ParsedSet[] }[] }): boolean {
+  return parsed.exercises.length > 0 &&
+    parsed.exercises.every(ex => !!ex.matchedExerciseId && ex.sets.length > 0 && ex.sets.every(s => s.reps > 0));
+}
+
 export default function PredictiveCard({ text, weightUnit, onCommit }: PredictiveCardProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const [lines, setLines] = useState<PreviewLine[]>([]);
   const [loading, setLoading] = useState(false);
   const pulse = useRef(new Animated.Value(0.5)).current;
+  const reqId = useRef(0);
 
   useEffect(() => {
     if (!text.trim()) {
@@ -49,9 +56,23 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       return;
     }
     setLoading(true); // typing → show the skeleton until we settle
-    const handle = setTimeout(() => {
-      setLines(buildPreview(text, weightUnit));
-      setLoading(false);
+    const id = ++reqId.current;
+    const handle = setTimeout(async () => {
+      const local = workoutNoteParser.parseLocal(text, weightUnit);
+      if (localIsReasonable(local)) {
+        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
+        return;
+      }
+      // Local couldn't recognize it (e.g. "DL") — let the AI interpret it.
+      try {
+        const ai = await workoutNoteParser.parseWorkoutNote(text, weightUnit);
+        if (id === reqId.current) {
+          setLines(toLines(ai.exercises.length > 0 ? ai : local, weightUnit));
+          setLoading(false);
+        }
+      } catch {
+        if (id === reqId.current) { setLines(toLines(local, weightUnit)); setLoading(false); }
+      }
     }, PAUSE_MS);
     return () => clearTimeout(handle);
   }, [text, weightUnit]);

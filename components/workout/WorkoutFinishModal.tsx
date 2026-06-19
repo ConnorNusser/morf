@@ -41,6 +41,7 @@ type ModalState = 'parsing' | 'confirmation' | 'celebration';
 interface WorkoutFinishModalProps {
   visible: boolean;
   noteText: string;
+  prebuiltWorkout?: ParsedWorkout | null; // structured draft → skip the AI parse
   duration?: number; // in seconds (optional for preview mode)
   weightUnit?: WeightUnit;
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
@@ -65,6 +66,7 @@ const Logo = ({ size = 80 }: { size?: number }) => (
 const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   visible,
   noteText,
+  prebuiltWorkout,
   duration = 0,
   weightUnit = 'lbs',
   onSave,
@@ -119,8 +121,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
+          // The structured draft is already the workout — use it directly and
+          // skip the AI parse. Only fall back to parsing raw text if no draft.
           const [parsed, lifts, profile] = await Promise.all([
-            workoutNoteParser.parseWorkoutNote(noteText),
+            prebuiltWorkout ?? workoutNoteParser.parseWorkoutNote(noteText),
             userService.getAllFeaturedLifts(),
             userService.getUserProfileOrDefault(),
           ]);
@@ -136,7 +140,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       parseWorkout();
     }
-  }, [visible, noteText, isPreviewMode]);
+  }, [visible, noteText, isPreviewMode, prebuiltWorkout]);
 
   // Handle save
   const handleSave = useCallback(async () => {

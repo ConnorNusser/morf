@@ -6,6 +6,7 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
+import { draftToParsedWorkout } from '@/lib/workout/workoutDraft';
 import RecentWorkouts from '@/components/workout/RecentWorkouts';
 import PredictiveCard from '@/components/workout/PredictiveCard';
 import NumberPad from '@/components/workout/NumberPad';
@@ -485,6 +486,7 @@ export default function WorkoutScreen() {
       <WorkoutFinishModal
         visible={showFinishModal}
         noteText={noteText}
+        prebuiltWorkout={draftToParsedWorkout(draft)}
         duration={elapsedTime}
         weightUnit={weightUnit}
         onSave={handleSaveWorkout}

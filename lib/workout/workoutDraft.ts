@@ -114,6 +114,20 @@ export function totalSets(draft: WorkoutDraft): number {
   return draft.reduce((n, e) => n + e.sets.length, 0);
 }
 
+/** Convert the draft straight to a ParsedWorkout for saving — no AI/parse pass.
+ *  The draft already is the structured workout, so finishing is deterministic. */
+export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
+  const exercises: ParsedExercise[] = draft
+    .filter(ex => ex.sets.length > 0)
+    .map(ex => ({
+      name: ex.name,
+      matchedExerciseId: ex.exerciseId,
+      isCustom: !ex.exerciseId,
+      sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit })),
+    }));
+  return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
+}
+
 /** Total volume (Σ weight × reps) across the draft, in the preferred unit. */
 export function totalVolume(draft: WorkoutDraft): number {
   return draft.reduce((sum, e) => sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0);
