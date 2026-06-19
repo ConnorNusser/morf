@@ -19,6 +19,7 @@ import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKO
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
 import { classifyEquipment } from '@/lib/workout/equipmentProfile';
+import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 import { buildDeterministicProgram } from '@/lib/workout/deterministicRoutineBuilder';
 
 export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
@@ -364,8 +365,7 @@ class AIRoutineGeneratorService {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const gender = userProfile?.gender || 'male';
     const bodyWeight = userProfile?.weight?.value || 150;
-    const userEquipment = userProfile?.equipmentFilter?.includedEquipment ||
-      ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'] as Equipment[];
+    const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ALL_EQUIPMENT;
 
     // Calculate user's strength level
     const strengthLevel = this.calculateStrengthLevel(workoutHistory, userProfile);
@@ -378,17 +378,7 @@ class AIRoutineGeneratorService {
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
 
-    // Format equipment
-    const equipmentDisplayMap: Record<Equipment, string> = {
-      barbell: 'Barbell',
-      dumbbell: 'Dumbbells',
-      machine: 'Machines',
-      'smith-machine': 'Smith Machine',
-      cable: 'Cables',
-      kettlebell: 'Kettlebell',
-      bodyweight: 'Bodyweight',
-    };
-    const userEquipmentDisplay = userEquipment.map(e => equipmentDisplayMap[e]).join(', ');
+    const userEquipmentDisplay = formatEquipmentList(userEquipment);
 
     // Build exercise history summary with names, PRs, and frequency
     const recentWorkouts = workoutHistory.slice(-20);

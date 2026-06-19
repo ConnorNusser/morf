@@ -11,8 +11,7 @@
  */
 
 import { Equipment } from '@/types';
-
-const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
+import { ALL_EQUIPMENT } from './equipment';
 
 export interface EquipmentProfile {
   available: Equipment[];

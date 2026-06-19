@@ -5,6 +5,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
+import { ALL_EQUIPMENT } from '@/lib/workout/equipment';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -22,8 +23,6 @@ import EquipmentFilterInput from './inputs/EquipmentFilterInput';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
-
-const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
 
 interface OnboardingModalProps {
   visible: boolean;

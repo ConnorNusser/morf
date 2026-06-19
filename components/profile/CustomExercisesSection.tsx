@@ -6,6 +6,7 @@ import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
+import { ALL_EQUIPMENT, EQUIPMENT_LABELS, formatEquipmentLabel } from '@/lib/workout/equipment';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { CustomExercise, Equipment } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,28 +29,10 @@ interface CustomExercisesSectionProps {
   onExercisesUpdate?: () => Promise<void>;
 }
 
-const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
-  { value: 'barbell', label: 'Barbell' },
-  { value: 'dumbbell', label: 'Dumbbell' },
-  { value: 'machine', label: 'Machine' },
-  { value: 'smith-machine', label: 'Smith Machine' },
-  { value: 'cable', label: 'Cable' },
-  { value: 'kettlebell', label: 'Kettlebell' },
-  { value: 'bodyweight', label: 'Bodyweight' },
-];
-
-const formatEquipmentLabel = (equipment: Equipment): string => {
-  switch (equipment) {
-    case 'barbell': return 'Barbell';
-    case 'dumbbell': return 'Dumbbell';
-    case 'machine': return 'Machine';
-    case 'smith-machine': return 'Smith Machine';
-    case 'cable': return 'Cable';
-    case 'kettlebell': return 'Kettlebell';
-    case 'bodyweight': return 'Bodyweight';
-    default: return equipment;
-  }
-};
+const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = ALL_EQUIPMENT.map(value => ({
+  value,
+  label: EQUIPMENT_LABELS[value],
+}));
 
 const generateFullExerciseName = (baseName: string, equipment: Equipment): string => {
   const trimmedName = baseName.trim();

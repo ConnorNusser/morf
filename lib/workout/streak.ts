@@ -11,16 +11,7 @@
 // All week math steps with setDate (not raw millisecond arithmetic) so it stays
 // correct across daylight-saving boundaries, and `now` is injectable for tests.
 import { GeneratedWorkout } from '@/types';
-import { dateKey } from '@/lib/utils/utils';
-
-/** Local Monday (00:00) of the week containing `date`. */
-export function weekStart(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const fromMonday = (d.getDay() + 6) % 7; // 0 = Monday … 6 = Sunday
-  d.setDate(d.getDate() - fromMonday);
-  return d;
-}
+import { dateKey, weekStart } from '@/lib/utils/utils';
 
 function parseDayKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
