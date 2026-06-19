@@ -168,12 +168,13 @@ const styles = StyleSheet.create({
   },
   containerAuto: {
     flex: 0,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 0,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    lineHeight: 22,
+    lineHeight: 20,
     minHeight: 200,
   },
   inputCompact: {
@@ -181,8 +182,10 @@ const styles = StyleSheet.create({
   },
   inputAuto: {
     flex: 0,
-    minHeight: 38,
+    minHeight: 40,
     maxHeight: 120,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
 });
 
