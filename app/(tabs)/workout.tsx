@@ -95,19 +95,22 @@ export default function WorkoutScreen() {
     setComposerOpen(true);
     setTimeout(() => noteInputRef.current?.focus(), 60);
   }, []);
-  // Collapse the tab-bar clearance under the composer while the keyboard is up,
-  // and treat the keyboard going away (scroll-to-dismiss, tap-outside, swipe-down)
-  // as the signal to collapse the composer. The typed text lives in `composerText`
-  // and is left untouched, so reopening picks up exactly where you left off.
+  // The composer collapses when the input loses focus — scrolling the workout,
+  // tapping outside, or swiping the keyboard down all blur it. We drive this off
+  // the input's own onBlur (see handleComposerBlur) rather than global keyboard
+  // events: in the simulator (and during the open animation) a phantom
+  // keyboardWillHide can fire even though the field is still focused, which would
+  // slam the composer shut the instant you open it. The typed text lives in
+  // `composerText` and is left untouched, so reopening resumes where you left off.
+  const handleComposerBlur = useCallback(() => setComposerOpen(false), []);
+
+  // Collapse the tab-bar clearance under the composer while the keyboard is up.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   useEffect(() => {
     const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const show = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener(hideEvt, () => {
-      setKeyboardVisible(false);
-      setComposerOpen(false);
-    });
+    const hide = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
     return () => { show.remove(); hide.remove(); };
   }, []);
 
@@ -539,6 +542,7 @@ export default function WorkoutScreen() {
                       ref={noteInputRef}
                       value={composerText}
                       onChangeText={setComposerText}
+                      onBlur={handleComposerBlur}
                       autoGrow
                       placeholder="Log a set — e.g. Bench 135×8"
                     />
