@@ -2,7 +2,7 @@
 // visual. Pure + clock-injectable. Columns are Monday-start weeks; each cell is
 // a day, flagged trained with a relative-volume intensity (0..1).
 import { GeneratedWorkout } from '@/types';
-import { dateKey } from '@/lib/utils/utils';
+import { dateKey, weekStart } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 
@@ -54,14 +54,6 @@ export function heatLevel(intensity: number): number {
   return 3;
 }
 
-
-function startOfWeekMonday(d: Date): Date {
-  const s = new Date(d);
-  s.setHours(0, 0, 0, 0);
-  s.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // back to Monday
-  return s;
-}
-
 export function computeTrainingHeatmap(
   workouts: GeneratedWorkout[],
   weeks = 12,
@@ -89,7 +81,7 @@ export function computeTrainingHeatmap(
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const todayKey = dateKey(today);
-  const firstMonday = startOfWeekMonday(today);
+  const firstMonday = weekStart(today);
   firstMonday.setDate(firstMonday.getDate() - (weeks - 1) * 7);
 
   // Max daily volume in the rendered range, for normalization.

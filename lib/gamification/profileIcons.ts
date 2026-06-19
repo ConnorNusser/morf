@@ -30,7 +30,7 @@ export const PROFILE_ICONS: ProfileIconDef[] = [
   { id: 'rocket', icon: 'rocket', label: 'Rocket', achievementId: 'volume-5m', hint: 'Lift 5M total' },
 ];
 
-export const DEFAULT_PROFILE_ICON_ID = 'barbell';
+const DEFAULT_PROFILE_ICON_ID = 'barbell';
 
 // What's needed to evaluate unlocks — which achievements are unlocked.
 export interface IconUnlockContext {

@@ -1,5 +1,4 @@
 import { Text, View } from '@/components/Themed';
-import { TutorialTarget } from '@/components/tutorial';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
@@ -349,8 +348,7 @@ export default function WorkoutScreen() {
         keyboardVerticalOffset={0}
       >
         {/* Header — overflow (utilities) · timer/title · Finish */}
-        <TutorialTarget id="workout-header-buttons">
-          <View style={[styles.header, { backgroundColor: 'transparent' }]}>
+        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
             <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
               {hasWorkoutStarted && (
                 <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
@@ -421,7 +419,6 @@ export default function WorkoutScreen() {
               )}
             </View>
           </View>
-        </TutorialTarget>
 
         {/* Expanded Rest Timer */}
         {isTimerExpanded && hasWorkoutStarted && (
@@ -540,7 +537,7 @@ export default function WorkoutScreen() {
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                  <TutorialTarget id="workout-note-input" style={layout.flex1}>
+                  <RNView style={layout.flex1}>
                     <WorkoutNoteInput
                       ref={noteInputRef}
                       value={composerText}
@@ -549,7 +546,7 @@ export default function WorkoutScreen() {
                       autoGrow
                       placeholder="Log a set — e.g. Bench 135×8"
                     />
-                  </TutorialTarget>
+                  </RNView>
                 </RNView>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}

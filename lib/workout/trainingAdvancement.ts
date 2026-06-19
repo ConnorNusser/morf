@@ -13,14 +13,17 @@ import {
   GeneratedWorkout,
   TrainingAdvancement,
   TrainingAdvancementResult,
-  UserProfile
+  UserProfile,
+  convertWeight
 } from '@/types';
 import {
   calculateStrengthPercentile,
   MALE_STANDARDS,
-  FEMALE_STANDARDS
+  FEMALE_STANDARDS,
+  OneRMCalculator
 } from '@/lib/data/strengthStandards';
 import { analyticsService } from '@/lib/services/analytics';
+import { bestCompletedSet, completedWorkingSets } from './setStats';
 import { getWorkoutById } from './workouts';
 
 // ===== TRAINING ADVANCEMENT DETERMINATION =====
@@ -76,7 +79,9 @@ function calculatePercentiles(
   userProfile: UserProfile
 ): number[] {
   const gender = userProfile.gender || 'male';
-  const bodyWeight = userProfile.weight.value;
+  // Standards compare an estimated 1RM against bodyweight as a ratio, so both must
+  // be in the same unit — normalize to lbs (matching every other percentile caller).
+  const bodyWeightLbs = convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs');
   const standards = gender === 'male' ? MALE_STANDARDS : FEMALE_STANDARDS;
   const percentiles: number[] = [];
 
@@ -84,14 +89,15 @@ function calculatePercentiles(
   for (const workout of workoutHistory.slice(-20)) {
     for (const ex of workout.exercises) {
       if (standards[ex.id]) {
-        const bestSet = ex.completedSets?.reduce((best, current) =>
-          (current.weight > best.weight) ? current : best,
-          { weight: 0, reps: 0 }
-        );
-        if (bestSet && bestSet.weight > 0) {
+        const bestSet = bestCompletedSet(completedWorkingSets(ex.completedSets), 'e1rm');
+        if (bestSet) {
+          const estimated1RMLbs = OneRMCalculator.estimate(
+            convertWeight(bestSet.weight, bestSet.unit, 'lbs'),
+            bestSet.reps
+          );
           const percentile = calculateStrengthPercentile(
-            bestSet.weight,
-            bodyWeight,
+            estimated1RMLbs,
+            bodyWeightLbs,
             gender,
             ex.id
           );
@@ -137,24 +143,13 @@ function yearsToAdvancement(years: number): TrainingAdvancement {
 export interface ProgrammingConfig {
   // Fatigue management
   allowHeavySquatAndDeadliftSameDay: boolean;
-  allowHeavyLightSameDay: boolean;
   maxSetsPerMusclePerSession: number;
-  minRestDaysBetweenHeavySamePattern: number;
 
   // Frequency recommendations
   suggestedFrequency: {
     squat: number;
     bench: number;
     deadlift: number;
-  };
-
-  // Intensity thresholds
-  heavyThreshold: number;  // % of 1RM considered "heavy"
-
-  // Volume landmarks (sets per muscle per week)
-  volumeRange: {
-    min: number;
-    max: number;
   };
 }
 
@@ -175,54 +170,33 @@ export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> =
   beginner: {
     // Loose rules - low absolute loads, fast recovery
     allowHeavySquatAndDeadliftSameDay: true,  // Fine at low weights
-    allowHeavyLightSameDay: true,
     maxSetsPerMusclePerSession: 12,
-    minRestDaysBetweenHeavySamePattern: 1,
     suggestedFrequency: {
       squat: 3,    // More practice, technique acquisition
       bench: 3,
       deadlift: 2,
-    },
-    heavyThreshold: 0.85,  // 85%+ is "heavy"
-    volumeRange: {
-      min: 10,
-      max: 20,
     },
   },
 
   intermediate: {
     // Moderate rules - flag concerns but don't block
     allowHeavySquatAndDeadliftSameDay: false,  // Flag this combination
-    allowHeavyLightSameDay: true,              // Heavy squat + light RDL is fine
     maxSetsPerMusclePerSession: 10,
-    minRestDaysBetweenHeavySamePattern: 1,
     suggestedFrequency: {
       squat: 2,
       bench: 3,    // Upper body recovers faster
       deadlift: 1.5,
-    },
-    heavyThreshold: 0.80,  // 80%+ is "heavy"
-    volumeRange: {
-      min: 12,
-      max: 22,
     },
   },
 
   advanced: {
     // Strict rules - high absolute loads require more recovery
     allowHeavySquatAndDeadliftSameDay: false,
-    allowHeavyLightSameDay: true,
     maxSetsPerMusclePerSession: 8,
-    minRestDaysBetweenHeavySamePattern: 2,
     suggestedFrequency: {
       squat: 2,
       bench: 2,
       deadlift: 1,
-    },
-    heavyThreshold: 0.75,  // 75%+ is "heavy" for advanced (higher absolute loads)
-    volumeRange: {
-      min: 12,
-      max: 20,  // Lower ceiling - harder to recover from
     },
   },
 };
@@ -243,7 +217,7 @@ export type MovementPattern =
  * Map exercises to their primary movement pattern
  * This enables fatigue tracking at the pattern level
  */
-export const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
+const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
   // Squat pattern
   'squat-barbell': 'squat',
   'front-squat-barbell': 'squat',

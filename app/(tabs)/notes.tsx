@@ -2,7 +2,6 @@ import { useAlert } from '@/components/CustomAlert';
 import { getProgressionColor } from '@/lib/utils/utils';
 import { Text, View } from '@/components/Themed';
 import { formatRelativeDate } from '@/lib/ui/formatters';
-import { TutorialTarget } from '@/components/tutorial/TutorialTarget';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
 import RoutineProgressModal from '@/components/workout/RoutineProgressModal';
@@ -622,15 +621,13 @@ export default function NotesScreen() {
           Routines
         </Text>
         <RNView style={styles.headerActions}>
-          <TutorialTarget id="notes-ai-button">
-            <TouchableOpacity
-              style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
-              onPress={() => setShowRoutineGenerator(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="sparkles" size={18} color={currentTheme.colors.primary} />
-            </TouchableOpacity>
-          </TutorialTarget>
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
+            onPress={() => setShowRoutineGenerator(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="sparkles" size={18} color={currentTheme.colors.primary} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
             onPress={handleCreateRoutine}
@@ -652,19 +649,17 @@ export default function NotesScreen() {
         {routines.length > 0 ? (
           <>
             {/* View Progress Button */}
-            <TutorialTarget id="notes-progress-button">
-              <TouchableOpacity
-                style={[styles.progressButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' }]}
-                onPress={() => setShowRoutineProgress(true)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                <Text weight="medium" style={[styles.progressButtonText, { color: currentTheme.colors.text }]}>
-                  View Progress
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '30'} />
-              </TouchableOpacity>
-            </TutorialTarget>
+            <TouchableOpacity
+              style={[styles.progressButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' }]}
+              onPress={() => setShowRoutineProgress(true)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+              <Text weight="medium" style={[styles.progressButtonText, { color: currentTheme.colors.text }]}>
+                View Progress
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '30'} />
+            </TouchableOpacity>
 
             {/* Programs — grouped day-routines; exactly one is active at a time */}
             {programGroups.map(({ program, days }) => {
@@ -806,7 +801,7 @@ export default function NotesScreen() {
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
                         const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
                         const body = isUpNext
-                          ? <TutorialTarget id="notes-routine-card">{renderRoutineCard(routine, true)}</TutorialTarget>
+                          ? renderRoutineCard(routine, true)
                           : renderRoutineCard(routine, false);
                         return (
                           <RNView key={routine.id} style={styles.timelineRow}>

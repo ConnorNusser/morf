@@ -17,10 +17,9 @@ import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
-import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeight, UserProfile, UserProgress, WeightUnit, WorkoutTemplate } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -47,11 +46,6 @@ interface WorkoutFinishModalProps {
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
   onCancel?: () => void;
   onComplete?: () => void;
-  // Preview mode props
-  isPreviewMode?: boolean;
-  exercises?: ParsedExerciseSummary[]; // Pre-parsed exercises for preview mode
-  isLoading?: boolean;
-  onDismiss?: () => void;
 }
 
 // Static Morph logo
@@ -72,11 +66,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   onSave,
   onCancel,
   onComplete,
-  // Preview mode props
-  isPreviewMode = false,
-  exercises: previewExercises,
-  isLoading: previewLoading = false,
-  onDismiss,
 }) => {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -97,22 +86,9 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
 
-  // Fetch user lifts for preview mode
+  // Parse workout when modal opens
   useEffect(() => {
-    if (isPreviewMode && visible) {
-      Promise.all([
-        userService.getAllFeaturedLifts(),
-        userService.getUserProfileOrDefault()
-      ]).then(([lifts, profile]) => {
-        setUserLifts(lifts);
-        setUserProfile(profile);
-      }).catch(console.error);
-    }
-  }, [isPreviewMode, visible]);
-
-  // Parse workout when modal opens (finish mode only)
-  useEffect(() => {
-    if (!isPreviewMode && visible && noteText.trim()) {
+    if (visible && noteText.trim()) {
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
@@ -140,7 +116,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       parseWorkout();
     }
-  }, [visible, noteText, isPreviewMode, prebuiltWorkout]);
+  }, [visible, noteText, prebuiltWorkout]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -245,13 +221,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     }
   }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
 
-  // Get the exercises to display (from parsed workout or preview mode)
+  // Get the exercises to display
   const displayExercises = useMemo(() => {
-    if (isPreviewMode && previewExercises) {
-      return previewExercises;
-    }
     return parsedWorkout?.exercises || [];
-  }, [isPreviewMode, previewExercises, parsedWorkout]);
+  }, [parsedWorkout]);
 
   // Calculate overall tier from exercises in this session
   const overallTierInfo = useMemo(() => {
@@ -345,40 +318,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     </View>
   );
 
-  // Render preview loading state
-  const renderPreviewLoading = () => (
-    <View style={styles.loadingContainer}>
-      <Text style={[styles.loadingText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-        Parsing your workout notes...
-      </Text>
-    </View>
-  );
-
-  // Render preview empty state
-  const renderPreviewEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="alert-circle-outline" size={48} color={currentTheme.colors.text + '30'} />
-      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
-        No exercises detected
-      </Text>
-      <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-        {"Try adding exercises like \"Bench 135x8\" or \"Squats 225 for 5 reps\""}
-      </Text>
-    </View>
-  );
-
-  // Render confirmation/summary state (used by both preview and finish mode)
+  // Render confirmation/summary state
   const renderConfirmation = () => {
-    const handleClose = isPreviewMode ? (onDismiss ?? (() => {})) : handleCancel;
-    const isLoading = isPreviewMode && previewLoading;
-    const isEmpty = isPreviewMode && !previewLoading && displayExercises.length === 0;
-
-    const getTitle = () => {
-      if (isLoading) return 'Analyzing...';
-      if (isPreviewMode) return 'Summary';
-      return '';
-    };
-
     return (
       <View style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
@@ -394,20 +335,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             </Text>
           </View>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-            {getTitle()}
+            {''}
           </Text>
-          <IconButton icon="close" onPress={handleClose} variant="surface" />
+          <IconButton icon="close" onPress={handleCancel} variant="surface" />
         </View>
 
-        {/* Loading State */}
-        {isLoading && renderPreviewLoading()}
-
-        {/* Empty State */}
-        {isEmpty && renderPreviewEmpty()}
-
-        {/* Content - only show when not loading and has exercises */}
-        {!isLoading && !isEmpty && (
-          <>
+        {/* Content */}
+        <>
             {/* Stats Section */}
             <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
               <View style={styles.statsRow}>
@@ -572,24 +506,21 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
             </ScrollView>
 
-            {/* Action Buttons - Only show in finish mode */}
-            {!isPreviewMode && (
-              <View style={[
-                styles.actionsContainer,
-                { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(16, insets.bottom) }
-              ]}>
-                <Button
-                  title={isSaving ? "Saving..." : "Finish Workout"}
-                  onPress={handleSave}
-                  variant="primary"
-                  size="large"
-                  style={styles.confirmButton}
-                  disabled={isSaving}
-                />
-              </View>
-            )}
+            {/* Action Buttons */}
+            <View style={[
+              styles.actionsContainer,
+              { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(16, insets.bottom) }
+            ]}>
+              <Button
+                title={isSaving ? "Saving..." : "Finish Workout"}
+                onPress={handleSave}
+                variant="primary"
+                size="large"
+                style={styles.confirmButton}
+                disabled={isSaving}
+              />
+            </View>
           </>
-        )}
       </View>
     );
   };
@@ -612,16 +543,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   if (!visible) return null;
 
-  // For finish mode: parsing and celebration have dark background
-  const showDarkBackground = !isPreviewMode && (modalState === 'parsing' || modalState === 'celebration');
+  // Parsing and celebration have a dark background
+  const showDarkBackground = modalState === 'parsing' || modalState === 'celebration';
 
   // Determine what content to show
   const renderContent = () => {
-    if (!isPreviewMode) {
-      if (modalState === 'parsing') return renderParsing();
-      if (modalState === 'celebration') return renderCelebration();
-    }
-    // Both preview and finish confirmation use renderConfirmation
+    if (modalState === 'parsing') return renderParsing();
+    if (modalState === 'celebration') return renderCelebration();
     return renderConfirmation();
   };
 
@@ -630,7 +558,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       visible={visible}
       animationType="fade"
       presentationStyle="fullScreen"
-      onRequestClose={isPreviewMode ? onDismiss : onCancel}
+      onRequestClose={onCancel}
     >
       <View style={[styles.modalContainer, { backgroundColor: showDarkBackground ? 'rgba(0,0,0,0.95)' : currentTheme.colors.background }]}>
         {renderContent()}
@@ -796,27 +724,6 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 80,
     height: 80,
-  },
-  // Preview mode styles
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 15,
-  },
-  emptyContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyText: {
-    fontSize: 17,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 20,
   },
   setsSection: {
     gap: 4,

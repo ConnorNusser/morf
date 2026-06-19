@@ -5,7 +5,7 @@ import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
-import { WorkoutSummary } from '@/lib/services/userSyncService';
+import { WorkoutSummary } from '@/lib/services/feedService';
 import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';

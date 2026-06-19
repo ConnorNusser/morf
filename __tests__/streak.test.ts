@@ -1,5 +1,6 @@
 import { GeneratedWorkout } from '../types';
-import { getWeekStreak, weekStart } from '../lib/workout/streak';
+import { getWeekStreak } from '../lib/workout/streak';
+import { weekStart } from '../lib/utils/utils';
 
 function w(date: Date): GeneratedWorkout {
   return { id: date.toISOString(), title: 't', exercises: [], createdAt: date } as unknown as GeneratedWorkout;

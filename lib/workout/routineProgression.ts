@@ -24,6 +24,7 @@ import {
 import { getWorkoutById } from './workouts';
 import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { bestCompletedSet, completedWorkingSets } from './setStats';
 
 // Max rep bonus before weight increase
 const MAX_REP_BONUS = 3;
@@ -145,34 +146,21 @@ function wasExerciseSuccessful(
 
   const targetSets = exercise.targetSets;
 
-  // Debug logging
-  console.log(`[Progression] ${exerciseId}: targetSets=${JSON.stringify(targetSets?.map(s => `${s.weight}x${s.reps}`))}, actualSets=${JSON.stringify(actualSets.map(s => `${s.weight}x${s.reps}`))}`);
-
   if (!targetSets?.length) {
-    console.log(`[Progression] ${exerciseId}: No targetSets, defaulting to success`);
     return actualSets.length > 0;
   }
 
   // Get the minimum 1RM from target sets (the "bar" they need to clear)
-  const target1RMs = targetSets.map(s => {
-    const oneRM = OneRMCalculator.estimate(s.weight, s.reps);
-    console.log(`[Progression] ${exerciseId}: Target ${s.weight}x${s.reps} = 1RM ${oneRM.toFixed(0)}`);
-    return oneRM;
-  });
-  const min1RMRequired = Math.min(...target1RMs);
+  const min1RMRequired = Math.min(
+    ...targetSets.map(s => OneRMCalculator.estimate(s.weight, s.reps))
+  );
 
   // Count how many actual sets meet or exceed that 1RM
-  const qualitySets = actualSets.filter(s => {
-    const oneRM = OneRMCalculator.estimate(s.weight, s.reps);
-    const passes = oneRM >= min1RMRequired;
-    console.log(`[Progression] ${exerciseId}: Actual ${s.weight}x${s.reps} = 1RM ${oneRM.toFixed(0)} ${passes ? '✓' : '✗'}`);
-    return passes;
-  });
+  const qualitySets = actualSets.filter(
+    s => OneRMCalculator.estimate(s.weight, s.reps) >= min1RMRequired
+  );
 
-  const success = qualitySets.length >= targetSets.length;
-  console.log(`[Progression] ${exerciseId}: min1RM=${min1RMRequired.toFixed(0)}, qualitySets=${qualitySets.length}/${targetSets.length}, success=${success}`);
-
-  return success;
+  return qualitySets.length >= targetSets.length;
 }
 
 /**
@@ -185,7 +173,6 @@ function get1RMImprovement(
 ): number {
   const exercise = workout.exercises.find(e => e.id === exerciseId);
   if (!exercise?.completedSets?.length || !exercise.targetSets?.length) {
-    console.log(`[Progression] ${exerciseId}: get1RMImprovement - no targetSets, returning 0`);
     return 0;
   }
 
@@ -205,7 +192,6 @@ function get1RMImprovement(
   if (targetBest1RM === 0) return 0;
 
   const improvement = ((actualBest1RM - targetBest1RM) / targetBest1RM) * 100;
-  console.log(`[Progression] ${exerciseId}: actualBest1RM=${actualBest1RM.toFixed(0)}, targetBest1RM=${targetBest1RM.toFixed(0)}, improvement=${improvement.toFixed(1)}%`);
 
   return improvement;
 }
@@ -233,18 +219,9 @@ function getWorkoutWeight(
   const exercise = workout.exercises.find(e => e.id === exerciseId);
   if (!exercise?.completedSets?.length) return 0;
 
-  // Find heaviest working set
-  const weights = exercise.completedSets
-    .filter(s => s.completed && s.weight > 0)
-    .map(s => {
-      // Convert to target unit if needed
-      if (s.unit && s.unit !== unit) {
-        return convertWeight(s.weight, s.unit, unit);
-      }
-      return s.weight;
-    });
-
-  return weights.length > 0 ? Math.max(...weights) : 0;
+  // Heaviest working set, expressed in the target unit
+  const best = bestCompletedSet(completedWorkingSets(exercise.completedSets), 'weight');
+  return best ? convertWeight(best.weight, best.unit, unit) : 0;
 }
 
 /**
@@ -255,16 +232,6 @@ export function updateRoutineProgression(
   workout: GeneratedWorkout,
   weightUnit: WeightUnit
 ): Routine {
-  console.log(`[Progression] ========== UPDATE ROUTINE PROGRESSION ==========`);
-  console.log(`[Progression] Routine: ${routine.name} (${routine.id})`);
-  console.log(`[Progression] Routine exercises: ${routine.exercises.map(e => e.exerciseId).join(', ')}`);
-  console.log(`[Progression] Workout exercises: ${workout.exercises.map(e => e.id).join(', ')}`);
-
-  // Log targetSets for each workout exercise
-  for (const ex of workout.exercises) {
-    console.log(`[Progression] Workout ${ex.id}: targetSets=${ex.targetSets?.length || 0}, completedSets=${ex.completedSets?.length || 0}`);
-  }
-
   // Initialize progression state if needed
   const progressionState: Record<string, ExerciseProgressionState> = routine.progressionState
     ? { ...routine.progressionState }
@@ -309,21 +276,17 @@ export function updateRoutineProgression(
       state.currentWeight = usedWeight;
     }
 
-    console.log(`[Progression] ${exerciseId}: SUCCESS=${success}, previousFailures=${state.consecutiveFailures}, repBonus=${state.currentRepBonus}`);
-
     if (success) {
       // Reset failure counter
       state.consecutiveFailures = 0;
 
       // Calculate 1RM improvement percentage
       const improvement = get1RMImprovement(exerciseId, workout);
-      console.log(`[Progression] ${exerciseId}: 1RM improvement=${improvement.toFixed(1)}%`);
 
       // Significant improvement (6%+) - they already proved they can handle the weight they used
       if (improvement >= 6) {
         // Just keep the weight they actually used - no additional increase needed
         // They already self-selected a higher weight
-        console.log(`[Progression] ${exerciseId}: 6%+ improvement - keeping actual weight ${state.currentWeight} as new target`);
         state.currentRepBonus = 0;
       }
       // At max rep bonus (+3) - time to increase weight
@@ -335,7 +298,6 @@ export function updateRoutineProgression(
           state.currentWeight,
           weightUnit
         );
-        console.log(`[Progression] ${exerciseId}: WEIGHT INCREASE ${state.currentWeight} -> ${newWeight} (maxBonus reached)`);
         state.currentWeight = newWeight;
         state.currentRepBonus = 0;
       }
@@ -343,18 +305,15 @@ export function updateRoutineProgression(
       else {
         const bonusIncrease = calculateRepBonusFrom1RM(improvement);
         const newBonus = Math.min(state.currentRepBonus + bonusIncrease, MAX_REP_BONUS);
-        console.log(`[Progression] ${exerciseId}: REP BONUS ${state.currentRepBonus} -> ${newBonus} (+${bonusIncrease})`);
         state.currentRepBonus = newBonus;
       }
     } else {
       // Failed to complete
       state.consecutiveFailures++;
-      console.log(`[Progression] ${exerciseId}: FAILURE #${state.consecutiveFailures} (threshold=${DELOAD_THRESHOLD})`);
 
       if (state.consecutiveFailures >= DELOAD_THRESHOLD) {
         // Deload: reduce weight by 10%, reset everything
         const newWeight = roundWeight(state.currentWeight * DELOAD_PERCENT, weightUnit);
-        console.log(`[Progression] ${exerciseId}: DELOAD TRIGGERED ${state.currentWeight} -> ${newWeight}`);
         state.currentWeight = newWeight;
         state.currentRepBonus = 0;
         state.consecutiveFailures = 0;

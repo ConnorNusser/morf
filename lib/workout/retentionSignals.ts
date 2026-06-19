@@ -26,8 +26,8 @@ export interface HabitDay {
   count: number;
 }
 
-export const HABIT_MIN_COUNT = 3;
-export const HABIT_WINDOW_DAYS = 28;
+const HABIT_MIN_COUNT = 3;
+const HABIT_WINDOW_DAYS = 28;
 
 // The weekday they train most — needs at least HABIT_MIN_COUNT sessions in the
 // window to count, otherwise null.

@@ -8,7 +8,6 @@ interface UserContextType {
   isLoading: boolean;
   refreshProfile: () => Promise<void>;
   updateProfile: (profile: Omit<UserProfile, 'age'> & { age: number }) => Promise<void>;
-  getUserProfileOrDefault: () => Promise<UserProfile>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -50,19 +49,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshProfile]);
 
-  const getUserProfileOrDefault = useCallback(async (): Promise<UserProfile> => {
-    try {
-      const profile = await userService.getUserProfileOrDefault();
-      if (!userProfile || JSON.stringify(userProfile) !== JSON.stringify(profile)) {
-        setUserProfile(profile);
-      }
-      return profile;
-    } catch (error) {
-      console.error('Error getting user profile or default:', error);
-      throw error;
-    }
-  }, [userProfile]);
-
   useEffect(() => {
     refreshProfile();
   }, [refreshProfile]);
@@ -72,8 +58,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     refreshProfile,
     updateProfile,
-    getUserProfileOrDefault,
-  }), [userProfile, isLoading, refreshProfile, updateProfile, getUserProfileOrDefault]);
+  }), [userProfile, isLoading, refreshProfile, updateProfile]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

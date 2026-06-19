@@ -76,6 +76,19 @@ export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Local Monday (00:00) of the week containing `date`. The common training-week
+ * convention; index 0 = Monday … 6 = Sunday. Steps with setDate (not raw
+ * millisecond math) so it stays correct across daylight-saving boundaries.
+ */
+export function weekStart(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const fromMonday = (d.getDay() + 6) % 7; // 0 = Monday … 6 = Sunday
+  d.setDate(d.getDate() - fromMonday);
+  return d;
+}
+
 /** Round a weight to the nearest loadable increment (2.5 kg / 5 lbs). */
 export function roundWeight(weight: number, unit: WeightUnit): number {
   const increment = unit === 'kg' ? 2.5 : 5;
@@ -98,7 +111,7 @@ export function getProgressionColor(
   }
 }
 
-export { convertWeightToKg, convertWeightToLbs };
+export { convertWeightToLbs };
 
 // ===== SET FORMATTING UTILITIES =====
 
@@ -251,7 +264,7 @@ export const formatSet = (
  * Format a set for compact display (used in feed, cards)
  * Always uses compact format: "135×8", "20:00", "1:30 · 5km"
  */
-export const formatSetCompact = (
+const formatSetCompact = (
   set: SetFormatData,
   trackingType: TrackingType = 'reps'
 ): string => {

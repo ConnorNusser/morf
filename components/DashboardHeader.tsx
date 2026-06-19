@@ -1,12 +1,9 @@
 import TierRing from '@/components/gamification/TierRing';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useTutorial } from '@/contexts/TutorialContext';
-import { TutorialTarget } from '@/components/tutorial';
-import { getStepsByIndex } from '@/components/tutorial/tutorialSteps';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type ViewMode = 'home' | 'feed';
@@ -30,22 +27,7 @@ interface DashboardHeaderProps {
 
 export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress, title }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
-  const { showTutorial, currentStep } = useTutorial();
   const [showDropdown, setShowDropdown] = useState(false);
-
-  // Auto-open dropdown during the feed tutorial step
-  useEffect(() => {
-    if (showTutorial) {
-      const currentStepData = getStepsByIndex(currentStep);
-      if (currentStepData?.targetId === 'home-view-selector') {
-        // Delay to let the spotlight position first
-        const timer = setTimeout(() => setShowDropdown(true), 400);
-        return () => clearTimeout(timer);
-      } else {
-        setShowDropdown(false);
-      }
-    }
-  }, [showTutorial, currentStep]);
 
   const handleViewSelect = (mode: ViewMode) => {
     setShowDropdown(false);
@@ -65,27 +47,25 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                 source={require('@/assets/images/icon-original.png')}
                 style={styles.logo}
               />
-              <TutorialTarget id="home-view-selector">
-                <TouchableOpacity
-                  style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
-                  onPress={() => !showTutorial && setShowDropdown(!showDropdown)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.appName,
-                    {
-                      color: currentTheme.colors.text,
-                    }
-                  ]}>
-                    {viewMode === 'home' ? 'Morf' : 'Feed'}
-                  </Text>
-                  <Ionicons
-                    name={showDropdown ? 'chevron-up' : 'chevron-down'}
-                    size={24}
-                    color={currentTheme.colors.text}
-                  />
-                </TouchableOpacity>
-              </TutorialTarget>
+              <TouchableOpacity
+                style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
+                onPress={() => setShowDropdown(!showDropdown)}
+                activeOpacity={0.7}
+              >
+                <Text style={[
+                  styles.appName,
+                  {
+                    color: currentTheme.colors.text,
+                  }
+                ]}>
+                  {viewMode === 'home' ? 'Morf' : 'Feed'}
+                </Text>
+                <Ionicons
+                  name={showDropdown ? 'chevron-up' : 'chevron-down'}
+                  size={24}
+                  color={currentTheme.colors.text}
+                />
+              </TouchableOpacity>
             </View>
 
             {stats?.tier != null && (

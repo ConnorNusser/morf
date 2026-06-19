@@ -2,23 +2,11 @@
 // matching the style of retentionSignals.ts. Week starts Monday (the common
 // training-week convention); index 0 = Monday … 6 = Sunday.
 import { GeneratedWorkout, convertWeight } from '@/types';
-import { dateKey } from '@/lib/utils/utils';
+import { dateKey, weekStart as mondayOf } from '@/lib/utils/utils';
 
 export const DEFAULT_WEEKLY_GOAL = 4;
 export const WEEKLY_GOAL_MIN = 1;
 export const WEEKLY_GOAL_MAX = 7;
-
-// Local YYYY-MM-DD, matching retentionSignals / recapStats.
-
-// Monday 00:00 of the week containing `d`.
-function startOfWeek(d: Date): Date {
-  const start = new Date(d);
-  start.setHours(0, 0, 0, 0);
-  const day = start.getDay(); // 0 = Sun … 6 = Sat
-  const diffToMonday = (day + 6) % 7; // Sun -> 6, Mon -> 0, …
-  start.setDate(start.getDate() - diffToMonday);
-  return start;
-}
 
 export interface WeekProgress {
   daysTrained: number; // distinct days trained this week
@@ -34,7 +22,7 @@ export function getWeekProgress(
   goal: number = DEFAULT_WEEKLY_GOAL,
   now: Date = new Date()
 ): WeekProgress {
-  const weekStart = startOfWeek(now);
+  const weekStart = mondayOf(now);
 
   // Bucket each workout into its day of this week (index 0 = Monday).
   const dayKeys: string[] = [];
@@ -90,7 +78,7 @@ export function getWeeklyLoad(
   workouts: GeneratedWorkout[],
   now: Date = new Date()
 ): WeeklyLoad {
-  const thisWeekStart = startOfWeek(now);
+  const thisWeekStart = mondayOf(now);
   const lastWeekStart = new Date(thisWeekStart);
   lastWeekStart.setDate(lastWeekStart.getDate() - 7);
 

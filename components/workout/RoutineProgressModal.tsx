@@ -1290,14 +1290,4 @@ const styles = StyleSheet.create({
     width: 1,
     height: 24,
   },
-
-  // Action hints
-  actionHints: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    gap: 6,
-  },
-  hintText: {
-    fontSize: 12,
-  },
 });

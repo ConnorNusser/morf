@@ -4,6 +4,7 @@ import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/UserContext";
 import playHapticFeedback from "@/lib/utils/haptic";
 import { Equipment } from "@/types";
+import { ALL_EQUIPMENT } from "@/lib/workout/equipment";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "../Card";
@@ -18,8 +19,6 @@ const EQUIPMENT_OPTIONS: { type: Equipment; label: string; icon: string }[] = [
   { type: 'kettlebell', label: 'Kettlebell', icon: 'ellipse-outline' },
   { type: 'bodyweight', label: 'Bodyweight', icon: 'body-outline' },
 ];
-
-const ALL_EQUIPMENT: Equipment[] = ['barbell', 'dumbbell', 'machine', 'smith-machine', 'cable', 'kettlebell', 'bodyweight'];
 
 const EquipmentFilterSection = () => {
   const { currentTheme } = useTheme();

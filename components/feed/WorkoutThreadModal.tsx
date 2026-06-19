@@ -34,7 +34,6 @@ import { FeedWorkout } from './FeedCard';
 
 interface WorkoutCommentItemProps {
   comment: FeedComment;
-  workoutId: string;
   currentUserId: string | null;
   isAuthor: boolean;
   onDelete: (commentId: string) => void;
@@ -44,7 +43,6 @@ interface WorkoutCommentItemProps {
 
 function WorkoutCommentItem({
   comment,
-  workoutId: _workoutId,
   currentUserId,
   isAuthor,
   onDelete,
@@ -609,7 +607,6 @@ export default function WorkoutThreadModal({
                   <WorkoutCommentItem
                     key={comment.id}
                     comment={comment}
-                    workoutId={workout.id}
                     currentUserId={currentUserId}
                     isAuthor={comment.user_id === currentUserId}
                     onDelete={handleDeleteComment}
@@ -932,9 +929,6 @@ const styles = StyleSheet.create({
   setWeight: {
     fontSize: 14,
   },
-  setReps: {
-    fontSize: 14,
-  },
   prBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1014,9 +1008,6 @@ const styles = StyleSheet.create({
     width: 70,
     marginLeft: 8,
     borderRadius: 8,
-  },
-  deleteButton: {
-    padding: 4,
   },
   inputContainer: {
     paddingHorizontal: 16,

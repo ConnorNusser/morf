@@ -1,11 +1,8 @@
 import { AlertProvider } from '@/components/CustomAlert';
 import ThemeOverlay from '@/components/ThemeOverlay';
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
-import { RoutineProvider } from '@/contexts/RoutineContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
-import { TutorialProvider } from '@/contexts/TutorialContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
-import { WorkoutProvider } from '@/contexts/WorkoutContext';
 import { notificationService } from '@/lib/services/notificationService';
 import { retentionNotificationService } from '@/lib/services/retentionNotificationService';
 import { layout } from '@/lib/ui/styles';
@@ -240,23 +237,17 @@ function ThemedApp() {
     <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <AlertProvider>
         <VideoPlayerProvider>
-          <TutorialProvider>
-            <CustomExercisesProvider>
-              <RoutineProvider>
-                <WorkoutProvider>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor: currentTheme.colors.background },
-                      animation: 'fade',
-                    }}
-                  >
-                    <Stack.Screen name="(tabs)" />
-                  </Stack>
-                </WorkoutProvider>
-              </RoutineProvider>
-            </CustomExercisesProvider>
-          </TutorialProvider>
+          <CustomExercisesProvider>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: currentTheme.colors.background },
+                animation: 'fade',
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+          </CustomExercisesProvider>
         </VideoPlayerProvider>
       </AlertProvider>
 

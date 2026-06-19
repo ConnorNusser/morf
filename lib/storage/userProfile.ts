@@ -6,8 +6,7 @@ import {
   WeightUnit,
   convertHeight,
   convertWeight,
-  formatHeight,
-  formatWeight
+  formatHeight
 } from '@/types';
 
 export {
@@ -15,8 +14,7 @@ export {
   HeightUnit, ThemeLevel,
   UserProfile, WeightUnit, convertHeight,
   convertWeight,
-  formatHeight,
-  formatWeight
+  formatHeight
 };
 
 export interface OverallStats {
