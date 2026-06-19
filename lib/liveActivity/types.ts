@@ -19,6 +19,8 @@ export interface RestContent {
 }
 
 export interface SetContent {
+  /** Draft row key — lets a Lock-Screen tap reconcile back to the right set. */
+  exerciseKey: string;
   exerciseName: string;
   /** 1-based index of this set within the exercise. */
   setNumber: number;
