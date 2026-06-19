@@ -158,7 +158,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
   const volume = totalVolume(draft);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator>
       <Text style={[styles.summary, { color: currentTheme.colors.text + '99' }]}>
         {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
         {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
