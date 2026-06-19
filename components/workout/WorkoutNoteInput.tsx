@@ -161,9 +161,12 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
           placeholder={placeholder}
           placeholderTextColor={currentTheme.colors.text + '40'}
           multiline
-          // Only let it scroll once it's hit the max height; below that the box
-          // hugs the content so there's nothing to scroll (and no jitter).
-          scrollEnabled={!autoGrow || autoHeight >= AUTO_MAX_HEIGHT}
+          // Keep scroll enabled always: with it off, an iOS multiline TextInput
+          // won't report a contentSize taller than its current frame, so
+          // onContentSizeChange never sees the growth and the box stays stuck at
+          // its starting height. Below the max there's nothing to scroll anyway
+          // (the height hugs the content); past the max it scrolls.
+          scrollEnabled
           textAlignVertical="top"
           autoCapitalize="sentences"
           autoCorrect={false}
