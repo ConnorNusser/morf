@@ -1,24 +1,18 @@
-// Predictive card: while you're typing in the composer but haven't sent yet,
-// this previews what the text will become and lets you commit it in one tap.
-//
-// Timing is the whole game here:
-//  - hide the instant the text changes (so it never lags a keystroke behind),
-//  - re-show only after a brief pause (debounce), so it appears when you've
-//    actually stopped typing,
-//  - local parse only (no AI / no tokens while typing),
-//  - render nothing unless the parse yields real sets, so partial text or prose
-//    doesn't flash a bogus card.
+// Pending-set preview shown below the composer. As you type it shows a quiet
+// "reading…" skeleton (so it's obvious the set is being picked up); when you
+// pause it resolves to a plain card of what will be added — styled like a normal
+// set, not an AI suggestion. Local parse only (no tokens while typing).
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { ParsedSet, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { LayoutAnimation, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
-const PAUSE_MS = 600;
+const PAUSE_MS = 500;
 
 interface PredictiveCardProps {
   text: string;
@@ -37,45 +31,77 @@ function buildPreview(text: string, unit: WeightUnit): PreviewLine[] {
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
       name: ex.matchedExerciseId ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name : ex.name,
-      summary: ex.sets.map(s => (s.weight > 0 ? `${s.weight}${unit}×${s.reps}` : `×${s.reps}`)).join(', '),
+      summary: ex.sets.map((s: ParsedSet) => (s.weight > 0 ? `${s.weight} ${unit} × ${s.reps}` : `${s.reps} reps`)).join(',  '),
     }));
 }
 
 export default function PredictiveCard({ text, weightUnit, onCommit }: PredictiveCardProps) {
   const { currentTheme } = useTheme();
+  const { colors } = currentTheme;
   const [lines, setLines] = useState<PreviewLine[]>([]);
+  const [loading, setLoading] = useState(false);
+  const pulse = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    // Hide immediately on every change, then re-evaluate once typing pauses.
-    setLines(prev => (prev.length ? [] : prev));
-    if (!text.trim()) return;
+    if (!text.trim()) {
+      setLines([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true); // typing → show the skeleton until we settle
     const handle = setTimeout(() => {
-      const preview = buildPreview(text, weightUnit);
-      LayoutAnimation.configureNext(LayoutAnimation.create(160, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
-      setLines(preview);
+      setLines(buildPreview(text, weightUnit));
+      setLoading(false);
     }, PAUSE_MS);
     return () => clearTimeout(handle);
   }, [text, weightUnit]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 550, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.5, duration: 550, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [loading, pulse]);
+
+  if (!text.trim()) return null;
+
+  if (loading) {
+    return (
+      <RNView style={styles.wrap}>
+        <RNView style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <RNView style={styles.body}>
+            <Animated.View style={[styles.barWide, { backgroundColor: colors.text + '22', opacity: pulse }]} />
+            <Animated.View style={[styles.barNarrow, { backgroundColor: colors.text + '18', opacity: pulse }]} />
+          </RNView>
+          <Text style={[styles.reading, { color: colors.text + '66' }]}>reading…</Text>
+        </RNView>
+      </RNView>
+    );
+  }
 
   if (lines.length === 0) return null;
 
   return (
     <RNView style={styles.wrap}>
       <TouchableOpacity
-        activeOpacity={0.8}
+        activeOpacity={0.85}
         onPress={() => { playHapticFeedback('medium', false); onCommit(); }}
-        style={[styles.card, { borderColor: currentTheme.colors.primary + '66', backgroundColor: currentTheme.colors.primary + '0F' }]}
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <RNView style={styles.body}>
           {lines.map((line, i) => (
-            <Text key={i} style={[styles.line, { color: currentTheme.colors.text }]} numberOfLines={1}>
-              {line.name}  <Text style={{ color: currentTheme.colors.text + '99' }}>{line.summary}</Text>
+            <Text key={i} style={[styles.line, { color: colors.text }]} numberOfLines={1}>
+              {line.name}  <Text style={{ color: colors.text + '99' }}>{line.summary}</Text>
             </Text>
           ))}
-          <Text style={[styles.hint, { color: currentTheme.colors.primary }]}>Tap to add</Text>
         </RNView>
-        <RNView style={[styles.addBtn, { backgroundColor: currentTheme.colors.primary }]}>
-          <Ionicons name="add" size={22} color="#fff" />
+        <RNView style={[styles.addBtn, { backgroundColor: colors.primary }]}>
+          <Ionicons name="add" size={20} color="#fff" />
         </RNView>
       </TouchableOpacity>
     </RNView>
@@ -88,13 +114,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
+    minHeight: 56,
   },
-  body: { flex: 1, gap: 2 },
+  body: { flex: 1, gap: 4, justifyContent: 'center' },
   line: { fontSize: 15 },
-  hint: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 2 },
-  addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  reading: { fontSize: 12 },
+  barWide: { height: 11, borderRadius: 6, width: '70%' },
+  barNarrow: { height: 9, borderRadius: 5, width: '45%' },
+  addBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
 });

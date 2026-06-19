@@ -89,6 +89,7 @@ export interface UseWorkoutNoteSessionReturn {
   prefillLastWorkout: () => void;
   recentWorkouts: GeneratedWorkout[]; // recent sessions, newest first (empty-state list)
   prefillWorkout: (w: GeneratedWorkout) => void;
+  startEmptyWorkout: () => void;
   customExercises: CustomExercise[];
 }
 
@@ -99,6 +100,8 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Structured draft is the source of truth; composer text is transient input.
   const [draft, setDraft] = useState<WorkoutDraft>([]);
   const [composerText, setComposerText] = useState('');
+  // Quick-start: the session is active even before any set is logged.
+  const [manuallyStarted, setManuallyStarted] = useState(false);
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -323,19 +326,20 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     saveSession();
   }, [noteText, workoutStartTime, startedRoutineId, isSessionLoaded]);
 
-  // Start timer when user starts typing, reset when text is cleared
+  // Start timer when user starts logging, reset when everything's cleared
+  // (unless they explicitly Quick-started an empty session).
   useEffect(() => {
     if (!isSessionLoaded) return; // Wait for session to load
 
     if (noteText.length > 0 && !workoutStartTime) {
       setWorkoutStartTime(new Date());
-    } else if (noteText.length === 0 && workoutStartTime) {
+    } else if (noteText.length === 0 && workoutStartTime && !manuallyStarted) {
       // User backspaced all text - reset workout state
       setWorkoutStartTime(null);
       setElapsedTime(0);
       setParsedExercises([]);
     }
-  }, [noteText, workoutStartTime, isSessionLoaded]);
+  }, [noteText, workoutStartTime, isSessionLoaded, manuallyStarted]);
 
   // Timer tick - runs when screen is active
   useEffect(() => {
@@ -621,6 +625,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setShowFinishModal(false);
     setDraft([]);
     setComposerText('');
+    setManuallyStarted(false);
     setWorkoutStartTime(null);
     setElapsedTime(0);
     setParsedExercises([]);
@@ -640,6 +645,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const discardWorkout = useCallback(async () => {
     setDraft([]);
     setComposerText('');
+    setManuallyStarted(false);
     setWorkoutStartTime(null);
     setElapsedTime(0);
     setParsedExercises([]);
@@ -651,6 +657,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const resetWorkoutTimer = useCallback(() => {
     setWorkoutStartTime(new Date());
     setElapsedTime(0);
+  }, []);
+
+  // Quick start: begin an empty active session (timer running, ready to log).
+  const startEmptyWorkout = useCallback(() => {
+    setManuallyStarted(true);
+    setStartedRoutineId(null);
+    setWorkoutStartTime(prev => prev ?? new Date());
   }, []);
 
   // Toggle the preferred unit (lbs/kg) and persist it to the profile.
@@ -694,7 +707,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   );
 
   // A workout is underway once the draft has anything in it.
-  const hasWorkoutStarted = draft.length > 0;
+  const hasWorkoutStarted = draft.length > 0 || manuallyStarted;
 
   return {
     // Composer + structured draft
@@ -746,6 +759,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     prefillLastWorkout,
     recentWorkouts,
     prefillWorkout,
+    startEmptyWorkout,
     customExercises,
   };
 }

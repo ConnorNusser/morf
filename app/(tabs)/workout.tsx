@@ -73,6 +73,7 @@ export default function WorkoutScreen() {
     setWeightUnitPref,
     recentWorkouts,
     prefillWorkout,
+    startEmptyWorkout,
     customExercises,
   } = useWorkoutNoteSession();
   const { showAlert } = useAlert();
@@ -123,6 +124,12 @@ export default function WorkoutScreen() {
   const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {
     prefillWorkout(w);
   }, [prefillWorkout]);
+
+  // Quick start: enter the active empty workout, then open the composer.
+  const handleQuickStart = useCallback(() => {
+    startEmptyWorkout();
+    openComposer();
+  }, [startEmptyWorkout, openComposer]);
 
   // Checking a set off (becoming done) auto-starts the rest countdown.
   const handleToggleDone = useCallback((key: string, index: number) => {
@@ -381,7 +388,7 @@ export default function WorkoutScreen() {
                 workouts={recentWorkouts}
                 customExercises={customExercises}
                 onPick={handlePickRecent}
-                onQuickStart={openComposer}
+                onQuickStart={handleQuickStart}
                 onGenerate={() => setShowPlanBuilder(true)}
                 onImport={() => setShowRoutineImport(true)}
               />
@@ -396,6 +403,17 @@ export default function WorkoutScreen() {
                 </Text>
               </RNView>
             )
+          )}
+          {hasWorkoutStarted && draft.length === 0 && (
+            <RNView style={styles.empty}>
+              <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                Empty workout
+              </Text>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+                Add your first set below — type or speak it.
+              </Text>
+            </RNView>
           )}
         </View>
 

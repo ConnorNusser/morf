@@ -23,11 +23,8 @@ function dateLabel(value: Date | string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function summarize(w: GeneratedWorkout, custom: CustomExercise[]): string {
-  const names = (w.exercises || []).map(e => getWorkoutByIdWithCustom(e.id, custom)?.name || e.id);
-  const shown = names.slice(0, 3).join(', ');
-  const extra = names.length - Math.min(names.length, 3);
-  return extra > 0 ? `${shown} +${extra}` : shown;
+function exerciseNames(w: GeneratedWorkout, custom: CustomExercise[]): string[] {
+  return (w.exercises || []).map(e => getWorkoutByIdWithCustom(e.id, custom)?.name || e.id);
 }
 
 export default function RecentWorkouts({ workouts, customExercises, onPick, onQuickStart, onGenerate, onImport }: RecentWorkoutsProps) {
@@ -69,10 +66,13 @@ export default function RecentWorkouts({ workouts, customExercises, onPick, onQu
             onPress={() => { playHapticFeedback('medium', false); onPick(w); }}
           >
             <RNView style={styles.rowText}>
-              <Text style={[styles.date, { color: colors.text }]}>{dateLabel(w.createdAt)}</Text>
-              <Text style={[styles.summary, { color: colors.text + '99' }]} numberOfLines={1}>
-                {summarize(w, customExercises) || 'Workout'}
-              </Text>
+              <Text style={[styles.date, { color: colors.text + '99' }]}>{dateLabel(w.createdAt)}</Text>
+              {exerciseNames(w, customExercises).map((name, j) => (
+                <Text key={j} style={[styles.exName, { color: colors.text }]} numberOfLines={1}>{name}</Text>
+              ))}
+              {exerciseNames(w, customExercises).length === 0 && (
+                <Text style={[styles.exName, { color: colors.text }]}>Workout</Text>
+              )}
             </RNView>
             <Ionicons name="repeat" size={18} color={colors.primary} />
           </TouchableOpacity>
@@ -111,12 +111,12 @@ const styles = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
-  rowText: { flex: 1, gap: 2 },
-  date: { fontSize: 15 },
-  summary: { fontSize: 13 },
+  rowText: { flex: 1, gap: 3 },
+  date: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  exName: { fontSize: 15 },
 });
