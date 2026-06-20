@@ -58,4 +58,7 @@ export type PendingAction =
   | { type: 'adjustWeight'; exerciseKey: string; setIndex: number; weight: number }
   | { type: 'addRest'; seconds: number }
   | { type: 'startRest'; endTime: number }
-  | { type: 'skipRest' };
+  | { type: 'skipRest' }
+  // Completing the final set on the Lock Screen spawned a "keep going" bonus set;
+  // mirror it into the draft by copying the exercise's last set.
+  | { type: 'addBonusSet'; exerciseKey: string };

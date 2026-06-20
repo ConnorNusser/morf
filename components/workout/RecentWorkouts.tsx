@@ -16,6 +16,8 @@ interface RecentWorkoutsProps {
   onQuickStart: () => void;
   onGenerate: () => void;
   onImport: () => void;
+  // Collapse the composer when the list is scrolled (mirrors EditableWorkout).
+  onScrollBeginDrag?: () => void;
 }
 
 function dateLabel(value: Date | string): string {
@@ -27,11 +29,11 @@ function exerciseNames(w: GeneratedWorkout, custom: CustomExercise[]): string[] 
   return (w.exercises || []).map(e => getWorkoutByIdWithCustom(e.id, custom)?.name || e.id);
 }
 
-export default function RecentWorkouts({ workouts, customExercises, onPick, onQuickStart, onGenerate, onImport }: RecentWorkoutsProps) {
+export default function RecentWorkouts({ workouts, customExercises, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
       {/* Generate / Import */}
       <RNView style={styles.actionRow}>
         <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>

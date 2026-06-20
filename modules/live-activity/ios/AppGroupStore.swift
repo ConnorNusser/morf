@@ -56,4 +56,25 @@ public enum AppGroupStore {
     }
     return snap.first { ($0["done"] as? Bool) != true }
   }
+
+  /// Appends a "keep going" bonus set — a not-done copy of the exercise's last
+  /// set — so finishing the final planned set rolls into another instead of
+  /// ending the activity. Returns the new set. The app mirrors this on resume.
+  public static func appendBonusSet(exerciseKey: String) -> [String: Any]? {
+    guard let d = defaults else { return nil }
+    var snap = loadSnapshot()
+    let exSets = snap.filter { ($0["exerciseKey"] as? String) == exerciseKey }
+    guard var bonus = exSets.last else { return nil }
+    let newTotal = exSets.count + 1
+    bonus["setNumber"] = newTotal
+    bonus["totalSets"] = newTotal
+    bonus["done"] = false
+    // Keep the count consistent across the exercise's existing rows too.
+    for i in snap.indices where (snap[i]["exerciseKey"] as? String) == exerciseKey {
+      snap[i]["totalSets"] = newTotal
+    }
+    snap.append(bonus)
+    d.set(snap, forKey: snapshotKey)
+    return bonus
+  }
 }

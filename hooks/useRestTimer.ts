@@ -105,8 +105,10 @@ export const useRestTimer = () => {
         mode: 'rest',
         workoutTitle: context?.workoutTitle ?? 'Workout',
         rest: {
+          // No placeholder — an empty name lets the widget show just "REST"
+          // instead of echoing the word twice.
           endTime: restEndTime(timerData),
-          exerciseName: context?.exerciseName ?? 'Rest',
+          exerciseName: context?.exerciseName ?? '',
           nextLabel: context?.nextLabel,
         },
       });
@@ -144,7 +146,7 @@ export const useRestTimer = () => {
         updateLiveActivity({
           mode: 'rest',
           workoutTitle: 'Workout',
-          rest: { endTime: restEndTime(newTimerData), exerciseName: 'Rest' },
+          rest: { endTime: restEndTime(newTimerData), exerciseName: '' },
         });
 
         // If we subtracted all time, end the timer

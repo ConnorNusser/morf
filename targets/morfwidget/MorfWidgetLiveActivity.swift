@@ -63,19 +63,7 @@ struct LockScreen: View {
   }
 }
 
-// "Album art" style tile — an SF Symbol on an accent gradient (e.g. the rest timer).
-@available(iOS 16.2, *)
-private struct ArtTile: View {
-  let symbol: String
-  var body: some View {
-    RoundedRectangle(cornerRadius: 10, style: .continuous)
-      .fill(LinearGradient(colors: [kAccent, kAccent.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing))
-      .frame(width: 38, height: 38)
-      .overlay(Image(systemName: symbol).font(.system(size: 17, weight: .bold)).foregroundStyle(.white))
-  }
-}
-
-// The Morf mark as the set card's "album art".
+// The Morf mark as the card's "album art" (set + rest).
 @available(iOS 16.2, *)
 private struct LogoTile: View {
   var body: some View {
@@ -185,14 +173,24 @@ struct SetCard: View {
 struct RestCard: View {
   let s: MorfLiveActivityAttributes.State
 
+  // Context line under "REST" — the next-up hint or what you just finished. We
+  // drop empties and a literal "rest" so it never just echoes the header.
+  private var subtitle: String? {
+    if let n = s.nextLabel, !n.isEmpty { return n }
+    if let e = s.restExerciseName, !e.isEmpty, e.lowercased() != "rest" { return e }
+    return nil
+  }
+
   var body: some View {
     VStack(spacing: 10) {
       HStack(spacing: 10) {
-        ArtTile(symbol: "timer")
+        LogoTile()
         VStack(alignment: .leading, spacing: 1) {
           Text("REST").font(.caption2.weight(.bold)).tracking(1.5).foregroundStyle(kAccent)
-          Text(s.nextLabel ?? s.restExerciseName ?? "Recovering")
-            .font(.caption).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+          if let subtitle {
+            Text(subtitle)
+              .font(.caption).foregroundStyle(.white.opacity(0.6)).lineLimit(1)
+          }
         }
         Spacer(minLength: 8)
         if let end = s.restEndTime {

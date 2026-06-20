@@ -57,7 +57,13 @@ enum LiveActivityMutator {
     // Mark it done, then start a rest countdown (matches the in-app behavior).
     // The next set resumes when rest ends (End button or app reconcile).
     _ = AppGroupStore.completeAndAdvance(exerciseKey: key, setNumber: n)
-    let next = nextNotDone()
+    var next = nextNotDone()
+    if next == nil {
+      // Bottom of the list — spawn a "keep going" copy of this set so rest rolls
+      // into another rep instead of ending the activity. App mirrors it on resume.
+      next = AppGroupStore.appendBonusSet(exerciseKey: key)
+      AppGroupStore.appendPendingAction(["type": "addBonusSet", "exerciseKey": key])
+    }
     let nextLabel: String? = next.flatMap {
       guard let name = $0["exerciseName"] as? String, let sn = $0["setNumber"] as? Int else { return nil }
       return "Next: \(name) · Set \(sn)"

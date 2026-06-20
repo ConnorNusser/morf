@@ -5,7 +5,7 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
-import { draftToParsedWorkout } from '@/lib/workout/workoutDraft';
+import { draftToParsedWorkout, type DraftExercise } from '@/lib/workout/workoutDraft';
 import RecentWorkouts from '@/components/workout/RecentWorkouts';
 import PredictiveCard from '@/components/workout/PredictiveCard';
 import NumberPad from '@/components/workout/NumberPad';
@@ -48,6 +48,11 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // Matches the absolute tab bar height in app/(tabs)/_layout.tsx so the composer
 // sits clear of it (the bar overlays content). Collapsed when the keyboard is up.
 const TAB_BAR_CLEARANCE = 85;
+
+// True when (key,index) is the only set still not done across the whole workout —
+// i.e. completing it empties the queue. Used to spawn a "keep going" bonus set.
+const isLastRemainingSet = (draft: DraftExercise[], key: string, index: number): boolean =>
+  draft.every(e => e.sets.every((s, i) => s.done || (e.key === key && i === index)));
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -207,6 +212,7 @@ export default function WorkoutScreen() {
     else if (a.type === 'adjustReps') editSet(a.exerciseKey, a.setIndex, { reps: a.reps });
     else if (a.type === 'adjustWeight') editSet(a.exerciseKey, a.setIndex, { weight: a.weight });
     else if (a.type === 'addRest') addRestTime(a.seconds);
+    else if (a.type === 'addBonusSet') addSetTo(a.exerciseKey);
     else if (a.type === 'skipRest') skipRestTimer();
     else if (a.type === 'startRest') {
       // A set was completed on the Lock Screen — resume its rest with the time
@@ -214,7 +220,7 @@ export default function WorkoutScreen() {
       const remaining = Math.round((a.endTime - Date.now()) / 1000);
       if (remaining > 1) startRestTimer(remaining);
     }
-  }, [editSet, addRestTime, skipRestTimer, startRestTimer]);
+  }, [editSet, addRestTime, skipRestTimer, startRestTimer, addSetTo]);
   useEffect(() => {
     const drain = async () => { (await pullPendingActions()).forEach(applyPending); };
     drain();
@@ -237,13 +243,19 @@ export default function WorkoutScreen() {
     openComposer();
   }, [startEmptyWorkout, openComposer]);
 
-  // Checking a set off (becoming done) auto-starts the rest countdown.
+  // Checking a set off (becoming done) auto-starts the rest countdown. When it was
+  // the last remaining set, append a copy so you can keep going past the plan —
+  // the Live Activity then resumes onto that bonus set instead of disappearing.
   const handleToggleDone = useCallback((key: string, index: number) => {
-    const set = draft.find(e => e.key === key)?.sets[index];
+    const ex = draft.find(e => e.key === key);
+    const set = ex?.sets[index];
     const becomingDone = set ? !set.done : false;
     toggleSetDone(key, index);
-    if (becomingDone) startRestTimer(120);
-  }, [draft, toggleSetDone, startRestTimer]);
+    if (becomingDone) {
+      startRestTimer(120, { exerciseName: ex?.name });
+      if (isLastRemainingSet(draft, key, index)) addSetTo(key);
+    }
+  }, [draft, toggleSetDone, startRestTimer, addSetTo]);
 
   // Commit the composer text into the structured workout.
   const handleComposerSend = useCallback(() => {
@@ -287,13 +299,15 @@ export default function WorkoutScreen() {
   // rest) and close the pad. The pad has already flushed the typed value.
   const handleNumberPadDone = useCallback(() => {
     if (!editing) return;
-    const set = draft.find(e => e.key === editing.key)?.sets[editing.index];
+    const ex = draft.find(e => e.key === editing.key);
+    const set = ex?.sets[editing.index];
     if (set && !set.done) {
       editSet(editing.key, editing.index, { done: true });
-      startRestTimer(120);
+      startRestTimer(120, { exerciseName: ex?.name });
+      if (isLastRemainingSet(draft, editing.key, editing.index)) addSetTo(editing.key);
     }
     setEditing(null);
-  }, [editing, draft, editSet, startRestTimer]);
+  }, [editing, draft, editSet, startRestTimer, addSetTo]);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -508,6 +522,7 @@ export default function WorkoutScreen() {
                 onQuickStart={handleQuickStart}
                 onGenerate={() => setShowPlanBuilder(true)}
                 onImport={() => setShowRoutineImport(true)}
+                onScrollBeginDrag={closeComposer}
               />
             ) : (
               <RNView style={styles.empty}>
@@ -542,7 +557,7 @@ export default function WorkoutScreen() {
             {/* Composer (open) — auto-growing input + mic + send. No Done button:
                 scrolling the workout, tapping outside, or swiping the keyboard down
                 collapses it (the typed text stays cached for next time). */}
-            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14, borderTopColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }}>
+            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14 }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
                   <WorkoutNoteInput
@@ -558,14 +573,14 @@ export default function WorkoutScreen() {
                   style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
                   onPress={handleMicPress}
                 >
-                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
+                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={24} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
                   onPress={handleComposerSend}
                   disabled={!composerText.trim()}
                 >
-                  <Ionicons name="arrow-up" size={22} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
+                  <Ionicons name="arrow-up" size={24} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
                 </TouchableOpacity>
               </RNView>
             </RNView>
@@ -654,7 +669,9 @@ export default function WorkoutScreen() {
 
 const styles = StyleSheet.create({
   composerBar: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    // No bar background/border — the input pill and the two circle buttons each
+    // float over the workout content, lined up by the row's flex-end alignment.
+    backgroundColor: 'transparent',
     paddingTop: 8,
   },
   composerRow: {
@@ -709,6 +726,8 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    // Float a touch above the input's baseline (the row aligns to flex-end).
+    marginBottom: 5,
   },
   empty: {
     position: 'absolute',
