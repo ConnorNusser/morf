@@ -43,14 +43,28 @@ struct MorfLiveActivityWidget: Widget {
           LockScreen(s: context.state).padding(.vertical, 2)
         }
       } compactLeading: {
-        Image(systemName: context.state.mode == "rest" ? "timer" : "dumbbell.fill")
-          .foregroundStyle(kAccent)
+        IslandIcon(mode: context.state.mode)
       } compactTrailing: {
         CompactValue(s: context.state)
       } minimal: {
-        Image(systemName: context.state.mode == "rest" ? "timer" : "dumbbell.fill")
-          .foregroundStyle(kAccent)
+        IslandIcon(mode: context.state.mode)
       }
+    }
+  }
+}
+
+// Dynamic Island compact/minimal glyph. The Morf mark while lifting; the timer
+// during rest (a clock reads better than the logo for a countdown).
+@available(iOS 16.2, *)
+private struct IslandIcon: View {
+  let mode: String
+  var body: some View {
+    if mode == "rest" {
+      Image(systemName: "timer").foregroundStyle(kAccent)
+    } else {
+      Image("MorfLogo").resizable().aspectRatio(contentMode: .fit)
+        .frame(width: 20, height: 20)
+        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
     }
   }
 }
