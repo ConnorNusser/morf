@@ -2,7 +2,7 @@ import Button from '@/components/Button';
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
-import ExerciseBadge from '@/components/workout/ExerciseBadge';
+import ExerciseBadge, { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import WorkoutCompleteScreen from '@/components/workout/WorkoutCompleteScreen';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
@@ -226,18 +226,31 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     return parsedWorkout?.exercises || [];
   }, [parsedWorkout]);
 
-  // Calculate overall tier from exercises in this session
+  // Calculate overall tier from exercises in this session.
+  // Use the SAME per-session percentile the exercise badges and the post-completion
+  // tiling screen show (getExerciseBadgeInfo: this workout's 1RM → percentile), rather
+  // than the user's all-time career percentileRanking. This keeps the headline "Overall
+  // Tier" consistent with the individual badges instead of averaging lifetime peaks.
   const overallTierInfo = useMemo(() => {
-    if (displayExercises.length === 0 || userLifts.length === 0) return null;
+    if (displayExercises.length === 0) return null;
 
-    // Get percentiles for exercises in this workout that have tracked data
+    const bodyWeightLbs = userProfile
+      ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit)
+      : undefined;
+
+    // Get this-session percentiles for exercises that produced a tier badge
     const sessionPercentiles: number[] = [];
     for (const exercise of displayExercises) {
-      if (exercise.matchedExerciseId && !exercise.isCustom) {
-        const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
-        if (userLift && userLift.percentileRanking > 0) {
-          sessionPercentiles.push(userLift.percentileRanking);
-        }
+      const badgeInfo = getExerciseBadgeInfo(
+        exercise.matchedExerciseId,
+        exercise.isCustom,
+        exercise.sets || [],
+        userLifts,
+        bodyWeightLbs,
+        userProfile?.gender
+      );
+      if (badgeInfo?.type === 'tier') {
+        sessionPercentiles.push(badgeInfo.percentile);
       }
     }
 
@@ -250,7 +263,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     const tier = getStrengthTier(avgPercentile);
     const tierColor = getTierColor(tier);
     return { tier, tierColor, percentile: avgPercentile };
-  }, [displayExercises, userLifts]);
+  }, [displayExercises, userLifts, userProfile]);
 
   // Calculate stats using the universal utility
   const stats = useMemo(() => {
