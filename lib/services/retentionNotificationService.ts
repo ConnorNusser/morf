@@ -3,7 +3,7 @@
 import * as Notifications from 'expo-notifications';
 import { dateKey } from '@/lib/utils/utils';
 import { storageService } from '@/lib/storage/storage';
-import { getStreakState, getHabitDay } from '@/lib/workout/retentionSignals';
+import { getStreakState, getHabitDay, getDaysSinceLastWorkout } from '@/lib/workout/retentionSignals';
 
 export const RETENTION_NOTIFICATIONS_ENABLED = true;
 
@@ -11,7 +11,13 @@ const WEEKLY_CAP = 3;
 const EARLIEST_MINUTE = 9 * 60;
 const STREAK_DEFAULT_MINUTE = 19 * 60;
 const HABIT_FALLBACK_MINUTE = 17 * 60 + 30;
+const COMEBACK_DEFAULT_MINUTE = 18 * 60; // 6pm — early-evening "get back to it"
 const MIN_STREAK_FOR_REMINDER = 2; // weeks — only protect a streak worth keeping
+// Comeback window: only nudge once they've clearly slipped (5+ days) and stop
+// after ~4 weeks — past that they've churned and a local nudge won't land; that's
+// a server-side win-back job's problem, not this one's.
+const COMEBACK_MIN_DAYS = 5;
+const COMEBACK_MAX_DAYS = 28;
 const IDENTIFIER_PREFIX = 'retention:';
 const META_RETENTION_DAYS = 14;
 
@@ -29,7 +35,7 @@ function atMinute(now: Date, minute: number): Date {
 }
 
 interface PlannedReminder {
-  type: 'streak' | 'habit';
+  type: 'streak' | 'habit' | 'comeback';
   fireAt: Date;
   title: string;
   body: string;
@@ -62,7 +68,7 @@ class RetentionNotificationService {
       if (!perms.granted) return;
 
       const prefs = await storageService.getNotificationPreferences();
-      if (!prefs.streakReminders && !prefs.habitReminders) return;
+      if (!prefs.streakReminders && !prefs.habitReminders && !prefs.comebackReminders) return;
 
       // Cap at WEEKLY_CAP distinct days in the trailing week.
       const meta = await storageService.getRetentionMeta();
@@ -104,10 +110,11 @@ class RetentionNotificationService {
     }
   }
 
-  // At most one reminder per day; streak-at-risk wins over the habit nudge.
+  // At most one reminder per day, most-specific first: protect an active streak,
+  // then nudge the usual training day, then win back a lapsed user.
   private planReminder(
     workouts: Parameters<typeof getStreakState>[0],
-    prefs: { streakReminders: boolean; habitReminders: boolean; quietHoursEndMinute: number },
+    prefs: { streakReminders: boolean; habitReminders: boolean; comebackReminders: boolean; quietHoursEndMinute: number },
     now: Date
   ): PlannedReminder | null {
     const nowMinute = minuteOfDay(now);
@@ -147,6 +154,25 @@ class RetentionNotificationService {
             fireAt: atMinute(now, minute),
             title: 'Your usual training day',
             body: 'You normally train today. Pick up where you left off.',
+          };
+        }
+      }
+    }
+
+    if (prefs.comebackReminders) {
+      // The churn-risk gap: a user who started, then drifted — streak broken,
+      // habit faded — gets nothing from the branches above. Nudge them back once
+      // they've clearly lapsed, until they've been gone long enough to call churned.
+      const days = getDaysSinceLastWorkout(workouts, now);
+      if (days !== null && days >= COMEBACK_MIN_DAYS && days <= COMEBACK_MAX_DAYS) {
+        let minute = COMEBACK_DEFAULT_MINUTE;
+        if (nowMinute >= COMEBACK_DEFAULT_MINUTE) minute = nowMinute + 120;
+        if (minute > nowMinute && minute >= EARLIEST_MINUTE && minute <= latest) {
+          return {
+            type: 'comeback',
+            fireAt: atMinute(now, minute),
+            title: "Let's get back to it",
+            body: `It's been ${days} days since your last workout — a quick session is all it takes to restart.`,
           };
         }
       }

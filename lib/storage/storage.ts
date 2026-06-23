@@ -44,6 +44,8 @@ export type HomeViewMode = 'home' | 'feed';
 export interface NotificationPreferences {
   streakReminders: boolean;
   habitReminders: boolean;
+  /** Win-back nudge after a stretch with no workouts (lapsed users). */
+  comebackReminders: boolean;
   /** Latest minute-of-day we'll schedule a reminder (default 21:30 = 1290). */
   quietHoursEndMinute: number;
 }
@@ -51,6 +53,7 @@ export interface NotificationPreferences {
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   streakReminders: true,
   habitReminders: true,
+  comebackReminders: true,
   quietHoursEndMinute: 21 * 60 + 30,
 };
 

@@ -1,5 +1,5 @@
 import { GeneratedWorkout } from '../types';
-import { getStreakState, getHabitDay } from '../lib/workout/retentionSignals';
+import { getStreakState, getHabitDay, getDaysSinceLastWorkout } from '../lib/workout/retentionSignals';
 
 // Minimal workout fixture — the signal helpers only read `createdAt`.
 function w(date: Date): GeneratedWorkout {
@@ -52,6 +52,29 @@ describe('getStreakState (week-based)', () => {
 
   it('dedupes multiple workouts within the same week', () => {
     expect(getStreakState([w(day(0)), w(day(1)), w(day(2))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
+  });
+});
+
+describe('getDaysSinceLastWorkout', () => {
+  it('returns null when there are no workouts', () => {
+    expect(getDaysSinceLastWorkout([], NOW)).toBeNull();
+  });
+
+  it('returns 0 when trained earlier today', () => {
+    expect(getDaysSinceLastWorkout([w(day(0, 8))], NOW)).toBe(0);
+  });
+
+  it('counts calendar days, not 24h windows (yesterday evening → 1)', () => {
+    // day(1) is the prior calendar day at 18:00; NOW is 20:00 today → 1 day.
+    expect(getDaysSinceLastWorkout([w(day(1))], NOW)).toBe(1);
+  });
+
+  it('uses the most recent workout when several exist', () => {
+    expect(getDaysSinceLastWorkout([w(day(20)), w(day(6)), w(day(13))], NOW)).toBe(6);
+  });
+
+  it('ignores future-dated workouts', () => {
+    expect(getDaysSinceLastWorkout([w(day(-3)), w(day(7))], NOW)).toBe(7);
   });
 });
 

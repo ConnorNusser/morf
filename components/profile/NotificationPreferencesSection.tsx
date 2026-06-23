@@ -22,7 +22,7 @@ const NotificationPreferencesSection = () => {
   // Hidden until the feature is turned on.
   if (!RETENTION_NOTIFICATIONS_ENABLED || !prefs) return null;
 
-  const toggle = async (key: 'streakReminders' | 'habitReminders') => {
+  const toggle = async (key: 'streakReminders' | 'habitReminders' | 'comebackReminders') => {
     playHapticFeedback('selection', false);
     playSound();
     const next = { ...prefs, [key]: !prefs[key] };
@@ -31,11 +31,9 @@ const NotificationPreferencesSection = () => {
     await retentionNotificationService.refreshScheduledReminders();
   };
 
-  const summary = prefs.streakReminders && prefs.habitReminders
-    ? 'On'
-    : !prefs.streakReminders && !prefs.habitReminders
-      ? 'Off'
-      : prefs.streakReminders ? 'Streaks only' : 'Workout days only';
+  const allOn = prefs.streakReminders && prefs.habitReminders && prefs.comebackReminders;
+  const allOff = !prefs.streakReminders && !prefs.habitReminders && !prefs.comebackReminders;
+  const summary = allOn ? 'On' : allOff ? 'Off' : 'Custom';
 
   const Toggle = ({ value, onPress }: { value: boolean; onPress: () => void }) => (
     <TouchableOpacity
@@ -85,6 +83,16 @@ const NotificationPreferencesSection = () => {
               </Text>
             </View>
             <Toggle value={prefs.habitReminders} onPress={() => toggle('habitReminders')} />
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.rowText}>
+              <Text style={[styles.rowTitle, { color: currentTheme.colors.text }]}>Comeback nudges</Text>
+              <Text style={[styles.rowDesc, { color: currentTheme.colors.text + '80' }]}>
+                A gentle nudge if it's been a while since you trained
+              </Text>
+            </View>
+            <Toggle value={prefs.comebackReminders} onPress={() => toggle('comebackReminders')} />
           </View>
         </View>
       )}

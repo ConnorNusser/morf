@@ -20,6 +20,23 @@ export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Dat
   return { current, trainedThisWeek, trainedToday };
 }
 
+// Whole days since the most recent workout (0 = trained today), or null if the
+// user has never logged one. Drives the comeback nudge for lapsed users — the
+// churn-risk segment the streak/habit reminders miss (broken streak, faded habit).
+export function getDaysSinceLastWorkout(workouts: GeneratedWorkout[], now: Date = new Date()): number | null {
+  let latest = -Infinity;
+  for (const w of workouts) {
+    const t = new Date(w.createdAt).getTime();
+    if (t <= now.getTime() && t > latest) latest = t;
+  }
+  if (latest === -Infinity) return null;
+
+  // Count calendar days between local midnights so "yesterday evening → this
+  // morning" reads as 1 day, not 0, regardless of the clock times.
+  const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  return Math.round((startOfDay(now.getTime()) - startOfDay(latest)) / 86_400_000);
+}
+
 export interface HabitDay {
   weekday: number; // 0 = Sunday … 6 = Saturday
   medianStartMinute: number; // minutes from local midnight
