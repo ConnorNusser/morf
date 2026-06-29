@@ -396,7 +396,9 @@ class WorkoutNoteParser {
         reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
         completedSets,
         targetSets,
-        isCompleted: true,
+        // Completion derives from the sets themselves — an exercise counts as done
+        // only when at least one working set was actually checked off.
+        isCompleted: completedSets.some(s => s.completed && s.weight > 0),
       };
     });
 

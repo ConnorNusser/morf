@@ -494,6 +494,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       startedRoutineId || undefined
     );
 
+    // Did the user actually complete any set this session? Completion (the day
+    // checkmark, lastUsed, the cycle) keys off real work — a routine opened and
+    // finished with nothing checked off should not read as trained.
+    const didRealWork = generatedWorkout.exercises.some(e =>
+      e.completedSets.some(s => s.completed && (s.weight > 0 || s.reps > 0 || !!s.duration || !!s.distance))
+    );
+
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
@@ -535,29 +542,29 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const liftDataWithMeta: { liftData: UserLift; liftType: 'main' | 'secondary'; exercise: typeof generatedWorkout.exercises[0]; previousPR: number }[] = [];
 
     for (const exercise of generatedWorkout.exercises) {
-      if (exercise.completedSets.length > 0) {
+      // Only sets the user actually checked off count toward lifts/PRs — typing
+      // a number without completing the set shouldn't log a personal record.
+      const doneSets = exercise.completedSets.filter(s => s.completed && s.weight > 0);
+      if (doneSets.length > 0) {
         // Find the best set (highest estimated 1RM)
-        const bestSet = exercise.completedSets.reduce((best, current) => {
+        const bestSet = doneSets.reduce((best, current) => {
           const bestOneRM = OneRMCalculator.estimate(best.weight, best.reps);
           const currentOneRM = OneRMCalculator.estimate(current.weight, current.reps);
           return currentOneRM > bestOneRM ? current : best;
         });
 
-        // Only record lifts with actual weight
-        if (bestSet.weight > 0) {
-          const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
-          const liftData: UserLift = {
-            parentId: generatedWorkout.id,
-            id: exercise.id,
-            weight: bestSet.weight,
-            reps: bestSet.reps,
-            unit: bestSet.unit,
-            dateRecorded: new Date(),
-          };
-          const previousPR = currentPRMap[exercise.id] || 0;
-          liftDataWithMeta.push({ liftData, liftType, exercise, previousPR });
-          liftsToSync.push(liftData);
-        }
+        const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
+        const liftData: UserLift = {
+          parentId: generatedWorkout.id,
+          id: exercise.id,
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          unit: bestSet.unit,
+          dateRecorded: new Date(),
+        };
+        const previousPR = currentPRMap[exercise.id] || 0;
+        liftDataWithMeta.push({ liftData, liftType, exercise, previousPR });
+        liftsToSync.push(liftData);
       }
     }
 
@@ -654,10 +661,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       durationSeconds: elapsedTime,
     });
 
-    // Record the training time (for "last trained" display), mark the day done
-    // for this cycle, and advance the up-next ring to the next day.
-    if (startedRoutineId) {
-      await storageService.updateRoutineLastUsed(startedRoutineId);
+    // Mark the day trained — stamps lastUsed (for "last trained" + the cycle
+    // checkmark) and advances the up-next ring. Only when real work was logged,
+    // so an abandoned routine never shows as done. recordDayTrained owns lastUsed.
+    if (startedRoutineId && didRealWork) {
       await storageService.recordDayTrained(startedRoutineId);
     }
   }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
