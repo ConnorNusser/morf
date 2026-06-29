@@ -12,13 +12,11 @@ import {
     Raleway_500Medium,
     Raleway_600SemiBold,
     Raleway_700Bold,
-    useFonts as useRalewayFonts
 } from '@expo-google-fonts/raleway';
 
 import {
     Karla_400Regular,
     Karla_700Bold,
-    useFonts as useKarlaFonts
 } from '@expo-google-fonts/karla';
 
 import {
@@ -26,7 +24,6 @@ import {
     Arimo_500Medium,
     Arimo_600SemiBold,
     Arimo_700Bold,
-    useFonts as useArimoFonts
 } from '@expo-google-fonts/arimo';
 
 import {
@@ -34,7 +31,6 @@ import {
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
-    useFonts as useOutfitFonts
 } from '@expo-google-fonts/outfit';
 
 import {
@@ -42,7 +38,6 @@ import {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
-    useFonts as usePoppinsFonts
 } from '@expo-google-fonts/poppins';
 
 import {
@@ -50,7 +45,6 @@ import {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    useFonts as useInterFonts
 } from '@expo-google-fonts/inter';
 
 import {
@@ -58,7 +52,6 @@ import {
     Rubik_500Medium,
     Rubik_600SemiBold,
     Rubik_700Bold,
-    useFonts as useRubikFonts
 } from '@expo-google-fonts/rubik';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
@@ -82,59 +75,38 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  // expo-font's useFonts is the same hook each @expo-google-fonts package re-exports,
+  // so one call with the merged font map loads them all.
+  const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
-  });
-
-  const [ralewayLoaded] = useRalewayFonts({
     Raleway_400Regular,
     Raleway_500Medium,
     Raleway_600SemiBold,
     Raleway_700Bold,
-  });
-
-  const [karlaLoaded] = useKarlaFonts({
     Karla_400Regular,
     Karla_700Bold,
-  });
-
-  const [arimoLoaded] = useArimoFonts({
     Arimo_400Regular,
     Arimo_500Medium,
     Arimo_600SemiBold,
     Arimo_700Bold,
-  });
-
-  const [outfitLoaded] = useOutfitFonts({
     Outfit_400Regular,
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
-  });
-
-  const [poppinsLoaded] = usePoppinsFonts({
     Poppins_400Regular,
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
-  });
-
-  const [interLoaded] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-  });
-
-  const [rubikLoaded] = useRubikFonts({
     Rubik_400Regular,
     Rubik_500Medium,
     Rubik_600SemiBold,
     Rubik_700Bold,
   });
-
-  const loaded = fontsLoaded && ralewayLoaded && karlaLoaded && arimoLoaded && outfitLoaded && poppinsLoaded && interLoaded && rubikLoaded;
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
