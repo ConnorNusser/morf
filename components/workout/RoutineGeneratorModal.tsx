@@ -103,16 +103,7 @@ function selectProgramTemplate(goal: TrainingGoal, days: number): ProgramTemplat
     if (days === 4) return 'upper_lower';
     return 'powerbuilding';
   }
-  if (goal === 'recomp') {
-    if (days <= 3) return 'full_body';
-    if (days === 4) return 'upper_lower';
-    return 'ppl';
-  }
-  if (goal === 'athletic') {
-    if (days <= 3) return 'full_body';
-    return days === 4 ? 'upper_lower' : 'ppl';
-  }
-  // general
+  // recomp, athletic, and general all share the default split mapping
   if (days <= 3) return 'full_body';
   if (days === 4) return 'upper_lower';
   return 'ppl';

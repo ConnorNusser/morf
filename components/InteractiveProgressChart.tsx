@@ -253,19 +253,11 @@ function InteractiveProgressChart({
     setSelectedPoint(null);
   };
 
-  // Format date based on time span
-  const formatDateForSpan = (date: Date, spanDays: number) => {
-    if (spanDays <= 31) {
-      // Within a month: show "Jan 15"
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else if (spanDays <= 365) {
-      // Within a year: show "Jan 15"
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else {
-      // Over a year: show "Jan '24"
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    }
-  };
+  // Format date based on time span: "Jan 15" within a year, "Jan '24" beyond.
+  const formatDateForSpan = (date: Date, spanDays: number) =>
+    spanDays <= 365
+      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
   // Get x-axis labels - show multiple dates across the time range
   const getXAxisLabels = () => {

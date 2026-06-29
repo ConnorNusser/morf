@@ -47,11 +47,8 @@ export const calculateOverallPercentile = (liftPercentiles: number[]): number =>
 };
 
 // Format volume with unit conversion (volume is stored in lbs)
-export const formatVolume = (volumeLbs: number, unit: WeightUnit): string => {
-  const volume = unit === 'kg' ? volumeLbs / 2.205 : volumeLbs;
-  const formatted = volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
-  return `${formatted} ${unit}`;
-};
+export const formatVolume = (volumeLbs: number, unit: WeightUnit): string =>
+  `${formatVolumeNumber(volumeLbs, unit)} ${unit}`;
 
 // Format volume number only (no unit suffix)
 export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string => {

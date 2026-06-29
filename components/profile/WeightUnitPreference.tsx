@@ -53,7 +53,7 @@ const WeightUnitPreferenceSection = () => {
           </Text>
           {!isExpanded && (
             <Text style={[
-              styles.weightUnitSubtitle, 
+              styles.weightUnitMeta,
               { 
                 color: currentTheme.colors.primary,
               }
@@ -63,7 +63,7 @@ const WeightUnitPreferenceSection = () => {
           )}
           {isExpanded && (
             <Text style={[
-              styles.weightUnitDescription, 
+              styles.weightUnitMeta,
               { 
                 color: currentTheme.colors.text,
               }
@@ -163,12 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  weightUnitSubtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  weightUnitDescription: {
+  weightUnitMeta: {
     fontSize: 14,
     opacity: 0.8,
     marginTop: 4,
