@@ -108,4 +108,18 @@ describe('matchExerciseByName', () => {
     expect(matchExerciseByName('cable crossover')).toBe(matchExerciseByName('cable crossover'));
     expect(matchExerciseByName('cable crossover')).toBeTruthy();
   });
+
+  it('tolerates a typo via the fuzzy fallback', () => {
+    expect(matchExerciseByName('ovrhead press')).toBe('overhead-press-barbell');
+    expect(matchExerciseByName('benhc press')).toBeTruthy();
+  });
+
+  it('keeps the equipment qualifier through a fuzzy match', () => {
+    expect(matchExerciseByName('ovrhead press machine')).toBe('overhead-press-machine');
+  });
+
+  it('does not fuzzy-snap a genuinely novel lift onto a near catalog entry', () => {
+    // Should stay null so it becomes a custom exercise, not a wrong match.
+    expect(matchExerciseByName('flumbox press')).toBeNull();
+  });
 });

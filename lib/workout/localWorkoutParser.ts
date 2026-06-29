@@ -123,6 +123,46 @@ function matchByBase(index: IndexedExercise[], q: string): IndexedExercise[] {
   return matches;
 }
 
+// Levenshtein edit distance (two-row DP). Small catalog → cheap.
+function editDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const curr = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = curr;
+  }
+  return prev[b.length];
+}
+
+// How many typos to tolerate for a query of this length: ~1 per 5 chars, but at
+// least 1 so short names still survive a single slip. Deliberately tight — fuzzy
+// is a last resort, and over-tolerance is what snaps a novel lift onto the wrong
+// catalog entry instead of letting it become a custom exercise.
+function fuzzyBudget(len: number): number {
+  return Math.max(1, Math.floor(len * 0.2));
+}
+
+// Closest catalog base to a typo'd query, or null when nothing is clearly close.
+// Bails on a tie between two distinct bases — guessing between two equally-near
+// lifts is exactly the wrong-match failure we're avoiding.
+function bestFuzzyBase(index: IndexedExercise[], q: string): string | null {
+  if (q.length < 4) return null; // too short to fuzzy-match safely
+  const bases = [...new Set(index.map(e => e.base))];
+  const scored = bases
+    .map(b => ({ b, d: editDistance(q, b) }))
+    .sort((x, y) => x.d - y.d);
+  const best = scored[0];
+  if (!best || best.d > fuzzyBudget(q.length)) return null;
+  if (scored[1] && scored[1].d === best.d) return null; // ambiguous — don't guess
+  return best.b;
+}
+
 // Common gym shorthand → a searchable canonical name, so "bp"/"ohp"/"rdl"
 // resolve instantly without an AI round-trip. Only whole-input matches apply.
 const ABBREVIATIONS: Record<string, string> = {
@@ -158,6 +198,13 @@ export function matchExerciseByName(name: string): string | null {
 
   let matches = matchByBase(index, core);
   if (!matches.length && core !== t) matches = matchByBase(index, t);
+  // Last resort: typo tolerance. Match the closest base, then fall through to the
+  // same equipment disambiguation. Tight + tie-averse so it never snaps a novel
+  // lift onto a near-spelled catalog entry (that should become a custom exercise).
+  if (!matches.length) {
+    const fuzzyBase = bestFuzzyBase(index, core) ?? (core !== t ? bestFuzzyBase(index, t) : null);
+    if (fuzzyBase) matches = index.filter(e => e.base === fuzzyBase);
+  }
   if (!matches.length) return null;
 
   if (wantEquip) {
