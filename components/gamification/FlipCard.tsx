@@ -14,8 +14,6 @@ interface FlipCardProps {
   /** Both faces are absolutely stacked, so the card needs a fixed height. */
   height: number;
   style?: StyleProp<ViewStyle>;
-  /** Called with the new flipped state on each tap. */
-  onFlip?: (flipped: boolean) => void;
 }
 
 /**
@@ -23,7 +21,7 @@ interface FlipCardProps {
  * and hidden via backfaceVisibility, so exactly one shows at a time. Honors the
  * OS "Reduce Motion" setting (snaps instead of spinning).
  */
-export default function FlipCard({ front, back, height, style, onFlip }: FlipCardProps) {
+export default function FlipCard({ front, back, height, style }: FlipCardProps) {
   const reduced = useReducedMotion();
   const [flipped, setFlipped] = useState(false);
   const rot = useSharedValue(0);
@@ -35,7 +33,6 @@ export default function FlipCard({ front, back, height, style, onFlip }: FlipCar
     rot.value = reduced
       ? to
       : withTiming(to, { duration: 460, easing: Easing.inOut(Easing.cubic) });
-    onFlip?.(next);
   };
 
   const frontStyle = useAnimatedStyle(() => ({

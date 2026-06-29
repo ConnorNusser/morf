@@ -793,7 +793,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
-                    {otherLifts.map((lift, index) => {
+                    {otherLifts.map((lift) => {
                       const isSelected = selectedLiftId === lift.exercise_id && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS);
                       return (
                         <TouchableOpacity
@@ -1073,10 +1073,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    marginTop: -4,
   },
   cardValue: {
     fontSize: 18,

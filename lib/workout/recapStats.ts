@@ -362,10 +362,6 @@ function calculateLongestStreak(workouts: GeneratedWorkout[]): StreakInfo {
   const uniqueDates = [...new Set(workouts.map(w => getDateKey(new Date(w.createdAt))))];
   uniqueDates.sort();
 
-  if (uniqueDates.length === 0) {
-    return { days: 0, startDate: new Date(), endDate: new Date() };
-  }
-
   let longestStreak = 1;
   let currentStreak = 1;
   let longestStart = uniqueDates[0];

@@ -66,8 +66,7 @@ import { AudioModule } from 'expo-audio';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Notifications from 'expo-notifications';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
@@ -167,8 +166,6 @@ export default function RootLayout() {
   }, []);
 
   // Register for push notifications
-  const notificationListener = useRef<Notifications.Subscription | null>(null);
-  const responseListener = useRef<Notifications.Subscription | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -178,12 +175,12 @@ export default function RootLayout() {
     });
 
     // Listen for notifications received while app is foregrounded
-    notificationListener.current = notificationService.addNotificationReceivedListener(_notification => {
+    const notificationSub = notificationService.addNotificationReceivedListener(_notification => {
       // Notification received while app is foregrounded
     });
 
     // Listen for notification taps
-    responseListener.current = notificationService.addNotificationResponseListener(response => {
+    const responseSub = notificationService.addNotificationResponseListener(response => {
       const data = response.notification.request.content.data;
       // Retention reminders deep-link to the Notes tab ("Up Next" routine).
       if (data?.kind === 'retention') {
@@ -195,12 +192,8 @@ export default function RootLayout() {
     });
 
     return () => {
-      if (notificationListener.current) {
-        notificationListener.current.remove();
-      }
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
+      notificationSub.remove();
+      responseSub.remove();
     };
   }, [router]);
 

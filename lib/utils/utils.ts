@@ -261,17 +261,6 @@ export const formatSet = (
 };
 
 /**
- * Format a set for compact display (used in feed, cards)
- * Always uses compact format: "135×8", "20:00", "1:30 · 5km"
- */
-const formatSetCompact = (
-  set: SetFormatData,
-  trackingType: TrackingType = 'reps'
-): string => {
-  return formatSet(set, { trackingType, compact: true, showUnit: false });
-};
-
-/**
  * Format best set string for syncing to database/feed
  * Used by userSyncService when creating workout summaries
  */
@@ -279,7 +268,7 @@ export const formatBestSet = (
   set: SetFormatData,
   trackingType: TrackingType = 'reps'
 ): string => {
-  return formatSetCompact(set, trackingType);
+  return formatSet(set, { trackingType, compact: true, showUnit: false });
 };
 
 // ===== WORKOUT STATS UTILITIES =====

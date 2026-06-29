@@ -27,7 +27,7 @@ export const formatEquipmentLabel = (equipment: Equipment): string =>
   EQUIPMENT_LABELS[equipment] ?? equipment;
 
 /** Plural labels that read naturally in prose lists (e.g. AI prompts). */
-const EQUIPMENT_DISPLAY_LABELS: Record<Equipment, string> = {
+export const EQUIPMENT_DISPLAY_LABELS: Record<Equipment, string> = {
   barbell: 'Barbell',
   dumbbell: 'Dumbbells',
   machine: 'Machines',

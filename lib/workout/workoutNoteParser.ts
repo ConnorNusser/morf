@@ -110,14 +110,6 @@ class WorkoutNoteParser {
   }
 
   /**
-   * Get all available exercise names for AI context
-   */
-  getAllExerciseNames(): string[] {
-    const dbExercises = getAvailableWorkouts(100).map(e => e.name);
-    return dbExercises;
-  }
-
-  /**
    * Match exercise name to ID using algorithmic approach
    *
    * The AI returns exercise names in format "Exercise Name (Equipment)"

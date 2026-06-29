@@ -31,7 +31,6 @@ import Animated, {
   withRepeat,
   withSpring,
   withTiming,
-  runOnJS,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -52,7 +51,6 @@ interface WorkoutCompleteScreenProps {
   stats: {
     exercises: number;
     sets: number;
-    volume: number;
     durationStr: string;
   };
   exercises: (ParsedExercise | ParsedExerciseSummary)[];
@@ -215,35 +213,10 @@ const AnimatedCounter = ({
   style?: any;
 }) => {
   const [displayValue, setDisplayValue] = useState(0);
-  const animatedValue = useSharedValue(0);
 
   useEffect(() => {
-    const updateDisplay = (val: number) => {
-      setDisplayValue(Math.round(val));
-    };
-
-    animatedValue.value = withDelay(
-      delay,
-      withTiming(value, { duration, easing: Easing.out(Easing.cubic) }, () => {
-        runOnJS(updateDisplay)(value);
-      })
-    );
-
-    // Update display during animation
-    const interval = setInterval(() => {
-      const progress = (Date.now() - delay) / duration;
-      if (progress >= 0 && progress <= 1) {
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        setDisplayValue(Math.round(value * easedProgress));
-      }
-    }, 16);
-
-    setTimeout(() => {
-      clearInterval(interval);
-      setDisplayValue(value);
-    }, delay + duration + 100);
-
-    return () => clearInterval(interval);
+    const t = setTimeout(() => setDisplayValue(value), delay + duration);
+    return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
@@ -464,9 +437,7 @@ export default function WorkoutCompleteScreen({
     elevation: 4 + prGlow.value * 8,
   }));
 
-  const handleStatPress = useCallback((type: 'exercises' | 'sets') => {
-    setShowExerciseDetails(!showExerciseDetails);
-  }, [showExerciseDetails]);
+  const handleStatPress = useCallback(() => setShowExerciseDetails(v => !v), []);
 
   return (
     <Animated.View entering={FadeIn} style={[styles.container, { backgroundColor: 'transparent' }]}>
@@ -600,7 +571,7 @@ export default function WorkoutCompleteScreen({
               value={stats.exercises}
               label="Exercises"
               delay={700}
-              onPress={() => handleStatPress('exercises')}
+              onPress={handleStatPress}
               isSmallScreen={isSmallScreen}
               primaryColor={currentTheme.colors.primary}
             />
@@ -609,7 +580,7 @@ export default function WorkoutCompleteScreen({
               value={stats.sets}
               label="Sets"
               delay={800}
-              onPress={() => handleStatPress('sets')}
+              onPress={handleStatPress}
               isSmallScreen={isSmallScreen}
               primaryColor={currentTheme.colors.primary}
             />
@@ -749,9 +720,6 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 32,
     gap: 12,
-  },
-  prHeader: {
-    alignItems: 'center',
   },
   prBadge: {
     paddingHorizontal: 12,

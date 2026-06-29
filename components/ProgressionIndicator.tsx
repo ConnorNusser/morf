@@ -63,8 +63,7 @@ export default function ProgressionIndicator({
   }, [slideAnim]);
 
   // Convert current 1RM to display units first
-  const currentOneRMInDisplayUnits = convertWeightForPreference(currentOneRM, 'lbs', weightUnit);
-  const currentOneRMRounded = currentOneRMInDisplayUnits;
+  const currentOneRMRounded = convertWeightForPreference(currentOneRM, 'lbs', weightUnit);
 
   // Calculate targets based on actual strength standards
   const targets: ProgressTarget[] = STRENGTH_TARGETS.map(target => {

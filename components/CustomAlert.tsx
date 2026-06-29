@@ -173,7 +173,7 @@ function AlertContent({
                 isCancel && { backgroundColor: currentTheme.colors.border + '50' },
                 isDestructive && { backgroundColor: '#EF4444' },
                 isPrimary && { backgroundColor: currentTheme.colors.primary },
-                !isCancel && !isDestructive && !isPrimary && buttons.length === 1 && { backgroundColor: currentTheme.colors.primary },
+                !isCancel && !isDestructive && buttons.length === 1 && { backgroundColor: currentTheme.colors.primary },
               ]}
               onPress={() => handleButtonPress(button)}
               activeOpacity={0.8}

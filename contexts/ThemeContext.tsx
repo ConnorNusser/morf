@@ -1,12 +1,11 @@
 import { storageService } from '@/lib/storage/storage';
-import { Theme, ThemeLevel, getNextTheme, themes } from '@/lib/ui/theme';
+import { Theme, ThemeLevel, themes } from '@/lib/ui/theme';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 interface ThemeContextType {
   currentTheme: Theme;
   currentThemeLevel: ThemeLevel;
   themes: typeof themes;
-  progressToNextTheme: () => void;
   setThemeLevel: (level: ThemeLevel) => void;
 }
 
@@ -41,11 +40,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await storageService.saveThemePreference(level);
   }, []);
 
-  const progressToNextTheme = useCallback(() => {
-    const nextTheme = getNextTheme(currentThemeLevel);
-    setThemeLevel(nextTheme);
-  }, [currentThemeLevel, setThemeLevel]);
-
   // Ensure we always have a valid theme
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
@@ -53,9 +47,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     currentTheme,
     currentThemeLevel,
     themes,
-    progressToNextTheme,
     setThemeLevel,
-  }), [currentTheme, currentThemeLevel, progressToNextTheme, setThemeLevel]);
+  }), [currentTheme, currentThemeLevel, setThemeLevel]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

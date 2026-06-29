@@ -123,18 +123,11 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     return fullName.replace(/\s*\([^)]+\)\s*$/, '').trim();
   };
 
-  const extractEquipment = (exercise: CustomExercise): Equipment => {
-    if (exercise.equipment && exercise.equipment.length > 0) {
-      return exercise.equipment[0];
-    }
-    return 'machine';
-  };
-
   const handleStartEdit = (exercise: CustomExercise) => {
     playHapticFeedback('selection', false);
     setEditingExercise(exercise);
     setEditedName(extractBaseName(exercise.name));
-    setSelectedEquipment(extractEquipment(exercise));
+    setSelectedEquipment(exercise.equipment?.[0] ?? 'machine');
     setIsAdding(false);
   };
 

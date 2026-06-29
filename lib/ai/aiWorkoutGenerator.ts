@@ -11,7 +11,6 @@ import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 
 interface GenerateWorkoutOptions {
   focusArea?: string;
-  duration?: number;
   customRequest?: string;
 }
 
@@ -89,7 +88,6 @@ class AIWorkoutGeneratorService {
   ): Promise<RefinePlanResponse> {
     // Get user context
     const userProfile = await userService.getRealUserProfile();
-    const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
 
     if (!this.GEMINI_API_KEY) {
@@ -107,7 +105,6 @@ class AIWorkoutGeneratorService {
         chatHistory,
         userMessage,
         userProfile,
-        workoutHistory,
         customExercises
       );
       const response = await this.callRefineAI(prompt, userMessage);
@@ -128,7 +125,6 @@ class AIWorkoutGeneratorService {
     chatHistory: ChatMessage[],
     userMessage: string,
     userProfile: UserProfile | null,
-    _workoutHistory: GeneratedWorkout[],
     customExercises: CustomExercise[]
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';

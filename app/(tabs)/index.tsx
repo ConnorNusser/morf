@@ -32,7 +32,7 @@ import { calculateOverallPercentile } from "@/lib/utils/utils";
 import { LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
   ScrollView,
@@ -56,14 +56,8 @@ export default function HomeScreen() {
   const [unlockNotification, setUnlockNotification] =
     useState<NotificationType | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
-  const [filteredProgress, setFilteredProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({
     hiddenLiftIds: [],
-  });
-  const [overallStats, setOverallStats] = useState({
-    overallPercentile: 0,
-    strengthLevel: "E-",
-    improvementTrend: "stable" as "improving" | "stable" | "declining",
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -72,6 +66,24 @@ export default function HomeScreen() {
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+
+  const filteredProgress = useMemo(
+    () =>
+      userProgress.filter(
+        (p) => !liftFilters.hiddenLiftIds.includes(p.workoutId),
+      ),
+    [userProgress, liftFilters],
+  );
+
+  const overallStats = useMemo(() => {
+    const pcts = filteredProgress.map((p) => p.percentileRanking);
+    const pct = pcts.length ? calculateOverallPercentile(pcts) : 0;
+    return {
+      overallPercentile: pct,
+      strengthLevel: pct > 0 ? getStrengthLevelName(pct) : "E-",
+      improvementTrend: "improving" as const,
+    };
+  }, [filteredProgress]);
 
   // Load saved view mode on mount
   useEffect(() => {
@@ -85,16 +97,6 @@ export default function HomeScreen() {
   useEffect(() => {
     loadUserData();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userProgress, liftFilters]);
-
-  useEffect(() => {
-    updateOverallStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredProgress]);
 
   const loadUserData = async () => {
     try {
@@ -133,28 +135,6 @@ export default function HomeScreen() {
     }
   };
 
-  const applyFilters = () => {
-    const filtered = userProgress.filter(
-      (progress) => !liftFilters.hiddenLiftIds.includes(progress.workoutId),
-    );
-    setFilteredProgress(filtered);
-  };
-
-  const updateOverallStats = () => {
-    const percentiles = filteredProgress.map((p) => p.percentileRanking);
-    const calculatedPercentile =
-      percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
-    const strengthLevel =
-      calculatedPercentile > 0
-        ? getStrengthLevelName(calculatedPercentile)
-        : "E-";
-    setOverallStats({
-      overallPercentile: calculatedPercentile,
-      strengthLevel,
-      improvementTrend: "improving",
-    });
-  };
-
   const handleViewModeChange = async (mode: ViewMode) => {
     setViewMode(mode);
     await storageService.saveHomeViewMode(mode);
@@ -168,14 +148,6 @@ export default function HomeScreen() {
       await loadUserData();
     }
     setIsRefreshing(false);
-  };
-
-  const handleFiltersChanged = (newFilters: LiftDisplayFilters) => {
-    setLiftFilters(newFilters);
-  };
-
-  const handleUserPress = (user: RemoteUser) => {
-    setSelectedUser(user);
   };
 
   // Check for pending strength progress on focus
@@ -275,7 +247,7 @@ export default function HomeScreen() {
             />
           </View>
           <FeedView
-            onUserPress={handleUserPress}
+            onUserPress={setSelectedUser}
             refreshTrigger={feedRefreshTrigger}
           />
         </View>
@@ -367,7 +339,7 @@ export default function HomeScreen() {
                 </Text>
                 <LiftDisplayFilter
                   availableLifts={userProgress}
-                  onFiltersChanged={handleFiltersChanged}
+                  onFiltersChanged={setLiftFilters}
                 />
               </View>
 

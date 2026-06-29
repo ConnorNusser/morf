@@ -45,31 +45,6 @@ function defUnlocked(def: ProfileIconDef, ctx: IconUnlockContext): boolean {
   return def.achievementId === null || ctx.unlockedAchievementIds.has(def.achievementId);
 }
 
-export interface ProfileIcon extends ProfileIconDef {
-  unlocked: boolean;
-}
-
-export function getProfileIcons(ctx: IconUnlockContext): ProfileIcon[] {
-  return PROFILE_ICONS.map(d => ({ ...d, unlocked: defUnlocked(d, ctx) }));
-}
-
-// Emblems that just became available because their gating achievement was newly
-// unlocked — for nudging the lifter to go equip their freshly-earned career icon.
-export function newlyUnlockedEmblems(newAchievementIds: Set<string>): ProfileIconDef[] {
-  return PROFILE_ICONS.filter(d => d.achievementId !== null && newAchievementIds.has(d.achievementId));
-}
-
-// The emblem an achievement unlocks (if any) — lets the achievement UI advertise
-// "complete this → earn the X emblem", tying the chase to the collectible reward.
-export function emblemForAchievement(achievementId: string): ProfileIconDef | null {
-  return PROFILE_ICONS.find(d => d.achievementId === achievementId) ?? null;
-}
-
-// Ionicons name for a chosen id, falling back to the default emblem.
-export function profileIconName(id: string): string {
-  return PROFILE_ICONS.find(d => d.id === id)?.icon ?? PROFILE_ICONS[0].icon;
-}
-
 export function isProfileIconUnlocked(id: string, ctx: IconUnlockContext): boolean {
   const def = PROFILE_ICONS.find(d => d.id === id);
   return def ? defUnlocked(def, ctx) : false;

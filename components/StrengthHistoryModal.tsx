@@ -140,9 +140,8 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const changeColor = change > 0 ? '#22C55E' : change < 0 ? '#EF4444' : currentTheme.colors.text + '60';
 
   // Overall change from first entry ever to current
-  const overallHistory = history.slice(-30);
-  const overallFirstValue = overallHistory[0]?.percentile || 0;
-  const overallLastValue = overallHistory[overallHistory.length - 1]?.percentile || 0;
+  const overallFirstValue = displayHistory[0]?.percentile || 0;
+  const overallLastValue = displayHistory[displayHistory.length - 1]?.percentile || 0;
   const overallChange = overallLastValue - overallFirstValue;
 
   const currentPercentile = selectedCategory ? getCategoryPercentile(selectedCategory) : overallPercentile;

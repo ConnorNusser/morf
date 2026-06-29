@@ -22,7 +22,6 @@ export default function ThemeEvolutionSection() {
   const { currentTheme, currentThemeLevel, themes, setThemeLevel } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
-  const [filteredProgress, setFilteredProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
   const [shareCount, setShareCount] = useState(0); // Track share count instead of boolean
   const { play: playSelectionComplete } = useSound('selectionComplete');
@@ -30,11 +29,6 @@ export default function ThemeEvolutionSection() {
   useEffect(() => {
     loadUserData();
   }, []);
-
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- applyFilters is stable, only re-run on data changes
-  }, [userProgress, liftFilters]);
 
   const loadUserData = async () => {
     try {
@@ -49,13 +43,6 @@ export default function ThemeEvolutionSection() {
     } catch (error) {
       console.error('Error loading theme evolution data:', error);
     }
-  };
-
-  const applyFilters = () => {
-    const filtered = userProgress.filter(progress => 
-      !liftFilters.hiddenLiftIds.includes(progress.workoutId)
-    );
-    setFilteredProgress(filtered);
   };
 
   const toggleExpanded = () => {
@@ -73,9 +60,11 @@ export default function ThemeEvolutionSection() {
   // Compute the user's overall percentile once per data change instead of
   // re-deriving it inside isThemeAvailable for every theme card (~6x/card).
   const calculatedPercentile = useMemo(() => {
-    const percentiles = filteredProgress.map(p => p.percentileRanking);
+    const percentiles = userProgress
+      .filter(p => !liftFilters.hiddenLiftIds.includes(p.workoutId))
+      .map(p => p.percentileRanking);
     return percentiles.length > 0 ? calculateOverallPercentile(percentiles) : 0;
-  }, [filteredProgress]);
+  }, [userProgress, liftFilters]);
 
   const isThemeAvailable = useCallback((level: ThemeLevel) => {
     return isThemeUnlocked(level, calculatedPercentile, shareCount);

@@ -127,37 +127,6 @@ class FeedService {
   }
 
   /**
-   * Get friends' recent workouts for feed (friendships stay on Supabase)
-   */
-  async getFriendsWorkoutFeed(limit: number = 20): Promise<FeedWorkout[]> {
-    if (!supabase) return [];
-
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) return [];
-
-      // Get friend IDs from Supabase
-      const { data: friends } = await supabase
-        .from('friends')
-        .select('friend_id')
-        .eq('user_id', user.id);
-
-      if (!friends || friends.length === 0) return [];
-
-      const friendIds = friends.map(f => f.friend_id);
-
-      // Get workouts from self-hosted API and filter by friends
-      const allWorkouts = await feedApi.getWorkouts(user.id, 100, 0);
-      return allWorkouts
-        .filter(w => friendIds.includes(w.user_id))
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Error fetching friends workout feed:', error);
-      return [];
-    }
-  }
-
-  /**
    * Get global workout feed (all users) with pagination
    */
   async getGlobalWorkoutFeed(limit: number = 20, offset: number = 0): Promise<FeedWorkout[]> {
@@ -406,21 +375,6 @@ class FeedService {
     } catch (error) {
       console.error('Error toggling post comment like:', error);
       return false;
-    }
-  }
-
-  /**
-   * Get combined feed (workouts + posts)
-   */
-  async getCombinedFeed(limit: number = 20, offset: number = 0): Promise<(FeedWorkout | FeedPost)[]> {
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) return [];
-
-      return await feedApi.getFeed(user.id, limit, offset);
-    } catch (error) {
-      console.error('Error fetching combined feed:', error);
-      return [];
     }
   }
 }

@@ -74,6 +74,9 @@ const TRAINING_GOALS: { id: TrainingGoal; title: string; desc: string; icon: str
   { id: 'general', title: 'General Fitness', desc: 'Well-rounded program for overall health and conditioning', icon: 'heart-outline' },
 ];
 
+// Muscle group filter categories
+const MUSCLE_CATEGORIES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
+
 // Body part areas (for focus/ignore)
 const BODY_AREAS = [
   { id: 'chest', label: 'Chest' },
@@ -141,9 +144,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
   // Options used for the current generation — reused when refining/regenerating.
   const optionsRef = useRef<GenerateRoutineOptions | null>(null);
-
-  // Muscle group filter categories
-  const muscleCategories = useMemo(() => ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'], []);
 
   // Load the user's equipment once so the browse list only shows what they can actually do.
   useEffect(() => {
@@ -774,7 +774,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           selected={selectedMuscleFilter === null}
           onPress={() => setSelectedMuscleFilter(null)}
         />
-        {muscleCategories.map((muscle) => (
+        {MUSCLE_CATEGORIES.map((muscle) => (
           <Chip
             key={muscle}
             label={muscle.charAt(0).toUpperCase() + muscle.slice(1)}

@@ -9,10 +9,9 @@ import { analyticsService } from '@/lib/services/analytics';
 import {
   buildRoutineGenerationPrompt,
   ProgramTemplate,
-  TrainingGoal,
-  PROGRAM_TEMPLATES,
   RoutineGenerationParams,
 } from './prompts/routineGeneration.prompt';
+import { TrainingGoal } from './splitTemplates';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
@@ -22,7 +21,7 @@ import { classifyEquipment } from '@/lib/workout/equipmentProfile';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 import { buildDeterministicProgram } from '@/lib/workout/deterministicRoutineBuilder';
 
-export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
+export { ProgramTemplate, TrainingGoal };
 
 // Mirrors INTENSITY_MODIFIERS in progressiveOverload.ts (kept in sync intentionally)
 // so a seeded starting weight matches what the workout screen later computes.
@@ -495,7 +494,6 @@ class AIRoutineGeneratorService {
       : undefined;
 
     const params: RoutineGenerationParams = {
-      programTemplate: options.programTemplate,
       trainingGoal: options.trainingGoal,
       userStrengthLevel: strengthLevel,
       userBodyWeight: bodyWeight,

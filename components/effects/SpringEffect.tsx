@@ -139,7 +139,6 @@ export interface SpringEffectProps {
 }
 
 export default function SpringEffect({ intervalMs }: SpringEffectProps) {
-  const [isActive, setIsActive] = useState(true);
   const [petals, setPetals] = useState<Petal[]>(() => generatePetals(25));
 
   useEffect(() => {
@@ -147,22 +146,20 @@ export default function SpringEffect({ intervalMs }: SpringEffectProps) {
     const showerDuration = 12000 + Math.random() * 8000;
 
     const stopTimeout = setTimeout(() => {
-      setIsActive(false);
       setPetals([]);
     }, showerDuration);
 
     const nextShowerTimeout = setTimeout(() => {
       setPetals(generatePetals(25));
-      setIsActive(true);
     }, intervalMs);
 
     return () => {
       clearTimeout(stopTimeout);
       clearTimeout(nextShowerTimeout);
     };
-  }, [isActive, intervalMs]);
+  }, [petals.length, intervalMs]);
 
-  if (!isActive || petals.length === 0) return null;
+  if (petals.length === 0) return null;
 
   return (
     <>

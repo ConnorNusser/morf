@@ -41,9 +41,7 @@ interface ExerciseProgress {
   currentWeight: number;
   startWeight: number;
   weightHistory: WeightDataPoint[];
-  currentReps: number;
   repBonus: number;
-  consecutiveFailures: number;
   status: ExerciseStatus;
 }
 
@@ -52,7 +50,6 @@ interface RoutineProgress {
   name: string;
   exercises: ExerciseProgress[];
   completions: number;
-  lastWorkoutDate: Date | null;
   daysSinceLastWorkout: number | null;
   improving: number;
   stable: number;
@@ -178,7 +175,6 @@ export default function RoutineProgressModal({
 
         const startWeight = weightHistory.length > 0 ? weightHistory[0].weight : 0;
         const currentWeight = progState?.currentWeight || (weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 0);
-        const baseReps = progState?.baseReps || exercise.sets?.[0]?.reps || 10;
         const repBonus = progState?.currentRepBonus || 0;
         const consecutiveFailures = progState?.consecutiveFailures || 0;
 
@@ -206,9 +202,7 @@ export default function RoutineProgressModal({
           currentWeight,
           startWeight,
           weightHistory,
-          currentReps: baseReps + repBonus,
           repBonus,
-          consecutiveFailures,
           status,
         });
       }
@@ -218,7 +212,6 @@ export default function RoutineProgressModal({
         name: routine.name,
         exercises,
         completions: routineWorkouts.length,
-        lastWorkoutDate,
         daysSinceLastWorkout,
         improving,
         stable,
