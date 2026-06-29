@@ -26,10 +26,23 @@ function normalize(s: string): string {
     .trim();
 }
 
+// Like normalize but KEEPS the parenthetical equipment ("Overhead Press (Machine)"
+// -> "overhead press machine"), so an equipment qualifier the catalog spells in
+// parens is still searchable as words (e.g. matching "smith" against it).
+function normalizeKeepEquip(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 interface IndexedExercise {
   id: string;
   name: string;
   base: string; // normalized, equipment stripped
+  fullNorm: string; // normalized, equipment kept
+  equipment: string[]; // catalog equipment tags (e.g. ['machine'])
   isBarbell: boolean;
 }
 
@@ -40,6 +53,8 @@ function getIndex(): IndexedExercise[] {
       id: e.id,
       name: e.name,
       base: normalize(e.name),
+      fullNorm: normalizeKeepEquip(e.name),
+      equipment: (e.equipment ?? []).map(eq => eq.toLowerCase()),
       isBarbell: /barbell/i.test(e.name),
     }));
   }
@@ -52,11 +67,60 @@ export function _resetIndex(): void {
 }
 
 function prefer(matches: IndexedExercise[]): IndexedExercise {
-  // Prefer the barbell variant, then the shortest name (the plainest form).
+  // Prefer the barbell variant, then the plainest form: shortest base, and among
+  // equal bases the one with the fewest extra qualifier words (so "(Machine)"
+  // beats "(Smith Machine)" when the user only said "machine").
   return (
     matches.find(m => m.isBarbell) ??
-    [...matches].sort((a, b) => a.base.length - b.base.length)[0]
+    [...matches].sort((a, b) => a.base.length - b.base.length || a.fullNorm.length - b.fullNorm.length)[0]
   );
+}
+
+// Equipment words a lifter might type → the catalog tag (or, for smith, a token
+// we look for in the variant's name since smith machines are tagged 'machine').
+const EQUIPMENT_SYNONYMS: Record<string, string> = {
+  machine: 'machine',
+  dumbbell: 'dumbbell', dumbbells: 'dumbbell', db: 'dumbbell',
+  barbell: 'barbell', bb: 'barbell',
+  cable: 'cable', cables: 'cable',
+  kettlebell: 'kettlebell', kb: 'kettlebell',
+  bodyweight: 'bodyweight', bw: 'bodyweight',
+  smith: 'smith',
+};
+
+// The equipment the user asked for, if any. Smith wins over a bare "machine"
+// when both appear ("squat smith machine"), as it's the more specific request.
+function detectEquipment(t: string): string | null {
+  const tags = t.split(' ').map(tok => EQUIPMENT_SYNONYMS[tok]).filter(Boolean);
+  if (!tags.length) return null;
+  return tags.includes('smith') ? 'smith' : tags[0];
+}
+
+// Drop equipment words so the core lift name is left ("db bench press" and
+// "bench press machine" both reduce to "bench press").
+function stripEquipment(t: string): string {
+  return t.split(' ').filter(tok => !EQUIPMENT_SYNONYMS[tok]).join(' ').trim();
+}
+
+// Does this variant satisfy the requested equipment? Checks the catalog tag and
+// the name words (so 'smith', which isn't a tag, still resolves via the name).
+function hasEquipment(e: IndexedExercise, equip: string): boolean {
+  return e.equipment.includes(equip) || e.fullNorm.split(' ').includes(equip);
+}
+
+// Base/plural/prefix match for a query against the index. Empty query matches
+// nothing (an empty prefix would otherwise match everything).
+function matchByBase(index: IndexedExercise[], q: string): IndexedExercise[] {
+  if (!q) return [];
+  let matches = index.filter(e => e.base === q);
+  if (!matches.length) {
+    const alt = q.endsWith('s') ? q.slice(0, -1) : `${q}s`; // simple plural tolerance
+    matches = index.filter(e => e.base === alt);
+  }
+  if (!matches.length) {
+    matches = index.filter(e => e.base.startsWith(q) || q.startsWith(e.base));
+  }
+  return matches;
 }
 
 // Common gym shorthand → a searchable canonical name, so "bp"/"ohp"/"rdl"
@@ -84,15 +148,28 @@ export function matchExerciseByName(name: string): string | null {
   if (ABBREVIATIONS[t]) t = normalize(ABBREVIATIONS[t]); // expand whole-input shorthand
   const index = getIndex();
 
-  let matches = index.filter(e => e.base === t);
-  if (!matches.length) {
-    const alt = t.endsWith('s') ? t.slice(0, -1) : `${t}s`; // simple plural tolerance
-    matches = index.filter(e => e.base === alt);
+  // An equipment qualifier ("machine", "db", "smith"…) shouldn't be matched as
+  // part of the lift name — match the core name, then use the qualifier to pick
+  // the right variant. Falls back to the full string when stripping doesn't help
+  // (e.g. "Cable Crossover", where "cable" is part of the actual name).
+  const wantEquip = detectEquipment(t);
+  let core = stripEquipment(t);
+  if (ABBREVIATIONS[core]) core = normalize(ABBREVIATIONS[core]); // "ohp machine" → "overhead press"
+
+  let matches = matchByBase(index, core);
+  if (!matches.length && core !== t) matches = matchByBase(index, t);
+  if (!matches.length) return null;
+
+  if (wantEquip) {
+    const byEquip = matches.filter(e => hasEquipment(e, wantEquip));
+    if (byEquip.length) return prefer(byEquip).id;
+    // The user named an equipment variant the catalog doesn't carry for this
+    // lift. With several variants to choose from, don't silently snap to the
+    // wrong equipment — let it be logged as a custom exercise instead. (A lone
+    // match whose own name contains the word still resolves via the fall-through.)
+    if (matches.length > 1) return null;
   }
-  if (!matches.length) {
-    matches = index.filter(e => e.base.startsWith(t) || t.startsWith(e.base));
-  }
-  return matches.length ? prefer(matches).id : null;
+  return prefer(matches).id;
 }
 
 function unitFrom(token: string | undefined, fallback: WeightUnit): WeightUnit {
