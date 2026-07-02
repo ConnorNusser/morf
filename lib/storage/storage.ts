@@ -1,4 +1,4 @@
-import { CustomExercise, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
+import { CustomExercise, ExerciseRecord, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -28,6 +28,7 @@ const STORAGE_KEYS = {
   PROFILE_ICON: 'profile_icon',
   UP_NEXT_POINTER: 'up_next_pointer',
   CYCLE_STARTED_AT: 'cycle_started_at',
+  EXERCISE_RECORDS: 'exercise_records',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -418,6 +419,39 @@ class StorageService {
       }
     } catch (error) {
       console.error('Error recording trained day:', error);
+    }
+  }
+
+  // Exercise records --------------------------------------------------------
+  // One global record per exercise ("where you're at" on a movement). Keyed by
+  // exerciseId so any routine anchors to the same record; see ExerciseRecord.
+
+  async getExerciseRecords(): Promise<Record<string, ExerciseRecord>> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.EXERCISE_RECORDS);
+      if (!data) return {};
+      const parsed = JSON.parse(data) as Record<string, Omit<ExerciseRecord, 'updatedAt' | 'bestE1RMAt'> & { updatedAt: string; bestE1RMAt?: string }>;
+      const records: Record<string, ExerciseRecord> = {};
+      for (const [id, r] of Object.entries(parsed)) {
+        records[id] = { ...r, updatedAt: new Date(r.updatedAt), bestE1RMAt: r.bestE1RMAt ? new Date(r.bestE1RMAt) : undefined };
+      }
+      return records;
+    } catch (error) {
+      console.error('Error loading exercise records:', error);
+      return {};
+    }
+  }
+
+  async getExerciseRecord(exerciseId: string): Promise<ExerciseRecord | null> {
+    const records = await this.getExerciseRecords();
+    return records[exerciseId] ?? null;
+  }
+
+  async saveExerciseRecords(records: Record<string, ExerciseRecord>): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.EXERCISE_RECORDS, JSON.stringify(records));
+    } catch (error) {
+      console.error('Error saving exercise records:', error);
     }
   }
 

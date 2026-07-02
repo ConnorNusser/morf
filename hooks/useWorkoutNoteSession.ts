@@ -30,6 +30,7 @@ import {
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateRoutineProgression } from '@/lib/workout/routineProgression';
+import { updateExerciseRecords } from '@/lib/workout/progression';
 import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
@@ -499,6 +500,19 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
+
+    // Update the global per-exercise records — the anchor every routine progresses
+    // from and the source of the strength rank. Keyed by exercise, so it carries
+    // across routines. Only when real work was logged.
+    if (didRealWork) {
+      try {
+        const records = await storageService.getExerciseRecords();
+        const updated = updateExerciseRecords(records, generatedWorkout.exercises, new Date());
+        await storageService.saveExerciseRecords(updated);
+      } catch (error) {
+        console.error('Error updating exercise records:', error);
+      }
+    }
 
     // The user just trained — re-evaluate retention reminders so today's
     // streak/habit nudge is cancelled (they no longer need it).

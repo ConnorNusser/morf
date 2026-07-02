@@ -261,13 +261,31 @@ export type SplitType =
   | 'cardio'
   | 'custom';
 
-// Per-exercise progression tracking within a routine
+// Per-exercise progression tracking within a routine (legacy — being replaced by
+// the global ExerciseRecord below, which is keyed by exercise instead of routine).
 export interface ExerciseProgressionState {
   baseReps: number;           // Original programmed reps
   currentRepBonus: number;    // 0, 1, 2, or 3 extra reps
   currentWeight: number;      // Current working weight in user's unit
   consecutiveFailures: number; // For deload detection
   lastSessionDate?: Date;
+}
+
+// One global record per exercise — "where you're at" on a movement, independent
+// of any routine. Any routine that includes the exercise anchors its prescription
+// to this, so switching routines picks up where you left off. Populated from real
+// completed working sets on workout finish.
+export interface ExerciseRecord {
+  exerciseId: string;
+  // Anchor for the next prescription: the last real top working set you did.
+  weight: number;
+  reps: number;
+  unit: WeightUnit;
+  updatedAt: Date;
+  // Best demonstrated single-set effort as an estimated 1RM (in lbs). Feeds the
+  // strength rank and rises as training weight climbs — no max testing required.
+  bestE1RMLbs: number;
+  bestE1RMAt?: Date;
 }
 
 // The routine itself - stores structure only, no weights

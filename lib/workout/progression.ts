@@ -17,8 +17,9 @@
  * The rule operates on the *limiting* working set (the weakest of your working
  * sets), since that's what actually gates progression.
  */
-import { WeightUnit } from '@/types';
+import { WeightUnit, ExerciseRecord, convertWeight } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
+import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from './workouts';
 
 /** A rep range for a working set: hit `floor`+ to hold, hit `ceiling` to earn load. */
@@ -156,4 +157,48 @@ export function advanceExercise(
 ): NextPrescription {
   const range: RepRange = { floor: programmedReps, ceiling: programmedReps + 2 };
   return nextPrescription(last, range, loadIncrement(exerciseId, last.unit));
+}
+
+// ---- per-exercise records (the global "where you're at" per movement) ----
+
+const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
+  OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
+
+// The best working set to record for an exercise this session. More lenient than
+// resolveWorkingSet (which holds when unsure): for record-keeping we still want an
+// anchor, so a lone top set falls back to the heaviest completed set.
+function recordableSet(sets: LoggedSet[]): LastPerformance | null {
+  const resolved = resolveWorkingSet(sets);
+  if (resolved) return resolved;
+  const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0);
+  if (done.length === 0) return null;
+  const top = done.reduce((a, b) => (b.weight > a.weight ? b : a));
+  return { weight: top.weight, reps: top.reps, unit: top.unit };
+}
+
+// Fold a finished workout into the global exercise records: update each exercise's
+// anchor (last real working set) and its best-ever estimated 1RM (for the rank).
+export function updateExerciseRecords(
+  current: Record<string, ExerciseRecord>,
+  exercises: { id: string; completedSets: LoggedSet[] }[],
+  now: Date,
+): Record<string, ExerciseRecord> {
+  const next = { ...current };
+  for (const ex of exercises) {
+    const set = recordableSet(ex.completedSets);
+    if (!set) continue;
+    const est = e1rmLbs(set.weight, set.reps, set.unit);
+    const prev = next[ex.id];
+    const isBest = est >= (prev?.bestE1RMLbs ?? 0);
+    next[ex.id] = {
+      exerciseId: ex.id,
+      weight: set.weight,        // anchor is always the latest session
+      reps: set.reps,
+      unit: set.unit,
+      updatedAt: now,
+      bestE1RMLbs: Math.max(prev?.bestE1RMLbs ?? 0, est),  // best only ever climbs
+      bestE1RMAt: isBest ? now : prev?.bestE1RMAt,
+    };
+  }
+  return next;
 }
