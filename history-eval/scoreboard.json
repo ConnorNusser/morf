@@ -1,0 +1,6 @@
+{
+  "_comment": "The ratchet. best[scenario] = highest weighted score that scenario has reached. iterations[] is the append-only ledger. A candidate merges only if aggregate improves AND no scenario < its best here.",
+  "rubricVersion": 1,
+  "best": {},
+  "iterations": []
+}
