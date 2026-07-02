@@ -34,6 +34,15 @@ function atMinute(now: Date, minute: number): Date {
   return d;
 }
 
+// Pick the fire-minute for a reminder: prefer the default time, but if it's
+// already past, push a couple hours out. Returns null when the slot isn't valid
+// (in the past, before the earliest hour, or past quiet hours).
+function pickFireMinute(defaultMinute: number, nowMinute: number, latest: number): number | null {
+  let minute = defaultMinute;
+  if (nowMinute >= defaultMinute) minute = nowMinute + 120;
+  return minute > nowMinute && minute >= EARLIEST_MINUTE && minute <= latest ? minute : null;
+}
+
 interface PlannedReminder {
   type: 'streak' | 'habit' | 'comeback';
   fireAt: Date;
@@ -127,10 +136,8 @@ class RetentionNotificationService {
       const fromMonday = (now.getDay() + 6) % 7; // 0 = Mon … 6 = Sun
       const weekEnding = fromMonday >= 5;
       if (current >= MIN_STREAK_FOR_REMINDER && !trainedThisWeek && weekEnding) {
-        // Prefer 7pm; if it's already past, nudge a couple hours out.
-        let minute = STREAK_DEFAULT_MINUTE;
-        if (nowMinute >= STREAK_DEFAULT_MINUTE) minute = nowMinute + 120;
-        if (minute > nowMinute && minute >= EARLIEST_MINUTE && minute <= latest) {
+        const minute = pickFireMinute(STREAK_DEFAULT_MINUTE, nowMinute, latest);
+        if (minute !== null) {
           return {
             type: 'streak',
             fireAt: atMinute(now, minute),
@@ -165,9 +172,8 @@ class RetentionNotificationService {
       // they've clearly lapsed, until they've been gone long enough to call churned.
       const days = getDaysSinceLastWorkout(workouts, now);
       if (days !== null && days >= COMEBACK_MIN_DAYS && days <= COMEBACK_MAX_DAYS) {
-        let minute = COMEBACK_DEFAULT_MINUTE;
-        if (nowMinute >= COMEBACK_DEFAULT_MINUTE) minute = nowMinute + 120;
-        if (minute > nowMinute && minute >= EARLIEST_MINUTE && minute <= latest) {
+        const minute = pickFireMinute(COMEBACK_DEFAULT_MINUTE, nowMinute, latest);
+        if (minute !== null) {
           return {
             type: 'comeback',
             fireAt: atMinute(now, minute),

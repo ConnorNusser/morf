@@ -116,14 +116,15 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     setPredictions(calculateAllPredictions(data));
   };
 
+  // Mean of every model's 90-day prediction, using `fallback` where a model has none.
+  const avg90 = (fallback: number) =>
+    Math.round(predictionModels.reduce((sum, model) =>
+      sum + (predictions[`${model.name}_90`] || fallback), 0) / predictionModels.length);
+
   // Calculate average prediction for chart
   const getAveragePrediction = () => {
     if (Object.keys(predictions).length === 0 || liftData.length === 0) return undefined;
-    
-    const currentData = liftData[liftData.length - 1];
-    return Math.round(predictionModels.reduce((sum, model) => {
-      return sum + (predictions[`${model.name}_90`] || currentData.personalRecord);
-    }, 0) / predictionModels.length);
+    return avg90(liftData[liftData.length - 1].personalRecord);
   };
 
   const renderCurrentStats = () => {
@@ -133,9 +134,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     // Calculate 3-month prediction average
     const avg3MonthPrediction = Object.keys(predictions).length > 0
-      ? Math.round(predictionModels.reduce((sum, model) => {
-          return sum + (predictions[`${model.name}_90`] || topLift?.personalRecord || 0);
-        }, 0) / predictionModels.length)
+      ? avg90(topLift?.personalRecord || 0)
       : 0;
 
     return (

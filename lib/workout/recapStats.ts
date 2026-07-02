@@ -3,6 +3,19 @@ import { userService } from '@/lib/services/userService';
 import { CustomExercise, GeneratedWorkout, MuscleGroup, UserLift, WeightUnit, convertWeight } from '@/types';
 import { getWorkoutByIdWithCustom } from './workouts';
 
+// A weight value converted into the user's preferred unit (no-op when it matches).
+const toPreferred = (w: number, u: WeightUnit, preferred: WeightUnit): number =>
+  u === preferred ? w : convertWeight(w, u, preferred);
+
+// Bucket lifts by their exercise id (each caller applies its own per-bucket sort).
+function groupLiftsByExercise(lifts: UserLift[]): Record<string, UserLift[]> {
+  const byExercise: Record<string, UserLift[]> = {};
+  for (const lift of lifts) {
+    (byExercise[lift.id] ??= []).push(lift);
+  }
+  return byExercise;
+}
+
 // Lifetime totals for the dashboard header: total volume (Σ weight×reps over all
 // completed sets, in the user's preferred unit) and total workouts logged.
 export interface LifetimeTotals {
@@ -19,8 +32,7 @@ export function getLifetimeTotals(
     for (const exercise of workout.exercises || []) {
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
-        const weight =
-          set.unit === preferredUnit ? set.weight : convertWeight(set.weight, set.unit, preferredUnit);
+        const weight = toPreferred(set.weight, set.unit, preferredUnit);
         totalVolume += weight * set.reps;
       }
     }
@@ -244,9 +256,7 @@ export async function calculateRecapStats(
           totalSets++;
           totalReps += set.reps;
 
-          const weightInPreferred = set.unit === preferredUnit
-            ? set.weight
-            : convertWeight(set.weight, set.unit, preferredUnit);
+          const weightInPreferred = toPreferred(set.weight, set.unit, preferredUnit);
 
           const setVolume = weightInPreferred * set.reps;
           totalVolume += setVolume;
@@ -435,13 +445,7 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customEx
     return { prsAchieved: 0, topPR: null };
   }
 
-  const liftsByExercise: Record<string, UserLift[]> = {};
-  for (const lift of lifts) {
-    if (!liftsByExercise[lift.id]) {
-      liftsByExercise[lift.id] = [];
-    }
-    liftsByExercise[lift.id].push(lift);
-  }
+  const liftsByExercise = groupLiftsByExercise(lifts);
 
   let prsAchieved = 0;
   let topPR: TopPR | null = null;
@@ -452,9 +456,7 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customEx
 
     let currentMax = 0;
     for (const lift of exerciseLifts) {
-      const weightInPreferred = lift.unit === preferredUnit
-        ? lift.weight
-        : convertWeight(lift.weight, lift.unit, preferredUnit);
+      const weightInPreferred = toPreferred(lift.weight, lift.unit, preferredUnit);
 
       if (weightInPreferred > currentMax) {
         if (currentMax > 0) {
@@ -484,13 +486,7 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customEx
 // ===== STRENGTH PROGRESS =====
 
 function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: WeightUnit, customExercises: CustomExercise[]): StrengthProgress[] {
-  const liftsByExercise: Record<string, UserLift[]> = {};
-  for (const lift of lifts) {
-    if (!liftsByExercise[lift.id]) {
-      liftsByExercise[lift.id] = [];
-    }
-    liftsByExercise[lift.id].push(lift);
-  }
+  const liftsByExercise = groupLiftsByExercise(lifts);
 
   const progress: StrengthProgress[] = [];
 
@@ -502,13 +498,9 @@ function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: We
     const firstLift = exerciseLifts[0];
     const lastLift = exerciseLifts[exerciseLifts.length - 1];
 
-    const startMax = firstLift.unit === preferredUnit
-      ? firstLift.weight
-      : convertWeight(firstLift.weight, firstLift.unit, preferredUnit);
+    const startMax = toPreferred(firstLift.weight, firstLift.unit, preferredUnit);
 
-    const endMax = lastLift.unit === preferredUnit
-      ? lastLift.weight
-      : convertWeight(lastLift.weight, lastLift.unit, preferredUnit);
+    const endMax = toPreferred(lastLift.weight, lastLift.unit, preferredUnit);
 
     const improvement = endMax - startMax;
 

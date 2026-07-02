@@ -23,6 +23,11 @@ import { buildDeterministicProgram } from '@/lib/workout/deterministicRoutineBui
 
 export { ProgramTemplate, TrainingGoal };
 
+// Heaviest completed set by weight, or the zero seed when there are none.
+function bestSetByWeight(sets?: { weight: number; reps: number }[]): { weight: number; reps: number } | undefined {
+  return sets?.reduce((best, current) => (current.weight > best.weight ? current : best), { weight: 0, reps: 0 });
+}
+
 // Mirrors INTENSITY_MODIFIERS in progressiveOverload.ts (kept in sync intentionally)
 // so a seeded starting weight matches what the workout screen later computes.
 const INTENSITY_MULTIPLIERS: Record<IntensityModifier, number> = {
@@ -409,10 +414,7 @@ class AIRoutineGeneratorService {
 
         const exerciseName = idToName.get(ex.id) || ex.id;
 
-        const bestSet = ex.completedSets?.reduce((best, current) =>
-          (current.weight > best.weight) ? current : best,
-          { weight: 0, reps: 0 }
-        );
+        const bestSet = bestSetByWeight(ex.completedSets);
 
         const current = exerciseStats.get(ex.id);
         if (!current) {
@@ -471,27 +473,17 @@ class AIRoutineGeneratorService {
       });
     }
 
+    const namesForIds = (ids?: string[]) =>
+      ids?.map(id => [...availableExercises, ...customExercises].find(e => e.id === id)?.name)
+          .filter((name): name is string => !!name);
+
     // Get names of included exercises
-    const includedExerciseNames = options.includedExercises
-      ? options.includedExercises
-          .map(id => {
-            const exercise = [...availableExercises, ...customExercises].find(e => e.id === id);
-            return exercise?.name;
-          })
-          .filter((name): name is string => !!name)
-      : undefined;
+    const includedExerciseNames = namesForIds(options.includedExercises);
 
     // Get names of excluded exercises. We already drop these from the available list, but
     // the model can still recall an excluded lift from training, so we also render an explicit
     // "MUST EXCLUDE" rule (and drop them again at the conversion seam as a backstop).
-    const excludedExerciseNames = options.excludedExercises
-      ? options.excludedExercises
-          .map(id => {
-            const exercise = [...availableExercises, ...customExercises].find(e => e.id === id);
-            return exercise?.name;
-          })
-          .filter((name): name is string => !!name)
-      : undefined;
+    const excludedExerciseNames = namesForIds(options.excludedExercises);
 
     const params: RoutineGenerationParams = {
       trainingGoal: options.trainingGoal,
@@ -540,10 +532,7 @@ class AIRoutineGeneratorService {
     for (const workout of workoutHistory.slice(-20)) {
       for (const ex of workout.exercises) {
         if (standards[ex.id]) {
-          const bestSet = ex.completedSets?.reduce((best, current) =>
-            (current.weight > best.weight) ? current : best,
-            { weight: 0, reps: 0 }
-          );
+          const bestSet = bestSetByWeight(ex.completedSets);
           if (bestSet && bestSet.weight > 0) {
             const percentile = calculateStrengthPercentile(
               bestSet.weight,

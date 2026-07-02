@@ -74,21 +74,18 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
     }
   };
 
-  const getCategoryPercentile = (category: keyof typeof MUSCLE_CATEGORIES): number => {
-    if (!muscleGroups) return 0;
-    const muscles = MUSCLE_CATEGORIES[category].muscles;
-    const values = muscles.map(m => muscleGroups[m]).filter(v => v > 0);
+  const avgCategory = (source: MuscleGroupPercentiles | null | undefined, category: keyof typeof MUSCLE_CATEGORIES): number => {
+    if (!source) return 0;
+    const values = MUSCLE_CATEGORIES[category].muscles.map(m => source[m]).filter(v => v > 0);
     if (values.length === 0) return 0;
     return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   };
 
-  const getCategoryPercentileFromEntry = (entry: PercentileHistoryEntry, category: keyof typeof MUSCLE_CATEGORIES): number => {
-    if (!entry.muscleGroups) return 0;
-    const muscles = MUSCLE_CATEGORIES[category].muscles;
-    const values = muscles.map(m => entry.muscleGroups![m]).filter(v => v > 0);
-    if (values.length === 0) return 0;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  };
+  const getCategoryPercentile = (category: keyof typeof MUSCLE_CATEGORIES): number =>
+    avgCategory(muscleGroups, category);
+
+  const getCategoryPercentileFromEntry = (entry: PercentileHistoryEntry, category: keyof typeof MUSCLE_CATEGORIES): number =>
+    avgCategory(entry.muscleGroups, category);
 
   // Chart dimensions
   const screenWidth = Dimensions.get('window').width;
