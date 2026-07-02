@@ -1,4 +1,4 @@
-import { CustomExercise, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
+import { CustomExercise, ExerciseRecord, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -28,6 +28,7 @@ const STORAGE_KEYS = {
   PROFILE_ICON: 'profile_icon',
   UP_NEXT_POINTER: 'up_next_pointer',
   CYCLE_STARTED_AT: 'cycle_started_at',
+  EXERCISE_RECORDS: 'exercise_records',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -421,6 +422,39 @@ class StorageService {
     }
   }
 
+  // Exercise records --------------------------------------------------------
+  // One global record per exercise ("where you're at" on a movement). Keyed by
+  // exerciseId so any routine anchors to the same record; see ExerciseRecord.
+
+  async getExerciseRecords(): Promise<Record<string, ExerciseRecord>> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.EXERCISE_RECORDS);
+      if (!data) return {};
+      const parsed = JSON.parse(data) as Record<string, Omit<ExerciseRecord, 'updatedAt' | 'bestE1RMAt'> & { updatedAt: string; bestE1RMAt?: string }>;
+      const records: Record<string, ExerciseRecord> = {};
+      for (const [id, r] of Object.entries(parsed)) {
+        records[id] = { ...r, updatedAt: new Date(r.updatedAt), bestE1RMAt: r.bestE1RMAt ? new Date(r.bestE1RMAt) : undefined };
+      }
+      return records;
+    } catch (error) {
+      console.error('Error loading exercise records:', error);
+      return {};
+    }
+  }
+
+  async getExerciseRecord(exerciseId: string): Promise<ExerciseRecord | null> {
+    const records = await this.getExerciseRecords();
+    return records[exerciseId] ?? null;
+  }
+
+  async saveExerciseRecords(records: Record<string, ExerciseRecord>): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.EXERCISE_RECORDS, JSON.stringify(records));
+    } catch (error) {
+      console.error('Error saving exercise records:', error);
+    }
+  }
+
   async deleteRoutine(routineId: string): Promise<void> {
     const routines = await this.getRoutines();
     const filtered = routines.filter(r => r.id !== routineId);
@@ -716,36 +750,8 @@ class StorageService {
         await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify(history));
       }
 
-      // 2. Update user profile lifts
-      const profileData = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-      if (profileData) {
-        const profile = JSON.parse(profileData);
-        let profileChanged = false;
-
-        if (profile.lifts) {
-          for (const lift of profile.lifts) {
-            if (lift.id === oldId) {
-              lift.id = newId;
-              profileChanged = true;
-            }
-          }
-        }
-
-        if (profile.secondaryLifts) {
-          for (const lift of profile.secondaryLifts) {
-            if (lift.id === oldId) {
-              lift.id = newId;
-              profileChanged = true;
-            }
-          }
-        }
-
-        if (profileChanged) {
-          await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
-        }
-      }
-
-      // Note: WorkoutTemplates store raw noteText, not exercise IDs, so no migration needed
+      // Note: exercise records + WorkoutTemplates need no id migration here —
+      // records rebuild from history, and templates store raw noteText.
 
     } catch (error) {
       console.error('Error migrating exercise ID:', error);

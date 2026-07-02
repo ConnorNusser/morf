@@ -154,8 +154,6 @@ export interface UserProfile {
   gender: Gender;
   age?: number;
   trainingYears?: number;  // Self-reported years of consistent strength training
-  lifts: UserLift[];
-  secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
   equipmentFilter?: EquipmentFilter;
   username?: string;
@@ -261,13 +259,25 @@ export type SplitType =
   | 'cardio'
   | 'custom';
 
-// Per-exercise progression tracking within a routine
-export interface ExerciseProgressionState {
-  baseReps: number;           // Original programmed reps
-  currentRepBonus: number;    // 0, 1, 2, or 3 extra reps
-  currentWeight: number;      // Current working weight in user's unit
-  consecutiveFailures: number; // For deload detection
-  lastSessionDate?: Date;
+// One global record per exercise — "where you're at" on a movement, independent
+// of any routine. Any routine that includes the exercise anchors its prescription
+// to this, so switching routines picks up where you left off. Populated from real
+// completed working sets on workout finish.
+export interface ExerciseRecord {
+  exerciseId: string;
+  // True when the exercise has population strength standards (a "main"/featured
+  // lift), so its best is rankable on the tier/radar/leaderboard.
+  isMainLift: boolean;
+  // Anchor for the next prescription: the last real top working set you did.
+  weight: number;
+  reps: number;
+  unit: WeightUnit;
+  updatedAt: Date;
+  // Best demonstrated single-set effort as an estimated 1RM (in lbs). The single
+  // source of "your best" — feeds the strength rank and the routine display, and
+  // rises as training weight climbs (no max testing required).
+  bestE1RMLbs: number;
+  bestE1RMAt?: Date;
 }
 
 // The routine itself - stores structure only, no weights
@@ -282,8 +292,6 @@ export interface Routine {
   isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
   programId?: string;  // The program this day belongs to; absent for loose/manual routines
   order?: number;      // Day position within its program (ascending); absent falls back to createdAt
-  // Progression tracking per exercise
-  progressionState?: Record<string, ExerciseProgressionState>;
 }
 
 // A program groups the day-routines created together. Exactly one program is 'active'

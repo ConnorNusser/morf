@@ -2,7 +2,7 @@ import Card from '@/components/Card';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { userService } from '@/lib/services/userService';
+import { storageService } from '@/lib/storage/storage';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { Equipment, UserLift, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,11 +39,18 @@ export default function ExercisesSection() {
 
   const loadData = async () => {
     try {
-      const profile = await userService.getRealUserProfile();
-      if (profile) {
-        const allLifts = [...(profile.lifts || []), ...(profile.secondaryLifts || [])];
-        setUserLifts(allLifts);
-      }
+      // Per-exercise record (last real working set) is the source of the shown record.
+      const records = await storageService.getExerciseRecords();
+      setUserLifts(
+        Object.values(records).map(r => ({
+          parentId: '',
+          id: r.exerciseId,
+          weight: r.weight,
+          reps: r.reps,
+          unit: r.unit,
+          dateRecorded: r.updatedAt,
+        }))
+      );
     } catch (error) {
       console.error('Error loading data:', error);
     }

@@ -44,8 +44,8 @@ describe('convertToRoutines conversion seam', () => {
     expect(routine.exercises).toHaveLength(2);
     const bench = routine.exercises.find(e => e.exerciseId === 'bench-press-barbell')!;
     expect(bench.sets).toHaveLength(5); // 4 + 1 merged
-    // one progression state per exercise id (no collision)
-    expect(Object.keys(routine.progressionState!)).toHaveLength(2);
+    // distinct exercise ids (no collision when merging)
+    expect(new Set(routine.exercises.map(e => e.exerciseId)).size).toBe(2);
   });
 
   it('parses rep ranges/AMRAP/time strings to the correct base rep', async () => {
@@ -55,7 +55,7 @@ describe('convertToRoutines conversion seam', () => {
       { name: 'Lateral Raise (Dumbbells)', sets: 3, reps: '30-60 sec' }, // -> 30 (not NaN)
       { name: 'Leg Curl (Machine)', sets: 3, reps: 12 },          // -> 12
     ]));
-    const base = (id: string) => routine.progressionState![id].baseReps;
+    const base = (id: string) => routine.exercises.find(e => e.exerciseId === id)!.sets[0].reps;
     expect(base('bench-press-barbell')).toBe(8);
     expect(base('bicep-curl-barbell')).toBe(5);
     expect(base('lateral-raise-dumbbells')).toBe(30);
@@ -90,19 +90,4 @@ describe('convertToRoutines conversion seam', () => {
     expect(routine.exercises.map(e => e.exerciseId)).toEqual(['bicep-curl-barbell']);
   });
 
-  it('seeds starting weight from history, leaves 0 when none', async () => {
-    mockGetWorkoutHistory.mockResolvedValue([
-      { exercises: [{ id: 'bench-press-barbell', completedSets: [{ weight: 185, reps: 5, completed: true, unit: 'lbs' }] }] },
-    ]);
-    const [routine] = await aiRoutineGenerator.convertToRoutines(program([
-      { name: 'Bench Press (Barbell)', sets: 4, reps: 5 },     // has history
-      { name: 'Bicep Curl (Barbell)', sets: 3, reps: 12 },     // no history
-    ]));
-    const bench = routine.progressionState!['bench-press-barbell'].currentWeight;
-    const curl = routine.progressionState!['bicep-curl-barbell'].currentWeight;
-    expect(bench).toBeGreaterThan(150);   // ~180 from 185x5 @ 5-rep %
-    expect(bench).toBeLessThan(215);
-    expect(bench % 5).toBe(0);            // rounded to plate increment
-    expect(curl).toBe(0);
-  });
 });

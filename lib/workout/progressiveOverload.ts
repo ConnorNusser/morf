@@ -16,10 +16,7 @@
 
 import {
   CalculatedRoutineExercise,
-  CalculatedSet,
-  ExerciseProgressionState,
-  GeneratedWorkout,
-  IntensityModifier,
+  ExerciseRecord,
   Routine,
   RoutineExercise,
   RoutineSet,
@@ -27,229 +24,85 @@ import {
   convertWeight,
   CalculatedRoutine
 } from '@/types';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { roundWeight } from '@/lib/utils/utils';
-import { bestCompletedSet, completedWorkingSets } from './setStats';
+import { nextPrescription, loadIncrement, NextPrescription } from './progression';
 import { getWorkoutById } from './workouts';
 
-// Intensity modifiers applied on top of rep-based percentage
-const INTENSITY_MODIFIERS: Record<IntensityModifier, number> = {
-  heavy: 1.0,      // 100% of calculated weight
-  moderate: 0.90,  // 90% of calculated weight
-  light: 0.80,     // 80% of calculated weight
-};
-
-interface ExerciseSession {
-  weight: number;
-  reps: number;
-  sets: number;
-  date: Date;
-  unit: WeightUnit;
-  completedAllSets: boolean;
-}
 
 /**
- * Extract exercise history from workout history
- */
-function getExerciseHistory(
-  exerciseId: string,
-  workoutHistory: GeneratedWorkout[]
-): ExerciseSession[] {
-  if (!exerciseId) return [];
-
-  const sessions: ExerciseSession[] = [];
-
-  for (const workout of workoutHistory) {
-    for (const exercise of workout.exercises) {
-      if (exercise.id === exerciseId && exercise.completedSets?.length > 0) {
-        // Get the heaviest working set from this session (best by estimated 1RM)
-        const completedSets = completedWorkingSets(exercise.completedSets);
-        const bestSet = bestCompletedSet(completedSets, 'e1rm');
-        if (!bestSet) continue;
-
-        // Calculate if they completed all planned sets
-        const targetSets = exercise.sets || completedSets.length;
-        const completedAllSets = completedSets.length >= targetSets;
-
-        sessions.push({
-          weight: bestSet.weight,
-          reps: bestSet.reps,
-          sets: completedSets.length,
-          date: new Date(workout.createdAt),
-          unit: bestSet.unit,
-          completedAllSets,
-        });
-      }
-    }
-  }
-
-  // Sort by date, most recent first
-  return sessions.sort((a, b) => b.date.getTime() - a.date.getTime());
-}
-
-/**
- * Calculate estimated 1RM from exercise history
- */
-function calculateEstimated1RM(sessions: ExerciseSession[]): number {
-  if (sessions.length === 0) return 0;
-
-  // Find the best 1RM estimate from all sessions
-  let best1RM = 0;
-  for (const session of sessions) {
-    const weightInLbs = session.unit === 'kg'
-      ? convertWeight(session.weight, 'kg', 'lbs')
-      : session.weight;
-    const estimated = OneRMCalculator.estimate(weightInLbs, session.reps);
-    if (estimated > best1RM) {
-      best1RM = estimated;
-    }
-  }
-
-  return best1RM;
-}
-
-// Warmup: 60% of estimated 1RM (light weight to prepare)
-const WARMUP_1RM_PERCENTAGE = 0.60;
-
-/**
- * Round weight to nearest increment (5 lbs or 2.5 kg)
- */
-
-/**
- * Calculate target and expected weights for a single routine exercise
- * If progressionState is provided, uses tracked progression (weight + rep bonus)
- * Otherwise falls back to 1RM-based calculation from history
+ * Compute display targets for one routine exercise by anchoring to the global
+ * ExerciseRecord (what you actually lifted last time) and applying reactive double
+ * progression. No estimated-1RM math — the number can never exceed what you've
+ * demonstrated. With no record yet (cold-start), working sets show blank (0) until
+ * your first logged session creates the record.
  */
 function calculateRoutineExerciseWeights(
   exercise: RoutineExercise,
-  workoutHistory: GeneratedWorkout[],
   weightUnit: WeightUnit,
-  progressionState?: ExerciseProgressionState
+  record?: ExerciseRecord
 ): CalculatedRoutineExercise {
   // Handle both old format (sets as number) and new format (sets as array)
   let sets: RoutineSet[];
   if (Array.isArray(exercise?.sets)) {
     sets = exercise.sets;
   } else {
-    // Migration: Convert old format to new format
     const numSets = typeof exercise?.sets === 'number' ? exercise.sets : 3;
     const reps = (exercise as any)?.reps || 10;
     sets = Array(numSets).fill(null).map(() => ({ reps }));
   }
 
-  // Guard against missing exerciseId
+  // Exercise name - prefer stored name, fall back to lookup for legacy routines
+  let exerciseName = exercise.exerciseName;
+  if (!exerciseName) {
+    exerciseName = getWorkoutById(exercise.exerciseId)?.name || exercise.exerciseId;
+  }
+
   if (!exercise?.exerciseId) {
     return {
       ...exercise,
       sets: sets.map(s => ({ ...s, targetWeight: 0 })),
-      exerciseName: 'Unknown Exercise',
+      exerciseName: exerciseName || 'Unknown Exercise',
       workingWeight: 0,
       progression: 'maintain',
       unit: weightUnit,
     };
   }
 
-  const sessions = getExerciseHistory(exercise.exerciseId, workoutHistory);
-  const estimated1RM = calculateEstimated1RM(sessions);
+  // The programmed reps for the working sets are the rep-range floor.
+  const workingReps = sets.find(s => !s.isWarmup)?.reps ?? sets[0]?.reps ?? 10;
 
-  // Get exercise name - prefer stored name, fall back to lookup for legacy routines
-  let exerciseName = exercise.exerciseName;
-  if (!exerciseName) {
-    const workoutInfo = getWorkoutById(exercise.exerciseId);
-    exerciseName = workoutInfo?.name || exercise.exerciseId;
-  }
-
-  // Get intensity modifier (default to heavy)
-  const intensityModifier = exercise.intensityModifier || 'heavy';
-  const intensityMultiplier = INTENSITY_MODIFIERS[intensityModifier];
-
-  let progression: 'increase' | 'maintain' | 'decrease' = 'maintain';
+  // Anchor to the record (in display unit) and run the progression rule; with no
+  // record the exercise is cold-start and working sets stay blank (0).
+  let prescription: NextPrescription | undefined;
   let lastPerformed: CalculatedRoutineExercise['lastPerformed'] | undefined;
-
-  // Convert 1RM to user's unit
-  const estimated1RMInUnit = weightUnit === 'kg'
-    ? convertWeight(estimated1RM, 'lbs', 'kg')
-    : estimated1RM;
-
-  // Track last session for display purposes
-  const lastSession = sessions[0];
-  if (lastSession) {
-    const lastWeightInUnit = lastSession.unit === weightUnit
-      ? lastSession.weight
-      : convertWeight(lastSession.weight, lastSession.unit, weightUnit);
-
-    lastPerformed = {
-      weight: Math.round(lastWeightInUnit),
-      reps: lastSession.reps,
-      date: lastSession.date,
-      completed: lastSession.completedAllSets,
-    };
+  if (record) {
+    const anchorWeight = record.unit === weightUnit
+      ? record.weight
+      : convertWeight(record.weight, record.unit, weightUnit);
+    prescription = nextPrescription(
+      { weight: anchorWeight, reps: record.reps, unit: weightUnit },
+      { floor: workingReps, ceiling: workingReps + 2 },
+      loadIncrement(exercise.exerciseId, weightUnit),
+    );
+    lastPerformed = { weight: Math.round(anchorWeight), reps: record.reps, date: record.updatedAt, completed: true };
   }
 
-  // Calculate weight for each set
-  // If progressionState exists, use tracked weight and apply rep bonus
-  // Otherwise fall back to 1RM-based calculation
   const calculatedSets = sets.map(set => {
-    let targetWeight: number;
-    let targetReps = set.reps;
-
-    if (progressionState && progressionState.currentWeight > 0) {
-      // Use progression-tracked weight
-      if (set.isWarmup) {
-        // Warmups: 60% of working weight
-        targetWeight = progressionState.currentWeight * 0.6;
-      } else {
-        // Working sets use tracked weight directly
-        targetWeight = progressionState.currentWeight;
-        // Apply rep bonus from progression
-        targetReps = progressionState.baseReps + progressionState.currentRepBonus;
-      }
-    } else if (estimated1RMInUnit > 0) {
-      // Fall back to 1RM-based calculation
-      if (set.isWarmup) {
-        targetWeight = estimated1RMInUnit * WARMUP_1RM_PERCENTAGE;
-      } else {
-        const repPercentage = OneRMCalculator.getPercentageFor(set.reps) / 100;
-        targetWeight = estimated1RMInUnit * repPercentage * intensityMultiplier;
-      }
-    } else {
-      targetWeight = 0;
-    }
-
-    return {
-      ...set,
-      reps: targetReps,
-      targetWeight: roundWeight(targetWeight, weightUnit),
-    };
+    if (!prescription) return { ...set, targetWeight: 0 }; // cold-start: blank
+    if (set.isWarmup) return { ...set, targetWeight: roundWeight(prescription.weight * 0.6, weightUnit) };
+    return { ...set, reps: prescription.reps, targetWeight: prescription.weight };
   });
 
-  // Calculate working weight as the heaviest non-warmup set (for display)
-  const workingSetWeights = calculatedSets.filter(s => !s.isWarmup).map(s => s.targetWeight);
-  const workingWeight = workingSetWeights.length > 0 ? Math.max(...workingSetWeights) : 0;
+  const workingWeight = prescription?.weight ?? 0;
 
-  // Determine progression indicator
-  // Priority: failures > rep bonuses > weight increases
-  // Note: We don't show 'decrease' just because weight dropped (could be intentional deload)
-  // Only show 'decrease' when there are consecutive failures
-  if (progressionState) {
-    if (progressionState.consecutiveFailures >= 2) {
-      // Two consecutive failures = declining
-      progression = 'decrease';
-    } else if (progressionState.currentRepBonus > 0) {
-      // Earning rep bonuses = improving
-      progression = 'increase';
-    } else if (lastPerformed && workingWeight > lastPerformed.weight + 2) {
-      // Weight increased = improving
-      progression = 'increase';
-    }
-    // else: maintain (stable) - includes post-deload state
-  } else if (lastPerformed && workingWeight > 0) {
-    // No progression state, fall back to weight comparison for improvement only
-    if (workingWeight > lastPerformed.weight + 2) {
-      progression = 'increase';
-    }
-    // Don't show decrease without progression tracking
-  }
+  // Map the reactive-progression change onto the display indicator.
+  let progression: 'increase' | 'maintain' | 'decrease' = 'maintain';
+  if (prescription?.change === 'increase' || prescription?.change === 'add-rep') progression = 'increase';
+  else if (prescription?.change === 'deload') progression = 'decrease';
+
+  const estimated1RM = record
+    ? Math.round(weightUnit === 'kg' ? convertWeight(record.bestE1RMLbs, 'lbs', 'kg') : record.bestE1RMLbs)
+    : 0;
 
   return {
     ...exercise,
@@ -259,29 +112,22 @@ function calculateRoutineExerciseWeights(
     lastPerformed,
     progression,
     unit: weightUnit,
-    estimated1RM: Math.round(estimated1RMInUnit),
+    estimated1RM,
   };
 }
 
-/**
- * Calculate all exercises in a routine
- * Uses routine's progressionState if available for each exercise
- */
+/** Calculate one routine's display targets, anchored to the global exercise records. */
 export function calculateRoutine(
   routine: Routine,
-  workoutHistory: GeneratedWorkout[],
+  records: Record<string, ExerciseRecord>,
   weightUnit: WeightUnit
 ): CalculatedRoutine {
   const exercises = routine?.exercises || [];
-  const calculatedExercises = exercises.map(exercise => {
-    // Get progression state for this exercise if it exists
-    const progressionState = routine.progressionState?.[exercise.exerciseId];
-    return calculateRoutineExerciseWeights(exercise, workoutHistory, weightUnit, progressionState);
-  });
-
   return {
     ...routine,
-    exercises: calculatedExercises,
+    exercises: exercises.map(exercise =>
+      calculateRoutineExerciseWeights(exercise, weightUnit, records[exercise.exerciseId])
+    ),
   };
 }
 
@@ -290,11 +136,11 @@ export function calculateRoutine(
  */
 export function calculateAllRoutines(
   routines: Routine[],
-  workoutHistory: GeneratedWorkout[],
+  records: Record<string, ExerciseRecord>,
   weightUnit: WeightUnit
 ): CalculatedRoutine[] {
   if (!routines || !Array.isArray(routines)) return [];
-  return routines.map(routine => calculateRoutine(routine, workoutHistory, weightUnit));
+  return routines.map(routine => calculateRoutine(routine, records, weightUnit));
 }
 
 

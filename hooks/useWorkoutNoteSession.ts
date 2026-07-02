@@ -29,7 +29,7 @@ import {
 } from '@/lib/workout/workoutDraft';
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
-import { updateRoutineProgression } from '@/lib/workout/routineProgression';
+import { updateExerciseRecords } from '@/lib/workout/progression';
 import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
@@ -504,19 +504,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // streak/habit nudge is cancelled (they no longer need it).
     retentionNotificationService.refreshScheduledReminders().catch(() => {});
 
-    // Update routine progression if this was from a routine
-    if (startedRoutineId) {
-      try {
-        const routines = await storageService.getRoutines();
-        const routine = routines.find(r => r.id === startedRoutineId);
-        if (routine) {
-          const updatedRoutine = updateRoutineProgression(routine, generatedWorkout, weightUnit);
-          await storageService.saveRoutine(updatedRoutine);
-        }
-      } catch (error) {
-        console.error('Error updating routine progression:', error);
-      }
-    }
 
     // Get current progress (PRs) before recording new lifts - for notifications AND strength animation
     // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
@@ -564,24 +551,28 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       }
     }
 
-    // Record all lifts in a single atomic operation to avoid race conditions
-    // (Previously this used Promise.all which caused lifts to be lost due to concurrent profile writes)
-    const recordResults = await userService.recordLifts(
-      liftDataWithMeta.map(({ liftData, liftType }) => ({ lift: liftData, liftType }))
-    );
+    // Fold this workout into the global exercise records — the single source of
+    // "your best per exercise" (progression anchor + strength rank). This must run
+    // AFTER the before-snapshot above so PR detection compares against the prior
+    // best, not the just-updated one. Only when real work was logged.
+    if (didRealWork) {
+      try {
+        const records = await storageService.getExerciseRecords();
+        await storageService.saveExerciseRecords(updateExerciseRecords(records, generatedWorkout.exercises, new Date()));
+      } catch (error) {
+        console.error('Error updating exercise records:', error);
+      }
+    }
 
-    // Build a map of liftId -> isNewPR for quick lookup
-    const prResultMap = new Map(recordResults.map(r => [r.liftId, r.isNewPR]));
-
-    // Process PR results
+    // A PR is a best-set estimated-1RM above the exercise's prior best (from the
+    // before-snapshot). Derived directly — no separate lift store to write.
     let prCount = 0;
     for (const { liftData, exercise, previousPR } of liftDataWithMeta) {
-      const isNewPR = prResultMap.get(liftData.id) || false;
-      if (isNewPR) {
+      const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
+      if (newPR > previousPR) {
         prCount++;
         const workoutInfo = getWorkoutById(exercise.id);
         if (workoutInfo) {
-          const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
           newPRs.push({
             exerciseId: exercise.id,
             exerciseName: workoutInfo.name,
@@ -663,7 +654,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (startedRoutineId && didRealWork) {
       await storageService.recordDayTrained(startedRoutineId);
     }
-  }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
+  }, [elapsedTime, refreshProfile, startedRoutineId]);
 
   // Handle finish modal complete - reset workout state
   // Clear the in-progress workout: draft, composer, timer, routine link, and the

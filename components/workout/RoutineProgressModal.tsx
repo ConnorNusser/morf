@@ -7,8 +7,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
+import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { GeneratedWorkout, MuscleGroup, Routine } from '@/types';
+import { ExerciseRecord, GeneratedWorkout, MuscleGroup, Routine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -24,7 +25,6 @@ import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 interface RoutineProgressModalProps {
   visible: boolean;
   onClose: () => void;
-  onDataChanged?: () => void;
 }
 
 type ExerciseStatus = 'improving' | 'stable' | 'declining' | 'new';
@@ -69,7 +69,6 @@ interface RoutineProgress {
 export default function RoutineProgressModal({
   visible,
   onClose,
-  onDataChanged,
 }: RoutineProgressModalProps) {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
@@ -77,6 +76,7 @@ export default function RoutineProgressModal({
 
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ExerciseStatus | null>(null);
@@ -99,6 +99,7 @@ export default function RoutineProgressModal({
       const activeRoutines = loadedRoutines.filter(r => r.isActive !== false);
       setRoutines(activeRoutines);
       setWorkoutHistory(history);
+      setExerciseRecords(await loadExerciseRecords(history));
       if (activeRoutines.length > 0) {
         setExpandedRoutineId(activeRoutines[0].id);
       }
@@ -107,43 +108,9 @@ export default function RoutineProgressModal({
     }
   };
 
-  // Handle manual deload for a specific exercise
-  const handleDeloadExercise = async (routineId: string, exerciseId: string) => {
-    const routine = routines.find(r => r.id === routineId);
-    if (!routine) return;
-
-    const progressionState = routine.progressionState?.[exerciseId];
-    if (!progressionState) return;
-
-    // Calculate deloaded weight (10% reduction, rounded to nearest plate)
-    const deloadPercent = 0.9;
-    const increment = weightUnit === 'kg' ? 2.5 : 5;
-    const newWeight = Math.round((progressionState.currentWeight * deloadPercent) / increment) * increment;
-
-    // Update progression state for this exercise only
-    const updatedProgressionState = {
-      ...routine.progressionState,
-      [exerciseId]: {
-        ...progressionState,
-        currentWeight: newWeight,
-        currentRepBonus: 0,
-        consecutiveFailures: 0,
-      },
-    };
-
-    const updated: Routine = {
-      ...routine,
-      progressionState: updatedProgressionState,
-    };
-
-    await storageService.saveRoutine(updated);
-    await loadData();
-    onDataChanged?.();
-  };
-
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, workoutHistory, weightUnit);
-  }, [routines, workoutHistory, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
+  }, [routines, exerciseRecords, weightUnit]);
 
   // Calculate progress for all routines
   const routineProgressList = useMemo((): RoutineProgress[] => {
@@ -165,8 +132,6 @@ export default function RoutineProgressModal({
         : null;
 
       for (const exercise of routine.exercises) {
-        const progState = routine.progressionState?.[exercise.exerciseId];
-
         // Get weight history with dates for this exercise
         const weightHistory: WeightDataPoint[] = [];
         let sessionNum = 0;
@@ -184,24 +149,19 @@ export default function RoutineProgressModal({
         }
 
         const startWeight = weightHistory.length > 0 ? weightHistory[0].weight : 0;
-        const currentWeight = progState?.currentWeight || (weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : 0);
-        const repBonus = progState?.currentRepBonus || 0;
-        const consecutiveFailures = progState?.consecutiveFailures || 0;
+        const currentWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].weight : exercise.workingWeight;
 
-        // Determine status: Improving, Stable, Declining
+        // Status comes from the reactive engine's indicator (record-anchored).
         let status: ExerciseStatus = 'new';
         if (weightHistory.length === 0) {
           status = 'new';
-        } else if (consecutiveFailures >= 2) {
-          // Two consecutive failures = declining
+        } else if (exercise.progression === 'decrease') {
           status = 'declining';
           declining++;
-        } else if (currentWeight > startWeight || repBonus > 0) {
-          // Weight increased OR earning rep bonuses = improving
+        } else if (exercise.progression === 'increase') {
           status = 'improving';
           improving++;
         } else {
-          // Has data but no progress = stable
           status = 'stable';
           stable++;
         }
@@ -212,7 +172,7 @@ export default function RoutineProgressModal({
           currentWeight,
           startWeight,
           weightHistory,
-          repBonus,
+          repBonus: 0,
           status,
         });
       }
@@ -504,11 +464,11 @@ export default function RoutineProgressModal({
   // One exercise row — shared by the filtered (cross-routine) list and each
   // routine's expanded list. showRoutineLabel adds the routine name under the
   // exercise (filtered view); showNoData renders the "No data yet" line for new
-  // exercises (routine view); deloadRoutineId is the routine the deload targets.
+  // exercises (routine view).
   const renderExerciseRow = (
     exercise: ExerciseProgress & { routineName?: string },
     index: number,
-    opts: { deloadRoutineId: string; showRoutineLabel?: boolean; showNoData?: boolean }
+    opts: { showRoutineLabel?: boolean; showNoData?: boolean }
   ) => {
     const isExerciseExpanded = expandedExerciseId === exercise.exerciseId;
     const weightGain = exercise.currentWeight - exercise.startWeight;
@@ -552,26 +512,14 @@ export default function RoutineProgressModal({
                   )}
                 </Text>
                 {statusLabel && (
-                  exercise.status === 'declining' ? (
-                    <TouchableOpacity
-                      onPress={() => handleDeloadExercise(opts.deloadRoutineId, exercise.exerciseId)}
-                      style={styles.deloadButton}
-                    >
-                      <Text style={[styles.statusLabel, { color: '#ef4444', fontFamily: fonts.medium }]}>
-                        Tap to deload
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <Text style={[
-                      styles.statusLabel,
-                      {
-                        color: exercise.repBonus >= 3 ? '#f59e0b' : colors.primary,
-                        fontFamily: fonts.medium,
-                      }
-                    ]}>
-                      {statusLabel}
-                    </Text>
-                  )
+                  // The engine deloads automatically now — this is just the label
+                  // (e.g. "Consider deload" in red), no manual button.
+                  <Text style={[
+                    styles.statusLabel,
+                    { color: exercise.status === 'declining' ? '#ef4444' : colors.primary, fontFamily: fonts.medium },
+                  ]}>
+                    {statusLabel}
+                  </Text>
                 )}
               </View>
             )}
@@ -806,7 +754,6 @@ export default function RoutineProgressModal({
                     .map(exercise => ({ ...exercise, routineName: routine.name, routineId: routine.id }))
                 ).map((exercise, index) =>
                   renderExerciseRow(exercise, index, {
-                    deloadRoutineId: exercise.routineId,
                     showRoutineLabel: true,
                   })
                 )}
@@ -879,7 +826,6 @@ export default function RoutineProgressModal({
                     <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A' }]}>
                       {routine.exercises.map((exercise, index) =>
                         renderExerciseRow(exercise, index, {
-                          deloadRoutineId: routine.id,
                           showNoData: true,
                         })
                       )}

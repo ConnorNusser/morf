@@ -1,6 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import { getProgressionColor } from '@/lib/utils/utils';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
@@ -12,10 +12,11 @@ import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { getUpNextRoutine, isDayCompletedThisCycle } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines, getExerciseAdherenceStatus, type AdherenceStatus } from '@/lib/workout/progressiveOverload';
+import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
-import { CalculatedRoutine, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -59,7 +60,8 @@ export default function NotesScreen() {
 
   // Routines state
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  // Global per-exercise records — the anchor every routine's prescription uses.
+  const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
@@ -108,7 +110,7 @@ export default function NotesScreen() {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
-      setWorkoutHistory(history);
+      setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -129,8 +131,8 @@ export default function NotesScreen() {
 
   // Calculate routines with progressive overload
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, workoutHistory, weightUnit);
-  }, [routines, workoutHistory, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
+  }, [routines, exerciseRecords, weightUnit]);
 
   // Precompute muscle groups per routine once, instead of recomputing
   // getMuscleGroups (iterates exercises + getWorkoutById lookups) for every
@@ -274,36 +276,6 @@ export default function NotesScreen() {
     setRenamingProgram(null);
   }, [renamingProgram, renameText, loadData]);
 
-  // Handle manual deload for a specific exercise
-  const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
-    const progressionState = routine.progressionState?.[exerciseId];
-    if (!progressionState) return;
-
-    // Calculate deloaded weight (10% reduction, rounded to nearest plate)
-    const deloadPercent = 0.9;
-    const increment = weightUnit === 'kg' ? 2.5 : 5;
-    const newWeight = Math.round((progressionState.currentWeight * deloadPercent) / increment) * increment;
-
-    // Update progression state for this exercise only
-    const updatedProgressionState = {
-      ...routine.progressionState,
-      [exerciseId]: {
-        ...progressionState,
-        currentWeight: newWeight,
-        currentRepBonus: 0,
-        consecutiveFailures: 0,
-      },
-    };
-
-    const updated: Routine = {
-      ...routine,
-      progressionState: updatedProgressionState,
-    };
-
-    await storageService.saveRoutine(updated);
-    await loadData();
-  }, [loadData, weightUnit]);
-
   const handleCreateRoutine = useCallback(() => {
     setEditingRoutine(null);
     setAddDayProgramId(null);
@@ -372,12 +344,6 @@ export default function NotesScreen() {
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
 
-    // Find exercises that need deloading (consecutiveFailures >= 2)
-    const exercisesNeedingDeload = routine.exercises?.filter(
-      ex => (routine.progressionState?.[ex.exerciseId]?.consecutiveFailures ?? 0) >= 2
-    ) || [];
-    const hasExercisesNeedingDeload = exercisesNeedingDeload.length > 0;
-
     return (
       <TouchableOpacity
         key={routine.id}
@@ -431,29 +397,6 @@ export default function NotesScreen() {
               </Text>
             )}
 
-            {/* Deload Warning Banner - shown when collapsed and exercises need deload */}
-            {!isExpanded && hasExercisesNeedingDeload && (
-              <RNView style={[styles.deloadBanner, { backgroundColor: '#FF3B30' + '15' }]}>
-                <Ionicons name="warning" size={12} color="#FF3B30" />
-                <Text weight="medium" style={[styles.deloadBannerText, { color: '#FF3B30' }]}>
-                  {exercisesNeedingDeload.length} exercise{exercisesNeedingDeload.length > 1 ? 's' : ''} stalling
-                </Text>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    // Deload all stalling exercises
-                    exercisesNeedingDeload.forEach(ex => {
-                      handleDeloadExercise(routine, ex.exerciseId);
-                    });
-                  }}
-                  style={[styles.deloadBannerButton, { backgroundColor: '#FF3B30' }]}
-                >
-                  <Text weight="semiBold" style={[styles.deloadBannerButtonText]}>
-                    Deload
-                  </Text>
-                </TouchableOpacity>
-              </RNView>
-            )}
           </RNView>
 
           {/* Right: Start button — prominent on the up-next day, quiet elsewhere
@@ -535,16 +478,6 @@ export default function NotesScreen() {
                               style={{ marginLeft: 4 }}
                             />
                           </RNView>
-                          {(routine.progressionState?.[exercise.exerciseId]?.consecutiveFailures ?? 0) >= 2 && (
-                            <TouchableOpacity
-                              onPress={() => handleDeloadExercise(routine, exercise.exerciseId)}
-                              style={styles.deloadButton}
-                            >
-                              <Text weight="medium" style={[styles.deloadWarning, { color: '#FF3B30' }]}>
-                                Tap to deload
-                              </Text>
-                            </TouchableOpacity>
-                          )}
                         </>
                       ) : (
                         <Text weight="regular" style={[styles.noDataText, { color: currentTheme.colors.text + '30' }]}>
@@ -937,7 +870,6 @@ export default function NotesScreen() {
           setShowRoutineProgress(false);
           loadData(); // Refresh data in case changes were made
         }}
-        onDataChanged={loadData}
       />
 
       {/* Rename Program Modal */}

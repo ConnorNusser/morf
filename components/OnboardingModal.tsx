@@ -88,8 +88,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         weight,
         gender,
         age,
-        lifts: [],
-        secondaryLifts: [],
         weightUnitPreference: weightUnit,
         equipmentFilter: {
           mode: availableEquipment.length === ALL_EQUIPMENT.length ? 'all' : 'custom',

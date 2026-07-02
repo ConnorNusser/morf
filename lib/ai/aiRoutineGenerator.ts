@@ -3,7 +3,7 @@
  * Creates workout routines based on proven program methodologies
  */
 
-import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile, WeightUnit, convertWeight } from '@/types';
+import { CustomExercise, Equipment, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -16,7 +16,7 @@ import { TrainingGoal } from './splitTemplates';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
-import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
 import { classifyEquipment } from '@/lib/workout/equipmentProfile';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
@@ -28,14 +28,6 @@ export { ProgramTemplate, TrainingGoal };
 function bestSetByWeight(sets?: { weight: number; reps: number }[]): { weight: number; reps: number } | undefined {
   return sets?.reduce((best, current) => (current.weight > best.weight ? current : best), { weight: 0, reps: 0 });
 }
-
-// Mirrors INTENSITY_MODIFIERS in progressiveOverload.ts (kept in sync intentionally)
-// so a seeded starting weight matches what the workout screen later computes.
-const INTENSITY_MULTIPLIERS: Record<IntensityModifier, number> = {
-  heavy: 1.0,
-  moderate: 0.9,
-  light: 0.8,
-};
 
 export interface GeneratedRoutineDay {
   name: string;
@@ -172,9 +164,6 @@ class AIRoutineGeneratorService {
   ): Promise<Routine[]> {
     const routines: Routine[] = [];
     const customExercises = await storageService.getCustomExercises();
-    const workoutHistory = await storageService.getWorkoutHistory();
-    const userProfile = await userService.getRealUserProfile();
-    const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
     const excludedIds = new Set(options?.excludedExerciseIds || []);
 
     for (const day of program.routines) {
@@ -211,20 +200,9 @@ class AIRoutineGeneratorService {
 
       const exercises = order.map(id => byId.get(id)!);
 
-      // Initialize progression state, seeding the starting weight from history when we have it
-      const progressionState: Record<string, ExerciseProgressionState> = {};
-      for (const ex of exercises) {
-        const baseReps = ex.sets[0]?.reps || 10;
-        progressionState[ex.exerciseId] = {
-          baseReps,
-          currentRepBonus: 0,
-          currentWeight: this.seedWeightFromHistory(
-            ex.exerciseId, baseReps, ex.intensityModifier, workoutHistory, weightUnit
-          ),
-          consecutiveFailures: 0,
-        };
-      }
-
+      // No per-routine progression state: prescriptions anchor to the global
+      // ExerciseRecord (populated from real completed sets), so a generated day
+      // starts blank on brand-new exercises and picks up real numbers otherwise.
       const routine: Routine = {
         id: `${program.programStyle}-${day.dayNumber}-${Date.now()}`,
         name: day.name,
@@ -233,7 +211,6 @@ class AIRoutineGeneratorService {
         description: day.focus,
         isActive: true,
         programId: options?.programId,
-        progressionState,
       };
 
       routines.push(routine);
@@ -266,39 +243,6 @@ class AIRoutineGeneratorService {
     if (!isCompound) return 'light';     // isolation / accessory work
     if (baseReps <= 6) return 'heavy';   // heavy compound work
     return 'moderate';                    // higher-rep compound work
-  }
-
-  /**
-   * Seed a starting weight from the user's best estimated 1RM for this exercise.
-   * Mirrors progressiveOverload's formula (1RM x rep% x intensity) so the seeded
-   * weight matches what the workout screen would compute. Returns 0 when there's no
-   * usable history — progressiveOverload then falls back to a live 1RM calculation.
-   */
-  private seedWeightFromHistory(
-    exerciseId: string,
-    targetReps: number,
-    intensity: IntensityModifier | undefined,
-    workoutHistory: GeneratedWorkout[],
-    unit: WeightUnit
-  ): number {
-    let best1RM = 0;
-    for (const workout of workoutHistory) {
-      const ex = workout.exercises.find(e => e.id === exerciseId);
-      if (!ex?.completedSets) continue;
-      for (const s of ex.completedSets) {
-        if (!s.completed || s.weight <= 0 || s.reps <= 0) continue;
-        const w = s.unit && s.unit !== unit ? convertWeight(s.weight, s.unit, unit) : s.weight;
-        best1RM = Math.max(best1RM, OneRMCalculator.estimate(w, s.reps));
-      }
-    }
-    if (best1RM <= 0) return 0;
-
-    const intensityMultiplier = INTENSITY_MULTIPLIERS[intensity || 'heavy'];
-    const repPercentage = OneRMCalculator.getPercentageFor(targetReps) / 100;
-    const raw = best1RM * repPercentage * intensityMultiplier;
-
-    const increment = unit === 'kg' ? 2.5 : 5;
-    return Math.round(raw / increment) * increment;
   }
 
   /**

@@ -13,7 +13,6 @@ import {
   formatHoursCompact,
   formatMinutes as formatTime,
   getWorkoutCategory,
-  WorkoutStats,
 } from '@/lib/utils/utils';
 import {
   DEFAULT_WEEKLY_GOAL,

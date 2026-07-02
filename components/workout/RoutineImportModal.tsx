@@ -1,10 +1,11 @@
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { getProgressionColor } from '@/lib/utils/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
-import { CalculatedRoutine, GeneratedWorkout, Routine, WeightUnit } from '@/types';
+import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
+import { CalculatedRoutine, ExerciseRecord, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -66,7 +67,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
 
@@ -95,7 +96,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
-      setWorkoutHistory(history);
+      setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading routines:', error);
     }
@@ -103,8 +104,8 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
 
   // Calculate routines with progressive overload
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, workoutHistory, weightUnit);
-  }, [routines, workoutHistory, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
+  }, [routines, exerciseRecords, weightUnit]);
 
   // Filter routines
   const filteredRoutines = useMemo(() => {
@@ -216,9 +217,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                             </Text>
                             <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
-                              {(routine.progressionState?.[exercise.exerciseId]?.currentRepBonus ?? 0) > 0
-                                ? ` (+${routine.progressionState?.[exercise.exerciseId]?.currentRepBonus})`
-                                : ''}
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
                           </RNView>

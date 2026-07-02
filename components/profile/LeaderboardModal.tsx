@@ -2,10 +2,10 @@ import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/contexts/UserContext';
 import { getCountryFlag, geoService } from '@/lib/services/geoService';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { supabase } from '@/lib/services/supabase';
+import { storageService } from '@/lib/storage/storage';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { LeaderboardEntry, MAIN_LIFTS, OverallLeaderboardEntry, RemoteUser } from '@/types';
@@ -39,7 +39,6 @@ interface LeaderboardModalProps {
 
 export default function LeaderboardModal({ visible, onClose }: LeaderboardModalProps) {
   const { currentTheme } = useTheme();
-  const { userProfile } = useUser();
   const [filter, setFilter] = useState<LeaderboardFilter>('global');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<string>('overall');
@@ -52,21 +51,20 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   const [availableExercises, setAvailableExercises] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  // Exercise ids the user has a record for (drives the exercise filter list).
+  const [trackedRecordIds, setTrackedRecordIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (visible) storageService.getExerciseRecords().then(r => setTrackedRecordIds(Object.keys(r)));
+  }, [visible]);
 
   // Check if "Overall" is selected
   const isOverallSelected = selectedExercise === 'overall';
 
   // Get all exercise IDs that the user has tracked (excluding custom exercises)
   const getTrackedExerciseIds = useCallback(() => {
-    if (!userProfile) return ['overall', ...FEATURED_EXERCISES];
-
-    const allLifts = [...(userProfile.lifts || []), ...(userProfile.secondaryLifts || [])];
-    // Filter out custom exercises (those not found in built-in workouts)
-    const trackedIds = new Set(
-      allLifts
-        .filter(lift => getWorkoutById(lift.id) !== null)
-        .map(lift => lift.id)
-    );
+    // Non-custom exercises the user has a record for.
+    const trackedIds = new Set(trackedRecordIds.filter(id => getWorkoutById(id) !== null));
 
     // Start with featured exercises (always in this order)
     const orderedIds: string[] = [...FEATURED_EXERCISES];
@@ -80,7 +78,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
     // Add "Overall" as the first option
     return ['overall', ...orderedIds];
-  }, [userProfile]);
+  }, [trackedRecordIds]);
 
   const loadLeaderboard = useCallback(async () => {
     setIsLoading(true);

@@ -6,7 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { getPercentileColor, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
+import { getPercentileColor } from '@/lib/data/strengthStandards';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';

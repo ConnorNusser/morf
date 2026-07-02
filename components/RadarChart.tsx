@@ -182,7 +182,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       <Svg width={chartSize} height={chartSize}>
         <Defs>
           {/* Gradient definitions for each polygon segment */}
-          {polygonSegments.map((seg, i) => (
+          {polygonSegments.map((seg) => (
             <LinearGradient
               key={seg.gradientId}
               id={seg.gradientId}

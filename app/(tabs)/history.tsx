@@ -98,7 +98,6 @@ export default function HistoryScreen() {
 
   const loadExerciseStats = useCallback(async () => {
     try {
-      const profile = await userService.getRealUserProfile();
       const workoutHistory = await storageService.getWorkoutHistory();
 
       // Build a map of exercise IDs to their history and max
@@ -127,16 +126,6 @@ export default function HistoryScreen() {
           exerciseDataMap[id].maxOneRM = oneRM;
         }
       };
-
-      // Get from main lifts
-      for (const lift of profile?.lifts || []) {
-        addEntry(lift.id, lift.weight, lift.reps, new Date(lift.dateRecorded), lift.unit);
-      }
-
-      // Get from secondary lifts
-      for (const lift of profile?.secondaryLifts || []) {
-        addEntry(lift.id, lift.weight, lift.reps, new Date(lift.dateRecorded), lift.unit);
-      }
 
       // Scan workout history
       for (const workout of workoutHistory) {
