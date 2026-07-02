@@ -267,13 +267,17 @@ export type SplitType =
 // completed working sets on workout finish.
 export interface ExerciseRecord {
   exerciseId: string;
+  // True when the exercise has population strength standards (a "main"/featured
+  // lift), so its best is rankable on the tier/radar/leaderboard.
+  isMainLift: boolean;
   // Anchor for the next prescription: the last real top working set you did.
   weight: number;
   reps: number;
   unit: WeightUnit;
   updatedAt: Date;
-  // Best demonstrated single-set effort as an estimated 1RM (in lbs). Feeds the
-  // strength rank and rises as training weight climbs — no max testing required.
+  // Best demonstrated single-set effort as an estimated 1RM (in lbs). The single
+  // source of "your best" — feeds the strength rank and the routine display, and
+  // rises as training weight climbs (no max testing required).
   bestE1RMLbs: number;
   bestE1RMAt?: Date;
 }

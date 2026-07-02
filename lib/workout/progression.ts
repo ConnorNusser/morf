@@ -17,7 +17,7 @@
  * The rule operates on the *limiting* working set (the weakest of your working
  * sets), since that's what actually gates progression.
  */
-import { WeightUnit, ExerciseRecord, convertWeight } from '@/types';
+import { WeightUnit, ExerciseRecord, convertWeight, isFeaturedLift } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from './workouts';
@@ -192,6 +192,7 @@ export function updateExerciseRecords(
     const isBest = est >= (prev?.bestE1RMLbs ?? 0);
     next[ex.id] = {
       exerciseId: ex.id,
+      isMainLift: isFeaturedLift(ex.id),
       weight: set.weight,        // anchor is always the latest session
       reps: set.reps,
       unit: set.unit,
