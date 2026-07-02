@@ -4,7 +4,7 @@ import { useTabBar } from '@/contexts/TabBarContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoControl } from '@/contexts/VideoPlayerContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { feedService, FeedPost } from '@/lib/services/feedService';
+import { feedService, FeedPost, toggleLikeFor } from '@/lib/services/feedService';
 import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
@@ -25,6 +25,10 @@ const PAGE_SIZE = 15;
 type FeedItem =
   | { type: 'workout'; data: FeedWorkout }
   | { type: 'post'; data: FeedPost };
+
+// Newest-first by created_at (handles Date or ISO-string values).
+const byNewest = (a: FeedItem, b: FeedItem): number =>
+  new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime();
 
 interface FeedViewProps {
   onUserPress: (user: RemoteUser) => void;
@@ -91,11 +95,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       const combined: FeedItem[] = [
         ...workouts.map(w => ({ type: 'workout' as const, data: w })),
         ...posts.map(p => ({ type: 'post' as const, data: p })),
-      ].sort((a, b) => {
-        const dateA = a.data.created_at instanceof Date ? a.data.created_at : new Date(a.data.created_at);
-        const dateB = b.data.created_at instanceof Date ? b.data.created_at : new Date(b.data.created_at);
-        return dateB.getTime() - dateA.getTime();
-      });
+      ].sort(byNewest);
 
       setFeedItems(combined);
       setCurrentUserId(user?.id || null);
@@ -131,11 +131,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         const newItems: FeedItem[] = [
           ...moreWorkouts.map(w => ({ type: 'workout' as const, data: w })),
           ...morePosts.map(p => ({ type: 'post' as const, data: p })),
-        ].sort((a, b) => {
-          const dateA = a.data.created_at instanceof Date ? a.data.created_at : new Date(a.data.created_at);
-          const dateB = b.data.created_at instanceof Date ? b.data.created_at : new Date(b.data.created_at);
-          return dateB.getTime() - dateA.getTime();
-        });
+        ].sort(byNewest);
 
         setFeedItems(prev => [...prev, ...newItems]);
       }
@@ -195,18 +191,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
         const workout = item.data;
         const feedData = workout.feed_data || {};
-        const likes = [...(feedData.likes || [])];
-        const existingIndex = likes.findIndex(l => l.user_id === currentUserId);
-
-        if (existingIndex >= 0) {
-          likes.splice(existingIndex, 1);
-        } else if (currentUserId) {
-          likes.push({
-            user_id: currentUserId,
-            username: '',
-            created_at: new Date().toISOString(),
-          });
-        }
+        const likes = toggleLikeFor(feedData.likes, currentUserId);
 
         const updated = {
           ...workout,
@@ -240,18 +225,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
         const postData = item.data;
         const feedData = postData.feed_data || {};
-        const likes = [...(feedData.likes || [])];
-        const existingIndex = likes.findIndex(l => l.user_id === currentUserId);
-
-        if (existingIndex >= 0) {
-          likes.splice(existingIndex, 1);
-        } else if (currentUserId) {
-          likes.push({
-            user_id: currentUserId,
-            username: '',
-            created_at: new Date().toISOString(),
-          });
-        }
+        const likes = toggleLikeFor(feedData.likes, currentUserId);
 
         return {
           ...item,

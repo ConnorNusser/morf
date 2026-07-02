@@ -20,6 +20,17 @@ interface RestContext {
 // Epoch ms when a rest ends — the Live Activity self-ticks down to this.
 const restEndTime = (d: RestTimerData): number => new Date(d.startTime).getTime() + d.duration * 1000;
 
+// Read the persisted timer and compute elapsed/remaining seconds, or null when
+// there's no active timer. Callers keep their own try/catch (this can throw).
+const readTimer = async (): Promise<{ data: RestTimerData; elapsed: number; remaining: number } | null> => {
+  const raw = await AsyncStorage.getItem(REST_TIMER_KEY);
+  if (!raw) return null;
+  const data: RestTimerData = JSON.parse(raw);
+  const elapsed = Math.floor((Date.now() - new Date(data.startTime).getTime()) / 1000);
+  const remaining = Math.max(0, data.duration - elapsed);
+  return { data, elapsed, remaining };
+};
+
 export const useRestTimer = () => {
   const [isResting, setIsResting] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
@@ -46,17 +57,11 @@ export const useRestTimer = () => {
 
   const loadExistingTimer = async () => {
     try {
-      const data = await AsyncStorage.getItem(REST_TIMER_KEY);
-      if (data) {
-        const timerData: RestTimerData = JSON.parse(data);
-        const now = new Date();
-        const startTime = new Date(timerData.startTime);
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        const remaining = Math.max(0, timerData.duration - elapsed);
-
-        if (remaining > 0) {
+      const timer = await readTimer();
+      if (timer) {
+        if (timer.remaining > 0) {
           setIsResting(true);
-          setRemainingTime(remaining);
+          setRemainingTime(timer.remaining);
         } else {
           // Timer expired while app was closed
           await clearTimer();
@@ -69,17 +74,10 @@ export const useRestTimer = () => {
 
   const updateTimer = async () => {
     try {
-      const data = await AsyncStorage.getItem(REST_TIMER_KEY);
-      if (data) {
-        const timerData: RestTimerData = JSON.parse(data);
-        const now = new Date();
-        const startTime = new Date(timerData.startTime);
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        const remaining = Math.max(0, timerData.duration - elapsed);
-
-        setRemainingTime(remaining);
-
-        if (remaining <= 0) {
+      const timer = await readTimer();
+      if (timer) {
+        setRemainingTime(timer.remaining);
+        if (timer.remaining <= 0) {
           await endTimer();
         }
       }
@@ -123,20 +121,15 @@ export const useRestTimer = () => {
 
   const addTime = async (seconds: number) => {
     try {
-      const data = await AsyncStorage.getItem(REST_TIMER_KEY);
-      if (data) {
-        const timerData: RestTimerData = JSON.parse(data);
+      const timer = await readTimer();
+      if (timer) {
         // Calculate new duration by adding seconds to current remaining + elapsed
-        const now = new Date();
-        const startTime = new Date(timerData.startTime);
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        const currentRemaining = Math.max(0, timerData.duration - elapsed);
-        const newRemaining = Math.max(0, currentRemaining + seconds);
+        const newRemaining = Math.max(0, timer.remaining + seconds);
 
         // Update the timer with new duration (keeping same start time)
         const newTimerData: RestTimerData = {
-          startTime: timerData.startTime,
-          duration: elapsed + newRemaining,
+          startTime: timer.data.startTime,
+          duration: timer.elapsed + newRemaining,
         };
 
         await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(newTimerData));

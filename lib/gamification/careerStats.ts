@@ -1,7 +1,7 @@
 // Lifetime "career" stats derived purely from workout history — the foundation
 // of the gamification layer. Pure + clock-injectable so it's unit-testable.
 import { GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
-import { dateKey } from '@/lib/utils/utils';
+import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getWeekStreak } from '@/lib/workout/streak';
 
 export interface HeaviestSet {
@@ -33,12 +33,7 @@ export interface CareerStats {
 function longestConsecutive(dayKeys: Set<string>): number {
   if (dayKeys.size === 0) return 0;
   // Convert keys back to dates, sort ascending, walk for consecutive runs.
-  const days = [...dayKeys]
-    .map(k => {
-      const [y, m, d] = k.split('-').map(Number);
-      return new Date(y, m - 1, d).getTime();
-    })
-    .sort((a, b) => a - b);
+  const days = sortedDayTimestamps(dayKeys);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
   let longest = 1;

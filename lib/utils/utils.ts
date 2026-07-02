@@ -73,6 +73,17 @@ export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// Day-key strings (see dateKey) → ascending epoch-ms at local midnight. Shared by
+// the streak/comeback-gap walks that need trained days in chronological order.
+export function sortedDayTimestamps(keys: Iterable<string>): number[] {
+  return [...keys]
+    .map(k => {
+      const [y, m, d] = k.split('-').map(Number);
+      return new Date(y, m - 1, d).getTime();
+    })
+    .sort((a, b) => a - b);
+}
+
 /**
  * Local Monday (00:00) of the week containing `date`. The common training-week
  * convention; index 0 = Monday … 6 = Sunday. Steps with setDate (not raw

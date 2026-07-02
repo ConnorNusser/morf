@@ -6,6 +6,7 @@
 import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile, WeightUnit, convertWeight } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
+import { parseGeminiJson } from './geminiJson';
 import {
   buildRoutineGenerationPrompt,
   ProgramTemplate,
@@ -591,17 +592,7 @@ Return only valid JSON.`;
     const elapsed = Date.now() - startTime;
     console.log(`[RoutineGenerator] Gemini response received in ${elapsed}ms, content length: ${content?.length || 0}`);
 
-    if (!content) {
-      throw new Error('No content received from AI');
-    }
-
-    // Clean response
-    let cleanedContent = content.trim();
-    if (cleanedContent.startsWith('```')) {
-      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-    }
-
-    const parsed = JSON.parse(cleanedContent);
+    const parsed = parseGeminiJson(content);
 
     // Track analytics
     analyticsService.trackAIUsage({

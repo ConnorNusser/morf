@@ -11,6 +11,16 @@ export interface FeedLike {
   created_at: string;
 }
 
+// Toggle a user's like in a likes array, returning a new array — removes the
+// user's like if present, otherwise appends one. No-op add when userId is unset.
+export function toggleLikeFor(likes: FeedLike[] | undefined, userId: string | null | undefined): FeedLike[] {
+  const next = [...(likes || [])];
+  const i = next.findIndex(l => l.user_id === userId);
+  if (i >= 0) next.splice(i, 1);
+  else if (userId) next.push({ user_id: userId, username: '', created_at: new Date().toISOString() });
+  return next;
+}
+
 export interface FeedComment {
   id: string;
   user_id: string;
