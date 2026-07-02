@@ -29,7 +29,6 @@ import {
 } from '@/lib/workout/workoutDraft';
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
-import { updateRoutineProgression } from '@/lib/workout/routineProgression';
 import { updateExerciseRecords } from '@/lib/workout/progression';
 import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
@@ -518,19 +517,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // streak/habit nudge is cancelled (they no longer need it).
     retentionNotificationService.refreshScheduledReminders().catch(() => {});
 
-    // Update routine progression if this was from a routine
-    if (startedRoutineId) {
-      try {
-        const routines = await storageService.getRoutines();
-        const routine = routines.find(r => r.id === startedRoutineId);
-        if (routine) {
-          const updatedRoutine = updateRoutineProgression(routine, generatedWorkout, weightUnit);
-          await storageService.saveRoutine(updatedRoutine);
-        }
-      } catch (error) {
-        console.error('Error updating routine progression:', error);
-      }
-    }
 
     // Get current progress (PRs) before recording new lifts - for notifications AND strength animation
     // Use getAllFeaturedLifts to include both main AND secondary lifts (matching home screen calculation)
@@ -677,7 +663,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (startedRoutineId && didRealWork) {
       await storageService.recordDayTrained(startedRoutineId);
     }
-  }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
+  }, [elapsedTime, refreshProfile, startedRoutineId]);
 
   // Handle finish modal complete - reset workout state
   // Clear the in-progress workout: draft, composer, timer, routine link, and the

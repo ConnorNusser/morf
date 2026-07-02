@@ -278,36 +278,6 @@ export default function NotesScreen() {
     setRenamingProgram(null);
   }, [renamingProgram, renameText, loadData]);
 
-  // Handle manual deload for a specific exercise
-  const handleDeloadExercise = useCallback(async (routine: Routine, exerciseId: string) => {
-    const progressionState = routine.progressionState?.[exerciseId];
-    if (!progressionState) return;
-
-    // Calculate deloaded weight (10% reduction, rounded to nearest plate)
-    const deloadPercent = 0.9;
-    const increment = weightUnit === 'kg' ? 2.5 : 5;
-    const newWeight = Math.round((progressionState.currentWeight * deloadPercent) / increment) * increment;
-
-    // Update progression state for this exercise only
-    const updatedProgressionState = {
-      ...routine.progressionState,
-      [exerciseId]: {
-        ...progressionState,
-        currentWeight: newWeight,
-        currentRepBonus: 0,
-        consecutiveFailures: 0,
-      },
-    };
-
-    const updated: Routine = {
-      ...routine,
-      progressionState: updatedProgressionState,
-    };
-
-    await storageService.saveRoutine(updated);
-    await loadData();
-  }, [loadData, weightUnit]);
-
   const handleCreateRoutine = useCallback(() => {
     setEditingRoutine(null);
     setAddDayProgramId(null);
@@ -376,12 +346,6 @@ export default function NotesScreen() {
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
 
-    // Find exercises that need deloading (consecutiveFailures >= 2)
-    const exercisesNeedingDeload = routine.exercises?.filter(
-      ex => (routine.progressionState?.[ex.exerciseId]?.consecutiveFailures ?? 0) >= 2
-    ) || [];
-    const hasExercisesNeedingDeload = exercisesNeedingDeload.length > 0;
-
     return (
       <TouchableOpacity
         key={routine.id}
@@ -435,29 +399,6 @@ export default function NotesScreen() {
               </Text>
             )}
 
-            {/* Deload Warning Banner - shown when collapsed and exercises need deload */}
-            {!isExpanded && hasExercisesNeedingDeload && (
-              <RNView style={[styles.deloadBanner, { backgroundColor: '#FF3B30' + '15' }]}>
-                <Ionicons name="warning" size={12} color="#FF3B30" />
-                <Text weight="medium" style={[styles.deloadBannerText, { color: '#FF3B30' }]}>
-                  {exercisesNeedingDeload.length} exercise{exercisesNeedingDeload.length > 1 ? 's' : ''} stalling
-                </Text>
-                <TouchableOpacity
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    // Deload all stalling exercises
-                    exercisesNeedingDeload.forEach(ex => {
-                      handleDeloadExercise(routine, ex.exerciseId);
-                    });
-                  }}
-                  style={[styles.deloadBannerButton, { backgroundColor: '#FF3B30' }]}
-                >
-                  <Text weight="semiBold" style={[styles.deloadBannerButtonText]}>
-                    Deload
-                  </Text>
-                </TouchableOpacity>
-              </RNView>
-            )}
           </RNView>
 
           {/* Right: Start button — prominent on the up-next day, quiet elsewhere
@@ -539,16 +480,6 @@ export default function NotesScreen() {
                               style={{ marginLeft: 4 }}
                             />
                           </RNView>
-                          {(routine.progressionState?.[exercise.exerciseId]?.consecutiveFailures ?? 0) >= 2 && (
-                            <TouchableOpacity
-                              onPress={() => handleDeloadExercise(routine, exercise.exerciseId)}
-                              style={styles.deloadButton}
-                            >
-                              <Text weight="medium" style={[styles.deloadWarning, { color: '#FF3B30' }]}>
-                                Tap to deload
-                              </Text>
-                            </TouchableOpacity>
-                          )}
                         </>
                       ) : (
                         <Text weight="regular" style={[styles.noDataText, { color: currentTheme.colors.text + '30' }]}>

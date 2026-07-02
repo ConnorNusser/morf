@@ -219,9 +219,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                             </Text>
                             <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
-                              {(routine.progressionState?.[exercise.exerciseId]?.currentRepBonus ?? 0) > 0
-                                ? ` (+${routine.progressionState?.[exercise.exerciseId]?.currentRepBonus})`
-                                : ''}
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
                           </RNView>

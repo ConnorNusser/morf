@@ -261,16 +261,6 @@ export type SplitType =
   | 'cardio'
   | 'custom';
 
-// Per-exercise progression tracking within a routine (legacy — being replaced by
-// the global ExerciseRecord below, which is keyed by exercise instead of routine).
-export interface ExerciseProgressionState {
-  baseReps: number;           // Original programmed reps
-  currentRepBonus: number;    // 0, 1, 2, or 3 extra reps
-  currentWeight: number;      // Current working weight in user's unit
-  consecutiveFailures: number; // For deload detection
-  lastSessionDate?: Date;
-}
-
 // One global record per exercise — "where you're at" on a movement, independent
 // of any routine. Any routine that includes the exercise anchors its prescription
 // to this, so switching routines picks up where you left off. Populated from real
@@ -300,8 +290,6 @@ export interface Routine {
   isActive?: boolean;  // Active routines show in "Up Next", inactive are archived
   programId?: string;  // The program this day belongs to; absent for loose/manual routines
   order?: number;      // Day position within its program (ascending); absent falls back to createdAt
-  // Progression tracking per exercise
-  progressionState?: Record<string, ExerciseProgressionState>;
 }
 
 // A program groups the day-routines created together. Exactly one program is 'active'
