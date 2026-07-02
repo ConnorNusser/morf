@@ -42,7 +42,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   const { userProfile } = useUser();
   const [filter, setFilter] = useState<LeaderboardFilter>('global');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<string | null>('overall');
+  const [selectedExercise, setSelectedExercise] = useState<string>('overall');
   const [showExerciseDropdown, setShowExerciseDropdown] = useState(false);
   const [userCountry, setUserCountry] = useState<string | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -95,33 +95,24 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
       const exerciseIds = getTrackedExerciseIds();
       setAvailableExercises(exerciseIds);
 
-      // Set default exercise if not set
-      if (!selectedExercise && exerciseIds.length > 0) {
-        setSelectedExercise(exerciseIds[0]);
-      }
-
       // Handle "Overall" leaderboard
       if (selectedExercise === 'overall') {
-        try {
-          if (filter === 'friends') {
-            const data = await userSyncService.getFriendsOverallLeaderboard();
-            setOverallLeaderboardData(data);
-          } else {
-            const countryFilter = filter === 'country' ? myCountry : null;
-            const data = await userSyncService.getOverallLeaderboard(countryFilter);
-            setOverallLeaderboardData(data);
-          }
-          setLeaderboardData([]);
-        } finally {
-          setIsLoading(false);
+        if (filter === 'friends') {
+          const data = await userSyncService.getFriendsOverallLeaderboard();
+          setOverallLeaderboardData(data);
+        } else {
+          const countryFilter = filter === 'country' ? myCountry : null;
+          const data = await userSyncService.getOverallLeaderboard(countryFilter);
+          setOverallLeaderboardData(data);
         }
+        setLeaderboardData([]);
         return;
       }
 
       // Clear overall data when not selected
       setOverallLeaderboardData([]);
 
-      const exercisesToQuery = selectedExercise ? [selectedExercise] : exerciseIds.filter(id => id !== 'overall');
+      const exercisesToQuery = [selectedExercise];
 
       if (filter === 'friends') {
         const data = await userSyncService.getLeaderboard(exercisesToQuery);
@@ -200,7 +191,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   // Sort entries by 1RM
   const sortedEntries = useMemo(() =>
     [...leaderboardData]
-      .filter(e => !selectedExercise || e.exercise_id === selectedExercise)
+      .filter(e => e.exercise_id === selectedExercise)
       .sort((a, b) => (b.estimated_1rm || 0) - (a.estimated_1rm || 0)),
     [leaderboardData, selectedExercise]
   );
@@ -305,7 +296,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 style={[styles.dropdownText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}
                 numberOfLines={1}
               >
-                {selectedExercise ? getExerciseName(selectedExercise) : 'All Exercises'}
+                {getExerciseName(selectedExercise)}
               </Text>
               <Ionicons
                 name={showExerciseDropdown ? 'chevron-up' : 'chevron-down'}

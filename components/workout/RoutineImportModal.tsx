@@ -30,13 +30,13 @@ interface RoutineImportModalProps {
  * Target: 135 x 10, 185 x 10, 185 x 10
  * Actual:
  */
-export function generateRoutineText(routine: CalculatedRoutine, includeTitle: boolean = true): string {
+export function generateRoutineText(routine: CalculatedRoutine): string {
   if (!routine?.exercises?.length) return '';
 
   const lines: string[] = [];
 
   // Add title as first line with # prefix (can be extracted by parser)
-  if (includeTitle && routine.name) {
+  if (routine.name) {
     lines.push(`# ${routine.name}`);
     lines.push('');
   }
@@ -216,14 +216,9 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                             </Text>
                             <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
-                              {(() => {
-                                const progState = routine.progressionState?.[exercise.exerciseId];
-                                const bonus = progState?.currentRepBonus ?? 0;
-                                if (bonus > 0) {
-                                  return ` (+${bonus})`;
-                                }
-                                return '';
-                              })()}
+                              {(routine.progressionState?.[exercise.exerciseId]?.currentRepBonus ?? 0) > 0
+                                ? ` (+${routine.progressionState?.[exercise.exerciseId]?.currentRepBonus})`
+                                : ''}
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
                           </RNView>

@@ -39,24 +39,3 @@ export const View = React.memo(function View(props: ViewProps) {
     />
   );
 });
-
-export const Surface = React.memo(function Surface(props: ViewProps) {
-  const { style, ...otherProps } = props;
-  const { currentTheme } = useTheme();
-
-  const surfaceStyle = useMemo(
-    () => ({
-      backgroundColor: currentTheme.colors.surface || currentTheme.colors.background,
-      borderRadius: 8,
-      padding: 16,
-    }),
-    [currentTheme.colors.surface, currentTheme.colors.background]
-  );
-
-  return (
-    <DefaultView
-      style={[surfaceStyle, style]}
-      {...otherProps}
-    />
-  );
-});

@@ -8,7 +8,7 @@ import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
-import { feedService, FeedComment } from '@/lib/services/feedService';
+import { feedService, FeedComment, toggleLikeFor } from '@/lib/services/feedService';
 import { formatVolumeNumber, formatSet } from '@/lib/utils/utils';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { WeightUnit } from '@/types';
@@ -326,19 +326,7 @@ export default function WorkoutThreadModal({
       const updatedComments = comments.map(c => {
         if (c.id !== commentId) return c;
 
-        const commentLikes = [...(c.likes || [])];
-        const existingIndex = commentLikes.findIndex(l => l.user_id === currentUserId);
-
-        if (existingIndex >= 0) {
-          commentLikes.splice(existingIndex, 1);
-        } else if (currentUserId) {
-          commentLikes.push({
-            user_id: currentUserId,
-            username: '',
-            created_at: new Date().toISOString(),
-          });
-        }
-
+        const commentLikes = toggleLikeFor(c.likes, currentUserId);
         return { ...c, likes: commentLikes };
       });
 

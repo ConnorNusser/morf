@@ -2,7 +2,6 @@ import { Text, View } from '@/components/Themed';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
-import WorkoutKeywordsHelpModal from '@/components/workout/WorkoutKeywordsHelpModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
 import { draftToParsedWorkout, type DraftExercise } from '@/lib/workout/workoutDraft';
@@ -228,11 +227,6 @@ export default function WorkoutScreen() {
     return () => sub.remove();
   }, [applyPending]);
 
-  // Pick a recent workout to repeat/edit.
-  const handlePickRecent = useCallback((w: Parameters<typeof prefillWorkout>[0]) => {
-    prefillWorkout(w);
-  }, [prefillWorkout]);
-
   // Stable structured workout for the finish modal (rebuilt only when the draft
   // changes) — an inline object would re-fire the modal's parse effect every render.
   const finishWorkout = useMemo(() => draftToParsedWorkout(draft), [draft]);
@@ -286,7 +280,6 @@ export default function WorkoutScreen() {
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
   // Which set field the custom number pad is editing.
   const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
   const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
@@ -335,11 +328,6 @@ export default function WorkoutScreen() {
       setIsTimerExpanded(false);
     }
   }, [isTimerExpanded, isResting, startRestTimer]);
-
-  // Handle reset workout timer
-  const handleResetWorkoutTimer = useCallback(() => {
-    resetWorkoutTimer();
-  }, [resetWorkoutTimer]);
 
   // Handle finish rest
   const handleFinishRest = useCallback(() => {
@@ -477,7 +465,7 @@ export default function WorkoutScreen() {
               {/* Reset workout timer with duration */}
               <TouchableOpacity
                 style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
-                onPress={handleResetWorkoutTimer}
+                onPress={resetWorkoutTimer}
               >
                 <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80' }]}>
                   Restart Workout ({formatTime(elapsedTime)})
@@ -502,15 +490,12 @@ export default function WorkoutScreen() {
           <EditableWorkout
             draft={draft}
             weightUnit={weightUnit}
-            onEditSet={editSet}
             onEditField={openNumberPad}
             activeField={editing}
             onAddSet={addSetTo}
             onRemoveSet={removeSetFrom}
             onToggleDone={handleToggleDone}
             onRemoveExercise={removeExerciseFrom}
-            onAcceptAutofill={acceptAutofill}
-            onDismissAutofill={dismissAutofill}
             onScrollBeginDrag={closeComposer}
           />
           {!hasWorkoutStarted && (
@@ -518,7 +503,7 @@ export default function WorkoutScreen() {
               <RecentWorkouts
                 workouts={recentWorkouts}
                 customExercises={customExercises}
-                onPick={handlePickRecent}
+                onPick={prefillWorkout}
                 onQuickStart={handleQuickStart}
                 onGenerate={() => setShowPlanBuilder(true)}
                 onImport={() => setShowRoutineImport(true)}
@@ -634,12 +619,6 @@ export default function WorkoutScreen() {
         onImport={handleRoutineImport}
       />
 
-      {/* Help Modal */}
-      <WorkoutKeywordsHelpModal
-        visible={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
-      />
-
       {/* Custom number pad for editing a set's weight / reps */}
       {(() => {
         if (!editing) return null;
@@ -750,40 +729,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 6,
-  },
-  repeatButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  repeatButtonText: {
-    fontSize: 13,
-  },
-  actionsBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'flex-end',
-    padding: 16,
-  },
-  actionsSheet: {
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-  },
-  actionLabel: {
-    fontSize: 15,
   },
   header: {
     flexDirection: 'row',

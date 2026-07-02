@@ -27,51 +27,31 @@ export function isLiveActivitySupported(): boolean {
   return Platform.OS === 'ios' && !!native && native.isSupported();
 }
 
-export async function startLiveActivity(content: LiveActivityContent): Promise<string | null> {
-  if (!native) return null;
+// Run a native call, degrading to `fallback` when the module is absent (Expo Go /
+// pre-build) and warning (not throwing) on failure, so callers can stay one-liners.
+async function call<T>(label: string, fallback: T, fn: (m: LiveActivityNativeModule) => Promise<T>): Promise<T> {
+  if (!native) return fallback;
   try {
-    return await native.start(content);
+    return await fn(native);
   } catch (e) {
-    console.warn('[liveActivity] start failed', e);
-    return null;
+    console.warn(`[liveActivity] ${label} failed`, e);
+    return fallback;
   }
 }
 
-export async function updateLiveActivity(content: LiveActivityContent): Promise<void> {
-  if (!native) return;
-  try {
-    await native.update(content);
-  } catch (e) {
-    console.warn('[liveActivity] update failed', e);
-  }
-}
+export const startLiveActivity = (content: LiveActivityContent): Promise<string | null> =>
+  call('start', null, m => m.start(content));
 
-export async function endLiveActivity(): Promise<void> {
-  if (!native) return;
-  try {
-    await native.end();
-  } catch (e) {
-    console.warn('[liveActivity] end failed', e);
-  }
-}
+export const updateLiveActivity = (content: LiveActivityContent): Promise<void> =>
+  call('update', undefined, m => m.update(content));
+
+export const endLiveActivity = (): Promise<void> =>
+  call('end', undefined, m => m.end());
 
 /** Hand the native side the ordered sets so the Lock Screen can advance on tap. */
-export async function saveWorkoutSnapshot(sets: SnapshotSet[]): Promise<void> {
-  if (!native) return;
-  try {
-    await native.saveWorkoutSnapshot(sets);
-  } catch (e) {
-    console.warn('[liveActivity] saveWorkoutSnapshot failed', e);
-  }
-}
+export const saveWorkoutSnapshot = (sets: SnapshotSet[]): Promise<void> =>
+  call('saveWorkoutSnapshot', undefined, m => m.saveWorkoutSnapshot(sets));
 
 /** Drain Lock-Screen actions so the workout draft can reconcile them. */
-export async function pullPendingActions(): Promise<PendingAction[]> {
-  if (!native) return [];
-  try {
-    return await native.pullPendingActions();
-  } catch (e) {
-    console.warn('[liveActivity] pullPendingActions failed', e);
-    return [];
-  }
-}
+export const pullPendingActions = (): Promise<PendingAction[]> =>
+  call('pullPendingActions', [], m => m.pullPendingActions());

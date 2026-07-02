@@ -64,7 +64,7 @@ export default function CreatePostModal({
     player.loop = false;
   });
 
-  const hasVideo = mediaItems.some(m => m.type === 'video');
+  const hasVideo = !!firstVideo;
   const imageCount = mediaItems.filter(m => m.type === 'image').length;
 
   const resetForm = () => {

@@ -1,6 +1,6 @@
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { formatCompact, formatMinutes as formatTime, getWorkoutCategory, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,8 +26,6 @@ interface WeekData {
     dayNumber: number;
     dayLetter: string;
     hasWorkout: boolean;
-    workoutCount: number;
-    workoutCategory?: string;
     dayWorkouts: GeneratedWorkout[];
   }[];
 }
@@ -42,14 +40,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [modalWorkouts, setModalWorkouts] = useState<GeneratedWorkout[]>([]);
 
-
-  const _getCategoryColor = (_category: string): string => {
-    return currentTheme.colors.primary;
-  };
-
-  const _getMuscleGroupColor = (_muscle: MuscleGroup): string => {
-    return currentTheme.colors.primary;
-  };
 
   const getWeekData = (weekOffset: number = 0): WeekData => {
     const today = new Date();
@@ -81,17 +71,11 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         return workoutDate.toDateString() === date.toDateString();
       });
       
-      // Get the category of the first workout for the day (if any)
-      const firstWorkout = dayWorkouts[0];
-      const workoutCategory = firstWorkout ? getWorkoutCategory(firstWorkout) : undefined;
-      
       weekDays.push({
         date,
         dayNumber: date.getDate(),
         dayLetter: dayLetters[i],
         hasWorkout: dayWorkouts.length > 0,
-        workoutCount: dayWorkouts.length,
-        workoutCategory,
         dayWorkouts,
       });
     }
@@ -183,20 +167,19 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
     const startDay = startDate.getDate();
     const endDay = endDate.getDate();
-    const _year = endDate.getFullYear().toString().slice(-2);
-    
+
     if (startMonth === endMonth) {
       return `${startMonth} ${startDay}-${endDay}`;
     }
     return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
   };
 
-  const getDayBackgroundColor = (hasWorkout: boolean, _workoutCategory?: string) => {
+  const getDayBackgroundColor = (hasWorkout: boolean) => {
     if (!hasWorkout) return 'transparent';
     return currentTheme.colors.primary + '1A'; // 10% opacity
   };
 
-  const getDayTextColor = (hasWorkout: boolean, _workoutCategory?: string) => {
+  const getDayTextColor = (hasWorkout: boolean) => {
     if (!hasWorkout) return currentTheme.colors.text + '4D'; // 30%
     return currentTheme.colors.primary;
   };
@@ -278,13 +261,13 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                   onPress={() => handleDayPress(day)}
                   style={[
                     styles.dayButton,
-                    { backgroundColor: getDayBackgroundColor(day.hasWorkout, day.workoutCategory) }
+                    { backgroundColor: getDayBackgroundColor(day.hasWorkout) }
                   ]}
                   activeOpacity={0.7}
                 >
                   <Text style={[
                     styles.dayNumber,
-                    { color: getDayTextColor(day.hasWorkout, day.workoutCategory) }
+                    { color: getDayTextColor(day.hasWorkout) }
                   ]}>
                     {day.dayNumber}
                   </Text>

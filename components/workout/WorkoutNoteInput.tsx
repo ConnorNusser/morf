@@ -10,15 +10,12 @@ import {
   StyleSheet,
   TextInput,
   TextInputProps,
-  useColorScheme,
 } from 'react-native';
 
 interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
-  // Composer mode: shrinks the box so the synthesized workout can be the hero.
-  compact?: boolean;
   // Auto-grow mode: the field hugs its content (min→max) and scrolls past max.
   autoGrow?: boolean;
 }
@@ -26,7 +23,6 @@ interface WorkoutNoteInputProps extends Omit<TextInputProps, 'style'> {
 export interface WorkoutNoteInputRef {
   focus: () => void;
   blur: () => void;
-  appendText: (text: string) => void;
 }
 
 const FOCUS_DELAY_MS = 75;
@@ -41,9 +37,8 @@ const AUTO_MIN_HEIGHT = 32;
 const AUTO_MAX_HEIGHT = 124;
 
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
-  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", compact = false, autoGrow = false, ...props }, ref) => {
+  ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
-    const _colorScheme = useColorScheme();
     const inputRef = useRef<TextInput>(null);
 
     // Track actual keyboard visibility via event listeners (not local state that can get corrupted)
@@ -88,10 +83,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
       blur: () => {
         inputRef.current?.blur();
       },
-      appendText: (text: string) => {
-        const newValue = value ? `${value}\n${text}` : text;
-        onChangeText(newValue);
-      },
     }));
 
     const handleTouchStart = useCallback((event: GestureResponderEvent) => {
@@ -130,12 +121,11 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     }, [clearFocusTimeout]);
 
     return (
-      <RNView style={[styles.container, compact && styles.containerCompact, autoGrow && styles.containerAuto]}>
+      <RNView style={[styles.container, autoGrow && styles.containerAuto]}>
         <TextInput
           ref={inputRef}
           style={[
             styles.input,
-            compact && styles.inputCompact,
             autoGrow && styles.inputAuto,
             {
               color: currentTheme.colors.text,
@@ -175,10 +165,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
-  containerCompact: {
-    paddingTop: 6,
-    paddingBottom: 6,
-  },
   containerAuto: {
     flex: 0,
     alignSelf: 'stretch',
@@ -190,9 +176,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
     minHeight: 200,
-  },
-  inputCompact: {
-    minHeight: 0,
   },
   inputAuto: {
     // Let the multiline field grow itself between these bounds (then scroll).

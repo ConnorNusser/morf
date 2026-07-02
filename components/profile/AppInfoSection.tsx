@@ -45,6 +45,13 @@ export default function AppInfoSection() {
   };
 
   const handleContactSupport = async () => {
+    const showFallback = () => showAlert({
+      title: 'Contact Support',
+      message: 'Please email us at:',
+      type: 'info',
+      copyableText: 'connornusser@gmail.com',
+    });
+
     try {
       const subject = encodeURIComponent('Morf App Support Request');
       const body = encodeURIComponent(
@@ -61,21 +68,11 @@ export default function AppInfoSection() {
       if (canOpen) {
         await Linking.openURL(emailUrl);
       } else {
-        showAlert({
-          title: 'Contact Support',
-          message: 'Please email us at:',
-          type: 'info',
-          copyableText: 'connornusser@gmail.com',
-        });
+        showFallback();
       }
     } catch (error) {
       console.error('Error opening email:', error);
-      showAlert({
-        title: 'Contact Support',
-        message: 'Please email us at:',
-        type: 'info',
-        copyableText: 'connornusser@gmail.com',
-      });
+      showFallback();
     }
   };
 

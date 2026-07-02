@@ -627,9 +627,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerSpacer: {
-    width: 40,
-  },
   headerLeft: {
     flexDirection: 'column',
     alignItems: 'center',

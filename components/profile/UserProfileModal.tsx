@@ -365,6 +365,33 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     return workout?.name || id;
   };
 
+  // Progression chart for the selected lift — shared by the Big-3 and Other-Lifts
+  // sections (only the caption differs).
+  const renderLiftChart = (liftId: string, description: string) => (
+    <View style={styles.chartContainer}>
+      {isLoadingHistory ? (
+        <View style={styles.chartLoading}>
+          <ActivityIndicator size="small" color={currentTheme.colors.primary} />
+        </View>
+      ) : liftHistory.length >= 2 ? (
+        <InteractiveProgressChart
+          data={liftHistory}
+          selectedMetric="oneRM"
+          weightUnit="lbs"
+          title={`${getExerciseName(liftId)} Progression`}
+          description={description}
+        />
+      ) : (
+        <View style={styles.noHistoryContainer}>
+          <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
+          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+            Not enough data for progression chart
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
@@ -590,30 +617,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 </View>
 
                 {/* Big 3 Progression Chart */}
-                {selectedLiftId && BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
-                  <View style={styles.chartContainer}>
-                    {isLoadingHistory ? (
-                      <View style={styles.chartLoading}>
-                        <ActivityIndicator size="small" color={currentTheme.colors.primary} />
-                      </View>
-                    ) : liftHistory.length >= 2 ? (
-                      <InteractiveProgressChart
-                        data={liftHistory}
-                        selectedMetric="oneRM"
-                        weightUnit="lbs"
-                        title={`${getExerciseName(selectedLiftId)} Progression`}
-                        description="Estimated from your workout sessions"
-                      />
-                    ) : (
-                      <View style={styles.noHistoryContainer}>
-                        <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
-                        <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                          Not enough data for progression chart
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
+                {selectedLiftId && BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) &&
+                  renderLiftChart(selectedLiftId, "Estimated from your workout sessions")}
               </View>
 
               {/* Stats Card */}
@@ -793,7 +798,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
-                    {otherLifts.map((lift, index) => {
+                    {otherLifts.map((lift) => {
                       const isSelected = selectedLiftId === lift.exercise_id && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS);
                       return (
                         <TouchableOpacity
@@ -830,30 +835,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   </View>
 
                   {/* Progression Chart for selected lift (only for non-Big3 lifts) */}
-                  {selectedLiftId && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) && (
-                    <View style={styles.chartContainer}>
-                      {isLoadingHistory ? (
-                        <View style={styles.chartLoading}>
-                          <ActivityIndicator size="small" color={currentTheme.colors.primary} />
-                        </View>
-                      ) : liftHistory.length >= 2 ? (
-                        <InteractiveProgressChart
-                          data={liftHistory}
-                          selectedMetric="oneRM"
-                          weightUnit="lbs"
-                          title={`${getExerciseName(selectedLiftId)} Progression`}
-                          description="Tap points to see exact values"
-                        />
-                      ) : (
-                        <View style={styles.noHistoryContainer}>
-                          <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
-                          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
-                            Not enough data for progression chart
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
+                  {selectedLiftId && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) &&
+                    renderLiftChart(selectedLiftId, "Tap points to see exact values")}
                 </View>
               )}
 
@@ -1073,10 +1056,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-  },
-  cardSubtitle: {
-    fontSize: 12,
-    marginTop: -4,
   },
   cardValue: {
     fontSize: 18,

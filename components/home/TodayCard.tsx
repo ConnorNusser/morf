@@ -354,7 +354,6 @@ export default function TodayCard() {
       visible={showOverview}
       onClose={() => setShowOverview(false)}
       routine={calculated}
-      name={calculated.name}
       splitLabel={label}
       onStart={() => {
         setShowOverview(false);
@@ -371,32 +370,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 120,
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  headerLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  headerRight: {
-    alignItems: "flex-end",
-    gap: 6,
-  },
   eyebrow: {
     fontSize: 12,
     letterSpacing: 1.2,
     opacity: 0.6,
     fontWeight: "600",
-  },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  pillText: {
-    fontSize: 12,
   },
   routineName: {
     fontSize: 20,
@@ -432,9 +410,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.6,
     marginTop: 2,
-  },
-  subtleRight: {
-    textAlign: "right",
   },
   exerciseList: {
     marginTop: 10,

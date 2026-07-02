@@ -53,6 +53,140 @@ const generateExerciseId = (name: string): string => {
     .replace(/^-|-$/g, '');
 };
 
+interface ExerciseEditFormProps {
+  editedName: string;
+  setEditedName: (v: string) => void;
+  selectedEquipment: Equipment;
+  setSelectedEquipment: (v: Equipment) => void;
+  onCancel: () => void;
+  onSave: () => void;
+  placeholder: string;
+  saveLabel: string;
+  hint?: string;
+  saving?: boolean;
+}
+
+// The custom-exercise name/equipment form with a live full-name + id preview.
+// Shared by the add and edit flows; `saving` drives the spinner and disables
+// both actions (used by the AI-metadata step when adding).
+function ExerciseEditForm({
+  editedName, setEditedName, selectedEquipment, setSelectedEquipment,
+  onCancel, onSave, placeholder, saveLabel, hint, saving = false,
+}: ExerciseEditFormProps) {
+  const { currentTheme } = useTheme();
+  const fullNamePreview = editedName.trim()
+    ? generateFullExerciseName(editedName, selectedEquipment)
+    : '';
+  const previewId = fullNamePreview ? generateExerciseId(fullNamePreview) : 'exercise-id';
+
+  return (
+    <View style={styles.editForm}>
+      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+        Exercise Name (without equipment)
+      </Text>
+      <TextInput
+        style={[
+          styles.editInput,
+          {
+            backgroundColor: currentTheme.colors.background,
+            color: currentTheme.colors.text,
+            borderColor: currentTheme.colors.border,
+          }
+        ]}
+        value={editedName}
+        onChangeText={setEditedName}
+        placeholder={placeholder}
+        placeholderTextColor={currentTheme.colors.text + '40'}
+        autoFocus
+      />
+
+      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
+        Equipment Type
+      </Text>
+      <View style={styles.equipmentRow}>
+        {EQUIPMENT_OPTIONS.map((eq) => (
+          <TouchableOpacity
+            key={eq.value}
+            style={[
+              styles.equipmentChip,
+              {
+                backgroundColor: selectedEquipment === eq.value
+                  ? currentTheme.colors.primary
+                  : currentTheme.colors.background,
+                borderColor: selectedEquipment === eq.value
+                  ? currentTheme.colors.primary
+                  : currentTheme.colors.border,
+              }
+            ]}
+            onPress={() => setSelectedEquipment(eq.value)}
+          >
+            <Text style={[
+              styles.equipmentChipText,
+              {
+                color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+              }
+            ]}>
+              {eq.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {fullNamePreview && (
+        <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+            Full Name:
+          </Text>
+          <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            {fullNamePreview}
+          </Text>
+          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
+            ID:
+          </Text>
+          <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+            {previewId}
+          </Text>
+        </View>
+      )}
+
+      {hint && (
+        <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+          {hint}
+        </Text>
+      )}
+
+      <View style={styles.editActions}>
+        <TouchableOpacity
+          style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
+          onPress={onCancel}
+          disabled={saving}
+        >
+          <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            Cancel
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.editActionButton,
+            { backgroundColor: currentTheme.colors.primary },
+            (!editedName.trim() || saving) && styles.disabledButton
+          ]}
+          onPress={onSave}
+          disabled={!editedName.trim() || saving}
+        >
+          {saving ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
+              {saveLabel}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 export default function CustomExercisesSection({ onExercisesUpdate }: CustomExercisesSectionProps) {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
@@ -123,18 +257,11 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     return fullName.replace(/\s*\([^)]+\)\s*$/, '').trim();
   };
 
-  const extractEquipment = (exercise: CustomExercise): Equipment => {
-    if (exercise.equipment && exercise.equipment.length > 0) {
-      return exercise.equipment[0];
-    }
-    return 'machine';
-  };
-
   const handleStartEdit = (exercise: CustomExercise) => {
     playHapticFeedback('selection', false);
     setEditingExercise(exercise);
     setEditedName(extractBaseName(exercise.name));
-    setSelectedEquipment(extractEquipment(exercise));
+    setSelectedEquipment(exercise.equipment?.[0] ?? 'machine');
     setIsAdding(false);
   };
 
@@ -303,11 +430,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
     const isEditing = editingExercise?.id === exercise.id;
 
     if (isEditing) {
-      const fullNamePreview = editedName.trim()
-        ? generateFullExerciseName(editedName, selectedEquipment)
-        : '';
-      const previewId = fullNamePreview ? generateExerciseId(fullNamePreview) : 'exercise-id';
-
       return (
         <View
           key={exercise.id}
@@ -320,99 +442,16 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             }
           ]}
         >
-          <View style={styles.editForm}>
-            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
-              Exercise Name (without equipment)
-            </Text>
-            <TextInput
-              style={[
-                styles.editInput,
-                {
-                  backgroundColor: currentTheme.colors.background,
-                  color: currentTheme.colors.text,
-                  borderColor: currentTheme.colors.border,
-                }
-              ]}
-              value={editedName}
-              onChangeText={setEditedName}
-              placeholder="Enter exercise name"
-              placeholderTextColor={currentTheme.colors.text + '40'}
-              autoFocus
-            />
-
-            <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
-              Equipment Type
-            </Text>
-            <View style={styles.equipmentRow}>
-              {EQUIPMENT_OPTIONS.map((eq) => (
-                <TouchableOpacity
-                  key={eq.value}
-                  style={[
-                    styles.equipmentChip,
-                    {
-                      backgroundColor: selectedEquipment === eq.value
-                        ? currentTheme.colors.primary
-                        : currentTheme.colors.background,
-                      borderColor: selectedEquipment === eq.value
-                        ? currentTheme.colors.primary
-                        : currentTheme.colors.border,
-                    }
-                  ]}
-                  onPress={() => setSelectedEquipment(eq.value)}
-                >
-                  <Text style={[
-                    styles.equipmentChipText,
-                    {
-                      color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                    }
-                  ]}>
-                    {eq.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {fullNamePreview && (
-              <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                  Full Name:
-                </Text>
-                <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  {fullNamePreview}
-                </Text>
-                <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
-                  ID:
-                </Text>
-                <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
-                  {previewId}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.editActions}>
-              <TouchableOpacity
-                style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
-                onPress={handleCancelEditAdd}
-              >
-                <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.editActionButton,
-                  { backgroundColor: currentTheme.colors.primary },
-                  !editedName.trim() && styles.disabledButton
-                ]}
-                onPress={handleSaveEdit}
-                disabled={!editedName.trim()}
-              >
-                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
-                  Save
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ExerciseEditForm
+            editedName={editedName}
+            setEditedName={setEditedName}
+            selectedEquipment={selectedEquipment}
+            setSelectedEquipment={setSelectedEquipment}
+            onCancel={handleCancelEditAdd}
+            onSave={handleSaveEdit}
+            placeholder="Enter exercise name"
+            saveLabel="Save"
+          />
         </View>
       );
     }
@@ -503,11 +542,6 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
   const renderAddForm = () => {
     if (!isAdding) return null;
 
-    const fullNamePreview = editedName.trim()
-      ? generateFullExerciseName(editedName, selectedEquipment)
-      : '';
-    const previewId = fullNamePreview ? generateExerciseId(fullNamePreview) : 'exercise-id';
-
     return (
       <View
         style={[
@@ -519,108 +553,18 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           }
         ]}
       >
-        <View style={styles.editForm}>
-          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
-            Exercise Name (without equipment)
-          </Text>
-          <TextInput
-            style={[
-              styles.editInput,
-              {
-                backgroundColor: currentTheme.colors.background,
-                color: currentTheme.colors.text,
-                borderColor: currentTheme.colors.border,
-              }
-            ]}
-            value={editedName}
-            onChangeText={setEditedName}
-            placeholder="e.g., Super Horizontal Press"
-            placeholderTextColor={currentTheme.colors.text + '40'}
-            autoFocus
-          />
-
-          <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
-            Equipment Type
-          </Text>
-          <View style={styles.equipmentRow}>
-            {EQUIPMENT_OPTIONS.map((eq) => (
-              <TouchableOpacity
-                key={eq.value}
-                style={[
-                  styles.equipmentChip,
-                  {
-                    backgroundColor: selectedEquipment === eq.value
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.background,
-                    borderColor: selectedEquipment === eq.value
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.border,
-                  }
-                ]}
-                onPress={() => setSelectedEquipment(eq.value)}
-              >
-                <Text style={[
-                  styles.equipmentChipText,
-                  {
-                    color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                  }
-                ]}>
-                  {eq.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {fullNamePreview && (
-            <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                Full Name:
-              </Text>
-              <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                {fullNamePreview}
-              </Text>
-              <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
-                ID:
-              </Text>
-              <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
-                {previewId}
-              </Text>
-            </View>
-          )}
-
-          <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-            AI will generate muscle group metadata
-          </Text>
-
-          <View style={styles.editActions}>
-            <TouchableOpacity
-              style={[styles.editActionButton, { backgroundColor: currentTheme.colors.background }]}
-              onPress={handleCancelEditAdd}
-              disabled={isGenerating}
-            >
-              <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.editActionButton,
-                { backgroundColor: currentTheme.colors.primary },
-                (!editedName.trim() || isGenerating) && styles.disabledButton
-              ]}
-              onPress={handleSaveAdd}
-              disabled={!editedName.trim() || isGenerating}
-            >
-              {isGenerating ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
-                  Add
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ExerciseEditForm
+          editedName={editedName}
+          setEditedName={setEditedName}
+          selectedEquipment={selectedEquipment}
+          setSelectedEquipment={setSelectedEquipment}
+          onCancel={handleCancelEditAdd}
+          onSave={handleSaveAdd}
+          placeholder="e.g., Super Horizontal Press"
+          saveLabel="Add"
+          hint="AI will generate muscle group metadata"
+          saving={isGenerating}
+        />
       </View>
     );
   };

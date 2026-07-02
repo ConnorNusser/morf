@@ -18,7 +18,7 @@ import { styles } from '@/lib/ui/notesScreenStyles';
 import { CalculatedRoutine, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Modal,
   RefreshControl,
@@ -675,7 +675,6 @@ export default function NotesScreen() {
               // Always show days in their manual program order so Reorder is
               // authoritative; the up-next day is flagged in place via the
               // per-row isUpNext badge rather than hoisted to the top.
-              const orderedDays = days;
               // Cycle progress reflects days actually trained this cycle (not
               // merely flipped past). The up-next day itself stays "up next"
               // even if trained earlier, so it's excluded from the done count.
@@ -760,7 +759,7 @@ export default function NotesScreen() {
                   {/* Reorder mode — compact rows with up/down controls */}
                   {isExpanded && isReordering && (
                     <RNView style={styles.timeline}>
-                      {orderedDays.map((routine, idx) => (
+                      {days.map((routine, idx) => (
                         <RNView key={routine.id} style={[styles.reorderRow, { borderColor: currentTheme.colors.text + '1A' }]}>
                           <Text weight="medium" style={[styles.reorderName, { color: currentTheme.colors.text }]} numberOfLines={1}>
                             {routine.name}
@@ -776,9 +775,9 @@ export default function NotesScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                               onPress={() => handleMoveDay(program.id, dayIds, idx, 1)}
-                              disabled={idx === orderedDays.length - 1}
+                              disabled={idx === days.length - 1}
                               hitSlop={8}
-                              style={[styles.reorderBtn, idx === orderedDays.length - 1 && styles.reorderBtnDisabled]}
+                              style={[styles.reorderBtn, idx === days.length - 1 && styles.reorderBtnDisabled]}
                             >
                               <Ionicons name="chevron-down" size={20} color={currentTheme.colors.text} />
                             </TouchableOpacity>
@@ -791,19 +790,17 @@ export default function NotesScreen() {
                   {/* Days — threaded onto a timeline spine so they read as one program */}
                   {isExpanded && !isReordering && (
                     <RNView style={styles.timeline}>
-                      {orderedDays.map((routine, idx) => {
+                      {days.map((routine, idx) => {
                         const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
                         // Done only if actually trained this cycle (flipping the
                         // pointer past a day never marks it done). The up-next day
                         // keeps its highlight even if it was trained earlier.
                         const isCompleted = isActiveProgram && !isUpNext && isDayCompletedThisCycle(routine, cycleStartedAt);
                         const isFirst = idx === 0;
-                        const isLast = idx === orderedDays.length - 1;
+                        const isLast = idx === days.length - 1;
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';
                         const dotFill = isUpNext ? currentTheme.colors.primary : currentTheme.colors.surface;
-                        const body = isUpNext
-                          ? renderRoutineCard(routine, true)
-                          : renderRoutineCard(routine, false);
+                        const body = renderRoutineCard(routine, isUpNext);
                         return (
                           <RNView key={routine.id} style={styles.timelineRow}>
                             <RNView style={styles.spine}>

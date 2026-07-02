@@ -1,6 +1,7 @@
 import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
+import { parseGeminiJson } from './geminiJson';
 import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
 import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
 import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
@@ -11,7 +12,6 @@ import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 
 interface GenerateWorkoutOptions {
   focusArea?: string;
-  duration?: number;
   customRequest?: string;
 }
 
@@ -89,7 +89,6 @@ class AIWorkoutGeneratorService {
   ): Promise<RefinePlanResponse> {
     // Get user context
     const userProfile = await userService.getRealUserProfile();
-    const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
 
     if (!this.GEMINI_API_KEY) {
@@ -107,7 +106,6 @@ class AIWorkoutGeneratorService {
         chatHistory,
         userMessage,
         userProfile,
-        workoutHistory,
         customExercises
       );
       const response = await this.callRefineAI(prompt, userMessage);
@@ -128,7 +126,6 @@ class AIWorkoutGeneratorService {
     chatHistory: ChatMessage[],
     userMessage: string,
     userProfile: UserProfile | null,
-    _workoutHistory: GeneratedWorkout[],
     customExercises: CustomExercise[]
   ): string {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -178,17 +175,7 @@ class AIWorkoutGeneratorService {
 
     console.log(`[WorkoutGenerator] callRefineAI took ${Date.now() - startTime}ms`);
 
-    if (!content) {
-      throw new Error('No content received from AI');
-    }
-
-    // Clean the response
-    let cleanedContent = content.trim();
-    if (cleanedContent.startsWith('```')) {
-      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-    }
-
-    const parsed = JSON.parse(cleanedContent);
+    const parsed = parseGeminiJson(content);
 
     // Track AI usage analytics
     analyticsService.trackAIUsage({
@@ -283,17 +270,7 @@ class AIWorkoutGeneratorService {
 
     console.log(`[WorkoutGenerator] callAI took ${Date.now() - startTime}ms`);
 
-    if (!content) {
-      throw new Error('No content received from AI');
-    }
-
-    // Clean the response
-    let cleanedContent = content.trim();
-    if (cleanedContent.startsWith('```')) {
-      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-    }
-
-    const parsed = JSON.parse(cleanedContent);
+    const parsed = parseGeminiJson(content);
 
     // Track AI usage analytics
     analyticsService.trackAIUsage({
@@ -478,16 +455,7 @@ class AIWorkoutGeneratorService {
 
     console.log(`[WorkoutGenerator] callCustomExerciseAI took ${Date.now() - startTime}ms`);
 
-    if (!content) {
-      throw new Error('No content received from AI');
-    }
-
-    let cleanedContent = content.trim();
-    if (cleanedContent.startsWith('```')) {
-      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-    }
-
-    return JSON.parse(cleanedContent);
+    return parseGeminiJson(content);
   }
 
   private generateFallbackCustomExercise(exerciseName: string, kebabId: string): CustomExercise {

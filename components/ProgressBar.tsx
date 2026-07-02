@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 interface ProgressBarProps {
@@ -29,7 +29,6 @@ export default function ProgressBar({
 }: ProgressBarProps) {
   const { currentTheme } = useTheme();
   const animatedProgress = useRef(new Animated.Value(0)).current;
-  const [_showModal, setShowModal] = useState(false);
 
   // Strength tier percentiles
   const strengthTicks = [
@@ -69,17 +68,9 @@ export default function ProgressBar({
     elevation: 4,
   } : {};
 
-  const handlePress = () => {
-    if (isInteractive) {
-      setShowModal(true);
-    }
-  };
-
   return (
-    <>
-      <Pressable
-        onPress={isInteractive ? handlePress : undefined}
-        disabled={!isInteractive}
+    <Pressable
+      disabled={!isInteractive}
         style={[
           styles.container, 
           { height: showTicks ? height + 24 : height },
@@ -143,17 +134,7 @@ export default function ProgressBar({
             </View>
           );
         })}
-      </Pressable>
-
-      {/* <ProgressBarModal
-        visible={showModal}
-        onClose={() => setShowModal(false)}
-        progress={progress}
-        currentWeight={currentWeight}
-        targetWeight={targetWeight}
-        exerciseName={exerciseName}
-      /> */}
-    </>
+    </Pressable>
   );
 }
 

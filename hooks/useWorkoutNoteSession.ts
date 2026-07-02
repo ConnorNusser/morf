@@ -285,6 +285,18 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     return Math.floor((Date.now() - startTime.getTime()) / 1000);
   }, []);
 
+  // Rehydrate the session state (draft/timer/routine) from a persisted session.
+  // Shared by the mount load and the app-foreground recovery.
+  const restoreSession = useCallback((s: NonNullable<Awaited<ReturnType<typeof storageService.getNoteSession>>>) => {
+    const savedDraft = s.draft as WorkoutDraft | null;
+    if (savedDraft && savedDraft.length) setDraft(savedDraft);
+    else if (s.noteText) loadDraftFromText(s.noteText);
+    setManuallyStarted(s.manuallyStarted);
+    setWorkoutStartTime(s.startTime);
+    setElapsedTime(calculateElapsedTime(s.startTime));
+    if (s.routineId) setStartedRoutineId(s.routineId);
+  }, [loadDraftFromText, calculateElapsedTime]);
+
   // Load saved session and user preferences on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -300,18 +312,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
         if (savedSession && (savedSession.noteText || (savedSession.draft as WorkoutDraft | null)?.length || savedSession.manuallyStarted)) {
-          const savedDraft = savedSession.draft as WorkoutDraft | null;
-          if (savedDraft && savedDraft.length) {
-            setDraft(savedDraft); // preserves per-set done + target/previous refs
-          } else if (savedSession.noteText) {
-            loadDraftFromText(savedSession.noteText);
-          }
-          setManuallyStarted(savedSession.manuallyStarted);
-          setWorkoutStartTime(savedSession.startTime);
-          setElapsedTime(calculateElapsedTime(savedSession.startTime));
-          if (savedSession.routineId) {
-            setStartedRoutineId(savedSession.routineId);
-          }
+          restoreSession(savedSession); // preserves per-set done + target/previous refs
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -421,12 +422,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
           const savedSession = await storageService.getNoteSession();
           const savedDraft = savedSession?.draft as WorkoutDraft | null;
           if (savedSession && (savedDraft?.length || savedSession.noteText || savedSession.manuallyStarted)) {
-            if (savedDraft && savedDraft.length) setDraft(savedDraft);
-            else if (savedSession.noteText) loadDraftFromText(savedSession.noteText);
-            setManuallyStarted(savedSession.manuallyStarted);
-            setWorkoutStartTime(savedSession.startTime);
-            setElapsedTime(calculateElapsedTime(savedSession.startTime));
-            if (savedSession.routineId) setStartedRoutineId(savedSession.routineId);
+            restoreSession(savedSession);
           }
         }
       }
@@ -434,7 +430,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, loadDraftFromText]);
+  }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, restoreSession]);
 
   // Format elapsed time
   const formatTime = useCallback((seconds: number): string => {
@@ -670,8 +666,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
 
   // Handle finish modal complete - reset workout state
-  const handleFinishComplete = useCallback(async () => {
-    setShowFinishModal(false);
+  // Clear the in-progress workout: draft, composer, timer, routine link, and the
+  // persisted session. Shared by finishing and discarding.
+  const resetSession = useCallback(async () => {
     setDraft([]);
     setComposerText('');
     setManuallyStarted(false);
@@ -679,11 +676,15 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setElapsedTime(0);
     setParsedExercises([]);
     setStartedRoutineId(null);
-    // Clear saved session
     await storageService.clearNoteSession();
+  }, []);
+
+  const handleFinishComplete = useCallback(async () => {
+    setShowFinishModal(false);
+    await resetSession();
     // The just-finished session is now the one to repeat next time.
     refreshLastWorkout();
-  }, [refreshLastWorkout]);
+  }, [resetSession, refreshLastWorkout]);
 
   // Handle cancel from finish modal
   const handleFinishCancel = useCallback(() => {
@@ -691,16 +692,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, []);
 
   // Discard the in-progress workout without saving (clears draft, timer, session).
-  const discardWorkout = useCallback(async () => {
-    setDraft([]);
-    setComposerText('');
-    setManuallyStarted(false);
-    setWorkoutStartTime(null);
-    setElapsedTime(0);
-    setParsedExercises([]);
-    setStartedRoutineId(null);
-    await storageService.clearNoteSession();
-  }, []);
+  const discardWorkout = resetSession;
 
   // Handle reset workout timer
   const resetWorkoutTimer = useCallback(() => {

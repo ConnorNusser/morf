@@ -4,21 +4,28 @@ import { useSound } from "@/hooks/useSound";
 import { useUser } from "@/contexts/UserContext";
 import playHapticFeedback from "@/lib/utils/haptic";
 import { Equipment } from "@/types";
-import { ALL_EQUIPMENT } from "@/lib/workout/equipment";
+import { ALL_EQUIPMENT, EQUIPMENT_DISPLAY_LABELS } from "@/lib/workout/equipment";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "../Card";
 import { Text } from "../Themed";
 
-const EQUIPMENT_OPTIONS: { type: Equipment; label: string; icon: string }[] = [
-  { type: 'barbell', label: 'Barbell', icon: 'barbell-outline' },
-  { type: 'dumbbell', label: 'Dumbbells', icon: 'fitness-outline' },
-  { type: 'machine', label: 'Machines', icon: 'cog-outline' },
-  { type: 'smith-machine', label: 'Smith Machine', icon: 'apps-outline' },
-  { type: 'cable', label: 'Cables', icon: 'git-branch-outline' },
-  { type: 'kettlebell', label: 'Kettlebell', icon: 'ellipse-outline' },
-  { type: 'bodyweight', label: 'Bodyweight', icon: 'body-outline' },
-];
+const EQUIPMENT_ICONS: Record<Equipment, string> = {
+  barbell: 'barbell-outline',
+  dumbbell: 'fitness-outline',
+  machine: 'cog-outline',
+  'smith-machine': 'apps-outline',
+  cable: 'git-branch-outline',
+  kettlebell: 'ellipse-outline',
+  bodyweight: 'body-outline',
+};
+
+const EQUIPMENT_OPTIONS: { type: Equipment; label: string; icon: string }[] =
+  ALL_EQUIPMENT.map(type => ({
+    type,
+    label: EQUIPMENT_DISPLAY_LABELS[type],
+    icon: EQUIPMENT_ICONS[type],
+  }));
 
 const EquipmentFilterSection = () => {
   const { currentTheme } = useTheme();

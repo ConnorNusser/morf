@@ -13,13 +13,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -53,7 +47,7 @@ export default function FullScreenVideoViewer({
 
   // Auto-play when modal opens
   useEffect(() => {
-    if (visible && player) {
+    if (visible) {
       player.play();
       setIsPlaying(true);
       setIsMuted(false);
@@ -62,8 +56,6 @@ export default function FullScreenVideoViewer({
 
   // Track progress
   useEffect(() => {
-    if (!player) return;
-
     const interval = setInterval(() => {
       if (player.playing) {
         setProgress(player.currentTime);
@@ -88,21 +80,17 @@ export default function FullScreenVideoViewer({
   };
 
   const togglePlayPause = () => {
-    if (player) {
-      if (isPlaying) {
-        player.pause();
-      } else {
-        player.play();
-      }
-      setIsPlaying(!isPlaying);
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
     }
+    setIsPlaying(!isPlaying);
   };
 
 
   const handleClose = () => {
-    if (player) {
-      player.pause();
-    }
+    player.pause();
     onClose();
   };
 

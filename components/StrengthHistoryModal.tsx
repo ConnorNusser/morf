@@ -74,21 +74,18 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
     }
   };
 
-  const getCategoryPercentile = (category: keyof typeof MUSCLE_CATEGORIES): number => {
-    if (!muscleGroups) return 0;
-    const muscles = MUSCLE_CATEGORIES[category].muscles;
-    const values = muscles.map(m => muscleGroups[m]).filter(v => v > 0);
+  const avgCategory = (source: MuscleGroupPercentiles | null | undefined, category: keyof typeof MUSCLE_CATEGORIES): number => {
+    if (!source) return 0;
+    const values = MUSCLE_CATEGORIES[category].muscles.map(m => source[m]).filter(v => v > 0);
     if (values.length === 0) return 0;
     return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
   };
 
-  const getCategoryPercentileFromEntry = (entry: PercentileHistoryEntry, category: keyof typeof MUSCLE_CATEGORIES): number => {
-    if (!entry.muscleGroups) return 0;
-    const muscles = MUSCLE_CATEGORIES[category].muscles;
-    const values = muscles.map(m => entry.muscleGroups![m]).filter(v => v > 0);
-    if (values.length === 0) return 0;
-    return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-  };
+  const getCategoryPercentile = (category: keyof typeof MUSCLE_CATEGORIES): number =>
+    avgCategory(muscleGroups, category);
+
+  const getCategoryPercentileFromEntry = (entry: PercentileHistoryEntry, category: keyof typeof MUSCLE_CATEGORIES): number =>
+    avgCategory(entry.muscleGroups, category);
 
   // Chart dimensions
   const screenWidth = Dimensions.get('window').width;
@@ -140,9 +137,8 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const changeColor = change > 0 ? '#22C55E' : change < 0 ? '#EF4444' : currentTheme.colors.text + '60';
 
   // Overall change from first entry ever to current
-  const overallHistory = history.slice(-30);
-  const overallFirstValue = overallHistory[0]?.percentile || 0;
-  const overallLastValue = overallHistory[overallHistory.length - 1]?.percentile || 0;
+  const overallFirstValue = displayHistory[0]?.percentile || 0;
+  const overallLastValue = displayHistory[displayHistory.length - 1]?.percentile || 0;
   const overallChange = overallLastValue - overallFirstValue;
 
   const currentPercentile = selectedCategory ? getCategoryPercentile(selectedCategory) : overallPercentile;

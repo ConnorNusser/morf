@@ -600,7 +600,7 @@ export default function HistoryScreen() {
               </View>
             )}
           </>
-        ) : activeTab === 'exercises' ? (
+        ) : (
           <>
             {/* Exercises Tab */}
             {trackedExercises.length > 0 ? (
@@ -746,7 +746,7 @@ export default function HistoryScreen() {
               </View>
             )}
           </>
-        ) : null}
+        )}
       </ScrollView>
 
       {/* Workout Detail Modal */}

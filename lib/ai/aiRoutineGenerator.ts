@@ -6,13 +6,13 @@
 import { CustomExercise, Equipment, ExerciseProgressionState, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile, WeightUnit, convertWeight } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
+import { parseGeminiJson } from './geminiJson';
 import {
   buildRoutineGenerationPrompt,
   ProgramTemplate,
-  TrainingGoal,
-  PROGRAM_TEMPLATES,
   RoutineGenerationParams,
 } from './prompts/routineGeneration.prompt';
+import { TrainingGoal } from './splitTemplates';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
@@ -22,7 +22,12 @@ import { classifyEquipment } from '@/lib/workout/equipmentProfile';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 import { buildDeterministicProgram } from '@/lib/workout/deterministicRoutineBuilder';
 
-export { ProgramTemplate, TrainingGoal, PROGRAM_TEMPLATES };
+export { ProgramTemplate, TrainingGoal };
+
+// Heaviest completed set by weight, or the zero seed when there are none.
+function bestSetByWeight(sets?: { weight: number; reps: number }[]): { weight: number; reps: number } | undefined {
+  return sets?.reduce((best, current) => (current.weight > best.weight ? current : best), { weight: 0, reps: 0 });
+}
 
 // Mirrors INTENSITY_MODIFIERS in progressiveOverload.ts (kept in sync intentionally)
 // so a seeded starting weight matches what the workout screen later computes.
@@ -410,10 +415,7 @@ class AIRoutineGeneratorService {
 
         const exerciseName = idToName.get(ex.id) || ex.id;
 
-        const bestSet = ex.completedSets?.reduce((best, current) =>
-          (current.weight > best.weight) ? current : best,
-          { weight: 0, reps: 0 }
-        );
+        const bestSet = bestSetByWeight(ex.completedSets);
 
         const current = exerciseStats.get(ex.id);
         if (!current) {
@@ -472,30 +474,19 @@ class AIRoutineGeneratorService {
       });
     }
 
+    const namesForIds = (ids?: string[]) =>
+      ids?.map(id => [...availableExercises, ...customExercises].find(e => e.id === id)?.name)
+          .filter((name): name is string => !!name);
+
     // Get names of included exercises
-    const includedExerciseNames = options.includedExercises
-      ? options.includedExercises
-          .map(id => {
-            const exercise = [...availableExercises, ...customExercises].find(e => e.id === id);
-            return exercise?.name;
-          })
-          .filter((name): name is string => !!name)
-      : undefined;
+    const includedExerciseNames = namesForIds(options.includedExercises);
 
     // Get names of excluded exercises. We already drop these from the available list, but
     // the model can still recall an excluded lift from training, so we also render an explicit
     // "MUST EXCLUDE" rule (and drop them again at the conversion seam as a backstop).
-    const excludedExerciseNames = options.excludedExercises
-      ? options.excludedExercises
-          .map(id => {
-            const exercise = [...availableExercises, ...customExercises].find(e => e.id === id);
-            return exercise?.name;
-          })
-          .filter((name): name is string => !!name)
-      : undefined;
+    const excludedExerciseNames = namesForIds(options.excludedExercises);
 
     const params: RoutineGenerationParams = {
-      programTemplate: options.programTemplate,
       trainingGoal: options.trainingGoal,
       userStrengthLevel: strengthLevel,
       userBodyWeight: bodyWeight,
@@ -542,10 +533,7 @@ class AIRoutineGeneratorService {
     for (const workout of workoutHistory.slice(-20)) {
       for (const ex of workout.exercises) {
         if (standards[ex.id]) {
-          const bestSet = ex.completedSets?.reduce((best, current) =>
-            (current.weight > best.weight) ? current : best,
-            { weight: 0, reps: 0 }
-          );
+          const bestSet = bestSetByWeight(ex.completedSets);
           if (bestSet && bestSet.weight > 0) {
             const percentile = calculateStrengthPercentile(
               bestSet.weight,
@@ -604,17 +592,7 @@ Return only valid JSON.`;
     const elapsed = Date.now() - startTime;
     console.log(`[RoutineGenerator] Gemini response received in ${elapsed}ms, content length: ${content?.length || 0}`);
 
-    if (!content) {
-      throw new Error('No content received from AI');
-    }
-
-    // Clean response
-    let cleanedContent = content.trim();
-    if (cleanedContent.startsWith('```')) {
-      cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
-    }
-
-    const parsed = JSON.parse(cleanedContent);
+    const parsed = parseGeminiJson(content);
 
     // Track analytics
     analyticsService.trackAIUsage({

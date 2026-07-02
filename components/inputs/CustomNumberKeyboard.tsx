@@ -3,7 +3,6 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
-  Dimensions,
   Modal,
   StyleSheet,
   Text,
@@ -20,11 +19,8 @@ interface CustomNumberKeyboardProps {
   placeholder?: string;
   maxLength?: number;
   allowDecimal?: boolean;
-  allowRange?: boolean;
   title?: string;
 }
-
-const { width: _screenWidth, height: _screenHeight } = Dimensions.get('window');
 
 export default function CustomNumberKeyboard({
   visible,
@@ -35,7 +31,6 @@ export default function CustomNumberKeyboard({
   placeholder = "0",
   maxLength = 6,
   allowDecimal = true,
-  allowRange = false,
   title = "Enter Value",
 }: CustomNumberKeyboardProps) {
   const { currentTheme } = useTheme();
@@ -48,15 +43,6 @@ export default function CustomNumberKeyboard({
     }
 
     if (key === '.' && (!allowDecimal || value.includes('.'))) {
-      return;
-    }
-
-    if (key === 'to' && allowRange) {
-      // Simple logic: if no dash exists, add one after current value
-      if (!value.includes('-')) {
-        onValueChange(value + '-');
-        playHapticFeedback('light', false);
-      }
       return;
     }
 
@@ -89,13 +75,6 @@ export default function CustomNumberKeyboard({
     } else if (key === 'done') {
       keyContent = <Text style={[styles.keyText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>;
       onPress = onDone;
-    } else if (key === 'to') {
-      keyContent = (
-        <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.keyText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>to</Text>
-          <Text style={[styles.rangeSubtext, { color: currentTheme.colors.primary, marginTop: 2 }]}>range</Text>
-        </View>
-      );
     } else {
       keyContent = <Text style={[styles.keyText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{key}</Text>;
     }
@@ -106,8 +85,7 @@ export default function CustomNumberKeyboard({
         style={[
           styles.key,
           isSpecial && key === 'done' && { backgroundColor: currentTheme.colors.primary },
-          isSpecial && key === 'to' && { backgroundColor: currentTheme.colors.primary + '20', borderColor: currentTheme.colors.primary, borderWidth: 1 },
-          isSpecial && key !== 'done' && key !== 'to' && { backgroundColor: currentTheme.colors.surface },
+          isSpecial && key !== 'done' && { backgroundColor: currentTheme.colors.surface },
           !isSpecial && { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border },
         ]}
         onPress={onPress}
@@ -119,7 +97,6 @@ export default function CustomNumberKeyboard({
   };
 
   const displayValue = value || placeholder;
-  const formattedDisplayValue = displayValue.replace('-', ' - ');
 
   return (
     <Modal
@@ -158,7 +135,7 @@ export default function CustomNumberKeyboard({
                 color: value ? currentTheme.colors.text : currentTheme.colors.text + '60',
               }
             ]}>
-              {formattedDisplayValue}
+              {displayValue}
             </Text>
           </View>
 
@@ -187,7 +164,7 @@ export default function CustomNumberKeyboard({
 
             {/* Row 4 */}
             <View style={styles.row}>
-              {allowRange ? renderKey('to', true) : allowDecimal ? renderKey('.') : <View style={styles.key} />}
+              {allowDecimal ? renderKey('.') : <View style={styles.key} />}
               {renderKey('0')}
               {renderKey('backspace', true)}
             </View>
@@ -273,9 +250,5 @@ const styles = StyleSheet.create({
   },
   keyText: {
     fontSize: 20,
-  },
-  rangeSubtext: {
-    fontSize: 12,
-    marginTop: 4,
   },
 }); 

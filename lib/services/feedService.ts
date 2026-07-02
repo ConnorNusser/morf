@@ -11,6 +11,16 @@ export interface FeedLike {
   created_at: string;
 }
 
+// Toggle a user's like in a likes array, returning a new array — removes the
+// user's like if present, otherwise appends one. No-op add when userId is unset.
+export function toggleLikeFor(likes: FeedLike[] | undefined, userId: string | null | undefined): FeedLike[] {
+  const next = [...(likes || [])];
+  const i = next.findIndex(l => l.user_id === userId);
+  if (i >= 0) next.splice(i, 1);
+  else if (userId) next.push({ user_id: userId, username: '', created_at: new Date().toISOString() });
+  return next;
+}
+
 export interface FeedComment {
   id: string;
   user_id: string;
@@ -123,37 +133,6 @@ class FeedService {
       return user;
     } catch {
       return null;
-    }
-  }
-
-  /**
-   * Get friends' recent workouts for feed (friendships stay on Supabase)
-   */
-  async getFriendsWorkoutFeed(limit: number = 20): Promise<FeedWorkout[]> {
-    if (!supabase) return [];
-
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) return [];
-
-      // Get friend IDs from Supabase
-      const { data: friends } = await supabase
-        .from('friends')
-        .select('friend_id')
-        .eq('user_id', user.id);
-
-      if (!friends || friends.length === 0) return [];
-
-      const friendIds = friends.map(f => f.friend_id);
-
-      // Get workouts from self-hosted API and filter by friends
-      const allWorkouts = await feedApi.getWorkouts(user.id, 100, 0);
-      return allWorkouts
-        .filter(w => friendIds.includes(w.user_id))
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Error fetching friends workout feed:', error);
-      return [];
     }
   }
 
@@ -406,21 +385,6 @@ class FeedService {
     } catch (error) {
       console.error('Error toggling post comment like:', error);
       return false;
-    }
-  }
-
-  /**
-   * Get combined feed (workouts + posts)
-   */
-  async getCombinedFeed(limit: number = 20, offset: number = 0): Promise<(FeedWorkout | FeedPost)[]> {
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) return [];
-
-      return await feedApi.getFeed(user.id, limit, offset);
-    } catch (error) {
-      console.error('Error fetching combined feed:', error);
-      return [];
     }
   }
 }
