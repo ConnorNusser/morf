@@ -22,9 +22,6 @@ class UserService {
     const existingProfile = await this.getRealUserProfile();
     const realProfile: UserProfile = {
       ...profile,
-      // Preserve existing lifts when updating profile
-      lifts: profile.lifts || existingProfile?.lifts || [],
-      secondaryLifts: profile.secondaryLifts || existingProfile?.secondaryLifts || [],
       weightUnitPreference: profile.weightUnitPreference || existingProfile?.weightUnitPreference || 'lbs',
     };
     
@@ -142,8 +139,6 @@ class UserService {
         weight: { value: 185, unit: 'lbs' as const },
         gender: 'male' as const,
         age: 28,
-        lifts: [],
-        secondaryLifts: [],
         weightUnitPreference: 'lbs' as const,
       };
       
@@ -152,12 +147,6 @@ class UserService {
     }
     
     return profile;
-  }
-
-  // Get user's current lifts
-  async getUserLifts(): Promise<UserLift[]> {
-    const profile = await this.getRealUserProfile();
-    return profile?.lifts || [];
   }
 
   // Get all lifts for any featured lift ID (main or secondary) as UserProgress array
@@ -208,31 +197,12 @@ class UserService {
   // Delete a workout and all associated lifts with matching parentId
   async deleteWorkoutAndLifts(workoutId: string): Promise<void> {
     try {
-      // Delete the workout from local storage
+      // Delete the workout from local storage (the source of exercise records +
+      // rank history now — no separate lift store to prune).
       await storageService.deleteWorkout(workoutId);
 
       // Delete the workout from Supabase (for feed/social features)
       await userSyncService.deleteWorkout(workoutId);
-
-      // Get current user profile
-      const profile = await this.getRealUserProfile();
-      if (!profile) return;
-
-      // Filter out lifts with matching parentId from main lifts
-      const filteredMainLifts = profile.lifts.filter(lift => lift.parentId !== workoutId);
-
-      // Filter out lifts with matching parentId from secondary lifts
-      const filteredSecondaryLifts = profile.secondaryLifts.filter(lift => lift.parentId !== workoutId);
-
-      // Update the profile with filtered lifts
-      const updatedProfile = {
-        ...profile,
-        lifts: filteredMainLifts,
-        secondaryLifts: filteredSecondaryLifts,
-      };
-
-      // Save the updated profile
-      await storageService.saveUserProfile(updatedProfile);
     } catch (error) {
       console.error('Error deleting workout and associated lifts:', error);
       throw error;

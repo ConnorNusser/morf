@@ -154,8 +154,6 @@ export interface UserProfile {
   gender: Gender;
   age?: number;
   trainingYears?: number;  // Self-reported years of consistent strength training
-  lifts: UserLift[];
-  secondaryLifts: UserLift[];
   weightUnitPreference: WeightUnit;
   equipmentFilter?: EquipmentFilter;
   username?: string;

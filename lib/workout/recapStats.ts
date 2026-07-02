@@ -214,11 +214,18 @@ export async function calculateRecapStats(
     return workoutDate >= periodRange.start && workoutDate <= periodRange.end;
   });
 
-  // Get lifts for the period
-  const allLifts = [...userProfile.lifts, ...userProfile.secondaryLifts].filter(lift => {
-    const liftDate = new Date(lift.dateRecorded);
-    return liftDate >= periodRange.start && liftDate <= periodRange.end;
-  });
+  // Lifts for the period: one best set per exercise per workout, derived from the
+  // period's workouts (records/history are the source — no separate lift store).
+  const epley = (w: number, r: number) => w * (1 + r / 30);
+  const allLifts: UserLift[] = [];
+  for (const workout of periodWorkouts) {
+    for (const ex of workout.exercises) {
+      const done = (ex.completedSets || []).filter(s => s.completed && s.weight > 0);
+      if (done.length === 0) continue;
+      const best = done.reduce((a, b) => (epley(b.weight, b.reps) > epley(a.weight, a.reps) ? b : a));
+      allLifts.push({ parentId: workout.id, id: ex.id, weight: best.weight, reps: best.reps, unit: best.unit, dateRecorded: new Date(workout.createdAt) });
+    }
+  }
 
   // Calculate basic stats
   const totalWorkouts = periodWorkouts.length;

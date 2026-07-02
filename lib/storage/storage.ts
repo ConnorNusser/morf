@@ -750,36 +750,8 @@ class StorageService {
         await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify(history));
       }
 
-      // 2. Update user profile lifts
-      const profileData = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-      if (profileData) {
-        const profile = JSON.parse(profileData);
-        let profileChanged = false;
-
-        if (profile.lifts) {
-          for (const lift of profile.lifts) {
-            if (lift.id === oldId) {
-              lift.id = newId;
-              profileChanged = true;
-            }
-          }
-        }
-
-        if (profile.secondaryLifts) {
-          for (const lift of profile.secondaryLifts) {
-            if (lift.id === oldId) {
-              lift.id = newId;
-              profileChanged = true;
-            }
-          }
-        }
-
-        if (profileChanged) {
-          await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
-        }
-      }
-
-      // Note: WorkoutTemplates store raw noteText, not exercise IDs, so no migration needed
+      // Note: exercise records + WorkoutTemplates need no id migration here —
+      // records rebuild from history, and templates store raw noteText.
 
     } catch (error) {
       console.error('Error migrating exercise ID:', error);

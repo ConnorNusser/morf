@@ -2,7 +2,7 @@
 // history AND legacy profile.lifts, so existing users' routines anchor to real
 // past performance and their strength rank doesn't drop on upgrade.
 import { storageService } from '@/lib/storage/storage';
-import { ExerciseRecord, GeneratedWorkout, isFeaturedLift } from '@/types';
+import { ExerciseRecord, GeneratedWorkout, UserLift, isFeaturedLift } from '@/types';
 import { updateExerciseRecords } from './progression';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { convertWeightToLbs } from '@/lib/utils/utils';
@@ -24,9 +24,12 @@ export async function loadExerciseRecords(
 
   // Fold in any legacy profile.lifts bests not already captured (e.g. onboarding-
   // entered lifts that never came from a logged workout). Best-only; the anchor
-  // stays whatever the latest real session set.
+  // stays whatever the latest real session set. Read straight off the stored
+  // profile (the `lifts` fields are removed from the type but the data persists),
+  // so existing users' rank carries over into the records.
   const profile = await storageService.getUserProfile();
-  const legacy = [...(profile?.lifts ?? []), ...(profile?.secondaryLifts ?? [])];
+  const legacyProfile = profile as unknown as { lifts?: UserLift[]; secondaryLifts?: UserLift[] } | null;
+  const legacy = [...(legacyProfile?.lifts ?? []), ...(legacyProfile?.secondaryLifts ?? [])];
   for (const lift of legacy) {
     if (lift.weight <= 0) continue;
     const lbs = lift.unit === 'lbs' ? lift.weight : convertWeightToLbs(lift.weight, lift.unit);
