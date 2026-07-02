@@ -79,6 +79,103 @@ export default function ThemeEvolutionSection() {
     [themes]
   );
 
+  // One tappable theme card — shared by the strength-unlock grid and the
+  // shareable/seasonal grid so the two never drift apart.
+  const renderThemeCard = (themeKey: ThemeLevel, theme: typeof themes[ThemeLevel]) => (
+    <TouchableOpacity
+      key={themeKey}
+      onPress={() => handleThemeSelect(themeKey)}
+      disabled={!isThemeAvailable(themeKey)}
+      activeOpacity={0.7}
+    >
+      <Card
+        variant={isCurrentTheme(themeKey) ? "elevated" : "clean"}
+        padding={12}
+        style={StyleSheet.flatten([
+          styles.themeCard,
+          !isThemeAvailable(themeKey) && styles.lockedTheme,
+          isCurrentTheme(themeKey) && {
+            borderColor: currentTheme.colors.primary,
+            borderWidth: 2
+          }
+        ])}
+      >
+        <View style={[styles.themeInfo, { backgroundColor: 'transparent' }]}>
+          <Text style={[
+            styles.themeName,
+            {
+              color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
+            }
+          ]}>
+            {getThemeDisplayName(themeKey)}
+          </Text>
+          <Text style={[
+            styles.themeRequirement,
+            {
+              color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
+            }
+          ]}>
+            {getThemeRequirement(themeKey)}
+          </Text>
+        </View>
+
+        <View style={[styles.themeRight, { backgroundColor: 'transparent' }]}>
+          {isThemeAvailable(themeKey) && (
+            <View style={[styles.colorIndicators, { backgroundColor: 'transparent' }]}>
+              <View style={[
+                styles.colorDot,
+                { backgroundColor: theme.colors.primary }
+              ]} />
+              <View style={[
+                styles.colorDot,
+                { backgroundColor: theme.colors.background },
+                { borderColor: theme.colors.border, borderWidth: 1 }
+              ]} />
+              <View style={[
+                styles.colorDot,
+                { backgroundColor: theme.colors.surface },
+                { borderColor: theme.colors.border, borderWidth: 1 }
+              ]} />
+            </View>
+          )}
+
+          <View style={[styles.themeStatus, { backgroundColor: 'transparent' }]}>
+            {isCurrentTheme(themeKey) && (
+              <Text style={[
+                styles.statusText,
+                {
+                  color: currentTheme.colors.primary,
+                }
+              ]}>
+                ✓ Current Theme
+              </Text>
+            )}
+            {!isThemeAvailable(themeKey) && (
+              <Text style={[
+                styles.statusText,
+                {
+                  color: currentTheme.colors.text + '60',
+                }
+              ]}>
+                🔒 Locked
+              </Text>
+            )}
+            {isThemeAvailable(themeKey) && !isCurrentTheme(themeKey) && (
+              <Text style={[
+                styles.statusText,
+                {
+                  color: currentTheme.colors.text + '80',
+                }
+              ]}>
+                Tap to activate
+              </Text>
+            )}
+          </View>
+        </View>
+      </Card>
+    </TouchableOpacity>
+  );
+
   const handleShareApp = async () => {
     try {
       const result = await Share.share({
@@ -167,100 +264,7 @@ export default function ThemeEvolutionSection() {
             <View style={styles.themeGrid}>
               {themeEntries
                 .filter(([themeKey]) => !themeKey.startsWith('share_') && themeKey !== 'winter_2026')
-                .map(([themeKey, theme]) => (
-                <TouchableOpacity
-                  key={themeKey}
-                  onPress={() => handleThemeSelect(themeKey)}
-                  disabled={!isThemeAvailable(themeKey)}
-                  activeOpacity={0.7}
-                >
-                  <Card 
-                    variant={isCurrentTheme(themeKey) ? "elevated" : "clean"} 
-                    padding={12}
-                    style={StyleSheet.flatten([
-                      styles.themeCard,
-                      !isThemeAvailable(themeKey) && styles.lockedTheme,
-                      isCurrentTheme(themeKey) && { 
-                        borderColor: currentTheme.colors.primary, 
-                        borderWidth: 2 
-                      }
-                    ])}
-                  >
-                    <View style={[styles.themeInfo, { backgroundColor: 'transparent' }]}>
-                      <Text style={[
-                        styles.themeName, 
-                        { 
-                          color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
-                        }
-                      ]}>
-                        {getThemeDisplayName(themeKey)}
-                      </Text>
-                      <Text style={[
-                        styles.themeRequirement, 
-                        { 
-                          color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
-                        }
-                      ]}>
-                        {getThemeRequirement(themeKey)}
-                      </Text>
-                    </View>
-                    
-                    <View style={[styles.themeRight, { backgroundColor: 'transparent' }]}>
-                      {isThemeAvailable(themeKey) && (
-                        <View style={[styles.colorIndicators, { backgroundColor: 'transparent' }]}>
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.primary }
-                          ]} />
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.background },
-                            { borderColor: theme.colors.border, borderWidth: 1 }
-                          ]} />
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.surface },
-                            { borderColor: theme.colors.border, borderWidth: 1 }
-                          ]} />
-                        </View>
-                      )}
-                      
-                      <View style={[styles.themeStatus, { backgroundColor: 'transparent' }]}>
-                        {isCurrentTheme(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.primary,
-                            }
-                          ]}>
-                            ✓ Current Theme
-                          </Text>
-                        )}
-                        {!isThemeAvailable(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.text + '60',
-                            }
-                          ]}>
-                            🔒 Locked
-                          </Text>
-                        )}
-                        {isThemeAvailable(themeKey) && !isCurrentTheme(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.text + '80',
-                            }
-                          ]}>
-                            Tap to activate
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </Card>
-                </TouchableOpacity>
-              ))}
+                .map(([themeKey, theme]) => renderThemeCard(themeKey, theme))}
             </View>
           </View>
 
@@ -312,100 +316,7 @@ export default function ThemeEvolutionSection() {
                   themeKey.startsWith('share_') ||
                   (themeKey === 'winter_2026' && isSeasonalThemeAvailable('winter_2026'))
                 )
-                .map(([themeKey, theme]) => (
-                <TouchableOpacity
-                  key={themeKey}
-                  onPress={() => handleThemeSelect(themeKey)}
-                  disabled={!isThemeAvailable(themeKey)}
-                  activeOpacity={0.7}
-                >
-                  <Card 
-                    variant={isCurrentTheme(themeKey) ? "elevated" : "clean"} 
-                    padding={12}
-                    style={StyleSheet.flatten([
-                      styles.themeCard,
-                      !isThemeAvailable(themeKey) && styles.lockedTheme,
-                      isCurrentTheme(themeKey) && { 
-                        borderColor: currentTheme.colors.primary, 
-                        borderWidth: 2 
-                      }
-                    ])}
-                  >
-                    <View style={[styles.themeInfo, { backgroundColor: 'transparent' }]}>
-                      <Text style={[
-                        styles.themeName, 
-                        { 
-                          color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
-                        }
-                      ]}>
-                        {getThemeDisplayName(themeKey)}
-                      </Text>
-                      <Text style={[
-                        styles.themeRequirement, 
-                        { 
-                          color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
-                        }
-                      ]}>
-                        {getThemeRequirement(themeKey)}
-                      </Text>
-                    </View>
-                    
-                    <View style={[styles.themeRight, { backgroundColor: 'transparent' }]}>
-                      {isThemeAvailable(themeKey) && (
-                        <View style={[styles.colorIndicators, { backgroundColor: 'transparent' }]}>
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.primary }
-                          ]} />
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.background },
-                            { borderColor: theme.colors.border, borderWidth: 1 }
-                          ]} />
-                          <View style={[
-                            styles.colorDot, 
-                            { backgroundColor: theme.colors.surface },
-                            { borderColor: theme.colors.border, borderWidth: 1 }
-                          ]} />
-                        </View>
-                      )}
-                      
-                      <View style={[styles.themeStatus, { backgroundColor: 'transparent' }]}>
-                        {isCurrentTheme(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.primary,
-                            }
-                          ]}>
-                            ✓ Current Theme
-                          </Text>
-                        )}
-                        {!isThemeAvailable(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.text + '60',
-                            }
-                          ]}>
-                            🔒 Locked
-                          </Text>
-                        )}
-                        {isThemeAvailable(themeKey) && !isCurrentTheme(themeKey) && (
-                          <Text style={[
-                            styles.statusText, 
-                            { 
-                              color: currentTheme.colors.text + '80',
-                            }
-                          ]}>
-                            Tap to activate
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </Card>
-                </TouchableOpacity>
-              ))}
+                .map(([themeKey, theme]) => renderThemeCard(themeKey, theme))}
             </View>
           </View>
         </View>

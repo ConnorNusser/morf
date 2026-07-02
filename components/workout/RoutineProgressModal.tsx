@@ -45,6 +45,16 @@ interface ExerciseProgress {
   status: ExerciseStatus;
 }
 
+// Next-session guidance for an exercise row, or null when there's nothing to show.
+function getStatusLabel(exercise: Pick<ExerciseProgress, 'status' | 'repBonus'>): string | null {
+  if (exercise.status === 'improving' && exercise.repBonus >= 3) return 'Weight ↑ next session';
+  if (exercise.status === 'improving' && exercise.repBonus > 0) {
+    return `+${exercise.repBonus} rep${exercise.repBonus > 1 ? 's' : ''} per set`;
+  }
+  if (exercise.status === 'declining') return 'Consider deload';
+  return null;
+}
+
 interface RoutineProgress {
   id: string;
   name: string;
@@ -491,6 +501,106 @@ export default function RoutineProgressModal({
     );
   };
 
+  // One exercise row — shared by the filtered (cross-routine) list and each
+  // routine's expanded list. showRoutineLabel adds the routine name under the
+  // exercise (filtered view); showNoData renders the "No data yet" line for new
+  // exercises (routine view); deloadRoutineId is the routine the deload targets.
+  const renderExerciseRow = (
+    exercise: ExerciseProgress & { routineName?: string },
+    index: number,
+    opts: { deloadRoutineId: string; showRoutineLabel?: boolean; showNoData?: boolean }
+  ) => {
+    const isExerciseExpanded = expandedExerciseId === exercise.exerciseId;
+    const weightGain = exercise.currentWeight - exercise.startWeight;
+    const statusLabel = getStatusLabel(exercise);
+
+    return (
+      <View key={exercise.exerciseId}>
+        <TouchableOpacity
+          style={[
+            styles.exerciseRow,
+            index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+          ]}
+          onPress={() => exercise.weightHistory.length > 0 && toggleExercise(exercise.exerciseId)}
+          activeOpacity={exercise.weightHistory.length > 0 ? 0.7 : 1}
+        >
+          <View style={styles.exerciseLeft}>
+            <View style={styles.exerciseNameRow}>
+              <StatusIndicator status={exercise.status} repBonus={exercise.repBonus} />
+              {opts.showRoutineLabel ? (
+                <View>
+                  <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
+                    {exercise.name}
+                  </Text>
+                  <Text style={[styles.routineLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+                    {exercise.routineName}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
+                  {exercise.name}
+                </Text>
+              )}
+            </View>
+
+            {exercise.status !== 'new' && (
+              <View style={styles.exerciseDetail}>
+                <Text style={[styles.weightText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
+                  {exercise.currentWeight} {weightUnit}
+                  {weightGain > 0 && (
+                    <Text style={{ color: '#22c55e' }}> (+{weightGain})</Text>
+                  )}
+                </Text>
+                {statusLabel && (
+                  exercise.status === 'declining' ? (
+                    <TouchableOpacity
+                      onPress={() => handleDeloadExercise(opts.deloadRoutineId, exercise.exerciseId)}
+                      style={styles.deloadButton}
+                    >
+                      <Text style={[styles.statusLabel, { color: '#ef4444', fontFamily: fonts.medium }]}>
+                        Tap to deload
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={[
+                      styles.statusLabel,
+                      {
+                        color: exercise.repBonus >= 3 ? '#f59e0b' : colors.primary,
+                        fontFamily: fonts.medium,
+                      }
+                    ]}>
+                      {statusLabel}
+                    </Text>
+                  )
+                )}
+              </View>
+            )}
+
+            {opts.showNoData && exercise.status === 'new' && (
+              <Text style={[styles.noDataText, { color: colors.text + '40', fontFamily: fonts.regular }]}>
+                No data yet
+              </Text>
+            )}
+          </View>
+
+          {exercise.weightHistory.length > 0 && (
+            <Ionicons
+              name={isExerciseExpanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={colors.text + '30'}
+            />
+          )}
+        </TouchableOpacity>
+
+        {isExerciseExpanded && exercise.weightHistory.length > 0 && (
+          <View style={[styles.chartWrapper, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+            <HistoryChart data={exercise.weightHistory} unit={weightUnit} />
+          </View>
+        )}
+      </View>
+    );
+  };
+
   // Muscle-balance radar — drawn with SVG so it matches the app's flat style.
   const MuscleRadar = ({ axes, values, max }: { axes: { key: MuscleGroup; label: string }[]; values: number[]; max: number }) => {
     const size = 230;
@@ -694,97 +804,12 @@ export default function RoutineProgressModal({
                   routine.exercises
                     .filter(e => e.status === statusFilter)
                     .map(exercise => ({ ...exercise, routineName: routine.name, routineId: routine.id }))
-                ).map((exercise, index) => {
-                  const isExerciseExpanded = expandedExerciseId === exercise.exerciseId;
-                  const weightGain = exercise.currentWeight - exercise.startWeight;
-
-                  const getStatusLabel = () => {
-                    if (exercise.status === 'improving' && exercise.repBonus >= 3) {
-                      return 'Weight ↑ next session';
-                    }
-                    if (exercise.status === 'improving' && exercise.repBonus > 0) {
-                      return `+${exercise.repBonus} rep${exercise.repBonus > 1 ? 's' : ''} per set`;
-                    }
-                    if (exercise.status === 'declining') {
-                      return 'Consider deload';
-                    }
-                    return null;
-                  };
-
-                  return (
-                    <View key={exercise.exerciseId}>
-                      <TouchableOpacity
-                        style={[
-                          styles.exerciseRow,
-                          index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                        ]}
-                        onPress={() => exercise.weightHistory.length > 0 && toggleExercise(exercise.exerciseId)}
-                        activeOpacity={exercise.weightHistory.length > 0 ? 0.7 : 1}
-                      >
-                        <View style={styles.exerciseLeft}>
-                          <View style={styles.exerciseNameRow}>
-                            <StatusIndicator status={exercise.status} repBonus={exercise.repBonus} />
-                            <View>
-                              <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
-                                {exercise.name}
-                              </Text>
-                              <Text style={[styles.routineLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
-                                {exercise.routineName}
-                              </Text>
-                            </View>
-                          </View>
-
-                          {exercise.status !== 'new' && (
-                            <View style={styles.exerciseDetail}>
-                              <Text style={[styles.weightText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
-                                {exercise.currentWeight} {weightUnit}
-                                {weightGain > 0 && (
-                                  <Text style={{ color: '#22c55e' }}> (+{weightGain})</Text>
-                                )}
-                              </Text>
-                              {getStatusLabel() && (
-                                exercise.status === 'declining' ? (
-                                  <TouchableOpacity
-                                    onPress={() => handleDeloadExercise(exercise.routineId, exercise.exerciseId)}
-                                    style={styles.deloadButton}
-                                  >
-                                    <Text style={[styles.statusLabel, { color: '#ef4444', fontFamily: fonts.medium }]}>
-                                      Tap to deload
-                                    </Text>
-                                  </TouchableOpacity>
-                                ) : (
-                                  <Text style={[
-                                    styles.statusLabel,
-                                    {
-                                      color: exercise.repBonus >= 3 ? '#f59e0b' : colors.primary,
-                                      fontFamily: fonts.medium,
-                                    }
-                                  ]}>
-                                    {getStatusLabel()}
-                                  </Text>
-                                )
-                              )}
-                            </View>
-                          )}
-                        </View>
-
-                        {exercise.weightHistory.length > 0 && (
-                          <Ionicons
-                            name={isExerciseExpanded ? 'chevron-up' : 'chevron-down'}
-                            size={16}
-                            color={colors.text + '30'}
-                          />
-                        )}
-                      </TouchableOpacity>
-
-                      {isExerciseExpanded && exercise.weightHistory.length > 0 && (
-                        <View style={[styles.chartWrapper, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-                          <HistoryChart data={exercise.weightHistory} unit={weightUnit} />
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
+                ).map((exercise, index) =>
+                  renderExerciseRow(exercise, index, {
+                    deloadRoutineId: exercise.routineId,
+                    showRoutineLabel: true,
+                  })
+                )}
               </View>
               </>
             )}
@@ -852,98 +877,12 @@ export default function RoutineProgressModal({
                   {/* Expanded Content */}
                   {isExpanded && (
                     <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A' }]}>
-                      {routine.exercises.map((exercise, index) => {
-                        const isExerciseExpanded = expandedExerciseId === exercise.exerciseId;
-                        const weightGain = exercise.currentWeight - exercise.startWeight;
-
-                        const getStatusLabel = () => {
-                          if (exercise.status === 'improving' && exercise.repBonus >= 3) {
-                            return 'Weight ↑ next session';
-                          }
-                          if (exercise.status === 'improving' && exercise.repBonus > 0) {
-                            return `+${exercise.repBonus} rep${exercise.repBonus > 1 ? 's' : ''} per set`;
-                          }
-                          if (exercise.status === 'declining') {
-                            return 'Consider deload';
-                          }
-                          return null;
-                        };
-
-                        return (
-                          <View key={exercise.exerciseId}>
-                            <TouchableOpacity
-                              style={[
-                                styles.exerciseRow,
-                                index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-                              ]}
-                              onPress={() => exercise.weightHistory.length > 0 && toggleExercise(exercise.exerciseId)}
-                              activeOpacity={exercise.weightHistory.length > 0 ? 0.7 : 1}
-                            >
-                              <View style={styles.exerciseLeft}>
-                                <View style={styles.exerciseNameRow}>
-                                  <StatusIndicator status={exercise.status} repBonus={exercise.repBonus} />
-                                  <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
-                                    {exercise.name}
-                                  </Text>
-                                </View>
-
-                                {exercise.status !== 'new' && (
-                                  <View style={styles.exerciseDetail}>
-                                    <Text style={[styles.weightText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
-                                      {exercise.currentWeight} {weightUnit}
-                                      {weightGain > 0 && (
-                                        <Text style={{ color: '#22c55e' }}> (+{weightGain})</Text>
-                                      )}
-                                    </Text>
-                                    {getStatusLabel() && (
-                                      exercise.status === 'declining' ? (
-                                        <TouchableOpacity
-                                          onPress={() => handleDeloadExercise(routine.id, exercise.exerciseId)}
-                                          style={styles.deloadButton}
-                                        >
-                                          <Text style={[styles.statusLabel, { color: '#ef4444', fontFamily: fonts.medium }]}>
-                                            Tap to deload
-                                          </Text>
-                                        </TouchableOpacity>
-                                      ) : (
-                                        <Text style={[
-                                          styles.statusLabel,
-                                          {
-                                            color: exercise.repBonus >= 3 ? '#f59e0b' : colors.primary,
-                                            fontFamily: fonts.medium,
-                                          }
-                                        ]}>
-                                          {getStatusLabel()}
-                                        </Text>
-                                      )
-                                    )}
-                                  </View>
-                                )}
-
-                                {exercise.status === 'new' && (
-                                  <Text style={[styles.noDataText, { color: colors.text + '40', fontFamily: fonts.regular }]}>
-                                    No data yet
-                                  </Text>
-                                )}
-                              </View>
-
-                              {exercise.weightHistory.length > 0 && (
-                                <Ionicons
-                                  name={isExerciseExpanded ? 'chevron-up' : 'chevron-down'}
-                                  size={16}
-                                  color={colors.text + '30'}
-                                />
-                              )}
-                            </TouchableOpacity>
-
-                            {isExerciseExpanded && exercise.weightHistory.length > 0 && (
-                              <View style={[styles.chartWrapper, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
-                                <HistoryChart data={exercise.weightHistory} unit={weightUnit} />
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })}
+                      {routine.exercises.map((exercise, index) =>
+                        renderExerciseRow(exercise, index, {
+                          deloadRoutineId: routine.id,
+                          showNoData: true,
+                        })
+                      )}
                     </View>
                   )}
                 </View>
