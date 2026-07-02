@@ -10,7 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
-import { getUpNextRoutine } from '@/lib/workout/activeRoutine';
+import { getUpNextRoutine, isDayCompletedThisCycle } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines, getExerciseAdherenceStatus, type AdherenceStatus } from '@/lib/workout/progressiveOverload';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
@@ -77,9 +77,10 @@ export default function NotesScreen() {
   // Which day the up-next ring points at (set by flipping on the home dashboard
   // or advanced on workout completion); resolves the highlighted up-next day.
   const [upNextPointerId, setUpNextPointerId] = useState<string | null>(null);
-  // Day ids actually trained this cycle — drives the completed checkmarks.
-  // Flipping the pointer doesn't add to this; only finishing a workout does.
-  const [cycleCompletedIds, setCycleCompletedIds] = useState<string[]>([]);
+  // When the current rotation began — a day's checkmark derives from whether it
+  // was trained at or after this (see isDayCompletedThisCycle). Flipping the
+  // pointer doesn't change it; only finishing a real workout does.
+  const [cycleStartedAt, setCycleStartedAt] = useState<number>(0);
 
   // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
@@ -87,16 +88,16 @@ export default function NotesScreen() {
   // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
-      const [loadedRoutines, history, loadedPrograms, pointerId, completedIds] = await Promise.all([
+      const [loadedRoutines, history, loadedPrograms, pointerId, cycleStart] = await Promise.all([
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
         storageService.getPrograms(),
         storageService.getUpNextPointerId(),
-        storageService.getCycleCompletedIds(),
+        storageService.getCycleStartedAt(),
       ]);
       setPrograms(loadedPrograms);
       setUpNextPointerId(pointerId);
-      setCycleCompletedIds(completedIds);
+      setCycleStartedAt(cycleStart);
       // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
@@ -678,7 +679,7 @@ export default function NotesScreen() {
               // merely flipped past). The up-next day itself stays "up next"
               // even if trained earlier, so it's excluded from the done count.
               const completedThisCycle = isActiveProgram
-                ? days.filter(d => d.id !== upNextRoutine?.id && cycleCompletedIds.includes(d.id)).length
+                ? days.filter(d => d.id !== upNextRoutine?.id && isDayCompletedThisCycle(d, cycleStartedAt)).length
                 : 0;
               // Program-level lift momentum: how each distinct exercise is
               // tracking against the program's prescription (rep bonuses /
@@ -794,7 +795,7 @@ export default function NotesScreen() {
                         // Done only if actually trained this cycle (flipping the
                         // pointer past a day never marks it done). The up-next day
                         // keeps its highlight even if it was trained earlier.
-                        const isCompleted = isActiveProgram && !isUpNext && cycleCompletedIds.includes(routine.id);
+                        const isCompleted = isActiveProgram && !isUpNext && isDayCompletedThisCycle(routine, cycleStartedAt);
                         const isFirst = idx === 0;
                         const isLast = idx === days.length - 1;
                         const dotBorder = isUpNext ? currentTheme.colors.primary : currentTheme.colors.text + '35';

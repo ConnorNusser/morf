@@ -71,6 +71,18 @@ export function getUpNextRoutine<T extends RoutineLike>(
   return candidates[0] ?? null;
 }
 
+// A day reads as completed for the current cycle when it was trained at or after
+// the cycle began. Derives from lastUsed (the single training signal) plus the
+// stored cycle-start timestamp — no separate completed-id list to keep in sync,
+// so adding/removing days can never retroactively change another day's state.
+export function isDayCompletedThisCycle(
+  routine: { lastUsed?: Date },
+  cycleStartedAt: number,
+): boolean {
+  if (!cycleStartedAt || !routine.lastUsed) return false;
+  return new Date(routine.lastUsed).getTime() >= cycleStartedAt;
+}
+
 // The day after `currentId` on the ring, wrapping the last day back to the
 // first — used to advance the pointer once a day is trained. Falls back to the
 // first day when `currentId` isn't on the ring.

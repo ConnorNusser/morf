@@ -116,9 +116,12 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
     );
   }, [calculatedRoutines, searchQuery]);
 
-  const handleImport = useCallback(async (routine: CalculatedRoutine) => {
+  const handleImport = useCallback((routine: CalculatedRoutine) => {
+    // Don't stamp lastUsed here — that's set when the workout is finished with
+    // real work (recordDayTrained), which is also what drives the up-next pointer
+    // and the day checkmark. Stamping at start would mark the day done before any
+    // set was logged.
     const text = generateRoutineText(routine);
-    await storageService.updateRoutineLastUsed(routine.id);
     onImport(text, routine.id);
     onClose();
   }, [onImport, onClose]);

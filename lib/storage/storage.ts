@@ -2,7 +2,7 @@ import { CustomExercise, GeneratedWorkout, LiftDisplayFilters, Program, Routine,
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
-import { getNextInCycle, getUpNextCandidates } from '@/lib/workout/activeRoutine';
+import { getNextInCycle } from '@/lib/workout/activeRoutine';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -27,7 +27,7 @@ const STORAGE_KEYS = {
   SEEN_ACHIEVEMENTS: 'seen_achievements',
   PROFILE_ICON: 'profile_icon',
   UP_NEXT_POINTER: 'up_next_pointer',
-  CYCLE_COMPLETED: 'cycle_completed',
+  CYCLE_STARTED_AT: 'cycle_started_at',
 } as const;
 
 // Strength progress data for post-workout celebration
@@ -349,19 +349,6 @@ class StorageService {
     }
   }
 
-  async updateRoutineLastUsed(routineId: string): Promise<void> {
-    try {
-      const routines = await this.getRoutines();
-      const routine = routines.find(r => r.id === routineId);
-      if (routine) {
-        routine.lastUsed = new Date();
-        await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
-      }
-    } catch (error) {
-      console.error('Error updating routine last used:', error);
-    }
-  }
-
   // The day the up-next ring currently points at, or null to start from the
   // top of the program. Flipping on the home dashboard sets this; finishing a
   // workout advances it (see advanceUpNext).
@@ -382,38 +369,53 @@ class StorageService {
     }
   }
 
-  // Day ids the user has actually trained in the current cycle — drives the
-  // "completed" checkmarks and the cycle progress bar. Only finishing a workout
-  // adds to this (see recordDayTrained); flipping the up-next pointer does not.
-  async getCycleCompletedIds(): Promise<string[]> {
+  // Timestamp (ms) marking when the current pass through the rotation began. A
+  // day reads as "completed this cycle" when its lastUsed is at or after this
+  // (see isDayCompletedThisCycle) — so the checkmarks derive from a single
+  // source of truth (lastUsed) rather than a separate id list to keep in sync.
+  // 0 means no cycle has started yet.
+  async getCycleStartedAt(): Promise<number> {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEYS.CYCLE_COMPLETED);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      const raw = await AsyncStorage.getItem(STORAGE_KEYS.CYCLE_STARTED_AT);
+      const n = raw ? Number(raw) : 0;
+      return Number.isFinite(n) ? n : 0;
     } catch (error) {
-      console.error('Error loading cycle completed days:', error);
-      return [];
+      console.error('Error loading cycle start:', error);
+      return 0;
     }
   }
 
-  // Record that a day was trained: advance the up-next pointer to the next day
-  // (wrapping at the end) and add the day to the cycle's completed set. Once
-  // every day in the program has been trained, the set resets so a fresh cycle
-  // begins. Called on workout completion — never on a manual flip.
+  async setCycleStartedAt(timestamp: number): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.CYCLE_STARTED_AT, String(timestamp));
+  }
+
+  // Record that a day was actually trained. Stamps the day's lastUsed (the
+  // single signal completion derives from), advances the up-next pointer to the
+  // next day (wrapping at the end), and starts a fresh cycle when this training
+  // begins a new pass — either the very first training, or re-training a day
+  // already completed this cycle (which clears the other days' checkmarks).
+  // Only ever called when real work was logged (see the finish flow), so a
+  // routine started and abandoned never marks the day done.
   async recordDayTrained(trainedRoutineId: string): Promise<void> {
     try {
       const [routines, programs] = await Promise.all([this.getRoutines(), this.getPrograms()]);
-      const ringIds = getUpNextCandidates(routines, programs).map(r => r.id);
+      const day = routines.find(r => r.id === trainedRoutineId);
+
+      const started = await this.getCycleStartedAt();
+      const prevLastUsed = day?.lastUsed ? new Date(day.lastUsed).getTime() : 0;
+      const startsNewCycle = started === 0 || prevLastUsed >= started;
+
+      const now = Date.now();
+      if (startsNewCycle) await this.setCycleStartedAt(now);
 
       const next = getNextInCycle(routines, programs, trainedRoutineId);
       if (next) await AsyncStorage.setItem(STORAGE_KEYS.UP_NEXT_POINTER, next.id);
 
-      const prev = await this.getCycleCompletedIds();
-      const done = new Set(prev.filter(id => ringIds.includes(id)));
-      done.add(trainedRoutineId);
-      // Whole program trained → reset to an empty cycle.
-      const completed = ringIds.length > 0 && ringIds.every(id => done.has(id)) ? [] : Array.from(done);
-      await AsyncStorage.setItem(STORAGE_KEYS.CYCLE_COMPLETED, JSON.stringify(completed));
+      // Stamp lastUsed last — this is what marks the day done for the cycle.
+      if (day) {
+        day.lastUsed = new Date(now);
+        await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
+      }
     } catch (error) {
       console.error('Error recording trained day:', error);
     }
@@ -475,6 +477,9 @@ class StorageService {
       }
       await this.savePrograms(programs);
       await this.syncRoutineActiveFlags(programs);
+      // A newly activated program starts a fresh rotation, so day checkmarks
+      // begin empty rather than inheriting stale completions from older training.
+      await this.setCycleStartedAt(Date.now());
     } catch (error) {
       console.error('Error setting active program:', error);
     }
