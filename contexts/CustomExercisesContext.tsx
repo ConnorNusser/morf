@@ -11,7 +11,6 @@ interface CustomExercisesContextType {
   deleteExercise: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
   getByName: (name: string) => CustomExercise | undefined;
-  getById: (id: string) => CustomExercise | undefined;
 }
 
 const CustomExercisesContext = createContext<CustomExercisesContextType | undefined>(undefined);
@@ -68,10 +67,6 @@ export function CustomExercisesProvider({ children }: { children: React.ReactNod
     );
   }, [customExercises]);
 
-  const getById = useCallback((id: string) => {
-    return customExercises.find(e => e.id === id);
-  }, [customExercises]);
-
   const value = useMemo(() => ({
     customExercises,
     isLoading,
@@ -81,8 +76,7 @@ export function CustomExercisesProvider({ children }: { children: React.ReactNod
     deleteExercise,
     clearAll,
     getByName,
-    getById,
-  }), [customExercises, isLoading, refresh, addExercise, updateExercise, deleteExercise, clearAll, getByName, getById]);
+  }), [customExercises, isLoading, refresh, addExercise, updateExercise, deleteExercise, clearAll, getByName]);
 
   return (
     <CustomExercisesContext.Provider value={value}>

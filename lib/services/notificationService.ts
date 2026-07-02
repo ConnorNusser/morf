@@ -4,7 +4,6 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
-import { Notification, NotificationData, RemoteUser } from '@/types';
 
 // Configure how notifications appear when app is in foreground
 Notifications.setNotificationHandler({
@@ -133,35 +132,6 @@ class NotificationService {
       return true;
     } catch (error) {
       console.error('Error saving push token:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Remove push token (call on logout or when disabling notifications)
-   */
-  async removePushToken(): Promise<boolean> {
-    if (!supabase || !this.expoPushToken) return false;
-
-    try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) return false;
-
-      const { error } = await supabase
-        .from('push_tokens')
-        .delete()
-        .eq('user_id', userId)
-        .eq('token', this.expoPushToken);
-
-      if (error) {
-        console.error('Error removing push token:', error);
-        return false;
-      }
-
-      this.expoPushToken = null;
-      return true;
-    } catch (error) {
-      console.error('Error removing push token:', error);
       return false;
     }
   }
@@ -406,139 +376,6 @@ class NotificationService {
   }
 
   /**
-   * Get notifications for the current user
-   */
-  async getNotifications(limit: number = 50): Promise<Notification[]> {
-    if (!supabase) return [];
-
-    try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) return [];
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select(`
-          id,
-          user_id,
-          type,
-          from_user_id,
-          data,
-          read,
-          created_at,
-          from_user:from_user_id (
-            id,
-            device_id,
-            username,
-            profile_picture_url,
-            country_code
-          )
-        `)
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error('Error getting notifications:', error);
-        return [];
-      }
-
-       
-      return (data || []).map((row: any) => ({
-        id: row.id,
-        user_id: row.user_id,
-        type: row.type,
-        from_user: row.from_user as RemoteUser,
-        data: row.data as NotificationData,
-        read: row.read,
-        created_at: new Date(row.created_at),
-      }));
-    } catch (error) {
-      console.error('Error getting notifications:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Get unread notification count
-   */
-  async getUnreadCount(): Promise<number> {
-    if (!supabase) return 0;
-
-    try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) return 0;
-
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error getting unread count:', error);
-        return 0;
-      }
-
-      return count || 0;
-    } catch (error) {
-      console.error('Error getting unread count:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Mark a notification as read
-   */
-  async markAsRead(notificationId: string): Promise<boolean> {
-    if (!supabase) return false;
-
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', notificationId);
-
-      if (error) {
-        console.error('Error marking notification read:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error marking notification read:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Mark all notifications as read
-   */
-  async markAllAsRead(): Promise<boolean> {
-    if (!supabase) return false;
-
-    try {
-      const userId = await this.getCurrentUserId();
-      if (!userId) return false;
-
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', userId)
-        .eq('read', false);
-
-      if (error) {
-        console.error('Error marking all notifications read:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error marking all notifications read:', error);
-      return false;
-    }
-  }
-
-  /**
    * Add notification response listener (when user taps notification)
    */
   addNotificationResponseListener(
@@ -556,26 +393,6 @@ class NotificationService {
     return Notifications.addNotificationReceivedListener(callback);
   }
 
-  /**
-   * Get badge count
-   */
-  async getBadgeCount(): Promise<number> {
-    return await Notifications.getBadgeCountAsync();
-  }
-
-  /**
-   * Set badge count
-   */
-  async setBadgeCount(count: number): Promise<boolean> {
-    return await Notifications.setBadgeCountAsync(count);
-  }
-
-  /**
-   * Clear all delivered notifications
-   */
-  async clearAllNotifications(): Promise<void> {
-    await Notifications.dismissAllNotificationsAsync();
-  }
 }
 
 export const notificationService = new NotificationService();

@@ -153,7 +153,6 @@ export default function ProfileScreen() {
         {/* Personal Information Section */}
         <PersonalInformationSection
           userProfile={userProfile}
-          onProfileUpdate={loadUserData}
         />
 
         {/* Theme Evolution Section */}
@@ -221,54 +220,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-  },
-  createProfileCard: {
-    alignItems: 'center',
-    padding: 40,
-    marginTop: 100,
-  },
-  createProfileIcon: {
-    fontSize: 48,
-    marginBottom: 20,
-  },
-  createProfileTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  createProfileDescription: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  createProfileButton: {
-    width: '100%',
-  },
-  headerCard: {
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    opacity: 0.8,
-    textAlign: 'center',
-  },
-  sectionHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    marginTop: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    marginBottom: 16,
   },
   resetButton: {
     backgroundColor: '#DC2626',

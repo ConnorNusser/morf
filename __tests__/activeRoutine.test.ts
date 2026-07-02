@@ -1,5 +1,5 @@
 import { Program, Routine } from '../types';
-import { getActiveRoutines, getNextInCycle, getUpNextCandidates, getUpNextRoutine, orderByDue } from '../lib/workout/activeRoutine';
+import { getActiveRoutines, getNextInCycle, getUpNextCandidates, getUpNextRoutine, isDayCompletedThisCycle, orderByDue } from '../lib/workout/activeRoutine';
 
 // Minimal routine fixture — the resolver only reads these fields.
 function r(
@@ -110,6 +110,37 @@ describe('getUpNextRoutine', () => {
   it('returns null when there are no active candidates', () => {
     expect(getUpNextRoutine([], [])).toBeNull();
     expect(getUpNextRoutine([r('x', { isActive: false })], [])).toBeNull();
+  });
+});
+
+describe('isDayCompletedThisCycle', () => {
+  const cycleStart = new Date(2026, 5, 5).getTime();
+
+  it('is false when the cycle has not started (0)', () => {
+    expect(isDayCompletedThisCycle(r('a', { lastUsed: new Date(2026, 5, 9) }), 0)).toBe(false);
+  });
+
+  it('is false when the day was never trained', () => {
+    expect(isDayCompletedThisCycle(r('a'), cycleStart)).toBe(false);
+  });
+
+  it('is true when trained at or after the cycle started', () => {
+    expect(isDayCompletedThisCycle(r('a', { lastUsed: new Date(2026, 5, 9) }), cycleStart)).toBe(true);
+    expect(isDayCompletedThisCycle(r('a', { lastUsed: new Date(cycleStart) }), cycleStart)).toBe(true);
+  });
+
+  it('is false when the last training predates the current cycle', () => {
+    expect(isDayCompletedThisCycle(r('a', { lastUsed: new Date(2026, 5, 1) }), cycleStart)).toBe(false);
+  });
+
+  it('adding a never-trained day does not flip already-completed days', () => {
+    // The core "new rows affect old rows" regression: each day's state is its own
+    // lastUsed vs one shared timestamp, so a new day is simply not-done and the
+    // existing trained day stays done.
+    const trained = r('trained', { lastUsed: new Date(2026, 5, 9) });
+    const added = r('added');
+    expect(isDayCompletedThisCycle(trained, cycleStart)).toBe(true);
+    expect(isDayCompletedThisCycle(added, cycleStart)).toBe(false);
   });
 });
 

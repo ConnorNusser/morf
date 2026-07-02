@@ -8,14 +8,13 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   routine: CalculatedRoutine;
-  name: string;
   splitLabel?: string | null;
   onStart: () => void;
 }
 
 // Full read-only overview of today's session — every exercise and its target
 // sets. Opened from the "+N more" link on the Today card.
-export default function TodayOverviewModal({ visible, onClose, routine, name, splitLabel, onStart }: Props) {
+export default function TodayOverviewModal({ visible, onClose, routine, splitLabel, onStart }: Props) {
   const { currentTheme } = useTheme();
 
   const totalSets = routine.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
@@ -28,7 +27,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, name, sp
           <View style={styles.header}>
             <View style={styles.headerText}>
               <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-                {name}
+                {routine.name}
               </Text>
               <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
                 {splitLabel ? `${splitLabel} · ` : ''}

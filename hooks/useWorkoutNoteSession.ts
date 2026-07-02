@@ -285,6 +285,18 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     return Math.floor((Date.now() - startTime.getTime()) / 1000);
   }, []);
 
+  // Rehydrate the session state (draft/timer/routine) from a persisted session.
+  // Shared by the mount load and the app-foreground recovery.
+  const restoreSession = useCallback((s: NonNullable<Awaited<ReturnType<typeof storageService.getNoteSession>>>) => {
+    const savedDraft = s.draft as WorkoutDraft | null;
+    if (savedDraft && savedDraft.length) setDraft(savedDraft);
+    else if (s.noteText) loadDraftFromText(s.noteText);
+    setManuallyStarted(s.manuallyStarted);
+    setWorkoutStartTime(s.startTime);
+    setElapsedTime(calculateElapsedTime(s.startTime));
+    if (s.routineId) setStartedRoutineId(s.routineId);
+  }, [loadDraftFromText, calculateElapsedTime]);
+
   // Load saved session and user preferences on mount
   useEffect(() => {
     const loadInitialData = async () => {
@@ -300,18 +312,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
         if (savedSession && (savedSession.noteText || (savedSession.draft as WorkoutDraft | null)?.length || savedSession.manuallyStarted)) {
-          const savedDraft = savedSession.draft as WorkoutDraft | null;
-          if (savedDraft && savedDraft.length) {
-            setDraft(savedDraft); // preserves per-set done + target/previous refs
-          } else if (savedSession.noteText) {
-            loadDraftFromText(savedSession.noteText);
-          }
-          setManuallyStarted(savedSession.manuallyStarted);
-          setWorkoutStartTime(savedSession.startTime);
-          setElapsedTime(calculateElapsedTime(savedSession.startTime));
-          if (savedSession.routineId) {
-            setStartedRoutineId(savedSession.routineId);
-          }
+          restoreSession(savedSession); // preserves per-set done + target/previous refs
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -421,12 +422,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
           const savedSession = await storageService.getNoteSession();
           const savedDraft = savedSession?.draft as WorkoutDraft | null;
           if (savedSession && (savedDraft?.length || savedSession.noteText || savedSession.manuallyStarted)) {
-            if (savedDraft && savedDraft.length) setDraft(savedDraft);
-            else if (savedSession.noteText) loadDraftFromText(savedSession.noteText);
-            setManuallyStarted(savedSession.manuallyStarted);
-            setWorkoutStartTime(savedSession.startTime);
-            setElapsedTime(calculateElapsedTime(savedSession.startTime));
-            if (savedSession.routineId) setStartedRoutineId(savedSession.routineId);
+            restoreSession(savedSession);
           }
         }
       }
@@ -434,7 +430,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription.remove();
-  }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, loadDraftFromText]);
+  }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, restoreSession]);
 
   // Format elapsed time
   const formatTime = useCallback((seconds: number): string => {
@@ -494,6 +490,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       startedRoutineId || undefined
     );
 
+    // Did the user actually complete any set this session? Completion (the day
+    // checkmark, lastUsed, the cycle) keys off real work — a routine opened and
+    // finished with nothing checked off should not read as trained.
+    const didRealWork = generatedWorkout.exercises.some(e =>
+      e.completedSets.some(s => s.completed && (s.weight > 0 || s.reps > 0 || !!s.duration || !!s.distance))
+    );
+
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
@@ -535,29 +538,29 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const liftDataWithMeta: { liftData: UserLift; liftType: 'main' | 'secondary'; exercise: typeof generatedWorkout.exercises[0]; previousPR: number }[] = [];
 
     for (const exercise of generatedWorkout.exercises) {
-      if (exercise.completedSets.length > 0) {
+      // Only sets the user actually checked off count toward lifts/PRs — typing
+      // a number without completing the set shouldn't log a personal record.
+      const doneSets = exercise.completedSets.filter(s => s.completed && s.weight > 0);
+      if (doneSets.length > 0) {
         // Find the best set (highest estimated 1RM)
-        const bestSet = exercise.completedSets.reduce((best, current) => {
+        const bestSet = doneSets.reduce((best, current) => {
           const bestOneRM = OneRMCalculator.estimate(best.weight, best.reps);
           const currentOneRM = OneRMCalculator.estimate(current.weight, current.reps);
           return currentOneRM > bestOneRM ? current : best;
         });
 
-        // Only record lifts with actual weight
-        if (bestSet.weight > 0) {
-          const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
-          const liftData: UserLift = {
-            parentId: generatedWorkout.id,
-            id: exercise.id,
-            weight: bestSet.weight,
-            reps: bestSet.reps,
-            unit: bestSet.unit,
-            dateRecorded: new Date(),
-          };
-          const previousPR = currentPRMap[exercise.id] || 0;
-          liftDataWithMeta.push({ liftData, liftType, exercise, previousPR });
-          liftsToSync.push(liftData);
-        }
+        const liftType = isMainLift(exercise.id) ? 'main' : 'secondary';
+        const liftData: UserLift = {
+          parentId: generatedWorkout.id,
+          id: exercise.id,
+          weight: bestSet.weight,
+          reps: bestSet.reps,
+          unit: bestSet.unit,
+          dateRecorded: new Date(),
+        };
+        const previousPR = currentPRMap[exercise.id] || 0;
+        liftDataWithMeta.push({ liftData, liftType, exercise, previousPR });
+        liftsToSync.push(liftData);
       }
     }
 
@@ -654,17 +657,18 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       durationSeconds: elapsedTime,
     });
 
-    // Record the training time (for "last trained" display), mark the day done
-    // for this cycle, and advance the up-next ring to the next day.
-    if (startedRoutineId) {
-      await storageService.updateRoutineLastUsed(startedRoutineId);
+    // Mark the day trained — stamps lastUsed (for "last trained" + the cycle
+    // checkmark) and advances the up-next ring. Only when real work was logged,
+    // so an abandoned routine never shows as done. recordDayTrained owns lastUsed.
+    if (startedRoutineId && didRealWork) {
       await storageService.recordDayTrained(startedRoutineId);
     }
   }, [elapsedTime, refreshProfile, startedRoutineId, weightUnit]);
 
   // Handle finish modal complete - reset workout state
-  const handleFinishComplete = useCallback(async () => {
-    setShowFinishModal(false);
+  // Clear the in-progress workout: draft, composer, timer, routine link, and the
+  // persisted session. Shared by finishing and discarding.
+  const resetSession = useCallback(async () => {
     setDraft([]);
     setComposerText('');
     setManuallyStarted(false);
@@ -672,11 +676,15 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setElapsedTime(0);
     setParsedExercises([]);
     setStartedRoutineId(null);
-    // Clear saved session
     await storageService.clearNoteSession();
+  }, []);
+
+  const handleFinishComplete = useCallback(async () => {
+    setShowFinishModal(false);
+    await resetSession();
     // The just-finished session is now the one to repeat next time.
     refreshLastWorkout();
-  }, [refreshLastWorkout]);
+  }, [resetSession, refreshLastWorkout]);
 
   // Handle cancel from finish modal
   const handleFinishCancel = useCallback(() => {
@@ -684,16 +692,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, []);
 
   // Discard the in-progress workout without saving (clears draft, timer, session).
-  const discardWorkout = useCallback(async () => {
-    setDraft([]);
-    setComposerText('');
-    setManuallyStarted(false);
-    setWorkoutStartTime(null);
-    setElapsedTime(0);
-    setParsedExercises([]);
-    setStartedRoutineId(null);
-    await storageService.clearNoteSession();
-  }, []);
+  const discardWorkout = resetSession;
 
   // Handle reset workout timer
   const resetWorkoutTimer = useCallback(() => {

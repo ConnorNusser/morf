@@ -1,5 +1,5 @@
 import { useAlert } from '@/components/CustomAlert';
-import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { getBaseTier, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -48,10 +48,6 @@ const TIER_DESCRIPTIONS: Record<string, { title: string; description: string; pe
   },
 };
 
-function getBaseTierLetter(tier: StrengthTier): string {
-  return tier.charAt(0);
-}
-
 export default function TierBadge({
   tier,
   percentile,
@@ -64,7 +60,7 @@ export default function TierBadge({
   // Calculate tier from percentile if not provided directly
   const displayTier = tier ?? (percentile !== undefined ? getStrengthTier(percentile) : 'C');
   const tierColor = getTierColor(displayTier);
-  const baseTier = getBaseTierLetter(displayTier);
+  const baseTier = getBaseTier(displayTier);
 
   const sizeStyles = SIZE_STYLES[size];
 

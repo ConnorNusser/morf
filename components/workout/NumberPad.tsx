@@ -39,17 +39,16 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   // moves on (Next/Done/dismiss). Pushing on every digit re-rendered the whole
   // workout (and wrote storage) per keystroke, which made typing lag badly.
   const flush = () => onChange(parseFloat(buffer) || 0);
-  const next = (nextBuffer: string) => setBuffer(nextBuffer);
 
   const press = (digit: string) => {
     playHapticFeedback('light', false);
-    next(buffer === '0' && digit !== '.' ? digit : buffer + digit);
+    setBuffer(buffer === '0' && digit !== '.' ? digit : buffer + digit);
   };
   const dot = () => { if (allowDecimal && !buffer.includes('.')) press('.'); };
-  const back = () => { playHapticFeedback('light', false); next(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
+  const back = () => { playHapticFeedback('light', false); setBuffer(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
   const bump = (delta: number) => {
     playHapticFeedback('light', false);
-    next(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
+    setBuffer(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
   };
 
   // Dismissing (backdrop / hardware back) still keeps what was typed.

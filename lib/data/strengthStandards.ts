@@ -810,13 +810,6 @@ export function calculateStrengthPercentile(
 export type StrengthTierBase = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
 export type StrengthTier = 'S++' | 'S+' | 'S' | 'S-' | 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'D-' | 'E+' | 'E' | 'E-';
 
-export interface TierInfo {
-  tier: StrengthTier;
-  baseTier: StrengthTierBase;
-  color: string;
-  label: string;
-}
-
 // Tier colors - vibrant anime style (base colors for each tier)
 export const TIER_COLORS: Record<StrengthTierBase, string> = {
   'S': '#FFD700', // Gold (Legendary)
@@ -864,18 +857,6 @@ export function getStrengthTier(percentile: number): StrengthTier {
   if (percentile >= 3) return 'E+';
   if (percentile >= 1) return 'E';
   return 'E-';
-}
-
-// Helper function to get full tier info
-export function getTierInfo(percentile: number): TierInfo {
-  const tier = getStrengthTier(percentile);
-  const baseTier = getBaseTier(tier);
-  return {
-    tier,
-    baseTier,
-    color: TIER_COLORS[baseTier],
-    label: `${tier} Tier`,
-  };
 }
 
 // Helper function to get tier color

@@ -98,8 +98,7 @@ export default function WeeklyGoalCard() {
   const thisWeekWorkouts = workoutsByDay.flat();
 
   // Celebrate once the goal is reached: the count takes the accent color.
-  const achieved = daysTrained >= goal;
-  const accent = achieved ? GOAL_MET_COLOR : currentTheme.colors.primary;
+  const accent = metGoal ? GOAL_MET_COLOR : currentTheme.colors.primary;
 
   // Each trained dot is colored by that day's Push/Pull/Legs category.
   const dayColors = workoutsByDay.map(day => {
@@ -129,7 +128,7 @@ export default function WeeklyGoalCard() {
           onPress={() => setPicking(true)}
         >
           {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
-          <Text style={[styles.count, { color: achieved ? accent : currentTheme.colors.text + '99' }]}>
+          <Text style={[styles.count, { color: metGoal ? accent : currentTheme.colors.text + '99' }]}>
             {daysTrained}/{goal}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />

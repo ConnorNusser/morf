@@ -297,64 +297,6 @@ export function calculateAllRoutines(
   return routines.map(routine => calculateRoutine(routine, workoutHistory, weightUnit));
 }
 
-export interface StrengthTrend {
-  current1RM: number;   // estimated 1RM of the latest session, in display unit
-  delta1RM: number;     // current minus baseline, in display unit
-  deltaPercent: number; // rounded percentage change vs baseline
-  direction: 'up' | 'down' | 'flat';
-  sessions: number;     // how many logged sessions back this exercise
-}
-
-// Strength trend for one exercise: latest estimated 1RM vs a baseline ~3+ weeks
-// back (falling back to the oldest logged session). Lets the Routines screen
-// show whether the numbers are actually moving, not just the next target.
-// Returns null when the exercise has never been logged.
-export function getStrengthTrend(
-  exerciseId: string,
-  workoutHistory: GeneratedWorkout[],
-  weightUnit: WeightUnit
-): StrengthTrend | null {
-  const sessions = getExerciseHistory(exerciseId, workoutHistory); // most-recent first
-  if (sessions.length === 0) return null;
-
-  const oneRM = (s: ExerciseSession): number => {
-    const lbs = s.unit === 'kg' ? convertWeight(s.weight, 'kg', 'lbs') : s.weight;
-    return OneRMCalculator.estimate(lbs, s.reps);
-  };
-  const toUnit = (lbs: number): number =>
-    weightUnit === 'kg' ? convertWeight(lbs, 'lbs', 'kg') : lbs;
-
-  const newest = sessions[0];
-  const currentLbs = oneRM(newest);
-
-  if (sessions.length < 2) {
-    return { current1RM: Math.round(toUnit(currentLbs)), delta1RM: 0, deltaPercent: 0, direction: 'flat', sessions: sessions.length };
-  }
-
-  // Baseline: the most recent session that's at least ~3 weeks older than the
-  // latest — "now vs ~a month ago". If everything is recent, use the oldest.
-  const THREE_WEEKS = 21 * 24 * 60 * 60 * 1000;
-  let baseline = sessions[sessions.length - 1];
-  for (let i = 1; i < sessions.length; i++) {
-    if (newest.date.getTime() - sessions[i].date.getTime() >= THREE_WEEKS) {
-      baseline = sessions[i];
-      break;
-    }
-  }
-
-  const baselineLbs = oneRM(baseline);
-  const deltaLbs = currentLbs - baselineLbs;
-  const deltaPercent = baselineLbs > 0 ? Math.round((deltaLbs / baselineLbs) * 100) : 0;
-  const direction: StrengthTrend['direction'] = deltaPercent >= 1 ? 'up' : deltaPercent <= -1 ? 'down' : 'flat';
-
-  return {
-    current1RM: Math.round(toUnit(currentLbs)),
-    delta1RM: Math.round(toUnit(deltaLbs)),
-    deltaPercent,
-    direction,
-    sessions: sessions.length,
-  };
-}
 
 // Whether a routine exercise is progressing *against the program's own
 // prescription* — rep bonuses earned, working weight climbing, or stalling out.

@@ -40,7 +40,6 @@ interface CommentsModalProps {
 
 interface CommentItemProps {
   comment: FeedComment;
-  postId: string;
   currentUserId: string | null;
   isAuthor: boolean;
   onDelete: (commentId: string) => void;
@@ -50,7 +49,6 @@ interface CommentItemProps {
 
 function CommentItem({
   comment,
-  postId: _postId,
   currentUserId,
   isAuthor,
   onDelete,
@@ -358,7 +356,6 @@ export default function CommentsModal({
                   <CommentItem
                     key={comment.id}
                     comment={comment}
-                    postId={post.id}
                     currentUserId={currentUserId}
                     isAuthor={comment.user_id === currentUserId}
                     onDelete={handleDeleteComment}

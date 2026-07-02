@@ -22,8 +22,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const { currentTheme } = useTheme();
   const [liftData, setLiftData] = useState<UserProgress[]>([]);
   const [originalLiftData, setOriginalLiftData] = useState<UserLift[]>([]);
-  const [selectedTimeframe, setSelectedTimeframe] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('ALL');
-  const [selectedMetric, _setSelectedMetric] = useState<'oneRM' | 'volume'>('oneRM');
   const [predictions, setPredictions] = useState<{ [key: string]: number }>({});
   const [isLoading, setIsLoading] = useState(true);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
@@ -118,40 +116,15 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     setPredictions(calculateAllPredictions(data));
   };
 
-  const getFilteredData = () => {
-    if (!liftData.length) return [];
-    
-    const now = new Date();
-    const cutoffDate = new Date();
-    
-    switch (selectedTimeframe) {
-      case '1M':
-        cutoffDate.setMonth(now.getMonth() - 1);
-        break;
-      case '3M':
-        cutoffDate.setMonth(now.getMonth() - 3);
-        break;
-      case '6M':
-        cutoffDate.setMonth(now.getMonth() - 6);
-        break;
-      case '1Y':
-        cutoffDate.setFullYear(now.getFullYear() - 1);
-        break;
-      default:
-        return liftData;
-    }
-    
-    return liftData.filter(d => new Date(d.lastUpdated) >= cutoffDate);
-  };
+  // Mean of every model's 90-day prediction, using `fallback` where a model has none.
+  const avg90 = (fallback: number) =>
+    Math.round(predictionModels.reduce((sum, model) =>
+      sum + (predictions[`${model.name}_90`] || fallback), 0) / predictionModels.length);
 
   // Calculate average prediction for chart
   const getAveragePrediction = () => {
     if (Object.keys(predictions).length === 0 || liftData.length === 0) return undefined;
-    
-    const currentData = liftData[liftData.length - 1];
-    return Math.round(predictionModels.reduce((sum, model) => {
-      return sum + (predictions[`${model.name}_90`] || currentData.personalRecord);
-    }, 0) / predictionModels.length);
+    return avg90(liftData[liftData.length - 1].personalRecord);
   };
 
   const renderCurrentStats = () => {
@@ -161,9 +134,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     // Calculate 3-month prediction average
     const avg3MonthPrediction = Object.keys(predictions).length > 0
-      ? Math.round(predictionModels.reduce((sum, model) => {
-          return sum + (predictions[`${model.name}_90`] || topLift?.personalRecord || 0);
-        }, 0) / predictionModels.length)
+      ? avg90(topLift?.personalRecord || 0)
       : 0;
 
     return (
@@ -334,62 +305,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     );
   };
 
-  const renderTimeframeSelector = () => {
-    // Determine which timeframes to show based on data availability
-    const getAvailableTimeframes = () => {
-      if (liftData.length === 0) return ['ALL'];
-      
-      const now = new Date();
-      const firstDate = new Date(liftData[0].lastUpdated);
-      const daysSinceFirst = (now.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
-      
-      const timeframes: ('1M' | '3M' | '6M' | '1Y' | 'ALL')[] = ['ALL'];
-      
-      if (daysSinceFirst >= 30) timeframes.unshift('1M');
-      if (daysSinceFirst >= 90) timeframes.unshift('3M');
-      if (daysSinceFirst >= 180) timeframes.unshift('6M');
-      if (daysSinceFirst >= 365) timeframes.unshift('1Y');
-      
-      return timeframes;
-    };
-
-    const availableTimeframes = getAvailableTimeframes();
-
-    return (
-      <View style={styles.selectorContainer}>
-        <Text style={[styles.selectorTitle, { color: currentTheme.colors.text }]}>
-          Time Period
-        </Text>
-        <View style={styles.timeframeContainer}>
-          {availableTimeframes.map((timeframe) => (
-            <TouchableOpacity
-              key={timeframe}
-              style={[
-                styles.timeframeButton,
-                selectedTimeframe === timeframe && {
-                  backgroundColor: currentTheme.colors.primary + '20',
-                  borderColor: currentTheme.colors.primary,
-                }
-              ]}
-              onPress={() => setSelectedTimeframe(timeframe as typeof selectedTimeframe)}
-            >
-              <Text style={[
-                styles.timeframeText,
-                {
-                  color: selectedTimeframe === timeframe
-                    ? currentTheme.colors.primary
-                    : currentTheme.colors.text + '70'
-                }
-              ]}>
-                {timeframe}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
   if (isLoading) {
     return (
       <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
@@ -426,10 +341,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
               {/* Interactive Chart */}
               <InteractiveProgressChart
                 data={liftData}
-                selectedMetric={selectedMetric}
+                selectedMetric="oneRM"
                 weightUnit={weightUnit}
                 predictionValue={getAveragePrediction()}
-                title={selectedMetric === 'oneRM' ? 'One Rep Max' : 'Training Volume' + ' Progression'}
+                title="One Rep Max"
                 description="Estimated from your workout sessions"
               />
 
@@ -575,47 +490,6 @@ const styles = StyleSheet.create({
   bottomStatValue: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  selectorContainer: {
-    paddingVertical: 16,
-  },
-  selectorTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  timeframeContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  timeframeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  timeframeText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  metricContainer: {
-    gap: 8,
-  },
-  metricButton: {
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  metricLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  metricDescription: {
-    fontSize: 12,
-    lineHeight: 16,
   },
   predictionsContainer: {
     paddingVertical: 16,

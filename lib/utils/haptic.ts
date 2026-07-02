@@ -20,6 +20,7 @@ const playHapticFeedback = async (hapticType: HapticType, disabled: boolean) => 
           await Haptics.selectionAsync();
           break;
         case 'notification':
+        case 'success':
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           break;
         case 'warning':
@@ -27,9 +28,6 @@ const playHapticFeedback = async (hapticType: HapticType, disabled: boolean) => 
           break;
         case 'error':
           await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          break;
-        case 'success':
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           break;
       }
     } catch (error) {

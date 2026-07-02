@@ -4,10 +4,6 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SnowEffect, SpringEffect } from './effects';
 
-// ============ TEST MODE ============
-// Set to 'snow' or 'spring' to force that effect, or null for normal behavior
-const TEST_EFFECT: 'snow' | 'spring' | null = null;
-
 // ============ EFFECT CONFIGURATION ============
 
 type EffectType = 'snow' | 'spring' | 'none';
@@ -16,7 +12,6 @@ type EffectType = 'snow' | 'spring' | 'none';
 interface ThemeEffectConfig {
   effect: EffectType;
   intervalMs: number;
-  isActive: () => boolean; // Function to check if effect should be active (e.g., date range)
 }
 
 // Check if we're in winter season (Dec 1 - March 20)
@@ -28,27 +23,10 @@ const isWinterSeason = (): boolean => {
   return month === 11 || month === 0 || month === 1 || (month === 2 && day <= 20);
 };
 
-// Check if we're in spring season (March 21 - June 20)
-const isSpringSeason = (): boolean => {
-  const now = new Date();
-  const month = now.getMonth();
-  const day = now.getDate();
-  // March 21+ (2), April (3), May (4), or June 1-20 (5)
-  return (month === 2 && day >= 21) || month === 3 || month === 4 || (month === 5 && day <= 20);
-};
-
 // Default snow effect for all themes during winter
 const DEFAULT_SNOW_CONFIG: ThemeEffectConfig = {
   effect: 'snow',
   intervalMs: 8 * 60 * 1000, // 8 minutes
-  isActive: isWinterSeason,
-};
-
-// Default spring effect for all themes during spring
-const DEFAULT_SPRING_CONFIG: ThemeEffectConfig = {
-  effect: 'spring',
-  intervalMs: 90 * 1000, // 90 seconds
-  isActive: isSpringSeason,
 };
 
 // Get seasonal effect config for a theme
@@ -58,12 +36,11 @@ const getSeasonalConfig = (theme: ThemeLevel): ThemeEffectConfig | null => {
     return {
       effect: 'snow',
       intervalMs: 25 * 1000, // 25 seconds - frequent snowfall
-      isActive: () => true,
     };
   }
 
   if (isWinterSeason()) {
-    return { ...DEFAULT_SNOW_CONFIG, isActive: () => true };
+    return DEFAULT_SNOW_CONFIG;
   }
 
   return null;
@@ -97,16 +74,6 @@ function EffectRenderer({ effect, intervalMs }: EffectRendererProps) {
 
 export default function ThemeOverlay() {
   const { currentThemeLevel } = useTheme();
-
-  // TEST MODE: Force a specific effect for testing
-  if (TEST_EFFECT) {
-    const testIntervalMs = TEST_EFFECT === 'snow' ? 25 * 1000 : 45 * 1000;
-    return (
-      <View style={styles.container} pointerEvents="none">
-        <EffectRenderer effect={TEST_EFFECT} intervalMs={testIntervalMs} />
-      </View>
-    );
-  }
 
   // Get seasonal effect config for current theme
   const config = getSeasonalConfig(currentThemeLevel);

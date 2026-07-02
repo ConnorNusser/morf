@@ -4,7 +4,7 @@ import RadarChart from '@/components/RadarChart';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierInfo, getNextTierInfo, getStrengthTier, getTierColor, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getNextTierInfo, getStrengthTier, getTierColor, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
@@ -26,9 +26,6 @@ export default function StrengthRadarCard({
 }: StrengthRadarCardProps) {
   const { currentTheme } = useTheme();
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
-
-  // Get tier info
-  const _tierInfo = useMemo(() => getTierInfo(overallPercentile), [overallPercentile]);
 
   const chartData = useMemo(() => {
     const groups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;

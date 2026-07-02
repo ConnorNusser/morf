@@ -74,8 +74,6 @@ interface AuroraSurfaceProps {
   style?: StyleProp<ViewStyle>;
   /** Padding/layout for the content layer above the aurora. */
   contentStyle?: StyleProp<ViewStyle>;
-  shimmer?: boolean;
-  intensity?: number;
 }
 
 /**
@@ -84,14 +82,14 @@ interface AuroraSurfaceProps {
  * optional shimmer sweep. Measures itself so blob placement scales to any
  * height — shared by HistoryHero and WeeklyOverview.
  */
-export function AuroraSurface({ children, style, contentStyle, shimmer = true, intensity }: AuroraSurfaceProps) {
+export function AuroraSurface({ children, style, contentStyle }: AuroraSurfaceProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const dark = isDarkColor(colors.background);
 
   const [dims, setDims] = useState({ w: Dimensions.get('window').width - 40, h: 220 });
   const { w, h } = dims;
-  const blurI = intensity ?? (Platform.OS === 'android' ? 28 : 36);
+  const blurI = Platform.OS === 'android' ? 28 : 36;
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -102,10 +100,8 @@ export function AuroraSurface({ children, style, contentStyle, shimmer = true, i
 
   const shim = useSharedValue(0);
   useEffect(() => {
-    if (shimmer) {
-      shim.value = withRepeat(withTiming(1, { duration: 3800, easing: Easing.inOut(Easing.ease) }), -1, false);
-    }
-  }, [shimmer, shim]);
+    shim.value = withRepeat(withTiming(1, { duration: 3800, easing: Easing.inOut(Easing.ease) }), -1, false);
+  }, [shim]);
   const shimStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: interpolate(shim.value, [0, 1], [-w, w]) }, { rotateZ: '18deg' }],
     opacity: interpolate(shim.value, [0, 0.5, 1], [0, 0.5, 0]),
@@ -154,18 +150,16 @@ export function AuroraSurface({ children, style, contentStyle, shimmer = true, i
         style={StyleSheet.absoluteFill}
       />
 
-      {shimmer && (
-        <RNView style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Animated.View style={[styles.shimmer, { width: w * 0.4 }, shimStyle]}>
-            <LinearGradient
-              colors={['#FFFFFF00', dark ? '#FFFFFF22' : '#FFFFFF55', '#FFFFFF00']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flex: 1 }}
-            />
-          </Animated.View>
-        </RNView>
-      )}
+      <RNView style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Animated.View style={[styles.shimmer, { width: w * 0.4 }, shimStyle]}>
+          <LinearGradient
+            colors={['#FFFFFF00', dark ? '#FFFFFF22' : '#FFFFFF55', '#FFFFFF00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ flex: 1 }}
+          />
+        </Animated.View>
+      </RNView>
 
       <RNView style={contentStyle}>{children}</RNView>
     </RNView>

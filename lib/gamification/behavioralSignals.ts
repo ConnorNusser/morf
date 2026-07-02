@@ -4,7 +4,7 @@
 // carry the time-of-day), so no new tracking is required — same philosophy as
 // careerStats. Clock-injectable for tests.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
-import { dateKey } from '@/lib/utils/utils';
+import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 
@@ -148,12 +148,7 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
 
   // Largest gap the lifter came back from: max gap between consecutive trained
   // days (a later day existing means they returned from it).
-  const sortedDays = [...perDayCount.keys()]
-    .map(k => {
-      const [y, m, d] = k.split('-').map(Number);
-      return new Date(y, m - 1, d).getTime();
-    })
-    .sort((a, b) => a - b);
+  const sortedDays = sortedDayTimestamps(perDayCount.keys());
   let longestComebackGap = 0;
   for (let i = 1; i < sortedDays.length; i++) {
     const gap = Math.round((sortedDays[i] - sortedDays[i - 1]) / DAY_MS);

@@ -6,7 +6,7 @@ import StrengthHistoryModal from '@/components/StrengthHistoryModal';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getPercentileColor, AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, getStrengthLevelName, getStrengthTier, getTierColor, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
+import { getPercentileColor, AGE_ADJUSTMENT_FACTORS, FEMALE_STANDARDS, getAgeCategory, getNextTierInfo, MALE_STANDARDS, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { roundedAverage as toAvg, calculateOverallPercentile } from '@/lib/utils/utils';
@@ -22,27 +22,20 @@ interface OverallStrengthModalProps {
 export default function OverallStrengthModal({ visible, onClose }: OverallStrengthModalProps) {
   const { currentTheme } = useTheme();
   const [lifts, setLifts] = useState<UserProgress[]>([]);
-  const [_isLoading, setIsLoading] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isGroupPanelOpen, setIsGroupPanelOpen] = useState<boolean>(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [cardAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
     if (!visible) return;
     const load = async () => {
-      try {
-        setIsLoading(true);
-        const [data, p] = await Promise.all([
-          userService.getAllFeaturedLifts(),
-          userService.getUserProfileOrDefault(),
-        ]);
-        setLifts(data);
-        setProfile(p);
-      } finally {
-        setIsLoading(false);
-      }
+      const [data, p] = await Promise.all([
+        userService.getAllFeaturedLifts(),
+        userService.getUserProfileOrDefault(),
+      ]);
+      setLifts(data);
+      setProfile(p);
     };
     load();
   }, [visible]);
@@ -110,12 +103,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     return map;
   }, [lifts]);
 
-  const _openGroupPanel = (index: number) => {
-    setSelectedIdx(index);
-    setIsGroupPanelOpen(true);
-  };
-  const closeGroupPanel = () => setIsGroupPanelOpen(false);
-
   useEffect(() => {
     if (selectedIdx >= 0) {
       cardAnim.setValue(0);
@@ -133,7 +120,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
     const nonZero = lifts.map(l => l.percentileRanking).filter(p => p > 0);
     return calculateOverallPercentile(nonZero);
   }, [lifts]);
-  const _overallLevel = getStrengthLevelName(overallPercentile);
 
 
   const sortedLifts = useMemo(() => {
@@ -296,29 +282,6 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
           </Card>
 
           </ScrollView>
-
-        {/* Group detail sheet */}
-        {isGroupPanelOpen && selectedIdx >= 0 && chartData[selectedIdx] && (
-          <Modal visible transparent animationType="fade" onRequestClose={closeGroupPanel}>
-            <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={closeGroupPanel}>
-              <View />
-            </TouchableOpacity>
-            <View style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <Text style={[styles.sheetTitle, { color: currentTheme.colors.text }]}>{chartData[selectedIdx].label}</Text>
-              <Text style={[styles.sheetPercent, { color: currentTheme.colors.primary }]}>{chartData[selectedIdx].value}%</Text>
-              <Text style={[styles.sheetSubtitle, { color: currentTheme.colors.text }]}>Top contributors</Text>
-              {(groupInfos[chartData[selectedIdx].label.toLowerCase()] || []).slice(0, 6).map(item => (
-                <View key={item.id} style={styles.sheetRow}>
-                  <Text style={[styles.sheetLift, { color: currentTheme.colors.text }]}>{item.name}</Text>
-                  <Text style={[styles.sheetValue, { color: currentTheme.colors.text }]}>{item.pct}%</Text>
-                </View>
-              ))}
-              <TouchableOpacity style={[styles.sheetClose, { borderColor: currentTheme.colors.border }]} onPress={closeGroupPanel}>
-                <Text style={[styles.closeText, { color: currentTheme.colors.text }]}>Done</Text>
-              </TouchableOpacity>
-            </View>
-          </Modal>
-        )}
 
         {/* Strength History Modal */}
         <StrengthHistoryModal

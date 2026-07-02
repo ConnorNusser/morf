@@ -51,8 +51,6 @@ export default function ExercisesSection() {
 
   const openModal = () => {
     playHapticFeedback('selection', false);
-    setSearchQuery('');
-    setEquipmentFilter('all');
     setIsModalVisible(true);
   };
 

@@ -19,9 +19,6 @@
 
 import { TrainingGoal, ExperienceLevel } from '../splitTemplates';
 
-// Re-export for backward compatibility
-export { TrainingGoal };
-
 /**
  * Program template types (kept for fallback program metadata + analytics labels)
  */
@@ -35,63 +32,9 @@ export type ProgramTemplate =
   | 'custom';
 
 /**
- * Program template info for UI display + fallback program naming
- */
-export const PROGRAM_TEMPLATES: Record<ProgramTemplate, {
-  name: string;
-  description: string;
-  daysPerWeek: number[];
-  bestFor: TrainingGoal[];
-}> = {
-  ppl: {
-    name: 'Push/Pull/Legs',
-    description: 'High frequency split hitting each muscle 2x/week.',
-    daysPerWeek: [6, 3],
-    bestFor: ['hypertrophy', 'powerbuilding'],
-  },
-  upper_lower: {
-    name: 'Upper/Lower',
-    description: 'Balanced 4-day split with power and hypertrophy days.',
-    daysPerWeek: [4],
-    bestFor: ['powerbuilding', 'hypertrophy'],
-  },
-  full_body: {
-    name: 'Full Body',
-    description: 'Hit everything each session. Efficient for 3 days/week.',
-    daysPerWeek: [3],
-    bestFor: ['strength', 'general'],
-  },
-  bro_split: {
-    name: 'Body Part Split',
-    description: 'Classic bodybuilding. One muscle group per day.',
-    daysPerWeek: [5, 6],
-    bestFor: ['hypertrophy'],
-  },
-  powerbuilding: {
-    name: 'Powerbuilding',
-    description: 'Heavy compounds + hypertrophy work.',
-    daysPerWeek: [5],
-    bestFor: ['powerbuilding', 'strength'],
-  },
-  strength: {
-    name: 'Strength Focus',
-    description: 'Periodized strength training with submaximal loads.',
-    daysPerWeek: [3, 4],
-    bestFor: ['strength'],
-  },
-  custom: {
-    name: 'Custom Program',
-    description: 'AI designs based on your goals and schedule.',
-    daysPerWeek: [3, 4, 5, 6],
-    bestFor: ['general', 'hypertrophy', 'strength', 'powerbuilding'],
-  },
-};
-
-/**
  * Parameters for routine generation
  */
 export interface RoutineGenerationParams {
-  programTemplate: ProgramTemplate;
   trainingGoal: TrainingGoal;
   userStrengthLevel: string;
   userBodyWeight: number;
