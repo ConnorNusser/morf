@@ -16,8 +16,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import FullScreenImageViewer from './FullScreenImageViewer';

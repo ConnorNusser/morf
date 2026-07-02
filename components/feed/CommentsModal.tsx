@@ -23,7 +23,7 @@ import {
   View as RNView,
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const COMMENTS_INPUT_ACCESSORY_ID = 'commentsInputAccessory';

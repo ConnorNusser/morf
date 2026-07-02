@@ -1,7 +1,6 @@
 // Pure helpers behind the retention reminders — streak and training-day pattern.
 // `now` is injectable so the logic is testable without mocking the clock.
 import { GeneratedWorkout } from '@/types';
-import { dateKey } from '@/lib/utils/utils';
 import { getWeekStreak } from '@/lib/workout/streak';
 
 // Local YYYY-MM-DD, matching recapStats.

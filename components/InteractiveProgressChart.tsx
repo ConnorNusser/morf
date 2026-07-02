@@ -168,8 +168,6 @@ function InteractiveProgressChart({
         return Math.round((baseVolume + (i * 100)) / 5) * 5;
       });
 
-  const minValue = Math.min(...values);
-  const maxValue = Math.max(...values);
 
   // Add prediction to values if available
   const extendedValues = effectivePrediction ? [...values, Math.round(convertWeightForPreference(effectivePrediction, 'lbs', weightUnit) / 5) * 5] : values;

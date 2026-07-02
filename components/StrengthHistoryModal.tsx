@@ -36,7 +36,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const [history, setHistory] = useState<PercentileHistoryEntry[]>([]);
   const [muscleGroups, setMuscleGroups] = useState<MuscleGroupPercentiles | null>(null);
   const [overallPercentile, setOverallPercentile] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('chart');
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>(null);
 
@@ -56,10 +55,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const loadData = async () => {
     try {
       const user = await userSyncService.getCurrentUser();
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
+      if (!user) return;
 
       const data: UserPercentileData | null = await userSyncService.getUserPercentileData(user.id);
       if (data) {
@@ -69,8 +65,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
       }
     } catch (error) {
       console.error('Error loading strength history:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
