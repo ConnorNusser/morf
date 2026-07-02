@@ -500,19 +500,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Save to workout history
     await storageService.saveWorkout(generatedWorkout);
 
-    // Update the global per-exercise records — the anchor every routine progresses
-    // from and the source of the strength rank. Keyed by exercise, so it carries
-    // across routines. Only when real work was logged.
-    if (didRealWork) {
-      try {
-        const records = await storageService.getExerciseRecords();
-        const updated = updateExerciseRecords(records, generatedWorkout.exercises, new Date());
-        await storageService.saveExerciseRecords(updated);
-      } catch (error) {
-        console.error('Error updating exercise records:', error);
-      }
-    }
-
     // The user just trained — re-evaluate retention reminders so today's
     // streak/habit nudge is cancelled (they no longer need it).
     retentionNotificationService.refreshScheduledReminders().catch(() => {});
@@ -564,24 +551,28 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       }
     }
 
-    // Record all lifts in a single atomic operation to avoid race conditions
-    // (Previously this used Promise.all which caused lifts to be lost due to concurrent profile writes)
-    const recordResults = await userService.recordLifts(
-      liftDataWithMeta.map(({ liftData, liftType }) => ({ lift: liftData, liftType }))
-    );
+    // Fold this workout into the global exercise records — the single source of
+    // "your best per exercise" (progression anchor + strength rank). This must run
+    // AFTER the before-snapshot above so PR detection compares against the prior
+    // best, not the just-updated one. Only when real work was logged.
+    if (didRealWork) {
+      try {
+        const records = await storageService.getExerciseRecords();
+        await storageService.saveExerciseRecords(updateExerciseRecords(records, generatedWorkout.exercises, new Date()));
+      } catch (error) {
+        console.error('Error updating exercise records:', error);
+      }
+    }
 
-    // Build a map of liftId -> isNewPR for quick lookup
-    const prResultMap = new Map(recordResults.map(r => [r.liftId, r.isNewPR]));
-
-    // Process PR results
+    // A PR is a best-set estimated-1RM above the exercise's prior best (from the
+    // before-snapshot). Derived directly — no separate lift store to write.
     let prCount = 0;
     for (const { liftData, exercise, previousPR } of liftDataWithMeta) {
-      const isNewPR = prResultMap.get(liftData.id) || false;
-      if (isNewPR) {
+      const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
+      if (newPR > previousPR) {
         prCount++;
         const workoutInfo = getWorkoutById(exercise.id);
         if (workoutInfo) {
-          const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
           newPRs.push({
             exerciseId: exercise.id,
             exerciseName: workoutInfo.name,

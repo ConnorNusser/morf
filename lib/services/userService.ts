@@ -1,7 +1,9 @@
 import {
   ALL_FEATURED_SECONDARY_LIFTS,
+  ExerciseRecord,
   FeaturedLiftType,
   FeaturedSecondaryLiftType,
+  Gender,
   isFeaturedSecondaryLift,
   isMainLift,
   MAIN_LIFTS,
@@ -30,213 +32,57 @@ class UserService {
   }
 
 
-  // Record multiple lifts in a single atomic operation
-  // This avoids race conditions when recording lifts in parallel
-  // Returns array of { liftId: string, isNewPR: boolean } for each lift
-  async recordLifts(lifts: { lift: Omit<UserLift, 'dateRecorded'>; liftType: 'main' | 'secondary' }[]): Promise<{ liftId: string; isNewPR: boolean }[]> {
-    const profile = await this.getRealUserProfile();
-    if (!profile) throw new Error('No user profile found');
-
-    const results: { liftId: string; isNewPR: boolean }[] = [];
-
-    for (const { lift, liftType } of lifts) {
-      const weightInLbs = convertWeightToLbs(lift.weight, lift.unit);
-
-      // Check if this is a new PR by finding existing best 1RM for this exercise
-      const existingLifts = liftType === 'main' ? profile.lifts : profile.secondaryLifts;
-      const existingForExercise = existingLifts.filter(l => l.id === lift.id);
-
-      // Calculate estimated 1RM for comparison (Epley formula)
-      const newEstimated1RM = weightInLbs * (1 + lift.reps / 30);
-      const existingBest1RM = existingForExercise.reduce((best, l) => {
-        const est1RM = l.weight * (1 + l.reps / 30);
-        return est1RM > best ? est1RM : best;
-      }, 0);
-
-      const isNewPR = newEstimated1RM > existingBest1RM;
-
-      if (liftType === 'main') {
-        profile.lifts.push({
-          ...lift,
-          weight: weightInLbs,
-          unit: 'lbs',
-          dateRecorded: new Date(),
-        });
-      } else {
-        profile.secondaryLifts.push({
-          ...lift,
-          weight: weightInLbs,
-          unit: 'lbs',
-          dateRecorded: new Date(),
-        });
-      }
-
-      results.push({ liftId: lift.id, isNewPR });
-    }
-
-    // Single atomic save of all lifts
-    await storageService.saveUserProfile(profile);
-    return results;
-  }
-
-  // Calculate real user progress from recorded lifts
+  // Real user progress = every rankable (main) exercise record, best-e1RM → percentile.
   async calculateRealUserProgress(): Promise<UserProgress[]> {
-    const profile = await this.getRealUserProfile();
+    const [profile, records] = await Promise.all([this.getRealUserProfile(), storageService.getExerciseRecords()]);
     if (!profile) return [];
 
-    const bodyWeightInLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
+    const bodyWeightLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
+    return Object.values(records)
+      .filter(r => r.isMainLift && r.bestE1RMLbs > 0)
+      .map(r => this.progressFromRecord(r.exerciseId, r, bodyWeightLbs, profile.gender, profile.age || 20));
+  }
 
-    const allLifts: Record<string, UserProgress> = {};
-
-    for (const lift of profile.lifts) {
-      // Skip lifts with zero weight to avoid meaningless progress calculations
-      if (lift.weight <= 0) continue;
-
-      const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-
-      // Only update if this is a new exercise or a new personal record
-      if (!(lift.id in allLifts) || maxEstimatedLift > allLifts[lift.id].personalRecord) {
-        const percentile = calculateStrengthPercentile(
-          maxEstimatedLift,
-          bodyWeightInLbs,
-          profile.gender,
-          lift.id,
-          profile.age
-        );
-        allLifts[lift.id] = {
-          workoutId: lift.id,
-          personalRecord: maxEstimatedLift,
-          lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.floor(percentile),
-          strengthLevel: getStrengthLevelName(percentile),
-        };
-      }
-      // Else: keep the existing better record
-    }
-
-    return Object.values(allLifts);
+  // Build a UserProgress from an exercise record's best estimated 1RM (the single
+  // source of "your best"). Zero PR → percentile 0, matching the old zero-lift path.
+  private progressFromRecord(
+    exerciseId: string,
+    record: ExerciseRecord | undefined,
+    bodyWeightLbs: number,
+    gender: Gender,
+    age: number
+  ): UserProgress {
+    const pr = Math.round(record?.bestE1RMLbs ?? 0);
+    const percentile = calculateStrengthPercentile(pr, bodyWeightLbs, gender, exerciseId, age);
+    return {
+      workoutId: exerciseId,
+      personalRecord: pr,
+      lastUpdated: record?.bestE1RMAt ?? record?.updatedAt ?? new Date(),
+      percentileRanking: Math.floor(percentile),
+      strengthLevel: getStrengthLevelName(percentile),
+    };
   }
 
   async getUsersTopLifts(): Promise<UserProgress[]> {
-    const profile = await this.getRealUserProfile();
-    const topLifts: Record<MainLiftType, UserLift> = {
-      "squat-barbell": {
-        parentId: '',
-        id: 'squat-barbell',
-        weight: 0,
-        reps: 0,
-        dateRecorded: new Date(),
-        unit: 'lbs',
-      },
-      "bench-press-barbell": {
-        parentId: '',
-        id: 'bench-press-barbell',
-        weight: 0,
-        reps: 0,
-        unit: 'lbs',
-        dateRecorded: new Date(),
-      },
-      "deadlift-barbell": {
-        parentId: '',
-        id: 'deadlift-barbell',
-        weight: 0,
-        reps: 0,
-        unit: 'lbs',
-        dateRecorded: new Date(),
-      },
-      "overhead-press-barbell": {
-        parentId: '',
-        id: 'overhead-press-barbell',
-        weight: 0,
-        reps: 0,
-        unit: 'lbs',
-        dateRecorded: new Date(),
-      },
-    };
-
-    for (const lift of profile?.lifts || []) {
-      // Skip lifts with zero weight to avoid meaningless records
-      if (lift.weight <= 0) continue;
-      
-      if (lift.id in topLifts && OneRMCalculator.estimate(lift.weight, lift.reps) > OneRMCalculator.estimate(topLifts[lift.id as MainLiftType].weight, topLifts[lift.id as MainLiftType].reps)) {
-        topLifts[lift.id as MainLiftType] = lift;
-      }
-    }
-
-
-    const bodyWeightInLbs = convertWeightToLbs(profile?.weight.value || 0, profile?.weight.unit || 'lbs');
-
-    return Object.values(topLifts).map(lift => {
-      const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-      const percentile = calculateStrengthPercentile(
-        maxEstimatedLift,
-        bodyWeightInLbs,
-        profile?.gender || 'male',
-        lift.id,
-        profile?.age || 20
-      );
-      return {
-        workoutId: lift.id,
-        personalRecord: maxEstimatedLift,
-        lastUpdated: lift.dateRecorded,
-        percentileRanking: Math.floor(percentile),
-        strengthLevel: getStrengthLevelName(percentile),
-      };
-    });
+    const [profile, records] = await Promise.all([this.getRealUserProfile(), storageService.getExerciseRecords()]);
+    const bodyWeightLbs = convertWeightToLbs(profile?.weight.value || 0, profile?.weight.unit || 'lbs');
+    const gender = profile?.gender || 'male';
+    const age = profile?.age || 20;
+    // All four main lifts, including zeros for ones not yet trained.
+    return (Object.values(MAIN_LIFTS) as MainLiftType[]).map(id =>
+      this.progressFromRecord(id, records[id], bodyWeightLbs, gender, age)
+    );
   }
 
-  // Get user's top featured secondary lifts
+  // Get user's top featured secondary lifts (only those with recorded data).
   async getUsersTopFeaturedSecondaryLifts(): Promise<UserProgress[]> {
-    const profile = await this.getRealUserProfile();
+    const [profile, records] = await Promise.all([this.getRealUserProfile(), storageService.getExerciseRecords()]);
     if (!profile) return [];
 
-    const bodyWeightInLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
-    const topSecondaryLifts: Partial<Record<FeaturedSecondaryLiftType, UserLift>> = {};
-
-    // Initialize all featured secondary lifts with zero values
-    for (const liftId of ALL_FEATURED_SECONDARY_LIFTS) {
-      topSecondaryLifts[liftId] = {
-        parentId: '',
-        id: liftId,
-        weight: 0,
-        reps: 0,
-        unit: 'lbs',
-        dateRecorded: new Date(),
-      };
-    }
-
-    // Find the best lift for each featured secondary exercise
-    for (const lift of profile.secondaryLifts || []) {
-      if (lift.weight <= 0) continue;
-      
-      if (isFeaturedSecondaryLift(lift.id)) {
-        const currentBest = topSecondaryLifts[lift.id];
-        if (currentBest && OneRMCalculator.estimate(lift.weight, lift.reps) > OneRMCalculator.estimate(currentBest.weight, currentBest.reps)) {
-          topSecondaryLifts[lift.id] = lift;
-        }
-      }
-    }
-
-    // Convert to UserProgress array, only including lifts with recorded data
-    return Object.values(topSecondaryLifts)
-      .filter(lift => lift.weight > 0)
-      .map(lift => {
-        const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-        const percentile = calculateStrengthPercentile(
-          maxEstimatedLift,
-          bodyWeightInLbs,
-          profile.gender,
-          lift.id,
-          profile.age || 20
-        );
-        return {
-          workoutId: lift.id,
-          personalRecord: maxEstimatedLift,
-          lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.floor(percentile),
-          strengthLevel: getStrengthLevelName(percentile),
-        };
-      });
+    const bodyWeightLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
+    return ALL_FEATURED_SECONDARY_LIFTS
+      .filter(id => (records[id]?.bestE1RMLbs ?? 0) > 0)
+      .map(id => this.progressFromRecord(id, records[id], bodyWeightLbs, profile.gender, profile.age || 20));
   }
 
   // Get all featured lifts (main + secondary) for dashboard display
@@ -316,57 +162,47 @@ class UserService {
 
   // Get all lifts for any featured lift ID (main or secondary) as UserProgress array
   async getAllLiftsForFeaturedExercise(liftId: FeaturedLiftType): Promise<UserProgress[] | undefined> {
-    const profile = await this.getRealUserProfile();
-    if (!profile) return undefined;
-    
-    const bodyWeightInLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
-    let lifts: UserLift[] = [];
+    const [profile, raw] = await Promise.all([this.getRealUserProfile(), this.getRawLiftsForFeaturedExercise(liftId)]);
+    if (!profile || !raw) return undefined;
 
-    if (isMainLift(liftId)) {
-      lifts = profile.lifts.filter(lift => lift.id === liftId && lift.weight > 0);
-    } else if (isFeaturedSecondaryLift(liftId)) {
-      lifts = profile.secondaryLifts.filter(lift => lift.id === liftId && lift.weight > 0);
-    }
-    
-    if (lifts.length === 0) return undefined;
-    
-    return lifts
-      .sort((a, b) => new Date(a.dateRecorded).getTime() - new Date(b.dateRecorded).getTime())
-      .map(lift => {
-        const maxEstimatedLift = OneRMCalculator.estimate(lift.weight, lift.reps);
-        const percentile = calculateStrengthPercentile(
-          maxEstimatedLift,
-          bodyWeightInLbs,
-          profile.gender,
-          lift.id,
-          profile.age
-        );
-        return {
-          workoutId: lift.id,
-          personalRecord: maxEstimatedLift,
-          lastUpdated: lift.dateRecorded,
-          percentileRanking: Math.floor(percentile),
-          strengthLevel: getStrengthLevelName(percentile),
-        };
-      });
+    const bodyWeightLbs = convertWeightToLbs(profile.weight.value, profile.weight.unit);
+    return raw.map(lift => {
+      const e1rm = OneRMCalculator.estimate(lift.weight, lift.reps);
+      const percentile = calculateStrengthPercentile(e1rm, bodyWeightLbs, profile.gender, lift.id, profile.age);
+      return {
+        workoutId: lift.id,
+        personalRecord: e1rm,
+        lastUpdated: lift.dateRecorded,
+        percentileRanking: Math.floor(percentile),
+        strengthLevel: getStrengthLevelName(percentile),
+      };
+    });
   }
 
-  // Get raw lift data for any featured lift (main or secondary)
+  // Per-session history for a lift, derived from workout history (one point per
+  // workout = that session's best set, normalized to lbs). Replaces the old
+  // profile.lifts store, which just duplicated workout history.
   async getRawLiftsForFeaturedExercise(liftId: FeaturedLiftType): Promise<UserLift[] | undefined> {
-    const profile = await this.getRealUserProfile();
-    if (!profile) return undefined;
-    
-    let lifts: UserLift[] = [];
-
-    if (isMainLift(liftId)) {
-      lifts = profile.lifts.filter(lift => lift.id === liftId);
-    } else if (isFeaturedSecondaryLift(liftId)) {
-      lifts = profile.secondaryLifts.filter(lift => lift.id === liftId);
+    const history = await storageService.getWorkoutHistory();
+    const lifts: UserLift[] = [];
+    for (const w of history) {
+      const ex = w.exercises.find(e => e.id === liftId);
+      const done = ex?.completedSets?.filter(s => s.completed && s.weight > 0) ?? [];
+      if (done.length === 0) continue;
+      const best = done.reduce((a, b) =>
+        OneRMCalculator.estimate(b.weight, b.reps) > OneRMCalculator.estimate(a.weight, a.reps) ? b : a
+      );
+      lifts.push({
+        parentId: w.id,
+        id: liftId,
+        weight: best.unit === 'lbs' ? best.weight : convertWeightToLbs(best.weight, best.unit),
+        reps: best.reps,
+        unit: 'lbs',
+        dateRecorded: new Date(w.createdAt),
+      });
     }
-    
     if (lifts.length === 0) return undefined;
-    
-    return lifts.sort((a, b) => new Date(a.dateRecorded).getTime() - new Date(b.dateRecorded).getTime());
+    return lifts.sort((a, b) => a.dateRecorded.getTime() - b.dateRecorded.getTime());
   }
 
   // Delete a workout and all associated lifts with matching parentId
