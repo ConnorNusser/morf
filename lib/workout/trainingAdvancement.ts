@@ -201,42 +201,6 @@ export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> =
   },
 };
 
-// ===== MOVEMENT PATTERN DEFINITIONS =====
-
-export type MovementPattern =
-  | 'squat'
-  | 'hinge'
-  | 'horizontal_push'
-  | 'horizontal_pull'
-  | 'vertical_push'
-  | 'vertical_pull'
-  | 'carry'
-  | 'isolation';
-
-/**
- * Map exercises to their primary movement pattern
- * This enables fatigue tracking at the pattern level
- */
-const EXERCISE_MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
-  // Squat pattern
-  'squat-barbell': 'squat',
-  'front-squat-barbell': 'squat',
-  'goblet-squat-dumbbell': 'squat',
-  'leg-press-machine': 'squat',
-  'hack-squat-machine': 'squat',
-  'bulgarian-split-squat-dumbbells': 'squat',
-
-  // Hinge pattern
-  'deadlift-barbell': 'hinge',
-  'deadlift-conventional-barbell': 'hinge',
-  'deadlift-sumo-barbell': 'hinge',
-  'romanian-deadlift-barbell': 'hinge',
-  'romanian-deadlift-dumbbells': 'hinge',
-  'good-morning-barbell': 'hinge',
-  'hip-thrust-barbell': 'hinge',
-  'kettlebell-swing': 'hinge',
-};
-
 // ===== ROUTINE VALIDATION =====
 //
 // Validates CONVERTED routines (real exercise IDs), not raw AI output. This fixes two
@@ -276,15 +240,14 @@ function isHeavyRoutineExercise(ex: ValidatableExercise): boolean {
 
 /**
  * Classify a lift as a squat- or hinge-pattern movement for the same-day fatigue check.
- * Uses the curated movement map first, then falls back to name keywords from the exercise DB
- * so coverage isn't limited to hand-listed IDs.
+ * Matches keywords against the exercise's display name, the catalog name, or the id itself
+ * (separators may be spaces or hyphens, so it works whether given "Good Morning" or
+ * "good-morning-barbell"). Returns null for anything that isn't a lower-body squat/hinge.
  */
 function classifyLowerPattern(exerciseId: string, exerciseName?: string): 'squat' | 'hinge' | null {
-  const mapped = EXERCISE_MOVEMENT_PATTERNS[exerciseId];
-  if (mapped === 'squat' || mapped === 'hinge') return mapped;
   const name = (exerciseName || getWorkoutById(exerciseId)?.name || exerciseId).toLowerCase();
-  if (/(romanian|rdl|deadlift|good\s*morning|hip\s*thrust|swing|back\s*extension|hyperextension)/.test(name)) return 'hinge';
-  if (/(squat|leg\s*press|hack|lunge|split\s*squat|step.?up)/.test(name)) return 'squat';
+  if (/(romanian|rdl|deadlift|good[-\s]*morning|hip[-\s]*thrust|swing|back[-\s]*extension|hyperextension)/.test(name)) return 'hinge';
+  if (/(squat|leg[-\s]*press|hack|lunge|split[-\s]*squat|step.?up)/.test(name)) return 'squat';
   return null;
 }
 
