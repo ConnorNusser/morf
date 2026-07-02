@@ -89,7 +89,7 @@ const NotificationPreferencesSection = () => {
             <View style={styles.rowText}>
               <Text style={[styles.rowTitle, { color: currentTheme.colors.text }]}>Comeback nudges</Text>
               <Text style={[styles.rowDesc, { color: currentTheme.colors.text + '80' }]}>
-                A gentle nudge if it's been a while since you trained
+                A gentle nudge if it&apos;s been a while since you trained
               </Text>
             </View>
             <Toggle value={prefs.comebackReminders} onPress={() => toggle('comebackReminders')} />

@@ -7,7 +7,7 @@ const tsParser = require('@typescript-eslint/parser');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ['dist/*', 'node_modules/*', '.expo/*', '*.js'],
+    ignores: ['dist/*', 'node_modules/*', '.expo/*', '*.js', 'history-eval/**/*.js'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

@@ -11,6 +11,7 @@
  */
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateRecapStats } from '@/lib/workout/recapStats';
 import { SCENARIOS, scenarioByKey, REFERENCE_NOW } from '../fixtures';
 import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS } from '../goldens';
 
@@ -95,9 +96,7 @@ describe('no-crash / no-NaN gate — every scenario derives finite values', () =
 });
 
 describe('correctness gate — calculateRecapStats (period + distribution)', () => {
-  // Imported lazily so the storage mock is in place.
-  const { calculateRecapStats } = require('@/lib/workout/recapStats');
-
+  // jest.mock() is hoisted above imports, so the top-level import already sees mocks.
   it('single: counts exactly the in-week workout', async () => {
     mockGetWorkoutHistory.mockResolvedValue(scenarioByKey('single').workouts);
     const recap = await calculateRecapStats('week', REFERENCE_NOW);

@@ -1,6 +1,28 @@
 {
   "_comment": "The ratchet. best[scenario] = highest weighted score that scenario has reached. iterations[] is the append-only ledger. A candidate merges only if aggregate improves AND no scenario < its best here.",
   "rubricVersion": 1,
-  "best": {},
-  "iterations": []
+  "best": {
+    "single": 4.4,
+    "kgUnit": 3,
+    "prHeavy": 3,
+    "sparse": 3,
+    "dense": 3
+  },
+  "iterations": [
+    {
+      "n": 1,
+      "target": { "scenario": "single", "dimension": "Correctness" },
+      "diagnosis": "Set-vs-session conflation: history.tsx appends one entry per completed SET, but HistoryHero counted history.length as sessions. One 3-set workout fabricated a '3 sessions logged' PR curve, defeating the MIN_SESSIONS=3 gate. Compounded across kgUnit/prHeavy/sparse/dense (inflated counts).",
+      "candidates": 3,
+      "gated": 3,
+      "convergence": "All 3 candidates independently found the same root cause.",
+      "winner": {
+        "judgeAggregate": 4.4,
+        "files": ["components/history/liftSeries.ts", "components/history/HistoryHero.tsx", "__tests__/historyHeroSeries.test.ts"],
+        "summary": "Extracted inline useLiftSeries into pure RN-free buildLiftSeries; group history by calendar day so 1 session = 1 day; gate/count/curve on distinct days; added actionable empty state (progress pips toward the 3-session unlock); golden test.",
+        "raisedAssertableCeiling": true
+      },
+      "gate": { "tscErrors": 0, "suites": 10, "testsPassed": 123 }
+    }
+  ]
 }
