@@ -120,6 +120,28 @@ function InteractiveProgressChart({
     setSelectedPoint(null);
   }, [timePeriod]);
 
+  const renderTimePeriodSelector = () => (
+    <View style={styles.timePeriodSelector}>
+      {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
+        <TouchableOpacity
+          key={period}
+          style={[
+            styles.timePeriodButton,
+            timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
+          ]}
+          onPress={() => setTimePeriod(period)}
+        >
+          <Text style={[
+            styles.timePeriodText,
+            { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
+          ]}>
+            {period}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   if (data.length === 0) return null;
   if (dedupedData.length === 0) {
     // Show message if no data in selected period
@@ -128,25 +150,7 @@ function InteractiveProgressChart({
         <View style={styles.chartHeader}>
           <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>{title}</Text>
         </View>
-        <View style={styles.timePeriodSelector}>
-          {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.timePeriodButton,
-                timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
-              ]}
-              onPress={() => setTimePeriod(period)}
-            >
-              <Text style={[
-                styles.timePeriodText,
-                { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
-              ]}>
-                {period}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {renderTimePeriodSelector()}
         <View style={styles.noDataContainer}>
           <Text style={[styles.noDataText, { color: currentTheme.colors.text + '60' }]}>
             No data in this time period
@@ -300,25 +304,7 @@ function InteractiveProgressChart({
         </View>
 
         {/* Time Period Selector */}
-        <View style={styles.timePeriodSelector}>
-          {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
-            <TouchableOpacity
-              key={period}
-              style={[
-                styles.timePeriodButton,
-                timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
-              ]}
-              onPress={() => setTimePeriod(period)}
-            >
-              <Text style={[
-                styles.timePeriodText,
-                { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
-              ]}>
-                {period}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {renderTimePeriodSelector()}
 
         <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
           {/* Y-axis labels */}

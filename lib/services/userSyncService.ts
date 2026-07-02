@@ -113,40 +113,44 @@ class UserSyncService {
     }
   }
 
+  // The current backend user, creating one (with a default username) if none exists.
+  // Leaves this.currentUserId set so subsequent id-keyed updates work.
+  private async getOrCreateUser(): Promise<RemoteUser | null> {
+    const user = await this.getCurrentUser();
+    if (user) return user;
+    const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
+    await analyticsService.setUsername(username);
+    return this.syncUser(username);
+  }
+
+  // Patch fields on the current user's row (auto-creating the user first).
+  private async updateUserField(fields: Record<string, unknown>): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const user = await this.getOrCreateUser();
+      if (!user) return false;
+
+      const { error } = await supabase
+        .from('users')
+        .update({ ...fields, updated_at: new Date().toISOString() })
+        .eq('id', this.currentUserId);
+
+      if (error) {
+        console.error('Error updating user:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return false;
+    }
+  }
+
   /**
    * Sync user profile data (height, weight, gender) to Supabase
    */
   async syncProfileData(profileData: RemoteUserData): Promise<boolean> {
-    if (!supabase) return false;
-
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) {
-        // Auto-create user if they don't exist
-        const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
-        await analyticsService.setUsername(username);
-        const newUser = await this.syncUser(username);
-        if (!newUser) return false;
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update({
-          user_data: profileData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', this.currentUserId);
-
-      if (error) {
-        console.error('Error syncing profile data:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error syncing profile data:', error);
-      return false;
-    }
+    return this.updateUserField({ user_data: profileData });
   }
 
   /**
@@ -372,36 +376,7 @@ class UserSyncService {
    * Sync user's country code to Supabase
    */
   private async syncCountryCode(countryCode: string): Promise<boolean> {
-    if (!supabase) return false;
-
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) {
-        // Auto-create user if they don't exist
-        const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
-        await analyticsService.setUsername(username);
-        const newUser = await this.syncUser(username);
-        if (!newUser) return false;
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .update({
-          country_code: countryCode,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', this.currentUserId);
-
-      if (error) {
-        console.error('Error syncing country code:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error syncing country code:', error);
-      return false;
-    }
+    return this.updateUserField({ country_code: countryCode });
   }
 
   /**

@@ -27,6 +27,10 @@ interface WorkoutDetailModalProps {
   onDelete: (workout: GeneratedWorkout) => void;
 }
 
+// Display name for an exercise: the catalog/custom name, else a readable form of its id.
+const getExerciseName = (id: string, info?: { name?: string } | null): string =>
+  info?.name || id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+
 export default function WorkoutDetailModal({
   workout,
   weightUnit,
@@ -47,7 +51,7 @@ export default function WorkoutDetailModal({
 
     workout.exercises.forEach(exercise => {
       const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
-      const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+      const name = getExerciseName(exercise.id, exerciseInfo);
 
       if (exercise.completedSets && exercise.completedSets.length > 0) {
         // Group sets by weight for cleaner output
@@ -148,7 +152,7 @@ export default function WorkoutDetailModal({
       if (!ex.completedSets || ex.completedSets.length === 0) return;
 
       const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
-      const name = exerciseInfo?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+      const name = getExerciseName(ex.id, exerciseInfo);
       const stat = exerciseStats.find(s => s.id === ex.id);
 
       // Get best e1rm from this workout
@@ -260,7 +264,7 @@ export default function WorkoutDetailModal({
               <View style={styles.exerciseList}>
                 {workout.exercises.map((exercise, idx) => {
                   const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
-                  const name = exerciseInfo?.name || exercise.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
+                  const name = getExerciseName(exercise.id, exerciseInfo);
                   const trackingType = exerciseInfo?.trackingType || 'reps';
                   const isRepsExercise = trackingType === 'reps';
                   const bestE1RM = isRepsExercise ? getBestE1RM(exercise.completedSets || []) : null;
