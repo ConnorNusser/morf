@@ -87,4 +87,39 @@ describe('matchExerciseByName', () => {
     expect(matchExerciseByName('bp')).toBe(matchExerciseByName('bench press'));
     expect(matchExerciseByName('rdl')).toBe(matchExerciseByName('romanian deadlift'));
   });
+
+  it('honors an equipment qualifier instead of defaulting to barbell', () => {
+    // The reported bug: "overhead press machine" collapsed to the barbell press.
+    expect(matchExerciseByName('overhead press machine')).toBe('overhead-press-machine');
+    expect(matchExerciseByName('overhead press')).toBe('overhead-press-barbell');
+    expect(matchExerciseByName('overhead press machine')).not.toBe(matchExerciseByName('overhead press'));
+  });
+
+  it('matches a leading equipment qualifier too', () => {
+    expect(matchExerciseByName('machine overhead press')).toBe('overhead-press-machine');
+  });
+
+  it('expands shorthand combined with an equipment qualifier (ohp machine)', () => {
+    expect(matchExerciseByName('ohp machine')).toBe('overhead-press-machine');
+  });
+
+  it('still resolves a name that legitimately contains an equipment word', () => {
+    // "cable" is part of the actual catalog name, not a disambiguating qualifier.
+    expect(matchExerciseByName('cable crossover')).toBe(matchExerciseByName('cable crossover'));
+    expect(matchExerciseByName('cable crossover')).toBeTruthy();
+  });
+
+  it('tolerates a typo via the fuzzy fallback', () => {
+    expect(matchExerciseByName('ovrhead press')).toBe('overhead-press-barbell');
+    expect(matchExerciseByName('benhc press')).toBeTruthy();
+  });
+
+  it('keeps the equipment qualifier through a fuzzy match', () => {
+    expect(matchExerciseByName('ovrhead press machine')).toBe('overhead-press-machine');
+  });
+
+  it('does not fuzzy-snap a genuinely novel lift onto a near catalog entry', () => {
+    // Should stay null so it becomes a custom exercise, not a wrong match.
+    expect(matchExerciseByName('flumbox press')).toBeNull();
+  });
 });
