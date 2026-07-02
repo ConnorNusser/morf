@@ -7,8 +7,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
+import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { GeneratedWorkout, MuscleGroup, Routine } from '@/types';
+import { ExerciseRecord, GeneratedWorkout, MuscleGroup, Routine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -77,6 +78,7 @@ export default function RoutineProgressModal({
 
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ExerciseStatus | null>(null);
@@ -99,6 +101,7 @@ export default function RoutineProgressModal({
       const activeRoutines = loadedRoutines.filter(r => r.isActive !== false);
       setRoutines(activeRoutines);
       setWorkoutHistory(history);
+      setExerciseRecords(await loadExerciseRecords(history));
       if (activeRoutines.length > 0) {
         setExpandedRoutineId(activeRoutines[0].id);
       }
@@ -142,8 +145,8 @@ export default function RoutineProgressModal({
   };
 
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, workoutHistory, weightUnit);
-  }, [routines, workoutHistory, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
+  }, [routines, exerciseRecords, weightUnit]);
 
   // Calculate progress for all routines
   const routineProgressList = useMemo((): RoutineProgress[] => {

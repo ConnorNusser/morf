@@ -7,6 +7,7 @@ import { formatRelativeTime } from "@/lib/ui/formatters";
 import { getUpNextCandidates, getUpNextRoutine } from "@/lib/workout/activeRoutine";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
+import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import { CalculatedRoutine } from "@/types";
@@ -81,10 +82,11 @@ export default function TodayCard() {
       }, null);
       setLastWorkoutAt(latest);
 
+      const records = await loadExerciseRecords(history);
       const candidates = getUpNextCandidates(routines, programs);
-      setDays(candidates.map((rt) => calculateRoutine(rt, history, weightUnit)));
+      setDays(candidates.map((rt) => calculateRoutine(rt, records, weightUnit)));
       const today = getUpNextRoutine(routines, programs, pointerId);
-      setCalculated(today ? calculateRoutine(today, history, weightUnit) : null);
+      setCalculated(today ? calculateRoutine(today, records, weightUnit) : null);
     } catch (err) {
       console.error("TodayCard: failed to load", err);
     } finally {

@@ -12,10 +12,11 @@ import { storageService } from '@/lib/storage/storage';
 import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { getUpNextRoutine, isDayCompletedThisCycle } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines, getExerciseAdherenceStatus, type AdherenceStatus } from '@/lib/workout/progressiveOverload';
+import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
-import { CalculatedRoutine, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -60,6 +61,8 @@ export default function NotesScreen() {
   // Routines state
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  // Global per-exercise records — the anchor every routine's prescription uses.
+  const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
@@ -109,6 +112,7 @@ export default function NotesScreen() {
       });
       setRoutines(sorted);
       setWorkoutHistory(history);
+      setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -129,8 +133,8 @@ export default function NotesScreen() {
 
   // Calculate routines with progressive overload
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, workoutHistory, weightUnit);
-  }, [routines, workoutHistory, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
+  }, [routines, exerciseRecords, weightUnit]);
 
   // Precompute muscle groups per routine once, instead of recomputing
   // getMuscleGroups (iterates exercises + getWorkoutById lookups) for every
