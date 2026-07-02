@@ -1,4 +1,4 @@
-import { CustomExercise, ExerciseMax, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutExerciseSession, WorkoutSetCompletion, WorkoutTemplate } from '@/types';
+import { CustomExercise, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -14,7 +14,6 @@ const STORAGE_KEYS = {
   ROUTINES: 'routines',
   PROGRAMS: 'programs',
   CURRENT_ROUTINE: 'current_routine',
-  WORKOUT_ROUTINES: 'workout_routines',
   SHARE_COUNT: 'share_count',
   CUSTOM_EXERCISES: 'custom_exercises',
   WORKOUT_TEMPLATES: 'workout_templates',
@@ -63,7 +62,6 @@ export interface RetentionMeta {
   scheduledDateKeys: string[];
 }
 
-export { ExerciseMax, LiftDisplayFilters, ThemeLevel };
 
 class StorageService {
   // User Profile
@@ -146,15 +144,9 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.THEME_PREFERENCE);
       if (!data) return null;
 
-      // Migrate old themes that no longer exist
+      // Migrate old/removed themes to the default
       const validThemes: ThemeLevel[] = ['beginner', 'beginner_dark', 'intermediate', 'advanced', 'elite', 'god', 'share_warm', 'share_cool', 'winter_2026'];
-      if (!validThemes.includes(data as ThemeLevel)) {
-        // Map removed themes to their closest equivalent
-        if (data === 'beginner_ocean') {
-          return 'beginner';
-        }
-        return 'beginner';
-      }
+      if (!validThemes.includes(data as ThemeLevel)) return 'beginner';
 
       return data as ThemeLevel;
     } catch (error) {
@@ -302,20 +294,6 @@ class StorageService {
     }
   }
 
-  async exportData(): Promise<string> {
-    try {
-      const data = {
-        userProfile: await this.getUserProfile(),
-        workoutHistory: await this.getWorkoutHistory(),
-        exportDate: new Date().toISOString(),
-      };
-      return JSON.stringify(data, null, 2);
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      return '';
-    }
-  }
-
   // Routines
   async getCurrentRoutine(): Promise<Routine | null> {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_ROUTINE);
@@ -447,11 +425,6 @@ class StorageService {
     await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(filtered));
   }
 
-  // Remove every routine and clear the current-routine pointer.
-  async clearAllRoutines(): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify([]));
-    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_ROUTINE);
-  }
 
   // Programs ---------------------------------------------------------------
   // A program groups the day-routines created together. Exactly one program is
@@ -595,32 +568,6 @@ class StorageService {
     if (changed) await AsyncStorage.setItem(STORAGE_KEYS.ROUTINES, JSON.stringify(routines));
   }
 
-  async getWorkoutRoutines(): Promise<GeneratedWorkout[]> {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_ROUTINES);
-    return data ? JSON.parse(data) : [];
-  }
-
-  async saveWorkoutRoutine(workout: GeneratedWorkout): Promise<void> {
-    workout.createdAt = new Date();
-    workout.exercises.forEach((exercise: WorkoutExerciseSession) => {
-      exercise.completedSets.forEach((set: WorkoutSetCompletion) => {
-        set.completed = false;
-      });
-      exercise.isCompleted = false;
-    });
-
-    const workoutRoutines = await this.getWorkoutRoutines();
-    //filter out any workouts with the same id
-    const filtered = workoutRoutines.filter(w => w.id !== workout.id);
-    filtered.push(workout);
-    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(filtered));
-  }
-  
-  async deleteWorkoutRoutine(workoutId: string): Promise<void> {
-    const workoutRoutines = await this.getWorkoutRoutines();
-    const filtered = workoutRoutines.filter(w => w.id !== workoutId);
-    await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_ROUTINES, JSON.stringify(filtered));
-  }
 
   // Custom Exercises
   async getCustomExercises(): Promise<CustomExercise[]> {
@@ -898,14 +845,6 @@ class StorageService {
     } catch (error) {
       console.error('Error loading profile icon:', error);
       return null;
-    }
-  }
-
-  async setProfileIconId(id: string): Promise<void> {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEYS.PROFILE_ICON, id);
-    } catch (error) {
-      console.error('Error saving profile icon:', error);
     }
   }
 

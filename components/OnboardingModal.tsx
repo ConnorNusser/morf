@@ -71,14 +71,12 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 3: return true; // Gender step - always valid since we have default
       case 4: return age > 0 && age < 120; // Age step
       case 5: return availableEquipment.length > 0; // Equipment step
-      case 6: return weightUnit !== null; // Weight unit step
+      case 6: return true; // Weight unit step
       default: return false;
     }
   };
 
   const handleComplete = async () => {
-    if (!height || !weight) return;
-
     setIsCreatingProfile(true);
     playHapticFeedback('medium', false);
     playUnlock();

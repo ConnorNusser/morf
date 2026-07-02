@@ -103,7 +103,7 @@ export function computeAchievements(stats: CareerStats, overallPercentile: numbe
       current,
       target: def.target,
       unlocked,
-      progress: Math.max(0, Math.min(1, def.target === 0 ? 1 : current / def.target)),
+      progress: Math.max(0, Math.min(1, current / def.target)),
       hidden: def.hidden,
     };
   });

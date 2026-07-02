@@ -1,5 +1,4 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { StyleSheet, View } from 'react-native';
 
@@ -48,7 +47,3 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
 });
-
-export function useBottomTabOverflow() {
-  return useBottomTabBarHeight();
-}

@@ -144,25 +144,6 @@ class GeoService {
       return null;
     }
   }
-
-  /**
-   * Get country code without requesting permission (uses stored value)
-   */
-  async getCountryCode(): Promise<string | null> {
-    return this.getStoredCountryCode();
-  }
-
-  /**
-   * Check if location permission is granted
-   */
-  async hasLocationPermission(): Promise<boolean> {
-    try {
-      const { status } = await Location.getForegroundPermissionsAsync();
-      return status === 'granted';
-    } catch {
-      return false;
-    }
-  }
 }
 
 export const geoService = new GeoService();

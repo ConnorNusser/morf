@@ -25,6 +25,7 @@ function Card({
 
     switch (variant) {
       case 'surface':
+      case 'clean':
         return {
           ...baseStyle,
           backgroundColor: currentTheme.colors.surface,

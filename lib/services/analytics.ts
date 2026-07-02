@@ -125,24 +125,6 @@ class AnalyticsService {
   }
 
   /**
-   * Log an error to Supabase for debugging
-   * @deprecated Use log() with level='error' instead
-   */
-  async logError(data: {
-    errorType: string;
-    message: string;
-    context?: Record<string, unknown>;
-  }): Promise<void> {
-    await this.log({
-      level: 'error',
-      category: 'general',
-      event: data.errorType,
-      message: data.message,
-      context: data.context,
-    });
-  }
-
-  /**
    * Unified logging method for all app events
    * Logs to self-hosted server instead of Supabase
    */

@@ -12,26 +12,6 @@ import {
 const FEED_API_URL = 'https://feed.morf.fyi';
 
 // API response types
-interface ApiFeedItem {
-  id: string;
-  type: 'workout' | 'post';
-  user_id: string;
-  title?: string;
-  text?: string;
-  created_at: string;
-  duration_seconds?: number;
-  exercise_count?: number;
-  set_count?: number;
-  total_volume?: number;
-  total_distance_meters?: number;
-  total_cardio_seconds?: number;
-  exercises?: WorkoutExerciseSummary[];
-  media?: { url: string; type: 'video' | 'image' }[];
-  feed_data?: WorkoutFeedData | PostFeedData;
-  username: string;
-  profile_picture_url?: string;
-}
-
 interface ApiPostItem {
   id: string;
   user_id: string;
@@ -117,61 +97,6 @@ class FeedApi {
       console.error(`Feed API error: ${method} ${path}:`, errorMessage);
       return { error: errorMessage };
     }
-  }
-
-  /**
-   * Get combined feed (workouts + posts)
-   */
-  async getFeed(
-    userId: string,
-    limit: number = 20,
-    offset: number = 0
-  ): Promise<(FeedWorkout | FeedPost)[]> {
-    const { data, error } = await this.request<ApiFeedItem[]>(
-      'GET',
-      `/api/feed?limit=${limit}&offset=${offset}`,
-      userId
-    );
-
-    if (error || !data) return [];
-
-    return data.map(item => {
-      if (item.type === 'workout') {
-        return {
-          id: item.id,
-          user_id: item.user_id,
-          title: item.title,
-          created_at: new Date(item.created_at),
-          duration_seconds: item.duration_seconds,
-          exercise_count: item.exercise_count,
-          set_count: item.set_count,
-          total_volume: item.total_volume,
-          total_distance_meters: item.total_distance_meters,
-          total_cardio_seconds: item.total_cardio_seconds,
-          exercises: item.exercises as WorkoutExerciseSummary[],
-          feed_data: item.feed_data as WorkoutFeedData | undefined,
-          username: item.username,
-          profile_picture_url: item.profile_picture_url,
-        } as FeedWorkout;
-      } else {
-        // Map media array with full URLs
-        const media: PostMedia[] = (item.media || []).map((m: { url: string; type: 'video' | 'image' }) => ({
-          url: `${this.baseUrl}${m.url}`,
-          type: m.type,
-        }));
-
-        return {
-          id: item.id,
-          user_id: item.user_id,
-          text: item.text,
-          media: media.length > 0 ? media : undefined,
-          created_at: new Date(item.created_at),
-          feed_data: item.feed_data as PostFeedData | undefined,
-          username: item.username,
-          profile_picture_url: item.profile_picture_url,
-        } as FeedPost;
-      }
-    });
   }
 
   /**

@@ -14,7 +14,6 @@ import Animated, {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Module-level state to track snow timing across remounts
-let lastSnowStartTime: number | null = null;
 let lastSnowEndTime: number | null = null;
 
 interface Snowflake {
@@ -116,7 +115,7 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
     const now = Date.now();
 
     // Check if we should be snowing based on wall-clock time
-    if (lastSnowStartTime !== null && lastSnowEndTime !== null) {
+    if (lastSnowEndTime !== null) {
       // Currently in a snow session that hasn't ended yet
       if (now < lastSnowEndTime) {
         return generateSnowflakes(SNOWFLAKE_COUNT);
@@ -129,7 +128,6 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
 
     // Start a new snow session
     const snowDuration = 15000 + Math.random() * 15000;
-    lastSnowStartTime = now;
     lastSnowEndTime = now + snowDuration;
     return generateSnowflakes(SNOWFLAKE_COUNT);
   });
@@ -144,7 +142,6 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
 
       const nextSnowTimeout = setTimeout(() => {
         const snowDuration = 15000 + Math.random() * 15000;
-        lastSnowStartTime = Date.now();
         lastSnowEndTime = Date.now() + snowDuration;
         setSnowflakes(generateSnowflakes(SNOWFLAKE_COUNT));
       }, timeUntilNextSnow);

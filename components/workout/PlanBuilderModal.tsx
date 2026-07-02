@@ -22,7 +22,6 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  timestamp: Date;
 }
 
 interface PlanBuilderModalProps {
@@ -77,7 +76,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
       id: `user_${Date.now()}`,
       role: 'user',
       content: trimmed,
-      timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
@@ -101,7 +99,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           id: `assistant_${Date.now()}`,
           role: 'assistant',
           content: result.response,
-          timestamp: new Date(),
         };
         setMessages(prev => [...prev, assistantMessage]);
 
@@ -119,7 +116,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           id: `assistant_${Date.now()}`,
           role: 'assistant',
           content: `I've created a ${result.title.toLowerCase()} for you! ${result.contextQuestions && result.contextQuestions.length > 0 ? 'A few questions to refine it:' : 'Check it out below.'}`,
-          timestamp: new Date(),
         };
         setMessages(prev => [...prev, assistantMessage]);
 
@@ -134,7 +130,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         id: `assistant_${Date.now()}`,
         role: 'assistant',
         content: "Sorry, I couldn't process that. Please try again.",
-        timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -184,7 +179,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         <KeyboardAvoidingView
           style={styles.keyboardAvoid}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          keyboardVerticalOffset={0}
         >
           {/* Chat Messages */}
           <ScrollView

@@ -17,10 +17,6 @@ const WeightUnitPreferenceSection = () => {
 
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   const handleWeightUnitChange = async (newWeightUnit: WeightUnit) => {
     try {
       playHapticFeedback('selection', false);
@@ -39,15 +35,11 @@ const WeightUnitPreferenceSection = () => {
     }
   };
 
-  const getWeightUnitSummary = () => {
-    return weightUnit === 'kg' ? 'Metric (kg)' : 'Imperial (lbs)';
-  };
-
   return (
     <Card style={styles.card} variant="clean">
       <TouchableOpacity 
         style={styles.sectionHeader}
-        onPress={toggleExpanded}
+        onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
@@ -61,17 +53,17 @@ const WeightUnitPreferenceSection = () => {
           </Text>
           {!isExpanded && (
             <Text style={[
-              styles.weightUnitSubtitle, 
+              styles.weightUnitMeta,
               { 
                 color: currentTheme.colors.primary,
               }
             ]}>
-              {getWeightUnitSummary()}
+              {weightUnit === 'kg' ? 'Metric (kg)' : 'Imperial (lbs)'}
             </Text>
           )}
           {isExpanded && (
             <Text style={[
-              styles.weightUnitDescription, 
+              styles.weightUnitMeta,
               { 
                 color: currentTheme.colors.text,
               }
@@ -171,12 +163,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
-  weightUnitSubtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  weightUnitDescription: {
+  weightUnitMeta: {
     fontSize: 14,
     opacity: 0.8,
     marginTop: 4,

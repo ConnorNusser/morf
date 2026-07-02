@@ -1,4 +1,3 @@
-import { useTheme } from '@/contexts/ThemeContext';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -17,8 +16,6 @@ export default function MiniSparkline({
   barWidth = 6,
   gap = 3,
 }: MiniSparklineProps) {
-  const { currentTheme: _currentTheme } = useTheme();
-
   if (!data || data.length === 0) {
     return null;
   }

@@ -8,7 +8,6 @@ interface VideoPlayerContextType {
   clearActiveIfMatches: (id: string) => void;
   pauseAll: () => void;
   resumeActive: () => void;
-  muteAll: () => void;
 }
 
 const VideoPlayerContext = createContext<VideoPlayerContextType | null>(null);
@@ -84,16 +83,6 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  const muteAll = useCallback(() => {
-    playersRef.current.forEach((player) => {
-      try {
-        player.muted = true;
-      } catch {
-        // Player may not be ready
-      }
-    });
-  }, []);
-
   const value = useMemo(() => ({
     registerPlayer,
     unregisterPlayer,
@@ -101,8 +90,7 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     clearActiveIfMatches,
     pauseAll,
     resumeActive,
-    muteAll,
-  }), [registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches, pauseAll, resumeActive, muteAll]);
+  }), [registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches, pauseAll, resumeActive]);
 
   return (
     <VideoPlayerContext.Provider value={value}>

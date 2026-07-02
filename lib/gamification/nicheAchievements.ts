@@ -6,6 +6,23 @@ import { Achievement } from './achievements';
 import { BehavioralSignals } from './behavioralSignals';
 import { Rarity } from './rarity';
 
+// Compute the unlocked flag and clamped 0–1 progress from current/target once,
+// so the badge builders below stay declarative.
+function makeAchievement(
+  base: Pick<Achievement, 'id' | 'title' | 'description' | 'icon' | 'rarity'> & { hidden?: boolean },
+  current: number,
+  target: number,
+): Achievement {
+  return {
+    ...base,
+    category: 'special',
+    current,
+    target,
+    unlocked: current >= target,
+    progress: Math.max(0, Math.min(1, target === 0 ? 1 : current / target)),
+  };
+}
+
 // A one-shot badge: either earned or not. `hidden` marks a secret badge that the
 // UI masks until it's unlocked (the joy-of-discovery pattern).
 function flag(
@@ -17,19 +34,7 @@ function flag(
   earned: boolean,
   hidden = false,
 ): Achievement {
-  return {
-    id,
-    title,
-    description,
-    icon,
-    category: 'special',
-    rarity,
-    current: earned ? 1 : 0,
-    target: 1,
-    unlocked: earned,
-    progress: earned ? 1 : 0,
-    hidden,
-  };
+  return makeAchievement({ id, title, description, icon, rarity, hidden }, earned ? 1 : 0, 1);
 }
 
 // A badge with measurable progress toward a threshold.
@@ -42,18 +47,7 @@ function progressBadge(
   current: number,
   target: number,
 ): Achievement {
-  return {
-    id,
-    title,
-    description,
-    icon,
-    category: 'special',
-    rarity,
-    current,
-    target,
-    unlocked: current >= target,
-    progress: Math.max(0, Math.min(1, target === 0 ? 1 : current / target)),
-  };
+  return makeAchievement({ id, title, description, icon, rarity }, current, target);
 }
 
 export function computeNicheAchievements(s: BehavioralSignals): Achievement[] {

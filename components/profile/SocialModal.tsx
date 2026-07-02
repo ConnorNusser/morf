@@ -221,11 +221,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       setUsernameError(null);
       return;
     }
-    if (name.length === 0) {
-      setUsernameAvailable(null);
-      setUsernameError(null);
-      return;
-    }
     setIsCheckingUsername(true);
     try {
       const error = await userSyncService.validateUsername(name);

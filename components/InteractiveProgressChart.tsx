@@ -33,10 +33,8 @@ interface InteractiveProgressChartProps {
   selectedMetric: 'oneRM' | 'volume';
   weightUnit: 'lbs' | 'kg';
   predictionValue?: number; // If not provided, will be calculated internally
-  showPrediction?: boolean; // Enable/disable prediction point (default: true)
   title?: string;
   description?: string;
-  showTimePeriodSelector?: boolean;
 }
 
 interface DataPoint {
@@ -55,10 +53,8 @@ function InteractiveProgressChart({
   selectedMetric,
   weightUnit,
   predictionValue,
-  showPrediction = true,
   title = "One Rep Max Progression",
-  description = "Estimated from your workout sessions",
-  showTimePeriodSelector = true
+  description = "Estimated from your workout sessions"
 }: InteractiveProgressChartProps) {
   const { currentTheme } = useTheme();
   const [selectedPoint, setSelectedPoint] = useState<DataPoint | null>(null);
@@ -91,10 +87,10 @@ function InteractiveProgressChart({
     return deduplicateByDay(filtered);
   }, [data, timePeriod]);
 
-  // Calculate prediction if not provided and showPrediction is true
-  const effectivePrediction = useMemo(() => showPrediction
-    ? (predictionValue ?? calculateAveragePrediction(dedupedData))
-    : undefined, [showPrediction, predictionValue, dedupedData]);
+  // Calculate prediction if not provided
+  const effectivePrediction = useMemo(
+    () => predictionValue ?? calculateAveragePrediction(dedupedData),
+    [predictionValue, dedupedData]);
 
   // Blinking animation for prediction point
   useEffect(() => {
@@ -124,6 +120,28 @@ function InteractiveProgressChart({
     setSelectedPoint(null);
   }, [timePeriod]);
 
+  const renderTimePeriodSelector = () => (
+    <View style={styles.timePeriodSelector}>
+      {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
+        <TouchableOpacity
+          key={period}
+          style={[
+            styles.timePeriodButton,
+            timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
+          ]}
+          onPress={() => setTimePeriod(period)}
+        >
+          <Text style={[
+            styles.timePeriodText,
+            { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
+          ]}>
+            {period}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   if (data.length === 0) return null;
   if (dedupedData.length === 0) {
     // Show message if no data in selected period
@@ -132,27 +150,7 @@ function InteractiveProgressChart({
         <View style={styles.chartHeader}>
           <Text style={[styles.chartTitle, { color: currentTheme.colors.text }]}>{title}</Text>
         </View>
-        {showTimePeriodSelector && (
-          <View style={styles.timePeriodSelector}>
-            {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
-              <TouchableOpacity
-                key={period}
-                style={[
-                  styles.timePeriodButton,
-                  timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
-                ]}
-                onPress={() => setTimePeriod(period)}
-              >
-                <Text style={[
-                  styles.timePeriodText,
-                  { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
-                ]}>
-                  {period}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {renderTimePeriodSelector()}
         <View style={styles.noDataContainer}>
           <Text style={[styles.noDataText, { color: currentTheme.colors.text + '60' }]}>
             No data in this time period
@@ -259,19 +257,11 @@ function InteractiveProgressChart({
     setSelectedPoint(null);
   };
 
-  // Format date based on time span
-  const formatDateForSpan = (date: Date, spanDays: number) => {
-    if (spanDays <= 31) {
-      // Within a month: show "Jan 15"
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else if (spanDays <= 365) {
-      // Within a year: show "Jan 15"
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } else {
-      // Over a year: show "Jan '24"
-      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    }
-  };
+  // Format date based on time span: "Jan 15" within a year, "Jan '24" beyond.
+  const formatDateForSpan = (date: Date, spanDays: number) =>
+    spanDays <= 365
+      ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
   // Get x-axis labels - show multiple dates across the time range
   const getXAxisLabels = () => {
@@ -314,27 +304,7 @@ function InteractiveProgressChart({
         </View>
 
         {/* Time Period Selector */}
-        {showTimePeriodSelector && (
-          <View style={styles.timePeriodSelector}>
-            {(['1M', '3M', '6M', '1Y', 'ALL'] as TimePeriod[]).map((period) => (
-              <TouchableOpacity
-                key={period}
-                style={[
-                  styles.timePeriodButton,
-                  timePeriod === period && { backgroundColor: currentTheme.colors.primary + '20' }
-                ]}
-                onPress={() => setTimePeriod(period)}
-              >
-                <Text style={[
-                  styles.timePeriodText,
-                  { color: timePeriod === period ? currentTheme.colors.primary : currentTheme.colors.text + '60' }
-                ]}>
-                  {period}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        {renderTimePeriodSelector()}
 
         <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
           {/* Y-axis labels */}

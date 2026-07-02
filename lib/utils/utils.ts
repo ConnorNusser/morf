@@ -47,11 +47,8 @@ export const calculateOverallPercentile = (liftPercentiles: number[]): number =>
 };
 
 // Format volume with unit conversion (volume is stored in lbs)
-export const formatVolume = (volumeLbs: number, unit: WeightUnit): string => {
-  const volume = unit === 'kg' ? volumeLbs / 2.205 : volumeLbs;
-  const formatted = volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
-  return `${formatted} ${unit}`;
-};
+export const formatVolume = (volumeLbs: number, unit: WeightUnit): string =>
+  `${formatVolumeNumber(volumeLbs, unit)} ${unit}`;
 
 // Format volume number only (no unit suffix)
 export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string => {
@@ -74,6 +71,17 @@ export const formatCompact = (value: number, opts: { suffix?: string; millions?:
 /** Local-date key "YYYY-MM-DD" (not UTC) — used as a per-day bucketing key. */
 export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Day-key strings (see dateKey) → ascending epoch-ms at local midnight. Shared by
+// the streak/comeback-gap walks that need trained days in chronological order.
+export function sortedDayTimestamps(keys: Iterable<string>): number[] {
+  return [...keys]
+    .map(k => {
+      const [y, m, d] = k.split('-').map(Number);
+      return new Date(y, m - 1, d).getTime();
+    })
+    .sort((a, b) => a - b);
 }
 
 /**
@@ -261,17 +269,6 @@ export const formatSet = (
 };
 
 /**
- * Format a set for compact display (used in feed, cards)
- * Always uses compact format: "135×8", "20:00", "1:30 · 5km"
- */
-const formatSetCompact = (
-  set: SetFormatData,
-  trackingType: TrackingType = 'reps'
-): string => {
-  return formatSet(set, { trackingType, compact: true, showUnit: false });
-};
-
-/**
  * Format best set string for syncing to database/feed
  * Used by userSyncService when creating workout summaries
  */
@@ -279,7 +276,7 @@ export const formatBestSet = (
   set: SetFormatData,
   trackingType: TrackingType = 'reps'
 ): string => {
-  return formatSetCompact(set, trackingType);
+  return formatSet(set, { trackingType, compact: true, showUnit: false });
 };
 
 // ===== WORKOUT STATS UTILITIES =====

@@ -31,31 +31,5 @@ export function useSound(soundName: SoundName) {
     }
   };
 
-  const pause = () => {
-    try {
-      if (player) {
-        player.pause();
-      }
-    } catch (error) {
-      console.warn(`Failed to pause sound "${soundName}":`, error);
-    }
-  };
-
-  const stop = () => {
-    try {
-      if (player) {
-        player.pause();
-        player.seekTo(0);
-      }
-    } catch (error) {
-      console.warn(`Failed to stop sound "${soundName}":`, error);
-    }
-  };
-
-  return {
-    play,
-    pause,
-    stop,
-    player,
-  };
+  return { play };
 }

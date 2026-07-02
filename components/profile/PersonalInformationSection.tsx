@@ -14,12 +14,10 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface PersonalInformationSectionProps {
   userProfile: UserProfile | null;
-  onProfileUpdate: () => Promise<void>;
 }
 
 export default function PersonalInformationSection({
-  userProfile,
-  onProfileUpdate: _onProfileUpdate
+  userProfile
 }: PersonalInformationSectionProps) {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();

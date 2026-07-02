@@ -94,7 +94,7 @@ export const calculateAllPredictions = (data: UserProgress[]): Record<string, nu
   if (data.length === 0) return {};
 
   const predictions: Record<string, number> = {};
-  const timeframes = [30, 90, 180, 365]; // 1M, 3M, 6M, 1Y
+  const timeframes = [90, 365]; // 3M, 1Y
 
   predictionModels.forEach(model => {
     timeframes.forEach(days => {

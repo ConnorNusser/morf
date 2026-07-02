@@ -18,15 +18,12 @@ const DONE_GREEN = '#34C759';
 interface EditableWorkoutProps {
   draft: WorkoutDraft;
   weightUnit: WeightUnit;
-  onEditSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
   onEditField: (key: string, index: number, field: 'weight' | 'reps') => void;
   activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
   onAddSet: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
   onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
-  onAcceptAutofill: (key: string, source: 'previous' | 'target') => void;
-  onDismissAutofill: (key: string) => void;
   // Fired when the user starts dragging the list — used to collapse the composer.
   onScrollBeginDrag?: () => void;
 }
@@ -54,7 +51,7 @@ function NumberField({ value, active, onPress, theme }: {
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill }: {
+function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise }: {
   exercise: DraftExercise;
 } & Omit<EditableWorkoutProps, 'draft' | 'weightUnit'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
@@ -98,9 +95,7 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
         <RNView style={styles.removeCol} />
       </RNView>
 
-      {(
-        <>
-          {exercise.sets.map((set, i) => {
+      {exercise.sets.map((set, i) => {
             const ref = activeRef?.[i];
             return (
               <RNView
@@ -146,13 +141,11 @@ function ExerciseSection({ exercise, weightUnit, onEditSet, onEditField, activeF
             <Ionicons name="add" size={15} color={currentTheme.colors.primary} />
             <Text style={[styles.addSetText, { color: currentTheme.colors.primary }]}>Add set</Text>
           </TouchableOpacity>
-        </>
-      )}
     </RNView>
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onAcceptAutofill, onDismissAutofill, onScrollBeginDrag }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onScrollBeginDrag }: EditableWorkoutProps) {
   const { currentTheme } = useTheme();
   if (draft.length === 0) return null;
 
@@ -171,15 +164,12 @@ export default function EditableWorkout({ draft, weightUnit, onEditSet, onEditFi
           key={ex.key}
           exercise={ex}
           weightUnit={weightUnit}
-          onEditSet={onEditSet}
           onEditField={onEditField}
           activeField={activeField}
           onAddSet={onAddSet}
           onRemoveSet={onRemoveSet}
           onToggleDone={onToggleDone}
           onRemoveExercise={onRemoveExercise}
-          onAcceptAutofill={onAcceptAutofill}
-          onDismissAutofill={onDismissAutofill}
         />
       ))}
     </ScrollView>

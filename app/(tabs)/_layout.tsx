@@ -115,19 +115,10 @@ function AnimatedTabBar(props: BottomTabBarProps) {
 }
 
 function TabsContent() {
-  const { currentTheme } = useTheme();
-
   return (
     <Tabs
       tabBar={(props) => <AnimatedTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: currentTheme.colors.primary,
-        tabBarInactiveTintColor: '#8E8E93',
-        tabBarShowLabel: false,
-        headerStyle: {
-          backgroundColor: currentTheme.colors.background,
-        },
-        headerTintColor: currentTheme.colors.primary,
         headerShown: false,
       }}>
       <Tabs.Screen

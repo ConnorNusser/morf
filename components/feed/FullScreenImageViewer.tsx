@@ -16,9 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
-  withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { Text } from '@/components/Themed';
 import playHapticFeedback from '@/lib/utils/haptic';

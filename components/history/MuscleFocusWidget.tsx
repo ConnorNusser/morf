@@ -12,7 +12,6 @@ interface MuscleFocusWidgetProps {
 export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
   const { currentTheme } = useTheme();
   const [muscles, setMuscles] = useState<MuscleDistribution[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const loadMuscleData = useCallback(async () => {
     try {
@@ -20,8 +19,6 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
       setMuscles(stats.muscleGroupDistribution.slice(0, 4));
     } catch (error) {
       console.error('Error loading muscle data:', error);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
@@ -34,7 +31,7 @@ export default function MuscleFocusWidget({ onPress }: MuscleFocusWidgetProps) {
     }, [loadMuscleData])
   );
 
-  if (loading || muscles.length === 0) {
+  if (muscles.length === 0) {
     return null;
   }
 

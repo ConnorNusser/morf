@@ -339,8 +339,8 @@ export default function WeeklyOverviewModal({
     </View>
   );
 
-  const Bar = ({ pct, color, track }: { pct: number; color: string; track?: boolean }) => (
-    <View style={[styles.barTrack, track !== false && { backgroundColor: c.border }]}>
+  const Bar = ({ pct, color }: { pct: number; color: string }) => (
+    <View style={[styles.barTrack, { backgroundColor: c.border }]}>
       <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, pct))}%`, backgroundColor: color }]} />
     </View>
   );

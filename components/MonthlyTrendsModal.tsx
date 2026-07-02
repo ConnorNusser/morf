@@ -279,9 +279,9 @@ export default function MonthlyTrendsModal({
                 const isCurrentMonth = pageOffset === 0 && index === currentMonthlyData.length - 1;
 
                 // Calculate stacked heights
-                const pushHeight = total > 0 ? (month.pplCounts.push / maxPPLTotal) * maxHeight : 0;
-                const pullHeight = total > 0 ? (month.pplCounts.pull / maxPPLTotal) * maxHeight : 0;
-                const legsHeight = total > 0 ? (month.pplCounts.legs / maxPPLTotal) * maxHeight : 0;
+                const pushHeight = (month.pplCounts.push / maxPPLTotal) * maxHeight;
+                const pullHeight = (month.pplCounts.pull / maxPPLTotal) * maxHeight;
+                const legsHeight = (month.pplCounts.legs / maxPPLTotal) * maxHeight;
 
                 return (
                   <View key={index} style={styles.barColumn}>

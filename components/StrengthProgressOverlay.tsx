@@ -55,7 +55,6 @@ const ProgressiveTierWithGlow = ({
       const startTime = Date.now();
       let lastTier = getStrengthTier(from);
       let hasShownRankUp = false;
-      let tierChangeCount = 0;
 
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
@@ -67,7 +66,6 @@ const ProgressiveTierWithGlow = ({
 
         // Update tier if it changed
         if (tier !== lastTier) {
-          tierChangeCount++;
           setCurrentTier(tier);
           setCurrentColor(getTierColor(tier));
           // Show RANK UP on first tier change

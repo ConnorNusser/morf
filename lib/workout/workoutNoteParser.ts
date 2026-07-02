@@ -110,14 +110,6 @@ class WorkoutNoteParser {
   }
 
   /**
-   * Get all available exercise names for AI context
-   */
-  getAllExerciseNames(): string[] {
-    const dbExercises = getAvailableWorkouts(100).map(e => e.name);
-    return dbExercises;
-  }
-
-  /**
    * Match exercise name to ID using algorithmic approach
    *
    * The AI returns exercise names in format "Exercise Name (Equipment)"
@@ -166,6 +158,14 @@ class WorkoutNoteParser {
       // Match exercises using algorithmic approach
       const exercises: ParsedExercise[] = [];
 
+      const mapSet = (s: { weight: number; reps: number; unit: string; duration?: number; distance?: number }) => ({
+        weight: s.weight,
+        reps: s.reps,
+        unit: s.unit as WeightUnit,
+        duration: s.duration,
+        distance: s.distance,
+      });
+
       for (const ex of response.exercises) {
         // Try to match the exercise name to an existing ID
         const match = this.matchExercise(ex.name);
@@ -175,20 +175,8 @@ class WorkoutNoteParser {
           matchedExerciseId: match?.id,
           isCustom: match ? match.isCustom : true,
           trackingType: ex.trackingType,
-          sets: (ex.sets || []).map(s => ({
-            weight: s.weight,
-            reps: s.reps,
-            unit: s.unit as WeightUnit,
-            duration: s.duration,
-            distance: s.distance,
-          })),
-          targetSets: ex.targetSets?.map(s => ({
-            weight: s.weight,
-            reps: s.reps,
-            unit: s.unit as WeightUnit,
-            duration: s.duration,
-            distance: s.distance,
-          })),
+          sets: (ex.sets || []).map(mapSet),
+          targetSets: ex.targetSets?.map(mapSet),
         });
       }
 
