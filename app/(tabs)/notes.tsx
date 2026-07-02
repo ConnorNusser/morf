@@ -1,6 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import { getProgressionColor } from '@/lib/utils/utils';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
@@ -16,7 +16,7 @@ import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
-import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -60,7 +60,6 @@ export default function NotesScreen() {
 
   // Routines state
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   // Global per-exercise records — the anchor every routine's prescription uses.
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
@@ -111,7 +110,6 @@ export default function NotesScreen() {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
-      setWorkoutHistory(history);
       setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading data:', error);
@@ -872,7 +870,6 @@ export default function NotesScreen() {
           setShowRoutineProgress(false);
           loadData(); // Refresh data in case changes were made
         }}
-        onDataChanged={loadData}
       />
 
       {/* Rename Program Modal */}

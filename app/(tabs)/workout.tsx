@@ -70,8 +70,7 @@ export default function WorkoutScreen() {
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,
-    acceptAutofill,
-    dismissAutofill,
+
     noteText,
     elapsedTime,
     formatTime,

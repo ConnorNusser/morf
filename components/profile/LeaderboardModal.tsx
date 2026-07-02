@@ -2,7 +2,6 @@ import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/contexts/UserContext';
 import { getCountryFlag, geoService } from '@/lib/services/geoService';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { supabase } from '@/lib/services/supabase';

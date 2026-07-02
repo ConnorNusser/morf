@@ -25,7 +25,6 @@ import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
 interface RoutineProgressModalProps {
   visible: boolean;
   onClose: () => void;
-  onDataChanged?: () => void;
 }
 
 type ExerciseStatus = 'improving' | 'stable' | 'declining' | 'new';
@@ -70,7 +69,6 @@ interface RoutineProgress {
 export default function RoutineProgressModal({
   visible,
   onClose,
-  onDataChanged,
 }: RoutineProgressModalProps) {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();

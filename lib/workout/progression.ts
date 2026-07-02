@@ -146,18 +146,6 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   return { weight: workingWeight, reps, unit: atWeight[0].unit };
 }
 
-/**
- * Convenience wrapper: resolve the increment from the exercise and apply the rule.
- * `range` defaults to the programmed reps as the floor and floor+2 as the ceiling.
- */
-export function advanceExercise(
-  exerciseId: string,
-  last: LastPerformance,
-  programmedReps: number
-): NextPrescription {
-  const range: RepRange = { floor: programmedReps, ceiling: programmedReps + 2 };
-  return nextPrescription(last, range, loadIncrement(exerciseId, last.unit));
-}
 
 // ---- per-exercise records (the global "where you're at" per movement) ----
 

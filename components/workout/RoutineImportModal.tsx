@@ -1,11 +1,11 @@
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import { getProgressionColor } from '@/lib/utils/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
-import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -67,7 +67,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
@@ -97,7 +96,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
-      setWorkoutHistory(history);
       setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading routines:', error);

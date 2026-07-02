@@ -3,7 +3,7 @@
  * Creates workout routines based on proven program methodologies
  */
 
-import { CustomExercise, Equipment, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile, WeightUnit, convertWeight } from '@/types';
+import { CustomExercise, Equipment, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -16,7 +16,7 @@ import { TrainingGoal } from './splitTemplates';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
-import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
 import { classifyEquipment } from '@/lib/workout/equipmentProfile';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
@@ -164,9 +164,6 @@ class AIRoutineGeneratorService {
   ): Promise<Routine[]> {
     const routines: Routine[] = [];
     const customExercises = await storageService.getCustomExercises();
-    const workoutHistory = await storageService.getWorkoutHistory();
-    const userProfile = await userService.getRealUserProfile();
-    const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
     const excludedIds = new Set(options?.excludedExerciseIds || []);
 
     for (const day of program.routines) {
