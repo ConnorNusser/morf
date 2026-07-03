@@ -6,7 +6,8 @@
     "kgUnit": 3,
     "prHeavy": 4.2,
     "sparse": 4.2,
-    "dense": 4.4
+    "dense": 4.4,
+    "lapsed": 4.6
   },
   "iterations": [
     {
@@ -71,6 +72,21 @@
         "judgeAggregate": 4.4
       },
       "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 137 }
+    },
+    {
+      "n": 4,
+      "target": { "scenario": "lapsed", "dimension": "Actionability" },
+      "winner": {
+        "strategy": "Add pure, RN-free, clock-injectable lib/history/activityStatus.ts (mirrors prRecency.ts): computeActivityStatus(exerciseStats, now) scans all history dates for the most-recent session and returns { lastWorkoutDate, daysSinceLastWorkout, isLapsed } gated at LAPSED_MIN_DAYS=14. HistoryHero computes activity from the exerciseStats prop it already has and inserts a comeback branch — PRIORITY over the nearestLift 'N of 3 sessions' beginner nudge — that renders 'Welcome back · last trained N days ago' + a 'Start a workout' CTA (routes to /workout) instead of a demoralizing unlock nudge for a returning veteran. ACTIVITY_GOLDENS + new correctness.test.ts describe assert the live-clock logic against REFERENCE_NOW.",
+        "files": [
+          "lib/history/activityStatus.ts",
+          "components/history/HistoryHero.tsx",
+          "history-eval/goldens.ts",
+          "history-eval/__tests__/correctness.test.ts"
+        ],
+        "judgeAggregate": 4.6
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 143 }
     }
   ]
 }

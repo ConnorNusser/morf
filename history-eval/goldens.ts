@@ -110,3 +110,22 @@ export const PR_RECENCY_GOLDENS: Record<
   // single: one bench day → first-ever day excluded → 0 PRs → absent from the map (null).
   single: { exerciseId: 'bench-press-barbell', daysSincePR: null, sessionsSincePR: null, isPlateau: false },
 };
+
+/**
+ * Activity freshness from computeActivityStatus(exerciseStats, REFERENCE_NOW) — the
+ * clock-injectable "how long since you last trained" signal that flips the hero from a
+ * beginner "1 of 3 sessions" nudge to a comeback prompt. daysSinceLastWorkout is the whole
+ * days from the MOST-RECENT logged history entry to REFERENCE_NOW; lapse gate = >= 14 days.
+ * Hand-computed from the fixtures:
+ *   lapsed: last session = squat daysAgo(45) → 45 days ; 45 >= 14 ⇒ lapsed (the fact the
+ *     old page buried under "1 of 3 sessions logged").
+ *   single: bench+ohp daysAgo(0) → 0 days ; not lapsed.
+ *   sparse: last squat daysAgo(5) → 5 days ; not lapsed.
+ *   dense: last bench = daysAgo(150 - 149) = daysAgo(1) → 1 day ; not lapsed.
+ */
+export const ACTIVITY_GOLDENS: Record<string, { daysSinceLastWorkout: number; isLapsed: boolean }> = {
+  lapsed: { daysSinceLastWorkout: 45, isLapsed: true },
+  single: { daysSinceLastWorkout: 0, isLapsed: false },
+  sparse: { daysSinceLastWorkout: 5, isLapsed: false },
+  dense: { daysSinceLastWorkout: 1, isLapsed: false },
+};

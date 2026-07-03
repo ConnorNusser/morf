@@ -16,8 +16,9 @@ import { buildPRDays } from '@/components/history/prSessions';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { computePRRecency } from '@/lib/history/prRecency';
+import { computeActivityStatus } from '@/lib/history/activityStatus';
 import { SCENARIOS, scenarioByKey, REFERENCE_NOW, daysAgo } from '../fixtures';
-import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS, PR_RECENCY_GOLDENS } from '../goldens';
+import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS, PR_RECENCY_GOLDENS, ACTIVITY_GOLDENS } from '../goldens';
 import { ExerciseWithMax, ExerciseHistoryEntry } from '@/types';
 
 // calculateRecapStats reads storage/profile — mock them per-fixture (see below).
@@ -228,6 +229,31 @@ describe('correctness gate — PR recency (clock-injectable plateau signal)', ()
   it('every scenario derives PR recency without throwing (corrupt/empty safe)', () => {
     for (const sc of SCENARIOS) {
       expect(() => computePRRecency(fixtureExerciseStats(sc.key), REFERENCE_NOW)).not.toThrow();
+    }
+  });
+});
+
+describe('correctness gate — activity status (clock-injectable comeback signal)', () => {
+  for (const [key, golden] of Object.entries(ACTIVITY_GOLDENS)) {
+    it(`${key}: daysSinceLastWorkout=${golden.daysSinceLastWorkout} lapsed=${golden.isLapsed}`, () => {
+      const status = computeActivityStatus(fixtureExerciseStats(key), REFERENCE_NOW);
+      expect(status.daysSinceLastWorkout).toBe(golden.daysSinceLastWorkout);
+      expect(status.isLapsed).toBe(golden.isLapsed);
+      // lastWorkoutDate must round-trip back to daysSinceLastWorkout whole days before now.
+      expect(status.lastWorkoutDate?.getTime()).toBe(daysAgo(golden.daysSinceLastWorkout).getTime());
+    });
+  }
+
+  it('empty history has no activity signal (never falsely lapses a new user)', () => {
+    const status = computeActivityStatus(fixtureExerciseStats('empty'), REFERENCE_NOW);
+    expect(status.lastWorkoutDate).toBeNull();
+    expect(status.daysSinceLastWorkout).toBeNull();
+    expect(status.isLapsed).toBe(false);
+  });
+
+  it('every scenario derives activity status without throwing (corrupt/empty safe)', () => {
+    for (const sc of SCENARIOS) {
+      expect(() => computeActivityStatus(fixtureExerciseStats(sc.key), REFERENCE_NOW)).not.toThrow();
     }
   });
 });

@@ -3,8 +3,11 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { buildLiftSeries, MIN_SESSIONS, N, nearestLift } from '@/components/history/liftSeries';
 import { computePRRecency, PRRecency } from '@/lib/history/prRecency';
+import { computeActivityStatus } from '@/lib/history/activityStatus';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, StyleSheet, View as RNView } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -62,11 +65,18 @@ function morphPath(from: number[], to: number[], prog: number, x0: number, dx: n
 export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroProps) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
+  const router = useRouter();
 
   const lifts = useMemo(() => buildLiftSeries(exerciseStats, weightUnit), [exerciseStats, weightUnit]);
   // When nothing qualifies yet, surface the lift closest to the 3-session gate so the
   // empty state is a concrete goal instead of a generic nudge.
   const nearest = useMemo(() => (lifts.length ? null : nearestLift(exerciseStats)), [lifts.length, exerciseStats]);
+
+  // Freshness signal: a lapsed veteran (trained, then went quiet for weeks) has no per-lift
+  // curve to draw, so without this the hero shows the same beginner "1 of 3 sessions" nudge
+  // as a brand-new user. Surface "welcome back · last trained N days ago" + a restart CTA
+  // instead — given PRIORITY over the nearestLift branch below.
+  const activity = useMemo(() => computeActivityStatus(exerciseStats, new Date()), [exerciseStats]);
 
   // PR recency keyed by lift NAME (LiftSeries carries name, not id), so the active lift
   // can flip its celebratory "+gain all-time" caption to an honest "plateau · N weeks
@@ -232,6 +242,24 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
           </Animated.View>
           </RNView>
         </GestureDetector>
+      ) : activity.isLapsed && activity.daysSinceLastWorkout !== null ? (
+        <RNView style={styles.empty}>
+          <Text style={[styles.comebackTitle, { color: colors.text, fontFamily: fonts.bold }]}>
+            Welcome back
+          </Text>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+            Last trained {activity.daysSinceLastWorkout} day{activity.daysSinceLastWorkout !== 1 ? 's' : ''} ago ·
+            pick up where you left off.
+          </Text>
+          <TouchableOpacity
+            style={[styles.comebackCta, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/workout')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="barbell" size={16} color="#fff" />
+            <Text style={[styles.comebackCtaText, { fontFamily: fonts.semiBold }]}>Start a workout</Text>
+          </TouchableOpacity>
+        </RNView>
       ) : nearest ? (
         <RNView style={styles.empty}>
           {/* progress toward unlocking the curve — one filled pip per logged day */}
@@ -305,4 +333,15 @@ const styles = StyleSheet.create({
   emptyLift: { fontSize: 16, letterSpacing: -0.2, marginBottom: 3 },
   pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   pip: { width: 22, height: 5, borderRadius: 2.5 },
+  comebackTitle: { fontSize: 20, letterSpacing: -0.4, marginBottom: 6 },
+  comebackCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 22,
+    marginTop: 16,
+  },
+  comebackCtaText: { color: '#fff', fontSize: 15 },
 });
