@@ -10,7 +10,7 @@ export const meta = {
 }
 
 // ── config ───────────────────────────────────────────────────────────────────
-const REPO = '/Users/connor/repo/morph-worktrees/history-eval'
+const REPO = '/Users/connor/repo/morph'
 const NODE_MODULES = '/Users/connor/repo/morph/node_modules'
 const MAX = (args && args.maxIterations) || 100
 const PLATEAU_STOP = (args && args.plateauStop) || 3
