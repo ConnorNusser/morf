@@ -3,6 +3,7 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
+import TopMovers from '@/components/history/TopMovers';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -354,6 +355,21 @@ export default function HistoryScreen() {
                   </Text>
                 )}
               </View>
+            )}
+
+            {/* Your Movers — the per-lift trajectory answer ("how is THIS lift progressing?")
+                placed directly under the Strength Index hero, so the hub reads portfolio-value
+                (hero) -> your movers (per-lift) -> volume (This Week) -> recent sessions,
+                mirroring Robinhood's holdings-under-hero layout. Renders nothing until a lift
+                is actually moving, so the summary-first density is preserved. Tapping a row
+                opens that lift's history; "See all" jumps to the full Exercises list. */}
+            {workouts.length > 0 && (
+              <TopMovers
+                exercises={trackedExercises}
+                weightUnit={weightUnit}
+                onSelect={setSelectedExercise}
+                onSeeAll={() => setActiveTab('exercises')}
+              />
             )}
 
             {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
