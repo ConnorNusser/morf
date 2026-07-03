@@ -9,7 +9,6 @@ import {
   N,
   nearestLift,
 } from '@/components/history/liftSeries';
-import { getPercentileColor } from '@/lib/data/strengthStandards';
 import { computeActivityStatus } from '@/lib/history/activityStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -51,6 +50,29 @@ const TIMEFRAMES: { key: IndexTimeframe; label: string }[] = [
 function fmtMonth(d: Date) {
   const date = new Date(d);
   return `${date.toLocaleDateString(undefined, { month: 'short' })} '${String(date.getFullYear()).slice(-2)}`;
+}
+
+// Ordinal suffix for a percentile rank (1st, 2nd, 3rd, 45th) so the headline reads as
+// a rank, not a raw percent — keeping the value and its delta on one shared scale.
+function ordinal(n: number) {
+  const v = n % 100;
+  if (v >= 11 && v <= 13) return 'th';
+  switch (n % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+// Plain-language training level for the same percentile — replaces the gamified
+// letter-grade tier chip. Descriptive, not a graded badge, and rendered in muted text.
+function strengthLevel(p: number) {
+  if (p >= 85) return 'Elite';
+  if (p >= 50) return 'Advanced';
+  if (p >= 25) return 'Intermediate';
+  if (p >= 10) return 'Novice';
+  return 'Beginner';
 }
 
 interface HistoryHeroProps {
@@ -173,7 +195,6 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
   const areaProps = useAnimatedProps(() => ({ d: morphPath(fromPoints.value, toPoints.value, progress.value, X0, DX, true) }));
 
   const deltaColor = index && index.delta >= 0 ? UP : DOWN;
-  const tierColor = index ? getPercentileColor(index.current) : colors.primary;
 
   const chart = (
     <>
@@ -224,21 +245,27 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
         <RNView>
           <RNView style={styles.headerTop}>
             <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength Index</Text>
-            <RNView style={[styles.tierChip, { backgroundColor: tierColor + '1F' }]}>
-              <Text style={[styles.tierChipText, { color: tierColor, fontFamily: fonts.bold }]}>{index.tier}</Text>
-            </RNView>
+            <Text style={[styles.levelWord, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              {strengthLevel(index.current)}
+            </Text>
           </RNView>
 
+          {/* One number, one unit (percentile), one green/red direction. The value is a
+              bounded 0–99 rank and the delta is the change in that SAME rank over the
+              selected timeframe — both in percentile points, so the delta reads as
+              unambiguous personal progress, not a shift between two different units. */}
           <RNView style={styles.titleRow}>
             <RNView style={styles.valueRow}>
               <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
                 {index.current}
-                <Text style={[styles.valueUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}> pct</Text>
+                <Text style={[styles.valueUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+                  {ordinal(index.current)} percentile
+                </Text>
               </Text>
               <RNView style={[styles.deltaChip, { backgroundColor: deltaColor + '1A' }]}>
                 <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={13} color={deltaColor} />
                 <Text style={[styles.deltaText, { color: deltaColor, fontFamily: fonts.semiBold }]}>
-                  {Math.abs(index.delta)} pts
+                  {Math.abs(index.delta)} pctile
                 </Text>
               </RNView>
             </RNView>
@@ -282,7 +309,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
 
           <Animated.View key={`cap-${timeframe}`} entering={FadeIn.delay(120).duration(360)}>
             <Text style={[styles.caption, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-              Percentile across {index.liftCount} lift{index.liftCount !== 1 ? 's' : ''} vs bodyweight standards
+              Across {index.liftCount} lift{index.liftCount !== 1 ? 's' : ''} vs bodyweight standards for your weight
             </Text>
           </Animated.View>
 
@@ -419,8 +446,7 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 13, letterSpacing: 0.2 },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
-  tierChip: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10 },
-  tierChipText: { fontSize: 12, letterSpacing: 0.3 },
+  levelWord: { fontSize: 13, letterSpacing: 0.2 },
   titleRow: { height: 42, justifyContent: 'center' },
   titleSwap: {
     ...StyleSheet.absoluteFillObject,
@@ -433,7 +459,7 @@ const styles = StyleSheet.create({
   gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
   valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   value: { fontSize: 34, letterSpacing: -0.8 },
-  valueUnit: { fontSize: 14, letterSpacing: 0 },
+  valueUnit: { fontSize: 13, letterSpacing: 0 },
   deltaChip: {
     flexDirection: 'row',
     alignItems: 'center',

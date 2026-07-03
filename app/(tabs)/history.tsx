@@ -218,26 +218,12 @@ export default function HistoryScreen() {
       }
     }
 
-    // Total volume this week (converted to user's preferred unit)
-    let weekVolume = 0;
-    thisWeekWorkouts.forEach(workout => {
-      workout.exercises.forEach(ex => {
-        ex.completedSets?.forEach(set => {
-          // Default to 'lbs' for legacy data without unit field
-          const setUnit = set.unit || 'lbs';
-          const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
-          weekVolume += weightInPreferredUnit * set.reps;
-        });
-      });
-    });
-
     return {
       streak,
       thisWeek: thisWeekWorkouts.length,
       thisMonth: thisMonthWorkouts.length,
-      weekVolume: Math.round(weekVolume),
     };
-  }, [workouts, weightUnit]);
+  }, [workouts]);
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
@@ -374,14 +360,6 @@ export default function HistoryScreen() {
                     <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                       {quickStats.thisWeek} workout{quickStats.thisWeek !== 1 ? 's' : ''} this week
                     </Text>
-                    {quickStats.weekVolume > 0 && (
-                      <>
-                        <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
-                        <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                          {quickStats.weekVolume > 1000 ? `${(quickStats.weekVolume / 1000).toFixed(1)}k` : quickStats.weekVolume} {weightUnit}
-                        </Text>
-                      </>
-                    )}
                   </>
                 ) : (
                   <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
