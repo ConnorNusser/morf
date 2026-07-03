@@ -742,7 +742,7 @@ export default function HistoryScreen() {
       <WorkoutDetailModal
         workout={selectedWorkout}
         weightUnit={weightUnit}
-        exerciseStats={exerciseStats}
+        prDays={prDays}
         customExercises={customExercises}
         onClose={() => setSelectedWorkout(null)}
         onDelete={async (workout) => {

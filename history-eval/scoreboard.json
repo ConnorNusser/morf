@@ -87,6 +87,21 @@
         "judgeAggregate": 4.6
       },
       "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 143 }
+    },
+    {
+      "n": 5,
+      "target": { "scenario": "prHeavy", "dimension": "Correctness" },
+      "winner": {
+        "strategy": "Fix WorkoutDetailModal PR-badge correctness by deleting its divergent inline PR heuristic (bestFromWorkout.e1rm >= stat.estimated1RM, an all-time-max compare that only badged the single record-holder and false-fired on repeat-peak days) and reusing the one ratcheted PR definition. Added pure prExerciseIdsForWorkout(workout, prDays) in prSessions.ts (buildPRDays membership keyed by dayKeyOf(createdAt)) shared by card and modal; history.tsx passes prDays into the modal instead of exerciseStats; modal rebuilds prs from prExerciseIdsForWorkout and keys badges by exercise id, keeping getBestE1RM only for the e1RM display number. Golden block asserts modal PR set == buildPRDays membership per workout across every scenario.",
+        "files": [
+          "components/history/WorkoutDetailModal.tsx",
+          "components/history/prSessions.ts",
+          "app/(tabs)/history.tsx",
+          "history-eval/__tests__/correctness.test.ts"
+        ],
+        "judgeAggregate": 4.2
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 148 }
     }
   ]
 }

@@ -12,7 +12,7 @@
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { calculateRecapStats } from '@/lib/workout/recapStats';
-import { buildPRDays } from '@/components/history/prSessions';
+import { buildPRDays, prExerciseIdsForWorkout } from '@/components/history/prSessions';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { computePRRecency } from '@/lib/history/prRecency';
@@ -142,6 +142,69 @@ describe('correctness gate — PR days (new all-time best at time logged)', () =
   it('every scenario builds PR days without throwing (corrupt/empty safe)', () => {
     for (const sc of SCENARIOS) {
       expect(() => buildPRDays(fixtureExerciseStats(sc.key))).not.toThrow();
+    }
+  });
+});
+
+/**
+ * WorkoutDetailModal (the tap-through) and WorkoutCard (the list chip) must flag the
+ * SAME exercises as PRs for a given workout. Both now derive from the one ratcheted PR
+ * definition via prExerciseIdsForWorkout(workout, buildPRDays(...)), so a badge can
+ * never appear on the card and vanish in the modal. This closes the card/modal gap the
+ * modal's old stale `estimated1RM >= ...` heuristic opened (it badged only the single
+ * record-holding workout and false-fired on repeat-peak days).
+ */
+describe('correctness gate — modal PR badges == card chips == buildPRDays membership', () => {
+  it('for every workout in every scenario, the modal PR set equals buildPRDays for that day', () => {
+    for (const sc of SCENARIOS) {
+      const prDays = buildPRDays(fixtureExerciseStats(sc.key));
+      for (const w of sc.workouts) {
+        const dayKey = dayKeyOf(w.createdAt);
+        const expected = new Set(
+          w.exercises.filter(ex => prDays.get(ex.id)?.has(dayKey)).map(ex => ex.id)
+        );
+        const got = prExerciseIdsForWorkout(w, prDays);
+        expect([...got].sort()).toEqual([...expected].sort());
+      }
+    }
+  });
+
+  it('prHeavy: bench PR-badged on the 7 later sessions, NOT the earliest (daysAgo 56)', () => {
+    const prDays = buildPRDays(fixtureExerciseStats('prHeavy'));
+    const workouts = scenarioByKey('prHeavy').workouts; // i=0..7 at daysAgo(56 - i*7)
+    const flagged = workouts.map(w => prExerciseIdsForWorkout(w, prDays).has('bench-press-barbell'));
+    expect(flagged).toEqual([false, true, true, true, true, true, true, true]);
+    expect(flagged.filter(Boolean)).toHaveLength(7);
+    // The earliest day (daysAgo 56) has nothing prior to beat ⇒ no badge.
+    const earliest = workouts.find(w => dayKeyOf(w.createdAt) === dayKeyOf(daysAgo(56)))!;
+    expect(prExerciseIdsForWorkout(earliest, prDays).has('bench-press-barbell')).toBe(false);
+  });
+
+  it('dense: repeat-peak days (i=39, 59) get NO badge; the first peak (i=19) does', () => {
+    const prDays = buildPRDays(fixtureExerciseStats('dense'));
+    const workouts = scenarioByKey('dense').workouts; // i-th at daysAgo(150 - i)
+    const badgedAt = (i: number) =>
+      prExerciseIdsForWorkout(workouts[i], prDays).has('bench-press-barbell');
+    expect(badgedAt(19)).toBe(true);
+    expect(badgedAt(39)).toBe(false);
+    expect(badgedAt(59)).toBe(false);
+  });
+
+  it('single / kgUnit: the lone first-ever day shows no PR badge (nothing prior to beat)', () => {
+    for (const key of ['single', 'kgUnit']) {
+      const prDays = buildPRDays(fixtureExerciseStats(key));
+      for (const w of scenarioByKey(key).workouts) {
+        expect(prExerciseIdsForWorkout(w, prDays).size).toBe(0);
+      }
+    }
+  });
+
+  it('every scenario resolves modal PR ids without throwing (corrupt/empty safe)', () => {
+    for (const sc of SCENARIOS) {
+      const prDays = buildPRDays(fixtureExerciseStats(sc.key));
+      for (const w of sc.workouts) {
+        expect(() => prExerciseIdsForWorkout(w, prDays)).not.toThrow();
+      }
     }
   });
 });

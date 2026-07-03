@@ -1,4 +1,4 @@
-import { ExerciseWithMax } from '@/types';
+import { ExerciseWithMax, GeneratedWorkout } from '@/types';
 import { dayKeyOf, e1rmLbs } from './liftSeries';
 
 // Pure (no React / react-native) so the PR gate is unit-testable and shares the
@@ -48,4 +48,22 @@ export function buildPRDays(exerciseStats: ExerciseWithMax[]): Map<string, Set<s
   }
 
   return out;
+}
+
+// Which exercises in a SINGLE workout should show a PR badge: exactly those whose
+// training-day bucket set a new all-time best (buildPRDays membership for the
+// workout's calendar day). Shared by WorkoutCard AND WorkoutDetailModal so the card
+// chip and the modal badge are identical by construction — a PR can never appear on
+// one surface and vanish on the other (the old modal used a stale global-max `>=`
+// heuristic that only ever badged the single record-holding workout).
+export function prExerciseIdsForWorkout(
+  workout: Pick<GeneratedWorkout, 'exercises' | 'createdAt'>,
+  prDays: Map<string, Set<string>>,
+): Set<string> {
+  const dayKey = dayKeyOf(workout.createdAt);
+  const ids = new Set<string>();
+  for (const ex of workout.exercises) {
+    if (prDays.get(ex.id)?.has(dayKey)) ids.add(ex.id);
+  }
+  return ids;
 }
