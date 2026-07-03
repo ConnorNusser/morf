@@ -90,17 +90,6 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
   // Shared scale keeps bars comparable across muscles while each carries its own norm tick.
   const scaleMax = Math.max(1, ...rows.map(r => Math.max(r.sets, r.normSets)));
 
-  const toneColor = (tone: Tone): string => {
-    switch (tone) {
-      case 'ahead': return currentTheme.colors.accent;
-      case 'ontrack': return currentTheme.colors.primary;
-      case 'new': return currentTheme.colors.primary;
-      case 'below': return currentTheme.colors.text + 'B3';
-      case 'skipped': return RED;
-      default: return currentTheme.colors.text + '4D';
-    }
-  };
-
   const fillColor = (tone: Tone): string => {
     switch (tone) {
       case 'ahead': return currentTheme.colors.accent;
@@ -185,9 +174,6 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
                   )}
                 </View>
 
-                <Text style={[styles.verdict, { color: toneColor(verdict.tone), fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
-                  {verdict.label}
-                </Text>
               </TouchableOpacity>
             );
           })}
@@ -320,12 +306,6 @@ const styles = StyleSheet.create({
     bottom: -1,
     width: 2,
     borderRadius: 1,
-  },
-  verdict: {
-    fontSize: 11,
-    lineHeight: 15,
-    width: 62,
-    textAlign: 'right',
   },
   legendRow: {
     flexDirection: 'row',

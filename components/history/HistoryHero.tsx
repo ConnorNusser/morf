@@ -316,7 +316,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           {/* SECONDARY: top movers — the per-lift Q2 detail, demoted below the index */}
           {movers.length > 0 && (
             <RNView style={[styles.movers, { borderTopColor: colors.border }]}>
-              <Text style={[styles.moversLabel, { color: colors.text + '80', fontFamily: fonts.semiBold }]}>Top movers</Text>
+              <Text style={[styles.moversLabel, { color: colors.text + '80', fontFamily: fonts.semiBold }]}>Top movers · all-time est. 1RM</Text>
               {movers.map(m => (
                 <RNView key={m.name} style={styles.moverRow}>
                   <Text numberOfLines={1} style={[styles.moverName, { color: colors.text, fontFamily: fonts.medium }]}>

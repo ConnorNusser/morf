@@ -3,7 +3,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
 import { CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
@@ -12,6 +11,12 @@ import WeeklyOverviewModal from './WeeklyOverviewModal';
 
 // All trackable muscle groups
 const ALL_MUSCLE_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
+
+// The summary is deliberately scoped to the CURRENT week. Past weeks already live in the
+// hero's timeframe toggle (strength over time) and the Monthly Trends drill-down, so an
+// in-card week navigator would just add a second, redundant time control to a block whose
+// whole job is a one-glance "am I on track THIS week?" read.
+const CURRENT_WEEK = 0;
 
 // Completed ("hard") sets per muscle for a set of workouts — the standard hypertrophy
 // balance unit. Each completed set of an exercise counts once toward every primary
@@ -44,9 +49,6 @@ interface WeekData {
   workouts: GeneratedWorkout[];
   weekDays: {
     date: Date;
-    dayNumber: number;
-    dayLetter: string;
-    hasWorkout: boolean;
     dayWorkouts: GeneratedWorkout[];
   }[];
 }
@@ -55,22 +57,19 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   const { currentTheme } = useTheme();
   const { customExercises } = useCustomExercises();
 
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalInvocationType, setModalInvocationType] = useState<'day' | 'week' | 'volume' | 'time'>('day');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [modalInvocationType, setModalInvocationType] = useState<'week' | 'volume' | 'time'>('week');
   const [modalWorkouts, setModalWorkouts] = useState<GeneratedWorkout[]>([]);
-
 
   const getWeekData = (weekOffset: number = 0): WeekData => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
     const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Adjust to get Monday
-    
+
     const mondayOfWeek = new Date(today);
     mondayOfWeek.setDate(today.getDate() + mondayOffset + (weekOffset * 7));
     mondayOfWeek.setHours(0, 0, 0, 0);
-    
+
     const sundayOfWeek = new Date(mondayOfWeek);
     sundayOfWeek.setDate(mondayOfWeek.getDate() + 6);
     sundayOfWeek.setHours(23, 59, 59, 999);
@@ -81,24 +80,16 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     });
 
     const weekDays = [];
-    const dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-    
     for (let i = 0; i < 7; i++) {
       const date = new Date(mondayOfWeek);
       date.setDate(mondayOfWeek.getDate() + i);
-      
+
       const dayWorkouts = weekWorkouts.filter(workout => {
         const workoutDate = new Date(workout.createdAt);
         return workoutDate.toDateString() === date.toDateString();
       });
-      
-      weekDays.push({
-        date,
-        dayNumber: date.getDate(),
-        dayLetter: dayLetters[i],
-        hasWorkout: dayWorkouts.length > 0,
-        dayWorkouts,
-      });
+
+      weekDays.push({ date, dayWorkouts });
     }
 
     return {
@@ -110,7 +101,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, uses workoutHistory via closure
-  const weekData = useMemo(() => getWeekData(currentWeekOffset), [workoutHistory, currentWeekOffset]);
+  const weekData = useMemo(() => getWeekData(CURRENT_WEEK), [workoutHistory]);
 
   // Calculate muscle groups trained this week with exercise details
   const muscleGroupData = useMemo((): MuscleGroupData[] => {
@@ -152,7 +143,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0,
     };
     for (let i = 1; i <= BASELINE_WEEKS; i++) {
-      const wkSets = countSetsByMuscle(getWeekData(currentWeekOffset - i).workouts, customExercises);
+      const wkSets = countSetsByMuscle(getWeekData(CURRENT_WEEK - i).workouts, customExercises);
       (Object.keys(normAccum) as MuscleGroup[]).forEach(m => { normAccum[m] += wkSets[m]; });
     }
 
@@ -163,8 +154,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       normSets: normAccum[muscle] / BASELINE_WEEKS,
       exercises: Object.values(muscleMap[muscle].exercises),
     }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, keyed by workoutHistory + currentWeekOffset
-  }, [weekData.workouts, customExercises, currentWeekOffset, workoutHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, keyed by workoutHistory
+  }, [weekData.workouts, customExercises, workoutHistory]);
 
   // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
@@ -185,27 +176,25 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const volumeOf = (list: GeneratedWorkout[]) =>
       combineWorkoutStats(list.map(w => calculateWorkoutStats(w.exercises, getTrackingType))).totalVolumeLbs;
 
-    // 8-week volume trend ending at the viewed week — a shape, not a scalar. The current
+    // 8-week volume trend ending at the current week — a shape, not a scalar. The current
     // in-progress week is flagged so it can render ghosted instead of masquerading as a
     // finished bar.
     const TREND_WEEKS = 8;
     const volumeTrend: { volume: number; inProgress: boolean }[] = [];
     for (let i = TREND_WEEKS - 1; i >= 0; i--) {
-      const offset = currentWeekOffset - i;
+      const offset = CURRENT_WEEK - i;
       volumeTrend.push({ volume: volumeOf(getWeekData(offset).workouts), inProgress: offset === 0 });
     }
 
-    // Pace-aware WoW delta: an in-progress week is compared to the SAME elapsed slice of
+    // Pace-aware WoW delta: the in-progress week is compared to the SAME elapsed slice of
     // last week (Mon..today), not last week's finished total — so a Wednesday check-in
-    // stops firing a false red just because the week isn't over yet. Past weeks compare
-    // full-to-full.
-    const inProgress = currentWeekOffset === 0;
+    // stops firing a false red just because the week isn't over yet.
     const today = new Date();
     const todayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1; // Mon=0 .. Sun=6
-    const prevWeek = getWeekData(currentWeekOffset - 1);
+    const prevWeek = getWeekData(CURRENT_WEEK - 1);
     let prevPacedVolume = 0;
     prevWeek.weekDays.forEach((d, idx) => {
-      if (inProgress && idx > todayIdx) return;
+      if (idx > todayIdx) return;
       prevPacedVolume += volumeOf(d.dayWorkouts);
     });
     const volumeDeltaPct = prevPacedVolume > 0
@@ -220,7 +209,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       totalVolume: formatVolume(combinedStats.totalVolumeLbs),
       rawVolume: combinedStats.totalVolumeLbs,
       volumeDeltaPct,
-      volumeDeltaPaced: inProgress,
       volumeTrend,
       // Cardio stats
       hasCardio: combinedStats.hasCardioExercises,
@@ -237,26 +225,9 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     const endDay = endDate.getDate();
 
     if (startMonth === endMonth) {
-      return `${startMonth} ${startDay}-${endDay}`;
+      return `${startMonth} ${startDay}–${endDay}`;
     }
-    return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
-  };
-
-  const getDayBackgroundColor = (hasWorkout: boolean) => {
-    if (!hasWorkout) return 'transparent';
-    return currentTheme.colors.primary + '1A'; // 10% opacity
-  };
-
-  const getDayTextColor = (hasWorkout: boolean) => {
-    if (!hasWorkout) return currentTheme.colors.text + '4D'; // 30%
-    return currentTheme.colors.primary;
-  };
-
-  const handleDayPress = (day: WeekData['weekDays'][0]) => {
-    setSelectedDate(day.date);
-    setModalWorkouts(day.dayWorkouts);
-    setModalInvocationType('day');
-    setModalVisible(true);
+    return `${startMonth} ${startDay} – ${endMonth} ${endDay}`;
   };
 
   const handleWeekPress = () => {
@@ -279,12 +250,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
   const handleModalClose = () => {
     setModalVisible(false);
-    setSelectedDate(undefined);
     setModalWorkouts([]);
-  };
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    setCurrentWeekOffset(prev => direction === 'prev' ? prev - 1 : prev + 1);
   };
 
   // Muted for small moves (< 5%) so week-to-week noise never fires an alarm color; only
@@ -295,35 +261,26 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     : deltaPct > 0 ? '#34C759' : '#FF3B30';
   const deltaSign = deltaPct === null ? '' : deltaPct > 0 ? '+' : deltaPct < 0 ? '−' : '±';
 
-  // How far through the viewed week we are (1 for any past/completed week). Lets the
-  // muscle-balance panel compare an in-progress week against its pro-rated norm.
-  const paceFraction = currentWeekOffset === 0
-    ? (() => { const dow = new Date().getDay(); const idx = dow === 0 ? 6 : dow - 1; return (idx + 1) / 7; })()
-    : 1;
+  // How far through the current week we are, so the muscle-balance panel can compare an
+  // in-progress week against its pro-rated norm.
+  const paceFraction = (() => {
+    const dow = new Date().getDay();
+    const idx = dow === 0 ? 6 : dow - 1;
+    return (idx + 1) / 7;
+  })();
 
   return (
     <>
       <Card variant="elevated" style={styles.container}>
-        {/* Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
-            <Text style={[
-              styles.title,
-              {
-                color: currentTheme.colors.text,
-              }
-            ]}>
-              Weekly Overview
-            </Text>
-            <Text style={[
-              styles.dateRange,
-              {
-                color: currentTheme.colors.text + '99',
-              }
-            ]}>
-              {formatDateRange(weekData.startDate, weekData.endDate)}
-            </Text>
-          </View>
+        {/* One label for the whole block: "This Week" + its date range. The parent screen
+            no longer renders a separate section heading, so this card wears exactly one title. */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            This Week
+          </Text>
+          <Text style={[styles.dateRange, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+            {formatDateRange(weekData.startDate, weekData.endDate)}
+          </Text>
         </View>
 
         {/* Stats */}
@@ -365,55 +322,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Volume
             </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Week Days with navigation */}
-        <View style={styles.weekContainer}>
-          <TouchableOpacity
-            onPress={() => navigateWeek('prev')}
-            style={styles.navButton}
-            activeOpacity={0.6}
-          >
-            <Ionicons name="chevron-back" size={24} color={currentTheme.colors.text + '4D'} />
-          </TouchableOpacity>
-
-          <View style={styles.daysContainer}>
-            {weekData.weekDays.map((day, index) => (
-              <View key={index} style={styles.dayColumn}>
-                <TouchableOpacity
-                  onPress={() => handleDayPress(day)}
-                  style={[
-                    styles.dayButton,
-                    { backgroundColor: getDayBackgroundColor(day.hasWorkout) }
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.dayNumber,
-                    { color: getDayTextColor(day.hasWorkout) }
-                  ]}>
-                    {day.dayNumber}
-                  </Text>
-                </TouchableOpacity>
-                <Text style={[
-                  styles.dayLabel,
-                  {
-                    color: day.hasWorkout ? currentTheme.colors.text + '99' : currentTheme.colors.text + '4D',
-                  }
-                ]}>
-                  {day.dayLetter}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            onPress={() => navigateWeek('next')}
-            style={styles.navButton}
-            activeOpacity={0.6}
-          >
-            <Ionicons name="chevron-forward" size={24} color={currentTheme.colors.text + '4D'} />
           </TouchableOpacity>
         </View>
 
@@ -491,7 +399,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         onClose={handleModalClose}
         invocationType={modalInvocationType}
         workouts={modalWorkouts}
-        selectedDate={selectedDate}
         weekStartDate={weekData.startDate}
         weekEndDate={weekData.endDate}
       />
@@ -503,14 +410,11 @@ const styles = StyleSheet.create({
   container: {
     marginBottom: 8,
   },
-  headerContainer: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'baseline',
     marginBottom: 16,
-  },
-  header: {
-    flex: 1,
   },
   title: {
     fontSize: 17,
@@ -520,53 +424,7 @@ const styles = StyleSheet.create({
   dateRange: {
     fontSize: 13,
     lineHeight: 18,
-    marginTop: 2,
-  },
-  chevronIcon: {
-    marginLeft: 4,
-  },
-  weekContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  navButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spacer: {
-    width: 32,
-  },
-  daysContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  dayColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  dayButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 3,
-  },
-  dayNumber: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  dayLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'center',
+    letterSpacing: 0.2,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -628,4 +486,4 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-}); 
+});

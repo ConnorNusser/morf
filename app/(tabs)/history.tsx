@@ -371,13 +371,11 @@ export default function HistoryScreen() {
 
             {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
                 Strength Index hero so the screen reads summary-first instead of burying it
-                below the session log. One consolidated widget: WeeklyOverview already carries
-                muscle distribution, so the standalone MuscleFocusWidget stayed removed. */}
+                below the session log. WeeklyOverview owns its own "This Week · <range>"
+                header, so no section heading is stacked on top of the card title — the
+                block wears exactly one label. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  This Week
-                </Text>
                 <WeeklyOverview workoutHistory={workouts} />
               </View>
             )}
