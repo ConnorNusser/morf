@@ -35,10 +35,10 @@ const KNOWN = `Known standing weaknesses (from the judge dry-run), highest-weigh
 - Muscle Focus encoding is ambiguous and single-week; PR badges are over-applied.`
 
 const DIAGNOSE_SCHEMA = {
-  type: 'object', required: ['worthwhile', 'target', 'currentGap', 'rationale'],
+  type: 'object', required: ['worthwhile', 'target', 'currentScore', 'rationale'],
   properties: {
     worthwhile: { type: 'boolean' },
-    currentGap: { type: 'number', description: 'gap-to-north-star 0..1 of current screen (1=at Robinhood bar)' },
+    currentScore: { type: 'number', description: 'closeness to Robinhood north star 0..1 (1=at the bar, higher better)' },
     target: {
       type: 'object', required: ['question', 'problem', 'fixDirection'],
       properties: { question: { type: 'string' }, problem: { type: 'string' }, fixDirection: { type: 'string' } },
@@ -56,13 +56,15 @@ const CAND_SCHEMA = {
   },
 }
 const JUDGE_SCHEMA = {
-  type: 'object', required: ['verdict', 'magnitude', 'newProblems', 'gapAfter', 'perLensAgg', 'justification'],
+  type: 'object', required: ['verdict', 'magnitude', 'newProblems', 'northStarScore', 'perLensAgg', 'justification'],
   properties: {
     verdict: { type: 'string', enum: ['better', 'same', 'worse'] },
     magnitude: { type: 'string', enum: ['meaningful', 'marginal'] },
     newProblems: { type: 'array', items: { type: 'string' } },
-    gapAfter: { type: 'number', description: 'gap-to-north-star 0..1 AFTER this candidate' },
-    perLensAgg: { type: 'number', description: 'mean subjective aggregate 1..5 across the 3 lenses' },
+    // UNAMBIGUOUS DIRECTION: 1.0 = fully AT the Robinhood bar (best), 0.0 = far from it.
+    // Higher is always better. This is a secondary tiebreak; the pairwise verdict is authoritative.
+    northStarScore: { type: 'number', description: 'closeness to the Robinhood north star, 0..1 where 1.0 = at the bar (higher is better)' },
+    perLensAgg: { type: 'number', description: 'mean subjective aggregate 1..5 across the rubric dims' },
     justification: { type: 'string' },
   },
 }
@@ -109,9 +111,10 @@ for (let iter = 1; iter <= MAX && plateau < PLATEAU_STOP; iter++) {
     `This is a COLD diagnosis of the CURRENT screen (no candidate). Screenshots:
 - Workouts (full tab): ${CAP}/${curTag}-workouts-full.png
 - Exercises: ${CAP}/${curTag}-exercises.png
-Ignore verdict/magnitude/newProblems (no candidate). Set gapAfter = current gap-to-north-star (0..1),
-perLensAgg = your subjective aggregate 1..5, and in justification name the SINGLE highest-leverage
-weakness to fix next and a concrete fix direction citing files. ${KNOWN}`,
+Ignore verdict/magnitude/newProblems (no candidate). Set northStarScore = current closeness to the
+Robinhood bar (0..1, 1=at the bar, HIGHER IS BETTER), perLensAgg = your subjective aggregate 1..5, and
+in justification name the SINGLE highest-leverage weakness to fix next with a concrete fix direction
+citing files. ${KNOWN}`,
     `Iter ${iter} · Diagnose`, `diag${iter}`
   )
   const diag = await agent(
@@ -119,14 +122,14 @@ weakness to fix next and a concrete fix direction citing files. ${KNOWN}`,
 ${SURFACE}
 ${KNOWN}
 Lens justifications:
-${lensOuts.map((l, i) => `[lens ${i + 1}] gap=${l.gapAfter} agg=${l.perLensAgg}: ${l.justification}`).join('\n')}
+${lensOuts.map((l, i) => `[lens ${i + 1}] northStarScore=${l.northStarScore} agg=${l.perLensAgg}: ${l.justification}`).join('\n')}
 Pick the SINGLE highest-leverage weakness NOT already well-solved. Set worthwhile=false only if the
-screen is genuinely at the Robinhood bar (avg gap >= 0.85). Give a concrete fixDirection citing files.`,
+screen is genuinely at the Robinhood bar (avg northStarScore >= 0.85). Give a concrete fixDirection citing files.`,
     { schema: DIAGNOSE_SCHEMA, phase: `Iter ${iter} · Diagnose`, label: `synth${iter}` }
   )
-  const baseGap = lensOuts.reduce((s, l) => s + (l.gapAfter || 0), 0) / (lensOuts.length || 1)
-  if (!diag || !diag.worthwhile) { plateau++; ledger.push({ iter, result: 'plateau', baseGap }); log(`Iter ${iter}: at-bar / no worthwhile target (${plateau}/${PLATEAU_STOP}).`); continue }
-  log(`Iter ${iter}: target ${diag.target.question} — ${diag.target.problem.slice(0, 90)} (gap ${baseGap.toFixed(2)})`)
+  const baseScore = lensOuts.reduce((s, l) => s + (l.northStarScore || 0), 0) / (lensOuts.length || 1)
+  if (!diag || !diag.worthwhile) { plateau++; ledger.push({ iter, result: 'plateau', baseScore }); log(`Iter ${iter}: at-bar / no worthwhile target (${plateau}/${PLATEAU_STOP}).`); continue }
+  log(`Iter ${iter}: target ${diag.target.question} — ${diag.target.problem.slice(0, 90)} (score ${baseScore.toFixed(2)})`)
 
   // ---- Propose & Render (isolated worktrees, unique ports) ----
   phase(`Iter ${iter} · Propose & Render`)
@@ -146,6 +149,11 @@ You are in an ISOLATED git worktree copy of the repo (cwd). Steps:
 1. If ./node_modules missing: \`ln -s ${NM} node_modules\`.
 2. Implement a REAL, shippable change matching the existing theme tokens (useTheme colors/fonts) and
    RN style conventions. Be bold if the angle calls for it — you may delete/replace widgets. No placeholders.
+   HONESTY OF METRICS: if you introduce an aggregate/composite number, prefer the app's EXISTING
+   normalized strength model (percentile / tier / normalized index in lib/data/strengthStandards.ts,
+   components/StrengthRadarCard.tsx, components/OverallStrengthModal.tsx) over a raw summed-lbs total.
+   A summed est-1RM ("2,537 lbs") is monotonic, always-green, and abstract to a lifter — a vanity metric.
+   The number must mean something and be able to go DOWN when the lifter regresses.
 3. Build gate MUST pass: \`${GATE}\` (tsc must print 0, then ESLINT_OK). Fix until it does.
 4. Render your screenshots into the SHARED dir: \`OUT=${CAP} bash visual-loop/render.sh ${tag} ${port}\`
    Confirm ${CAP}/${tag}-workouts-full.png exists.
@@ -157,7 +165,7 @@ If you cannot build or render, return built/rendered=false with the blocker in n
     })
   )
   const ready = cands.filter((c) => c && c.built && c.rendered && c.diff && c.diff.trim())
-  if (!ready.length) { plateau++; ledger.push({ iter, result: 'no-candidate', target: diag.target, baseGap }); log(`Iter ${iter}: no candidate built+rendered (${plateau}/${PLATEAU_STOP}).`); continue }
+  if (!ready.length) { plateau++; ledger.push({ iter, result: 'no-candidate', target: diag.target, baseScore }); log(`Iter ${iter}: no candidate built+rendered (${plateau}/${PLATEAU_STOP}).`); continue }
 
   // ---- Judge each ready candidate pairwise vs current baseline ----
   phase(`Iter ${iter} · Judge`)
@@ -171,26 +179,29 @@ CANDIDATE (after): ${CAP}/${c.screenshotTag}-workouts-full.png | Exercises: ${CA
 Candidate strategy: ${c.strategy}
 Judge PAIRWISE: is the candidate better/same/worse on the target question AND overall? Is the difference
 meaningful or marginal? List any NEW problems it introduces (regressions, new clutter, Exercises-tab
-damage). Set gapAfter = gap-to-north-star of the CANDIDATE, perLensAgg = subjective aggregate 1..5.
+damage). Set northStarScore = closeness of the CANDIDATE to the Robinhood bar (0..1, 1=at the bar,
+HIGHER IS BETTER — the current screen scored ~${baseScore.toFixed(2)}), perLensAgg = subjective aggregate 1..5.
 Be skeptical: a change with only marginal wins or any real regression should NOT read as 'meaningful better'.`,
       `Iter ${iter} · Judge`, c.screenshotTag
     )
-    const gapAfter = lens.reduce((s, l) => s + (l.gapAfter || 0), 0) / (lens.length || 1)
+    const score = lens.reduce((s, l) => s + (l.northStarScore || 0), 0) / (lens.length || 1)
     const agg = lens.reduce((s, l) => s + (l.perLensAgg || 0), 0) / (lens.length || 1)
     const betters = lens.filter((l) => l.verdict === 'better').length
     const meaningful = lens.filter((l) => l.verdict === 'better' && l.magnitude === 'meaningful').length
     const worse = lens.filter((l) => l.verdict === 'worse').length
     const newProblems = [...new Set(lens.flatMap((l) => l.newProblems || []))]
-    judged.push({ ...c, gapAfter, agg, betters, meaningful, worse, newProblems, lens })
-    log(`  ${c.screenshotTag}: ${betters}/3 better (${meaningful} meaningful), ${worse} worse, gap ${gapAfter.toFixed(2)}`)
+    judged.push({ ...c, score, agg, betters, meaningful, worse, newProblems, lens })
+    log(`  ${c.screenshotTag}: ${betters}/3 better (${meaningful} meaningful), ${worse} worse, score ${score.toFixed(2)}`)
   }
 
-  // ---- Select: majority meaningful-better, no majority-worse, gap improves ----
-  const eligible = judged.filter((j) => j.meaningful >= 2 && j.worse === 0 && j.gapAfter > baseGap + 0.01)
-  const winner = eligible.sort((a, b) => b.gapAfter - a.gapAfter || b.agg - a.agg)[0]
+  // ---- Select: the PAIRWISE verdict is authoritative — >=2/3 lenses call it meaningful-better
+  // with zero 'worse' votes. northStarScore is only a tiebreak among winners (not a veto), so a
+  // direction mismatch in that number can never reject a unanimously-better candidate again. ----
+  const eligible = judged.filter((j) => j.meaningful >= 2 && j.worse === 0)
+  const winner = eligible.sort((a, b) => b.score - a.score || b.agg - a.agg)[0]
   if (!winner) {
     plateau++
-    ledger.push({ iter, result: 'rejected', target: diag.target, baseGap, candidates: judged.map((j) => ({ tag: j.screenshotTag, betters: j.betters, meaningful: j.meaningful, worse: j.worse, gapAfter: j.gapAfter, newProblems: j.newProblems })) })
+    ledger.push({ iter, result: 'rejected', target: diag.target, baseScore, candidates: judged.map((j) => ({ tag: j.screenshotTag, betters: j.betters, meaningful: j.meaningful, worse: j.worse, score: j.score, newProblems: j.newProblems })) })
     log(`Iter ${iter}: no candidate meaningfully improved without regression (${plateau}/${PLATEAU_STOP}).`)
     continue
   }
@@ -201,7 +212,7 @@ Be skeptical: a change with only marginal wins or any real regression should NOT
     `Land the winning History improvement into the main worktree at ${REPO} (cwd), verify, commit, re-render.
 WINNER strategy: ${winner.strategy}
 Files: ${JSON.stringify(winner.filesTouched)}
-Judged: ${winner.meaningful}/3 meaningful-better, gap ${baseGap.toFixed(2)} -> ${winner.gapAfter.toFixed(2)}
+Judged: ${winner.meaningful}/3 meaningful-better, north-star score ${baseScore.toFixed(2)} -> ${winner.score.toFixed(2)}
 Diff:
 \`\`\`diff
 ${(winner.diff || '').slice(0, 16000)}
@@ -217,8 +228,8 @@ Steps:
   )
   if (apply && apply.applied && apply.gatePassed) {
     accepted++; plateau = 0; curTag = `iter${iter}`
-    ledger.push({ iter, result: 'accepted', target: diag.target, commit: apply.commit, gap: `${baseGap.toFixed(2)}->${winner.gapAfter.toFixed(2)}`, strategy: winner.strategy })
-    log(`Iter ${iter}: ✓ accepted ${apply.commit} — gap ${baseGap.toFixed(2)}->${winner.gapAfter.toFixed(2)} (total ${accepted})`)
+    ledger.push({ iter, result: 'accepted', target: diag.target, commit: apply.commit, score: `${baseScore.toFixed(2)}->${winner.score.toFixed(2)}`, strategy: winner.strategy })
+    log(`Iter ${iter}: ✓ accepted ${apply.commit} — score ${baseScore.toFixed(2)}->${winner.score.toFixed(2)} (total ${accepted})`)
   } else {
     plateau++
     ledger.push({ iter, result: 'apply-failed', target: diag.target, notes: apply && apply.notes })
