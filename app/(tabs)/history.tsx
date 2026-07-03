@@ -77,6 +77,15 @@ export default function HistoryScreen() {
   // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
 
+  // Bodyweight (lbs) powers the aggregate Strength Index percentile in the hero.
+  const bodyweightLbs = useMemo(
+    () =>
+      userProfile?.weight
+        ? Math.round(convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs'))
+        : undefined,
+    [userProfile?.weight]
+  );
+
   // Load data
   const loadHistory = useCallback(async () => {
     try {
@@ -150,7 +159,7 @@ export default function HistoryScreen() {
   }, [workouts, workoutQuery]);
 
   const recentWorkouts = useMemo(() =>
-    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 5),
+    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 3),
     [filteredWorkouts, showAllWorkouts, workoutQuery]
   );
 
@@ -337,6 +346,9 @@ export default function HistoryScreen() {
               <HistoryHero
                 exerciseStats={exerciseStats}
                 weightUnit={weightUnit}
+                bodyweightLbs={bodyweightLbs}
+                gender={userProfile?.gender}
+                age={userProfile?.age}
               />
             )}
 
@@ -373,9 +385,22 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Recent Workouts — the session log is the primary content of this tab
-                (Q7: "what did I do last time?"), so it sits directly under the hero
-                rather than buried beneath every summary widget. */}
+            {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
+                Strength Index hero so the screen reads summary-first instead of burying it
+                below the session log. One consolidated widget: WeeklyOverview already carries
+                muscle distribution, so the standalone MuscleFocusWidget stayed removed. */}
+            {workouts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  This Week
+                </Text>
+                <WeeklyOverview workoutHistory={workouts} />
+              </View>
+            )}
+
+            {/* Recent Workouts — the session log (Q7: "what did I do last time?"),
+                collapsed to the last few and demoted below the summary-first hero +
+                This Week so the macro "am I stronger?" answer leads the screen. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
                 <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
@@ -431,7 +456,7 @@ export default function HistoryScreen() {
                   </View>
                 )}
 
-                {!workoutQuery && workouts.length > 5 && !showAllWorkouts && (
+                {!workoutQuery && workouts.length > 3 && !showAllWorkouts && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(true)}
@@ -441,7 +466,7 @@ export default function HistoryScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {!workoutQuery && showAllWorkouts && workouts.length > 5 && (
+                {!workoutQuery && showAllWorkouts && workouts.length > 3 && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(false)}
@@ -451,18 +476,6 @@ export default function HistoryScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-              </View>
-            )}
-
-            {/* Consistency & muscle balance — one consolidated widget (Q4/Q5/Q6).
-                The standalone MuscleFocusWidget was removed as a duplicate: WeeklyOverview
-                already carries muscle distribution, so two muscle cards on one tab was noise. */}
-            {workouts.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  This Week
-                </Text>
-                <WeeklyOverview workoutHistory={workouts} />
               </View>
             )}
 

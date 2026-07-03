@@ -146,6 +146,16 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     );
     const combinedStats = combineWorkoutStats(workoutStatsList);
 
+    // Week-over-week volume delta so the lone volume number gains a direction — "is my
+    // training load trending up?" — instead of standing alone with no baseline.
+    const prevWeek = getWeekData(currentWeekOffset - 1);
+    const prevStatsList: WorkoutStats[] = prevWeek.workouts.map(workout =>
+      calculateWorkoutStats(workout.exercises, getTrackingType)
+    );
+    const prevVolumeLbs = combineWorkoutStats(prevStatsList).totalVolumeLbs;
+    const volumeDeltaPct = prevVolumeLbs > 0
+      ? Math.round(((combinedStats.totalVolumeLbs - prevVolumeLbs) / prevVolumeLbs) * 100)
+      : null;
 
     const formatVolume = (volume: number) => formatCompact(volume);
 
@@ -154,6 +164,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       totalTime: formatTime(totalTime),
       totalVolume: formatVolume(combinedStats.totalVolumeLbs),
       rawVolume: combinedStats.totalVolumeLbs,
+      volumeDeltaPct,
       // Cardio stats
       hasCardio: combinedStats.hasCardioExercises,
       totalDistanceMeters: combinedStats.totalDistanceMeters,
@@ -332,6 +343,11 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Volume
             </Text>
+            {weekStats.volumeDeltaPct !== null && weekStats.rawVolume > 0 && (
+              <Text style={[styles.statDelta, { color: weekStats.volumeDeltaPct >= 0 ? '#34C759' : '#FF3B30', fontFamily: currentTheme.fonts.semiBold }]}>
+                {weekStats.volumeDeltaPct >= 0 ? '▲' : '▼'} {Math.abs(weekStats.volumeDeltaPct)}% vs last wk
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -472,6 +488,11 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 13,
     lineHeight: 18,
+    marginTop: 2,
+  },
+  statDelta: {
+    fontSize: 11,
+    lineHeight: 15,
     marginTop: 2,
   },
   muscleSection: {
