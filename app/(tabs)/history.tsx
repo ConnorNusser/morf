@@ -9,6 +9,7 @@ import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import { Text, View } from '@/components/Themed';
+import MuscleBalanceCard from '@/components/MuscleBalanceCard';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -379,6 +380,18 @@ export default function HistoryScreen() {
             {workouts.length > 0 && (
               <View style={styles.section}>
                 <WeeklyOverview workoutHistory={workouts} />
+              </View>
+            )}
+
+            {/* Muscle Balance — the cross-group "am I training in balance, or neglecting a
+                group?" answer (Q6), lifted OUT of the This Week volume card into its own
+                block. Driven by a trailing multi-week average of completed sets per muscle
+                (not one in-progress week), so a light Monday can't fire a false "neglect"
+                alarm and the verdict reflects a real trend that can still fall when a group
+                is dropped. */}
+            {workouts.length > 0 && (
+              <View style={styles.section}>
+                <MuscleBalanceCard workoutHistory={workouts} />
               </View>
             )}
 

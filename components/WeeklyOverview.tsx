@@ -2,42 +2,19 @@ import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
+import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
-import MuscleFocusChips, { MuscleGroupData } from './MuscleFocusChips';
 import WeeklyOverviewModal from './WeeklyOverviewModal';
-
-// All trackable muscle groups
-const ALL_MUSCLE_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
 
 // The summary is deliberately scoped to the CURRENT week. Past weeks already live in the
 // hero's timeframe toggle (strength over time) and the Monthly Trends drill-down, so an
 // in-card week navigator would just add a second, redundant time control to a block whose
-// whole job is a one-glance "am I on track THIS week?" read.
+// whole job is a one-glance "am I on track THIS week?" read. Muscle balance — a
+// cross-group, multi-week question — is answered by its own MuscleBalanceCard below this
+// one, so the volume card no longer does triple duty.
 const CURRENT_WEEK = 0;
-
-// Completed ("hard") sets per muscle for a set of workouts — the standard hypertrophy
-// balance unit. Each completed set of an exercise counts once toward every primary
-// muscle it targets. Honest and able to fall: skip a group and its count drops to zero.
-function countSetsByMuscle(workouts: GeneratedWorkout[], customExercises: CustomExercise[]): Record<MuscleGroup, number> {
-  const map: Record<MuscleGroup, number> = {
-    chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0,
-  };
-  for (const workout of workouts) {
-    for (const exercise of workout.exercises) {
-      const info = getWorkoutByIdWithCustom(exercise.id, customExercises);
-      if (!info) continue;
-      const completed = (exercise.completedSets || []).filter(set => set.completed).length;
-      if (completed === 0) continue;
-      for (const muscle of info.primaryMuscles) {
-        map[muscle] += completed;
-      }
-    }
-  }
-  return map;
-}
 
 interface WeeklyOverviewProps {
   workoutHistory: GeneratedWorkout[];
@@ -102,60 +79,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, uses workoutHistory via closure
   const weekData = useMemo(() => getWeekData(CURRENT_WEEK), [workoutHistory]);
-
-  // Calculate muscle groups trained this week with exercise details
-  const muscleGroupData = useMemo((): MuscleGroupData[] => {
-    const muscleMap: Record<MuscleGroup, { count: number; exercises: Record<string, { id: string; name: string; count: number }> }> = {
-      chest: { count: 0, exercises: {} },
-      back: { count: 0, exercises: {} },
-      shoulders: { count: 0, exercises: {} },
-      arms: { count: 0, exercises: {} },
-      legs: { count: 0, exercises: {} },
-      glutes: { count: 0, exercises: {} },
-      core: { count: 0, exercises: {} },
-      'full-body': { count: 0, exercises: {} },
-    };
-
-    weekData.workouts.forEach(workout => {
-      workout.exercises.forEach(exercise => {
-        const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
-        if (exerciseInfo) {
-          exerciseInfo.primaryMuscles.forEach(muscle => {
-            muscleMap[muscle].count++;
-            if (!muscleMap[muscle].exercises[exercise.id]) {
-              muscleMap[muscle].exercises[exercise.id] = {
-                id: exercise.id,
-                name: exerciseInfo.name,
-                count: 0,
-              };
-            }
-            muscleMap[muscle].exercises[exercise.id].count++;
-          });
-        }
-      });
-    });
-
-    // This week's hard sets per muscle, plus the lifter's trailing-4-completed-week
-    // weekly average as the personal baseline to read balance/neglect against.
-    const thisWeekSets = countSetsByMuscle(weekData.workouts, customExercises);
-    const BASELINE_WEEKS = 4;
-    const normAccum: Record<MuscleGroup, number> = {
-      chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0,
-    };
-    for (let i = 1; i <= BASELINE_WEEKS; i++) {
-      const wkSets = countSetsByMuscle(getWeekData(CURRENT_WEEK - i).workouts, customExercises);
-      (Object.keys(normAccum) as MuscleGroup[]).forEach(m => { normAccum[m] += wkSets[m]; });
-    }
-
-    return ALL_MUSCLE_GROUPS.map(muscle => ({
-      muscle,
-      count: muscleMap[muscle].count,
-      sets: thisWeekSets[muscle],
-      normSets: normAccum[muscle] / BASELINE_WEEKS,
-      exercises: Object.values(muscleMap[muscle].exercises),
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, keyed by workoutHistory
-  }, [weekData.workouts, customExercises, workoutHistory]);
 
   // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
@@ -260,14 +183,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     ? currentTheme.colors.text + '80'
     : deltaPct > 0 ? '#34C759' : '#FF3B30';
   const deltaSign = deltaPct === null ? '' : deltaPct > 0 ? '+' : deltaPct < 0 ? '−' : '±';
-
-  // How far through the current week we are, so the muscle-balance panel can compare an
-  // in-progress week against its pro-rated norm.
-  const paceFraction = (() => {
-    const dow = new Date().getDay();
-    const idx = dow === 0 ? 6 : dow - 1;
-    return (idx + 1) / 7;
-  })();
 
   return (
     <>
@@ -387,12 +302,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             </View>
           </View>
         )}
-
-        {/* Balance — the derived "am I training in balance?" verdict as a single inline row,
-            with the full per-group ladder one tap away instead of stacked full-width here. */}
-        <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
-          <MuscleFocusChips muscleData={muscleGroupData} paceFraction={paceFraction} showMissing={false} />
-        </View>
       </Card>
 
       <WeeklyOverviewModal
@@ -481,10 +390,5 @@ const styles = StyleSheet.create({
   trendDelta: {
     fontSize: 12,
     lineHeight: 16,
-  },
-  muscleSection: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
 });
