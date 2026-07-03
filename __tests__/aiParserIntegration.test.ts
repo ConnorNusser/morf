@@ -739,13 +739,11 @@ describe('WorkoutNoteParser.toSummary', () => {
     expect(benchSummary).toBeDefined();
     expect(benchSummary!.setCount).toBe(2); // Only actual sets
     expect(benchSummary!.sets.length).toBe(2);
-    expect(benchSummary!.targetSets?.length).toBe(1);
 
     const squatSummary = summary.find(s => s.name.includes('Squat'));
     expect(squatSummary).toBeDefined();
     expect(squatSummary!.setCount).toBe(1); // Only 1 actual set, not 2 recommended
     expect(squatSummary!.sets.length).toBe(1);
-    expect(squatSummary!.targetSets?.length).toBe(2);
   });
 
   it('should preserve targetSets in summary output', async () => {
@@ -772,9 +770,8 @@ describe('WorkoutNoteParser.toSummary', () => {
     const summary = workoutNoteParser.toSummary(mockParsedWorkout);
 
     expect(summary.length).toBe(1);
-    expect(summary[0].targetSets).toBeDefined();
-    expect(summary[0].targetSets![0].weight).toBe(315);
-    expect(summary[0].targetSets![0].reps).toBe(3);
+    expect(summary[0].sets[0].weight).toBe(325);
+    expect(summary[0].sets[0].reps).toBe(3);
   });
 
   it('should consolidate same exercise with both sets and targetSets', async () => {
@@ -816,6 +813,5 @@ describe('WorkoutNoteParser.toSummary', () => {
     expect(summary.length).toBe(1);
     expect(summary[0].setCount).toBe(2); // 2 actual sets consolidated
     expect(summary[0].sets.length).toBe(2);
-    expect(summary[0].targetSets?.length).toBe(2); // 2 recommended sets consolidated
   });
 });

@@ -210,7 +210,6 @@ export interface WorkoutSetCompletion {
 
 export interface WorkoutExerciseSession extends ExerciseSet {
   completedSets: WorkoutSetCompletion[];
-  targetSets?: WorkoutSetCompletion[]; // Target sets from routine progression
   isCompleted: boolean;
 }
 

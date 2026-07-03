@@ -7,8 +7,6 @@ import {
   removeSet,
   removeExercise,
   addNamedExercise,
-  applyReference,
-  attachPrevious,
   buildDraft,
   draftToParsedWorkout,
   toggleSetDone,
@@ -97,14 +95,12 @@ describe('edit helpers', () => {
   });
 });
 
-describe('references + autofill', () => {
+describe('smart prefill', () => {
   const prev = [{ weight: 135, reps: 8, unit: 'lbs' as const }, { weight: 155, reps: 6, unit: 'lbs' as const }];
-  const target = [{ weight: 185, reps: 5, unit: 'lbs' as const }];
 
-  it('addNamedExercise autofills sets from the reference and keeps it as a ghost', () => {
+  it('addNamedExercise pre-fills sets from the reference values', () => {
     const d = addNamedExercise([], { name: 'Bench Press', exerciseId: 'bench-press-barbell', recognized: true, previous: prev });
     expect(d[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
-    expect(d[0].previous).toEqual(prev);
   });
 
   it('addNamedExercise with no reference starts with no sets', () => {
@@ -112,28 +108,11 @@ describe('references + autofill', () => {
     expect(d[0].sets).toHaveLength(0);
   });
 
-  it('applyReference fills sets from previous or target and keeps the reference', () => {
-    let d = addNamedExercise([], { name: 'Bench', exerciseId: 'bench-press-barbell', recognized: true, previous: prev, target });
-    const fromTarget = applyReference(d, d[0].key, 'target');
-    expect(fromTarget[0].sets).toEqual(target.map(s => ({ ...s, done: false })));
-    expect(fromTarget[0].target).toEqual(target); // reference persists for the ghost
-
-    const fromPrev = applyReference(d, d[0].key, 'previous');
-    expect(fromPrev[0].sets).toEqual(prev.map(s => ({ ...s, done: false })));
-  });
-
-  it('buildDraft(asTarget) autofills working sets from the prescription and keeps it as target', () => {
+  it('buildDraft(asTarget) pre-fills working sets from the prescription un-done', () => {
     const parsed = { exercises: [ex('Bench', [[185, 5], [185, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' };
     const d = buildDraft(parsed, { asTarget: true });
     expect(d[0].sets).toHaveLength(2);
     expect(d[0].sets.every(s => s.done === false)).toBe(true);
-    expect(d[0].target).toHaveLength(2);
-  });
-
-  it('attachPrevious fills in references only where missing', () => {
-    const d = mergeParsed([], [ex('Bench', [[135, 8]], 'bench-press-barbell')]);
-    const out = attachPrevious(d, () => prev);
-    expect(out[0].previous).toEqual(prev);
   });
 });
 
@@ -146,24 +125,6 @@ describe('draftToParsedWorkout', () => {
     expect(parsed.exercises[0].sets[1].completed).toBe(false);
   });
 
-  it('carries the routine prescription into targetSets so progression can grade it', () => {
-    // Start a routine (target 3×190×8), autofill, then log lighter actuals.
-    const parsed = { exercises: [ex('Bench', [[190, 8], [190, 8], [190, 8]], 'bench-press-barbell')], confidence: 1, rawText: '' };
-    let d = buildDraft(parsed, { asTarget: true });
-    d = applyReference(d, d[0].key, 'target');
-    d = updateSet(d, d[0].key, 1, { weight: 165, reps: 5 });
-    const out = draftToParsedWorkout(d);
-    expect(out.exercises[0].targetSets).toEqual([
-      { weight: 190, reps: 8, unit: 'lbs' },
-      { weight: 190, reps: 8, unit: 'lbs' },
-      { weight: 190, reps: 8, unit: 'lbs' },
-    ]);
-  });
-
-  it('omits targetSets for a freestyle workout (no prescription)', () => {
-    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8]])], confidence: 1, rawText: '' });
-    expect(draftToParsedWorkout(d).exercises[0].targetSets).toBeUndefined();
-  });
 });
 
 describe('totalVolume', () => {
