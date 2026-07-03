@@ -16,12 +16,18 @@ interface ExerciseCardProps {
 function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
 
+  // A calisthenics lift (pull-ups, push-ups) has no meaningful 1RM, so it is scored on
+  // reps instead: the headline is its best set's rep count and the trend tracks rep
+  // progression rather than weight.
+  const isBodyweight = exercise.metric === 'bodyweight';
+
   // One clock-independent trend derivation feeds both signals: best-per-day buckets
   // across the FULL logged window (no fixed 3-month cutoff, no live-clock calendar
   // windows), so even a sub-3-month or not-recently-logged history still reads a delta.
+  // Bodyweight rows read the 'reps' variant so the delta/sparkline reflect rep gains.
   const trend = useMemo(
-    () => computeExerciseTrend(exercise.history, weightUnit),
-    [exercise.history, weightUnit]
+    () => computeExerciseTrend(exercise.history, weightUnit, isBodyweight ? 'reps' : 'topWeight'),
+    [exercise.history, weightUnit, isBodyweight]
   );
 
   return (
@@ -45,10 +51,10 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
         </View>
         <View style={[styles.liftStats, { backgroundColor: 'transparent' }]}>
           <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
-            {exercise.estimated1RM}
+            {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
           </Text>
           <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
-            {' '}est. 1RM
+            {isBodyweight ? ' reps' : ' est. 1RM'}
           </Text>
           {trend.deltaDisplay > 0 && (
             <View style={[styles.deltaContainer, { backgroundColor: trend.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>

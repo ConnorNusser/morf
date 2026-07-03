@@ -17,8 +17,9 @@ import { dayKeyOf } from '@/components/history/liftSeries';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { computePRRecency } from '@/lib/history/prRecency';
 import { computeActivityStatus } from '@/lib/history/activityStatus';
+import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { SCENARIOS, scenarioByKey, REFERENCE_NOW, daysAgo } from '../fixtures';
-import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS, PR_RECENCY_GOLDENS, ACTIVITY_GOLDENS } from '../goldens';
+import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS, PR_RECENCY_GOLDENS, ACTIVITY_GOLDENS, BODYWEIGHT_STATS_GOLDEN } from '../goldens';
 import { ExerciseWithMax, ExerciseHistoryEntry } from '@/types';
 
 // calculateRecapStats reads storage/profile — mock them per-fixture (see below).
@@ -317,6 +318,60 @@ describe('correctness gate — activity status (clock-injectable comeback signal
   it('every scenario derives activity status without throwing (corrupt/empty safe)', () => {
     for (const sc of SCENARIOS) {
       expect(() => computeActivityStatus(fixtureExerciseStats(sc.key), REFERENCE_NOW)).not.toThrow();
+    }
+  });
+});
+
+describe('correctness gate — bodyweight lifts are tracked, not discarded (dim-3 edge state)', () => {
+  // Mirrors the history page's own trackedExercises filter: a row qualifies on a
+  // weighted 1RM OR a bodyweight rep count.
+  const isTracked = (ex: ExerciseWithMax) => ex.estimated1RM > 0 || (ex.bestReps ?? 0) > 0;
+
+  it('bodyweight: pull-up & push-up surface as tracked rows with finite reps signals', () => {
+    const stats = buildExerciseStats(scenarioByKey('bodyweight').workouts, [], 'lbs');
+    const tracked = stats.filter(isTracked);
+
+    // The whole point: a full calisthenics workout is NOT "No exercises tracked".
+    expect(tracked.map(ex => ex.id).sort()).toEqual([...BODYWEIGHT_STATS_GOLDEN.trackedIds].sort());
+
+    for (const [id, golden] of Object.entries(BODYWEIGHT_STATS_GOLDEN.rows)) {
+      const row = tracked.find(ex => ex.id === id);
+      expect(row).toBeDefined();
+      expect(row!.metric).toBe(golden.metric);
+      expect(row!.bestReps).toBe(golden.bestReps);
+      expect(row!.estimated1RM).toBe(golden.estimated1RM);
+      expect(Number.isFinite(row!.bestReps ?? NaN)).toBe(true);
+
+      // The reps-variant trend the ExerciseCard renders is finite and non-crashing;
+      // a single training day yields an empty (not garbage) sparkline.
+      const trend = computeExerciseTrend(row!.history, 'lbs', 'reps');
+      expect(Number.isFinite(trend.deltaDisplay)).toBe(true);
+      expect(trend.sparkline.every(Number.isFinite)).toBe(true);
+      expect(trend.sparkline).toEqual([]);
+    }
+  });
+
+  it('reps trend rises across distinct training days (rep progression is real)', () => {
+    // Two sessions: 8 reps → 12 reps on the same bodyweight lift.
+    const day1 = new Date('2024-01-01T10:00:00Z');
+    const day2 = new Date('2024-01-08T10:00:00Z');
+    const history = [
+      { weight: 0, reps: 8, date: day1, unit: 'lbs' as const },
+      { weight: 0, reps: 12, date: day2, unit: 'lbs' as const },
+    ];
+    const trend = computeExerciseTrend(history, 'lbs', 'reps');
+    expect(trend.isPositive).toBe(true);
+    expect(trend.deltaDisplay).toBe(4);
+    expect(trend.sparkline).toEqual([8, 12]);
+  });
+
+  it('every scenario builds exercise stats without throwing (weight-0 safe)', () => {
+    for (const sc of SCENARIOS) {
+      expect(() => buildExerciseStats(sc.workouts, [], 'lbs')).not.toThrow();
+      for (const row of buildExerciseStats(sc.workouts, [], 'lbs')) {
+        expect(Number.isFinite(row.estimated1RM)).toBe(true);
+        expect(Number.isFinite(row.bestReps ?? NaN)).toBe(true);
+      }
     }
   });
 });

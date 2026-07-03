@@ -7,7 +7,8 @@
     "prHeavy": 4.2,
     "sparse": 4.2,
     "dense": 4.4,
-    "lapsed": 4.6
+    "lapsed": 4.6,
+    "bodyweight": 4.3
   },
   "iterations": [
     {
@@ -102,6 +103,25 @@
         "judgeAggregate": 4.2
       },
       "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 148 }
+    },
+    {
+      "n": 6,
+      "target": { "scenario": "bodyweight", "dimension": "Empty & edge states" },
+      "winner": {
+        "strategy": "Fix bodyweight lifts being silently discarded: extracted history.tsx's inline loadExerciseStats ingestion into a pure, RN-free lib/history/exerciseStats.ts::buildExerciseStats that KEEPS weight<=0 lifts (tagging metric:'bodyweight' with a bestReps headline); trackedExercises now qualifies on estimated1RM>0 OR bestReps>0; ExerciseCard branches on the tag to render '<bestReps> reps' and feeds computeExerciseTrend a new 'reps' variant (added to exerciseTrend.ts, raw rep count no unit conversion); non-empty exerciseStats flow into HistoryHero nearestLift for a concrete nudge. Added BODYWEIGHT_STATS_GOLDEN + correctness.test.ts block asserting the 2 tracked rows with finite reps signals, a rising multi-day reps trend, and no-throw across all 9 scenarios.",
+        "files": [
+          "lib/history/exerciseStats.ts",
+          "lib/history/exerciseTrend.ts",
+          "app/(tabs)/history.tsx",
+          "components/history/ExerciseCard.tsx",
+          "types/index.ts",
+          "history-eval/fixtures.ts",
+          "history-eval/goldens.ts",
+          "history-eval/__tests__/correctness.test.ts"
+        ],
+        "judgeAggregate": 4.3
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 151 }
     }
   ]
 }

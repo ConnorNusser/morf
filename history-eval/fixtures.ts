@@ -86,8 +86,8 @@ const kgUnit: GeneratedWorkout[] = [
 /** Bodyweight — weight 0 must be skipped from volume/1RM, not render NaN. */
 const bodyweight: GeneratedWorkout[] = [
   mkWorkout(daysAgo(1), 'Calisthenics', [
-    mkExercise('pull-up', [[0, 12], [0, 10], [0, 8]]),
-    mkExercise('push-up', [[0, 20], [0, 18]]),
+    mkExercise('pull-up-bodyweight', [[0, 12], [0, 10], [0, 8]]),
+    mkExercise('push-up-bodyweight', [[0, 20], [0, 18]]),
   ]),
 ];
 

@@ -129,3 +129,26 @@ export const ACTIVITY_GOLDENS: Record<string, { daysSinceLastWorkout: number; is
   sparse: { daysSinceLastWorkout: 5, isLapsed: false },
   dense: { daysSinceLastWorkout: 1, isLapsed: false },
 };
+
+/**
+ * buildExerciseStats over the `bodyweight` fixture — the previously UNASSERTED dim-3
+ * "empty & edge states" failure. The fixture logs 5 completed calisthenics sets
+ * (pull-up 12/10/8, push-up 20/18), every one at weight 0. The OLD inline ingestion
+ * dropped all of them (`if (weight <= 0) return;`), so the Exercises tab rendered "No
+ * exercises tracked" for a user who had just logged a full workout. buildExerciseStats
+ * now KEEPS them, scored on a reps signal:
+ *   pull-up-bodyweight: best set 12 reps → bestReps 12, no 1RM (metric 'bodyweight')
+ *   push-up-bodyweight: best set 20 reps → bestReps 20, no 1RM (metric 'bodyweight')
+ * Both sit on ONE training day ⇒ the reps trend has an empty sparkline (needs ≥2 days),
+ * which is a valid, finite, non-crashing state.
+ */
+export const BODYWEIGHT_STATS_GOLDEN: {
+  trackedIds: string[];
+  rows: Record<string, { metric: 'weight' | 'bodyweight'; bestReps: number; estimated1RM: number }>;
+} = {
+  trackedIds: ['pull-up-bodyweight', 'push-up-bodyweight'],
+  rows: {
+    'pull-up-bodyweight': { metric: 'bodyweight', bestReps: 12, estimated1RM: 0 },
+    'push-up-bodyweight': { metric: 'bodyweight', bestReps: 20, estimated1RM: 0 },
+  },
+};

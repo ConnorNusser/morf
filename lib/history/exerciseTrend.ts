@@ -9,8 +9,11 @@ import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
 // trend-less. Here we collapse to one best-per-training-day bucket and read the trend
 // straight off the FULL logged window, so a 2-month ascending history reports its gain.
 
-/** Which value each day-bucket keeps: the day's top working weight, or its best e1RM. */
-export type TrendMetric = 'topWeight' | 'e1rm';
+/**
+ * Which value each day-bucket keeps: the day's top working weight, its best e1RM, or
+ * (for a calisthenics lift with no meaningful weight) its best rep count.
+ */
+export type TrendMetric = 'topWeight' | 'e1rm' | 'reps';
 
 export interface ExerciseTrend {
   /** Absolute rounded gain (display unit) from earliest to latest day-bucket; 0 hides the chip. */
@@ -48,15 +51,18 @@ export function computeExerciseTrend(
 ): ExerciseTrend {
   if (!history || history.length === 0) return EMPTY_TREND;
 
-  const valueLbs = (e: ExerciseHistoryEntry): number =>
-    metric === 'e1rm'
-      ? e1rmLbs(e)
-      : convertWeight(e.weight, e.unit || 'lbs', 'lbs');
+  // 'reps' is a raw count (not a weight), so it never gets kg/lbs converted below.
+  const value = (e: ExerciseHistoryEntry): number =>
+    metric === 'reps'
+      ? e.reps
+      : metric === 'e1rm'
+        ? e1rmLbs(e)
+        : convertWeight(e.weight, e.unit || 'lbs', 'lbs');
 
   const byDay = new Map<string, DayBucket>();
   for (const h of history) {
     const key = dayKeyOf(h.date);
-    const v = valueLbs(h);
+    const v = value(h);
     const existing = byDay.get(key);
     if (existing) {
       if (v > existing.best) existing.best = v;
@@ -68,7 +74,8 @@ export function computeExerciseTrend(
   const days = [...byDay.values()].sort((a, b) => a.time - b.time);
   if (days.length === 0) return EMPTY_TREND;
 
-  const toDisplay = (lbs: number) => (weightUnit === 'kg' ? convertWeight(lbs, 'lbs', 'kg') : lbs);
+  // Rep counts are unitless; only weight-based metrics convert to the display unit.
+  const toDisplay = (v: number) => (metric !== 'reps' && weightUnit === 'kg' ? convertWeight(v, 'lbs', 'kg') : v);
   const bests = days.map(d => toDisplay(d.best));
 
   const rawDelta = days.length >= 2 ? bests[bests.length - 1] - bests[0] : 0;
