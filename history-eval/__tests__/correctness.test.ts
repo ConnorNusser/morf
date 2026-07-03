@@ -15,8 +15,9 @@ import { calculateRecapStats } from '@/lib/workout/recapStats';
 import { buildPRDays } from '@/components/history/prSessions';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
+import { computePRRecency } from '@/lib/history/prRecency';
 import { SCENARIOS, scenarioByKey, REFERENCE_NOW, daysAgo } from '../fixtures';
-import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS } from '../goldens';
+import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS, PR_RECENCY_GOLDENS } from '../goldens';
 import { ExerciseWithMax, ExerciseHistoryEntry } from '@/types';
 
 // calculateRecapStats reads storage/profile — mock them per-fixture (see below).
@@ -201,6 +202,32 @@ describe('correctness gate — exercise trend (clock-free delta + sparkline)', (
           expect(t.sparkline.length === 0 || t.sparkline.length >= 2).toBe(true);
         }).not.toThrow();
       }
+    }
+  });
+});
+
+describe('correctness gate — PR recency (clock-injectable plateau signal)', () => {
+  for (const [key, golden] of Object.entries(PR_RECENCY_GOLDENS)) {
+    it(`${key}: ${golden.exerciseId} daysSincePR=${golden.daysSincePR} sessionsSincePR=${golden.sessionsSincePR} plateau=${golden.isPlateau}`, () => {
+      const recency = computePRRecency(fixtureExerciseStats(key), REFERENCE_NOW).get(golden.exerciseId);
+      if (golden.daysSincePR === null) {
+        // No PR ever set ⇒ omitted from the map ⇒ no plateau nudge.
+        expect(recency).toBeUndefined();
+        expect(golden.isPlateau).toBe(false);
+        return;
+      }
+      expect(recency).toBeDefined();
+      expect(recency!.daysSincePR).toBe(golden.daysSincePR);
+      expect(recency!.sessionsSincePR).toBe(golden.sessionsSincePR);
+      expect(recency!.isPlateau).toBe(golden.isPlateau);
+      // lastPRDate must round-trip back to daysSincePR whole days before REFERENCE_NOW.
+      expect(recency!.lastPRDate.getTime()).toBe(daysAgo(golden.daysSincePR).getTime());
+    });
+  }
+
+  it('every scenario derives PR recency without throwing (corrupt/empty safe)', () => {
+    for (const sc of SCENARIOS) {
+      expect(() => computePRRecency(fixtureExerciseStats(sc.key), REFERENCE_NOW)).not.toThrow();
     }
   });
 });

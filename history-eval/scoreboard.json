@@ -6,7 +6,7 @@
     "kgUnit": 3,
     "prHeavy": 4.2,
     "sparse": 4.2,
-    "dense": 3
+    "dense": 4.4
   },
   "iterations": [
     {
@@ -56,6 +56,21 @@
         "judgeAggregate": 4.2
       },
       "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 133 }
+    },
+    {
+      "n": 3,
+      "target": { "scenario": "dense", "dimension": "Actionability" },
+      "winner": {
+        "strategy": "Extract deep-history plateau derivation into a pure, RN-free, clock-injectable module lib/history/prRecency.ts. computePRRecency(exerciseStats, now) reuses buildPRDays' day-bucket walk (dayKeyOf + e1rmLbs, first-day-excluded running-max) to return per-exercise lastPRDate, daysSincePR, sessionsSincePR, and gated isPlateau (daysSincePR>=21 AND sessionsSincePR>=4). HistoryHero titleLeft flips to a muted 'Plateau · N weeks since last PR' caption when the active lift is plateaued (dense: 131d -> ~19 weeks), keeping the celebratory gain when fresh (prHeavy last PR daysAgo(7) stays positive). Node-gateable: PR_RECENCY_GOLDENS + new correctness.test.ts describe assert against REFERENCE_NOW.",
+        "files": [
+          "lib/history/prRecency.ts",
+          "components/history/HistoryHero.tsx",
+          "history-eval/goldens.ts",
+          "history-eval/__tests__/correctness.test.ts"
+        ],
+        "judgeAggregate": 4.4
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 137 }
     }
   ]
 }

@@ -85,3 +85,28 @@ export const TREND_GOLDENS: Record<
     sparkline: [159, 160, 161, 162, 163, 164],
   },
 };
+
+/**
+ * PR recency from computePRRecency(exerciseStats, REFERENCE_NOW) — the deep-history
+ * "how long since this lift last set a record" signal that flips the hero from a
+ * celebratory gain to a plateau nudge. `null` means the exercise never set a PR, so it
+ * is absent from the map (no signal). daysSincePR/sessionsSincePR hand-computed against
+ * REFERENCE_NOW; plateau gate = daysSincePR >= 21 AND sessionsSincePR >= 4.
+ */
+export const PR_RECENCY_GOLDENS: Record<
+  string,
+  { exerciseId: string; daysSincePR: number | null; sessionsSincePR: number | null; isPlateau: boolean }
+> = {
+  // dense: bench 155+(i%20) over days daysAgo(150-i), i=0..149. Peak 174 first hit at
+  // i=19 → day daysAgo(131); every later cycle only re-hits ≤174, so the last PR stays
+  // at daysAgo(131). daysSincePR = 131 ; sessions after it = i=20..149 = 130 distinct
+  // days. 131>=21 && 130>=4 ⇒ plateau. This is the fact the old +gain caption hid.
+  dense: { exerciseId: 'bench-press-barbell', daysSincePR: 131, sessionsSincePR: 130, isPlateau: true },
+
+  // prHeavy: strictly ascending, last PR on the final day daysAgo(7). daysSincePR = 7,
+  // no sessions logged after it ⇒ 0. 7 < 21 ⇒ NOT a plateau (stays celebratory).
+  prHeavy: { exerciseId: 'bench-press-barbell', daysSincePR: 7, sessionsSincePR: 0, isPlateau: false },
+
+  // single: one bench day → first-ever day excluded → 0 PRs → absent from the map (null).
+  single: { exerciseId: 'bench-press-barbell', daysSincePR: null, sessionsSincePR: null, isPlateau: false },
+};

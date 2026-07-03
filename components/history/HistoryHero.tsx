@@ -2,6 +2,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { buildLiftSeries, MIN_SESSIONS, N, nearestLift } from '@/components/history/liftSeries';
+import { computePRRecency, PRRecency } from '@/lib/history/prRecency';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dimensions, StyleSheet, View as RNView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -67,6 +68,19 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
   // empty state is a concrete goal instead of a generic nudge.
   const nearest = useMemo(() => (lifts.length ? null : nearestLift(exerciseStats)), [lifts.length, exerciseStats]);
 
+  // PR recency keyed by lift NAME (LiftSeries carries name, not id), so the active lift
+  // can flip its celebratory "+gain all-time" caption to an honest "plateau · N weeks
+  // since last PR" once it has gone weeks without setting a new record.
+  const recencyByName = useMemo(() => {
+    const byId = computePRRecency(exerciseStats, new Date());
+    const byName = new Map<string, PRRecency>();
+    for (const ex of exerciseStats) {
+      const r = byId.get(ex.id);
+      if (r) byName.set(ex.name, r);
+    }
+    return byName;
+  }, [exerciseStats]);
+
   const chartW = Dimensions.get('window').width - PAGE_PADDING * 2 - CARD_PADDING * 2;
   const X0 = 2;
   const DX = (chartW - X0 * 2) / (N - 1);
@@ -116,6 +130,7 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
   const areaProps = useAnimatedProps(() => ({ d: morphPath(fromPoints.value, toPoints.value, progress.value, X0, DX, true) }));
 
   const active = lifts[Math.min(index, lifts.length - 1)];
+  const activeRecency = active ? recencyByName.get(active.name) : undefined;
 
   return (
     <Animated.View
@@ -146,11 +161,18 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
                 <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontFamily: fonts.bold }]}>
                   {active.name}
                 </Text>
-                {active.gainLbs > 0 && (
+                {activeRecency?.isPlateau ? (
+                  // A weeks-long dry spell is the single most actionable fact on a deep
+                  // history — surface it INSTEAD of the (now misleading) all-time gain,
+                  // which otherwise reads as "still climbing" on a plateaued lift.
+                  <Text style={[styles.plateau, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
+                    Plateau · {Math.round(activeRecency.daysSincePR / 7)} weeks since last PR
+                  </Text>
+                ) : active.gainLbs > 0 ? (
                   <Text style={[styles.gain, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
                     +{active.gainLbs} {weightUnit} all-time
                   </Text>
-                )}
+                ) : null}
               </RNView>
               <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
                 {active.current}
@@ -272,6 +294,7 @@ const styles = StyleSheet.create({
   titleLeft: { flex: 1, marginRight: 12 },
   liftName: { fontSize: 20, letterSpacing: -0.4 },
   gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
+  plateau: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
   value: { fontSize: 26, letterSpacing: -0.6 },
   valueUnit: { fontSize: 13, letterSpacing: 0 },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
