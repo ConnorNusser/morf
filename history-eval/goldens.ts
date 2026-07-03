@@ -58,3 +58,30 @@ export const PR_DAY_GOLDENS: Record<string, { exerciseId: string; prDayCount: nu
   // single: one bench day → first-ever day, excluded → 0 (no chip for a new user).
   single: { exerciseId: 'bench-press-barbell', prDayCount: 0 },
 };
+
+/**
+ * ExerciseCard trend signals from computeExerciseTrend (topWeight metric, lbs display).
+ * The card collapses history to one best-per-training-day bucket and reads the delta
+ * off the FULL logged window + the last-6 buckets as the sparkline — no live clock,
+ * no 3-month cutoff. Hand-computed from the fixtures:
+ *   sparse squat: top set per day 205 → 215 → 225 across 3 gappy days (58/30/5d ago).
+ *     delta = 225 − 205 = +20 ; sparkline = [205,215,225] (len 3). The OLD code showed
+ *     nothing here: history < 3 months (no delta) and <2 recent bi-weekly windows (no bars).
+ *   kgUnit: all sets on ONE day → a single bucket → no delta, no sparkline (needs ≥2 days).
+ *   dense: bench top set 155+(i%20) over 150 ascending days. earliest bucket i=0 = 155,
+ *     latest i=149 = 155+(149%20)=164 → delta = +9 ; last 6 buckets i=144..149 = %20
+ *     4..9 → [159,160,161,162,163,164] (len 6).
+ */
+export const TREND_GOLDENS: Record<
+  string,
+  { exerciseId: string; deltaDisplay: number; isPositive: boolean; sparkline: number[] }
+> = {
+  sparse: { exerciseId: 'squat-barbell', deltaDisplay: 20, isPositive: true, sparkline: [205, 215, 225] },
+  kgUnit: { exerciseId: 'bench-press-barbell', deltaDisplay: 0, isPositive: false, sparkline: [] },
+  dense: {
+    exerciseId: 'bench-press-barbell',
+    deltaDisplay: 9,
+    isPositive: true,
+    sparkline: [159, 160, 161, 162, 163, 164],
+  },
+};

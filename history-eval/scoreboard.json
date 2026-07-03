@@ -5,7 +5,7 @@
     "single": 4.4,
     "kgUnit": 3,
     "prHeavy": 4.2,
-    "sparse": 3,
+    "sparse": 4.2,
     "dense": 3
   },
   "iterations": [
@@ -40,6 +40,22 @@
         "judgeAggregate": 4.2
       },
       "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 128 }
+    },
+    {
+      "n": 2,
+      "target": { "scenario": "sparse", "dimension": "Actionability" },
+      "winner": {
+        "strategy": "Extract one clock-free, RN-free trend module (lib/history/exerciseTrend.ts) that collapses per-set history into best-per-training-day buckets via shared dayKeyOf, then derives BOTH ExerciseCard signals from the FULL logged window: delta = latest day-bucket best minus earliest (no 3-month cutoff), sparkline = last up-to-6 day-bucket bests gated to length>=2 (no live-clock calendar windows). ExerciseCard replaces getSparklineData/getDelta with one useMemo(computeExerciseTrend); history.tsx getImprovement ('Improved' sort) reuses the same module's e1rm variant, collapsing three divergent 'progress' defs into one. A metric param ('topWeight' default / 'e1rm' for sort) keeps both consumers exact. TREND_GOLDENS assert the extracted math across scenarios.",
+        "files": [
+          "lib/history/exerciseTrend.ts",
+          "components/history/ExerciseCard.tsx",
+          "app/(tabs)/history.tsx",
+          "history-eval/goldens.ts",
+          "history-eval/__tests__/correctness.test.ts"
+        ],
+        "judgeAggregate": 4.2
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 133 }
     }
   ]
 }

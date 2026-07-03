@@ -1,5 +1,6 @@
 import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
+import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
@@ -41,18 +42,12 @@ const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
   { key: 'name', label: 'A–Z' },
 ];
 
-// Improvement in user's preferred unit: latest session best 1RM vs earliest.
-// Returns the absolute estimated-1RM gain (lbs) across the full history.
+// Improvement drives the "Improved" sort. Reuse the single shared trend definition
+// (e1RM variant) so the sort agrees with the per-card delta instead of being a third,
+// divergent calc. Signed gain: latest day-bucket best e1RM minus the earliest.
 function getImprovement(history: ExerciseWithMax['history']): number {
-  if (history.length < 2) return 0;
-  const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
-  const oneRM = (e: ExerciseWithMax['history'][number]) => {
-    const lbs = e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight;
-    return OneRMCalculator.estimate(lbs, e.reps);
-  };
-  const earliest = oneRM(sorted[0]);
-  const latest = Math.max(...sorted.slice(-3).map(oneRM));
-  return latest - earliest;
+  const trend = computeExerciseTrend(history, 'lbs', 'e1rm');
+  return trend.isPositive ? trend.deltaDisplay : -trend.deltaDisplay;
 }
 
 export default function HistoryScreen() {

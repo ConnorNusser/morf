@@ -1,9 +1,10 @@
 import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
+import { ExerciseWithMax, WeightUnit } from '@/types';
+import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
 interface ExerciseCardProps {
@@ -15,69 +16,13 @@ interface ExerciseCardProps {
 function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
 
-  // Get sparkline data for an exercise (bi-weekly periods, last 6)
-  // Data is converted to user's preferred unit for consistent display
-  const getSparklineData = useCallback((history: ExerciseWithMax['history']): number[] => {
-    if (history.length === 0) return [];
-
-    const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
-    const now = new Date();
-    const periods: number[] = [];
-
-    for (let i = 5; i >= 0; i--) {
-      const periodEnd = new Date(now);
-      periodEnd.setDate(periodEnd.getDate() - i * 14);
-      const periodStart = new Date(periodEnd);
-      periodStart.setDate(periodStart.getDate() - 14);
-
-      const periodEntries = sorted.filter(entry => {
-        const entryDate = new Date(entry.date);
-        return entryDate >= periodStart && entryDate < periodEnd;
-      });
-
-      if (periodEntries.length > 0) {
-        // Convert to user's preferred unit before finding max
-        // Default to 'lbs' for legacy data without unit field
-        const maxWeight = Math.max(...periodEntries.map(e =>
-          convertWeight(e.weight, e.unit || 'lbs', weightUnit)
-        ));
-        periods.push(maxWeight);
-      } else if (periods.length > 0) {
-        periods.push(periods[periods.length - 1]);
-      }
-    }
-
-    return periods.length >= 2 ? periods : [];
-  }, [weightUnit]);
-
-  // Get delta for an exercise (3 month comparison)
-  // Returns delta in user's preferred unit
-  const getDelta = useCallback((history: ExerciseWithMax['history']): { value: number; isPositive: boolean } | null => {
-    if (history.length < 2) return null;
-
-    const sorted = [...history].sort((a, b) => b.date.getTime() - a.date.getTime());
-    // Convert to user's preferred unit
-    // Default to 'lbs' for legacy data without unit field
-    const currentMax = convertWeight(sorted[0].weight, sorted[0].unit || 'lbs', weightUnit);
-
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-    const oldEntries = sorted.filter(h => new Date(h.date) < threeMonthsAgo);
-    if (oldEntries.length === 0) return null;
-
-    // Convert old entries to user's preferred unit before finding max
-    // Default to 'lbs' for legacy data without unit field
-    const oldMax = Math.max(...oldEntries.map(h => convertWeight(h.weight, h.unit || 'lbs', weightUnit)));
-    const delta = currentMax - oldMax;
-
-    if (delta === 0) return null;
-
-    return { value: Math.round(Math.abs(delta)), isPositive: delta > 0 };
-  }, [weightUnit]);
-
-  const sparklineData = useMemo(() => getSparklineData(exercise.history), [getSparklineData, exercise.history]);
-  const delta = useMemo(() => getDelta(exercise.history), [getDelta, exercise.history]);
+  // One clock-independent trend derivation feeds both signals: best-per-day buckets
+  // across the FULL logged window (no fixed 3-month cutoff, no live-clock calendar
+  // windows), so even a sub-3-month or not-recently-logged history still reads a delta.
+  const trend = useMemo(
+    () => computeExerciseTrend(exercise.history, weightUnit),
+    [exercise.history, weightUnit]
+  );
 
   return (
     <TouchableOpacity
@@ -105,18 +50,18 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
           <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
             {' '}est. 1RM
           </Text>
-          {delta && (
-            <View style={[styles.deltaContainer, { backgroundColor: delta.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>
-              <Text style={[styles.deltaText, { color: delta.isPositive ? '#00C85C' : '#FF6B6B', fontFamily: currentTheme.fonts.semiBold }]}>
-                {delta.isPositive ? '+' : '-'}{delta.value}
+          {trend.deltaDisplay > 0 && (
+            <View style={[styles.deltaContainer, { backgroundColor: trend.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>
+              <Text style={[styles.deltaText, { color: trend.isPositive ? '#00C85C' : '#FF6B6B', fontFamily: currentTheme.fonts.semiBold }]}>
+                {trend.isPositive ? '+' : '-'}{trend.deltaDisplay}
               </Text>
             </View>
           )}
         </View>
       </View>
       <View style={[styles.liftRight, { backgroundColor: 'transparent' }]}>
-        {sparklineData.length >= 2 && (
-          <MiniSparkline data={sparklineData} />
+        {trend.sparkline.length >= 2 && (
+          <MiniSparkline data={trend.sparkline} />
         )}
         <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '25'} />
       </View>

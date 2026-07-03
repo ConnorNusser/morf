@@ -14,8 +14,9 @@ import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { calculateRecapStats } from '@/lib/workout/recapStats';
 import { buildPRDays } from '@/components/history/prSessions';
 import { dayKeyOf } from '@/components/history/liftSeries';
+import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { SCENARIOS, scenarioByKey, REFERENCE_NOW, daysAgo } from '../fixtures';
-import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS } from '../goldens';
+import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS, TREND_GOLDENS } from '../goldens';
 import { ExerciseWithMax, ExerciseHistoryEntry } from '@/types';
 
 // calculateRecapStats reads storage/profile — mock them per-fixture (see below).
@@ -167,5 +168,39 @@ describe('correctness gate — calculateRecapStats (period + distribution)', () 
     mockGetWorkoutHistory.mockResolvedValue([]);
     const recap = await calculateRecapStats('week', REFERENCE_NOW);
     expect(recap.totalWorkouts).toBe(0);
+  });
+});
+
+describe('correctness gate — exercise trend (clock-free delta + sparkline)', () => {
+  const historyOf = (key: string, exerciseId: string) =>
+    fixtureExerciseStats(key).find(e => e.id === exerciseId)?.history ?? [];
+
+  for (const [key, golden] of Object.entries(TREND_GOLDENS)) {
+    it(`${key}: ${golden.exerciseId} delta ${golden.deltaDisplay} / sparkline len ${golden.sparkline.length}`, () => {
+      const trend = computeExerciseTrend(historyOf(key, golden.exerciseId), 'lbs');
+      expect(trend.deltaDisplay).toBe(golden.deltaDisplay);
+      expect(trend.isPositive).toBe(golden.isPositive);
+      expect(trend.sparkline).toEqual(golden.sparkline);
+    });
+  }
+
+  it('sparse: e1RM variant (drives the "Improved" sort) also reports the sub-3-month gain', () => {
+    const trend = computeExerciseTrend(historyOf('sparse', 'squat-barbell'), 'lbs', 'e1rm');
+    expect(trend.isPositive).toBe(true);
+    expect(trend.deltaDisplay).toBeGreaterThan(0);
+    expect(trend.sparkline).toHaveLength(3);
+  });
+
+  it('every scenario derives a finite, non-crashing trend (corrupt/empty safe)', () => {
+    for (const sc of SCENARIOS) {
+      for (const ex of fixtureExerciseStats(sc.key)) {
+        expect(() => {
+          const t = computeExerciseTrend(ex.history, 'lbs');
+          expect(Number.isFinite(t.deltaDisplay)).toBe(true);
+          expect(t.sparkline.every(Number.isFinite)).toBe(true);
+          expect(t.sparkline.length === 0 || t.sparkline.length >= 2).toBe(true);
+        }).not.toThrow();
+      }
+    }
   });
 });
