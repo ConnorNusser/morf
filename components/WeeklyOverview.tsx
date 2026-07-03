@@ -388,7 +388,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           </View>
         )}
 
-        {/* Muscle Groups Focus */}
+        {/* Balance — the derived "am I training in balance?" verdict as a single inline row,
+            with the full per-group ladder one tap away instead of stacked full-width here. */}
         <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
           <MuscleFocusChips muscleData={muscleGroupData} paceFraction={paceFraction} showMissing={false} />
         </View>
@@ -482,8 +483,8 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   muscleSection: {
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: 14,
+    paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
 });

@@ -1,4 +1,5 @@
 import { Text } from '@/components/Themed';
+import StrengthHistoryModal from '@/components/StrengthHistoryModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, Gender, WeightUnit } from '@/types';
 import {
@@ -112,6 +113,10 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
   const router = useRouter();
 
   const [timeframe, setTimeframe] = useState<IndexTimeframe>('3M');
+
+  // The hero owns the single Q1 answer, so its full percentile-over-time drill-in (the old
+  // standalone "Strength Over Time" card) now lives one tap behind the hero itself.
+  const [showStrengthModal, setShowStrengthModal] = useState(false);
 
   // PRIMARY: the portfolio-level "am I stronger overall?" answer — a normalized 0–99
   // strength percentile (bounded, comparative, able to fall), not a summed-lbs vanity total.
@@ -239,12 +244,19 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
       {indexMode && index ? (
         // ── PRIMARY: aggregate Strength Index ──────────────────────────────────
         <RNView>
-          <RNView style={styles.headerTop}>
-            <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength Index</Text>
+          <TouchableOpacity
+            style={styles.headerTop}
+            activeOpacity={0.7}
+            onPress={() => setShowStrengthModal(true)}
+          >
+            <RNView style={styles.kickerRow}>
+              <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength Index</Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.text + '55'} />
+            </RNView>
             <Text style={[styles.levelWord, { color: colors.text + '70', fontFamily: fonts.medium }]}>
               {strengthLevel(index.current)}
             </Text>
-          </RNView>
+          </TouchableOpacity>
 
           {/* One number, one unit (percentile), one green/red direction. The value is a
               bounded 0–99 rank and the delta is the change in that SAME rank over the
@@ -402,6 +414,10 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           </Text>
         </RNView>
       )}
+
+      {/* Full percentile-over-time detail — the hero's own drill-in, replacing the removed
+          duplicate "Strength Over Time" card so Q1's detail keeps a home under one owner. */}
+      <StrengthHistoryModal visible={showStrengthModal} onClose={() => setShowStrengthModal(false)} />
     </Animated.View>
   );
 }
@@ -422,6 +438,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 10,
   },
+  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   kicker: { fontSize: 13, letterSpacing: 0.2 },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },

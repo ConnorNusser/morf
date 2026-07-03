@@ -8,7 +8,6 @@ import WorkoutCard from '@/components/history/WorkoutCard';
 import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
-import StrengthHistoryCard from '@/components/StrengthHistoryCard';
 import { Text, View } from '@/components/Themed';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
@@ -481,11 +480,6 @@ export default function HistoryScreen() {
               </TouchableOpacity>
             )}
 
-            {/* Strength Percentile History */}
-            <View style={styles.strengthHistorySection}>
-              <StrengthHistoryCard />
-            </View>
-
             {/* Empty State */}
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
@@ -802,9 +796,6 @@ const styles = StyleSheet.create({
   sectionHeading: {
     fontSize: 17,
     marginBottom: 12,
-  },
-  strengthHistorySection: {
-    marginTop: 8,
   },
   viewAllButton: {
     paddingVertical: 16,

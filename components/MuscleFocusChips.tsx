@@ -38,6 +38,7 @@ interface MuscleFocusChipsProps {
 }
 
 type Tone = 'ahead' | 'ontrack' | 'below' | 'skipped' | 'new' | 'none';
+type BalanceState = 'building' | 'balanced' | 'lagging';
 
 interface Verdict {
   label: string;
@@ -78,6 +79,9 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
   const { currentTheme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedMuscle, setSelectedMuscle] = useState<MuscleGroupData | null>(null);
+  // Detail-on-tap: the full 7-bar dual-channel ladder is the slowest read on the page,
+  // so it stays collapsed behind the one-line verdict until the lifter asks for it.
+  const [expanded, setExpanded] = useState(false);
   const pace = Math.min(Math.max(paceFraction, 0.15), 1);
 
   const rows = ALL_MUSCLE_GROUPS.map(muscle => {
@@ -100,29 +104,43 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
     }
   };
 
+  // Rank the muscles with an established baseline by how far each sits below its own paced
+  // norm. This single ordering drives BOTH the derived verdict headline and the 1–2 worst
+  // deviation bars shown while collapsed, so the glance answer and its evidence agree.
+  const ranked = rows
+    .filter(r => r.normSets >= 0.5)
+    .map(r => ({ ...r, ratio: r.normSets * pace > 0 ? r.sets / (r.normSets * pace) : 1 }))
+    .sort((a, b) => a.ratio - b.ratio);
+  const worst = ranked[0];
+
   // Derived headline — the one-line answer to "am I neglecting a group?". Based on the
   // worst muscle vs its own paced norm, so it flips to "balanced" when the lifter recovers.
-  const baselineRows = rows.filter(r => r.normSets >= 0.5);
   let headline: string;
   let headlineColor: string;
-  if (baselineRows.length === 0) {
+  let state: BalanceState;
+  if (ranked.length === 0) {
     headline = 'Building your baseline — keep logging';
     headlineColor = currentTheme.colors.text + '99';
+    state = 'building';
+  } else if (worst.ratio < 0.5) {
+    const name = getMuscleGroupLabel(worst.muscle);
+    headline = worst.sets === 0 && pace >= 1 && worst.normSets >= BASELINE_THRESHOLD
+      ? `Neglecting ${name} this week`
+      : `${name} lagging behind`;
+    headlineColor = RED;
+    state = 'lagging';
   } else {
-    const worst = baselineRows
-      .map(r => ({ r, ratio: r.normSets * pace > 0 ? r.sets / (r.normSets * pace) : 1 }))
-      .sort((a, b) => a.ratio - b.ratio)[0];
-    if (worst.ratio < 0.5) {
-      const name = getMuscleGroupLabel(worst.r.muscle);
-      headline = worst.r.sets === 0 && pace >= 1 && worst.r.normSets >= BASELINE_THRESHOLD
-        ? `Neglecting ${name} this week`
-        : `${name} lagging behind`;
-      headlineColor = RED;
-    } else {
-      headline = 'Balanced across your groups';
-      headlineColor = currentTheme.colors.accent;
-    }
+    headline = 'Balanced across your groups';
+    headlineColor = currentTheme.colors.accent;
+    state = 'balanced';
   }
+
+  // Only when genuinely lagging do we surface the culprits — the worst 1–2 groups as
+  // single-channel "how far below your usual" bars. A balanced week shows only the verdict.
+  const worstChips = state === 'lagging' ? ranked.filter(r => r.ratio < 0.7).slice(0, 2) : [];
+
+  const statusIcon: keyof typeof Ionicons.glyphMap =
+    state === 'balanced' ? 'checkmark-circle' : state === 'lagging' ? 'alert-circle' : 'ellipse-outline';
 
   const handleRowPress = (data: MuscleGroupData | undefined) => {
     if (data && data.count > 0) {
@@ -139,61 +157,112 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
   return (
     <>
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
-            Muscle Balance
-          </Text>
-          <Text style={[styles.headline, { color: headlineColor, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
-            {headline}
-          </Text>
-        </View>
+        {/* Verdict — the one-glance answer to "am I training in balance?". The raw ladder
+            is the page's slowest preattentive read, so it lives one tap away; this line
+            owns the state (balanced / X lagging) on its own. */}
+        <TouchableOpacity
+          style={styles.verdictRow}
+          activeOpacity={0.6}
+          onPress={() => setExpanded(e => !e)}
+        >
+          <View style={styles.verdictLeft}>
+            <Ionicons name={statusIcon} size={16} color={headlineColor} />
+            <Text style={[styles.verdict, { color: headlineColor, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+              {headline}
+            </Text>
+          </View>
+          <View style={styles.verdictRight}>
+            <Text style={[styles.eyebrow, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.medium }]}>
+              Balance
+            </Text>
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={15} color={currentTheme.colors.text + '55'} />
+          </View>
+        </TouchableOpacity>
 
-        <View style={styles.rows}>
-          {rows.map(({ muscle, data, sets, normSets, verdict }) => {
-            const trained = data ? data.count > 0 : false;
-            const fillPct = Math.min(100, (sets / scaleMax) * 100);
-            const tickPct = Math.min(100, (normSets / scaleMax) * 100);
-            return (
-              <TouchableOpacity
-                key={muscle}
-                style={styles.row}
-                onPress={() => handleRowPress(data)}
-                activeOpacity={trained ? 0.6 : 1}
-                disabled={!trained}
-              >
-                <Text style={[styles.muscleName, { color: currentTheme.colors.text + (sets > 0 ? 'CC' : '80'), fontFamily: currentTheme.fonts.medium }]}>
-                  {getMuscleGroupLabel(muscle)}
+        {/* Collapsed: only the 1–2 groups pulling the verdict down, as single-channel
+            deviation bars (this week's sets vs your weekly average). Tappable into detail. */}
+        {!expanded && worstChips.map(r => {
+          const target = Math.max(1, Math.round(r.normSets));
+          const fillPct = Math.min(100, (r.sets / Math.max(r.normSets, 1)) * 100);
+          const barColor = r.sets === 0 ? RED : currentTheme.colors.primary + '99';
+          const tappable = !!r.data && r.data.count > 0;
+          return (
+            <TouchableOpacity
+              key={r.muscle}
+              style={styles.devRow}
+              onPress={() => handleRowPress(r.data)}
+              activeOpacity={tappable ? 0.6 : 1}
+              disabled={!tappable}
+            >
+              <Text style={[styles.devName, { color: currentTheme.colors.text + 'CC', fontFamily: currentTheme.fonts.medium }]}>
+                {getMuscleGroupLabel(r.muscle)}
+              </Text>
+              <View style={[styles.devTrack, { backgroundColor: currentTheme.colors.text + '12' }]}>
+                {fillPct > 0 && (
+                  <View style={[styles.devFill, { width: `${fillPct}%`, backgroundColor: barColor }]} />
+                )}
+              </View>
+              <Text style={[styles.devValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                {r.sets}
+                <Text style={[styles.devValueDim, { color: currentTheme.colors.text + '66', fontFamily: currentTheme.fonts.regular }]}>
+                  {' / '}{target}
                 </Text>
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
 
-                <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '12' }]}>
-                  {fillPct > 0 && (
-                    <View style={[styles.fill, { width: `${fillPct}%`, backgroundColor: fillColor(verdict.tone) }]} />
-                  )}
-                  {normSets >= 0.5 && (
-                    <View style={[styles.tick, { left: `${tickPct}%`, backgroundColor: currentTheme.colors.text + '80' }]} />
-                  )}
-                </View>
+        {/* Expanded: the full dual-channel ladder + legend — the detailed per-group read,
+            unchanged, now opt-in instead of always-on. */}
+        {expanded && (
+          <>
+            <View style={styles.rows}>
+              {rows.map(({ muscle, data, sets, normSets, verdict }) => {
+                const trained = data ? data.count > 0 : false;
+                const fillPct = Math.min(100, (sets / scaleMax) * 100);
+                const tickPct = Math.min(100, (normSets / scaleMax) * 100);
+                return (
+                  <TouchableOpacity
+                    key={muscle}
+                    style={styles.row}
+                    onPress={() => handleRowPress(data)}
+                    activeOpacity={trained ? 0.6 : 1}
+                    disabled={!trained}
+                  >
+                    <Text style={[styles.muscleName, { color: currentTheme.colors.text + (sets > 0 ? 'CC' : '80'), fontFamily: currentTheme.fonts.medium }]}>
+                      {getMuscleGroupLabel(muscle)}
+                    </Text>
 
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                    <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '12' }]}>
+                      {fillPct > 0 && (
+                        <View style={[styles.fill, { width: `${fillPct}%`, backgroundColor: fillColor(verdict.tone) }]} />
+                      )}
+                      {normSets >= 0.5 && (
+                        <View style={[styles.tick, { left: `${tickPct}%`, backgroundColor: currentTheme.colors.text + '80' }]} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-        <View style={styles.legendRow}>
-          <View style={[styles.legendSwatch, { backgroundColor: currentTheme.colors.primary }]} />
-          <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
-            sets this week
-          </Text>
-          <View style={[styles.legendTick, { backgroundColor: currentTheme.colors.text + '80' }]} />
-          <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
-            your 4-wk avg
-          </Text>
-        </View>
+            <View style={styles.legendRow}>
+              <View style={[styles.legendSwatch, { backgroundColor: currentTheme.colors.primary }]} />
+              <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                sets this week
+              </Text>
+              <View style={[styles.legendTick, { backgroundColor: currentTheme.colors.text + '80' }]} />
+              <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                your 4-wk avg
+              </Text>
+            </View>
 
-        {showMissing && baselineRows.length > 0 && (
-          <Text style={[styles.legendText, { color: currentTheme.colors.text + '4D', fontFamily: currentTheme.fonts.regular, marginTop: 6 }]}>
-            Compared to your trailing-4-week weekly average.
-          </Text>
+            {showMissing && ranked.length > 0 && (
+              <Text style={[styles.legendText, { color: currentTheme.colors.text + '4D', fontFamily: currentTheme.fonts.regular, marginTop: 6 }]}>
+                Compared to your trailing-4-week weekly average.
+              </Text>
+            )}
+          </>
         )}
       </View>
 
@@ -255,26 +324,70 @@ export default function MuscleFocusChips({ muscleData, paceFraction = 1, showMis
 
 const styles = StyleSheet.create({
   container: {},
-  headerRow: {
+  // Verdict header — the collapsed one-glance state, doubles as the expand toggle.
+  verdictRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: 14,
+    gap: 10,
+  },
+  verdictLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.5,
-  },
-  headline: {
-    fontSize: 12,
-    lineHeight: 16,
     flexShrink: 1,
+  },
+  verdict: {
+    fontSize: 14,
+    lineHeight: 19,
+    flexShrink: 1,
+  },
+  verdictRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  eyebrow: {
+    fontSize: 11,
+    lineHeight: 15,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  // Collapsed deviation bars — the 1–2 worst groups, single channel.
+  devRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+  },
+  devName: {
+    fontSize: 12,
+    lineHeight: 16,
+    width: 62,
+  },
+  devTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  devFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  devValue: {
+    fontSize: 12,
+    lineHeight: 16,
+    minWidth: 44,
     textAlign: 'right',
   },
+  devValueDim: {
+    fontSize: 12,
+  },
+  // Expanded dual-channel ladder.
   rows: {
     gap: 9,
+    marginTop: 16,
   },
   row: {
     flexDirection: 'row',
