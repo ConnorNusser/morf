@@ -3,7 +3,6 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
-import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -341,10 +340,7 @@ export default function HistoryScreen() {
               />
             )}
 
-            {/* Weekly Overview */}
-            <WeeklyOverview workoutHistory={workouts} />
-
-            {/* Quick Stats - Inline */}
+            {/* Quick Stats - inline, directly under the hero as its supporting line */}
             {workouts.length > 0 && (
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
                 {quickStats.streak > 0 ? (
@@ -377,38 +373,14 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Muscle Focus Widget */}
-            {workouts.length > 0 && (
-              <View style={styles.widgetSection}>
-                <MuscleFocusWidget />
-              </View>
-            )}
-
-            {/* Monthly Trends Button */}
-            {workouts.length > 0 && (
-              <TouchableOpacity
-                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-                onPress={() => setShowMonthlyTrends(true)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.monthlyTrendsContent}>
-                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    View Monthly Trends
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
-              </TouchableOpacity>
-            )}
-
-            {/* Strength Percentile History */}
-            <View style={styles.strengthHistorySection}>
-              <StrengthHistoryCard />
-            </View>
-
-            {/* Recent Workouts */}
+            {/* Recent Workouts — the session log is the primary content of this tab
+                (Q7: "what did I do last time?"), so it sits directly under the hero
+                rather than buried beneath every summary widget. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Recent Workouts
+                </Text>
                 {/* Search (only worth showing once there's a backlog) */}
                 {workouts.length >= 5 && (
                   <View style={[styles.searchBar, styles.workoutSearchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
@@ -481,6 +453,40 @@ export default function HistoryScreen() {
                 )}
               </View>
             )}
+
+            {/* Consistency & muscle balance — one consolidated widget (Q4/Q5/Q6).
+                The standalone MuscleFocusWidget was removed as a duplicate: WeeklyOverview
+                already carries muscle distribution, so two muscle cards on one tab was noise. */}
+            {workouts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  This Week
+                </Text>
+                <WeeklyOverview workoutHistory={workouts} />
+              </View>
+            )}
+
+            {/* Secondary drill-downs — deeper analysis, below the primary content. */}
+            {workouts.length > 0 && (
+              <TouchableOpacity
+                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                onPress={() => setShowMonthlyTrends(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.monthlyTrendsContent}>
+                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                    View Monthly Trends
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+              </TouchableOpacity>
+            )}
+
+            {/* Strength Percentile History */}
+            <View style={styles.strengthHistorySection}>
+              <StrengthHistoryCard />
+            </View>
 
             {/* Empty State */}
             {workouts.length === 0 && (
@@ -796,10 +802,11 @@ const styles = StyleSheet.create({
   },
   // Section styles
   section: {
-    marginTop: 16,
+    marginTop: 24,
   },
-  widgetSection: {
-    marginTop: 16,
+  sectionHeading: {
+    fontSize: 17,
+    marginBottom: 12,
   },
   strengthHistorySection: {
     marginTop: 8,

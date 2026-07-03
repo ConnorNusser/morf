@@ -363,7 +363,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
         {/* Muscle Groups Focus */}
         <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
-          <MuscleFocusChips muscleData={muscleGroupData} showMissing={true} />
+          <MuscleFocusChips muscleData={muscleGroupData} showMissing={false} />
         </View>
       </Card>
 
