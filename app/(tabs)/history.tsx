@@ -166,14 +166,7 @@ export default function HistoryScreen() {
   // Calculate quick stats
   const quickStats = useMemo(() => {
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // This week's workouts
-    const thisWeekWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfWeek);
 
     // This month's workouts
     const thisMonthWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfMonth);
@@ -220,7 +213,6 @@ export default function HistoryScreen() {
 
     return {
       streak,
-      thisWeek: thisWeekWorkouts.length,
       thisMonth: thisMonthWorkouts.length,
     };
   }, [workouts]);
@@ -344,23 +336,18 @@ export default function HistoryScreen() {
               />
             )}
 
-            {/* Quick Stats - inline, directly under the hero as its supporting line */}
+            {/* Quick Stats — inline supporting line under the hero. The current-week
+                workout COUNT is intentionally NOT shown here: WeeklyOverview (directly
+                below) already owns "this week" on its Monday-anchored boundary, so a second
+                copy here on a Sunday boundary previously let the screen read a different
+                number in each block. This line keeps only what WeeklyOverview does not: the
+                multi-week streak, else a month / all-time roll-up. */}
             {workouts.length > 0 && (
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
                 {quickStats.streak > 0 ? (
-                  <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                      {quickStats.streak} week streak
-                    </Text>
-                    <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
-                  </>
-                ) : null}
-                {quickStats.thisWeek > 0 ? (
-                  <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                      {quickStats.thisWeek} workout{quickStats.thisWeek !== 1 ? 's' : ''} this week
-                    </Text>
-                  </>
+                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                    {quickStats.streak} week streak
+                  </Text>
                 ) : (
                   <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                     {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
@@ -727,9 +714,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   quickStatInlineText: {
-    fontSize: 13,
-  },
-  quickStatDivider: {
     fontSize: 13,
   },
   // Exercises tab: overview + search + sort

@@ -124,15 +124,11 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
   );
   const indexMode = !!index?.hasData;
 
-  // Per-lift PR curves — demoted to a "top movers" strip (index mode) or, when the
-  // aggregate index can't be built, the swipeable fallback carousel it used to be.
+  // Per-lift PR curves — the swipeable fallback carousel used when the aggregate index
+  // can't be built. In index mode the per-lift Q2 detail lives one tap away on the
+  // Exercises tab (est-1RM + green delta + sparkline), so the hero stays a single focal
+  // answer instead of re-rendering a competing per-lift strip the other tab already owns.
   const lifts = useMemo(() => buildLiftSeries(exerciseStats, weightUnit), [exerciseStats, weightUnit]);
-
-  // Biggest est-1RM gainers, for the secondary strip beneath the index.
-  const movers = useMemo(
-    () => [...lifts].filter(l => l.gainLbs > 0).sort((a, b) => b.gainLbs - a.gainLbs).slice(0, 3),
-    [lifts]
-  );
 
   // When nothing qualifies yet, surface the lift closest to the 3-session gate so the
   // empty state is a concrete goal instead of a generic nudge.
@@ -312,23 +308,6 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               Across {index.liftCount} lift{index.liftCount !== 1 ? 's' : ''} vs bodyweight standards for your weight
             </Text>
           </Animated.View>
-
-          {/* SECONDARY: top movers — the per-lift Q2 detail, demoted below the index */}
-          {movers.length > 0 && (
-            <RNView style={[styles.movers, { borderTopColor: colors.border }]}>
-              <Text style={[styles.moversLabel, { color: colors.text + '80', fontFamily: fonts.semiBold }]}>Top movers · all-time est. 1RM</Text>
-              {movers.map(m => (
-                <RNView key={m.name} style={styles.moverRow}>
-                  <Text numberOfLines={1} style={[styles.moverName, { color: colors.text, fontFamily: fonts.medium }]}>
-                    {m.name}
-                  </Text>
-                  <Text style={[styles.moverGain, { color: UP, fontFamily: fonts.semiBold }]}>
-                    +{m.gainLbs} {weightUnit}
-                  </Text>
-                </RNView>
-              ))}
-            </RNView>
-          )}
         </RNView>
       ) : activeLift ? (
         // ── FALLBACK: per-lift PR carousel (no bodyweight/gender for the index) ─
@@ -476,11 +455,6 @@ const styles = StyleSheet.create({
   tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 8 },
   tfBtnText: { fontSize: 12.5, letterSpacing: 0.2 },
   caption: { fontSize: 11.5, letterSpacing: 0.2, marginTop: 10 },
-  movers: { marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth },
-  moversLabel: { fontSize: 12, letterSpacing: 0.3, marginBottom: 8 },
-  moverRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 4 },
-  moverName: { fontSize: 14, letterSpacing: -0.2, flex: 1, marginRight: 12 },
-  moverGain: { fontSize: 13, letterSpacing: 0.1 },
   empty: { paddingVertical: 22, alignItems: 'center' },
   emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
   emptyLift: { fontSize: 16, letterSpacing: -0.2, marginBottom: 3 },
