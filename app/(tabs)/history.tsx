@@ -1,9 +1,11 @@
 import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
+import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
+import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import StrengthHistoryCard from '@/components/StrengthHistoryCard';
@@ -12,11 +14,10 @@ import WeeklyOverview from '@/components/WeeklyOverview';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -40,18 +41,12 @@ const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
   { key: 'name', label: 'A–Z' },
 ];
 
-// Improvement in user's preferred unit: latest session best 1RM vs earliest.
-// Returns the absolute estimated-1RM gain (lbs) across the full history.
+// Improvement drives the "Improved" sort. Reuse the single shared trend definition
+// (e1RM variant) so the sort agrees with the per-card delta instead of being a third,
+// divergent calc. Signed gain: latest day-bucket best e1RM minus the earliest.
 function getImprovement(history: ExerciseWithMax['history']): number {
-  if (history.length < 2) return 0;
-  const sorted = [...history].sort((a, b) => a.date.getTime() - b.date.getTime());
-  const oneRM = (e: ExerciseWithMax['history'][number]) => {
-    const lbs = e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight;
-    return OneRMCalculator.estimate(lbs, e.reps);
-  };
-  const earliest = oneRM(sorted[0]);
-  const latest = Math.max(...sorted.slice(-3).map(oneRM));
-  return latest - earliest;
+  const trend = computeExerciseTrend(history, 'lbs', 'e1rm');
+  return trend.isPositive ? trend.deltaDisplay : -trend.deltaDisplay;
 }
 
 export default function HistoryScreen() {
@@ -99,93 +94,9 @@ export default function HistoryScreen() {
   const loadExerciseStats = useCallback(async () => {
     try {
       const workoutHistory = await storageService.getWorkoutHistory();
-
-      // Build a map of exercise IDs to their history and max
-      const exerciseDataMap: Record<string, {
-        maxWeight: number;
-        maxReps: number;
-        maxOneRM: number;
-        history: { weight: number; reps: number; date: Date; unit: WeightUnit }[];
-      }> = {};
-
-      // Helper to add entry
-      const addEntry = (id: string, weight: number, reps: number, date: Date, unit: WeightUnit) => {
-        if (weight <= 0) return;
-        const weightInLbs = unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight;
-        const oneRM = OneRMCalculator.estimate(weightInLbs, reps);
-
-        if (!exerciseDataMap[id]) {
-          exerciseDataMap[id] = { maxWeight: 0, maxReps: 0, maxOneRM: 0, history: [] };
-        }
-
-        exerciseDataMap[id].history.push({ weight, reps, date, unit });
-
-        if (oneRM > exerciseDataMap[id].maxOneRM) {
-          exerciseDataMap[id].maxWeight = weightInLbs;
-          exerciseDataMap[id].maxReps = reps;
-          exerciseDataMap[id].maxOneRM = oneRM;
-        }
-      };
-
-      // Scan workout history
-      for (const workout of workoutHistory) {
-        for (const exercise of workout.exercises) {
-          for (const set of exercise.completedSets || []) {
-            // Default to 'lbs' for legacy data without unit field
-            addEntry(exercise.id, set.weight, set.reps, new Date(workout.createdAt), set.unit || 'lbs');
-          }
-        }
-      }
-
-      // Build stats list
-      const stats: ExerciseWithMax[] = [];
-
-      // Add exercises from database
-      for (const workout of ALL_WORKOUTS) {
-        const data = exerciseDataMap[workout.id];
-        if (data && data.history.length > 0) {
-          const displayWeight = weightUnit === 'kg' ? convertWeight(data.maxWeight, 'lbs', 'kg') : data.maxWeight;
-          const displayOneRM = weightUnit === 'kg' ? convertWeight(data.maxOneRM, 'lbs', 'kg') : data.maxOneRM;
-
-          // Sort history by date descending
-          const sortedHistory = data.history.sort((a, b) => b.date.getTime() - a.date.getTime());
-
-          stats.push({
-            id: workout.id,
-            name: workout.name,
-            maxWeight: Math.round(displayWeight),
-            maxReps: data.maxReps,
-            estimated1RM: Math.round(displayOneRM),
-            isCustom: false,
-            lastUsed: sortedHistory[0]?.date,
-            history: sortedHistory,
-          });
-        }
-      }
-
-      // Add custom exercises
-      for (const custom of customExercises) {
-        const data = exerciseDataMap[custom.id];
-        const displayWeight = data && weightUnit === 'kg' ? convertWeight(data.maxWeight, 'lbs', 'kg') : (data?.maxWeight || 0);
-        const displayOneRM = data && weightUnit === 'kg' ? convertWeight(data.maxOneRM, 'lbs', 'kg') : (data?.maxOneRM || 0);
-        const sortedHistory = data?.history.sort((a, b) => b.date.getTime() - a.date.getTime()) || [];
-
-        stats.push({
-          id: custom.id,
-          name: custom.name,
-          maxWeight: data ? Math.round(displayWeight) : 0,
-          maxReps: data?.maxReps || 0,
-          estimated1RM: data ? Math.round(displayOneRM) : 0,
-          isCustom: true,
-          lastUsed: sortedHistory[0]?.date || custom.createdAt,
-          history: sortedHistory,
-        });
-      }
-
-      // Sort by estimated 1RM descending
-      stats.sort((a, b) => b.estimated1RM - a.estimated1RM || a.name.localeCompare(b.name));
-
-      setExerciseStats(stats);
+      // Pure, node-tested ingestion (lib/history/exerciseStats). Keeps bodyweight
+      // (weight-0) lifts, scoring them on reps instead of dropping them silently.
+      setExerciseStats(buildExerciseStats(workoutHistory, customExercises, weightUnit));
     } catch (error) {
       console.error('Error loading exercise stats:', error);
     }
@@ -320,11 +231,16 @@ export default function HistoryScreen() {
     };
   }, [workouts, weightUnit]);
 
-  // Exercises that have at least one recorded set with strength data.
+  // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
+  // (calisthenics lifts have no 1RM but are still real, tracked exercises).
   const trackedExercises = useMemo(() =>
-    exerciseStats.filter(ex => ex.estimated1RM > 0),
+    exerciseStats.filter(ex => ex.estimated1RM > 0 || (ex.bestReps ?? 0) > 0),
     [exerciseStats]
   );
+
+  // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
+  // PR chips so the whole ascending progression is surfaced, not just the record holder.
+  const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
 
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
@@ -525,7 +441,7 @@ export default function HistoryScreen() {
                   <WorkoutCard
                     key={workout.id}
                     workout={workout}
-                    exerciseStats={exerciseStats}
+                    prDays={prDays}
                     weightUnit={weightUnit}
                     customExercises={customExercises}
                     onPress={setSelectedWorkout}
@@ -742,7 +658,7 @@ export default function HistoryScreen() {
       <WorkoutDetailModal
         workout={selectedWorkout}
         weightUnit={weightUnit}
-        exerciseStats={exerciseStats}
+        prDays={prDays}
         customExercises={customExercises}
         onClose={() => setSelectedWorkout(null)}
         onDelete={async (workout) => {

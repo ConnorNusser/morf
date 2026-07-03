@@ -41,3 +41,8 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# generated screenshot assets (ASO / simulator captures)
+screenshots/
+simulator-screenshots/
+.DS_Store

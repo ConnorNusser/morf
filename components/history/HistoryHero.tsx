@@ -1,9 +1,13 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { ExerciseWithMax, WeightUnit } from '@/types';
+import { buildLiftSeries, MIN_SESSIONS, N, nearestLift } from '@/components/history/liftSeries';
+import { computePRRecency, PRRecency } from '@/lib/history/prRecency';
+import { computeActivityStatus } from '@/lib/history/activityStatus';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dimensions, StyleSheet, View as RNView } from 'react-native';
+import { Dimensions, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
@@ -21,23 +25,11 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const PAGE_PADDING = 20;
 const CARD_PADDING = 18;
-const N = 14; // samples per lift (fixed so curves can morph into each other)
 const CHART_H = 116;
 const TOP = 8;
 const USABLE_H = CHART_H - TOP * 2;
 const MORPH_MS = 820;
-const MIN_SESSIONS = 3; // need a few points to draw a progression
 const SWIPE_THRESHOLD = 40; // px of horizontal travel to flip to the next lift
-
-interface LiftSeries {
-  name: string;
-  norm: number[]; // N values 0..1, the lift's cumulative-best curve scaled to itself
-  current: number; // latest best e1RM, display unit
-  gainLbs: number; // all-time gain across the logged window, display unit
-  sessions: number;
-  startDate: Date; // first logged session
-  endDate: Date; // latest logged session
-}
 
 function fmtMonth(d: Date) {
   const date = new Date(d);
@@ -68,61 +60,36 @@ function morphPath(from: number[], to: number[], prog: number, x0: number, dx: n
   return d;
 }
 
-// ── data ───────────────────────────────────────────────────────────────────
-
-function useLiftSeries(exerciseStats: ExerciseWithMax[], weightUnit: WeightUnit): LiftSeries[] {
-  return useMemo(() => {
-    const e1rmLbs = (e: { weight: number; reps: number; unit: WeightUnit }) =>
-      OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
-    const toUnit = (lbs: number) => (weightUnit === 'kg' ? convertWeight(lbs, 'lbs', 'kg') : lbs);
-
-    const out: LiftSeries[] = [];
-    for (const ex of exerciseStats) {
-      if (!ex.history || ex.history.length < MIN_SESSIONS) continue;
-      const sorted = [...ex.history].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      // cumulative best (PR curve) in lbs
-      const cum: number[] = [];
-      let best = 0;
-      for (const h of sorted) {
-        best = Math.max(best, e1rmLbs(h));
-        cum.push(best);
-      }
-      const L = cum.length;
-      // resample to N evenly-spaced points
-      const pts: number[] = [];
-      for (let k = 0; k < N; k++) {
-        const pos = (k / (N - 1)) * (L - 1);
-        const lo = Math.floor(pos);
-        const hi = Math.ceil(pos);
-        pts.push(cum[lo] + (cum[hi] - cum[lo]) * (pos - lo));
-      }
-      const min = Math.min(...pts);
-      const max = Math.max(...pts);
-      const norm = pts.map(v => (max > min ? (v - min) / (max - min) : 0.5));
-      const current = Math.round(toUnit(cum[L - 1]));
-      const gainLbs = Math.round(toUnit(cum[L - 1]) - toUnit(cum[0]));
-      out.push({
-        name: ex.name,
-        norm,
-        current,
-        gainLbs,
-        sessions: L,
-        startDate: sorted[0].date,
-        endDate: sorted[L - 1].date,
-      });
-    }
-    // most-logged lifts first, capped
-    return out.sort((a, b) => b.sessions - a.sessions).slice(0, 6);
-  }, [exerciseStats, weightUnit]);
-}
-
 // ── main ─────────────────────────────────────────────────────────────────────
 
 export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroProps) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
+  const router = useRouter();
 
-  const lifts = useLiftSeries(exerciseStats, weightUnit);
+  const lifts = useMemo(() => buildLiftSeries(exerciseStats, weightUnit), [exerciseStats, weightUnit]);
+  // When nothing qualifies yet, surface the lift closest to the 3-session gate so the
+  // empty state is a concrete goal instead of a generic nudge.
+  const nearest = useMemo(() => (lifts.length ? null : nearestLift(exerciseStats)), [lifts.length, exerciseStats]);
+
+  // Freshness signal: a lapsed veteran (trained, then went quiet for weeks) has no per-lift
+  // curve to draw, so without this the hero shows the same beginner "1 of 3 sessions" nudge
+  // as a brand-new user. Surface "welcome back · last trained N days ago" + a restart CTA
+  // instead — given PRIORITY over the nearestLift branch below.
+  const activity = useMemo(() => computeActivityStatus(exerciseStats, new Date()), [exerciseStats]);
+
+  // PR recency keyed by lift NAME (LiftSeries carries name, not id), so the active lift
+  // can flip its celebratory "+gain all-time" caption to an honest "plateau · N weeks
+  // since last PR" once it has gone weeks without setting a new record.
+  const recencyByName = useMemo(() => {
+    const byId = computePRRecency(exerciseStats, new Date());
+    const byName = new Map<string, PRRecency>();
+    for (const ex of exerciseStats) {
+      const r = byId.get(ex.id);
+      if (r) byName.set(ex.name, r);
+    }
+    return byName;
+  }, [exerciseStats]);
 
   const chartW = Dimensions.get('window').width - PAGE_PADDING * 2 - CARD_PADDING * 2;
   const X0 = 2;
@@ -173,6 +140,7 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
   const areaProps = useAnimatedProps(() => ({ d: morphPath(fromPoints.value, toPoints.value, progress.value, X0, DX, true) }));
 
   const active = lifts[Math.min(index, lifts.length - 1)];
+  const activeRecency = active ? recencyByName.get(active.name) : undefined;
 
   return (
     <Animated.View
@@ -203,11 +171,18 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
                 <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontFamily: fonts.bold }]}>
                   {active.name}
                 </Text>
-                {active.gainLbs > 0 && (
+                {activeRecency?.isPlateau ? (
+                  // A weeks-long dry spell is the single most actionable fact on a deep
+                  // history — surface it INSTEAD of the (now misleading) all-time gain,
+                  // which otherwise reads as "still climbing" on a plateaued lift.
+                  <Text style={[styles.plateau, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
+                    Plateau · {Math.round(activeRecency.daysSincePR / 7)} weeks since last PR
+                  </Text>
+                ) : active.gainLbs > 0 ? (
                   <Text style={[styles.gain, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
                     +{active.gainLbs} {weightUnit} all-time
                   </Text>
-                )}
+                ) : null}
               </RNView>
               <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
                 {active.current}
@@ -267,6 +242,46 @@ export default function HistoryHero({ exerciseStats, weightUnit }: HistoryHeroPr
           </Animated.View>
           </RNView>
         </GestureDetector>
+      ) : activity.isLapsed && activity.daysSinceLastWorkout !== null ? (
+        <RNView style={styles.empty}>
+          <Text style={[styles.comebackTitle, { color: colors.text, fontFamily: fonts.bold }]}>
+            Welcome back
+          </Text>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+            Last trained {activity.daysSinceLastWorkout} day{activity.daysSinceLastWorkout !== 1 ? 's' : ''} ago ·
+            pick up where you left off.
+          </Text>
+          <TouchableOpacity
+            style={[styles.comebackCta, { backgroundColor: colors.primary }]}
+            onPress={() => router.push('/workout')}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="barbell" size={16} color="#fff" />
+            <Text style={[styles.comebackCtaText, { fontFamily: fonts.semiBold }]}>Start a workout</Text>
+          </TouchableOpacity>
+        </RNView>
+      ) : nearest ? (
+        <RNView style={styles.empty}>
+          {/* progress toward unlocking the curve — one filled pip per logged day */}
+          <RNView style={styles.pips}>
+            {Array.from({ length: MIN_SESSIONS }).map((_, i) => (
+              <RNView
+                key={i}
+                style={[
+                  styles.pip,
+                  { backgroundColor: i < nearest.sessions ? colors.primary : colors.text + '1F' },
+                ]}
+              />
+            ))}
+          </RNView>
+          <Text style={[styles.emptyLift, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+            {nearest.name}
+          </Text>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+            {nearest.sessions} of {MIN_SESSIONS} sessions logged · {MIN_SESSIONS - nearest.sessions} more to unlock its
+            PR progression.
+          </Text>
+        </RNView>
       ) : (
         <RNView style={styles.empty}>
           <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
@@ -307,11 +322,26 @@ const styles = StyleSheet.create({
   titleLeft: { flex: 1, marginRight: 12 },
   liftName: { fontSize: 20, letterSpacing: -0.4 },
   gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
+  plateau: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
   value: { fontSize: 26, letterSpacing: -0.6 },
   valueUnit: { fontSize: 13, letterSpacing: 0 },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   axisLabel: { fontSize: 11, letterSpacing: 0.2 },
   caption: { fontSize: 11.5, letterSpacing: 0.2, marginTop: 8 },
   empty: { paddingVertical: 22, alignItems: 'center' },
-  emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19 },
+  emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
+  emptyLift: { fontSize: 16, letterSpacing: -0.2, marginBottom: 3 },
+  pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  pip: { width: 22, height: 5, borderRadius: 2.5 },
+  comebackTitle: { fontSize: 20, letterSpacing: -0.4, marginBottom: 6 },
+  comebackCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 22,
+    marginTop: 16,
+  },
+  comebackCtaText: { color: '#fff', fontSize: 15 },
 });

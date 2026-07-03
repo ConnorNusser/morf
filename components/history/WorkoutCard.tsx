@@ -1,16 +1,17 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { dayKeyOf } from '@/components/history/liftSeries';
 import { calculateWorkoutStats, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface WorkoutCardProps {
   workout: GeneratedWorkout;
-  exerciseStats: ExerciseWithMax[];
+  // Per exercise, the set of day-keys that set a new all-time best (buildPRDays).
+  prDays: Map<string, Set<string>>;
   weightUnit: WeightUnit;
   customExercises: CustomExercise[];
   onPress: (workout: GeneratedWorkout) => void;
@@ -19,7 +20,7 @@ interface WorkoutCardProps {
 
 function WorkoutCard({
   workout,
-  exerciseStats,
+  prDays,
   weightUnit,
   customExercises,
   onPress,
@@ -42,6 +43,7 @@ function WorkoutCard({
 
   const exercises = useMemo((): { name: string; sets: string[]; isPR: boolean; volume: number }[] => {
     const exercises: { name: string; sets: string[]; isPR: boolean; volume: number }[] = [];
+    const workoutDayKey = dayKeyOf(workout.createdAt);
 
     workout.exercises.forEach(ex => {
       const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
@@ -59,21 +61,11 @@ function WorkoutCard({
           );
         });
 
-        // For reps-based exercises, find best set by estimated 1RM
+        // For reps-based exercises, flag a PR and compute volume.
         let isPR = false;
         let volume = 0;
 
         if (trackingType === 'reps') {
-          const bestSet = ex.completedSets.reduce((best, current) => {
-            const bestUnit = best.unit || 'lbs';
-            const currentUnit = current.unit || 'lbs';
-            const bestInLbs = convertWeight(best.weight || 0, bestUnit, 'lbs');
-            const currentInLbs = convertWeight(current.weight || 0, currentUnit, 'lbs');
-            const best1RM = OneRMCalculator.estimate(bestInLbs, best.reps || 0);
-            const current1RM = OneRMCalculator.estimate(currentInLbs, current.reps || 0);
-            return current1RM > best1RM ? current : best;
-          }, ex.completedSets[0]);
-
           // Calculate volume in user's preferred unit
           volume = ex.completedSets.reduce((sum, set) => {
             const setUnit = set.unit || 'lbs';
@@ -81,17 +73,14 @@ function WorkoutCard({
             return sum + weightInPreferredUnit * (set.reps || 0);
           }, 0);
 
-          // Compare best set 1RM to exercise stats. estimated1RM is stored in the
-          // user's preferred unit and rounded (see loadExerciseStats), so normalize
-          // this set's 1RM the same way before comparing — otherwise kg users compare
-          // an lbs value against a kg value and see false PRs on nearly every exercise,
-          // and rounding can hide the PR on the workout that actually holds the record.
-          const exerciseStat = exerciseStats.find(s => s.id === ex.id);
-          const bestSetUnit = bestSet.unit || 'lbs';
-          const bestSetInLbs = convertWeight(bestSet.weight || 0, bestSetUnit, 'lbs');
-          const bestSet1RM = OneRMCalculator.estimate(bestSetInLbs, bestSet.reps || 0);
-          const bestSet1RMDisplay = Math.round(convertWeight(bestSet1RM, 'lbs', weightUnit));
-          isPR = exerciseStat ? bestSet1RMDisplay >= exerciseStat.estimated1RM : false;
+          // A PR is a *new all-time best at the time logged*: this workout's day set a
+          // record that strictly beat every prior day for the exercise (buildPRDays).
+          // The old test compared this set's 1RM to the all-time max with `>=`, which
+          // only ever flagged the single record-holding workout — so a strictly
+          // ascending history chipped just its most-recent session, and a plateau that
+          // merely re-hit its peak lit a false PR on every repeat. Unit/rounding
+          // normalization is handled inside buildPRDays (all math in lbs).
+          isPR = prDays.get(ex.id)?.has(workoutDayKey) ?? false;
         }
 
         exercises.push({ name, sets, isPR, volume });
@@ -99,7 +88,7 @@ function WorkoutCard({
     });
 
     return exercises.sort((a, b) => b.volume - a.volume);
-  }, [workout.exercises, customExercises, exerciseStats, weightUnit]);
+  }, [workout.exercises, workout.createdAt, customExercises, prDays, weightUnit]);
 
   const statsLine = formatWorkoutStatsLine(workoutStats, { unit: weightUnit });
 

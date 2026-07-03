@@ -427,6 +427,14 @@ export interface ExerciseWithMax {
   isCustom: boolean;
   lastUsed?: Date;
   history: ExerciseHistoryEntry[];
+  // How this lift is scored in the history views. A pure calisthenics exercise
+  // (every set logged at weight 0) has no meaningful 1RM, so it is tracked on a
+  // reps signal instead of being silently discarded. Optional so the many places
+  // that build a bare ExerciseWithMax stay valid; buildExerciseStats always sets it.
+  metric?: 'weight' | 'bodyweight';
+  // Best (highest) reps across every logged set — the headline number for a
+  // bodyweight row, the way estimated1RM is for a weighted one.
+  bestReps?: number;
 }
 
 // ===== STRENGTH STANDARDS TYPES =====

@@ -4,8 +4,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, ExerciseWithMax, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -21,7 +22,9 @@ import {
 interface WorkoutDetailModalProps {
   workout: GeneratedWorkout | null;
   weightUnit: WeightUnit;
-  exerciseStats: ExerciseWithMax[];
+  // Per-exercise set of day-keys that set a new all-time best (buildPRDays), shared
+  // with WorkoutCard so the modal's PR badges match the card's chips exactly.
+  prDays: Map<string, Set<string>>;
   customExercises: CustomExercise[];
   onClose: () => void;
   onDelete: (workout: GeneratedWorkout) => void;
@@ -34,7 +37,7 @@ const getExerciseName = (id: string, info?: { name?: string } | null): string =>
 export default function WorkoutDetailModal({
   workout,
   weightUnit,
-  exerciseStats,
+  prDays,
   customExercises,
   onClose,
   onDelete,
@@ -143,37 +146,22 @@ export default function WorkoutDetailModal({
     return best.e1rm > 0 ? best : null;
   };
 
-  // Detect PRs - compare workout's best e1rm to historical best
+  // Detect PRs — reuse the ONE ratcheted PR definition (buildPRDays, threaded in as
+  // prDays and evaluated via prExerciseIdsForWorkout) instead of a divergent inline
+  // heuristic. A PR is a training day that set a new all-time best; this makes the
+  // modal's badge set identical to WorkoutCard's chips by construction. The old code
+  // compared each set's e1RM to the ALL-TIME max with `>=`, which only ever badged the
+  // single record-holding workout and false-fired on any repeat-peak day.
   const prs = useMemo(() => {
-    if (!workout) return [];
-    const prList: { name: string; e1rm: number }[] = [];
-
-    workout.exercises.forEach(ex => {
-      if (!ex.completedSets || ex.completedSets.length === 0) return;
-
-      const exerciseInfo = getWorkoutByIdWithCustom(ex.id, customExercises);
-      const name = getExerciseName(ex.id, exerciseInfo);
-      const stat = exerciseStats.find(s => s.id === ex.id);
-
-      // Get best e1rm from this workout
-      const bestFromWorkout = getBestE1RM(ex.completedSets);
-      if (!bestFromWorkout) return;
-
-      // Compare to historical best (stat.estimated1RM is in user's preferred unit)
-      if (stat) {
-        // If workout's best e1rm >= historical best, it's a PR
-        if (bestFromWorkout.e1rm >= stat.estimated1RM) {
-          prList.push({ name, e1rm: bestFromWorkout.e1rm });
-        }
-      } else {
-        // No history = this is their first time = PR
-        prList.push({ name, e1rm: bestFromWorkout.e1rm });
-      }
-    });
-
-    return prList;
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- getBestE1RM is stable
-  }, [workout, exerciseStats, customExercises]);
+    if (!workout) return [] as { id: string; name: string }[];
+    const prIds = prExerciseIdsForWorkout(workout, prDays);
+    return workout.exercises
+      .filter(ex => prIds.has(ex.id) && !!ex.completedSets && ex.completedSets.length > 0)
+      .map(ex => ({
+        id: ex.id,
+        name: getExerciseName(ex.id, getWorkoutByIdWithCustom(ex.id, customExercises)),
+      }));
+  }, [workout, prDays, customExercises]);
 
   // Helper to get tracking type for an exercise
   const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
@@ -239,8 +227,8 @@ export default function WorkoutDetailModal({
               {prs.length > 0 && (
                 <View style={styles.prSection}>
                   <View style={styles.prChipsRow}>
-                    {prs.map((pr, idx) => (
-                      <View key={idx} style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
+                    {prs.map(pr => (
+                      <View key={pr.id} style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
                         <Text style={[styles.prChipText, { fontFamily: currentTheme.fonts.semiBold }]}>
                           {pr.name}
                         </Text>
@@ -268,7 +256,7 @@ export default function WorkoutDetailModal({
                   const trackingType = exerciseInfo?.trackingType || 'reps';
                   const isRepsExercise = trackingType === 'reps';
                   const bestE1RM = isRepsExercise ? getBestE1RM(exercise.completedSets || []) : null;
-                  const isPR = prs.some(pr => pr.name === name);
+                  const isPR = prs.some(pr => pr.id === exercise.id);
 
                   return (
                     <View key={idx} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
