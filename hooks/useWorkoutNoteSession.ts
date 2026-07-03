@@ -30,8 +30,8 @@ import {
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateExerciseRecords } from '@/lib/workout/progression';
-import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
-import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
+import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
+import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -52,7 +52,8 @@ export interface UseWorkoutNoteSessionReturn {
   commitComposer: () => Promise<void>;
   commitText: (text: string) => Promise<boolean>; // voice / programmatic entry
   draft: WorkoutDraft;
-  loadDraftFromText: (text: string, opts?: { asTarget?: boolean }) => void; // plan builder / routine import / restore
+  loadDraftFromText: (text: string, opts?: { asTarget?: boolean }) => void; // plan builder / restore
+  loadDraftFromRoutine: (routine: CalculatedRoutine) => void; // routine import — structured, no text round-trip
   // Direct, traditional-UI edits to the synthesized cards:
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
   addSetTo: (key: string) => void;
@@ -193,6 +194,26 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const parsed = workoutNoteParser.parseLocal(normalized);
     setDraft(buildDraft(parsed, { asTarget: opts?.asTarget, previousFor }));
   }, [previousFor]);
+
+  // Import a routine WITHOUT the lossy text round-trip. The routine already carries
+  // the resolved exerciseId per exercise, so we build the draft straight from it —
+  // no re-parsing a name back through the fuzzy matcher (which used to silently swap
+  // "Overhead Press (Machine)" for the barbell variant). The prescription becomes the
+  // target ghost; sets start un-done for check-off.
+  const loadDraftFromRoutine = useCallback((routine: CalculatedRoutine) => {
+    const parsed: ParsedWorkout = {
+      exercises: routine.exercises.map(ex => ({
+        name: ex.exerciseName,
+        matchedExerciseId: ex.exerciseId, // authoritative id — never re-resolved by name
+        isCustom: customExercises.some(c => c.id === ex.exerciseId),
+        sets: ex.sets.map(s => ({ weight: s.targetWeight || 0, reps: s.reps, unit: ex.unit, completed: false })),
+      })),
+      confidence: 1,
+      rawText: '',
+    };
+    setDraft(buildDraft(parsed, { asTarget: true, previousFor }));
+    setStartedRoutineId(routine.id);
+  }, [customExercises, previousFor]);
 
   // Parse some text and merge it into the draft. Local parse first (free /
   // instant); fall back to the AI parser when local can't *reasonably* read it —
@@ -335,16 +356,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // which broke "Up Next" cycling when training out of order.
   useFocusEffect(
     useCallback(() => {
-      const text = getPendingRoutine();
-      if (text !== null) {
-        // A started routine is a prescription → seed targets, not done work.
-        loadDraftFromText(text, { asTarget: true });
-        // A routine launch always carries an id; a plain freestyle launch never
-        // reaches here (it sets no pending text), so this won't clear an id by
-        // accident. Read the id regardless to keep the pending slot clean.
-        setStartedRoutineId(getPendingRoutineId());
+      const routine = getPendingRoutine();
+      if (routine) {
+        // Structured import: seed the prescription as targets from the resolved
+        // exerciseIds (no text re-parse), and attach the routine id for progression.
+        loadDraftFromRoutine(routine);
       }
-    }, [loadDraftFromText])
+    }, [loadDraftFromRoutine])
   );
 
   // Persist the in-progress session (incl. the structured draft, so per-set
@@ -749,6 +767,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     commitText,
     draft,
     loadDraftFromText,
+    loadDraftFromRoutine,
     editSet,
     addSetTo,
     removeSetFrom,

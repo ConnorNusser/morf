@@ -279,7 +279,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         unit: set.unit,
         duration: set.duration,
         distance: set.distance,
-        completed: true,
+        // Honor the per-set check-off. Freeform-logged sets carry no completed flag
+        // (undefined) and count as done; a check-off set left unchecked is `false`
+        // and must NOT inflate the summary. Mirrors the persistence rule so the finish
+        // screen matches what actually gets saved.
+        completed: set.completed ?? true,
       })),
     }));
 

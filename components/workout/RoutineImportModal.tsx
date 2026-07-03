@@ -21,43 +21,9 @@ import {
 interface RoutineImportModalProps {
   visible: boolean;
   onClose: () => void;
-  onImport: (text: string, routineId: string) => void;
+  onImport: (routine: CalculatedRoutine) => void;
 }
 
-/**
- * Generate workout note text from a calculated routine
- * Format:
- * Exercise Name
- * Target: 135 x 10, 185 x 10, 185 x 10
- * Actual:
- */
-export function generateRoutineText(routine: CalculatedRoutine): string {
-  if (!routine?.exercises?.length) return '';
-
-  const lines: string[] = [];
-
-  // Add title as first line with # prefix (can be extracted by parser)
-  if (routine.name) {
-    lines.push(`# ${routine.name}`);
-    lines.push('');
-  }
-
-  for (const exercise of routine.exercises) {
-    lines.push(exercise.exerciseName);
-
-    const sets = exercise.sets || [];
-    if (sets.length > 0) {
-      // Format each set as "weight x reps" (0 if no weight data)
-      const setStrings = sets.map(set => `${set.targetWeight || 0}x${set.reps}`);
-      lines.push(`Target: ${setStrings.join(', ')}`);
-      lines.push('Actual:');
-    }
-
-    lines.push(''); // Empty line between exercises
-  }
-
-  return lines.join('\n').trim();
-}
 
 const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   visible,
@@ -122,8 +88,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
     // real work (recordDayTrained), which is also what drives the up-next pointer
     // and the day checkmark. Stamping at start would mark the day done before any
     // set was logged.
-    const text = generateRoutineText(routine);
-    onImport(text, routine.id);
+    // Pass the STRUCTURED routine (with its resolved exerciseIds), not serialized
+    // text — re-parsing text was silently re-resolving exercise names to the wrong
+    // equipment variant (e.g. Overhead Press Machine → Barbell).
+    onImport(routine);
     onClose();
   }, [onImport, onClose]);
 

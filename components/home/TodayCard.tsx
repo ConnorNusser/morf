@@ -1,5 +1,4 @@
 import Card from "@/components/Card";
-import { generateRoutineText } from "@/components/workout/RoutineImportModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { storageService } from "@/lib/storage/storage";
@@ -123,7 +122,7 @@ export default function TodayCard() {
 
   const handleStart = useCallback(() => {
     if (!calculated) return;
-    setPendingRoutine(generateRoutineText(calculated), calculated.id);
+    setPendingRoutine(calculated);
     router.push("/workout");
   }, [calculated, router]);
 
