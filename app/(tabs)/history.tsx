@@ -15,6 +15,13 @@ import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
+import {
+  calculateStrengthPercentile,
+  FEMALE_STANDARDS,
+  getPercentileColor,
+  getStrengthTier,
+  MALE_STANDARDS,
+} from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
 import { userService } from '@/lib/services/userService';
@@ -235,6 +242,32 @@ export default function HistoryScreen() {
   // for the full per-exercise breakdown behind a tap.
   const sessionPRs = useMemo(() => buildSessionPRs(exerciseStats), [exerciseStats]);
 
+  // Records strip — the "what ARE my records?" half of Q3, answered on the hub without a
+  // tab-hop. The top standard lifts by bodyweight percentile (not raw heaviest, so a
+  // huge leg-press doesn't crowd out a strong bench), each shown with its actual all-time
+  // est-1RM AND its normalized strength tier. The tier is the honest, comparative signal
+  // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
+  // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
+  const gender = userProfile?.gender;
+  const topRecords = useMemo(() => {
+    const stdMap = gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
+    const rows = trackedExercises
+      .filter(ex => ex.metric === 'weight' && ex.estimated1RM > 0 && !!stdMap[ex.id])
+      .map(ex => {
+        const oneRmLbs =
+          weightUnit === 'kg' ? convertWeight(ex.estimated1RM, 'kg', 'lbs') : ex.estimated1RM;
+        const pct =
+          bodyweightLbs && gender
+            ? Math.round(
+                calculateStrengthPercentile(oneRmLbs, bodyweightLbs, gender, ex.id, userProfile?.age)
+              )
+            : null;
+        return { ex, pct };
+      });
+    rows.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.ex.estimated1RM - a.ex.estimated1RM);
+    return rows.slice(0, 3);
+  }, [trackedExercises, bodyweightLbs, gender, userProfile?.age, weightUnit]);
+
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
     const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
@@ -354,6 +387,52 @@ export default function HistoryScreen() {
                     {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
                   </Text>
                 )}
+              </View>
+            )}
+
+            {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
+                headline lifts, each with its actual all-time est-1RM and normalized tier,
+                tappable straight into that lift's history. */}
+            {workouts.length > 0 && topRecords.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Records
+                </Text>
+                <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
+                  {topRecords.map(({ ex, pct }) => {
+                    const tierColor = pct != null ? getPercentileColor(pct) : currentTheme.colors.primary;
+                    return (
+                      <TouchableOpacity
+                        key={ex.id}
+                        style={[styles.recordCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                        onPress={() => setSelectedExercise(ex)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}
+                          numberOfLines={1}
+                        >
+                          {ex.name}
+                        </Text>
+                        <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
+                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]} numberOfLines={1}>
+                            {ex.estimated1RM}
+                          </Text>
+                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                            {weightUnit}
+                          </Text>
+                        </View>
+                        {pct != null && (
+                          <View style={[styles.recordTierBadge, { backgroundColor: tierColor + '1F' }]}>
+                            <Text style={[styles.recordTierText, { color: tierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                              {getStrengthTier(pct)}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             )}
 
@@ -816,6 +895,45 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
+  },
+  // Records strip
+  recordsStrip: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  recordCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  recordName: {
+    fontSize: 12,
+  },
+  recordValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    marginTop: 6,
+  },
+  recordValue: {
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  recordUnit: {
+    fontSize: 12,
+  },
+  recordTierBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  recordTierText: {
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   // Monthly trends button
   monthlyTrendsButton: {

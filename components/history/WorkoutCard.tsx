@@ -67,7 +67,8 @@ function WorkoutCard({
     return best;
   }, [workout.exercises, customExercises, weightUnit]);
 
-  // At most one PR per session — the single biggest all-time record set that day.
+  // At most one PR per session — the single biggest *notable compound* record set that
+  // day (buildSessionPRs already applies the significance floor, so most cards get none).
   const sessionPR = useMemo(
     () => sessionPRs.get(dayKeyOf(workout.createdAt)) ?? null,
     [sessionPRs, workout.createdAt]
@@ -75,6 +76,9 @@ function WorkoutCard({
   const prGainDisplay = sessionPR
     ? Math.max(1, Math.round(convertWeight(sessionPR.gainLbs, 'lbs', weightUnit)))
     : 0;
+  // The badge is reserved for MAJOR records so it stays rare and meaningful. A standard
+  // (notable-but-modest) PR still gets a subtle highlight line, just no headline chip.
+  const isMajorPR = sessionPR?.tier === 'major';
 
   const statsLine = formatWorkoutStatsLine(workoutStats, { unit: weightUnit });
 
@@ -85,7 +89,7 @@ function WorkoutCard({
       onLongPress={() => onLongPress(workout)}
       activeOpacity={0.7}
     >
-      {/* Title + at-most-one PR marker */}
+      {/* Title + at-most-one PR marker — the filled badge is reserved for MAJOR records */}
       <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
         <Text
           style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}
@@ -93,9 +97,10 @@ function WorkoutCard({
         >
           {workout.title}
         </Text>
-        {sessionPR && (
-          <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-            <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+        {isMajorPR && (
+          <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
+            <Ionicons name="trophy" size={10} color="#fff" />
+            <Text style={[styles.prChipText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
               PR
             </Text>
           </RNView>
@@ -108,10 +113,19 @@ function WorkoutCard({
         {formatRelativeDate(workout.createdAt)} • {statsLine}
       </Text>
 
-      {/* Highlight line: the record (rare, meaningful) takes precedence, else the top lift */}
+      {/* Highlight line: a record takes precedence, else the top lift. A major PR reads
+          bold/primary; a standard PR is present but de-emphasized so it doesn't shout. */}
       {sessionPR ? (
-        <Text style={[styles.prLine, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
-          {sessionPR.name} · new PR +{prGainDisplay} {weightUnit}
+        <Text
+          style={[
+            styles.prLine,
+            isMajorPR
+              ? { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }
+              : { color: currentTheme.colors.primary + 'B0', fontFamily: currentTheme.fonts.medium },
+          ]}
+          numberOfLines={1}
+        >
+          {sessionPR.name} · {isMajorPR ? 'new PR' : 'PR'} +{prGainDisplay} {weightUnit}
         </Text>
       ) : topLift ? (
         <Text style={[styles.topLiftLine, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
@@ -156,6 +170,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   prChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,

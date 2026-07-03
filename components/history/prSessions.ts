@@ -51,24 +51,70 @@ export function buildPRDays(exerciseStats: ExerciseWithMax[]): Map<string, Set<s
 }
 
 // The single most significant all-time PR set on a given training day. Powers the
-// at-most-one PR chip on the collapsed WorkoutCard — replacing the old per-exercise
-// chip spray, which lit ~10 of ~14 rows on a normal ascending history and turned the
-// badge into decoration instead of signal. "Most significant" = the largest e1RM jump
-// over that lift's prior all-time best on the day it happened.
+// at-most-one PR marker on the collapsed WorkoutCard.
+//
+// The bar is deliberately HIGH. The old rule — "any lift beats any prior day, biggest
+// wins the chip" — fired on ~100% of a progressing intermediate's sessions: with a
+// dozen lifts, some accessory nudges its e1RM past a prior day nearly every workout, so
+// the badge became decoration, not signal. A record only counts here when it is:
+//   1. A *primary/compound* lift (COMPOUND_LIFT_IDS) — the movements a serious lifter
+//      actually treats as records. A curl or lateral-raise creeping up is progress, but
+//      it is not the answer to "am I setting records that matter?".
+//   2. A genuinely notable jump — clearing BOTH an absolute floor (PR_MIN_GAIN_LBS, so a
+//      +1-rep formula-rounding artifact never qualifies) AND a relative floor
+//      (PR_MIN_GAIN_PCT of the prior best, so a trivial move on a heavy lift is filtered).
+// The result: most sessions carry NO marker, and the ones that do are real records.
+export type PRTier = 'major' | 'standard';
+
 export interface SessionPR {
   name: string;    // display name of the exercise that set the record
   gainLbs: number; // improvement (lbs) over the lift's prior all-time best
+  tier: PRTier;    // 'major' = a big plate jump (emphasized badge); 'standard' = notable but modest
 }
 
-// day-key -> the day's single biggest all-time PR (absent if no record that day).
-// Same day-bucketing + running-max walk as buildPRDays, so a card's session PR can
-// never contradict the modal's per-exercise PR badges. First-ever day is EXCLUDED
-// (nothing prior to beat), matching buildPRDays.
+// Primary/compound lifts: the multi-joint barbell / heavy machine movements where a new
+// all-time best is a milestone worth badging. Accessories (curls, raises, flyes, pushdowns)
+// are intentionally excluded — they progress in small increments off a small base, so a
+// %-based record fires constantly and drowns out the signal.
+const COMPOUND_LIFT_IDS = new Set<string>([
+  'squat-barbell',
+  'front-squat-barbell',
+  'squat-smith-machine',
+  'hack-squat-machine',
+  'leg-press-machine',
+  'bench-press-barbell',
+  'bench-press-dumbbells',
+  'bench-press-machine',
+  'bench-press-smith-machine',
+  'incline-bench-press-barbell',
+  'incline-bench-press-dumbbells',
+  'overhead-press-barbell',
+  'overhead-press-machine',
+  'deadlift-barbell',
+  'sumo-deadlift-barbell',
+  'romanian-deadlift-barbell',
+  'row-barbell',
+  'hip-thrust-barbell',
+  'lunges-barbell',
+]);
+
+// Significance floors. A qualifying day-PR must clear BOTH.
+const PR_MIN_GAIN_LBS = 5;    // a real added plate/step, not a formula-rounding wobble
+const PR_MIN_GAIN_PCT = 0.02; // ≥2% over the prior best — filters trivial moves on heavy lifts
+// A 'major' record (emphasized badge) clears EITHER of these larger bars.
+const PR_MAJOR_GAIN_LBS = 15;
+const PR_MAJOR_GAIN_PCT = 0.05;
+
+// day-key -> the day's single biggest *notable compound* all-time PR (absent when no
+// session cleared the bar). Same day-bucketing + running-max walk as buildPRDays, so a
+// card's session PR can never contradict the modal's per-exercise PR badges. First-ever
+// day is EXCLUDED (nothing prior to beat), matching buildPRDays.
 export function buildSessionPRs(exerciseStats: ExerciseWithMax[]): Map<string, SessionPR> {
   const out = new Map<string, SessionPR>();
 
   for (const ex of exerciseStats) {
     if (!ex.history || ex.history.length === 0) continue;
+    if (!COMPOUND_LIFT_IDS.has(ex.id)) continue; // only primary lifts earn a card marker
 
     const byDay = new Map<string, { time: number; bestLbs: number }>();
     for (const h of ex.history) {
@@ -88,9 +134,15 @@ export function buildSessionPRs(exerciseStats: ExerciseWithMax[]): Map<string, S
     for (const [key, day] of days) {
       if (!isFirst && day.bestLbs > runningMax) {
         const gainLbs = day.bestLbs - runningMax;
-        const prior = out.get(key);
-        // Keep only the biggest jump on that calendar day, across all lifts.
-        if (!prior || gainLbs > prior.gainLbs) out.set(key, { name: ex.name, gainLbs });
+        const pct = runningMax > 0 ? gainLbs / runningMax : 1;
+        // Below the significance floor? Not a badge-worthy record — skip it entirely.
+        if (gainLbs >= PR_MIN_GAIN_LBS && pct >= PR_MIN_GAIN_PCT) {
+          const tier: PRTier =
+            gainLbs >= PR_MAJOR_GAIN_LBS || pct >= PR_MAJOR_GAIN_PCT ? 'major' : 'standard';
+          const prior = out.get(key);
+          // Keep only the biggest jump on that calendar day, across compound lifts.
+          if (!prior || gainLbs > prior.gainLbs) out.set(key, { name: ex.name, gainLbs, tier });
+        }
       }
       if (day.bestLbs > runningMax) runningMax = day.bestLbs;
       isFirst = false;
