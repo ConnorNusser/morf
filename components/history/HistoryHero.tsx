@@ -26,7 +26,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, Line, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -47,6 +47,14 @@ const TIMEFRAMES: { key: IndexTimeframe; label: string }[] = [
   { key: '1Y', label: '1Y' },
   { key: 'ALL', label: 'All' },
 ];
+
+// How the period delta reads next to the score ("+18 this 3M" / "+9 all-time").
+const TF_DELTA_LABEL: Record<IndexTimeframe, string> = {
+  '6W': '6W',
+  '3M': '3M',
+  '1Y': '1Y',
+  ALL: 'all-time',
+};
 
 function fmtMonth(d: Date) {
   const date = new Date(d);
@@ -197,40 +205,71 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
 
   const deltaColor = index && index.delta >= 0 ? UP : DOWN;
 
-  const chart = (
-    <>
-      <RNView style={{ height: CHART_H }}>
-        <Svg width={chartW} height={CHART_H}>
-          <Defs>
-            <SvgGradient id="hLine" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0" stopColor={colors.accent} />
-              <Stop offset="1" stopColor={colors.primary} />
-            </SvgGradient>
-            <SvgGradient id="hArea" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.primary} stopOpacity={0.26} />
-              <Stop offset="1" stopColor={colors.primary} stopOpacity={0} />
-            </SvgGradient>
-          </Defs>
-          <AnimatedPath animatedProps={areaProps} fill="url(#hArea)" />
-          <AnimatedPath
-            animatedProps={lineProps}
-            stroke="url(#hLine)"
-            strokeWidth={2.75}
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <Line
-            x1={X0}
-            y1={TOP + USABLE_H}
-            x2={X0 + (N - 1) * DX}
-            y2={TOP + USABLE_H}
-            stroke={colors.text + '1A'}
-            strokeWidth={1}
-          />
-        </Svg>
-      </RNView>
-    </>
+  // Start-vs-now anchors for the index curve: a faint "was" dot at the left with the
+  // starting score, and a solid "now" dot at the right. This gives the eye the
+  // magnitude of personal progress (how much stronger) directly on the trend line,
+  // not just its direction. Only drawn in index mode.
+  const marker = useMemo(() => {
+    if (!indexMode || !index) return null;
+    const startY = TOP + (1 - index.norm[0]) * USABLE_H;
+    const endY = TOP + (1 - index.norm[N - 1]) * USABLE_H;
+    return {
+      startX: X0,
+      startY,
+      endX: X0 + (N - 1) * DX,
+      endY,
+      startValue: index.previous,
+      labelY: startY < 22 ? startY + 15 : startY - 7,
+    };
+  }, [indexMode, index, DX]);
+
+  const renderChart = (mk: typeof marker) => (
+    <RNView style={{ height: CHART_H }}>
+      <Svg width={chartW} height={CHART_H}>
+        <Defs>
+          <SvgGradient id="hLine" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={colors.accent} />
+            <Stop offset="1" stopColor={colors.primary} />
+          </SvgGradient>
+          <SvgGradient id="hArea" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.primary} stopOpacity={0.26} />
+            <Stop offset="1" stopColor={colors.primary} stopOpacity={0} />
+          </SvgGradient>
+        </Defs>
+        <AnimatedPath animatedProps={areaProps} fill="url(#hArea)" />
+        <AnimatedPath
+          animatedProps={lineProps}
+          stroke="url(#hLine)"
+          strokeWidth={2.75}
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Line
+          x1={X0}
+          y1={TOP + USABLE_H}
+          x2={X0 + (N - 1) * DX}
+          y2={TOP + USABLE_H}
+          stroke={colors.text + '1A'}
+          strokeWidth={1}
+        />
+        {mk && (
+          <>
+            <SvgText
+              x={mk.startX + 7}
+              y={mk.labelY}
+              fontSize={10.5}
+              fill={colors.text + '80'}
+              fontFamily={fonts.semiBold}
+            >
+              {mk.startValue}
+            </SvgText>
+            <Circle cx={mk.startX} cy={mk.startY} r={3.5} fill={colors.surface} stroke={colors.text + '66'} strokeWidth={1.5} />
+            <Circle cx={mk.endX} cy={mk.endY} r={4.5} fill={colors.primary} stroke={colors.surface} strokeWidth={1.5} />
+          </>
+        )}
+      </Svg>
+    </RNView>
   );
 
   return (
@@ -253,33 +292,36 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength Index</Text>
               <Ionicons name="chevron-forward" size={13} color={colors.text + '55'} />
             </RNView>
-            <Text style={[styles.levelWord, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-              {strengthLevel(index.current)}
-            </Text>
           </TouchableOpacity>
 
-          {/* One number, one unit (percentile), one green/red direction. The value is a
-              bounded 0–99 rank and the delta is the change in that SAME rank over the
-              selected timeframe — both in percentile points, so the delta reads as
-              unambiguous personal progress, not a shift between two different units. */}
-          <RNView style={styles.titleRow}>
-            <RNView style={styles.valueRow}>
-              <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
-                {index.current}
-                <Text style={[styles.valueUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-                  {ordinal(index.current)} percentile
-                </Text>
-              </Text>
-              <RNView style={[styles.deltaChip, { backgroundColor: deltaColor + '1A' }]}>
-                <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={13} color={deltaColor} />
-                <Text style={[styles.deltaText, { color: deltaColor, fontFamily: fonts.semiBold }]}>
-                  {Math.abs(index.delta)} pctile
-                </Text>
-              </RNView>
-            </RNView>
+          {/* Hierarchy inverted for Q1 ("am I stronger than my past self?"). The focal
+              numeral is now a self-referential 0–100 strength score (the same normalized
+              bodyweight-standards value, framed as a personal score, not a population
+              rank), and directly under it the green/red period delta gives the magnitude
+              of personal progress as the first thing read. The population framing
+              ("Advanced · 45th percentile among lifters") drops to a demoted context
+              line below, present but no longer the headline. */}
+          <RNView style={styles.scoreRow}>
+            <Text style={[styles.scoreValue, { color: colors.text, fontFamily: fonts.bold }]}>
+              {index.current}
+              <Text style={[styles.scoreUnit, { color: colors.text + '55', fontFamily: fonts.medium }]}> /100</Text>
+            </Text>
           </RNView>
 
-          {chart}
+          <RNView style={styles.deltaRow}>
+            <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={16} color={deltaColor} />
+            <Text style={[styles.deltaBig, { color: deltaColor, fontFamily: fonts.bold }]}>
+              {index.delta >= 0 ? '+' : '-'}
+              {Math.abs(index.delta)} this {TF_DELTA_LABEL[timeframe]}
+            </Text>
+          </RNView>
+
+          <Text style={[styles.contextLine, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+            {strengthLevel(index.current)} · {index.current}
+            {ordinal(index.current)} percentile among lifters
+          </Text>
+
+          {renderChart(marker)}
 
           {/* timeline x-axis */}
           <RNView style={[styles.axisRow, { width: chartW }]}>
@@ -355,7 +397,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               </Animated.View>
             </RNView>
 
-            {chart}
+            {renderChart(null)}
 
             <RNView style={[styles.axisRow, { width: chartW }]}>
               <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
@@ -442,7 +484,6 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 13, letterSpacing: 0.2 },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
-  levelWord: { fontSize: 13, letterSpacing: 0.2 },
   titleRow: { height: 42, justifyContent: 'center' },
   titleSwap: {
     ...StyleSheet.absoluteFillObject,
@@ -453,19 +494,15 @@ const styles = StyleSheet.create({
   titleLeft: { flex: 1, marginRight: 12 },
   liftName: { fontSize: 20, letterSpacing: -0.4 },
   gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
-  valueRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   value: { fontSize: 34, letterSpacing: -0.8 },
   valueUnit: { fontSize: 13, letterSpacing: 0 },
-  deltaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginBottom: 5,
-  },
-  deltaText: { fontSize: 12.5, letterSpacing: 0.1 },
+  // Index-mode focal score: the biggest, first-read numeral on the screen.
+  scoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
+  scoreValue: { fontSize: 46, letterSpacing: -1.2, lineHeight: 50 },
+  scoreUnit: { fontSize: 16, letterSpacing: 0 },
+  deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  deltaBig: { fontSize: 16, letterSpacing: 0.1 },
+  contextLine: { fontSize: 12, letterSpacing: 0.2, marginTop: 8 },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   axisLabel: { fontSize: 11, letterSpacing: 0.2 },
   tfRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
