@@ -37,3 +37,24 @@ export const ONE_RM_GOLDENS: { weight: number; reps: number; expected: number }[
   // reps > 15 → formulas unreliable → identity
   { weight: 135, reps: 20, expected: 135 },
 ];
+
+/**
+ * PR-day counts per exercise from buildPRDays — a PR is a NEW all-time best at the
+ * time logged (a training day whose best e1RM strictly beats every PRIOR day),
+ * first-ever day EXCLUDED. Counted by hand from the fixtures; weight increases
+ * monotonically ⇒ e1RM increases monotonically, so every ascending day is a record.
+ */
+export const PR_DAY_GOLDENS: Record<string, { exerciseId: string; prDayCount: number }> = {
+  // prHeavy: bench top set 155+i×5 (i=0..7) → 8 strictly-ascending days; drop the
+  // first (nothing prior to beat) → 7 real PRs. The old `>=` chip lit only 1 of 8.
+  prHeavy: { exerciseId: 'bench-press-barbell', prDayCount: 7 },
+
+  // dense: bench top set 155+(i%20) over 150 distinct days. Days i=0..19 climb
+  // 155→174 (one workout each); drop i=0 → i=1..19 = 19 new records. Every later
+  // cycle only re-hits ≤174, so no further PRs — the peak re-hits at i=39,59,… are
+  // correctly silent (the old `>=` fired a chip on all ~7 of them).
+  dense: { exerciseId: 'bench-press-barbell', prDayCount: 19 },
+
+  // single: one bench day → first-ever day, excluded → 0 (no chip for a new user).
+  single: { exerciseId: 'bench-press-barbell', prDayCount: 0 },
+};

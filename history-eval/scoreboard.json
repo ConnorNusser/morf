@@ -4,7 +4,7 @@
   "best": {
     "single": 4.4,
     "kgUnit": 3,
-    "prHeavy": 3,
+    "prHeavy": 4.2,
     "sparse": 3,
     "dense": 3
   },
@@ -23,6 +23,23 @@
         "raisedAssertableCeiling": true
       },
       "gate": { "tscErrors": 0, "suites": 10, "testsPassed": 123 }
+    },
+    {
+      "n": 1,
+      "target": { "scenario": "prHeavy", "dimension": "Actionability" },
+      "winner": {
+        "strategy": "Reframe the WorkoutCard PR chip from 'ties the all-time max (>=)' to 'new all-time best at time logged' (strictly beats every prior training day). New RN-free buildPRDays(exerciseStats) collapses history to one day-bucket per training day, walks oldest->newest tracking a running max, and records each day that strictly exceeds it (first-ever day excluded). WorkoutCard now takes prDays and computes isPR via dayKeyOf(workout.createdAt).",
+        "files": [
+          "app/(tabs)/history.tsx",
+          "components/history/WorkoutCard.tsx",
+          "components/history/liftSeries.ts",
+          "components/history/prSessions.ts",
+          "history-eval/__tests__/correctness.test.ts",
+          "history-eval/goldens.ts"
+        ],
+        "judgeAggregate": 4.2
+      },
+      "gate": { "tscErrors": 0, "eslint": "OK", "suites": 10, "testsPassed": 128 }
     }
   ]
 }

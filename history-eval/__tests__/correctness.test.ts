@@ -12,8 +12,11 @@
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { calculateRecapStats } from '@/lib/workout/recapStats';
-import { SCENARIOS, scenarioByKey, REFERENCE_NOW } from '../fixtures';
-import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS } from '../goldens';
+import { buildPRDays } from '@/components/history/prSessions';
+import { dayKeyOf } from '@/components/history/liftSeries';
+import { SCENARIOS, scenarioByKey, REFERENCE_NOW, daysAgo } from '../fixtures';
+import { WORKOUT_STATS_GOLDENS, ONE_RM_GOLDENS, PR_DAY_GOLDENS } from '../goldens';
+import { ExerciseWithMax, ExerciseHistoryEntry } from '@/types';
 
 // calculateRecapStats reads storage/profile — mock them per-fixture (see below).
 const mockGetWorkoutHistory = jest.fn();
@@ -92,6 +95,51 @@ describe('no-crash / no-NaN gate — every scenario derives finite values', () =
   it('empty scenario yields zeroed, finite stats (cold-start safety)', () => {
     const got = fixtureStats('empty');
     expect(got).toEqual({ totalSets: 0, totalVolumeLbs: 0 });
+  });
+});
+
+/**
+ * Build ExerciseWithMax[] from a scenario the way loadExerciseStats does: one history
+ * entry per completed set (weight>0), dated to the workout. Only id + history feed
+ * buildPRDays, so the other fields are inert placeholders.
+ */
+const fixtureExerciseStats = (key: string): ExerciseWithMax[] => {
+  const byId = new Map<string, ExerciseHistoryEntry[]>();
+  for (const w of scenarioByKey(key).workouts) {
+    for (const ex of w.exercises) {
+      for (const set of ex.completedSets || []) {
+        if (!set.weight || set.weight <= 0) continue;
+        const list = byId.get(ex.id) ?? [];
+        list.push({ weight: set.weight, reps: set.reps, date: new Date(w.createdAt), unit: set.unit || 'lbs' });
+        byId.set(ex.id, list);
+      }
+    }
+  }
+  return [...byId.entries()].map(([id, history]) => ({
+    id, name: id, maxWeight: 0, maxReps: 0, estimated1RM: 0, isCustom: false, history,
+  }));
+};
+
+describe('correctness gate — PR days (new all-time best at time logged)', () => {
+  for (const [key, golden] of Object.entries(PR_DAY_GOLDENS)) {
+    it(`${key}: ${golden.exerciseId} has ${golden.prDayCount} PR day(s)`, () => {
+      const prDays = buildPRDays(fixtureExerciseStats(key));
+      expect(prDays.get(golden.exerciseId)?.size ?? 0).toBe(golden.prDayCount);
+    });
+  }
+
+  it('dense: only the FIRST time the cyclic peak is reached is a PR, not the re-hits', () => {
+    const prDays = buildPRDays(fixtureExerciseStats('dense')).get('bench-press-barbell');
+    // fixture: mkWorkout(daysAgo(150 - i)); peak weight 155+19 first hit at i=19,
+    // re-hit at i=39 (equal, not greater ⇒ no new record).
+    expect(prDays?.has(dayKeyOf(daysAgo(150 - 19)))).toBe(true);
+    expect(prDays?.has(dayKeyOf(daysAgo(150 - 39)))).toBe(false);
+  });
+
+  it('every scenario builds PR days without throwing (corrupt/empty safe)', () => {
+    for (const sc of SCENARIOS) {
+      expect(() => buildPRDays(fixtureExerciseStats(sc.key))).not.toThrow();
+    }
   });
 });
 

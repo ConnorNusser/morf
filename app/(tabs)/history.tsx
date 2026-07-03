@@ -4,6 +4,7 @@ import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
 import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
 import WorkoutCard from '@/components/history/WorkoutCard';
+import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import StrengthHistoryCard from '@/components/StrengthHistoryCard';
@@ -326,6 +327,10 @@ export default function HistoryScreen() {
     [exerciseStats]
   );
 
+  // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
+  // PR chips so the whole ascending progression is surfaced, not just the record holder.
+  const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
+
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
     const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
@@ -525,7 +530,7 @@ export default function HistoryScreen() {
                   <WorkoutCard
                     key={workout.id}
                     workout={workout}
-                    exerciseStats={exerciseStats}
+                    prDays={prDays}
                     weightUnit={weightUnit}
                     customExercises={customExercises}
                     onPress={setSelectedWorkout}

@@ -26,12 +26,14 @@ export interface NearestLift {
 }
 
 // Collapse to one entry per calendar day, keeping that day's best estimated 1RM.
-const dayKeyOf = (d: Date) => {
+// Exported so the per-workout PR gate (prSessions.ts) keys off the exact same day
+// bucket the hero curve does — otherwise a "PR" chip could disagree with the curve.
+export const dayKeyOf = (d: Date) => {
   const date = new Date(d);
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
 };
 
-const e1rmLbs = (e: Pick<ExerciseHistoryEntry, 'weight' | 'reps' | 'unit'>) =>
+export const e1rmLbs = (e: Pick<ExerciseHistoryEntry, 'weight' | 'reps' | 'unit'>) =>
   OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
 
 interface DaySession {
