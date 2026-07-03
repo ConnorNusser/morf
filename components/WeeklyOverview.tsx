@@ -2,7 +2,7 @@ import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
+import { CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -12,6 +12,27 @@ import WeeklyOverviewModal from './WeeklyOverviewModal';
 
 // All trackable muscle groups
 const ALL_MUSCLE_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
+
+// Completed ("hard") sets per muscle for a set of workouts — the standard hypertrophy
+// balance unit. Each completed set of an exercise counts once toward every primary
+// muscle it targets. Honest and able to fall: skip a group and its count drops to zero.
+function countSetsByMuscle(workouts: GeneratedWorkout[], customExercises: CustomExercise[]): Record<MuscleGroup, number> {
+  const map: Record<MuscleGroup, number> = {
+    chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0,
+  };
+  for (const workout of workouts) {
+    for (const exercise of workout.exercises) {
+      const info = getWorkoutByIdWithCustom(exercise.id, customExercises);
+      if (!info) continue;
+      const completed = (exercise.completedSets || []).filter(set => set.completed).length;
+      if (completed === 0) continue;
+      for (const muscle of info.primaryMuscles) {
+        map[muscle] += completed;
+      }
+    }
+  }
+  return map;
+}
 
 interface WeeklyOverviewProps {
   workoutHistory: GeneratedWorkout[];
@@ -123,12 +144,27 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       });
     });
 
+    // This week's hard sets per muscle, plus the lifter's trailing-4-completed-week
+    // weekly average as the personal baseline to read balance/neglect against.
+    const thisWeekSets = countSetsByMuscle(weekData.workouts, customExercises);
+    const BASELINE_WEEKS = 4;
+    const normAccum: Record<MuscleGroup, number> = {
+      chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, glutes: 0, core: 0, 'full-body': 0,
+    };
+    for (let i = 1; i <= BASELINE_WEEKS; i++) {
+      const wkSets = countSetsByMuscle(getWeekData(currentWeekOffset - i).workouts, customExercises);
+      (Object.keys(normAccum) as MuscleGroup[]).forEach(m => { normAccum[m] += wkSets[m]; });
+    }
+
     return ALL_MUSCLE_GROUPS.map(muscle => ({
       muscle,
       count: muscleMap[muscle].count,
+      sets: thisWeekSets[muscle],
+      normSets: normAccum[muscle] / BASELINE_WEEKS,
       exercises: Object.values(muscleMap[muscle].exercises),
     }));
-  }, [weekData.workouts, customExercises]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getWeekData is stable, keyed by workoutHistory + currentWeekOffset
+  }, [weekData.workouts, customExercises, currentWeekOffset, workoutHistory]);
 
   // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
@@ -257,7 +293,13 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   const deltaColor = deltaPct === null || Math.abs(deltaPct) < 5
     ? currentTheme.colors.text + '80'
     : deltaPct > 0 ? '#34C759' : '#FF3B30';
-  const deltaArrow = deltaPct === null ? '' : deltaPct > 0 ? '▲ ' : deltaPct < 0 ? '▼ ' : '· ';
+  const deltaSign = deltaPct === null ? '' : deltaPct > 0 ? '+' : deltaPct < 0 ? '−' : '±';
+
+  // How far through the viewed week we are (1 for any past/completed week). Lets the
+  // muscle-balance panel compare an in-progress week against its pro-rated norm.
+  const paceFraction = currentWeekOffset === 0
+    ? (() => { const dow = new Date().getDay(); const idx = dow === 0 ? 6 : dow - 1; return (idx + 1) / 7; })()
+    : 1;
 
   return (
     <>
@@ -282,6 +324,48 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               {formatDateRange(weekData.startDate, weekData.endDate)}
             </Text>
           </View>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleWeekPress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              {weekStats.totalWorkouts}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+              Workouts
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleTimePress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              {weekStats.totalTime}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+              Time
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.statItem}
+            onPress={handleVolumePress}
+            activeOpacity={0.6}
+          >
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              {weekStats.totalVolume}
+            </Text>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+              Volume
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Week Days with navigation */}
@@ -330,48 +414,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             activeOpacity={0.6}
           >
             <Ionicons name="chevron-forward" size={24} color={currentTheme.colors.text + '4D'} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsContainer}>
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={handleWeekPress}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              {weekStats.totalWorkouts}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-              Workouts
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={handleTimePress}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              {weekStats.totalTime}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-              Time
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.statItem}
-            onPress={handleVolumePress}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-              {weekStats.totalVolume}
-            </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-              Volume
-            </Text>
           </TouchableOpacity>
         </View>
 
@@ -431,7 +473,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               </Text>
               {deltaPct !== null && (
                 <Text style={[styles.trendDelta, { color: deltaColor, fontFamily: currentTheme.fonts.semiBold }]}>
-                  {deltaArrow}{Math.abs(deltaPct)}% {weekStats.volumeDeltaPaced ? 'vs last wk to date' : 'vs last wk'}
+                  {deltaSign}{Math.abs(deltaPct)}% vs last week
                 </Text>
               )}
             </View>
@@ -440,7 +482,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
         {/* Muscle Groups Focus */}
         <View style={[styles.muscleSection, { borderTopColor: currentTheme.colors.border }]}>
-          <MuscleFocusChips muscleData={muscleGroupData} showMissing={false} />
+          <MuscleFocusChips muscleData={muscleGroupData} paceFraction={paceFraction} showMissing={false} />
         </View>
       </Card>
 
@@ -510,15 +552,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dayButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   dayNumber: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   dayLabel: {
