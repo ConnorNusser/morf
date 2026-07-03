@@ -4,7 +4,7 @@ import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
 import WorkoutCard from '@/components/history/WorkoutCard';
-import { buildPRDays } from '@/components/history/prSessions';
+import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import StrengthHistoryCard from '@/components/StrengthHistoryCard';
@@ -250,6 +250,12 @@ export default function HistoryScreen() {
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
 
+  // Session-level PR: the single most significant all-time record per training day.
+  // Feeds the collapsed WorkoutCard so a normal ascending history shows a rare, real
+  // PR marker instead of the old per-exercise chip spray. The modal still uses prDays
+  // for the full per-exercise breakdown behind a tap.
+  const sessionPRs = useMemo(() => buildSessionPRs(exerciseStats), [exerciseStats]);
+
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
     const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
@@ -438,7 +444,7 @@ export default function HistoryScreen() {
                   <WorkoutCard
                     key={workout.id}
                     workout={workout}
-                    prDays={prDays}
+                    sessionPRs={sessionPRs}
                     weightUnit={weightUnit}
                     customExercises={customExercises}
                     onPress={setSelectedWorkout}

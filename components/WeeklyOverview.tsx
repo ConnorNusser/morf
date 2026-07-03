@@ -146,15 +146,34 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
     );
     const combinedStats = combineWorkoutStats(workoutStatsList);
 
-    // Week-over-week volume delta so the lone volume number gains a direction — "is my
-    // training load trending up?" — instead of standing alone with no baseline.
+    const volumeOf = (list: GeneratedWorkout[]) =>
+      combineWorkoutStats(list.map(w => calculateWorkoutStats(w.exercises, getTrackingType))).totalVolumeLbs;
+
+    // 8-week volume trend ending at the viewed week — a shape, not a scalar. The current
+    // in-progress week is flagged so it can render ghosted instead of masquerading as a
+    // finished bar.
+    const TREND_WEEKS = 8;
+    const volumeTrend: { volume: number; inProgress: boolean }[] = [];
+    for (let i = TREND_WEEKS - 1; i >= 0; i--) {
+      const offset = currentWeekOffset - i;
+      volumeTrend.push({ volume: volumeOf(getWeekData(offset).workouts), inProgress: offset === 0 });
+    }
+
+    // Pace-aware WoW delta: an in-progress week is compared to the SAME elapsed slice of
+    // last week (Mon..today), not last week's finished total — so a Wednesday check-in
+    // stops firing a false red just because the week isn't over yet. Past weeks compare
+    // full-to-full.
+    const inProgress = currentWeekOffset === 0;
+    const today = new Date();
+    const todayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1; // Mon=0 .. Sun=6
     const prevWeek = getWeekData(currentWeekOffset - 1);
-    const prevStatsList: WorkoutStats[] = prevWeek.workouts.map(workout =>
-      calculateWorkoutStats(workout.exercises, getTrackingType)
-    );
-    const prevVolumeLbs = combineWorkoutStats(prevStatsList).totalVolumeLbs;
-    const volumeDeltaPct = prevVolumeLbs > 0
-      ? Math.round(((combinedStats.totalVolumeLbs - prevVolumeLbs) / prevVolumeLbs) * 100)
+    let prevPacedVolume = 0;
+    prevWeek.weekDays.forEach((d, idx) => {
+      if (inProgress && idx > todayIdx) return;
+      prevPacedVolume += volumeOf(d.dayWorkouts);
+    });
+    const volumeDeltaPct = prevPacedVolume > 0
+      ? Math.round(((combinedStats.totalVolumeLbs - prevPacedVolume) / prevPacedVolume) * 100)
       : null;
 
     const formatVolume = (volume: number) => formatCompact(volume);
@@ -165,6 +184,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
       totalVolume: formatVolume(combinedStats.totalVolumeLbs),
       rawVolume: combinedStats.totalVolumeLbs,
       volumeDeltaPct,
+      volumeDeltaPaced: inProgress,
+      volumeTrend,
       // Cardio stats
       hasCardio: combinedStats.hasCardioExercises,
       totalDistanceMeters: combinedStats.totalDistanceMeters,
@@ -229,6 +250,14 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setCurrentWeekOffset(prev => direction === 'prev' ? prev - 1 : prev + 1);
   };
+
+  // Muted for small moves (< 5%) so week-to-week noise never fires an alarm color; only
+  // a real swing goes green/red.
+  const deltaPct = weekStats.volumeDeltaPct;
+  const deltaColor = deltaPct === null || Math.abs(deltaPct) < 5
+    ? currentTheme.colors.text + '80'
+    : deltaPct > 0 ? '#34C759' : '#FF3B30';
+  const deltaArrow = deltaPct === null ? '' : deltaPct > 0 ? '▲ ' : deltaPct < 0 ? '▼ ' : '· ';
 
   return (
     <>
@@ -343,11 +372,6 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
               Volume
             </Text>
-            {weekStats.volumeDeltaPct !== null && weekStats.rawVolume > 0 && (
-              <Text style={[styles.statDelta, { color: weekStats.volumeDeltaPct >= 0 ? '#34C759' : '#FF3B30', fontFamily: currentTheme.fonts.semiBold }]}>
-                {weekStats.volumeDeltaPct >= 0 ? '▲' : '▼'} {Math.abs(weekStats.volumeDeltaPct)}% vs last wk
-              </Text>
-            )}
           </TouchableOpacity>
         </View>
 
@@ -374,6 +398,43 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
                 </Text>
               </View>
             )}
+          </View>
+        )}
+
+        {/* 8-week volume trend — replaces the lone in-progress-vs-complete scalar with a
+            paced, glanceable direction. The current (in-progress) week renders ghosted so
+            it never masquerades as a finished bar. */}
+        {weekStats.volumeTrend.some(w => w.volume > 0) && (
+          <View style={styles.trendSection}>
+            <View style={styles.trendBars}>
+              {(() => {
+                const maxVol = Math.max(...weekStats.volumeTrend.map(w => w.volume), 1);
+                return weekStats.volumeTrend.map((w, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.trendBar,
+                      {
+                        height: w.volume > 0 ? Math.max(3, Math.round((w.volume / maxVol) * 28)) : 2,
+                        backgroundColor: w.inProgress ? currentTheme.colors.primary + '33' : currentTheme.colors.primary + 'B3',
+                        borderWidth: w.inProgress ? StyleSheet.hairlineWidth : 0,
+                        borderColor: currentTheme.colors.primary + '80',
+                      },
+                    ]}
+                  />
+                ));
+              })()}
+            </View>
+            <View style={styles.trendCaption}>
+              <Text style={[styles.trendLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                Volume · last 8 wk
+              </Text>
+              {deltaPct !== null && (
+                <Text style={[styles.trendDelta, { color: deltaColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                  {deltaArrow}{Math.abs(deltaPct)}% {weekStats.volumeDeltaPaced ? 'vs last wk to date' : 'vs last wk'}
+                </Text>
+              )}
+            </View>
           </View>
         )}
 
@@ -490,10 +551,35 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
-  statDelta: {
-    fontSize: 11,
-    lineHeight: 15,
-    marginTop: 2,
+  trendSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  trendBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 28,
+    gap: 6,
+  },
+  trendBar: {
+    flex: 1,
+    borderRadius: 2,
+  },
+  trendCaption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  trendLabel: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  trendDelta: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   muscleSection: {
     marginTop: 16,
