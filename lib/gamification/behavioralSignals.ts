@@ -5,7 +5,7 @@
 // careerStats. Clock-injectable for tests.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 
 export interface BehavioralSignals {
@@ -125,7 +125,7 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
     const dayCats = dayPPL.get(key) ?? new Set<PPLCategory>();
     for (const exercise of workout.exercises || []) {
       distinct.add(exercise.id);
-      const muscle = getWorkoutById(exercise.id)?.primaryMuscles?.[0];
+      const muscle = getExercise(exercise.id)?.primaryMuscles?.[0];
       const cat = muscle ? MUSCLE_TO_PPL[muscle] : undefined;
       if (cat) dayCats.add(cat);
 
