@@ -106,4 +106,39 @@ export const ACHIEVEMENT_EMBLEMS: Record<string, ImageSourcePropType> = {
   'plates-3': src.plateMithril, // Three Plate Club
   'plates-4': src.plateAdamant, // Four Plate Monster
   'plates-5': src.plateDragon,  // Five Plates
+
+  // Absolute-strength "clubs" (powerlifting total): barbell → winged trophy → cape.
+  'total-600': src.barbell,      // Rising Total
+  'total-1000': src.ornatetrophy,// Thousand-Pound Club
+  'total-1200': src.cape,        // Twelve Hundred
+
+  // Niche / Strava-style badges — quirky one-offs, each matched to a fitting emblem.
+  'early-bird': src.candle,          // pre-dawn candle
+  'night-owl': src.flamePurple,      // late-night magic flame
+  'vampire-hours': src.skull,        // midnight-to-4am spookiness
+  'double-duty': src.dumbbell,       // two workouts in a day
+  'weekend-warrior': src.sword,      // train both weekend days
+  'comeback-kid': src.torch,         // reignite after a break
+  'four-seasons': src.farming,       // all four seasons
+  'well-rounded': src.strength,      // push/pull/legs in a week
+  'balanced': src.barbell,           // push & pull in balance
+  'renaissance-lifter': src.scroll,  // 50 different exercises
+  'marathon-set': src.boot,          // 30+ reps in a set
+  'century-set': src.warhammer,      // 100+ reps of one lift
+  'new-year': src.partyhat,          // train on New Year's Day
+  'turkey-burn': src.flame,          // Thanksgiving burn
+  'gym-on-christmas': src.moneysack, // Santa's-sack gift on Dec 25
+  'leap-of-faith': src.lightning,    // rare leap-day bolt
 };
+
+// Bodyweight-ratio strength milestones use dynamic ids (`bw-<liftId>-<ratio>`), so
+// resolve them by lift family up the OSRS metal ladder — heavier lifts, rarer metal.
+export function emblemFor(id: string): ImageSourcePropType | undefined {
+  const direct = ACHIEVEMENT_EMBLEMS[id];
+  if (direct) return direct;
+  if (id.startsWith('bw-deadlift')) return src.plateDragon;
+  if (id.startsWith('bw-squat')) return src.plateAdamant;
+  if (id.startsWith('bw-bench')) return src.plateMithril;
+  if (id.startsWith('bw-overhead-press')) return src.barbell;
+  return undefined;
+}

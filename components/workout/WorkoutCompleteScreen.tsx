@@ -4,6 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import CareerModal from '@/components/gamification/CareerModal';
 import { RARITY_META } from '@/lib/gamification/rarity';
@@ -75,7 +76,12 @@ function AchievementRewardRow({
 
   const front = (
     <View style={[styles.achRowFace, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
-      <AchievementBadge icon={achievement.icon} rarity={achievement.rarity} size={34} />
+      <AchievementBadge
+        icon={achievement.icon}
+        emblem={ACHIEVEMENT_EMBLEMS[achievement.id]}
+        rarity={achievement.rarity}
+        size={34}
+      />
       <View style={styles.achTextWrap}>
         <Text style={[styles.achTitle, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
           {achievement.title}
