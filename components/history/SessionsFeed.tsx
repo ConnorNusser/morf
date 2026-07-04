@@ -16,7 +16,12 @@ import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View as RNVie
 
 const POS = '#34C759';
 
-const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+// Suppress the auto-generated default title ("Workout - 7/3/2026") so the eyebrow
+// reads as just the day; keep real titles like "Leg Day".
+const cleanTitle = (t: string): string | null => {
+  const s = (t || '').trim();
+  return !s || /^workout\b/i.test(s) ? null : s;
+};
 
 // The per-split visual identity: a custom white movement pictogram on a solid PPL
 // circle — bold, instantly legible, giving each session a scannable, memorable face.
@@ -48,22 +53,6 @@ function DeltaPill({ pct }: { pct: number }) {
   );
 }
 
-function MuscleRow({ muscles }: { muscles: string[] }) {
-  const { currentTheme } = useTheme();
-  if (muscles.length === 0) return null;
-  return (
-    <RNView style={styles.muscleRow}>
-      {muscles.slice(0, 4).map(m => (
-        <RNView key={m} style={[styles.muscleChip, { backgroundColor: currentTheme.colors.text + '0D' }]}>
-          <Text style={[styles.muscleText, { color: currentTheme.colors.text + 'AA', fontFamily: currentTheme.fonts.medium }]}>
-            {titleCase(m)}
-          </Text>
-        </RNView>
-      ))}
-    </RNView>
-  );
-}
-
 // ── the latest session, given the cinematic treatment ────────────────────────
 function SessionHero({ recap, weightUnit, onPress }: {
   recap: SessionRecap;
@@ -81,15 +70,16 @@ function SessionHero({ recap, weightUnit, onPress }: {
 
   return (
     <TouchableOpacity
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       onPress={() => onPress(recap.workout)}
-      style={[styles.hero, { backgroundColor: colors.surface, borderColor: id.color + '3A' }]}
+      style={styles.hero}
     >
-      {/* emblem + eyebrow (when · what), tinted by the split's identity colour */}
+      {/* emblem + eyebrow (the day, tinted by the split's identity colour) */}
       <RNView style={styles.heroEyebrow}>
         <Emblem color={id.color} emblem={id.emblem} size={40} />
         <Text style={[styles.eyebrowText, { color: id.color, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-          {formatRelativeDate(recap.workout.createdAt).toUpperCase()} · {recap.title}
+          {formatRelativeDate(recap.workout.createdAt).toUpperCase()}
+          {cleanTitle(recap.title) ? ` · ${cleanTitle(recap.title)}` : ''}
         </Text>
         {showTrophy && (
           <RNView style={[styles.prChip, { backgroundColor: id.color }]}>
@@ -124,20 +114,18 @@ function SessionHero({ recap, weightUnit, onPress }: {
         </RNView>
       )}
 
-      {/* how it stacks up */}
+      {/* how it stacks up — the % says it; keep the caption short */}
       {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
         <RNView style={styles.heroCompare}>
           <DeltaPill pct={recap.comparison.deltaVolumePct} />
           <Text style={[styles.compareText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
-            volume vs {recap.comparison.refLabel}
+            volume vs last time
           </Text>
         </RNView>
       )}
 
-      <MuscleRow muscles={recap.muscles} />
-
       {/* effort footer */}
-      <RNView style={[styles.heroFooter, { borderTopColor: colors.border }]}>
+      <RNView style={[styles.heroFooter, { borderTopColor: colors.text + '10' }]}>
         <FooterStat label="Volume" value={`${formatCompact(recap.volumeDisplay)} ${weightUnit}`} />
         <FooterStat label="Sets" value={`${recap.sets}`} />
         <FooterStat label="Time" value={`${recap.durationMin}m`} />
@@ -180,7 +168,8 @@ function MomentCard({ recap, weightUnit, onPress }: {
       <RNView style={styles.momentBody}>
         <RNView style={styles.momentTop}>
           <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]} numberOfLines={1}>
-            {formatRelativeDate(recap.workout.createdAt)} · {recap.title}
+            {formatRelativeDate(recap.workout.createdAt)}
+            {cleanTitle(recap.title) ? ` · ${cleanTitle(recap.title)}` : ''}
           </Text>
           {recap.pr?.tier === 'major' && (
             <RNView style={[styles.prDot, { backgroundColor: id.color }]}>
@@ -261,8 +250,8 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
 
 const styles = StyleSheet.create({
   emblem: { alignItems: 'center', justifyContent: 'center' },
-  // hero
-  hero: { borderRadius: 18, borderWidth: 1, padding: 18, marginBottom: 8 },
+  // hero — flat, full-width (no box); content separated by spacing and the footer rule
+  hero: { paddingTop: 4, paddingBottom: 6, marginBottom: 4 },
   heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   eyebrowText: { flex: 1, fontSize: 12, letterSpacing: 0.4 },
   heroHeadline: { fontSize: 24, lineHeight: 29, letterSpacing: -0.4 },
@@ -279,9 +268,6 @@ const styles = StyleSheet.create({
   // shared
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   deltaText: { fontSize: 13 },
-  muscleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
-  muscleChip: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 7 },
-  muscleText: { fontSize: 12 },
   prChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
   prChipText: { fontSize: 10, letterSpacing: 0.5 },
   // moments
