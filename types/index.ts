@@ -184,6 +184,7 @@ export interface Workout {
   isMainLift: boolean;
   themeLevel: ThemeLevel;
   trackingType?: TrackingType; // How sets are logged: 'reps' (default), 'timed', or 'cardio'
+  aliases?: string[]; // alternate names/shorthand that should resolve to this exercise (e.g. "hamstring curl" → Leg Curl)
 }
 
 export interface UserProgress {

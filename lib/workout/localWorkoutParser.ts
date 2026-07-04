@@ -42,6 +42,7 @@ interface IndexedExercise {
   name: string;
   base: string; // normalized, equipment stripped
   fullNorm: string; // normalized, equipment kept
+  aliasBases: string[]; // normalized, equipment-stripped alternate names
   equipment: string[]; // catalog equipment tags (e.g. ['machine'])
   isBarbell: boolean;
 }
@@ -54,11 +55,17 @@ function getIndex(): IndexedExercise[] {
       name: e.name,
       base: normalize(e.name),
       fullNorm: normalizeKeepEquip(e.name),
+      aliasBases: (e.aliases ?? []).map(a => normalize(a)).filter(Boolean),
       equipment: (e.equipment ?? []).map(eq => eq.toLowerCase()),
       isBarbell: /barbell/i.test(e.name),
     }));
   }
   return exerciseIndex;
+}
+
+// Does this exercise's canonical base or any of its aliases equal the query?
+function baseHits(e: IndexedExercise, q: string): boolean {
+  return e.base === q || e.aliasBases.includes(q);
 }
 
 /** Reset the cached exercise index (tests). */
@@ -112,13 +119,14 @@ function hasEquipment(e: IndexedExercise, equip: string): boolean {
 // nothing (an empty prefix would otherwise match everything).
 function matchByBase(index: IndexedExercise[], q: string): IndexedExercise[] {
   if (!q) return [];
-  let matches = index.filter(e => e.base === q);
+  let matches = index.filter(e => baseHits(e, q));
   if (!matches.length) {
     const alt = q.endsWith('s') ? q.slice(0, -1) : `${q}s`; // simple plural tolerance
-    matches = index.filter(e => e.base === alt);
+    matches = index.filter(e => baseHits(e, alt));
   }
   if (!matches.length) {
-    matches = index.filter(e => e.base.startsWith(q) || q.startsWith(e.base));
+    const pfx = (b: string) => b.startsWith(q) || q.startsWith(b);
+    matches = index.filter(e => pfx(e.base) || e.aliasBases.some(pfx));
   }
   return matches;
 }
@@ -153,7 +161,7 @@ function fuzzyBudget(len: number): number {
 // lifts is exactly the wrong-match failure we're avoiding.
 function bestFuzzyBase(index: IndexedExercise[], q: string): string | null {
   if (q.length < 4) return null; // too short to fuzzy-match safely
-  const bases = [...new Set(index.map(e => e.base))];
+  const bases = [...new Set(index.flatMap(e => [e.base, ...e.aliasBases]))];
   const scored = bases
     .map(b => ({ b, d: editDistance(q, b) }))
     .sort((x, y) => x.d - y.d);
@@ -190,9 +198,9 @@ export function matchExerciseByName(name: string): string | null {
 
   // An equipment qualifier ("machine", "db", "smith"…) shouldn't be matched as
   // part of the lift name — match the core name, then use the qualifier to pick
-  // the right variant. Falls back to the full string when stripping doesn't help
-  // (e.g. "Cable Crossover", where "cable" is part of the actual name).
-  const wantEquip = detectEquipment(t);
+  // the right variant. Detect it from the paren-keeping form so a canonical
+  // "RDL (Dumbbells)" resolves the same as "rdl dumbbells" (normalize drops parens).
+  const wantEquip = detectEquipment(normalizeKeepEquip(name)) ?? detectEquipment(t);
   let core = stripEquipment(t);
   if (ABBREVIATIONS[core]) core = normalize(ABBREVIATIONS[core]); // "ohp machine" → "overhead press"
 
@@ -203,7 +211,7 @@ export function matchExerciseByName(name: string): string | null {
   // lift onto a near-spelled catalog entry (that should become a custom exercise).
   if (!matches.length) {
     const fuzzyBase = bestFuzzyBase(index, core) ?? (core !== t ? bestFuzzyBase(index, t) : null);
-    if (fuzzyBase) matches = index.filter(e => e.base === fuzzyBase);
+    if (fuzzyBase) matches = index.filter(e => baseHits(e, fuzzyBase));
   }
   if (!matches.length) return null;
 
