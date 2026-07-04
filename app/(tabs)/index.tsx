@@ -21,6 +21,7 @@ import { useUser } from "@/contexts/UserContext";
 import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
 import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
 import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
+import { PPL_COLORS } from "@/lib/data/pplCategories";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
@@ -104,11 +105,18 @@ export default function HomeScreen() {
     const total = feats[0]?.current ?? 0;
     if (total <= 0) return null;
     const next = feats.find((f) => !f.unlocked) ?? feats[feats.length - 1];
+    const e1 = (id: string) =>
+      Math.round(prsLbs.find((p) => p.exerciseId === id)?.estimatedOneRM ?? 0);
+    const lifts = [
+      { label: "Squat", value: e1("squat-barbell"), color: PPL_COLORS.legs },
+      { label: "Bench", value: e1("bench-press-barbell"), color: PPL_COLORS.push },
+      { label: "Deadlift", value: e1("deadlift-barbell"), color: PPL_COLORS.pull },
+    ];
     return {
       total,
+      lifts,
       milestoneTarget: next.target,
       remaining: Math.max(0, next.target - total),
-      progress: next.progress,
       allUnlocked: feats.every((f) => f.unlocked),
     };
   }, [workoutHistory]);

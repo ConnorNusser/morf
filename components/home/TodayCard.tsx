@@ -368,8 +368,7 @@ const styles = StyleSheet.create({
   navRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    marginRight: -4,
+    gap: 8,
   },
   subRow: {
     flexDirection: "row",

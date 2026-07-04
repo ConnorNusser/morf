@@ -60,13 +60,13 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
             </Text>
           </View>
 
-          {/* Subtle progress track — soft fill, no hard border */}
-          <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '12' }]}>
+          {/* Tier-coloured strength bar — matches the Big-3 total's bar language */}
+          <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '0D' }]}>
             <View
               style={[
                 styles.trackFill,
                 {
-                  width: `${Math.max(0, Math.min(100, percentileRanking))}%`,
+                  width: `${Math.max(3, Math.min(100, percentileRanking))}%`,
                   backgroundColor: accentColor,
                 },
               ]}
@@ -121,12 +121,12 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   track: {
-    height: 6,
-    borderRadius: 3,
+    height: 9,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   trackFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 5,
   },
 });
