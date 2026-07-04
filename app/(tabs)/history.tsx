@@ -1,11 +1,10 @@
-import { useAlert } from '@/components/CustomAlert';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
-import HistoryHero from '@/components/history/HistoryHero';
+import SessionsFeed from '@/components/history/SessionsFeed';
+import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import TopMovers from '@/components/history/TopMovers';
-import WorkoutCard from '@/components/history/WorkoutCard';
-import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
+import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
 import { Text, View } from '@/components/Themed';
@@ -58,7 +57,6 @@ function getImprovement(history: ExerciseWithMax['history']): number {
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
-  const { showAlert } = useAlert();
   const { userProfile } = useUser();
   const router = useRouter();
   const { customExercises } = useCustomExercises();
@@ -78,7 +76,6 @@ export default function HistoryScreen() {
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
 
   // Search controls
-  const [workoutSearch, setWorkoutSearch] = useState('');
   const [exerciseSearch, setExerciseSearch] = useState('');
   const [exerciseSort, setExerciseSort] = useState<ExerciseSort>('1rm');
 
@@ -137,38 +134,12 @@ export default function HistoryScreen() {
     setRefreshing(false);
   };
 
-  const handleDeleteWorkout = useCallback((workout: GeneratedWorkout) => {
-    showAlert({
-      title: 'Delete Workout',
-      message: `Delete "${workout.title}"?`,
-      type: 'confirm',
-      buttons: [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            await userService.deleteWorkoutAndLifts(workout.id);
-            setSelectedWorkout(null);
-            await loadHistory();
-            await loadExerciseStats();
-          },
-        },
-      ],
-    });
-  }, [showAlert, loadHistory, loadExerciseStats]);
-
-  // Get the workouts to render: a search query filters the full list by
-  // title; otherwise show the 5 most recent (or all when expanded).
-  const workoutQuery = workoutSearch.trim().toLowerCase();
-  const filteredWorkouts = useMemo(() => {
-    if (!workoutQuery) return workouts;
-    return workouts.filter(w => (w.title || '').toLowerCase().includes(workoutQuery));
-  }, [workouts, workoutQuery]);
-
-  const recentWorkouts = useMemo(() =>
-    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 3),
-    [filteredWorkouts, showAllWorkouts, workoutQuery]
+  // The reflective session feed: each workout enriched with its standout set, the
+  // day's record, a narrative headline, muscles worked, and how its volume stacks up
+  // against the last session of the same kind. Newest first.
+  const sessionRecaps = useMemo(
+    () => buildSessionRecaps(workouts, customExercises, weightUnit),
+    [workouts, customExercises, weightUnit]
   );
 
   // Calculate quick stats
@@ -235,12 +206,6 @@ export default function HistoryScreen() {
   // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
-
-  // Session-level PR: the single most significant all-time record per training day.
-  // Feeds the collapsed WorkoutCard so a normal ascending history shows a rare, real
-  // PR marker instead of the old per-exercise chip spray. The modal still uses prDays
-  // for the full per-exercise breakdown behind a tap.
-  const sessionPRs = useMemo(() => buildSessionPRs(exerciseStats), [exerciseStats]);
 
   // Records strip — the "what ARE my records?" half of Q3, answered on the hub without a
   // tab-hop. The top standard lifts by bodyweight percentile (not raw heaviest, so a
@@ -359,23 +324,9 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* Animated momentum hero */}
-            {workouts.length > 0 && (
-              <HistoryHero
-                exerciseStats={exerciseStats}
-                weightUnit={weightUnit}
-                bodyweightLbs={bodyweightLbs}
-                gender={userProfile?.gender}
-                age={userProfile?.age}
-              />
-            )}
-
-            {/* Quick Stats — inline supporting line under the hero. The current-week
-                workout COUNT is intentionally NOT shown here: WeeklyOverview (directly
-                below) already owns "this week" on its Monday-anchored boundary, so a second
-                copy here on a Sunday boundary previously let the screen read a different
-                number in each block. This line keeps only what WeeklyOverview does not: the
-                multi-week streak, else a month / all-time roll-up. */}
+            {/* Streak status line — a small motivational anchor above the feed. Keeps only
+                what WeeklyOverview (further down) does not already own: the multi-week streak,
+                else a month / all-time roll-up. */}
             {workouts.length > 0 && (
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
                 {quickStats.streak > 0 ? (
@@ -388,6 +339,21 @@ export default function HistoryScreen() {
                   </Text>
                 )}
               </View>
+            )}
+
+            {/* Sessions feed — History's reflective centerpiece. The latest workout gets
+                a cinematic recap (narrative headline + the standout set + how it stacks up),
+                past sessions follow as re-livable moment cards. Replaces the abstract
+                Strength Index and subsumes the old flat "Recent Workouts" log. */}
+            {workouts.length > 0 && (
+              <SessionsFeed
+                recaps={sessionRecaps}
+                weightUnit={weightUnit}
+                visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
+                totalCount={sessionRecaps.length}
+                onPressSession={setSelectedWorkout}
+                onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}
+              />
             )}
 
             {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
@@ -471,87 +437,6 @@ export default function HistoryScreen() {
             {workouts.length > 0 && (
               <View style={styles.section}>
                 <MuscleBalanceCard workoutHistory={workouts} />
-              </View>
-            )}
-
-            {/* Recent Workouts — the session log (Q7: "what did I do last time?"),
-                collapsed to the last few and demoted below the summary-first hero +
-                This Week so the macro "am I stronger?" answer leads the screen. */}
-            {workouts.length > 0 && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  Recent Workouts
-                </Text>
-                {/* Search (only worth showing once there's a backlog) */}
-                {workouts.length >= 5 && (
-                  <View style={[styles.searchBar, styles.workoutSearchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                    <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
-                    <TextInput
-                      style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
-                      placeholder="Search workouts..."
-                      placeholderTextColor={currentTheme.colors.text + '40'}
-                      value={workoutSearch}
-                      onChangeText={setWorkoutSearch}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="search"
-                    />
-                    {workoutSearch.length > 0 && (
-                      <TouchableOpacity onPress={() => setWorkoutSearch('')} hitSlop={8}>
-                        <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
-
-                {workoutQuery.length > 0 && (
-                  <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                    {recentWorkouts.length} result{recentWorkouts.length !== 1 ? 's' : ''}
-                  </Text>
-                )}
-
-                {recentWorkouts.map((workout) => (
-                  <WorkoutCard
-                    key={workout.id}
-                    workout={workout}
-                    sessionPRs={sessionPRs}
-                    weightUnit={weightUnit}
-                    customExercises={customExercises}
-                    onPress={setSelectedWorkout}
-                    onLongPress={handleDeleteWorkout}
-                  />
-                ))}
-
-                {/* No matches for an active search */}
-                {workoutQuery.length > 0 && recentWorkouts.length === 0 && (
-                  <View style={styles.emptyState}>
-                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
-                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
-                      No workouts match &quot;{workoutSearch.trim()}&quot;
-                    </Text>
-                  </View>
-                )}
-
-                {!workoutQuery && workouts.length > 3 && !showAllWorkouts && (
-                  <TouchableOpacity
-                    style={styles.viewAllButton}
-                    onPress={() => setShowAllWorkouts(true)}
-                  >
-                    <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
-                      View all {workouts.length} workouts
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                {!workoutQuery && showAllWorkouts && workouts.length > 3 && (
-                  <TouchableOpacity
-                    style={styles.viewAllButton}
-                    onPress={() => setShowAllWorkouts(false)}
-                  >
-                    <Text style={[styles.viewAllText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
-                      Show less
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
             )}
 
@@ -812,8 +697,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 16,
-    marginBottom: 8,
+    marginBottom: 14,
   },
   quickStatInlineText: {
     fontSize: 13,
