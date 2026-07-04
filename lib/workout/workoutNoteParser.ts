@@ -6,7 +6,7 @@ import { exerciseNameToId } from '@/lib/data/exerciseUtils';
 import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
 import { storageService } from '@/lib/storage/storage';
 import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
-import { getAvailableWorkouts, getWorkoutById } from './workouts';
+import { getAvailableWorkouts, getWorkoutById, setCustomExerciseCache } from './workouts';
 
 // Types for parsed workout data
 export interface ParsedSet {
@@ -86,6 +86,10 @@ class WorkoutNoteParser {
     try {
       const customExercises = await storageService.getCustomExercises();
       this.customExerciseIds = new Set(customExercises.map(e => e.id));
+      // Keep the sync display registry (getExercise) in step, so a custom exercise
+      // auto-created on finish resolves immediately without waiting for the context
+      // to reload.
+      setCustomExerciseCache(customExercises);
       this.cacheInitialized = true;
     } catch (error) {
       console.error('Error loading custom exercises into cache:', error);
