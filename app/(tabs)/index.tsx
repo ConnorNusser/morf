@@ -3,6 +3,8 @@ import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
+import LiftProgressStrip from "@/components/home/LiftProgressStrip";
+import { buildLiftProgressions, LiftProgress } from "@/lib/history/liftProgress";
 import LiftDisplayFilter from "@/components/LiftDisplayFilter";
 import OverallStatsCard from "@/components/OverallStatsCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
@@ -66,6 +68,7 @@ export default function HomeScreen() {
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+  const [liftProgress, setLiftProgress] = useState<LiftProgress[]>([]);
 
   const filteredProgress = useMemo(
     () =>
@@ -127,6 +130,10 @@ export default function HomeScreen() {
         tier: getStrengthTier(overall),
         tierProgress: getTierBandProgress(overall).progress,
       });
+
+      setLiftProgress(
+        buildLiftProgressions(history, visibleLifts.map((p) => p.workoutId), unit),
+      );
 
       setIsLoading(false);
     } catch (error) {
@@ -288,6 +295,8 @@ export default function HomeScreen() {
             stats={lifetimeStats ?? undefined}
             onTierPress={() => setShowCareer(true)}
           />
+
+          <LiftProgressStrip lifts={liftProgress} />
 
           <TodayCard />
           <WeeklyGoalCard />
