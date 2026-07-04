@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   // Flat: no surface/border/radius — reads as inline content and saves the card's
   // padding + chrome height.
   card: {
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
     paddingVertical: 4,
   },
   header: {

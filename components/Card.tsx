@@ -17,16 +17,11 @@ function Card({
 }: CardProps) {
   const { currentTheme } = useTheme();
 
-  const getCardStyle = () => {
-    const baseStyle = {
-      borderRadius: currentTheme.borderRadius,
-      padding,
-    };
-
-    // Flat: cards carry no fill, border, or shadow — content sits on the page,
-    // separated by spacing and section labels instead of a raised box.
-    return baseStyle;
-  };
+  // Flat: no fill, border, or shadow — content sits on the page, separated by
+  // spacing and section labels instead of a raised box. With the box gone the
+  // horizontal padding is dead space too, so cards run full-width; the `padding`
+  // prop now only sets vertical rhythm between stacked cards.
+  const getCardStyle = () => ({ paddingVertical: padding });
 
   return (
     <View style={[styles.container, getCardStyle(), style]}>

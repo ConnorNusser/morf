@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   // Flat: no surface/border — the rows sit on the page, separated by hairline
   // dividers, so it reads as a clean list instead of a boxed panel.
   panel: {
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
   },
   row: {
     flexDirection: 'row',

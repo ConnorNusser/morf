@@ -295,13 +295,7 @@ export default function HomeScreen() {
           <OverallStatsCard stats={overallStats} />
 
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
+            style={styles.actionButton}
             onPress={() => setShowLeaderboard(true)}
             activeOpacity={0.7}
           >
@@ -411,10 +405,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 12,
   },
   actionButtonText: {
     fontSize: 15,
