@@ -19,6 +19,7 @@ import {
   buildDraft,
   draftToNoteText,
   mergeParsed,
+  propagateSet as propagateSetInDraft,
   removeExercise as removeExerciseFromDraft,
   removeSet as removeSetFromDraft,
   toggleSetDone as toggleSetDoneInDraft,
@@ -53,6 +54,7 @@ export interface UseWorkoutNoteSessionReturn {
   loadDraftFromRoutine: (routine: CalculatedRoutine) => void; // routine import — structured, no text round-trip
   // Direct, traditional-UI edits to the synthesized cards:
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
+  cascadeSet: (key: string, index: number, prevWeight: number, prevReps: number) => void;
   addSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
   toggleSetDone: (key: string, index: number) => void;
@@ -120,6 +122,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Traditional-UI edits to the synthesized cards.
   const editSet = useCallback((key: string, index: number, patch: Partial<DraftSet>) => {
     setDraft(d => updateSetInDraft(d, key, index, patch));
+  }, []);
+  // Cascade an edited set's new weight/reps onto the matching target sets below it.
+  const cascadeSet = useCallback((key: string, index: number, prevWeight: number, prevReps: number) => {
+    setDraft(d => propagateSetInDraft(d, key, index, prevWeight, prevReps));
   }, []);
   const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
@@ -758,6 +764,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     loadDraftFromText,
     loadDraftFromRoutine,
     editSet,
+    cascadeSet,
     addSetTo,
     removeSetFrom,
     toggleSetDone,

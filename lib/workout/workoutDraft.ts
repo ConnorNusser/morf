@@ -166,6 +166,44 @@ export function updateSet(draft: WorkoutDraft, key: string, index: number, patch
   }));
 }
 
+/**
+ * Downward "target" mirroring. After set `index` is edited (its old weight×reps
+ * were `prevWeight`×`prevReps`), cascade its new weight×reps onto the sets *below*
+ * it that were still sitting at that old target — or are a blank 0×0 row — stopping
+ * at the first set that carries its own numbers. Only un-done sets below are
+ * touched; a set you've already logged is never rewritten. No-op when nothing
+ * actually changed.
+ *
+ * So 140×8 ×4 → editing the first to 150×8 makes them all 150×8; 140/140/170 →
+ * editing the first to 150 changes the first two but leaves the customized 170;
+ * one filled set over blank rows fills the blanks with the same weight and reps.
+ */
+export function propagateSet(
+  draft: WorkoutDraft,
+  key: string,
+  index: number,
+  prevWeight: number,
+  prevReps: number,
+): WorkoutDraft {
+  return mapExercise(draft, key, ex => {
+    const cur = ex.sets[index];
+    if (!cur) return ex;
+    if (cur.weight === prevWeight && cur.reps === prevReps) return ex; // unchanged
+    const matchesOld = (s: DraftSet) => s.weight === prevWeight && s.reps === prevReps;
+    const blank = (s: DraftSet) => s.weight === 0 && s.reps === 0;
+    const sets = ex.sets.slice();
+    for (let j = index + 1; j < sets.length; j++) {
+      const s = sets[j];
+      if (s.done) break; // never overwrite a performed set
+      // Follows along only if it's still the untouched target or an empty row; any
+      // set with its own distinct numbers stops the cascade.
+      if (matchesOld(s) || blank(s)) sets[j] = { ...s, weight: cur.weight, reps: cur.reps };
+      else break;
+    }
+    return { ...ex, sets };
+  });
+}
+
 /** Toggle a set's done state (drives the green check-off row). */
 export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): WorkoutDraft {
   return mapExercise(draft, key, ex => ({
