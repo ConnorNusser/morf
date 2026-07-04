@@ -42,10 +42,9 @@ function LiftRow({ lift, last }: { lift: LiftProgress; last: boolean }) {
 }
 
 export default function LiftProgressWidget({ lifts }: { lifts: LiftProgress[] }) {
-  const { currentTheme } = useTheme();
   if (lifts.length === 0) return null;
   return (
-    <RNView style={[styles.panel, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+    <RNView style={styles.panel}>
       {lifts.map((lift, i) => (
         <LiftRow key={lift.id} lift={lift} last={i === lifts.length - 1} />
       ))}
@@ -54,15 +53,15 @@ export default function LiftProgressWidget({ lifts }: { lifts: LiftProgress[] })
 }
 
 const styles = StyleSheet.create({
+  // Flat: no surface/border — the rows sit on the page, separated by hairline
+  // dividers, so it reads as a clean list instead of a boxed panel.
   panel: {
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 14,
+    paddingHorizontal: 2,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 11,
     gap: 12,
   },
   name: { flex: 1, fontSize: 14, fontWeight: '600' },

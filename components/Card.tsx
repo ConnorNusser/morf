@@ -23,36 +23,9 @@ function Card({
       padding,
     };
 
-    switch (variant) {
-      case 'surface':
-      case 'clean':
-        return {
-          ...baseStyle,
-          backgroundColor: currentTheme.colors.surface,
-          borderWidth: 1,
-          borderColor: currentTheme.colors.border,
-        };
-      case 'elevated':
-        return {
-          ...baseStyle,
-          backgroundColor: currentTheme.colors.surface,
-          shadowColor: '#000000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.05,
-          shadowRadius: 2,
-          elevation: 1,
-          borderWidth: 1,
-          borderColor: currentTheme.colors.border,
-          
-        };
-      case 'subtle':
-        return {
-          ...baseStyle,
-          backgroundColor: currentTheme.colors.secondary,
-        };
-      default:
-        return baseStyle;
-    }
+    // Flat: cards carry no fill, border, or shadow — content sits on the page,
+    // separated by spacing and section labels instead of a raised box.
+    return baseStyle;
   };
 
   return (
