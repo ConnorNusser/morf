@@ -19,6 +19,7 @@ interface NumberPadProps {
   increments: number[]; // quick +/- chips, e.g. [-5, -2.5, 2.5, 5]
   hasNext: boolean;
   onChange: (n: number) => void;
+  onLiveChange?: (n: number) => void; // fires on every keystroke, for live preview
   onNext: () => void;
   onDone: () => void; // final "Done" — commits and auto-completes the set
   onClose: () => void; // dismissed (backdrop / hardware back) — commits, no complete
@@ -28,27 +29,33 @@ function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
 }
 
-export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onNext, onDone, onClose }: NumberPadProps) {
+export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onLiveChange, onNext, onDone, onClose }: NumberPadProps) {
   const { currentTheme } = useTheme();
   const [buffer, setBuffer] = useState(fmt(value));
 
   // Reseed whenever the target field changes (new set / weight↔reps).
   useEffect(() => { setBuffer(fmt(value)); }, [seedKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Editing stays local to the buffer; we only push to the draft when the user
-  // moves on (Next/Done/dismiss). Pushing on every digit re-rendered the whole
-  // workout (and wrote storage) per keystroke, which made typing lag badly.
+  // The committed value is pushed on move-on (Next/Done/dismiss); `onLiveChange`
+  // additionally reports every keystroke so the workout behind the pad can mirror
+  // targets live as you type. Storage persistence is debounced upstream, so the
+  // per-keystroke updates stay cheap.
   const flush = () => onChange(parseFloat(buffer) || 0);
+  // Set the buffer and report the live value in one place.
+  const commitBuffer = (next: string) => {
+    setBuffer(next);
+    onLiveChange?.(parseFloat(next) || 0);
+  };
 
   const press = (digit: string) => {
     playHapticFeedback('light', false);
-    setBuffer(buffer === '0' && digit !== '.' ? digit : buffer + digit);
+    commitBuffer(buffer === '0' && digit !== '.' ? digit : buffer + digit);
   };
   const dot = () => { if (allowDecimal && !buffer.includes('.')) press('.'); };
-  const back = () => { playHapticFeedback('light', false); setBuffer(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
+  const back = () => { playHapticFeedback('light', false); commitBuffer(buffer.length > 1 ? buffer.slice(0, -1) : '0'); };
   const bump = (delta: number) => {
     playHapticFeedback('light', false);
-    setBuffer(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
+    commitBuffer(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
   };
 
   // Dismissing (backdrop / hardware back) still keeps what was typed.

@@ -19,7 +19,7 @@ import {
   buildDraft,
   draftToNoteText,
   mergeParsed,
-  propagateSet as propagateSetInDraft,
+  previewSetEdit as previewSetEditInDraft,
   removeExercise as removeExerciseFromDraft,
   removeSet as removeSetFromDraft,
   toggleSetDone as toggleSetDoneInDraft,
@@ -31,7 +31,7 @@ import { updateExerciseRecords } from '@/lib/workout/progression';
 import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
 // Reject if a promise hasn't settled in `ms` — used to cap AI parse latency so a
@@ -54,7 +54,7 @@ export interface UseWorkoutNoteSessionReturn {
   loadDraftFromRoutine: (routine: CalculatedRoutine) => void; // routine import — structured, no text round-trip
   // Direct, traditional-UI edits to the synthesized cards:
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
-  cascadeSet: (key: string, index: number, prevWeight: number, prevReps: number) => void;
+  applyLiveSet: (key: string, index: number, originalSets: DraftSet[], weight: number, reps: number) => void;
   addSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
   toggleSetDone: (key: string, index: number) => void;
@@ -123,10 +123,15 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const editSet = useCallback((key: string, index: number, patch: Partial<DraftSet>) => {
     setDraft(d => updateSetInDraft(d, key, index, patch));
   }, []);
-  // Cascade an edited set's new weight/reps onto the matching target sets below it.
-  const cascadeSet = useCallback((key: string, index: number, prevWeight: number, prevReps: number) => {
-    setDraft(d => propagateSetInDraft(d, key, index, prevWeight, prevReps));
-  }, []);
+  // Live preview of an in-progress set edit: show the typed weight×reps and cascade
+  // it onto the matching target sets below, recomputed from the snapshot taken when
+  // editing began so the targets keep tracking as you type.
+  const applyLiveSet = useCallback(
+    (key: string, index: number, originalSets: DraftSet[], weight: number, reps: number) => {
+      setDraft(d => previewSetEditInDraft(d, key, index, originalSets, weight, reps));
+    },
+    [],
+  );
   const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
   const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
@@ -361,26 +366,38 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   );
 
   // Persist the in-progress session (incl. the structured draft, so per-set
-  // check-off survives closing/reopening the app).
+  // check-off survives closing/reopening the app). Debounced: live per-keystroke
+  // edits (e.g. the number pad mirroring targets as you type) would otherwise
+  // write AsyncStorage on every render and make typing lag. The latest snapshot is
+  // held in a ref and flushed on unmount so leaving mid-edit never drops a change.
+  const sessionSnapshot = useRef({ noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId });
+  sessionSnapshot.current = { noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId };
+  const persistSession = useCallback(async () => {
+    const snap = sessionSnapshot.current;
+    const active = snap.draft.length > 0 || snap.manuallyStarted;
+    if (active && snap.workoutStartTime) {
+      await storageService.saveNoteSession({
+        noteText: snap.noteText,
+        draft: snap.draft,
+        manuallyStarted: snap.manuallyStarted,
+        startTime: snap.workoutStartTime,
+        routineId: snap.startedRoutineId,
+      });
+    } else if (!active) {
+      await storageService.clearNoteSession();
+    }
+  }, []);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!isSessionLoaded) return; // Don't save until we've loaded
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { persistSession(); }, 400);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded, persistSession]);
 
-    const active = draft.length > 0 || manuallyStarted;
-    const saveSession = async () => {
-      if (active && workoutStartTime) {
-        await storageService.saveNoteSession({
-          noteText,
-          draft,
-          manuallyStarted,
-          startTime: workoutStartTime,
-          routineId: startedRoutineId,
-        });
-      } else if (!active) {
-        await storageService.clearNoteSession();
-      }
-    };
-    saveSession();
-  }, [noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded]);
+  // Flush the pending save on unmount so leaving the tab mid-edit isn't lost.
+  useEffect(() => () => { persistSession(); }, [persistSession]);
 
   // Start timer when user starts logging, reset when everything's cleared
   // (unless they explicitly Quick-started an empty session).
@@ -764,7 +781,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     loadDraftFromText,
     loadDraftFromRoutine,
     editSet,
-    cascadeSet,
+    applyLiveSet,
     addSetTo,
     removeSetFrom,
     toggleSetDone,

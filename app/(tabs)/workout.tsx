@@ -4,7 +4,7 @@ import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
-import { draftToParsedWorkout, type DraftExercise } from '@/lib/workout/workoutDraft';
+import { draftToParsedWorkout, type DraftExercise, type DraftSet } from '@/lib/workout/workoutDraft';
 import type { CalculatedRoutine } from '@/types';
 import RecentWorkouts from '@/components/workout/RecentWorkouts';
 import PredictiveCard from '@/components/workout/PredictiveCard';
@@ -68,7 +68,7 @@ export default function WorkoutScreen() {
     loadDraftFromText,
     loadDraftFromRoutine,
     editSet,
-    cascadeSet,
+    applyLiveSet,
     addSetTo,
     removeSetFrom,
     toggleSetDone,
@@ -288,52 +288,65 @@ export default function WorkoutScreen() {
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   // Which set field the custom number pad is editing.
   const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
-  // The edited set's weight/reps captured *before* editing, so on Done we know the
-  // old value to cascade from (see handleNumberPadDone → cascadeSetField).
-  const editOrigin = useRef<{ key: string; index: number; weight: number; reps: number } | null>(null);
+  // Snapshot of the exercise's sets when editing began, plus the in-progress
+  // weight/reps — so each keystroke recomputes the live target cascade from the
+  // original values (see handlePadLiveChange → applyLiveSet).
+  const editOrigin = useRef<{ key: string; index: number; sets: DraftSet[] } | null>(null);
+  const liveEdit = useRef<{ weight: number; reps: number }>({ weight: 0, reps: 0 });
   const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
     Keyboard.dismiss();
     playHapticFeedback('light', false);
-    // Snapshot the pre-edit values once per set (weight → Next → reps keeps the
-    // same origin); re-tapping a different set refreshes it.
+    // Snapshot once per set (weight → Next → reps keeps the same origin); tapping a
+    // different set — or re-tapping after its value changed — refreshes it.
     const o = editOrigin.current;
     if (!o || o.key !== key || o.index !== index) {
-      const s = draftRef.current.find(e => e.key === key)?.sets[index];
-      editOrigin.current = { key, index, weight: s?.weight ?? 0, reps: s?.reps ?? 0 };
+      const sets = (draftRef.current.find(e => e.key === key)?.sets ?? []).map(s => ({ ...s }));
+      editOrigin.current = { key, index, sets };
+      const s = sets[index];
+      liveEdit.current = { weight: s?.weight ?? 0, reps: s?.reps ?? 0 };
     }
     setEditing({ key, index, field });
   }, []);
 
+  // Each keystroke in the pad updates the in-progress value and re-applies the live
+  // target cascade, recomputed from the open-time snapshot so following sets that
+  // still match the original "drag" along as you type (customized rows stay put).
+  const handlePadLiveChange = useCallback((key: string, index: number, field: 'weight' | 'reps', n: number) => {
+    const o = editOrigin.current;
+    if (!o || o.key !== key || o.index !== index) return;
+    liveEdit.current = { ...liveEdit.current, [field]: n };
+    applyLiveSet(key, index, o.sets, liveEdit.current.weight, liveEdit.current.reps);
+  }, [applyLiveSet]);
+
   // Hevy-style rep mirroring: when a set's weight settles, tie its reps to the set
   // directly above IFF the weights match (same working load) or the weight is 0
   // (bodyweight / not-yet-entered). Matching → mirror the row above's reps; diverging
-  // → clear the reps that were merely auto-copied from that row (leaving user-entered
-  // reps untouched), so you fill in the new number. Runs when leaving the weight field.
+  // → clear the reps that were merely auto-copied from that row. Routed through the
+  // live snapshot so the change (and its downward cascade) is reflected immediately.
   const mirrorRepsToWeight = useCallback((key: string, index: number) => {
-    if (index <= 0) return;
-    const ex = draft.find(e => e.key === key);
-    const set = ex?.sets[index];
-    const above = ex?.sets[index - 1];
-    if (!set || !above) return;
-    if (set.weight === above.weight || set.weight === 0) {
-      if (set.reps !== above.reps) editSet(key, index, { reps: above.reps });
-    } else if (set.reps === above.reps) {
-      // reps are a stale copy of the row above, not something you typed — clear them
-      editSet(key, index, { reps: 0 });
+    const o = editOrigin.current;
+    if (index <= 0 || !o || o.key !== key || o.index !== index) return;
+    const above = o.sets[index - 1];
+    if (!above) return;
+    const { weight, reps } = liveEdit.current;
+    let nextReps: number | null = null;
+    if (weight === above.weight || weight === 0) {
+      if (reps !== above.reps) nextReps = above.reps;
+    } else if (reps === above.reps) {
+      nextReps = 0; // stale copy of the row above, not typed — clear it
     }
-  }, [draft, editSet]);
+    if (nextReps !== null) {
+      liveEdit.current = { ...liveEdit.current, reps: nextReps };
+      applyLiveSet(key, index, o.sets, liveEdit.current.weight, nextReps);
+    }
+  }, [applyLiveSet]);
 
   // Tapping "Done" on the number pad finalizes the set: check it off (starting
-  // rest) and close the pad. The pad has already flushed the typed value.
+  // rest) and close the pad. The value + downward cascade already landed live as
+  // the user typed (handlePadLiveChange), so Done just commits and completes.
   const handleNumberPadDone = useCallback(() => {
     if (!editing) return;
     if (editing.field === 'weight') mirrorRepsToWeight(editing.key, editing.index);
-    // Cascade the just-entered weight×reps onto the matching target sets below.
-    const origin = editOrigin.current;
-    if (origin && origin.key === editing.key && origin.index === editing.index) {
-      cascadeSet(editing.key, editing.index, origin.weight, origin.reps);
-    }
-    editOrigin.current = null;
     const ex = draft.find(e => e.key === editing.key);
     const set = ex?.sets[editing.index];
     if (set && !set.done) {
@@ -341,8 +354,9 @@ export default function WorkoutScreen() {
       startRestTimer(120, { exerciseName: ex?.name });
       if (isLastRemainingSet(draft, editing.key, editing.index)) addSetTo(editing.key);
     }
+    editOrigin.current = null;
     setEditing(null);
-  }, [editing, draft, editSet, cascadeSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
+  }, [editing, draft, editSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -679,9 +693,10 @@ export default function WorkoutScreen() {
             increments={isWeight ? (weightUnit === 'kg' ? [-5, -2.5, 2.5, 5] : [-10, -5, 5, 10]) : [-1, 1, 2, 5]}
             hasNext={isWeight}
             onChange={n => editSet(editing.key, editing.index, { [editing.field]: n })}
+            onLiveChange={n => handlePadLiveChange(editing.key, editing.index, editing.field, n)}
             onNext={() => { mirrorRepsToWeight(editing.key, editing.index); setEditing(e => (e ? { ...e, field: 'reps' } : e)); }}
             onDone={handleNumberPadDone}
-            onClose={() => setEditing(null)}
+            onClose={() => { editOrigin.current = null; setEditing(null); }}
           />
         );
       })()}
