@@ -354,27 +354,23 @@ export default function HomeScreen() {
 
           <OverallStatsCard stats={overallStats} />
 
-          {powerliftingTotal && <PowerliftingTotal data={powerliftingTotal} />}
-
           {userProgress.length > 0 && (
             <>
-              <View>
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    {
-                      color: currentTheme.colors.text,
-                      marginBottom: 0,
-                    },
-                  ]}
-                >
-                  Your Lifts
-                </Text>
-                <LiftDisplayFilter
-                  availableLifts={userProgress}
-                  onFiltersChanged={setLiftFilters}
-                />
-              </View>
+              {/* "Your Lifts" section: the header separates it from Overall Strength,
+                  the Big-3 total leads as its headline (the sum of these lifts), then
+                  the filter + the per-lift breakdown. */}
+              <Text
+                style={[styles.sectionTitle, { color: currentTheme.colors.text, marginBottom: 0 }]}
+              >
+                Your Lifts
+              </Text>
+
+              {powerliftingTotal && <PowerliftingTotal data={powerliftingTotal} />}
+
+              <LiftDisplayFilter
+                availableLifts={userProgress}
+                onFiltersChanged={setLiftFilters}
+              />
 
               <View style={gap.gap20}>
                 {filteredProgress.map((progress) => (
