@@ -8,6 +8,7 @@ import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { NextMilestone } from '@/lib/history/milestones';
+import { sessionIdentity } from '@/lib/history/sessionIdentity';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -16,6 +17,17 @@ import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 const POS = '#34C759';
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// The per-split visual identity. A colour-filled circle carrying the split's glyph —
+// a placeholder for a generated per-split emblem, but already enough to give each
+// session a scannable, memorable face. `size` distinguishes hero vs moment cards.
+function Emblem({ color, icon, size }: { color: string; icon: React.ComponentProps<typeof Ionicons>['name']; size: number }) {
+  return (
+    <RNView style={[styles.emblem, { width: size, height: size, borderRadius: size / 2, backgroundColor: color + '24' }]}>
+      <Ionicons name={icon} size={size * 0.5} color={color} />
+    </RNView>
+  );
+}
 
 // Asymmetric by design: a bigger session is celebrated (green), a lighter one is
 // stated neutrally, never punished with an alarm color. The research is clear that
@@ -65,20 +77,22 @@ function SessionHero({ recap, weightUnit, onPress }: {
   // (badge spam reads as childish and de-motivating past a point). Standard PRs still
   // earn the narrative headline, just not the icon.
   const showTrophy = recap.pr?.tier === 'major';
+  const id = sessionIdentity(recap.title, recap.muscles);
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => onPress(recap.workout)}
-      style={[styles.hero, { backgroundColor: colors.surface, borderColor: showTrophy ? colors.primary + '55' : colors.border }]}
+      style={[styles.hero, { backgroundColor: colors.surface, borderColor: id.color + '3A' }]}
     >
-      {/* eyebrow: when · what */}
+      {/* emblem + eyebrow (when · what), tinted by the split's identity colour */}
       <RNView style={styles.heroEyebrow}>
-        <Text style={[styles.eyebrowText, { color: colors.primary, fontFamily: fonts.semiBold }]}>
+        <Emblem color={id.color} icon={id.icon} size={40} />
+        <Text style={[styles.eyebrowText, { color: id.color, fontFamily: fonts.semiBold }]} numberOfLines={1}>
           {formatRelativeDate(recap.workout.createdAt).toUpperCase()} · {recap.title}
         </Text>
         {showTrophy && (
-          <RNView style={[styles.prChip, { backgroundColor: colors.primary }]}>
+          <RNView style={[styles.prChip, { backgroundColor: id.color }]}>
             <Ionicons name="trophy" size={10} color="#fff" />
             <Text style={[styles.prChipText, { color: '#fff', fontFamily: fonts.semiBold }]}>PR</Text>
           </RNView>
@@ -150,6 +164,7 @@ function MomentCard({ recap, weightUnit, onPress }: {
 }) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
+  const id = sessionIdentity(recap.title, recap.muscles);
   const standoutLine = recap.standout
     ? `${recap.standout.name} · ${recap.standout.weight > 0 ? `${recap.standout.weight} ${weightUnit} × ${recap.standout.reps}` : `${recap.standout.reps} reps`}`
     : null;
@@ -160,30 +175,34 @@ function MomentCard({ recap, weightUnit, onPress }: {
       onPress={() => onPress(recap.workout)}
       style={[styles.moment, { borderBottomColor: colors.border }]}
     >
-      <RNView style={styles.momentTop}>
-        <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]}>
-          {formatRelativeDate(recap.workout.createdAt)} · {recap.title}
-        </Text>
-        {recap.pr?.tier === 'major' && (
-          <RNView style={[styles.prDot, { backgroundColor: colors.primary }]}>
-            <Ionicons name="trophy" size={9} color="#fff" />
-          </RNView>
-        )}
-      </RNView>
+      {/* the split emblem gives the row a scannable, colour-coded identity */}
+      <Emblem color={id.color} icon={id.icon} size={38} />
+      <RNView style={styles.momentBody}>
+        <RNView style={styles.momentTop}>
+          <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]} numberOfLines={1}>
+            {formatRelativeDate(recap.workout.createdAt)} · {recap.title}
+          </Text>
+          {recap.pr?.tier === 'major' && (
+            <RNView style={[styles.prDot, { backgroundColor: id.color }]}>
+              <Ionicons name="trophy" size={9} color="#fff" />
+            </RNView>
+          )}
+        </RNView>
 
-      {/* lead with the headline if there is one, else the standout set */}
-      <Text style={[styles.momentLead, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-        {recap.headline ?? standoutLine ?? recap.title}
-      </Text>
-
-      <RNView style={styles.momentMeta}>
-        <Text style={[styles.momentMetaText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
-          {recap.headline && standoutLine ? `${standoutLine} · ` : ''}
-          {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets
+        {/* lead with the headline if there is one, else the standout set */}
+        <Text style={[styles.momentLead, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          {recap.headline ?? standoutLine ?? recap.title}
         </Text>
-        {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
-          <DeltaPill pct={recap.comparison.deltaVolumePct} />
-        )}
+
+        <RNView style={styles.momentMeta}>
+          <Text style={[styles.momentMetaText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+            {recap.headline && standoutLine ? `${standoutLine} · ` : ''}
+            {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets
+          </Text>
+          {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
+            <DeltaPill pct={recap.comparison.deltaVolumePct} />
+          )}
+        </RNView>
       </RNView>
     </TouchableOpacity>
   );
@@ -241,10 +260,11 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
 }
 
 const styles = StyleSheet.create({
+  emblem: { alignItems: 'center', justifyContent: 'center' },
   // hero
   hero: { borderRadius: 18, borderWidth: 1, padding: 18, marginBottom: 8 },
-  heroEyebrow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  eyebrowText: { fontSize: 12, letterSpacing: 0.4 },
+  heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  eyebrowText: { flex: 1, fontSize: 12, letterSpacing: 0.4 },
   heroHeadline: { fontSize: 24, lineHeight: 29, letterSpacing: -0.4 },
   heroStandout: { marginTop: 14 },
   standoutValue: { fontSize: 34, letterSpacing: -1 },
@@ -266,8 +286,9 @@ const styles = StyleSheet.create({
   prChipText: { fontSize: 10, letterSpacing: 0.5 },
   // moments
   momentsList: { marginTop: 8 },
-  moment: { paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  momentTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  moment: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  momentBody: { flex: 1 },
+  momentTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   momentWhen: { fontSize: 12, letterSpacing: 0.2 },
   prDot: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   momentLead: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 4 },
