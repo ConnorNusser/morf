@@ -1,4 +1,5 @@
 import { storageService } from '@/lib/storage/storage';
+import { setCustomExerciseCache } from '@/lib/workout/workouts';
 import { CustomExercise } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
@@ -18,6 +19,10 @@ const CustomExercisesContext = createContext<CustomExercisesContextType | undefi
 export function CustomExercisesProvider({ children }: { children: React.ReactNode }) {
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Mirror the list into the module-level cache so the sync getExercise() resolver
+  // (used across lib code that isn't under this provider) can see custom exercises.
+  useEffect(() => { setCustomExerciseCache(customExercises); }, [customExercises]);
 
   const refresh = useCallback(async () => {
     try {

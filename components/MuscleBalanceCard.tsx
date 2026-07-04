@@ -1,7 +1,6 @@
-import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { CustomExercise, GeneratedWorkout, MuscleGroup } from '@/types';
+import { getExercise } from '@/lib/workout/workouts';
+import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -85,7 +84,6 @@ interface Balance {
 
 function computeBalance(
   workoutHistory: GeneratedWorkout[],
-  customExercises: CustomExercise[],
 ): Balance {
   const totals: Record<MuscleGroup, { sets: number; instances: number; exercises: Record<string, MuscleExerciseInfo> }> = {
     chest: { sets: 0, instances: 0, exercises: {} },
@@ -111,7 +109,7 @@ function computeBalance(
     activeWeeks++;
     for (const workout of weekWorkouts) {
       for (const exercise of workout.exercises) {
-        const info = getWorkoutByIdWithCustom(exercise.id, customExercises);
+        const info = getExercise(exercise.id);
         if (!info) continue;
         const completed = (exercise.completedSets || []).filter(s => s.completed).length;
         if (completed === 0) continue;
@@ -181,13 +179,12 @@ function fmtAvg(avg: number): string {
 
 export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardProps) {
   const { currentTheme } = useTheme();
-  const { customExercises } = useCustomExercises();
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<MuscleBalanceRow | null>(null);
 
   const balance = useMemo(
-    () => computeBalance(workoutHistory, customExercises),
-    [workoutHistory, customExercises],
+    () => computeBalance(workoutHistory),
+    [workoutHistory],
   );
 
   const { rows, activeWeeks, leader, laggard, gapPct, state } = balance;

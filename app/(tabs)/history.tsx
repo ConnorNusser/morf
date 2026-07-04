@@ -644,7 +644,6 @@ export default function HistoryScreen() {
         workout={selectedWorkout}
         weightUnit={weightUnit}
         prDays={prDays}
-        customExercises={customExercises}
         onClose={() => setSelectedWorkout(null)}
         onDelete={async (workout) => {
           await userService.deleteWorkoutAndLifts(workout.id);

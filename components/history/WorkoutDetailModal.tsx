@@ -5,8 +5,8 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { getExercise } from '@/lib/workout/workouts';
+import { convertWeight, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -25,7 +25,6 @@ interface WorkoutDetailModalProps {
   // Per-exercise set of day-keys that set a new all-time best (buildPRDays), shared
   // with WorkoutCard so the modal's PR badges match the card's chips exactly.
   prDays: Map<string, Set<string>>;
-  customExercises: CustomExercise[];
   onClose: () => void;
   onDelete: (workout: GeneratedWorkout) => void;
 }
@@ -38,7 +37,6 @@ export default function WorkoutDetailModal({
   workout,
   weightUnit,
   prDays,
-  customExercises,
   onClose,
   onDelete,
 }: WorkoutDetailModalProps) {
@@ -53,7 +51,7 @@ export default function WorkoutDetailModal({
     const lines: string[] = [];
 
     workout.exercises.forEach(exercise => {
-      const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
+      const exerciseInfo = getExercise(exercise.id);
       const name = getExerciseName(exercise.id, exerciseInfo);
 
       if (exercise.completedSets && exercise.completedSets.length > 0) {
@@ -84,7 +82,7 @@ export default function WorkoutDetailModal({
     });
 
     return lines.join('\n');
-  }, [workout, customExercises, weightUnit]);
+  }, [workout, weightUnit]);
 
   const handleCopy = useCallback(async () => {
     if (!workoutAsText) return;
@@ -159,15 +157,15 @@ export default function WorkoutDetailModal({
       .filter(ex => prIds.has(ex.id) && !!ex.completedSets && ex.completedSets.length > 0)
       .map(ex => ({
         id: ex.id,
-        name: getExerciseName(ex.id, getWorkoutByIdWithCustom(ex.id, customExercises)),
+        name: getExerciseName(ex.id, getExercise(ex.id)),
       }));
-  }, [workout, prDays, customExercises]);
+  }, [workout, prDays]);
 
   // Helper to get tracking type for an exercise
   const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
-    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    const exerciseInfo = getExercise(exerciseId);
     return exerciseInfo?.trackingType;
-  }, [customExercises]);
+  }, []);
 
   // Calculate stats using the universal utility
   const workoutStats = useMemo(() => {
@@ -251,7 +249,7 @@ export default function WorkoutDetailModal({
               {/* Exercise List - Clean table style */}
               <View style={styles.exerciseList}>
                 {workout.exercises.map((exercise, idx) => {
-                  const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
+                  const exerciseInfo = getExercise(exercise.id);
                   const name = getExerciseName(exercise.id, exerciseInfo);
                   const trackingType = exerciseInfo?.trackingType || 'reps';
                   const isRepsExercise = trackingType === 'reps';

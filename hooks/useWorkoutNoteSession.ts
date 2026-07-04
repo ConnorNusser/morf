@@ -742,7 +742,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
   // Pre-fill the draft with the most recent workout so the user can repeat it
   // and just tweak the numbers — the freeform answer to Hevy's prefilled rows.
-  const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout, customExercises) : '';
+  const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout) : '';
   const lastWorkoutTitle = lastWorkoutNote ? (lastWorkout?.title || 'last workout') : null;
 
   const prefillLastWorkout = useCallback(() => {
@@ -755,12 +755,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
   // Load any past workout into the draft to repeat/edit it.
   const prefillWorkout = useCallback((w: GeneratedWorkout) => {
-    const text = workoutToNoteText(w, customExercises);
+    const text = workoutToNoteText(w);
     if (!text) return;
     loadDraftFromText(text);
     setStartedRoutineId(null);
     if (!workoutStartTime) setWorkoutStartTime(new Date());
-  }, [customExercises, workoutStartTime, loadDraftFromText]);
+  }, [workoutStartTime, loadDraftFromText]);
 
   // Recent sessions, newest first (for the empty-state list; the view scrolls).
   const recentWorkouts = useMemo(

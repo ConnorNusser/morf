@@ -19,7 +19,7 @@ import {
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from '@/lib/workout/weeklyGoal';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -97,14 +97,14 @@ export default function WeeklyOverviewModal({
   };
 
   const getTrackingType = (exerciseId: string): TrackingType | undefined =>
-    getWorkoutByIdWithCustom(exerciseId, customExercises)?.trackingType;
+    getExercise(exerciseId)?.trackingType;
 
   const categoryColor = (category: string): string =>
     CATEGORY_COLORS[category] || c.accent;
 
   // Push/Pull/Legs bucket for an exercise, via its primary muscle.
   const pplForExercise = (exerciseId: string): PPLCategory | null => {
-    const muscle = getWorkoutByIdWithCustom(exerciseId, customExercises)?.primaryMuscles?.[0];
+    const muscle = getExercise(exerciseId)?.primaryMuscles?.[0];
     return muscle ? MUSCLE_TO_PPL[muscle] ?? null : null;
   };
 
@@ -282,7 +282,7 @@ export default function WeeklyOverviewModal({
       if (prior > 0 && week.e1rm > prior) {
         prs.push({
           exerciseId: id,
-          name: getWorkoutByIdWithCustom(id, customExercises)?.name ?? cleanName(id),
+          name: getExercise(id)?.name ?? cleanName(id),
           e1rm: Math.round(week.e1rm),
           weight: Math.round(week.weight),
           reps: week.reps,

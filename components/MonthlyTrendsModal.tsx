@@ -4,7 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -85,7 +85,7 @@ export default function MonthlyTrendsModal({
 
   // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
-    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    const exerciseInfo = getExercise(exerciseId);
     return exerciseInfo?.trackingType;
   };
 
@@ -116,7 +116,7 @@ export default function MonthlyTrendsModal({
 
         workout.exercises.forEach(exercise => {
           totalExercises++;
-          const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
+          const exerciseInfo = getExercise(exercise.id);
           if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {
             // Count exercise once based on its first primary muscle's PPL category
             const primaryMuscle = exerciseInfo.primaryMuscles[0];

@@ -61,88 +61,55 @@ export const getWorkoutsByEquipment = (
   );
 };
 
-// Sync version - only checks built-in exercises
-export const getWorkoutById = (exerciseId: string): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null => {
+// The subset of exercise fields every resolver returns.
+export type ExerciseInfo = Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'>;
+const pickInfo = (w: Workout | CustomExercise): ExerciseInfo => ({
+  id: w.id,
+  name: w.name,
+  description: w.description,
+  category: w.category,
+  primaryMuscles: w.primaryMuscles,
+  equipment: w.equipment,
+  trackingType: w.trackingType,
+});
+
+// In-memory mirror of the user's custom exercises, kept in sync by
+// CustomExercisesContext (which owns the list). Lets every *sync* lookup resolve
+// custom exercises without the caller threading the list or awaiting storage.
+let customById = new Map<string, CustomExercise>();
+export function setCustomExerciseCache(list: CustomExercise[]): void {
+  customById = new Map(list.map(e => [e.id, e]));
+}
+
+// Catalog-only lookup. Also the canonical "is this a standard / rankable lift?"
+// predicate (leaderboards, strength radar, backend sync) — deliberately blind to
+// custom exercises. For an exercise's display info, prefer getExercise().
+export const getWorkoutById = (exerciseId: string): ExerciseInfo | null => {
   if (!exerciseId) return null;
-
-  const allWorkouts = getAvailableWorkouts(100);
-  const workout = allWorkouts.find(w => w.id === exerciseId);
-
-  if (!workout) {
-    // Don't warn for custom exercises - they need async lookup
-    if (!exerciseId.startsWith('custom_') && !exerciseId.includes('-')) {
-      console.warn(`⚠️ Exercise not found: ${exerciseId}`);
-    }
-    return null;
-  }
-
-  return {
-    id: workout.id,
-    name: workout.name,
-    description: workout.description,
-    category: workout.category,
-    primaryMuscles: workout.primaryMuscles,
-    equipment: workout.equipment,
-    trackingType: workout.trackingType,
-  };
+  const w = ALL_WORKOUTS.find(x => x.id === exerciseId);
+  return w ? pickInfo(w) : null;
 };
 
-// Async version - checks both built-in and custom exercises
-export const getExerciseById = async (exerciseId: string): Promise<Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null> => {
-  // First try built-in exercises
-  const builtInWorkout = getWorkoutById(exerciseId);
-  if (builtInWorkout) {
-    return builtInWorkout;
-  }
+// Any exercise, catalog or custom (sync, via the mirrored cache). The default for
+// display / history / muscle lookups. Replaces the old getWorkoutByIdWithCustom —
+// no need to pass the custom list in.
+export const getExercise = (exerciseId: string): ExerciseInfo | null => {
+  if (!exerciseId) return null;
+  const custom = customById.get(exerciseId);
+  return getWorkoutById(exerciseId) ?? (custom ? pickInfo(custom) : null);
+};
 
-  // Then try custom exercises
+// Async catalog+custom lookup that reads storage directly — for background/service
+// code that runs outside React and can't rely on the mirrored cache being hydrated.
+export const getExerciseById = async (exerciseId: string): Promise<ExerciseInfo | null> => {
+  const builtIn = getWorkoutById(exerciseId);
+  if (builtIn) return builtIn;
   try {
     const customExercises = await storageService.getCustomExercises();
-    const customExercise = customExercises.find(e => e.id === exerciseId);
-
-    if (customExercise) {
-      return {
-        id: customExercise.id,
-        name: customExercise.name,
-        description: customExercise.description,
-        category: customExercise.category,
-        primaryMuscles: customExercise.primaryMuscles,
-        equipment: customExercise.equipment,
-        trackingType: customExercise.trackingType,
-      };
-    }
+    const custom = customExercises.find(e => e.id === exerciseId);
+    if (custom) return pickInfo(custom);
   } catch (error) {
     console.error('Error fetching custom exercise:', error);
   }
-
-  console.warn(`⚠️ Exercise not found: ${exerciseId}`);
   return null;
 };
-
-// Sync version with custom exercises cache - use when you have custom exercises loaded
-export const getWorkoutByIdWithCustom = (
-  exerciseId: string,
-  customExercises: CustomExercise[]
-): Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'> | null => {
-  // First try built-in exercises
-  const builtInWorkout = getWorkoutById(exerciseId);
-  if (builtInWorkout) {
-    return builtInWorkout;
-  }
-
-  // Then try custom exercises from the provided cache
-  const customExercise = customExercises.find(e => e.id === exerciseId);
-  if (customExercise) {
-    return {
-      id: customExercise.id,
-      name: customExercise.name,
-      description: customExercise.description,
-      category: customExercise.category,
-      primaryMuscles: customExercise.primaryMuscles,
-      equipment: customExercise.equipment,
-      trackingType: customExercise.trackingType,
-    };
-  }
-
-  return null;
-}

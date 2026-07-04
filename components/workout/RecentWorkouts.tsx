@@ -3,15 +3,14 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { CustomExercise, GeneratedWorkout } from '@/types';
+import { getExercise } from '@/lib/workout/workouts';
+import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface RecentWorkoutsProps {
   workouts: GeneratedWorkout[];
-  customExercises: CustomExercise[];
   onPick: (w: GeneratedWorkout) => void;
   onQuickStart: () => void;
   onGenerate: () => void;
@@ -25,11 +24,11 @@ function dateLabel(value: Date | string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-function exerciseNames(w: GeneratedWorkout, custom: CustomExercise[]): string[] {
-  return (w.exercises || []).map(e => getWorkoutByIdWithCustom(e.id, custom)?.name || e.id);
+function exerciseNames(w: GeneratedWorkout): string[] {
+  return (w.exercises || []).map(e => getExercise(e.id)?.name || e.id);
 }
 
-export default function RecentWorkouts({ workouts, customExercises, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
+export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   return (
@@ -69,10 +68,10 @@ export default function RecentWorkouts({ workouts, customExercises, onPick, onQu
           >
             <RNView style={styles.rowText}>
               <Text style={[styles.date, { color: colors.text + '99' }]}>{dateLabel(w.createdAt)}</Text>
-              {exerciseNames(w, customExercises).map((name, j) => (
+              {exerciseNames(w).map((name, j) => (
                 <Text key={j} style={[styles.exName, { color: colors.text }]} numberOfLines={1}>{name}</Text>
               ))}
-              {exerciseNames(w, customExercises).length === 0 && (
+              {exerciseNames(w).length === 0 && (
                 <Text style={[styles.exName, { color: colors.text }]}>Workout</Text>
               )}
             </RNView>

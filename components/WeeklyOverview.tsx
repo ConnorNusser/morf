@@ -1,7 +1,7 @@
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -82,7 +82,7 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
 
   // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
-    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    const exerciseInfo = getExercise(exerciseId);
     return exerciseInfo?.trackingType;
   };
 

@@ -90,7 +90,6 @@ export default function WorkoutScreen() {
     recentWorkouts,
     prefillWorkout,
     startEmptyWorkout,
-    customExercises,
   } = useWorkoutNoteSession();
   const { showAlert } = useAlert();
   // Always-current draft, so imperative handlers (number pad) can read the latest
@@ -559,7 +558,6 @@ export default function WorkoutScreen() {
             recentWorkouts.length > 0 ? (
               <RecentWorkouts
                 workouts={recentWorkouts}
-                customExercises={customExercises}
                 onPick={prefillWorkout}
                 onQuickStart={handleQuickStart}
                 onGenerate={() => setShowPlanBuilder(true)}
