@@ -12,19 +12,19 @@ import { sessionIdentity } from '@/lib/history/sessionIdentity';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 const POS = '#34C759';
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// The per-split visual identity. A colour-filled circle carrying the split's glyph —
-// a placeholder for a generated per-split emblem, but already enough to give each
-// session a scannable, memorable face. `size` distinguishes hero vs moment cards.
-function Emblem({ color, icon, size }: { color: string; icon: React.ComponentProps<typeof Ionicons>['name']; size: number }) {
+// The per-split visual identity: a custom white movement pictogram on a solid PPL
+// circle — bold, instantly legible, giving each session a scannable, memorable face.
+// `size` distinguishes hero vs moment cards.
+function Emblem({ color, emblem, size }: { color: string; emblem: ImageSourcePropType; size: number }) {
   return (
-    <RNView style={[styles.emblem, { width: size, height: size, borderRadius: size / 2, backgroundColor: color + '24' }]}>
-      <Ionicons name={icon} size={size * 0.5} color={color} />
+    <RNView style={[styles.emblem, { width: size, height: size, borderRadius: size / 2, backgroundColor: color }]}>
+      <Image source={emblem} style={{ width: size * 0.62, height: size * 0.62, tintColor: '#fff' }} resizeMode="contain" />
     </RNView>
   );
 }
@@ -87,7 +87,7 @@ function SessionHero({ recap, weightUnit, onPress }: {
     >
       {/* emblem + eyebrow (when · what), tinted by the split's identity colour */}
       <RNView style={styles.heroEyebrow}>
-        <Emblem color={id.color} icon={id.icon} size={40} />
+        <Emblem color={id.color} emblem={id.emblem} size={40} />
         <Text style={[styles.eyebrowText, { color: id.color, fontFamily: fonts.semiBold }]} numberOfLines={1}>
           {formatRelativeDate(recap.workout.createdAt).toUpperCase()} · {recap.title}
         </Text>
@@ -176,7 +176,7 @@ function MomentCard({ recap, weightUnit, onPress }: {
       style={[styles.moment, { borderBottomColor: colors.border }]}
     >
       {/* the split emblem gives the row a scannable, colour-coded identity */}
-      <Emblem color={id.color} icon={id.icon} size={38} />
+      <Emblem color={id.color} emblem={id.emblem} size={38} />
       <RNView style={styles.momentBody}>
         <RNView style={styles.momentTop}>
           <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]} numberOfLines={1}>
