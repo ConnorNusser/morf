@@ -230,57 +230,47 @@ export default function TodayCard() {
     <>
     <TouchableOpacity activeOpacity={0.9} onPress={() => setShowOverview(true)}>
     <Card variant="elevated">
-      <View style={styles.pagerRow}>
-        {days.length > 1 && (
-          <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-            <Ionicons name="chevron-back" size={22} color={currentTheme.colors.text} />
-          </TouchableOpacity>
-        )}
+      <View style={styles.headerRow}>
         <Text
           numberOfLines={1}
-          style={[
-            styles.routineName,
-            {
-              color: currentTheme.colors.text,
-              flexShrink: 1,
-              textAlign: days.length > 1 ? "center" : "left",
-            },
-          ]}
+          style={[styles.routineName, { color: currentTheme.colors.text, flex: 1 }]}
         >
           {calculated.name}
         </Text>
         {days.length > 1 && (
-          <TouchableOpacity onPress={() => flip(1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-            <Ionicons name="chevron-forward" size={22} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <View style={styles.navRow}>
+            <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
+              <Ionicons name="chevron-back" size={22} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => flip(1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
+              <Ionicons name="chevron-forward" size={22} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
-      <Text
-        style={[
-          styles.subtle,
-          { color: currentTheme.colors.text, textAlign: days.length > 1 ? "center" : "left" },
-        ]}
-      >
-        {calculated.exercises.length} exercises · {totalSets} sets
-      </Text>
-      {days.length > 1 && (
-        <View style={styles.dots}>
-          {days.map((d) => (
-            <View
-              key={d.id}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor:
-                    d.id === calculated.id
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.text + "30",
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
+      <View style={styles.subRow}>
+        <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+          {calculated.exercises.length} exercises · {totalSets} sets
+        </Text>
+        {days.length > 1 && (
+          <View style={styles.dots}>
+            {days.map((d) => (
+              <View
+                key={d.id}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      d.id === calculated.id
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.text + "30",
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
 
       <View style={styles.exerciseList}>
         {exercises.map((ex, i) => {
@@ -316,16 +306,12 @@ export default function TodayCard() {
       <TouchableOpacity
         style={[
           styles.primaryButton,
-          {
-            backgroundColor: "transparent",
-            borderWidth: 1.5,
-            borderColor: trainedToday
-              ? currentTheme.colors.border
-              : currentTheme.colors.primary,
-          },
+          trainedToday
+            ? { backgroundColor: "transparent", borderWidth: 1.5, borderColor: currentTheme.colors.border }
+            : { backgroundColor: currentTheme.colors.text },
         ]}
         onPress={handleStart}
-        activeOpacity={0.7}
+        activeOpacity={0.85}
       >
         <Text
           style={[
@@ -333,7 +319,7 @@ export default function TodayCard() {
             {
               color: trainedToday
                 ? currentTheme.colors.text
-                : currentTheme.colors.primary,
+                : currentTheme.colors.background,
             },
           ]}
         >
@@ -374,20 +360,28 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontWeight: "700",
   },
-  pagerRow: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
+    gap: 8,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 3,
   },
   pagerBtn: {
     paddingVertical: 2,
   },
   dots: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 6,
-    marginTop: 8,
   },
   dot: {
     width: 6,
@@ -403,7 +397,6 @@ const styles = StyleSheet.create({
   subtle: {
     fontSize: 14,
     opacity: 0.6,
-    marginTop: 2,
   },
   exerciseList: {
     marginTop: 10,
