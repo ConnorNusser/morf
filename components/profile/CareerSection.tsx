@@ -150,7 +150,7 @@ export default function CareerSection() {
                           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                           : cell.trained
                             ? { backgroundColor: cell.split ? PPL_COLORS[cell.split] : currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
-                            : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
+                            : { backgroundColor: currentTheme.colors.surface },
                       ]}
                     />
                   ))}

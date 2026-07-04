@@ -89,15 +89,26 @@ export default function ThemeEvolutionSection() {
       activeOpacity={0.7}
     >
       <Card
-        variant={isCurrentTheme(themeKey) ? "elevated" : "clean"}
+        variant="clean"
         padding={12}
         style={StyleSheet.flatten([
           styles.themeCard,
+          // Selectable cards need their own contrast back — the shared Card is flat
+          // now. Each option gets a subtle surface + hairline; the current one gets a
+          // primary ring + faint tint so the selection reads clearly.
+          {
+            paddingHorizontal: 14,
+            borderRadius: 12,
+            backgroundColor: currentTheme.colors.surface,
+            borderWidth: 1,
+            borderColor: currentTheme.colors.border,
+          },
           !isThemeAvailable(themeKey) && styles.lockedTheme,
           isCurrentTheme(themeKey) && {
             borderColor: currentTheme.colors.primary,
-            borderWidth: 2
-          }
+            borderWidth: 2,
+            backgroundColor: currentTheme.colors.primary + '14',
+          },
         ])}
       >
         <View style={[styles.themeInfo, { backgroundColor: 'transparent' }]}>
