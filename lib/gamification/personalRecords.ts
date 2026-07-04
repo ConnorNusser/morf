@@ -2,7 +2,7 @@
 // hit on squat / bench / deadlift / overhead press, with the set + date that
 // produced it. Pure, derived from workout history.
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { ALL_MAIN_LIFTS, convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
 
 export interface LiftPR {
@@ -40,7 +40,7 @@ export function computeMainLiftPRs(workouts: GeneratedWorkout[], unit: WeightUni
     const r = best.get(id)!;
     return {
       exerciseId: id,
-      name: getWorkoutById(id)?.name ?? id,
+      name: getExercise(id)?.name ?? id,
       estimatedOneRM: Math.round(r.e1rm),
       topWeight: Math.round(r.weight),
       topReps: r.reps,

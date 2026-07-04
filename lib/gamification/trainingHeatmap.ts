@@ -3,7 +3,7 @@
 // a day, flagged trained with a relative-volume intensity (0..1).
 import { GeneratedWorkout } from '@/types';
 import { dateKey, weekStart } from '@/lib/utils/utils';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 
 // A day's dominant split == the dashboard's Push/Pull/Legs categories, so the
@@ -11,7 +11,7 @@ import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 export type TrainingSplit = PPLCategory;
 
 function classifyExercise(exerciseId: string): PPLCategory | null {
-  const muscle = getWorkoutById(exerciseId)?.primaryMuscles?.[0];
+  const muscle = getExercise(exerciseId)?.primaryMuscles?.[0];
   return muscle ? MUSCLE_TO_PPL[muscle] : null;
 }
 

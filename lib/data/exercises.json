@@ -3,9 +3,17 @@
     "id": "push-up-bodyweight",
     "name": "Push-up (Bodyweight)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms", "core"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms",
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Basic bodyweight pushing exercise. Perfect for building chest strength.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -14,9 +22,16 @@
     "id": "squat-bodyweight",
     "name": "Squat (Bodyweight)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Basic squatting movement using only bodyweight.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -25,9 +40,15 @@
     "id": "pull-up-bodyweight",
     "name": "Pull-up (Bodyweight)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Bodyweight pulling exercise for back and arm strength.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -36,9 +57,16 @@
     "id": "dip-bodyweight",
     "name": "Dip (Bodyweight)",
     "category": "compound",
-    "primaryMuscles": ["chest", "arms"],
-    "secondaryMuscles": ["shoulders"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Bodyweight pushing exercise for chest and tricep development.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -47,9 +75,15 @@
     "id": "plank-bodyweight",
     "name": "Plank (Bodyweight)",
     "category": "isolation",
-    "primaryMuscles": ["core"],
-    "secondaryMuscles": ["shoulders"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Isometric core strengthening exercise.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -59,9 +93,16 @@
     "id": "squat-barbell",
     "name": "Squat (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "The king of leg exercises. Builds overall lower body strength and power.",
     "isMainLift": true,
     "themeLevel": "beginner"
@@ -70,9 +111,18 @@
     "id": "deadlift-barbell",
     "name": "Deadlift (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["back", "legs", "glutes"],
-    "secondaryMuscles": ["core", "arms"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "back",
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Ultimate posterior chain developer. Builds total body strength.",
     "isMainLift": true,
     "themeLevel": "beginner"
@@ -81,86 +131,172 @@
     "id": "bench-press-barbell",
     "name": "Bench Press (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Classic upper body strength exercise. Primary chest developer.",
     "isMainLift": true,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "bench",
+      "flat bench",
+      "bench press"
+    ]
   },
   {
     "id": "overhead-press-barbell",
     "name": "Overhead Press (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["shoulders"],
-    "secondaryMuscles": ["arms", "core"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Standing shoulder press. Builds functional overhead strength.",
     "isMainLift": true,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "ohp",
+      "military press",
+      "strict press",
+      "shoulder press"
+    ]
   },
   {
     "id": "row-barbell",
     "name": "Row (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Bent-over rowing exercise with barbell for back thickness.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "barbell row",
+      "bent over row",
+      "bor",
+      "pendlay row"
+    ]
   },
   {
     "id": "romanian-deadlift-barbell",
     "name": "Romanian Deadlift (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["glutes", "back"],
-    "secondaryMuscles": ["legs"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "glutes",
+      "back"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Hip-hinge movement targeting posterior chain.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "rdl",
+      "romanian deadlift",
+      "stiff leg deadlift",
+      "sldl"
+    ]
   },
   {
     "id": "incline-bench-press-barbell",
     "name": "Incline Bench Press (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Angled bench press targeting upper chest.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline bench",
+      "incline press"
+    ]
   },
   {
     "id": "front-squat-barbell",
     "name": "Front Squat (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["legs"],
-    "secondaryMuscles": ["core", "shoulders"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "core",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Squat variation with bar positioned on front of shoulders.",
     "isMainLift": false,
-    "themeLevel": "advanced"
+    "themeLevel": "advanced",
+    "aliases": [
+      "front squat"
+    ]
   },
   {
     "id": "sumo-deadlift-barbell",
     "name": "Sumo Deadlift (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["back", "legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "back",
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Wide-stance deadlift variation emphasizing quads and glutes.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "sumo deadlift"
+    ]
   },
   {
     "id": "bicep-curl-barbell",
     "name": "Bicep Curl (Barbell)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["barbell"],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Standing bicep curl with barbell for maximum weight.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -169,42 +305,78 @@
     "id": "hip-thrust-barbell",
     "name": "Hip Thrust (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["glutes"],
-    "secondaryMuscles": ["legs"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Hip thrust with barbell for maximum glute activation.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "hip thrust",
+      "barbell hip thrust"
+    ]
   },
   {
     "id": "lunges-barbell",
     "name": "Lunges (Barbell)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["barbell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Lunges with barbell across shoulders for increased load.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "lunge",
+      "barbell lunge"
+    ]
   },
   {
     "id": "shrugs-barbell",
     "name": "Shrugs (Barbell)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["barbell"],
+    "equipment": [
+      "barbell"
+    ],
     "description": "Shoulder shrug exercise with barbell for trapezius development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "shrug",
+      "barbell shrug"
+    ]
   },
   {
     "id": "bench-press-dumbbells",
     "name": "Bench Press (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Safer alternative to barbell bench press with greater range of motion.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -213,20 +385,37 @@
     "id": "goblet-squat-dumbbells",
     "name": "Goblet Squat (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Squat variation holding a dumbbell at chest level.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "goblet squat"
+    ]
   },
   {
     "id": "shoulder-press-dumbbells",
     "name": "Shoulder Press (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["shoulders"],
-    "secondaryMuscles": ["arms", "core"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Seated or standing shoulder press with dumbbells.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -235,9 +424,13 @@
     "id": "bicep-curl-dumbbells",
     "name": "Bicep Curl (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Basic arm isolation exercise for bicep development.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -246,53 +439,95 @@
     "id": "preacher-curl-dumbbells",
     "name": "Preacher Curl (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Bicep isolation exercise using a preacher bench to eliminate momentum and target the biceps more effectively.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "preacher curl"
+    ]
   },
   {
     "id": "tricep-extension-dumbbells",
     "name": "Tricep Extension (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Isolation exercise for tricep development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "overhead tricep extension",
+      "skull crusher",
+      "french press"
+    ]
   },
   {
     "id": "lateral-raise-dumbbells",
     "name": "Lateral Raise (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Shoulder isolation for medial deltoid development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "lat raise",
+      "side raise",
+      "side lateral raise"
+    ]
   },
   {
     "id": "walking-lunge-dumbbells",
     "name": "Walking Lunge (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Dynamic lunging movement for lower body strength and stability.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "walking lunge",
+      "lunge"
+    ]
   },
   {
     "id": "row-dumbbells",
     "name": "Row (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Single-arm dumbbell rowing exercise.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -301,9 +536,13 @@
     "id": "flyes-dumbbells",
     "name": "Flyes (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["chest"],
+    "primaryMuscles": [
+      "chest"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Chest isolation exercise with dumbbell fly movement.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -312,64 +551,118 @@
     "id": "hammer-curl-dumbbells",
     "name": "Hammer Curl (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Bicep curl with neutral grip targeting brachialis.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "hammer curl",
+      "neutral grip curl"
+    ]
   },
   {
     "id": "rear-delt-fly-dumbbells",
     "name": "Rear Delt Fly (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Isolation exercise for posterior deltoid development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse fly",
+      "bent over fly"
+    ]
   },
   {
     "id": "incline-bench-press-dumbbells",
     "name": "Incline Bench Press (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Incline chest press with dumbbells targeting upper chest.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline bench",
+      "incline press",
+      "incline dumbbell press"
+    ]
   },
   {
     "id": "romanian-deadlift-dumbbells",
     "name": "Romanian Deadlift (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["glutes", "back"],
-    "secondaryMuscles": ["legs"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "glutes",
+      "back"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Romanian deadlift with dumbbells for posterior chain.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "rdl",
+      "romanian deadlift",
+      "stiff leg deadlift"
+    ]
   },
   {
     "id": "skull-crushers-dumbbells",
     "name": "Skull Crushers (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Lying tricep extension exercise with dumbbells.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "skullcrusher",
+      "lying tricep extension"
+    ]
   },
   {
     "id": "arnold-press-dumbbells",
     "name": "Arnold Press (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["shoulders"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Rotating shoulder press named after Arnold Schwarzenegger.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -378,9 +671,15 @@
     "id": "hip-thrust-dumbbells",
     "name": "Hip Thrust (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["glutes"],
-    "secondaryMuscles": ["legs"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Hip thrust with dumbbell for glute development.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -389,75 +688,139 @@
     "id": "bulgarian-split-squat-dumbbells",
     "name": "Bulgarian Split Squat (Dumbbells)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["dumbbell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Single-leg squat variation with rear foot elevated.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "bulgarian split squat",
+      "rear foot elevated split squat",
+      "rfess",
+      "split squat"
+    ]
   },
   {
     "id": "shrugs-dumbbells",
     "name": "Shrugs (Dumbbells)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["dumbbell"],
+    "equipment": [
+      "dumbbell"
+    ],
     "description": "Shoulder shrug exercise for trapezius development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "shrug",
+      "dumbbell shrug"
+    ]
   },
   {
     "id": "lat-pulldown-cables",
     "name": "Lat Pulldown (Cables)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["cable"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "cable"
+    ],
     "description": "Cable exercise targeting the latissimus dorsi.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "lat pulldown",
+      "pulldown",
+      "wide grip pulldown",
+      "front lat pulldown"
+    ]
   },
   {
     "id": "row-cables",
     "name": "Row (Cables)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["cable"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "cable"
+    ],
     "description": "Horizontal rowing exercise using cable machine.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "seated cable row",
+      "cable row"
+    ]
   },
   {
     "id": "bicep-curl-cables",
     "name": "Bicep Curl (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Bicep curl using cable machine for constant tension.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "cable curl"
+    ]
   },
   {
     "id": "tricep-pushdown-cables",
     "name": "Tricep Pushdown (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Tricep extension using cable machine pushdown movement.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "pushdown",
+      "rope pushdown",
+      "tricep pushdown",
+      "cable pushdown"
+    ]
   },
   {
     "id": "chest-fly-cables",
     "name": "Chest Fly (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["chest"],
+    "primaryMuscles": [
+      "chest"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Chest fly using cable machine for constant tension.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -466,53 +829,93 @@
     "id": "lateral-raise-cables",
     "name": "Lateral Raise (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Lateral raise using cable for constant tension on delts.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "lat raise",
+      "cable lateral raise"
+    ]
   },
   {
     "id": "rear-delt-fly-cables",
     "name": "Rear Delt Fly (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["shoulders"],
-    "secondaryMuscles": ["back"],
-    "equipment": ["cable"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "cable"
+    ],
     "description": "Rear deltoid fly using cable machine for posterior delt isolation.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "face pull",
+      "reverse fly"
+    ]
   },
   {
     "id": "crossover-cables",
     "name": "Crossover (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["chest"],
+    "primaryMuscles": [
+      "chest"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Cable crossover exercise for chest isolation.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "cable crossover",
+      "cable fly",
+      "chest fly"
+    ]
   },
   {
     "id": "overhead-tricep-extension-cables",
     "name": "Overhead Tricep Extension (Cables)",
     "category": "isolation",
-    "primaryMuscles": ["arms"],
+    "primaryMuscles": [
+      "arms"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["cable"],
+    "equipment": [
+      "cable"
+    ],
     "description": "Overhead tricep extension using cable for full range of motion.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "overhead extension",
+      "rope overhead extension"
+    ]
   },
   {
     "id": "leg-press-machine",
     "name": "Leg Press (Machine)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based leg exercise for building quad and glute strength.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -521,31 +924,57 @@
     "id": "leg-extension-machine",
     "name": "Leg Extension (Machine)",
     "category": "isolation",
-    "primaryMuscles": ["legs"],
+    "primaryMuscles": [
+      "legs"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Isolation exercise for quadriceps development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "quad extension",
+      "knee extension",
+      "leg extensions"
+    ]
   },
   {
     "id": "leg-curl-machine",
     "name": "Leg Curl (Machine)",
     "category": "isolation",
-    "primaryMuscles": ["legs"],
+    "primaryMuscles": [
+      "legs"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Isolation exercise for hamstring development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "hamstring curl",
+      "lying leg curl",
+      "seated leg curl",
+      "ham curl"
+    ]
   },
   {
     "id": "bench-press-machine",
     "name": "Bench Press (Machine)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based chest press for controlled movement.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -554,20 +983,36 @@
     "id": "seated-row-machine",
     "name": "Seated Row (Machine)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based rowing exercise for back development.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "machine row",
+      "cable row machine"
+    ]
   },
   {
     "id": "overhead-press-machine",
     "name": "Overhead Press (Machine)",
     "category": "compound",
-    "primaryMuscles": ["shoulders"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based shoulder press for stability and safety.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -576,31 +1021,55 @@
     "id": "chest-fly-machine",
     "name": "Chest Fly (Machine)",
     "category": "isolation",
-    "primaryMuscles": ["chest"],
+    "primaryMuscles": [
+      "chest"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based fly movement for chest isolation.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "pec deck",
+      "pec fly",
+      "butterfly"
+    ]
   },
   {
     "id": "assisted-pull-up-machine",
     "name": "Assisted Pull-up (Machine)",
     "category": "compound",
-    "primaryMuscles": ["back"],
-    "secondaryMuscles": ["arms"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-assisted pull-up for building back strength.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "assisted pull up",
+      "assisted chin up"
+    ]
   },
   {
     "id": "hack-squat-machine",
     "name": "Hack Squat (Machine)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based squat variation at an angle.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -609,20 +1078,34 @@
     "id": "calf-raise-machine",
     "name": "Calf Raise (Machine)",
     "category": "isolation",
-    "primaryMuscles": ["legs"],
+    "primaryMuscles": [
+      "legs"
+    ],
     "secondaryMuscles": [],
-    "equipment": ["machine"],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based calf exercise targeting soleus muscle.",
     "isMainLift": false,
-    "themeLevel": "beginner"
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "standing calf raise"
+    ]
   },
   {
     "id": "hip-thrust-machine",
     "name": "Hip Thrust (Machine)",
     "category": "compound",
-    "primaryMuscles": ["glutes"],
-    "secondaryMuscles": ["legs"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Machine-based hip thrust for glute development.",
     "isMainLift": false,
     "themeLevel": "advanced"
@@ -631,9 +1114,16 @@
     "id": "squat-smith-machine",
     "name": "Squat (Smith Machine)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Squat performed on Smith machine for guided movement.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -642,9 +1132,16 @@
     "id": "bench-press-smith-machine",
     "name": "Bench Press (Smith Machine)",
     "category": "compound",
-    "primaryMuscles": ["chest"],
-    "secondaryMuscles": ["shoulders", "arms"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Bench press on Smith machine for guided movement.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -653,9 +1150,17 @@
     "id": "swing-kettlebell",
     "name": "Swing (Kettlebell)",
     "category": "compound",
-    "primaryMuscles": ["glutes", "back"],
-    "secondaryMuscles": ["core", "shoulders"],
-    "equipment": ["kettlebell"],
+    "primaryMuscles": [
+      "glutes",
+      "back"
+    ],
+    "secondaryMuscles": [
+      "core",
+      "shoulders"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
     "description": "Explosive hip-hinge movement for power development.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -664,9 +1169,16 @@
     "id": "goblet-squat-kettlebell",
     "name": "Goblet Squat (Kettlebell)",
     "category": "compound",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["kettlebell"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
     "description": "Squat holding kettlebell at chest level for core engagement.",
     "isMainLift": false,
     "themeLevel": "beginner"
@@ -675,9 +1187,17 @@
     "id": "rowing-machine",
     "name": "Rowing Machine",
     "category": "cardio",
-    "primaryMuscles": ["back", "legs"],
-    "secondaryMuscles": ["arms", "core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "back",
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Full-body cardio exercise using a rowing ergometer. Track time and distance.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -687,9 +1207,15 @@
     "id": "stationary-bike",
     "name": "Stationary Bike",
     "category": "cardio",
-    "primaryMuscles": ["legs"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Low-impact cardio exercise on a stationary bicycle. Track time and distance.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -699,9 +1225,15 @@
     "id": "treadmill",
     "name": "Treadmill",
     "category": "cardio",
-    "primaryMuscles": ["legs"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Running or walking on a treadmill. Track time and distance.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -711,9 +1243,16 @@
     "id": "elliptical",
     "name": "Elliptical",
     "category": "cardio",
-    "primaryMuscles": ["legs"],
-    "secondaryMuscles": ["arms", "core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Low-impact cardio machine combining running and stair climbing motions.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -723,9 +1262,16 @@
     "id": "stair-climber",
     "name": "Stair Climber",
     "category": "cardio",
-    "primaryMuscles": ["legs", "glutes"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["machine"],
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "machine"
+    ],
     "description": "Cardio machine simulating stair climbing. Track time and floors.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -735,9 +1281,17 @@
     "id": "dead-hang-bodyweight",
     "name": "Dead Hang (Bodyweight)",
     "category": "flexibility",
-    "primaryMuscles": ["back", "arms"],
-    "secondaryMuscles": ["shoulders", "core"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Hanging from a bar to decompress spine and build grip strength.",
     "isMainLift": false,
     "themeLevel": "beginner",
@@ -747,12 +1301,3210 @@
     "id": "wall-sit-bodyweight",
     "name": "Wall Sit (Bodyweight)",
     "category": "isolation",
-    "primaryMuscles": ["legs"],
-    "secondaryMuscles": ["core"],
-    "equipment": ["bodyweight"],
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
     "description": "Isometric leg exercise holding a seated position against a wall.",
     "isMainLift": false,
     "themeLevel": "beginner",
     "trackingType": "timed"
+  },
+  {
+    "id": "reverse-lunge-dumbbells",
+    "name": "Reverse Lunge (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Reverse Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse lunge",
+      "single leg reverse lunge",
+      "step back lunge"
+    ]
+  },
+  {
+    "id": "reverse-lunge-barbell",
+    "name": "Reverse Lunge (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Reverse Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse lunge",
+      "single leg reverse lunge",
+      "step back lunge"
+    ]
+  },
+  {
+    "id": "reverse-lunge-smith-machine",
+    "name": "Reverse Lunge (Smith Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Reverse Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse lunge",
+      "single leg reverse lunge",
+      "step back lunge"
+    ]
+  },
+  {
+    "id": "reverse-lunge-bodyweight",
+    "name": "Reverse Lunge (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Reverse Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse lunge",
+      "single leg reverse lunge",
+      "step back lunge"
+    ]
+  },
+  {
+    "id": "step-up-dumbbells",
+    "name": "Step-up (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Step-up \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "step up",
+      "box step up"
+    ]
+  },
+  {
+    "id": "step-up-barbell",
+    "name": "Step-up (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Step-up \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "step up",
+      "box step up"
+    ]
+  },
+  {
+    "id": "step-up-bodyweight",
+    "name": "Step-up (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Step-up \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "step up",
+      "box step up"
+    ]
+  },
+  {
+    "id": "split-squat-dumbbells",
+    "name": "Split Squat (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Split Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "static lunge"
+    ]
+  },
+  {
+    "id": "split-squat-barbell",
+    "name": "Split Squat (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Split Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "static lunge"
+    ]
+  },
+  {
+    "id": "split-squat-smith-machine",
+    "name": "Split Squat (Smith Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Split Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "static lunge"
+    ]
+  },
+  {
+    "id": "good-morning-barbell",
+    "name": "Good Morning (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Good Morning \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "good morning"
+    ]
+  },
+  {
+    "id": "good-morning-smith-machine",
+    "name": "Good Morning (Smith Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Good Morning \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "good morning"
+    ]
+  },
+  {
+    "id": "glute-bridge-barbell",
+    "name": "Glute Bridge (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Glute Bridge \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "glute bridge"
+    ]
+  },
+  {
+    "id": "glute-bridge-bodyweight",
+    "name": "Glute Bridge (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Glute Bridge \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "glute bridge"
+    ]
+  },
+  {
+    "id": "hip-abduction-machine",
+    "name": "Hip Abduction (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Hip Abduction \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "abductor",
+      "hip abductor",
+      "glute abduction"
+    ]
+  },
+  {
+    "id": "hip-abduction-cables",
+    "name": "Hip Abduction (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Hip Abduction \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "abductor",
+      "hip abductor",
+      "glute abduction"
+    ]
+  },
+  {
+    "id": "hip-adduction-machine",
+    "name": "Hip Adduction (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Hip Adduction \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "adductor",
+      "hip adductor",
+      "inner thigh"
+    ]
+  },
+  {
+    "id": "hip-adduction-cables",
+    "name": "Hip Adduction (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Hip Adduction \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "adductor",
+      "hip adductor",
+      "inner thigh"
+    ]
+  },
+  {
+    "id": "glute-kickback-cables",
+    "name": "Glute Kickback (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Glute Kickback \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kickback",
+      "cable kickback",
+      "donkey kick",
+      "glute kickback"
+    ]
+  },
+  {
+    "id": "glute-kickback-machine",
+    "name": "Glute Kickback (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Glute Kickback \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kickback",
+      "cable kickback",
+      "donkey kick",
+      "glute kickback"
+    ]
+  },
+  {
+    "id": "nordic-curl-bodyweight",
+    "name": "Nordic Curl (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "glutes"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Nordic Curl \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "nordic curl",
+      "nordic hamstring curl",
+      "nordic ham curl"
+    ]
+  },
+  {
+    "id": "sissy-squat-bodyweight",
+    "name": "Sissy Squat (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Sissy Squat \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "sissy squat"
+    ]
+  },
+  {
+    "id": "calf-raise-dumbbells",
+    "name": "Calf Raise (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "standing calf raise"
+    ]
+  },
+  {
+    "id": "calf-raise-barbell",
+    "name": "Calf Raise (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "standing calf raise"
+    ]
+  },
+  {
+    "id": "calf-raise-smith-machine",
+    "name": "Calf Raise (Smith Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "standing calf raise"
+    ]
+  },
+  {
+    "id": "calf-raise-bodyweight",
+    "name": "Calf Raise (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "standing calf raise"
+    ]
+  },
+  {
+    "id": "seated-calf-raise-machine",
+    "name": "Seated Calf Raise (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Seated Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "seated calf raise"
+    ]
+  },
+  {
+    "id": "seated-calf-raise-dumbbells",
+    "name": "Seated Calf Raise (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Seated Calf Raise \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf raise",
+      "seated calf raise"
+    ]
+  },
+  {
+    "id": "calf-press-machine",
+    "name": "Calf Press (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "legs"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Calf Press \u2014 targets legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "calf press",
+      "leg press calf raise"
+    ]
+  },
+  {
+    "id": "box-squat-barbell",
+    "name": "Box Squat (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Box Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "box squat"
+    ]
+  },
+  {
+    "id": "pause-squat-barbell",
+    "name": "Pause Squat (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Pause Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pause squat"
+    ]
+  },
+  {
+    "id": "pendulum-squat-machine",
+    "name": "Pendulum Squat (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Pendulum Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pendulum squat"
+    ]
+  },
+  {
+    "id": "belt-squat-machine",
+    "name": "Belt Squat (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Belt Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "belt squat"
+    ]
+  },
+  {
+    "id": "cossack-squat-dumbbells",
+    "name": "Cossack Squat (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Cossack Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "cossack squat"
+    ]
+  },
+  {
+    "id": "cossack-squat-bodyweight",
+    "name": "Cossack Squat (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Cossack Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "cossack squat"
+    ]
+  },
+  {
+    "id": "pistol-squat-bodyweight",
+    "name": "Pistol Squat (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Pistol Squat \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pistol squat",
+      "single leg squat"
+    ]
+  },
+  {
+    "id": "curtsy-lunge-dumbbells",
+    "name": "Curtsy Lunge (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Curtsy Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "curtsy lunge"
+    ]
+  },
+  {
+    "id": "curtsy-lunge-bodyweight",
+    "name": "Curtsy Lunge (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Curtsy Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "curtsy lunge"
+    ]
+  },
+  {
+    "id": "lateral-lunge-dumbbells",
+    "name": "Lateral Lunge (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Lateral Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "lateral lunge",
+      "side lunge"
+    ]
+  },
+  {
+    "id": "lateral-lunge-bodyweight",
+    "name": "Lateral Lunge (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Lateral Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "lateral lunge",
+      "side lunge"
+    ]
+  },
+  {
+    "id": "walking-lunge-barbell",
+    "name": "Walking Lunge (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Walking Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "walking lunge"
+    ]
+  },
+  {
+    "id": "walking-lunge-bodyweight",
+    "name": "Walking Lunge (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Walking Lunge \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "walking lunge"
+    ]
+  },
+  {
+    "id": "back-extension-bodyweight",
+    "name": "Back Extension (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Back Extension \u2014 targets back, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "hyperextension",
+      "back extension",
+      "hip extension",
+      "45 degree back extension"
+    ]
+  },
+  {
+    "id": "back-extension-machine",
+    "name": "Back Extension (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Back Extension \u2014 targets back, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "hyperextension",
+      "back extension",
+      "hip extension",
+      "45 degree back extension"
+    ]
+  },
+  {
+    "id": "rack-pull-barbell",
+    "name": "Rack Pull (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back",
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Rack Pull \u2014 targets back, legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "rack pull"
+    ]
+  },
+  {
+    "id": "deficit-deadlift-barbell",
+    "name": "Deficit Deadlift (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back",
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Deficit Deadlift \u2014 targets back, legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "deficit deadlift"
+    ]
+  },
+  {
+    "id": "stiff-leg-deadlift-barbell",
+    "name": "Stiff Leg Deadlift (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Stiff Leg Deadlift \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "stiff leg deadlift",
+      "sldl",
+      "stiff legged deadlift"
+    ]
+  },
+  {
+    "id": "stiff-leg-deadlift-dumbbells",
+    "name": "Stiff Leg Deadlift (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Stiff Leg Deadlift \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "stiff leg deadlift",
+      "sldl",
+      "stiff legged deadlift"
+    ]
+  },
+  {
+    "id": "trap-bar-deadlift-barbell",
+    "name": "Trap Bar Deadlift (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes",
+      "back"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Trap Bar Deadlift \u2014 targets legs, glutes, back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "trap bar deadlift",
+      "hex bar deadlift"
+    ]
+  },
+  {
+    "id": "frog-pump-dumbbells",
+    "name": "Frog Pump (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Frog Pump \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "frog pump"
+    ]
+  },
+  {
+    "id": "frog-pump-bodyweight",
+    "name": "Frog Pump (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Frog Pump \u2014 targets glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "frog pump"
+    ]
+  },
+  {
+    "id": "pendlay-row-barbell",
+    "name": "Pendlay Row (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Pendlay Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pendlay row"
+    ]
+  },
+  {
+    "id": "t-bar-row-barbell",
+    "name": "T-Bar Row (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "T-Bar Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "t bar row",
+      "tbar row",
+      "t-bar row"
+    ]
+  },
+  {
+    "id": "t-bar-row-machine",
+    "name": "T-Bar Row (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "T-Bar Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "t bar row",
+      "tbar row",
+      "t-bar row"
+    ]
+  },
+  {
+    "id": "chest-supported-row-dumbbells",
+    "name": "Chest Supported Row (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Chest Supported Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "chest supported row",
+      "seal row",
+      "incline row"
+    ]
+  },
+  {
+    "id": "chest-supported-row-machine",
+    "name": "Chest Supported Row (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Chest Supported Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "chest supported row",
+      "seal row",
+      "incline row"
+    ]
+  },
+  {
+    "id": "single-arm-row-dumbbells",
+    "name": "Single Arm Row (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Single Arm Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "single arm row",
+      "one arm row",
+      "one arm dumbbell row"
+    ]
+  },
+  {
+    "id": "meadows-row-barbell",
+    "name": "Meadows Row (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Meadows Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "meadows row"
+    ]
+  },
+  {
+    "id": "landmine-row-barbell",
+    "name": "Landmine Row (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Landmine Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "landmine row"
+    ]
+  },
+  {
+    "id": "straight-arm-pulldown-cables",
+    "name": "Straight Arm Pulldown (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Straight Arm Pulldown \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "straight arm pulldown",
+      "lat pushdown",
+      "straight arm lat pulldown"
+    ]
+  },
+  {
+    "id": "face-pull-cables",
+    "name": "Face Pull (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders",
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Face Pull \u2014 targets shoulders, back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "face pull"
+    ]
+  },
+  {
+    "id": "pull-through-cables",
+    "name": "Pull-Through (Cables)",
+    "category": "compound",
+    "primaryMuscles": [
+      "glutes",
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Pull-Through \u2014 targets glutes, legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pull through",
+      "cable pull through"
+    ]
+  },
+  {
+    "id": "close-grip-lat-pulldown-cables",
+    "name": "Close Grip Lat Pulldown (Cables)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Close Grip Lat Pulldown \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "close grip pulldown",
+      "neutral grip pulldown",
+      "close grip lat pulldown"
+    ]
+  },
+  {
+    "id": "chin-up-bodyweight",
+    "name": "Chin-up (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Chin-up \u2014 targets back, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "chin up",
+      "chinup"
+    ]
+  },
+  {
+    "id": "inverted-row-bodyweight",
+    "name": "Inverted Row (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Inverted Row \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "inverted row",
+      "bodyweight row"
+    ]
+  },
+  {
+    "id": "cable-pullover-cables",
+    "name": "Cable Pullover (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [
+      "chest"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Cable Pullover \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "cable pullover",
+      "lat pullover"
+    ]
+  },
+  {
+    "id": "shrug-cables",
+    "name": "Shrug (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Shrug \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "shrug",
+      "trap raise"
+    ]
+  },
+  {
+    "id": "shrug-machine",
+    "name": "Shrug (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Shrug \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "shrug",
+      "trap raise"
+    ]
+  },
+  {
+    "id": "shrug-smith-machine",
+    "name": "Shrug (Smith Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "back"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Shrug \u2014 targets back.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "shrug",
+      "trap raise"
+    ]
+  },
+  {
+    "id": "reverse-pec-deck-machine",
+    "name": "Reverse Pec Deck (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Reverse Pec Deck \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse pec deck",
+      "rear delt machine",
+      "reverse fly machine"
+    ]
+  },
+  {
+    "id": "decline-bench-press-barbell",
+    "name": "Decline Bench Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Decline Bench Press \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "decline bench",
+      "decline press"
+    ]
+  },
+  {
+    "id": "decline-bench-press-dumbbells",
+    "name": "Decline Bench Press (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "arms",
+      "shoulders"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Decline Bench Press \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "decline bench",
+      "decline press"
+    ]
+  },
+  {
+    "id": "close-grip-bench-press-barbell",
+    "name": "Close-Grip Bench Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Close-Grip Bench Press \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "close grip bench",
+      "cgbp"
+    ]
+  },
+  {
+    "id": "incline-fly-dumbbells",
+    "name": "Incline Fly (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Incline Fly \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline fly",
+      "incline chest fly"
+    ]
+  },
+  {
+    "id": "incline-fly-cables",
+    "name": "Incline Fly (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Incline Fly \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline fly",
+      "incline chest fly"
+    ]
+  },
+  {
+    "id": "dumbbell-pullover-dumbbells",
+    "name": "Dumbbell Pullover (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Dumbbell Pullover \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pullover",
+      "db pullover",
+      "dumbbell pullover"
+    ]
+  },
+  {
+    "id": "incline-chest-press-machine",
+    "name": "Incline Chest Press (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "arms"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Incline Chest Press \u2014 targets chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline chest press",
+      "incline machine press"
+    ]
+  },
+  {
+    "id": "floor-press-barbell",
+    "name": "Floor Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Floor Press \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "floor press"
+    ]
+  },
+  {
+    "id": "floor-press-dumbbells",
+    "name": "Floor Press (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Floor Press \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "floor press"
+    ]
+  },
+  {
+    "id": "chest-dip-bodyweight",
+    "name": "Chest Dip (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Chest Dip \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "chest dip"
+    ]
+  },
+  {
+    "id": "landmine-press-barbell",
+    "name": "Landmine Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Landmine Press \u2014 targets chest, shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "landmine press"
+    ]
+  },
+  {
+    "id": "incline-push-up-bodyweight",
+    "name": "Incline Push-up (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Incline Push-up \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline pushup",
+      "incline push up"
+    ]
+  },
+  {
+    "id": "decline-push-up-bodyweight",
+    "name": "Decline Push-up (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "chest",
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Decline Push-up \u2014 targets chest, arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "decline pushup",
+      "decline push up"
+    ]
+  },
+  {
+    "id": "diamond-push-up-bodyweight",
+    "name": "Diamond Push-up (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "arms",
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Diamond Push-up \u2014 targets arms, chest.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "diamond pushup",
+      "close grip pushup",
+      "tricep pushup"
+    ]
+  },
+  {
+    "id": "front-raise-dumbbells",
+    "name": "Front Raise (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Front Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "front raise"
+    ]
+  },
+  {
+    "id": "front-raise-cables",
+    "name": "Front Raise (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Front Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "front raise"
+    ]
+  },
+  {
+    "id": "front-raise-barbell",
+    "name": "Front Raise (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Front Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "front raise"
+    ]
+  },
+  {
+    "id": "upright-row-barbell",
+    "name": "Upright Row (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Upright Row \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "upright row"
+    ]
+  },
+  {
+    "id": "upright-row-dumbbells",
+    "name": "Upright Row (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Upright Row \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "upright row"
+    ]
+  },
+  {
+    "id": "upright-row-cables",
+    "name": "Upright Row (Cables)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Upright Row \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "upright row"
+    ]
+  },
+  {
+    "id": "upright-row-smith-machine",
+    "name": "Upright Row (Smith Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back",
+      "arms"
+    ],
+    "equipment": [
+      "smith-machine"
+    ],
+    "description": "Upright Row \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "upright row"
+    ]
+  },
+  {
+    "id": "push-press-barbell",
+    "name": "Push Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Push Press \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "push press"
+    ]
+  },
+  {
+    "id": "push-press-dumbbells",
+    "name": "Push Press (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Push Press \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "push press"
+    ]
+  },
+  {
+    "id": "machine-lateral-raise-machine",
+    "name": "Machine Lateral Raise (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Machine Lateral Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "lateral raise",
+      "lat raise",
+      "machine lateral raise"
+    ]
+  },
+  {
+    "id": "y-raise-dumbbells",
+    "name": "Y-Raise (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Y-Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "y raise",
+      "y-raise"
+    ]
+  },
+  {
+    "id": "y-raise-cables",
+    "name": "Y-Raise (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Y-Raise \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "y raise",
+      "y-raise"
+    ]
+  },
+  {
+    "id": "seated-overhead-press-dumbbells",
+    "name": "Seated Overhead Press (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Seated Overhead Press \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "seated shoulder press",
+      "seated overhead press",
+      "seated press"
+    ]
+  },
+  {
+    "id": "seated-overhead-press-barbell",
+    "name": "Seated Overhead Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Seated Overhead Press \u2014 targets shoulders.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "seated shoulder press",
+      "seated overhead press",
+      "seated press"
+    ]
+  },
+  {
+    "id": "ez-bar-curl-barbell",
+    "name": "EZ-Bar Curl (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "EZ-Bar Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "ez bar curl",
+      "ez curl",
+      "ezbar curl"
+    ]
+  },
+  {
+    "id": "incline-curl-dumbbells",
+    "name": "Incline Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Incline Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "incline curl",
+      "incline dumbbell curl"
+    ]
+  },
+  {
+    "id": "concentration-curl-dumbbells",
+    "name": "Concentration Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Concentration Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "concentration curl"
+    ]
+  },
+  {
+    "id": "spider-curl-dumbbells",
+    "name": "Spider Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Spider Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "spider curl"
+    ]
+  },
+  {
+    "id": "spider-curl-barbell",
+    "name": "Spider Curl (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Spider Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "spider curl"
+    ]
+  },
+  {
+    "id": "reverse-curl-barbell",
+    "name": "Reverse Curl (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Reverse Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse curl",
+      "reverse grip curl"
+    ]
+  },
+  {
+    "id": "reverse-curl-dumbbells",
+    "name": "Reverse Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Reverse Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse curl",
+      "reverse grip curl"
+    ]
+  },
+  {
+    "id": "reverse-curl-cables",
+    "name": "Reverse Curl (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Reverse Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "reverse curl",
+      "reverse grip curl"
+    ]
+  },
+  {
+    "id": "wrist-curl-dumbbells",
+    "name": "Wrist Curl (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Wrist Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "wrist curl",
+      "forearm curl"
+    ]
+  },
+  {
+    "id": "wrist-curl-barbell",
+    "name": "Wrist Curl (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Wrist Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "wrist curl",
+      "forearm curl"
+    ]
+  },
+  {
+    "id": "machine-curl-machine",
+    "name": "Machine Curl (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Machine Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "machine curl",
+      "machine bicep curl"
+    ]
+  },
+  {
+    "id": "preacher-curl-barbell",
+    "name": "Preacher Curl (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Preacher Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "preacher curl"
+    ]
+  },
+  {
+    "id": "preacher-curl-machine",
+    "name": "Preacher Curl (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Preacher Curl \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "preacher curl"
+    ]
+  },
+  {
+    "id": "skull-crushers-barbell",
+    "name": "Skull Crushers (Barbell)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Skull Crushers \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "skullcrusher",
+      "lying tricep extension",
+      "french press"
+    ]
+  },
+  {
+    "id": "tricep-kickback-dumbbells",
+    "name": "Tricep Kickback (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Tricep Kickback \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kickback",
+      "tricep kickback"
+    ]
+  },
+  {
+    "id": "tricep-kickback-cables",
+    "name": "Tricep Kickback (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Tricep Kickback \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kickback",
+      "tricep kickback"
+    ]
+  },
+  {
+    "id": "tricep-dip-bodyweight",
+    "name": "Tricep Dip (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "shoulders"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Tricep Dip \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "tricep dip",
+      "bench dip"
+    ]
+  },
+  {
+    "id": "tricep-dip-machine",
+    "name": "Tricep Dip (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "chest",
+      "shoulders"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Tricep Dip \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "tricep dip",
+      "bench dip"
+    ]
+  },
+  {
+    "id": "jm-press-barbell",
+    "name": "JM Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [
+      "chest"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "JM Press \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "jm press"
+    ]
+  },
+  {
+    "id": "overhead-tricep-extension-dumbbells",
+    "name": "Overhead Tricep Extension (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "arms"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Overhead Tricep Extension \u2014 targets arms.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "overhead tricep extension",
+      "overhead extension"
+    ]
+  },
+  {
+    "id": "hanging-leg-raise-bodyweight",
+    "name": "Hanging Leg Raise (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Hanging Leg Raise \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "hanging leg raise",
+      "toes to bar",
+      "hanging leg raises"
+    ]
+  },
+  {
+    "id": "hanging-knee-raise-bodyweight",
+    "name": "Hanging Knee Raise (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Hanging Knee Raise \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "hanging knee raise"
+    ]
+  },
+  {
+    "id": "cable-crunch-cables",
+    "name": "Cable Crunch (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Cable Crunch \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "cable crunch",
+      "kneeling crunch"
+    ]
+  },
+  {
+    "id": "crunch-bodyweight",
+    "name": "Crunch (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Crunch \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "crunch",
+      "ab crunch"
+    ]
+  },
+  {
+    "id": "crunch-machine",
+    "name": "Crunch (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Crunch \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "crunch",
+      "ab crunch"
+    ]
+  },
+  {
+    "id": "sit-up-bodyweight",
+    "name": "Sit-up (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Sit-up \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "situp",
+      "sit up"
+    ]
+  },
+  {
+    "id": "russian-twist-bodyweight",
+    "name": "Russian Twist (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Russian Twist \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "russian twist"
+    ]
+  },
+  {
+    "id": "russian-twist-dumbbells",
+    "name": "Russian Twist (Dumbbells)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Russian Twist \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "russian twist"
+    ]
+  },
+  {
+    "id": "ab-wheel-rollout-bodyweight",
+    "name": "Ab Wheel Rollout (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Ab Wheel Rollout \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "ab wheel",
+      "ab rollout",
+      "ab wheel rollout"
+    ]
+  },
+  {
+    "id": "leg-raise-bodyweight",
+    "name": "Leg Raise (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Leg Raise \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "leg raise",
+      "lying leg raise",
+      "flat leg raise"
+    ]
+  },
+  {
+    "id": "side-plank-bodyweight",
+    "name": "Side Plank (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Side Plank \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "side plank"
+    ]
+  },
+  {
+    "id": "mountain-climber-bodyweight",
+    "name": "Mountain Climber (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [
+      "legs"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Mountain Climber \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "mountain climber"
+    ]
+  },
+  {
+    "id": "dead-bug-bodyweight",
+    "name": "Dead Bug (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Dead Bug \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "dead bug"
+    ]
+  },
+  {
+    "id": "hollow-hold-bodyweight",
+    "name": "Hollow Hold (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Hollow Hold \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "hollow hold",
+      "hollow body"
+    ]
+  },
+  {
+    "id": "bicycle-crunch-bodyweight",
+    "name": "Bicycle Crunch (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Bicycle Crunch \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "bicycle crunch"
+    ]
+  },
+  {
+    "id": "wood-chop-cables",
+    "name": "Wood Chop (Cables)",
+    "category": "compound",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Wood Chop \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "wood chop",
+      "cable chop",
+      "woodchopper"
+    ]
+  },
+  {
+    "id": "pallof-press-cables",
+    "name": "Pallof Press (Cables)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "cable"
+    ],
+    "description": "Pallof Press \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "pallof press"
+    ]
+  },
+  {
+    "id": "v-up-bodyweight",
+    "name": "V-Up (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "V-Up \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "v up",
+      "v-up"
+    ]
+  },
+  {
+    "id": "flutter-kick-bodyweight",
+    "name": "Flutter Kick (Bodyweight)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Flutter Kick \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "flutter kick"
+    ]
+  },
+  {
+    "id": "machine-crunch-machine",
+    "name": "Machine Crunch (Machine)",
+    "category": "isolation",
+    "primaryMuscles": [
+      "core"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Machine Crunch \u2014 targets core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "ab machine",
+      "crunch machine",
+      "machine crunch"
+    ]
+  },
+  {
+    "id": "power-clean-barbell",
+    "name": "Power Clean (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "back",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Power Clean \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "power clean"
+    ]
+  },
+  {
+    "id": "hang-clean-barbell",
+    "name": "Hang Clean (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "back",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Hang Clean \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "hang clean"
+    ]
+  },
+  {
+    "id": "clean-and-jerk-barbell",
+    "name": "Clean and Jerk (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "shoulders",
+      "back"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Clean and Jerk \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "clean and jerk"
+    ]
+  },
+  {
+    "id": "snatch-barbell",
+    "name": "Snatch (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "shoulders",
+      "back"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Snatch \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "snatch"
+    ]
+  },
+  {
+    "id": "push-jerk-barbell",
+    "name": "Push Jerk (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "shoulders",
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "arms"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Push Jerk \u2014 targets shoulders, full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "push jerk",
+      "jerk"
+    ]
+  },
+  {
+    "id": "clean-and-press-barbell",
+    "name": "Clean and Press (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "legs",
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Clean and Press \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "clean and press"
+    ]
+  },
+  {
+    "id": "thruster-barbell",
+    "name": "Thruster (Barbell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body",
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "barbell"
+    ],
+    "description": "Thruster \u2014 targets full-body, legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "thruster"
+    ]
+  },
+  {
+    "id": "thruster-dumbbells",
+    "name": "Thruster (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body",
+      "legs"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Thruster \u2014 targets full-body, legs.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "thruster"
+    ]
+  },
+  {
+    "id": "burpee-bodyweight",
+    "name": "Burpee (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Burpee \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "burpee"
+    ]
+  },
+  {
+    "id": "box-jump-bodyweight",
+    "name": "Box Jump (Bodyweight)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "core"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Box Jump \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "box jump"
+    ]
+  },
+  {
+    "id": "jump-rope-bodyweight",
+    "name": "Jump Rope (Bodyweight)",
+    "category": "cardio",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "description": "Jump Rope \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "jump rope",
+      "skipping",
+      "skip rope"
+    ]
+  },
+  {
+    "id": "farmer-s-carry-dumbbells",
+    "name": "Farmer's Carry (Dumbbells)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body",
+      "core"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "description": "Farmer's Carry \u2014 targets full-body, core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "farmer carry",
+      "farmers walk",
+      "farmer walk",
+      "loaded carry"
+    ]
+  },
+  {
+    "id": "farmer-s-carry-kettlebell",
+    "name": "Farmer's Carry (Kettlebell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body",
+      "core"
+    ],
+    "secondaryMuscles": [
+      "back"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "description": "Farmer's Carry \u2014 targets full-body, core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "farmer carry",
+      "farmers walk",
+      "farmer walk",
+      "loaded carry"
+    ]
+  },
+  {
+    "id": "sled-push-machine",
+    "name": "Sled Push (Machine)",
+    "category": "compound",
+    "primaryMuscles": [
+      "legs",
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "full-body"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "description": "Sled Push \u2014 targets legs, glutes.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "trackingType": "timed",
+    "aliases": [
+      "sled push",
+      "prowler push",
+      "prowler"
+    ]
+  },
+  {
+    "id": "turkish-get-up-kettlebell",
+    "name": "Turkish Get-up (Kettlebell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body",
+      "core"
+    ],
+    "secondaryMuscles": [
+      "shoulders"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "description": "Turkish Get-up \u2014 targets full-body, core.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "turkish get up",
+      "tgu"
+    ]
+  },
+  {
+    "id": "kettlebell-clean-and-press-kettlebell",
+    "name": "Kettlebell Clean and Press (Kettlebell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "legs"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "description": "Kettlebell Clean and Press \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kettlebell clean and press",
+      "kb clean and press"
+    ]
+  },
+  {
+    "id": "kettlebell-snatch-kettlebell",
+    "name": "Kettlebell Snatch (Kettlebell)",
+    "category": "compound",
+    "primaryMuscles": [
+      "full-body"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "legs"
+    ],
+    "equipment": [
+      "kettlebell"
+    ],
+    "description": "Kettlebell Snatch \u2014 targets full-body.",
+    "isMainLift": false,
+    "themeLevel": "beginner",
+    "aliases": [
+      "kettlebell snatch",
+      "kb snatch"
+    ]
   }
 ]

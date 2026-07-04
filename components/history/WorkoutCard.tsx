@@ -4,8 +4,8 @@ import { formatRelativeDate } from '@/lib/ui/formatters';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { SessionPR } from '@/components/history/prSessions';
 import { calculateWorkoutStats, formatWorkoutStatsLine } from '@/lib/utils/utils';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { getExercise } from '@/lib/workout/workouts';
+import { convertWeight, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -17,7 +17,6 @@ interface WorkoutCardProps {
   // breakdown lives one tap deeper in WorkoutDetailModal.
   sessionPRs: Map<string, SessionPR>;
   weightUnit: WeightUnit;
-  customExercises: CustomExercise[];
   onPress: (workout: GeneratedWorkout) => void;
   onLongPress: (workout: GeneratedWorkout) => void;
 }
@@ -26,7 +25,6 @@ function WorkoutCard({
   workout,
   sessionPRs,
   weightUnit,
-  customExercises,
   onPress,
   onLongPress,
 }: WorkoutCardProps) {
@@ -34,9 +32,9 @@ function WorkoutCard({
 
   // Helper to get tracking type for an exercise
   const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
-    const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+    const exerciseInfo = getExercise(exerciseId);
     return exerciseInfo?.trackingType;
-  }, [customExercises]);
+  }, []);
 
   // Whole-session roll-up (sets + volume) — the "what did I do" glance.
   const workoutStats = useMemo(
@@ -50,7 +48,7 @@ function WorkoutCard({
     let best: { name: string; setCount: number; volume: number } | null = null;
     for (const ex of workout.exercises) {
       if (!ex.completedSets || ex.completedSets.length === 0) continue;
-      const info = getWorkoutByIdWithCustom(ex.id, customExercises);
+      const info = getExercise(ex.id);
       const name = info?.name || ex.id.replace('custom_', '').replace(/-/g, ' ').split('_')[0];
       const trackingType = info?.trackingType || 'reps';
       let volume = 0;
@@ -65,7 +63,7 @@ function WorkoutCard({
       }
     }
     return best;
-  }, [workout.exercises, customExercises, weightUnit]);
+  }, [workout.exercises, weightUnit]);
 
   // At most one PR per session — the single biggest *notable compound* record set that
   // day (buildSessionPRs already applies the significance floor, so most cards get none).

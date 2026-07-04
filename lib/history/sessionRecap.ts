@@ -6,7 +6,7 @@ import { buildSessionPRs, SessionPR } from '@/components/history/prSessions';
 import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { calculateWorkoutStats } from '@/lib/utils/utils';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
 
 export interface StandoutSet {
@@ -43,12 +43,12 @@ const COMEBACK_MIN_DAYS = 7;
 const DAY_MS = 86400000;
 
 /** Primary muscles worked in a session, ordered by how many sets hit them. */
-function sessionMuscles(workout: GeneratedWorkout, custom: CustomExercise[]): string[] {
+function sessionMuscles(workout: GeneratedWorkout): string[] {
   const counts = new Map<string, number>();
   for (const ex of workout.exercises) {
     const done = (ex.completedSets || []).filter(s => s.completed).length;
     if (done === 0) continue;
-    const info = getWorkoutByIdWithCustom(ex.id, custom);
+    const info = getExercise(ex.id);
     for (const m of info?.primaryMuscles || []) counts.set(m, (counts.get(m) || 0) + done);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([m]) => m);
@@ -61,14 +61,13 @@ function sessionMuscles(workout: GeneratedWorkout, custom: CustomExercise[]): st
  */
 function standoutSet(
   workout: GeneratedWorkout,
-  custom: CustomExercise[],
   unit: WeightUnit,
   preferName?: string,
 ): StandoutSet | null {
   let best: { e1rm: number; set: StandoutSet } | null = null;
   let preferred: { e1rm: number; set: StandoutSet } | null = null;
   for (const ex of workout.exercises) {
-    const info = getWorkoutByIdWithCustom(ex.id, custom);
+    const info = getExercise(ex.id);
     const trackingType: TrackingType = info?.trackingType || 'reps';
     if (trackingType !== 'reps') continue;
     const name = info?.name || ex.id.replace('custom_', '').replace(/-/g, ' ');
@@ -108,7 +107,7 @@ export function buildSessionRecaps(
   if (workouts.length === 0) return [];
 
   const getTrackingType = (id: string): TrackingType | undefined =>
-    getWorkoutByIdWithCustom(id, customExercises)?.trackingType;
+    getExercise(id)?.trackingType;
 
   // Records key off the same day-grouped exercise stats the rest of History uses.
   const stats = buildExerciseStats(workouts, customExercises, weightUnit);
@@ -140,7 +139,7 @@ export function buildSessionRecaps(
     }
 
     const pr = sessionPRs.get(dayKeyOf(workout.createdAt)) ?? null;
-    const standout = standoutSet(workout, customExercises, weightUnit, pr?.name);
+    const standout = standoutSet(workout, weightUnit, pr?.name);
     const wStats = calculateWorkoutStats(workout.exercises, getTrackingType);
 
     // Gap since the previous session of any kind (drives the comeback beat).
@@ -175,7 +174,7 @@ export function buildSessionRecaps(
       volumeDisplay: Math.round(convertWeight(myVol, 'lbs', weightUnit)),
       sets: wStats.totalSets,
       durationMin: workout.estimatedDuration || 0,
-      muscles: sessionMuscles(workout, customExercises),
+      muscles: sessionMuscles(workout),
       comparison,
     };
   });

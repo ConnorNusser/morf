@@ -46,3 +46,7 @@ app-example
 screenshots/
 simulator-screenshots/
 .DS_Store
+
+# vim swap files
+*.swp
+*.swo

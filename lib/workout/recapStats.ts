@@ -1,7 +1,7 @@
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { CustomExercise, GeneratedWorkout, MuscleGroup, UserLift, WeightUnit, convertWeight } from '@/types';
-import { getWorkoutByIdWithCustom } from './workouts';
+import { getExercise } from './workouts';
 
 // A weight value converted into the user's preferred unit (no-op when it matches).
 const toPreferred = (w: number, u: WeightUnit, preferred: WeightUnit): number =>
@@ -191,7 +191,6 @@ export async function calculateRecapStats(
   const userProfile = await userService.getUserProfileOrDefault();
   const preferredUnit = userProfile.weightUnitPreference || 'lbs';
   const allWorkouts = await storageService.getWorkoutHistory();
-  const customExercises = await storageService.getCustomExercises();
 
   // Get period range
   let periodRange: { start: Date; end: Date; label: string; subtitle: string };
@@ -251,7 +250,7 @@ export async function calculateRecapStats(
       }
       exerciseCounts[exercise.id].count++;
 
-      const exerciseInfo = getWorkoutByIdWithCustom(exercise.id, customExercises);
+      const exerciseInfo = getExercise(exercise.id);
       if (exerciseInfo) {
         for (const muscle of exerciseInfo.primaryMuscles) {
           muscleGroupCounts[muscle] = (muscleGroupCounts[muscle] || 0) + 1;
@@ -284,7 +283,7 @@ export async function calculateRecapStats(
   // Top exercises
   const topExercises: TopExercise[] = Object.entries(exerciseCounts)
     .map(([id, data]) => {
-      const exerciseInfo = getWorkoutByIdWithCustom(id, customExercises);
+      const exerciseInfo = getExercise(id);
       return {
         id,
         name: exerciseInfo?.name || id,
@@ -307,10 +306,10 @@ export async function calculateRecapStats(
     .sort((a, b) => b.percentage - a.percentage);
 
   // PRs
-  const { prsAchieved, topPR } = calculatePRStats(allLifts, preferredUnit, customExercises);
+  const { prsAchieved, topPR } = calculatePRStats(allLifts, preferredUnit);
 
   // Strength progress
-  const strengthProgress = calculateStrengthProgressForPeriod(allLifts, preferredUnit, customExercises);
+  const strengthProgress = calculateStrengthProgressForPeriod(allLifts, preferredUnit);
 
   // Best day
   let bestDay: BestDay | null = null;
@@ -447,7 +446,7 @@ function calculateCurrentStreak(workouts: GeneratedWorkout[]): number {
 
 // ===== PR CALCULATION =====
 
-function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customExercises: CustomExercise[]): { prsAchieved: number; topPR: TopPR | null } {
+function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit): { prsAchieved: number; topPR: TopPR | null } {
   if (lifts.length === 0) {
     return { prsAchieved: 0, topPR: null };
   }
@@ -472,7 +471,7 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customEx
 
           if (improvement > maxImprovement) {
             maxImprovement = improvement;
-            const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+            const exerciseInfo = getExercise(exerciseId);
             topPR = {
               exercise: exerciseInfo?.name || exerciseId,
               exerciseId,
@@ -492,7 +491,7 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit, customEx
 
 // ===== STRENGTH PROGRESS =====
 
-function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: WeightUnit, customExercises: CustomExercise[]): StrengthProgress[] {
+function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: WeightUnit): StrengthProgress[] {
   const liftsByExercise = groupLiftsByExercise(lifts);
 
   const progress: StrengthProgress[] = [];
@@ -512,7 +511,7 @@ function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: We
     const improvement = endMax - startMax;
 
     if (improvement !== 0) {
-      const exerciseInfo = getWorkoutByIdWithCustom(exerciseId, customExercises);
+      const exerciseInfo = getExercise(exerciseId);
       progress.push({
         exercise: exerciseInfo?.name || exerciseId,
         exerciseId,

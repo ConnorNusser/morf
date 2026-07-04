@@ -167,38 +167,42 @@ export function updateSet(draft: WorkoutDraft, key: string, index: number, patch
 }
 
 /**
- * Downward "target" mirroring. After set `index` is edited (its old weight×reps
- * were `prevWeight`×`prevReps`), cascade its new weight×reps onto the sets *below*
- * it that were still sitting at that old target — or are a blank 0×0 row — stopping
- * at the first set that carries its own numbers. Only un-done sets below are
- * touched; a set you've already logged is never rewritten. No-op when nothing
- * actually changed.
+ * Live downward "target" mirroring, computed from a snapshot of the exercise's
+ * sets taken when editing began (`originalSets`). Set `index` is shown with the
+ * in-progress `weight`×`reps`, and that value cascades onto the sets *below* it
+ * that were still sitting at the original target — or are a blank 0×0 row —
+ * stopping at the first set that carries its own numbers. Un-done sets only; a set
+ * you've already logged is never rewritten.
  *
- * So 140×8 ×4 → editing the first to 150×8 makes them all 150×8; 140/140/170 →
- * editing the first to 150 changes the first two but leaves the customized 170;
- * one filled set over blank rows fills the blanks with the same weight and reps.
+ * Recomputing from `originalSets` every keystroke (rather than from the mutated
+ * draft) is what lets the targets keep tracking as you clear-and-retype: the rows
+ * below always start from their original values, so the match doesn't get lost.
+ *
+ * 140×8 ×4 → retyping the first as 150×8 drags them all to 150×8; 140/140/170 →
+ * the customized 170 stays put; one filled set over blank rows fills the blanks.
  */
-export function propagateSet(
+export function previewSetEdit(
   draft: WorkoutDraft,
   key: string,
   index: number,
-  prevWeight: number,
-  prevReps: number,
+  originalSets: DraftSet[],
+  weight: number,
+  reps: number,
 ): WorkoutDraft {
+  const orig = originalSets[index];
+  if (!orig) return draft;
   return mapExercise(draft, key, ex => {
-    const cur = ex.sets[index];
-    if (!cur) return ex;
-    if (cur.weight === prevWeight && cur.reps === prevReps) return ex; // unchanged
-    const matchesOld = (s: DraftSet) => s.weight === prevWeight && s.reps === prevReps;
-    const blank = (s: DraftSet) => s.weight === 0 && s.reps === 0;
-    const sets = ex.sets.slice();
-    for (let j = index + 1; j < sets.length; j++) {
-      const s = sets[j];
-      if (s.done) break; // never overwrite a performed set
-      // Follows along only if it's still the untouched target or an empty row; any
-      // set with its own distinct numbers stops the cascade.
-      if (matchesOld(s) || blank(s)) sets[j] = { ...s, weight: cur.weight, reps: cur.reps };
-      else break;
+    const sets = originalSets.map(s => ({ ...s }));
+    sets[index] = { ...sets[index], weight, reps };
+    if (weight !== orig.weight || reps !== orig.reps) {
+      const matchesOld = (s: DraftSet) => s.weight === orig.weight && s.reps === orig.reps;
+      const blank = (s: DraftSet) => s.weight === 0 && s.reps === 0;
+      for (let j = index + 1; j < sets.length; j++) {
+        const s = sets[j];
+        if (s.done) break; // never overwrite a performed set
+        if (matchesOld(s) || blank(s)) sets[j] = { ...s, weight, reps };
+        else break; // a set with its own distinct numbers stops the cascade
+      }
     }
     return { ...ex, sets };
   });

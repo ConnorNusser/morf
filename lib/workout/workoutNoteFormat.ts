@@ -1,13 +1,13 @@
 // Render a saved workout back into the freeform note syntax the parser reads,
 // so "repeat last workout" can pre-fill the note box with editable text. This
 // is the inverse of workoutNoteParser: GeneratedWorkout -> "Bench Press 135x8, 155x6".
-import { CustomExercise, GeneratedWorkout, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
-import { getWorkoutByIdWithCustom } from '@/lib/workout/workouts';
+import { GeneratedWorkout, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
+import { getExercise } from '@/lib/workout/workouts';
 
 // Turn an exercise id into something human-readable, preferring the real name
 // but degrading to a title-cased id so a missing lookup never blanks the line.
-function resolveName(exerciseId: string, custom: CustomExercise[]): string {
-  const match = getWorkoutByIdWithCustom(exerciseId, custom);
+function resolveName(exerciseId: string): string {
+  const match = getExercise(exerciseId);
   if (match) return match.name;
   return exerciseId
     .split('-')
@@ -27,18 +27,18 @@ function formatSet(set: WorkoutSetCompletion): string | null {
   return null;
 }
 
-function formatExercise(exercise: WorkoutExerciseSession, custom: CustomExercise[]): string | null {
+function formatExercise(exercise: WorkoutExerciseSession): string | null {
   const sets = (exercise.completedSets || []).filter(s => s.completed);
   if (sets.length === 0) return null;
   const tokens = sets.map(formatSet).filter((t): t is string => t !== null);
   if (tokens.length === 0) return null;
-  return `${resolveName(exercise.id, custom)} ${tokens.join(', ')}`;
+  return `${resolveName(exercise.id)} ${tokens.join(', ')}`;
 }
 
 /** Format a saved workout as editable note text, one exercise per line. */
-export function workoutToNoteText(workout: GeneratedWorkout, custom: CustomExercise[] = []): string {
+export function workoutToNoteText(workout: GeneratedWorkout): string {
   return (workout.exercises || [])
-    .map(ex => formatExercise(ex, custom))
+    .map(ex => formatExercise(ex))
     .filter((line): line is string => line !== null)
     .join('\n');
 }
