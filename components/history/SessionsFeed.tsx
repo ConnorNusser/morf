@@ -7,21 +7,25 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
+import { NextMilestone } from '@/lib/history/milestones';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 const POS = '#34C759';
-const NEG = '#FF6B6B';
 
 const titleCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+// Asymmetric by design: a bigger session is celebrated (green), a lighter one is
+// stated neutrally, never punished with an alarm color. The research is clear that
+// "failure"-framed regressions drive avoidance, so a deload should read as information,
+// not a red mark.
 function DeltaPill({ pct }: { pct: number }) {
   const { currentTheme } = useTheme();
   if (pct === 0) return null;
   const up = pct > 0;
-  const color = up ? POS : NEG;
+  const color = up ? POS : currentTheme.colors.text + '70';
   return (
     <RNView style={styles.deltaRow}>
       <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
@@ -57,19 +61,23 @@ function SessionHero({ recap, weightUnit, onPress }: {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
   const isPR = !!recap.pr;
+  // The trophy is reserved for MAJOR records so celebration stays rare and meaningful
+  // (badge spam reads as childish and de-motivating past a point). Standard PRs still
+  // earn the narrative headline, just not the icon.
+  const showTrophy = recap.pr?.tier === 'major';
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={() => onPress(recap.workout)}
-      style={[styles.hero, { backgroundColor: colors.surface, borderColor: isPR ? colors.primary + '55' : colors.border }]}
+      style={[styles.hero, { backgroundColor: colors.surface, borderColor: showTrophy ? colors.primary + '55' : colors.border }]}
     >
       {/* eyebrow: when · what */}
       <RNView style={styles.heroEyebrow}>
         <Text style={[styles.eyebrowText, { color: colors.primary, fontFamily: fonts.semiBold }]}>
           {formatRelativeDate(recap.workout.createdAt).toUpperCase()} · {recap.title}
         </Text>
-        {isPR && (
+        {showTrophy && (
           <RNView style={[styles.prChip, { backgroundColor: colors.primary }]}>
             <Ionicons name="trophy" size={10} color="#fff" />
             <Text style={[styles.prChipText, { color: '#fff', fontFamily: fonts.semiBold }]}>PR</Text>
@@ -156,7 +164,7 @@ function MomentCard({ recap, weightUnit, onPress }: {
         <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]}>
           {formatRelativeDate(recap.workout.createdAt)} · {recap.title}
         </Text>
-        {recap.pr && (
+        {recap.pr?.tier === 'major' && (
           <RNView style={[styles.prDot, { backgroundColor: colors.primary }]}>
             <Ionicons name="trophy" size={9} color="#fff" />
           </RNView>
@@ -185,13 +193,15 @@ interface SessionsFeedProps {
   recaps: SessionRecap[];
   weightUnit: WeightUnit;
   visibleCount: number;
+  milestone?: NextMilestone | null;
   onPressSession: (w: GeneratedWorkout) => void;
   onToggleShowAll?: () => void;
   totalCount: number;
 }
 
-export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
+export default function SessionsFeed({ recaps, weightUnit, visibleCount, milestone, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
   const { currentTheme } = useTheme();
+  const { colors, fonts } = currentTheme;
   if (recaps.length === 0) return null;
 
   const [hero, ...rest] = recaps;
@@ -200,6 +210,17 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
 
   return (
     <RNView>
+      {/* Forward pull: the target you're closest to actually hitting (goal-gradient) —
+          turns looking back into a reason to come back. */}
+      {milestone && (
+        <RNView style={styles.milestone}>
+          <Ionicons name="flag" size={13} color={colors.primary} />
+          <Text style={[styles.milestoneText, { color: colors.text + 'CC', fontFamily: fonts.medium }]} numberOfLines={1}>
+            <Text style={{ color: colors.primary, fontFamily: fonts.semiBold }}>{milestone.gap} {milestone.unit}</Text>
+            {' '}from a {milestone.label}
+          </Text>
+        </RNView>
+      )}
       <SessionHero recap={hero} weightUnit={weightUnit} onPress={onPressSession} />
       {moments.length > 0 && (
         <RNView style={styles.momentsList}>
@@ -254,4 +275,6 @@ const styles = StyleSheet.create({
   momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
+  milestone: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  milestoneText: { fontSize: 13, flex: 1 },
 });

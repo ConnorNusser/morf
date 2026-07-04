@@ -3,6 +3,7 @@ import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
+import { nextMilestone } from '@/lib/history/milestones';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -140,6 +141,14 @@ export default function HistoryScreen() {
   const sessionRecaps = useMemo(
     () => buildSessionRecaps(workouts, customExercises, weightUnit),
     [workouts, customExercises, weightUnit]
+  );
+
+  // The nearest round/plate target across the user's lifts — a forward pull atop the
+  // reflective feed (goal-gradient). Computed from the same tracked stats as the rest
+  // of the tab, so it can only appear once a lift is genuinely close.
+  const milestone = useMemo(
+    () => nextMilestone(exerciseStats, weightUnit),
+    [exerciseStats, weightUnit]
   );
 
   // Calculate quick stats
@@ -349,6 +358,7 @@ export default function HistoryScreen() {
               <SessionsFeed
                 recaps={sessionRecaps}
                 weightUnit={weightUnit}
+                milestone={milestone}
                 visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
                 totalCount={sessionRecaps.length}
                 onPressSession={setSelectedWorkout}
