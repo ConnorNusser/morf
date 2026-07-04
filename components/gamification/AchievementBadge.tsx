@@ -2,15 +2,16 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
 
-// A flat, on-brand achievement badge: a tinted disc with a 1px accent border and
-// a monoline glyph — matching the app's border-first, single-color icon language
-// (Card / TierBadge / the profile emblem). Rarity is conveyed by color, not by
-// gloss or gradients (the app keeps those to data-viz only). Locked badges fall
-// back to the neutral theme border with a muted glyph; new ones get a 2px ring.
+// A flat, on-brand achievement badge: a tinted disc with a 1px accent border. When
+// the achievement has a bespoke RuneScape-themed emblem it renders that full-colour
+// art; otherwise it falls back to a monoline Ionicon in the rarity accent. Rarity is
+// conveyed by the ring colour. Locked badges are muted (border only, desaturated
+// emblem); new ones get a 2px ring.
 interface Props {
-  icon: string; // Ionicons name
+  icon: string; // Ionicons name (fallback)
+  emblem?: ImageSourcePropType; // bespoke art; takes precedence over the glyph
   rarity: Rarity;
   size?: number;
   unlocked?: boolean;
@@ -19,6 +20,7 @@ interface Props {
 
 export default function AchievementBadge({
   icon,
+  emblem,
   rarity,
   size = 44,
   unlocked = true,
@@ -46,7 +48,15 @@ export default function AchievementBadge({
         },
       ]}
     >
-      <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={glyphSize} color={glyphColor} />
+      {emblem ? (
+        <Image
+          source={emblem}
+          style={{ width: size * 0.72, height: size * 0.72, opacity: unlocked ? 1 : 0.35 }}
+          resizeMode="contain"
+        />
+      ) : (
+        <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={glyphSize} color={glyphColor} />
+      )}
     </View>
   );
 }

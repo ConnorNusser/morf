@@ -21,10 +21,11 @@ import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 
@@ -183,7 +184,7 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
       </View>
       {shown.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
-          <AchievementBadge icon={a.icon} rarity={a.rarity} size={38} />
+          <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={38} />
           <View style={styles.celebrateText}>
             <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
             <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
@@ -226,6 +227,7 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
   if (!nextUp) return null;
   const accent = currentTheme.colors.primary;
   const frame = { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border };
+  const nextEmblem = emblemFor(nextUp.id);
   return (
     <FlipCard
       height={76}
@@ -233,7 +235,11 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
       front={
         <View style={[styles.nextFaceFrame, frame]}>
           <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
-            <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={20} color={accent} />
+            {nextEmblem ? (
+              <Image source={nextEmblem} style={styles.nextEmblem} resizeMode="contain" />
+            ) : (
+              <Ionicons name={nextUp.icon as keyof typeof Ionicons.glyphMap} size={20} color={accent} />
+            )}
           </View>
           <View style={styles.nextBody}>
             <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>NEXT GOAL</Text>
@@ -732,6 +738,7 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
       <View style={styles.achTileTop}>
         <AchievementBadge
           icon={display.icon}
+          emblem={emblemFor(achievement.id)}
           rarity={achievement.rarity}
           unlocked={achievement.unlocked}
           isNew={isNew}
@@ -873,6 +880,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   nextIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  nextEmblem: { width: 30, height: 30 },
   nextBody: { flex: 1 },
   nextLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   nextTitle: { fontSize: 15, fontWeight: '600', marginTop: 1, marginBottom: 6 },

@@ -68,6 +68,7 @@ export default function WorkoutScreen() {
     loadDraftFromText,
     loadDraftFromRoutine,
     editSet,
+    cascadeSet,
     addSetTo,
     removeSetFrom,
     toggleSetDone,
@@ -92,6 +93,10 @@ export default function WorkoutScreen() {
     customExercises,
   } = useWorkoutNoteSession();
   const { showAlert } = useAlert();
+  // Always-current draft, so imperative handlers (number pad) can read the latest
+  // sets without stale-closure surprises.
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   // Composer collapses to floating compose + mic buttons; opens to the full bar.
   const [composerOpen, setComposerOpen] = useState(false);
@@ -283,9 +288,19 @@ export default function WorkoutScreen() {
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   // Which set field the custom number pad is editing.
   const [editing, setEditing] = useState<{ key: string; index: number; field: 'weight' | 'reps' } | null>(null);
+  // The edited set's weight/reps captured *before* editing, so on Done we know the
+  // old value to cascade from (see handleNumberPadDone → cascadeSetField).
+  const editOrigin = useRef<{ key: string; index: number; weight: number; reps: number } | null>(null);
   const openNumberPad = useCallback((key: string, index: number, field: 'weight' | 'reps') => {
     Keyboard.dismiss();
     playHapticFeedback('light', false);
+    // Snapshot the pre-edit values once per set (weight → Next → reps keeps the
+    // same origin); re-tapping a different set refreshes it.
+    const o = editOrigin.current;
+    if (!o || o.key !== key || o.index !== index) {
+      const s = draftRef.current.find(e => e.key === key)?.sets[index];
+      editOrigin.current = { key, index, weight: s?.weight ?? 0, reps: s?.reps ?? 0 };
+    }
     setEditing({ key, index, field });
   }, []);
 
@@ -313,6 +328,12 @@ export default function WorkoutScreen() {
   const handleNumberPadDone = useCallback(() => {
     if (!editing) return;
     if (editing.field === 'weight') mirrorRepsToWeight(editing.key, editing.index);
+    // Cascade the just-entered weight×reps onto the matching target sets below.
+    const origin = editOrigin.current;
+    if (origin && origin.key === editing.key && origin.index === editing.index) {
+      cascadeSet(editing.key, editing.index, origin.weight, origin.reps);
+    }
+    editOrigin.current = null;
     const ex = draft.find(e => e.key === editing.key);
     const set = ex?.sets[editing.index];
     if (set && !set.done) {
@@ -321,7 +342,7 @@ export default function WorkoutScreen() {
       if (isLastRemainingSet(draft, editing.key, editing.index)) addSetTo(editing.key);
     }
     setEditing(null);
-  }, [editing, draft, editSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
+  }, [editing, draft, editSet, cascadeSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
