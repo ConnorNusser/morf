@@ -132,7 +132,7 @@ export default function ProfileScreen() {
 
         {/* Social Button */}
         <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+          style={styles.socialButton}
           onPress={() => setShowSocialModal(true)}
           activeOpacity={0.7}
         >
@@ -237,10 +237,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 12,
   },
   socialButtonContent: {
     flexDirection: 'row',

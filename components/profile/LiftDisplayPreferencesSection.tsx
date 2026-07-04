@@ -204,10 +204,15 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                   style={[
                     styles.liftItem,
                     {
-                      backgroundColor: isHidden 
-                        ? currentTheme.colors.background
-                        : currentTheme.colors.primary + '08',
-                      borderColor: currentTheme.colors.border + '30',
+                      // Shown = a faint primary tint; hidden = plain surface. Both keep a
+                      // full-alpha border so the rows read as distinct tappable items on
+                      // the flat page.
+                      backgroundColor: isHidden
+                        ? currentTheme.colors.surface
+                        : currentTheme.colors.primary + '18',
+                      borderColor: isHidden
+                        ? currentTheme.colors.border
+                        : currentTheme.colors.primary,
                     }
                   ]}
                   onPress={() => toggleLiftVisibility(lift.workoutId)}

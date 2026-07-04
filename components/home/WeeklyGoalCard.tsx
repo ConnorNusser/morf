@@ -209,7 +209,7 @@ export default function WeeklyGoalCard() {
                       styles.option,
                       selected
                         ? { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }
-                        : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
+                        : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
                     ]}
                   >
                     <Text

@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
   chartContainer: {
     marginTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    borderTopColor: 'rgba(255,255,255,0.08)',
     paddingTop: 8,
   },
   chartLoading: {
