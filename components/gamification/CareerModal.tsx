@@ -21,6 +21,7 @@ import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -183,7 +184,7 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
       </View>
       {shown.map(a => (
         <View key={a.id} style={styles.celebrateRow}>
-          <AchievementBadge icon={a.icon} rarity={a.rarity} size={38} />
+          <AchievementBadge icon={a.icon} emblem={ACHIEVEMENT_EMBLEMS[a.id]} rarity={a.rarity} size={38} />
           <View style={styles.celebrateText}>
             <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
             <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
@@ -732,6 +733,7 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
       <View style={styles.achTileTop}>
         <AchievementBadge
           icon={display.icon}
+          emblem={ACHIEVEMENT_EMBLEMS[achievement.id]}
           rarity={achievement.rarity}
           unlocked={achievement.unlocked}
           isNew={isNew}
