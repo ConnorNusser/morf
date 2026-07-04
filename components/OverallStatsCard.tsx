@@ -55,7 +55,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
       <View style={styles.progressContainer}>
         <ProgressBar
           progress={percentile}
-          height={12}
+          height={10}
           style={styles.progressBar}
           showTicks={true}
           exerciseName="Overall Strength"
@@ -81,38 +81,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   statBlock: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 36,
+    fontSize: 30,
     fontWeight: 'bold',
-    lineHeight: 40,
+    lineHeight: 32,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     opacity: 0.7,
   },
   progressContainer: {
-    marginTop: 8,
+    marginTop: 4,
   },
   progressBar: {
-    marginBottom: 8,
+    marginBottom: 4,
   },
   progressLabel: {
-    fontSize: 12,
+    fontSize: 11,
     opacity: 0.6,
     textAlign: 'center',
   },

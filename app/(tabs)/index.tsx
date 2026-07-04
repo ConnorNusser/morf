@@ -5,6 +5,7 @@ import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import LiftDisplayFilter from "@/components/LiftDisplayFilter";
 import OverallStatsCard from "@/components/OverallStatsCard";
+import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -18,6 +19,8 @@ import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
+import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
+import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
@@ -29,7 +32,12 @@ import {
 import { gap, layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import { LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
+import {
+  GeneratedWorkout,
+  LiftDisplayFilters,
+  RemoteUser,
+  UserProgress,
+} from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -66,6 +74,7 @@ export default function HomeScreen() {
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
 
   const filteredProgress = useMemo(
     () =>
@@ -84,6 +93,25 @@ export default function HomeScreen() {
       improvementTrend: "improving" as const,
     };
   }, [filteredProgress]);
+
+  // Powerlifting "big 3" total — combined best e1RM of squat + bench + deadlift,
+  // computed in lb (the 1,000 lb club is an absolute lb milestone). Reuses the
+  // same PR + feat math the Career screen does; no new tracking.
+  const powerliftingTotal = useMemo(() => {
+    if (!workoutHistory.length) return null;
+    const prsLbs = computeMainLiftPRs(workoutHistory, "lbs");
+    const feats = computeStrengthFeats(prsLbs);
+    const total = feats[0]?.current ?? 0;
+    if (total <= 0) return null;
+    const next = feats.find((f) => !f.unlocked) ?? feats[feats.length - 1];
+    return {
+      total,
+      milestoneTarget: next.target,
+      remaining: Math.max(0, next.target - total),
+      progress: next.progress,
+      allUnlocked: feats.every((f) => f.unlocked),
+    };
+  }, [workoutHistory]);
 
   // Load saved view mode on mount
   useEffect(() => {
@@ -110,6 +138,7 @@ export default function HomeScreen() {
 
       setUserProgress(userProgressData);
       setLiftFilters(savedFilters);
+      setWorkoutHistory(history);
 
       const unit = profile?.weightUnitPreference || "lbs";
 
@@ -292,8 +321,6 @@ export default function HomeScreen() {
           <WeeklyGoalCard />
           <TodayCard />
 
-          <OverallStatsCard stats={overallStats} />
-
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => setShowLeaderboard(true)}
@@ -316,6 +343,10 @@ export default function HomeScreen() {
               color={currentTheme.colors.text + "60"}
             />
           </TouchableOpacity>
+
+          <OverallStatsCard stats={overallStats} />
+
+          {powerliftingTotal && <PowerliftingTotal data={powerliftingTotal} />}
 
           {userProgress.length > 0 && (
             <>

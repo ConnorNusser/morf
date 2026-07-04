@@ -5,7 +5,6 @@ import SessionsFeed from '@/components/history/SessionsFeed';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import { buildLiftProgressions } from '@/lib/history/liftProgress';
-import { nextMilestone } from '@/lib/history/milestones';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -158,68 +157,6 @@ export default function HistoryScreen() {
     [workouts, exerciseStats, weightUnit]
   );
 
-  // The nearest round/plate target across the user's lifts — a forward pull atop the
-  // reflective feed (goal-gradient). Computed from the same tracked stats as the rest
-  // of the tab, so it can only appear once a lift is genuinely close.
-  const milestone = useMemo(
-    () => nextMilestone(exerciseStats, weightUnit),
-    [exerciseStats, weightUnit]
-  );
-
-  // Calculate quick stats
-  const quickStats = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // This month's workouts
-    const thisMonthWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfMonth);
-
-    // Calculate streak as consecutive WEEKS with at least one workout. A day-based
-    // streak is meaningless for lifting, where rest days are mandatory — a normal
-    // 3x/week program would never exceed a 1-day streak. Weeks start Sunday, matching
-    // startOfWeek above.
-    let streak = 0;
-    // The Sunday (midnight) that starts the week containing `d`.
-    const weekStartOf = (d: Date) => {
-      const s = new Date(d);
-      s.setHours(0, 0, 0, 0);
-      s.setDate(s.getDate() - s.getDay());
-      return s;
-    };
-    const weekKey = (d: Date) => {
-      const s = weekStartOf(d);
-      return `${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`;
-    };
-
-    if (workouts.length > 0) {
-      const workoutWeeks = new Set<string>();
-      workouts.forEach(w => workoutWeeks.add(weekKey(new Date(w.createdAt))));
-
-      const thisWeek = weekStartOf(now);
-      const lastWeek = new Date(thisWeek);
-      lastWeek.setDate(lastWeek.getDate() - 7);
-
-      // Start at this week if it has a workout; otherwise last week, since the current
-      // week isn't over yet and shouldn't break a streak prematurely.
-      let cursor: Date | null = workoutWeeks.has(weekKey(thisWeek))
-        ? thisWeek
-        : workoutWeeks.has(weekKey(lastWeek))
-          ? lastWeek
-          : null;
-
-      while (cursor && workoutWeeks.has(weekKey(cursor))) {
-        streak++;
-        cursor = new Date(cursor);
-        cursor.setDate(cursor.getDate() - 7);
-      }
-    }
-
-    return {
-      streak,
-      thisMonth: thisMonthWorkouts.length,
-    };
-  }, [workouts]);
-
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
   const trackedExercises = useMemo(() =>
@@ -353,23 +290,6 @@ export default function HistoryScreen() {
                 of the tab. */}
             <LiftProgressWidget lifts={liftProgress} />
 
-            {/* Streak status line — a small motivational anchor above the feed. Keeps only
-                what WeeklyOverview (further down) does not already own: the multi-week streak,
-                else a month / all-time roll-up. */}
-            {workouts.length > 0 && (
-              <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
-                {quickStats.streak > 0 ? (
-                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                    {quickStats.streak} week streak
-                  </Text>
-                ) : (
-                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                    {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
-                  </Text>
-                )}
-              </View>
-            )}
-
             {/* Sessions feed — History's reflective centerpiece. The latest workout gets
                 a cinematic recap (narrative headline + the standout set + how it stacks up),
                 past sessions follow as re-livable moment cards. Replaces the abstract
@@ -378,7 +298,6 @@ export default function HistoryScreen() {
               <SessionsFeed
                 recaps={sessionRecaps}
                 weightUnit={weightUnit}
-                milestone={milestone}
                 visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
                 totalCount={sessionRecaps.length}
                 onPressSession={setSelectedWorkout}
@@ -720,16 +639,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 120,
-  },
-  // Quick stats inline
-  quickStatsInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  quickStatInlineText: {
-    fontSize: 13,
   },
   // Exercises tab: overview + search + sort
   exerciseSummary: {

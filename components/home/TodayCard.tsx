@@ -229,7 +229,7 @@ export default function TodayCard() {
   return (
     <>
     <TouchableOpacity activeOpacity={0.9} onPress={() => setShowOverview(true)}>
-    <Card variant="elevated">
+    <Card variant="elevated" padding={8}>
       <View style={styles.headerRow}>
         <Text
           numberOfLines={1}
@@ -239,11 +239,11 @@ export default function TodayCard() {
         </Text>
         {days.length > 1 && (
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-              <Ionicons name="chevron-back" size={22} color={currentTheme.colors.text} />
+            <TouchableOpacity onPress={() => flip(-1)} hitSlop={10} style={styles.pagerBtn} activeOpacity={0.5}>
+              <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text + "99"} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => flip(1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-              <Ionicons name="chevron-forward" size={22} color={currentTheme.colors.text} />
+            <TouchableOpacity onPress={() => flip(1)} hitSlop={10} style={styles.pagerBtn} activeOpacity={0.5}>
+              <Ionicons name="chevron-forward" size={20} color={currentTheme.colors.text + "99"} />
             </TouchableOpacity>
           </View>
         )}
@@ -357,18 +357,19 @@ const styles = StyleSheet.create({
   },
   routineName: {
     fontSize: 20,
-    marginTop: 2,
     fontWeight: "700",
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginTop: -2,
   },
   navRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 2,
+    marginRight: -4,
   },
   subRow: {
     flexDirection: "row",
@@ -378,6 +379,7 @@ const styles = StyleSheet.create({
   },
   pagerBtn: {
     paddingVertical: 2,
+    paddingHorizontal: 2,
   },
   dots: {
     flexDirection: "row",
