@@ -2,7 +2,9 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
+import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
+import { buildLiftProgressions } from '@/lib/history/liftProgress';
 import { nextMilestone } from '@/lib/history/milestones';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
@@ -141,6 +143,19 @@ export default function HistoryScreen() {
   const sessionRecaps = useMemo(
     () => buildSessionRecaps(workouts, customExercises, weightUnit),
     [workouts, customExercises, weightUnit]
+  );
+
+  // Per-lift progression widget: best set per month for the lifts you've trained,
+  // most-recent first, capped so it stays a glanceable panel.
+  const liftProgress = useMemo(
+    () =>
+      buildLiftProgressions(
+        workouts,
+        exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
+        weightUnit,
+        4,
+      ).slice(0, 8),
+    [workouts, exerciseStats, weightUnit]
   );
 
   // The nearest round/plate target across the user's lifts — a forward pull atop the
@@ -333,6 +348,11 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
+            {/* Per-lift progression — best set per month across time, right-aligned so
+                the latest lines up down the right edge. A full-width widget at the top
+                of the tab. */}
+            <LiftProgressWidget lifts={liftProgress} />
+
             {/* Streak status line — a small motivational anchor above the feed. Keeps only
                 what WeeklyOverview (further down) does not already own: the multi-week streak,
                 else a month / all-time roll-up. */}

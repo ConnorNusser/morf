@@ -109,11 +109,8 @@ export default function WeeklyGoalCard() {
   return (
     <>
     <TouchableOpacity
-      style={[
-        styles.card,
-        { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
-      ]}
-      activeOpacity={0.85}
+      style={styles.card}
+      activeOpacity={0.7}
       onPress={() => setOverviewOpen(true)}
     >
       <View style={styles.header}>
@@ -238,17 +235,17 @@ export default function WeeklyGoalCard() {
 }
 
 const styles = StyleSheet.create({
+  // Flat: no surface/border/radius — reads as inline content and saves the card's
+  // padding + chrome height.
   card: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 2,
+    paddingVertical: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
     fontSize: 15,
@@ -284,8 +281,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {
