@@ -391,7 +391,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: 20,
-    gap: 20,
+    gap: 14,
   },
   feedHeader: {
     paddingHorizontal: 20,

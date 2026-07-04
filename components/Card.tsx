@@ -13,7 +13,7 @@ function Card({
   children,
   style,
   variant = 'surface',
-  padding = 20,
+  padding = 12,
 }: CardProps) {
   const { currentTheme } = useTheme();
 

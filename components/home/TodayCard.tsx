@@ -230,16 +230,6 @@ export default function TodayCard() {
     <>
     <TouchableOpacity activeOpacity={0.9} onPress={() => setShowOverview(true)}>
     <Card variant="elevated">
-      <Text
-        style={[
-          styles.eyebrow,
-          {
-            color: currentTheme.colors.text,
-          },
-        ]}
-      >
-        {(trainedToday ? "DONE TODAY" : "TODAY") + (label ? ` · ${label.toUpperCase()}` : "")}
-      </Text>
       <View style={styles.pagerRow}>
         {days.length > 1 && (
           <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
@@ -252,7 +242,7 @@ export default function TodayCard() {
             styles.routineName,
             {
               color: currentTheme.colors.text,
-              flex: 1,
+              flexShrink: 1,
               textAlign: days.length > 1 ? "center" : "left",
             },
           ]}
@@ -327,13 +317,15 @@ export default function TodayCard() {
         style={[
           styles.primaryButton,
           {
-            backgroundColor: trainedToday
-              ? currentTheme.colors.secondary
+            backgroundColor: "transparent",
+            borderWidth: 1.5,
+            borderColor: trainedToday
+              ? currentTheme.colors.border
               : currentTheme.colors.primary,
           },
         ]}
         onPress={handleStart}
-        activeOpacity={0.85}
+        activeOpacity={0.7}
       >
         <Text
           style={[
@@ -341,7 +333,7 @@ export default function TodayCard() {
             {
               color: trainedToday
                 ? currentTheme.colors.text
-                : currentTheme.colors.surface,
+                : currentTheme.colors.primary,
             },
           ]}
         >
@@ -385,7 +377,8 @@ const styles = StyleSheet.create({
   pagerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
+    gap: 10,
   },
   pagerBtn: {
     paddingVertical: 2,
