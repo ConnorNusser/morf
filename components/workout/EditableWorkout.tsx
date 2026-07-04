@@ -7,7 +7,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { DraftExercise, DraftSet, WorkoutDraft, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
+import { DraftExercise, WorkoutDraft, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -26,10 +26,6 @@ interface EditableWorkoutProps {
   onRemoveExercise: (key: string) => void;
   // Fired when the user starts dragging the list — used to collapse the composer.
   onScrollBeginDrag?: () => void;
-}
-
-function refSummary(set: DraftSet, unit: WeightUnit): string {
-  return set.weight > 0 ? `${set.weight}${unit}×${set.reps}` : `×${set.reps}`;
 }
 
 // A flat, underlined value that opens the custom number pad on tap (no OS
@@ -57,17 +53,6 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   const { currentTheme } = useTheme();
   const text = currentTheme.colors.text;
 
-  // One reference shown at a time; the column header flips between them.
-  const hasTarget = !!exercise.target?.length;
-  const hasPrevious = !!exercise.previous?.length;
-  const hasRef = hasTarget || hasPrevious;
-  const [refMode, setRefMode] = React.useState<'target' | 'previous'>(hasTarget ? 'target' : 'previous');
-  const canFlip = hasTarget && hasPrevious;
-  const activeMode: 'target' | 'previous' = refMode === 'target' && hasTarget ? 'target' : hasPrevious ? 'previous' : 'target';
-  const activeRef = activeMode === 'target' ? exercise.target : exercise.previous;
-  const refLabel = activeMode === 'target' ? 'Target' : 'Last time';
-  const flipRef = () => { if (canFlip) { playHapticFeedback('light', false); setRefMode(m => (m === 'target' ? 'previous' : 'target')); } };
-
   return (
     <RNView style={styles.section}>
       <TouchableOpacity
@@ -79,24 +64,16 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
         </Text>
       </TouchableOpacity>
 
-      {/* Column header: check spacer · lbs · reps · target/prev toggle (right) */}
+      {/* Column header: check spacer · lbs · reps · (spacer) · remove spacer */}
       <RNView style={styles.colHeader}>
         <RNView style={styles.checkCol} />
         <Text style={[styles.colLabelCol, { color: text + '55' }]}>{weightUnit}</Text>
         <Text style={[styles.colLabelCol, { color: text + '55' }]}>reps</Text>
-        {hasRef ? (
-          <TouchableOpacity style={styles.refToggle} onPress={flipRef} activeOpacity={canFlip ? 0.6 : 1}>
-            <Text style={[styles.colLabel, { color: text + '99' }]}>{refLabel}</Text>
-            {canFlip && <Ionicons name="swap-horizontal" size={13} color={text + '99'} style={{ marginLeft: 3 }} />}
-          </TouchableOpacity>
-        ) : (
-          <RNView style={styles.refToggle} />
-        )}
+        <RNView style={{ flex: 1 }} />
         <RNView style={styles.removeCol} />
       </RNView>
 
       {exercise.sets.map((set, i) => {
-            const ref = activeRef?.[i];
             return (
               <RNView
                 key={i}
@@ -121,11 +98,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
                   onPress={() => onEditField(exercise.key, i, 'reps')}
                   theme={currentTheme}
                 />
-                {ref ? (
-                  <Text style={[styles.ghost, { color: text + '55' }]} numberOfLines={1}>{refSummary(ref, weightUnit)}</Text>
-                ) : (
-                  <RNView style={{ flex: 1 }} />
-                )}
+                <RNView style={{ flex: 1 }} />
                 <TouchableOpacity
                   hitSlop={8}
                   style={styles.removeCol}
@@ -191,8 +164,6 @@ const styles = StyleSheet.create({
 
   colHeader: { flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingBottom: 4 },
   checkCol: { width: CHECK_W, alignItems: 'center', justifyContent: 'center' },
-  refToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
-  colLabel: { fontSize: 12 },
   colLabelCol: { width: FIELD_W, textAlign: 'center', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 },
   removeCol: { width: REMOVE_W, alignItems: 'center' },
 
@@ -205,7 +176,6 @@ const styles = StyleSheet.create({
     marginHorizontal: -6,
     borderRadius: 8,
   },
-  ghost: { flex: 1, fontSize: 12, textAlign: 'right' },
   field: { width: FIELD_W, alignItems: 'center', borderBottomWidth: 1, borderRadius: 6, paddingVertical: 4 },
   fieldValue: { fontSize: 17 },
 

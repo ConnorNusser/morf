@@ -279,7 +279,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         unit: set.unit,
         duration: set.duration,
         distance: set.distance,
-        completed: true,
+        // Honor the per-set check-off. Freeform-logged sets carry no completed flag
+        // (undefined) and count as done; a check-off set left unchecked is `false`
+        // and must NOT inflate the summary. Mirrors the persistence rule so the finish
+        // screen matches what actually gets saved.
+        completed: set.completed ?? true,
       })),
     }));
 
@@ -480,24 +484,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     </View>
 
                     <View style={styles.setsContainer}>
-                      {exercise.targetSets && exercise.targetSets.length > 0 && (
-                        <View style={styles.setsSection}>
-                          <Text style={[styles.sectionLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
-                            Target
-                          </Text>
-                          {exercise.targetSets.map((set, setIndex) => (
-                            <View key={setIndex} style={styles.setRow}>
-                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
-                                Set {setIndex + 1}
-                              </Text>
-                              <Text style={[styles.setDetails, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
-                                {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
-                              </Text>
-                            </View>
-                          ))}
-                        </View>
-                      )}
-
                       {exercise.sets && exercise.sets.length > 0 && (
                         <View style={styles.setsSection}>
                           {exercise.sets.map((set, setIndex) => (
@@ -737,12 +723,6 @@ const styles = StyleSheet.create({
   },
   setsSection: {
     gap: 4,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 4,
   },
 });
 

@@ -5,6 +5,7 @@ import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
 import WorkoutNoteInput, { WorkoutNoteInputRef } from '@/components/workout/WorkoutNoteInput';
 import EditableWorkout from '@/components/workout/EditableWorkout';
 import { draftToParsedWorkout, type DraftExercise } from '@/lib/workout/workoutDraft';
+import type { CalculatedRoutine } from '@/types';
 import RecentWorkouts from '@/components/workout/RecentWorkouts';
 import PredictiveCard from '@/components/workout/PredictiveCard';
 import NumberPad from '@/components/workout/NumberPad';
@@ -65,6 +66,7 @@ export default function WorkoutScreen() {
     commitText,
     draft,
     loadDraftFromText,
+    loadDraftFromRoutine,
     editSet,
     addSetTo,
     removeSetFrom,
@@ -287,10 +289,30 @@ export default function WorkoutScreen() {
     setEditing({ key, index, field });
   }, []);
 
+  // Hevy-style rep mirroring: when a set's weight settles, tie its reps to the set
+  // directly above IFF the weights match (same working load) or the weight is 0
+  // (bodyweight / not-yet-entered). Matching → mirror the row above's reps; diverging
+  // → clear the reps that were merely auto-copied from that row (leaving user-entered
+  // reps untouched), so you fill in the new number. Runs when leaving the weight field.
+  const mirrorRepsToWeight = useCallback((key: string, index: number) => {
+    if (index <= 0) return;
+    const ex = draft.find(e => e.key === key);
+    const set = ex?.sets[index];
+    const above = ex?.sets[index - 1];
+    if (!set || !above) return;
+    if (set.weight === above.weight || set.weight === 0) {
+      if (set.reps !== above.reps) editSet(key, index, { reps: above.reps });
+    } else if (set.reps === above.reps) {
+      // reps are a stale copy of the row above, not something you typed — clear them
+      editSet(key, index, { reps: 0 });
+    }
+  }, [draft, editSet]);
+
   // Tapping "Done" on the number pad finalizes the set: check it off (starting
   // rest) and close the pad. The pad has already flushed the typed value.
   const handleNumberPadDone = useCallback(() => {
     if (!editing) return;
+    if (editing.field === 'weight') mirrorRepsToWeight(editing.key, editing.index);
     const ex = draft.find(e => e.key === editing.key);
     const set = ex?.sets[editing.index];
     if (set && !set.done) {
@@ -299,7 +321,7 @@ export default function WorkoutScreen() {
       if (isLastRemainingSet(draft, editing.key, editing.index)) addSetTo(editing.key);
     }
     setEditing(null);
-  }, [editing, draft, editSet, startRestTimer, addSetTo]);
+  }, [editing, draft, editSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -307,11 +329,12 @@ export default function WorkoutScreen() {
     setShowPlanBuilder(false);
   }, [loadDraftFromText]);
 
-  // Handle routine import
-  const handleRoutineImport = useCallback((text: string, _routineId: string) => {
-    loadDraftFromText(text, { asTarget: true });
+  // Handle routine import — structured (uses the routine's resolved exerciseIds),
+  // no text round-trip that could re-resolve names to the wrong equipment.
+  const handleRoutineImport = useCallback((routine: CalculatedRoutine) => {
+    loadDraftFromRoutine(routine);
     setShowRoutineImport(false);
-  }, [loadDraftFromText]);
+  }, [loadDraftFromRoutine]);
 
   // Handle timer tap - toggle expansion and start rest if not resting
   const handleTimerTap = useCallback(() => {
@@ -635,7 +658,7 @@ export default function WorkoutScreen() {
             increments={isWeight ? (weightUnit === 'kg' ? [-5, -2.5, 2.5, 5] : [-10, -5, 5, 10]) : [-1, 1, 2, 5]}
             hasNext={isWeight}
             onChange={n => editSet(editing.key, editing.index, { [editing.field]: n })}
-            onNext={() => setEditing(e => (e ? { ...e, field: 'reps' } : e))}
+            onNext={() => { mirrorRepsToWeight(editing.key, editing.index); setEditing(e => (e ? { ...e, field: 'reps' } : e)); }}
             onDone={handleNumberPadDone}
             onClose={() => setEditing(null)}
           />

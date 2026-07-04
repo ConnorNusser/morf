@@ -20,8 +20,6 @@ export interface DraftExercise {
   exerciseId?: string; // matched catalog/custom id, if recognized
   recognized: boolean;
   sets: DraftSet[];
-  previous?: DraftSet[]; // last time's sets — per-set ghost + autofill
-  target?: DraftSet[]; // prescribed sets when following a routine — ghost + autofill
 }
 
 export type WorkoutDraft = DraftExercise[];
@@ -72,28 +70,23 @@ export function draftFromParsed(parsed: ParsedWorkout): WorkoutDraft {
 }
 
 /**
- * Build a draft from a parsed workout, attaching references. When `asTarget`,
- * the parsed sets become the prescription (target) and working sets start empty
- * so the user fills from target/previous; otherwise they're the working sets.
+ * Build a draft from a parsed workout. When `asTarget` (following a routine),
+ * the parsed sets are the prescription: they pre-fill the working sets un-done
+ * so there's nothing to tap — you just adjust and check off.
  */
 export function buildDraft(
   parsed: ParsedWorkout,
-  opts: { asTarget?: boolean; previousFor?: (exerciseId: string | undefined, name: string) => DraftSet[] | null } = {},
+  opts: { asTarget?: boolean } = {},
 ): WorkoutDraft {
   return parsed.exercises.map(pex => {
     const name = displayName(pex);
     const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }));
-    const previous = opts.previousFor?.(pex.matchedExerciseId, name) ?? undefined;
     return {
       key: nextKey(),
       name,
       exerciseId: pex.matchedExerciseId,
       recognized: !!pex.matchedExerciseId && !pex.isCustom,
-      // Following a routine: pre-fill the working sets from the prescription (and
-      // keep it as the target ghost) so there's nothing to tap — you just adjust.
       sets: opts.asTarget ? sets.map(s => ({ ...s, done: false })) : sets,
-      target: opts.asTarget ? sets : undefined,
-      previous,
     };
   });
 }
@@ -126,12 +119,6 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
       sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: !!s.done })),
-      // Carry the routine prescription through so progression can compare actual
-      // vs target. Without this, targetSets is lost and a missed session reads as
-      // a success (defaults to "passed"), wrongly adding a rep.
-      targetSets: ex.target?.length
-        ? ex.target.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }))
-        : undefined,
     }));
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
 }
@@ -142,8 +129,8 @@ export function totalVolume(draft: WorkoutDraft): number {
 }
 
 /**
- * Add a recognized exercise the user named without any sets yet, attaching a
- * "last time" suggestion for one-tap autofill. No-op if it's already present.
+ * Add a recognized exercise the user named without any sets yet, pre-filling its
+ * sets from the best reference (prescription, else last time). No-op if present.
  */
 export function addNamedExercise(
   draft: WorkoutDraft,
@@ -162,32 +149,8 @@ export function addNamedExercise(
       exerciseId: exercise.exerciseId,
       recognized: exercise.recognized,
       sets: ref?.length ? ref.map(s => ({ ...s, done: false })) : [],
-      previous: exercise.previous,
-      target: exercise.target,
     },
   ];
-}
-
-export type ReferenceSource = 'previous' | 'target';
-
-/** Autofill an exercise's sets from a reference (last time or the prescription).
- *  The reference is kept so it can still show as a per-set ghost afterward. */
-export function applyReference(draft: WorkoutDraft, key: string, source: ReferenceSource): WorkoutDraft {
-  return mapExercise(draft, key, ex => {
-    const ref = source === 'target' ? ex.target : ex.previous;
-    return ref && ref.length ? { ...ex, sets: ref.map(s => ({ ...s, done: false })) } : ex;
-  });
-}
-
-/** Attach a "previous" reference to recognized exercises that don't have one. */
-export function attachPrevious(
-  draft: WorkoutDraft,
-  previousFor: (exerciseId: string, name: string) => DraftSet[] | null,
-): WorkoutDraft {
-  return draft.map(ex => {
-    if (ex.previous || !ex.exerciseId) return ex;
-    return { ...ex, previous: previousFor(ex.exerciseId, ex.name) ?? undefined };
-  });
 }
 
 // ---- immutable edit helpers (traditional-UI editing of the cards) ----

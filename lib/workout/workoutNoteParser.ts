@@ -25,7 +25,6 @@ export interface ParsedExercise {
   isCustom: boolean;
   trackingType?: 'reps' | 'timed' | 'cardio';
   sets: ParsedSet[]; // Actual working sets performed
-  targetSets?: ParsedSet[]; // Target sets from "Target:" lines
 }
 
 export interface ParsedWorkout {
@@ -38,7 +37,6 @@ export interface ParsedExerciseSummary {
   name: string;
   setCount: number;
   sets: ParsedSet[]; // Actual working sets
-  targetSets?: ParsedSet[]; // Target sets from "Target:" lines
   matchedExerciseId?: string; // ID of the matched exercise from database
   isCustom?: boolean; // Whether this is a custom exercise
   trackingType?: 'reps' | 'timed' | 'cardio';
@@ -55,13 +53,6 @@ interface AIParseResponse {
       unit: 'lbs' | 'kg';
       duration?: number;  // seconds
       distance?: number;  // meters
-    }[];
-    targetSets?: {
-      weight: number;
-      reps: number;
-      unit: 'lbs' | 'kg';
-      duration?: number;
-      distance?: number;
     }[];
   }[];
   confidence: number;
@@ -176,7 +167,6 @@ class WorkoutNoteParser {
           isCustom: match ? match.isCustom : true,
           trackingType: ex.trackingType,
           sets: (ex.sets || []).map(mapSet),
-          targetSets: ex.targetSets?.map(mapSet),
         });
       }
 
@@ -286,19 +276,11 @@ class WorkoutNoteParser {
         const existing = consolidatedMap.get(normalizedName)!;
         existing.sets = [...existing.sets, ...ex.sets];
         existing.setCount = existing.sets.length;
-
-        if (ex.targetSets) {
-          existing.targetSets = [
-            ...(existing.targetSets || []),
-            ...ex.targetSets,
-          ];
-        }
       } else {
         consolidatedMap.set(normalizedName, {
           name: displayName,
           setCount: ex.sets.length,
           sets: [...ex.sets],
-          targetSets: ex.targetSets ? [...ex.targetSets] : undefined,
           matchedExerciseId: ex.matchedExerciseId,
           isCustom: ex.isCustom,
           trackingType: ex.trackingType,
@@ -366,15 +348,6 @@ class WorkoutNoteParser {
         distance: set.distance,
       }));
 
-      // Convert targetSets to WorkoutSetCompletion format
-      const targetSets: WorkoutSetCompletion[] | undefined = ex.targetSets?.map((set, setIndex) => ({
-        setNumber: setIndex + 1,
-        weight: set.weight,
-        reps: set.reps,
-        unit: set.unit,
-        completed: false,
-      }));
-
       // Use mapped ID or generate from name as final fallback
       const finalId = exerciseIdMap.get(index) || exerciseNameToId(ex.name);
 
@@ -383,7 +356,6 @@ class WorkoutNoteParser {
         sets: ex.sets.length,
         reps: ex.sets.length > 0 ? String(ex.sets[0].reps) : '0',
         completedSets,
-        targetSets,
         // Completion derives from the sets themselves — an exercise counts as done
         // only when at least one working set was actually checked off.
         isCompleted: completedSets.some(s => s.completed && s.weight > 0),

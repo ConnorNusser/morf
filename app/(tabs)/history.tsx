@@ -3,18 +3,25 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import HistoryHero from '@/components/history/HistoryHero';
-import MuscleFocusWidget from '@/components/history/MuscleFocusWidget';
+import TopMovers from '@/components/history/TopMovers';
 import WorkoutCard from '@/components/history/WorkoutCard';
-import { buildPRDays } from '@/components/history/prSessions';
+import { buildPRDays, buildSessionPRs } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
 import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
-import StrengthHistoryCard from '@/components/StrengthHistoryCard';
 import { Text, View } from '@/components/Themed';
+import MuscleBalanceCard from '@/components/MuscleBalanceCard';
 import WeeklyOverview from '@/components/WeeklyOverview';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
+import {
+  calculateStrengthPercentile,
+  FEMALE_STANDARDS,
+  getPercentileColor,
+  getStrengthTier,
+  MALE_STANDARDS,
+} from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
 import { userService } from '@/lib/services/userService';
@@ -77,6 +84,15 @@ export default function HistoryScreen() {
 
   // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
+
+  // Bodyweight (lbs) powers the aggregate Strength Index percentile in the hero.
+  const bodyweightLbs = useMemo(
+    () =>
+      userProfile?.weight
+        ? Math.round(convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs'))
+        : undefined,
+    [userProfile?.weight]
+  );
 
   // Load data
   const loadHistory = useCallback(async () => {
@@ -151,21 +167,14 @@ export default function HistoryScreen() {
   }, [workouts, workoutQuery]);
 
   const recentWorkouts = useMemo(() =>
-    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 5),
+    workoutQuery || showAllWorkouts ? filteredWorkouts : filteredWorkouts.slice(0, 3),
     [filteredWorkouts, showAllWorkouts, workoutQuery]
   );
 
   // Calculate quick stats
   const quickStats = useMemo(() => {
     const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // This week's workouts
-    const thisWeekWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfWeek);
 
     // This month's workouts
     const thisMonthWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfMonth);
@@ -210,26 +219,11 @@ export default function HistoryScreen() {
       }
     }
 
-    // Total volume this week (converted to user's preferred unit)
-    let weekVolume = 0;
-    thisWeekWorkouts.forEach(workout => {
-      workout.exercises.forEach(ex => {
-        ex.completedSets?.forEach(set => {
-          // Default to 'lbs' for legacy data without unit field
-          const setUnit = set.unit || 'lbs';
-          const weightInPreferredUnit = convertWeight(set.weight, setUnit, weightUnit);
-          weekVolume += weightInPreferredUnit * set.reps;
-        });
-      });
-    });
-
     return {
       streak,
-      thisWeek: thisWeekWorkouts.length,
       thisMonth: thisMonthWorkouts.length,
-      weekVolume: Math.round(weekVolume),
     };
-  }, [workouts, weightUnit]);
+  }, [workouts]);
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
@@ -241,6 +235,38 @@ export default function HistoryScreen() {
   // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
+
+  // Session-level PR: the single most significant all-time record per training day.
+  // Feeds the collapsed WorkoutCard so a normal ascending history shows a rare, real
+  // PR marker instead of the old per-exercise chip spray. The modal still uses prDays
+  // for the full per-exercise breakdown behind a tap.
+  const sessionPRs = useMemo(() => buildSessionPRs(exerciseStats), [exerciseStats]);
+
+  // Records strip — the "what ARE my records?" half of Q3, answered on the hub without a
+  // tab-hop. The top standard lifts by bodyweight percentile (not raw heaviest, so a
+  // huge leg-press doesn't crowd out a strong bench), each shown with its actual all-time
+  // est-1RM AND its normalized strength tier. The tier is the honest, comparative signal
+  // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
+  // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
+  const gender = userProfile?.gender;
+  const topRecords = useMemo(() => {
+    const stdMap = gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
+    const rows = trackedExercises
+      .filter(ex => ex.metric === 'weight' && ex.estimated1RM > 0 && !!stdMap[ex.id])
+      .map(ex => {
+        const oneRmLbs =
+          weightUnit === 'kg' ? convertWeight(ex.estimated1RM, 'kg', 'lbs') : ex.estimated1RM;
+        const pct =
+          bodyweightLbs && gender
+            ? Math.round(
+                calculateStrengthPercentile(oneRmLbs, bodyweightLbs, gender, ex.id, userProfile?.age)
+              )
+            : null;
+        return { ex, pct };
+      });
+    rows.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.ex.estimated1RM - a.ex.estimated1RM);
+    return rows.slice(0, 3);
+  }, [trackedExercises, bodyweightLbs, gender, userProfile?.age, weightUnit]);
 
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
@@ -338,37 +364,24 @@ export default function HistoryScreen() {
               <HistoryHero
                 exerciseStats={exerciseStats}
                 weightUnit={weightUnit}
+                bodyweightLbs={bodyweightLbs}
+                gender={userProfile?.gender}
+                age={userProfile?.age}
               />
             )}
 
-            {/* Weekly Overview */}
-            <WeeklyOverview workoutHistory={workouts} />
-
-            {/* Quick Stats - Inline */}
+            {/* Quick Stats — inline supporting line under the hero. The current-week
+                workout COUNT is intentionally NOT shown here: WeeklyOverview (directly
+                below) already owns "this week" on its Monday-anchored boundary, so a second
+                copy here on a Sunday boundary previously let the screen read a different
+                number in each block. This line keeps only what WeeklyOverview does not: the
+                multi-week streak, else a month / all-time roll-up. */}
             {workouts.length > 0 && (
               <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
                 {quickStats.streak > 0 ? (
-                  <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                      {quickStats.streak} week streak
-                    </Text>
-                    <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
-                  </>
-                ) : null}
-                {quickStats.thisWeek > 0 ? (
-                  <>
-                    <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                      {quickStats.thisWeek} workout{quickStats.thisWeek !== 1 ? 's' : ''} this week
-                    </Text>
-                    {quickStats.weekVolume > 0 && (
-                      <>
-                        <Text style={[styles.quickStatDivider, { color: currentTheme.colors.text + '30' }]}>·</Text>
-                        <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                          {quickStats.weekVolume > 1000 ? `${(quickStats.weekVolume / 1000).toFixed(1)}k` : quickStats.weekVolume} {weightUnit}
-                        </Text>
-                      </>
-                    )}
-                  </>
+                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                    {quickStats.streak} week streak
+                  </Text>
                 ) : (
                   <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
                     {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
@@ -377,38 +390,98 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Muscle Focus Widget */}
-            {workouts.length > 0 && (
-              <View style={styles.widgetSection}>
-                <MuscleFocusWidget />
+            {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
+                headline lifts, each with its actual all-time est-1RM and normalized tier,
+                tappable straight into that lift's history. */}
+            {workouts.length > 0 && topRecords.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Records
+                </Text>
+                <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
+                  {topRecords.map(({ ex, pct }) => {
+                    const tierColor = pct != null ? getPercentileColor(pct) : currentTheme.colors.primary;
+                    return (
+                      <TouchableOpacity
+                        key={ex.id}
+                        style={[styles.recordCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                        onPress={() => setSelectedExercise(ex)}
+                        activeOpacity={0.7}
+                      >
+                        <Text
+                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}
+                          numberOfLines={1}
+                        >
+                          {ex.name}
+                        </Text>
+                        <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
+                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]} numberOfLines={1}>
+                            {ex.estimated1RM}
+                          </Text>
+                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                            {weightUnit}
+                          </Text>
+                        </View>
+                        {pct != null && (
+                          <View style={[styles.recordTierBadge, { backgroundColor: tierColor + '1F' }]}>
+                            <Text style={[styles.recordTierText, { color: tierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                              {getStrengthTier(pct)}
+                            </Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
             )}
 
-            {/* Monthly Trends Button */}
+            {/* Your Movers — the per-lift trajectory answer ("how is THIS lift progressing?")
+                placed directly under the Strength Index hero, so the hub reads portfolio-value
+                (hero) -> your movers (per-lift) -> volume (This Week) -> recent sessions,
+                mirroring Robinhood's holdings-under-hero layout. Renders nothing until a lift
+                is actually moving, so the summary-first density is preserved. Tapping a row
+                opens that lift's history; "See all" jumps to the full Exercises list. */}
             {workouts.length > 0 && (
-              <TouchableOpacity
-                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
-                onPress={() => setShowMonthlyTrends(true)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.monthlyTrendsContent}>
-                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
-                    View Monthly Trends
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
-              </TouchableOpacity>
+              <TopMovers
+                exercises={trackedExercises}
+                weightUnit={weightUnit}
+                onSelect={setSelectedExercise}
+                onSeeAll={() => setActiveTab('exercises')}
+              />
             )}
 
-            {/* Strength Percentile History */}
-            <View style={styles.strengthHistorySection}>
-              <StrengthHistoryCard />
-            </View>
-
-            {/* Recent Workouts */}
+            {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
+                Strength Index hero so the screen reads summary-first instead of burying it
+                below the session log. WeeklyOverview owns its own "This Week · <range>"
+                header, so no section heading is stacked on top of the card title — the
+                block wears exactly one label. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
+                <WeeklyOverview workoutHistory={workouts} />
+              </View>
+            )}
+
+            {/* Muscle Balance — the cross-group "am I training in balance, or neglecting a
+                group?" answer (Q6), lifted OUT of the This Week volume card into its own
+                block. Driven by a trailing multi-week average of completed sets per muscle
+                (not one in-progress week), so a light Monday can't fire a false "neglect"
+                alarm and the verdict reflects a real trend that can still fall when a group
+                is dropped. */}
+            {workouts.length > 0 && (
+              <View style={styles.section}>
+                <MuscleBalanceCard workoutHistory={workouts} />
+              </View>
+            )}
+
+            {/* Recent Workouts — the session log (Q7: "what did I do last time?"),
+                collapsed to the last few and demoted below the summary-first hero +
+                This Week so the macro "am I stronger?" answer leads the screen. */}
+            {workouts.length > 0 && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  Recent Workouts
+                </Text>
                 {/* Search (only worth showing once there's a backlog) */}
                 {workouts.length >= 5 && (
                   <View style={[styles.searchBar, styles.workoutSearchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
@@ -441,7 +514,7 @@ export default function HistoryScreen() {
                   <WorkoutCard
                     key={workout.id}
                     workout={workout}
-                    prDays={prDays}
+                    sessionPRs={sessionPRs}
                     weightUnit={weightUnit}
                     customExercises={customExercises}
                     onPress={setSelectedWorkout}
@@ -459,7 +532,7 @@ export default function HistoryScreen() {
                   </View>
                 )}
 
-                {!workoutQuery && workouts.length > 5 && !showAllWorkouts && (
+                {!workoutQuery && workouts.length > 3 && !showAllWorkouts && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(true)}
@@ -469,7 +542,7 @@ export default function HistoryScreen() {
                     </Text>
                   </TouchableOpacity>
                 )}
-                {!workoutQuery && showAllWorkouts && workouts.length > 5 && (
+                {!workoutQuery && showAllWorkouts && workouts.length > 3 && (
                   <TouchableOpacity
                     style={styles.viewAllButton}
                     onPress={() => setShowAllWorkouts(false)}
@@ -480,6 +553,23 @@ export default function HistoryScreen() {
                   </TouchableOpacity>
                 )}
               </View>
+            )}
+
+            {/* Secondary drill-downs — deeper analysis, below the primary content. */}
+            {workouts.length > 0 && (
+              <TouchableOpacity
+                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                onPress={() => setShowMonthlyTrends(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.monthlyTrendsContent}>
+                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                    View Monthly Trends
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+              </TouchableOpacity>
             )}
 
             {/* Empty State */}
@@ -728,9 +818,6 @@ const styles = StyleSheet.create({
   quickStatInlineText: {
     fontSize: 13,
   },
-  quickStatDivider: {
-    fontSize: 13,
-  },
   // Exercises tab: overview + search + sort
   exerciseSummary: {
     flexDirection: 'row',
@@ -796,13 +883,11 @@ const styles = StyleSheet.create({
   },
   // Section styles
   section: {
-    marginTop: 16,
+    marginTop: 24,
   },
-  widgetSection: {
-    marginTop: 16,
-  },
-  strengthHistorySection: {
-    marginTop: 8,
+  sectionHeading: {
+    fontSize: 17,
+    marginBottom: 12,
   },
   viewAllButton: {
     paddingVertical: 16,
@@ -810,6 +895,45 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
+  },
+  // Records strip
+  recordsStrip: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  recordCard: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  recordName: {
+    fontSize: 12,
+  },
+  recordValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 3,
+    marginTop: 6,
+  },
+  recordValue: {
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+  recordUnit: {
+    fontSize: 12,
+  },
+  recordTierBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 5,
+  },
+  recordTierText: {
+    fontSize: 11,
+    letterSpacing: 0.3,
   },
   // Monthly trends button
   monthlyTrendsButton: {

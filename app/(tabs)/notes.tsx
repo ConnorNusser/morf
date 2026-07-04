@@ -5,7 +5,6 @@ import { formatRelativeDate } from '@/lib/ui/formatters';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
 import RoutineProgressModal from '@/components/workout/RoutineProgressModal';
-import { generateRoutineText } from '@/components/workout/RoutineImportModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
@@ -306,8 +305,7 @@ export default function NotesScreen() {
   }, [loadData]);
 
   const handleStartWorkout = useCallback(async (routine: CalculatedRoutine) => {
-    const text = generateRoutineText(routine);
-    setPendingRoutine(text, routine.id);
+    setPendingRoutine(routine);
     router.push('/workout');
   }, [router]);
 

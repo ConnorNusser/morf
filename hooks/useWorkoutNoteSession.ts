@@ -13,12 +13,9 @@ import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/w
 import { workoutToNoteText } from '@/lib/workout/workoutNoteFormat';
 import {
   DraftSet,
-  ReferenceSource,
   WorkoutDraft,
   addNamedExercise,
   addSet as addSetToDraft,
-  applyReference as applyReferenceInDraft,
-  attachPrevious,
   buildDraft,
   draftToNoteText,
   mergeParsed,
@@ -30,8 +27,8 @@ import {
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateExerciseRecords } from '@/lib/workout/progression';
-import { CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
-import { getPendingRoutine, getPendingRoutineId } from '@/lib/workout/pendingRoutine';
+import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
+import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -52,14 +49,14 @@ export interface UseWorkoutNoteSessionReturn {
   commitComposer: () => Promise<void>;
   commitText: (text: string) => Promise<boolean>; // voice / programmatic entry
   draft: WorkoutDraft;
-  loadDraftFromText: (text: string, opts?: { asTarget?: boolean }) => void; // plan builder / routine import / restore
+  loadDraftFromText: (text: string, opts?: { asTarget?: boolean }) => void; // plan builder / restore
+  loadDraftFromRoutine: (routine: CalculatedRoutine) => void; // routine import — structured, no text round-trip
   // Direct, traditional-UI edits to the synthesized cards:
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
   addSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
   toggleSetDone: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
-  acceptAutofill: (key: string, source: ReferenceSource) => void;
   dismissAutofill: (key: string) => void;
 
   // Derived note text (serialized draft) — feeds the finish/save pipeline.
@@ -128,8 +125,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
   const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
-  const acceptAutofill = useCallback((key: string, source: ReferenceSource) => setDraft(d => applyReferenceInDraft(d, key, source)), []);
-  // Dismiss = start filling manually (a blank set), keeping the ghost reference.
+  // Dismiss = start filling manually (a blank set).
   const dismissAutofill = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
 
   // Quick summary state
@@ -173,17 +169,11 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
   }, []);
 
-  // Per-exercise "last time" lookup for ghost references + autofill.
-  const previousFor = useCallback(
-    (exerciseId: string | undefined) => (exerciseId ? getLastSetsFor(exerciseId, history, weightUnit) : null),
-    [history, weightUnit],
-  );
-
   // Parse free text into a fresh draft (routine import, plan builder, repeat,
   // restore). Local-only (no API calls). A routine template's "Target:/Actual:"
   // labels are folded onto their exercise; pass { asTarget } to treat the parsed
-  // sets as the prescription (empty working sets + target ghost) rather than as
-  // already-done work. Either way, a "previous" reference is attached from history.
+  // sets as the prescription (pre-filled working sets) rather than as
+  // already-done work.
   const loadDraftFromText = useCallback((text: string, opts?: { asTarget?: boolean }) => {
     if (!text.trim()) {
       setDraft([]);
@@ -191,8 +181,28 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
     const normalized = text.replace(/\n[ \t]*(target|actual)s?:[ \t]*/gi, ' ');
     const parsed = workoutNoteParser.parseLocal(normalized);
-    setDraft(buildDraft(parsed, { asTarget: opts?.asTarget, previousFor }));
-  }, [previousFor]);
+    setDraft(buildDraft(parsed, { asTarget: opts?.asTarget }));
+  }, []);
+
+  // Import a routine WITHOUT the lossy text round-trip. The routine already carries
+  // the resolved exerciseId per exercise, so we build the draft straight from it —
+  // no re-parsing a name back through the fuzzy matcher (which used to silently swap
+  // "Overhead Press (Machine)" for the barbell variant). The prescription pre-fills
+  // the working sets un-done for check-off.
+  const loadDraftFromRoutine = useCallback((routine: CalculatedRoutine) => {
+    const parsed: ParsedWorkout = {
+      exercises: routine.exercises.map(ex => ({
+        name: ex.exerciseName,
+        matchedExerciseId: ex.exerciseId, // authoritative id — never re-resolved by name
+        isCustom: customExercises.some(c => c.id === ex.exerciseId),
+        sets: ex.sets.map(s => ({ weight: s.targetWeight || 0, reps: s.reps, unit: ex.unit, completed: false })),
+      })),
+      confidence: 1,
+      rawText: '',
+    };
+    setDraft(buildDraft(parsed, { asTarget: true }));
+    setStartedRoutineId(routine.id);
+  }, [customExercises]);
 
   // Parse some text and merge it into the draft. Local parse first (free /
   // instant); fall back to the AI parser when local can't *reasonably* read it —
@@ -203,7 +213,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (!trimmed) return false;
 
     const mergeInto = (exercises: ParsedWorkout['exercises']) =>
-      setDraft(d => attachPrevious(mergeParsed(d, exercises, { done: true }), previousFor));
+      setDraft(d => mergeParsed(d, exercises, { done: true }));
 
     const local = workoutNoteParser.parseLocal(trimmed);
     // "Known" = matched the built-in catalog OR one of the user's custom
@@ -271,7 +281,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
     showAlert({ title: "Couldn't read that", message: 'Try something like "Bench 135x8, 155x6".', type: 'info' });
     return false;
-  }, [showAlert, history, weightUnit, previousFor, customExercises]);
+  }, [showAlert, history, weightUnit, customExercises]);
 
   // Commit the composer box: merge what's typed, then clear it on success.
   const commitComposer = useCallback(async () => {
@@ -312,7 +322,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         // is focused, not just on mount), so it overrides this restore.
         const savedSession = await storageService.getNoteSession();
         if (savedSession && (savedSession.noteText || (savedSession.draft as WorkoutDraft | null)?.length || savedSession.manuallyStarted)) {
-          restoreSession(savedSession); // preserves per-set done + target/previous refs
+          restoreSession(savedSession); // preserves per-set done state
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -335,16 +345,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // which broke "Up Next" cycling when training out of order.
   useFocusEffect(
     useCallback(() => {
-      const text = getPendingRoutine();
-      if (text !== null) {
-        // A started routine is a prescription → seed targets, not done work.
-        loadDraftFromText(text, { asTarget: true });
-        // A routine launch always carries an id; a plain freestyle launch never
-        // reaches here (it sets no pending text), so this won't clear an id by
-        // accident. Read the id regardless to keep the pending slot clean.
-        setStartedRoutineId(getPendingRoutineId());
+      const routine = getPendingRoutine();
+      if (routine) {
+        // Structured import: seed the prescription as targets from the resolved
+        // exerciseIds (no text re-parse), and attach the routine id for progression.
+        loadDraftFromRoutine(routine);
       }
-    }, [loadDraftFromText])
+    }, [loadDraftFromRoutine])
   );
 
   // Persist the in-progress session (incl. the structured draft, so per-set
@@ -749,12 +756,12 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     commitText,
     draft,
     loadDraftFromText,
+    loadDraftFromRoutine,
     editSet,
     addSetTo,
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,
-    acceptAutofill,
     dismissAutofill,
     noteText,
 
