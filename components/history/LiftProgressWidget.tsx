@@ -1,30 +1,27 @@
 // History widget: a full-width panel listing the user's lifts, each row showing its
 // best set per month across time (oldest → newest, right-aligned so the latest
 // lines up down the right edge). Month under each point makes the timeline explicit;
-// left→right is time. Each point is a themed chip: the latest is an accent-filled
+// left→right is time. Each point is a themed chip: the latest is a tier-tinted
 // "you are here" capsule, earlier ones are quiet outlined chips colored by whether
-// that month rose or fell from the one before it — reusing the same green/red
-// gain-loss language as ExerciseCard and TopMovers so the whole app reads as one system.
+// that month rose or fell from the one before it — the same green/red gain-loss
+// language as ExerciseCard and TopMovers.
 //
 // The board is RANKED and CAPPED: buildLiftProgressions orders lifts by tier
-// proximity × recent movement, and only the top few rows show (an "All N lifts"
-// expander — the same viewAll text-button grammar as the sessions feed — holds the
-// rest), so the panel reads as a short leaderboard, not a wall. The single graded
-// lift nearest its next TIER wears a primary "+X to <tier>" tag — a deliberately
-// different fact from the NEXT banner's plate-milestone below, so the same number
-// is never stated twice within one screen-height.
+// proximity × recent movement, so the top row IS the "closest to leveling up"
+// story — no extra tag restates it. An "All N lifts" expander (the same viewAll
+// text-button grammar as the sessions feed) holds the rest.
 //
-// Color discipline (one hue = one meaning, the Career rule): the left rail is the
-// lift's Push/Pull/Legs SPLIT color — the same PPL_COLORS the session emblems and
-// the Career heatmap wear. Tier color appears ONLY on the TierBadge, the latest
-// "you are here" chip, and the back-face progress bar. Tapping a graded row flips
-// it (the Career FlipCard) to the stake: how much e1RM to the next tier.
+// Organized to scan as three aligned columns: a fixed tier-badge slot, the lift
+// name, the chip strip. Exactly TWO color systems live on a row — tier color
+// (identity: the badge + the latest chip) and green/red (change: the chip trend)
+// — so the board reads calm. Split colors stay on the session emblems and the
+// NEXT dot where they already mean something. Tapping a graded row flips it
+// (the Career FlipCard) to the stake: how much e1RM to the next tier.
 import AnimatedBar from '@/components/AnimatedBar';
 import FlipCard from '@/components/gamification/FlipCard';
 import { Text } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { LiftProgress, LiftTier } from '@/lib/history/liftProgress';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +35,7 @@ const DOWN = '#FF6B6B';
 
 // Fixed row height — FlipCard stacks its faces absolutely, so both faces are built
 // to this height and plain (ungraded) rows match it for an even rhythm.
-const ROW_H = 74;
+const ROW_H = 64;
 
 const shortName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 const setLabel = (weight: number, reps: number): string => (weight > 0 ? `${weight}×${reps}` : `×${reps}`);
@@ -94,48 +91,26 @@ function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
   );
 }
 
-// The split-colored identity rail — SPLIT is the only thing this hue ever means
-// (session emblems, Career heatmap, milestone dot). Unmapped lifts get a quiet
-// neutral sliver instead of a fake team color.
-function SplitRail({ lift }: { lift: LiftProgress }) {
-  const { currentTheme } = useTheme();
-  const color = lift.split ? PPL_COLORS[lift.split] : currentTheme.colors.text + '20';
-  return <RNView style={[styles.rail, { backgroundColor: color }]} />;
-}
-
-// The focal "+X to <tier>" tag: worn by exactly ONE row — the graded lift nearest
-// its next strength tier — so the board has a single forward-pull focal point.
-function FocalTag({ label }: { label: string }) {
+// One layout for every row: a two-line left column (name over its tier badge, both
+// flush to the panel's left edge so the board scans as one clean column) and the
+// chip strip right. Ungraded lifts simply omit the badge — no fake tiers.
+function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null }) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
-  return (
-    <RNView style={[styles.focalTag, { backgroundColor: colors.primary + '14' }]}>
-      <Text style={[styles.focalTagText, { color: colors.primary, fontFamily: fonts.bold }]} numberOfLines={1}>
-        {label}
-      </Text>
-    </RNView>
-  );
-}
-
-// Front face of a graded row: split rail + name + micro tier badge (the flip
-// affordance) + the same dense chip strip as before.
-function GradedFront({ lift, tier, tag }: { lift: LiftProgress; tier: LiftTier; tag: string | null }) {
-  const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
-  const tierColor = getTierColor(tier.tier);
+  const accent = tier ? getTierColor(tier.tier) : colors.primary;
   return (
     <RNView style={styles.face}>
-      <SplitRail lift={lift} />
       <RNView style={styles.nameCol}>
         <Text style={[styles.name, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
           {shortName(lift.name)}
         </Text>
-        <RNView style={styles.gradeRow}>
-          <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />
-          {tag && <FocalTag label={tag} />}
-        </RNView>
+        {tier && (
+          <RNView style={styles.gradeRow}>
+            <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />
+          </RNView>
+        )}
       </RNView>
-      <ChipStrip lift={lift} accent={tierColor} />
+      <ChipStrip lift={lift} accent={accent} />
     </RNView>
   );
 }
@@ -201,30 +176,7 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
   );
 }
 
-// A lift with no honest grade (no published standard, bodyweight-only, or the profile
-// lacks bodyweight/gender) keeps a quiet row — split rail, no fake tiers.
-function PlainRow({ lift, tag }: { lift: LiftProgress; tag: string | null }) {
-  const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
-  return (
-    <RNView style={styles.face}>
-      <SplitRail lift={lift} />
-      <RNView style={styles.nameCol}>
-        <Text style={[styles.name, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-          {shortName(lift.name)}
-        </Text>
-        {tag && (
-          <RNView style={styles.gradeRow}>
-            <FocalTag label={tag} />
-          </RNView>
-        )}
-      </RNView>
-      <ChipStrip lift={lift} accent={colors.primary} />
-    </RNView>
-  );
-}
-
-function LiftRow({ lift, last, tag }: { lift: LiftProgress; last: boolean; tag: string | null }) {
+function LiftRow({ lift, last }: { lift: LiftProgress; last: boolean }) {
   const { currentTheme } = useTheme();
   const divider = !last
     ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: currentTheme.colors.border }
@@ -233,7 +185,7 @@ function LiftRow({ lift, last, tag }: { lift: LiftProgress; last: boolean; tag: 
   if (!lift.tierInfo) {
     return (
       <RNView style={[styles.row, divider]}>
-        <PlainRow lift={lift} tag={tag} />
+        <RowFront lift={lift} tier={null} />
       </RNView>
     );
   }
@@ -241,25 +193,10 @@ function LiftRow({ lift, last, tag }: { lift: LiftProgress; last: boolean; tag: 
     <FlipCard
       height={ROW_H}
       style={divider ?? undefined}
-      front={<GradedFront lift={lift} tier={lift.tierInfo} tag={tag} />}
+      front={<RowFront lift={lift} tier={lift.tierInfo} />}
       back={<GradedBack lift={lift} tier={lift.tierInfo} />}
     />
   );
-}
-
-// The one lift the board should pull the eye to: the graded lift with the smallest
-// absolute gap to its next tier. Deliberately NOT the NEXT banner's plate milestone
-// — that fact already gets its own banner below, and stating it twice read as
-// clutter. Returns the tag text keyed by lift id (or null when nothing is honestly
-// close — no focal point is faked).
-function focalTagFor(lifts: LiftProgress[]): { id: string; tag: string } | null {
-  let best: { id: string; tag: string; gap: number } | null = null;
-  for (const l of lifts) {
-    const t = l.tierInfo;
-    if (!t?.nextTier || t.gapWeight == null) continue;
-    if (!best || t.gapWeight < best.gap) best = { id: l.id, tag: `+${t.gapWeight} to ${t.nextTier}`, gap: t.gapWeight };
-  }
-  return best ? { id: best.id, tag: best.tag } : null;
 }
 
 export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
@@ -272,14 +209,7 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
   if (lifts.length === 0) return null;
   const anyGraded = lifts.some(l => l.tierInfo);
 
-  const focal = focalTagFor(lifts);
-  // Top ranked rows only; if the focal lift ranks below the cut it takes the last
-  // visible slot, so the board's one forward-pull tag is always visible.
-  let visible = expanded ? lifts : lifts.slice(0, maxRows);
-  if (!expanded && focal && !visible.some(l => l.id === focal.id)) {
-    const pinned = lifts.find(l => l.id === focal.id);
-    if (pinned) visible = [...visible.slice(0, maxRows - 1), pinned];
-  }
+  const visible = expanded ? lifts : lifts.slice(0, maxRows);
   const hasMore = lifts.length > visible.length || expanded;
 
   return (
@@ -289,16 +219,11 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
       <RNView style={styles.head}>
         <Text style={[styles.headLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>LIFTS</Text>
         <Text style={[styles.headMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
-          {anyGraded ? 'closest to leveling up · tap for tier' : 'best set · by month'}
+          {anyGraded ? 'tap for next tier' : 'best set · by month'}
         </Text>
       </RNView>
       {visible.map((lift, i) => (
-        <LiftRow
-          key={lift.id}
-          lift={lift}
-          last={i === visible.length - 1}
-          tag={focal && focal.id === lift.id ? focal.tag : null}
-        />
+        <LiftRow key={lift.id} lift={lift} last={i === visible.length - 1} />
       ))}
       {/* Same viewAll text-button grammar as the sessions feed below. */}
       {hasMore && (
@@ -333,17 +258,12 @@ const styles = StyleSheet.create({
     height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
-  // The split-colored identity rail — the row's Push/Pull/Legs "team color", the
-  // same PPL_COLORS the session emblems and the Career heatmap use.
-  rail: { width: 3, borderRadius: 1.5, alignSelf: 'stretch', marginVertical: 17 },
-  nameCol: { flex: 1, gap: 4 },
+  // Two-line left column, flush left: name over badge, one shared edge down the board.
+  nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
   name: { fontSize: 14 },
-  gradeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  // The single focal "+X to …" tag — primary, like the NEXT banner it points to.
-  focalTag: { borderRadius: 4, paddingHorizontal: 5, paddingVertical: 2, flexShrink: 1 },
-  focalTagText: { fontSize: 10, letterSpacing: 0.2 },
+  gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 12, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
