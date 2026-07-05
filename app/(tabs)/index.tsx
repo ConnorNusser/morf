@@ -356,11 +356,19 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
 
-          <OverallStatsCard stats={overallStats} />
-
-          {/* Big-3 total is its own peer widget beside Overall Strength — both read as
-              flat, titled strength widgets before the per-lift breakdown. */}
-          {powerliftingTotal && <PowerliftingTotal data={powerliftingTotal} />}
+          {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
+              grouped as one block, split by a hairline divider. */}
+          <View>
+            <OverallStatsCard stats={overallStats} />
+            {powerliftingTotal && (
+              <>
+                <View
+                  style={[styles.strengthDivider, { backgroundColor: currentTheme.colors.text + "12" }]}
+                />
+                <PowerliftingTotal data={powerliftingTotal} />
+              </>
+            )}
+          </View>
 
           {userProgress.length > 0 && (
             <>
@@ -438,6 +446,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "600",
+  },
+  strengthDivider: {
+    height: 1,
+    marginTop: 6,
+    marginBottom: 12,
   },
   actionButton: {
     flexDirection: "row",
