@@ -9,6 +9,7 @@ import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
+import WorkoutLaunch from "@/components/home/WorkoutLaunch";
 import { CalculatedRoutine } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -61,6 +62,7 @@ export default function TodayCard() {
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
+  const [launching, setLaunching] = useState(false);
   const [adviceDismissed, setAdviceDismissed] = useState(false);
   const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
 
@@ -137,12 +139,21 @@ export default function TodayCard() {
   const buttonAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
   const arrowAnim = useAnimatedStyle(() => ({ transform: [{ translateX: arrowShift.value }] }));
 
+  // Tapping Start plays the launch interstitial; the actual navigation fires from
+  // inside the overlay once its animation lands.
   const handleStart = useCallback(() => {
     if (!calculated) return;
     arrowShift.value = withSequence(withTiming(14, { duration: 130 }), withSpring(0));
+    setLaunching(true);
+  }, [calculated, arrowShift]);
+
+  const launchNav = useCallback(() => {
+    if (!calculated) return;
     setPendingRoutine(calculated);
     router.push("/workout");
-  }, [calculated, router, arrowShift]);
+  }, [calculated, router]);
+
+  const closeLaunch = useCallback(() => setLaunching(false), []);
 
   const onPressInStart = useCallback(() => {
     pressScale.value = withSpring(0.96, { damping: 18, stiffness: 320 });
@@ -390,6 +401,14 @@ export default function TodayCard() {
         setShowOverview(false);
         handleStart();
       }}
+    />
+
+    <WorkoutLaunch
+      visible={launching}
+      routineName={calculated.name}
+      subtitle={`${calculated.exercises.length} exercises · ${totalSets} sets`}
+      onLaunch={launchNav}
+      onClose={closeLaunch}
     />
     </>
   );
