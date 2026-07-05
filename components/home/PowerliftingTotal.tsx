@@ -65,11 +65,23 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text + '99' }]}>Big 3 Total</Text>
+        {/* Total on the left. */}
         <Text style={styles.headerTotal}>
           <Text style={[styles.headerNum, { color: colors.text + '99' }]}>{data.total.toLocaleString()}</Text>
           <Text style={[styles.headerUnit, { color: colors.text + '70' }]}> lb</Text>
         </Text>
+
+        {/* Lifts stacked on the right, colour-coded. */}
+        <View style={styles.liftStack}>
+          {data.lifts.map(l => (
+            <View key={l.label} style={styles.liftRow}>
+              <Text style={[styles.liftVal, { color: l.value > 0 ? l.color : colors.text + '55' }]}>
+                {l.value.toLocaleString()}
+              </Text>
+              <Text style={[styles.liftLabel, { color: colors.text + '80' }]}>{l.label}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       {/* Ladder cells filled by lift composition. */}
@@ -111,39 +123,24 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
           </Text>
         ))}
       </View>
-
-      {/* Legend: which colour is which lift, with pounds. */}
-      <View style={styles.legend}>
-        {data.lifts.map(l => (
-          <View key={l.label} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: l.color, opacity: l.value > 0 ? 1 : 0.4 }]} />
-            <Text style={[styles.legendVal, { color: l.value > 0 ? l.color : colors.text + '55' }]}>
-              {l.value.toLocaleString()}
-            </Text>
-            <Text style={[styles.legendLabel, { color: colors.text + '80' }]}>{l.label}</Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 },
-  title: { fontSize: 18, fontWeight: 'bold' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   headerTotal: {},
-  headerNum: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
-  headerUnit: { fontSize: 14, fontWeight: '600' },
+  headerNum: { fontSize: 34, fontWeight: '800', letterSpacing: -1 },
+  headerUnit: { fontSize: 15, fontWeight: '600' },
+
+  liftStack: { alignItems: 'flex-end', gap: 3 },
+  liftRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  liftVal: { fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
+  liftLabel: { fontSize: 12, fontWeight: '500', width: 58 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 14, borderRadius: 2 },
   ladderLabels: { flexDirection: 'row', marginTop: 7 },
   ladderBaseLabel: { fontSize: 11, textAlign: 'right' },
-
-  legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  legendVal: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
-  legendLabel: { fontSize: 13, fontWeight: '500' },
 });
