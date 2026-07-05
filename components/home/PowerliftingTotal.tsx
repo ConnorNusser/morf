@@ -129,7 +129,7 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerTotal: {},
   headerNum: { fontSize: 34, fontWeight: '800', letterSpacing: -1 },
   headerUnit: { fontSize: 15, fontWeight: '600' },
