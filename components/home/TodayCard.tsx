@@ -16,11 +16,21 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // After dismissing the "build a routine" nudge, re-surface it once this much
 // time has passed (5 days).
@@ -120,11 +130,28 @@ export default function TodayCard() {
     [days],
   );
 
+  // Start-button interactions: press springs the whole button down; the arrow
+  // nudges on press and flings forward on release for a tactile "go" feel.
+  const pressScale = useSharedValue(1);
+  const arrowShift = useSharedValue(0);
+  const buttonAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
+  const arrowAnim = useAnimatedStyle(() => ({ transform: [{ translateX: arrowShift.value }] }));
+
   const handleStart = useCallback(() => {
     if (!calculated) return;
+    arrowShift.value = withSequence(withTiming(14, { duration: 130 }), withSpring(0));
     setPendingRoutine(calculated);
     router.push("/workout");
-  }, [calculated, router]);
+  }, [calculated, router, arrowShift]);
+
+  const onPressInStart = useCallback(() => {
+    pressScale.value = withSpring(0.96, { damping: 18, stiffness: 320 });
+    arrowShift.value = withSpring(4);
+  }, [pressScale, arrowShift]);
+  const onPressOutStart = useCallback(() => {
+    pressScale.value = withSpring(1, { damping: 14, stiffness: 260 });
+    arrowShift.value = withSpring(0);
+  }, [pressScale, arrowShift]);
 
   if (loading) {
     return (
@@ -313,15 +340,17 @@ export default function TodayCard() {
         })}
       </View>
 
-      <TouchableOpacity
+      <AnimatedPressable
         style={[
           styles.primaryButton,
+          buttonAnim,
           trainedToday
             ? { backgroundColor: "transparent", borderWidth: 1.5, borderColor: currentTheme.colors.border }
             : { backgroundColor: currentTheme.colors.text },
         ]}
         onPress={handleStart}
-        activeOpacity={0.85}
+        onPressIn={onPressInStart}
+        onPressOut={onPressOutStart}
       >
         <Text
           style={[
@@ -335,7 +364,20 @@ export default function TodayCard() {
         >
           {trainedToday ? "Train again" : "Start workout"}
         </Text>
-      </TouchableOpacity>
+        <Animated.View
+          style={[
+            styles.primaryButtonArrow,
+            arrowAnim,
+            {
+              backgroundColor: trainedToday
+                ? currentTheme.colors.text + "18"
+                : currentTheme.colors.background,
+            },
+          ]}
+        >
+          <Ionicons name="arrow-forward" size={18} color={currentTheme.colors.text} />
+        </Animated.View>
+      </AnimatedPressable>
     </Card>
     </TouchableOpacity>
 
@@ -451,14 +493,22 @@ const styles = StyleSheet.create({
   primaryButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    paddingLeft: 22,
+    paddingRight: 8,
+    borderRadius: 16,
     marginTop: 14,
   },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: "600",
+  },
+  primaryButtonArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
