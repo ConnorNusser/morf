@@ -3,12 +3,19 @@
 // movement toward a NEAR target is the strongest evidence-backed motivation lever,
 // so we surface the one target the lifter is closest to actually hitting.
 import { ExerciseWithMax, WeightUnit } from '@/types';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
+import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 
 export interface NextMilestone {
   exerciseId: string;
   label: string;   // e.g. "3-plate Squat" or "300-lb Deadlift"
   gap: number;     // how far away, in the display unit
+  current: number; // best lifted weight so far, in the display unit
+  target: number;  // the milestone weight, in the display unit
   unit: WeightUnit;
+  // The lift's Push/Pull/Legs identity so the UI can color the progress track with
+  // the same canonical split colors the rest of the app uses; null when unknown.
+  split: PPLCategory | null;
 }
 
 // Plate totals (bar + full plates per side) → the culturally resonant targets.
@@ -28,6 +35,16 @@ const MAX_GAP: Record<WeightUnit, number> = { lbs: 25, kg: 12 };
 const MAX_GAP_PCT = 0.08;
 
 const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+
+// The lift's PPL split, resolved through the canonical exercise catalog (same
+// mapping sessionIdentity and the Career heatmap use).
+function liftSplit(id: string, name: string): PPLCategory | null {
+  const w =
+    ALL_WORKOUTS.find(x => x.id === id) ??
+    ALL_WORKOUTS.find(x => x.name.toLowerCase() === name.toLowerCase());
+  const muscle = w?.primaryMuscles?.[0];
+  return muscle ? MUSCLE_TO_PPL[muscle] ?? null : null;
+}
 
 function milestoneSet(unit: WeightUnit): number[] {
   return [...new Set([...Object.keys(PLATES[unit]).map(Number), ...ROUNDS[unit]])].sort((a, b) => a - b);
@@ -57,8 +74,19 @@ export function nextMilestone(exercises: ExerciseWithMax[], unit: WeightUnit): N
       : `${next}-${unitAdj} ${shortName(ex.name)}`;
 
     const rel = gap / next;
-    if (!best || rel < best.rel) best = { exerciseId: ex.id, label, gap, unit, rel };
+    if (!best || rel < best.rel) {
+      best = { exerciseId: ex.id, label, gap, current: ex.maxWeight, target: next, unit, split: liftSplit(ex.id, ex.name), rel };
+    }
   }
 
-  return best ? { exerciseId: best.exerciseId, label: best.label, gap: best.gap, unit: best.unit } : null;
+  if (!best) return null;
+  return {
+    exerciseId: best.exerciseId,
+    label: best.label,
+    gap: best.gap,
+    current: best.current,
+    target: best.target,
+    unit: best.unit,
+    split: best.split,
+  };
 }

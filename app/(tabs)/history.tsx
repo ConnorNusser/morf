@@ -5,6 +5,7 @@ import SessionsFeed from '@/components/history/SessionsFeed';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import { buildLiftProgressions } from '@/lib/history/liftProgress';
+import { nextMilestone } from '@/lib/history/milestones';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -164,6 +165,14 @@ export default function HistoryScreen() {
     [exerciseStats]
   );
 
+  // The single lift closest to a meaningful plate/round target — powers the feed's
+  // Career-style NEXT block (goal-gradient forward pull). Null when nothing is in
+  // reach, in which case the block simply doesn't render.
+  const milestone = useMemo(
+    () => nextMilestone(trackedExercises, weightUnit),
+    [trackedExercises, weightUnit]
+  );
+
   // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
@@ -299,6 +308,7 @@ export default function HistoryScreen() {
                 recaps={sessionRecaps}
                 weightUnit={weightUnit}
                 visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
+                milestone={milestone}
                 totalCount={sessionRecaps.length}
                 onPressSession={setSelectedWorkout}
                 onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}

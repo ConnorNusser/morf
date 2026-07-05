@@ -2,10 +2,13 @@
 // Strength Index with a re-livable record of each gym session: the latest workout
 // as a cinematic hero recap, past sessions as narrative moment cards. Every card
 // leads with meaning (a headline or the standout set), not a stat dump.
+import AnimatedBar from '@/components/AnimatedBar';
+import AnimatedCount from '@/components/AnimatedCount';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
+import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { NextMilestone } from '@/lib/history/milestones';
 import { sessionIdentity } from '@/lib/history/sessionIdentity';
@@ -99,7 +102,13 @@ function SessionHero({ recap, weightUnit, onPress }: {
       {recap.standout && (
         <RNView style={styles.heroStandout}>
           <Text style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}>
-            {recap.standout.weight > 0 ? `${recap.standout.weight}` : recap.standout.reps}
+            {/* Career-style animated hero number: counts up to the real logged value */}
+            <AnimatedCount
+              value={recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps}
+              duration={900}
+              decimals={Number.isInteger(recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps) ? 0 : 1}
+              style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
+            />
             <Text style={[styles.standoutUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
               {recap.standout.weight > 0 ? ` ${weightUnit} × ${recap.standout.reps}` : ' reps'}
             </Text>
@@ -226,17 +235,47 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
   const moments = rest.slice(0, Math.max(0, visibleCount - 1));
   const hasMore = totalCount > visibleCount;
 
+  const milestoneColor = milestone?.split ? PPL_COLORS[milestone.split] : colors.primary;
+
   return (
     <RNView>
+      {/* Section header — same uppercase micro-label grammar as the Career card
+          (ACTIVITY / ACHIEVEMENTS), so History reads as a sibling of that section. */}
+      <RNView style={styles.sectionHead}>
+        <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
+        <Text style={[styles.sectionMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
+          {totalCount} logged
+        </Text>
+      </RNView>
+
       {/* Forward pull: the target you're closest to actually hitting (goal-gradient) —
-          turns looking back into a reason to come back. */}
+          a Career-style NEXT block with a filling progress track. Every number is the
+          lifter's real best vs a real plate/round target; if the best slips, the bar
+          honestly sits lower. Disappears when nothing is within reach. */}
       {milestone && (
-        <RNView style={styles.milestone}>
-          <Ionicons name="flag" size={13} color={colors.primary} />
-          <Text style={[styles.milestoneText, { color: colors.text + 'CC', fontFamily: fonts.medium }]} numberOfLines={1}>
-            <Text style={{ color: colors.primary, fontFamily: fonts.semiBold }}>{milestone.gap} {milestone.unit}</Text>
-            {' '}from a {milestone.label}
+        <RNView style={[styles.milestone, { borderBottomColor: colors.text + '10' }]}>
+          <RNView style={styles.milestoneTop}>
+            <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>NEXT</Text>
+            <Text style={[styles.milestoneCount, { color: colors.text + '99', fontFamily: fonts.bold }]}>
+              {milestone.current}/{milestone.target} {milestone.unit}
+            </Text>
+          </RNView>
+          <Text style={styles.milestoneLine} numberOfLines={1}>
+            <Text style={[styles.milestoneName, { color: colors.text, fontFamily: fonts.semiBold }]}>
+              {milestone.label}
+            </Text>
+            <Text style={[styles.milestoneGap, { color: milestoneColor, fontFamily: fonts.semiBold }]}>
+              {'  ·  '}{milestone.gap} {milestone.unit} to go
+            </Text>
           </Text>
+          <AnimatedBar
+            progress={milestone.current / milestone.target}
+            color={milestoneColor}
+            trackColor={colors.text + '15'}
+            height={5}
+            delay={150}
+            style={styles.milestoneBar}
+          />
         </RNView>
       )}
       <SessionHero recap={hero} weightUnit={weightUnit} onPress={onPressSession} />
@@ -294,6 +333,16 @@ const styles = StyleSheet.create({
   momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
-  milestone: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  milestoneText: { fontSize: 13, flex: 1 },
+  // section header + NEXT milestone block — Career micro-label grammar
+  // (fontSize 10 / bold / letterSpacing 1 / low opacity), hairline divider below.
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 },
+  microLabel: { fontSize: 10, letterSpacing: 1 },
+  sectionMeta: { fontSize: 11 },
+  milestone: { paddingBottom: 14, marginBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  milestoneTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  milestoneCount: { fontSize: 12 },
+  milestoneLine: { fontSize: 14 },
+  milestoneName: { fontSize: 14, letterSpacing: -0.2 },
+  milestoneGap: { fontSize: 13 },
+  milestoneBar: { marginTop: 8 },
 });

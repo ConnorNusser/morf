@@ -79,9 +79,19 @@ function LiftRow({ lift, last }: { lift: LiftProgress; last: boolean }) {
 }
 
 export default function LiftProgressWidget({ lifts }: { lifts: LiftProgress[] }) {
+  const { currentTheme } = useTheme();
+  const { colors, fonts } = currentTheme;
   if (lifts.length === 0) return null;
   return (
     <RNView style={styles.panel}>
+      {/* Uppercase micro-label header — the Career card's grammar (ACTIVITY / NEXT),
+          so the top of History speaks the same design language as the profile. */}
+      <RNView style={styles.head}>
+        <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>LIFTS</Text>
+        <Text style={[styles.headMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
+          best set per month
+        </Text>
+      </RNView>
       {lifts.map((lift, i) => (
         <LiftRow key={lift.id} lift={lift} last={i === lifts.length - 1} />
       ))}
@@ -94,7 +104,12 @@ const styles = StyleSheet.create({
   // hairline dividers, so the panel reads as a clean list, not a boxed card.
   panel: {
     paddingHorizontal: 0,
+    marginBottom: 20,
   },
+  // Career micro-label grammar: 10px / bold / letterSpacing 1 / low opacity.
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 2 },
+  microLabel: { fontSize: 10, letterSpacing: 1 },
+  headMeta: { fontSize: 11 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
