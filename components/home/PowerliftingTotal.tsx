@@ -65,10 +65,10 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Big 3 Total</Text>
+        <Text style={[styles.title, { color: colors.text + '99' }]}>Big 3 Total</Text>
         <Text style={styles.headerTotal}>
-          <Text style={[styles.headerNum, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
-          <Text style={[styles.headerUnit, { color: colors.text + '99' }]}> lb</Text>
+          <Text style={[styles.headerNum, { color: colors.text + '99' }]}>{data.total.toLocaleString()}</Text>
+          <Text style={[styles.headerUnit, { color: colors.text + '70' }]}> lb</Text>
         </Text>
       </View>
 
