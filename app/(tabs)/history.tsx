@@ -139,10 +139,20 @@ export default function HistoryScreen() {
 
   // The reflective session feed: each workout enriched with its standout set, the
   // day's record, a narrative headline, muscles worked, and how its volume stacks up
-  // against the last session of the same kind. Newest first.
+  // against the last session of the same kind. Newest first. When the profile can
+  // support honest grading (bodyweight + gender), the standout set also carries its
+  // strength tier + gap-to-next-tier — the same gradeE1rm path the lift board uses.
+  const gender = userProfile?.gender;
+  const age = userProfile?.age;
   const sessionRecaps = useMemo(
-    () => buildSessionRecaps(workouts, customExercises, weightUnit),
-    [workouts, customExercises, weightUnit]
+    () =>
+      buildSessionRecaps(
+        workouts,
+        customExercises,
+        weightUnit,
+        bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
+      ),
+    [workouts, customExercises, weightUnit, bodyweightLbs, gender, age]
   );
 
   // Per-lift progression widget: best set per month for the lifts you've trained,
@@ -151,8 +161,6 @@ export default function HistoryScreen() {
   // honest grading (bodyweight + gender), each standard lift also carries its
   // CURRENT strength tier + progress-to-next-tier — the same percentile model Records
   // below and the Career card already use.
-  const gender = userProfile?.gender;
-  const age = userProfile?.age;
   const liftProgress = useMemo(
     () =>
       buildLiftProgressions(

@@ -5,6 +5,8 @@
 import AnimatedBar from '@/components/AnimatedBar';
 import AnimatedCount from '@/components/AnimatedCount';
 import { Text } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
+import { getTierColor } from '@/lib/data/strengthStandards';
 import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
@@ -70,6 +72,11 @@ function SessionHero({ recap, weightUnit, onPress }: {
   // earn the narrative headline, just not the icon.
   const showTrophy = recap.pr?.tier === 'major';
   const id = sessionIdentity(recap.title, recap.muscles);
+  // The standout set's earned strength tier — graded by the SAME gradeE1rm path the
+  // lift rows above use, null when there's no published standard or no bodyweight/
+  // gender on the profile. Null = the hero renders exactly as before: no fake tiers.
+  const tier = recap.standout?.tierInfo ?? null;
+  const tierColor = tier ? getTierColor(tier.tier) : colors.text;
 
   return (
     <TouchableOpacity
@@ -103,11 +110,14 @@ function SessionHero({ recap, weightUnit, onPress }: {
           otherwise it names the lift. */}
       {recap.standout && (
         <RNView style={styles.heroStandout}>
-          <Text style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}>
+          {/* The big number wears its EARNED tier color (plain text color when ungraded)
+              — the same strengthStandards hue the lift rows above and the Career hero
+              use, so the hero's focal figure carries meaning, not decoration. */}
+          <Text style={[styles.standoutValue, { color: tierColor, fontFamily: fonts.bold }]}>
             <AnimatedCount
               value={recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps}
               duration={900}
-              style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
+              style={[styles.standoutValue, { color: tierColor, fontFamily: fonts.bold }]}
             />
             <Text style={[styles.standoutUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
               {recap.standout.weight > 0 ? ` ${weightUnit} × ${recap.standout.reps}` : ' reps'}
@@ -120,6 +130,40 @@ function SessionHero({ recap, weightUnit, onPress }: {
                 ? recap.standout.name
                 : 'top set'}
           </Text>
+
+          {/* Career's "X to Gold" mechanic on the session itself: the set's tier badge,
+              how much e1RM stands between it and the NEXT tier (named in that tier's
+              color), and a filling band-progress track. Derived from this session's
+              actual set — a lighter day honestly reads further from the line — and the
+              whole block disappears when the lift can't be graded. */}
+          {tier && (
+            <>
+              <RNView style={styles.tierRow}>
+                <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />
+                <Text style={[styles.tierText, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
+                  e1RM {tier.e1rm}
+                  {tier.nextTier && tier.gapWeight != null ? (
+                    <>
+                      {' · '}{tier.gapWeight} {weightUnit} to{' '}
+                      <Text style={[styles.tierNext, { color: getTierColor(tier.nextTier), fontFamily: fonts.bold }]}>
+                        {tier.nextTier}
+                      </Text>
+                    </>
+                  ) : (
+                    ' · max tier'
+                  )}
+                </Text>
+              </RNView>
+              <AnimatedBar
+                progress={tier.bandProgress}
+                color={tierColor}
+                trackColor={colors.text + '15'}
+                height={4}
+                delay={250}
+                style={styles.tierBar}
+              />
+            </>
+          )}
         </RNView>
       )}
 
@@ -311,6 +355,12 @@ const styles = StyleSheet.create({
   standoutValue: { fontSize: 34, letterSpacing: -1 },
   standoutUnit: { fontSize: 18, letterSpacing: -0.3 },
   standoutName: { fontSize: 13, marginTop: 1 },
+  // tier context under the standout — same quiet-text + 4pt band-progress grammar as
+  // the lift rows' flip-backs and the NEXT milestone block above.
+  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
+  tierText: { flex: 1, fontSize: 12, letterSpacing: 0.1 },
+  tierNext: { fontSize: 12, letterSpacing: 0.1 },
+  tierBar: { marginTop: 7 },
   // space-between spreads the three stats across the FULL card width instead of
   // clumping them on the left with empty space to the right.
   heroFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },

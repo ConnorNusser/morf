@@ -5,6 +5,7 @@
 import { buildSessionPRs, SessionPR } from '@/components/history/prSessions';
 import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
+import { gradeE1rm, LiftGrading, TierGrade } from '@/lib/history/liftProgress';
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
@@ -14,6 +15,11 @@ export interface StandoutSet {
   weight: number; // in the display unit
   reps: number;
   unit: WeightUnit;
+  // The set graded against the published strength standards — the exact grading
+  // path the lift board uses (gradeE1rm), so the hero and the rows above it can
+  // never disagree about what tier a number is. Null when the lift has no real
+  // standard or the profile lacks bodyweight/gender: no fake 50th-percentile tiers.
+  tierInfo: TierGrade | null;
 }
 
 export interface SessionComparison {
@@ -57,15 +63,18 @@ function sessionMuscles(workout: GeneratedWorkout): string[] {
 /**
  * The session's headline set. When the day set a record we show THAT lift's top set
  * (so the "Squat PR" headline and the big number agree); otherwise the single most
- * impressive working set by estimated 1RM.
+ * impressive working set by estimated 1RM. When the profile supports honest grading,
+ * the winning set is graded through the same gradeE1rm path as the lift board, so
+ * the hero can carry its earned tier ("e1RM 293 · 12 lbs to B+").
  */
 function standoutSet(
   workout: GeneratedWorkout,
   unit: WeightUnit,
+  grading: LiftGrading | null,
   preferName?: string,
 ): StandoutSet | null {
-  let best: { e1rm: number; set: StandoutSet } | null = null;
-  let preferred: { e1rm: number; set: StandoutSet } | null = null;
+  let best: { e1rm: number; id: string; set: StandoutSet } | null = null;
+  let preferred: { e1rm: number; id: string; set: StandoutSet } | null = null;
   for (const ex of workout.exercises) {
     const info = getExercise(ex.id);
     const trackingType: TrackingType = info?.trackingType || 'reps';
@@ -79,14 +88,20 @@ function standoutSet(
         weight: Math.round(convertWeight(s.weight, s.unit || 'lbs', unit)),
         reps: s.reps,
         unit,
+        tierInfo: null,
       };
-      if (!best || lbs > best.e1rm) best = { e1rm: lbs, set };
+      if (!best || lbs > best.e1rm) best = { e1rm: lbs, id: ex.id, set };
       if (preferName && name === preferName && (!preferred || lbs > preferred.e1rm)) {
-        preferred = { e1rm: lbs, set };
+        preferred = { e1rm: lbs, id: ex.id, set };
       }
     }
   }
-  return (preferred ?? best)?.set ?? null;
+  const winner = preferred ?? best;
+  if (!winner) return null;
+  // Grade THIS session's set (not the all-time record) so the hero stays honest —
+  // a lighter day really does read a lower e1RM / further from the next tier.
+  const tierInfo = grading ? (gradeE1rm(winner.id, winner.e1rm, unit, grading) ?? null) : null;
+  return { ...winner.set, tierInfo };
 }
 
 function volumeLbs(workout: GeneratedWorkout, getTrackingType: (id: string) => TrackingType | undefined): number {
@@ -103,6 +118,7 @@ export function buildSessionRecaps(
   workouts: GeneratedWorkout[],
   customExercises: CustomExercise[],
   weightUnit: WeightUnit,
+  grading: LiftGrading | null = null,
 ): SessionRecap[] {
   if (workouts.length === 0) return [];
 
@@ -139,7 +155,7 @@ export function buildSessionRecaps(
     }
 
     const pr = sessionPRs.get(dayKeyOf(workout.createdAt)) ?? null;
-    const standout = standoutSet(workout, weightUnit, pr?.name);
+    const standout = standoutSet(workout, weightUnit, grading, pr?.name);
     const wStats = calculateWorkoutStats(workout.exercises, getTrackingType);
 
     // Gap since the previous session of any kind (drives the comeback beat).

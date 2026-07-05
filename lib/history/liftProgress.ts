@@ -33,17 +33,23 @@ export interface LiftGrading {
   age?: number;
 }
 
-// The lift's CURRENT strength identity, graded from the latest month's best set (not
-// the all-time record) so it stays honest: detrain and the tier — and the tier color
-// on the row — really does fall.
-export interface LiftTier {
+// One e1RM graded against the published standards — the shared vocabulary between
+// the lift board's rows and the session hero's standout set, so "12 lbs to B+"
+// means the same thing everywhere it appears.
+export interface TierGrade {
   tier: StrengthTier;
   percentile: number; // rounded, 0–99
   bandProgress: number; // 0..1 through the current tier's percentile band
   nextTier: StrengthTier | null; // null at S++ (max tier)
   targetWeight: number | null; // e1RM (display unit) that would enter nextTier
   gapWeight: number | null; // targetWeight − current e1RM (display unit), ≥1
-  e1rm: number; // latest month's best-set e1RM, display unit
+  e1rm: number; // the graded e1RM, display unit
+}
+
+// The lift's CURRENT strength identity, graded from the latest month's best set (not
+// the all-time record) so it stays honest: detrain and the tier — and the tier color
+// on the row — really does fall.
+export interface LiftTier extends TierGrade {
   e1rmDelta: number; // vs the previous shown month's best e1RM; signed, 0 if none
 }
 
@@ -100,20 +106,25 @@ const weightAtPercentile = (p: number, s: StrengthStandard, g: LiftGrading): num
   return ratioAtPercentile(p, s) * ageFactor * g.bodyweightLbs;
 };
 
-// Grade one lift from its displayed months: current tier from the LATEST month's best
-// set, trend vs the month before it. Returns undefined when the lift has no real
-// standards or the set is bodyweight-only — no 50th-percentile fake grades.
-function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading: LiftGrading): LiftTier | undefined {
+/**
+ * Grade a single e1RM (in lbs) against the published strength standards. The ONE
+ * shared grading path: the lift board's rows and the session hero's standout set
+ * both go through here, so tier / gap-to-next / band-progress can never disagree.
+ * Returns undefined when the lift has no real standards or the e1RM is non-positive
+ * — no 50th-percentile fake grades.
+ */
+export function gradeE1rm(
+  id: string,
+  e1rmInLbs: number,
+  unit: WeightUnit,
+  grading: LiftGrading,
+): TierGrade | undefined {
   const standards = grading.gender === 'female' ? FEMALE_STANDARDS[id] : MALE_STANDARDS[id];
-  const latest = recent[recent.length - 1]?.set;
-  if (!standards || !latest || latest.weight <= 0) return undefined;
+  if (!standards || e1rmInLbs <= 0) return undefined;
 
-  const toLbs = (s: Raw) => (s.unit === 'lbs' ? s.weight : convertWeight(s.weight, s.unit, 'lbs'));
   const toDisplay = (lbs: number) => Math.round(unit === 'lbs' ? lbs : convertWeight(lbs, 'lbs', unit));
 
-  const e1rmLatest = OneRMCalculator.estimate(toLbs(latest), latest.reps);
-  if (e1rmLatest <= 0) return undefined;
-  const percentile = calculateStrengthPercentile(e1rmLatest, grading.bodyweightLbs, grading.gender, id, grading.age);
+  const percentile = calculateStrengthPercentile(e1rmInLbs, grading.bodyweightLbs, grading.gender, id, grading.age);
   const tier = getStrengthTier(percentile);
   const band = getTierBandProgress(percentile);
 
@@ -121,12 +132,8 @@ function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading
   const targetWeight = nextThreshold
     ? toDisplay(weightAtPercentile(nextThreshold.threshold, standards, grading))
     : null;
-  const e1rm = toDisplay(e1rmLatest);
+  const e1rm = toDisplay(e1rmInLbs);
   const gapWeight = targetWeight != null ? Math.max(1, targetWeight - e1rm) : null;
-
-  const prev = recent.length > 1 ? recent[recent.length - 2].set : null;
-  const e1rmDelta =
-    prev && prev.weight > 0 ? e1rm - toDisplay(OneRMCalculator.estimate(toLbs(prev), prev.reps)) : 0;
 
   return {
     tier,
@@ -136,8 +143,27 @@ function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading
     targetWeight,
     gapWeight,
     e1rm,
-    e1rmDelta,
   };
+}
+
+// Grade one lift from its displayed months: current tier from the LATEST month's best
+// set, trend vs the month before it. Returns undefined when the lift has no real
+// standards or the set is bodyweight-only — no 50th-percentile fake grades.
+function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading: LiftGrading): LiftTier | undefined {
+  const latest = recent[recent.length - 1]?.set;
+  if (!latest || latest.weight <= 0) return undefined;
+
+  const toLbs = (s: Raw) => (s.unit === 'lbs' ? s.weight : convertWeight(s.weight, s.unit, 'lbs'));
+  const toDisplay = (lbs: number) => Math.round(unit === 'lbs' ? lbs : convertWeight(lbs, 'lbs', unit));
+
+  const grade = gradeE1rm(id, OneRMCalculator.estimate(toLbs(latest), latest.reps), unit, grading);
+  if (!grade) return undefined;
+
+  const prev = recent.length > 1 ? recent[recent.length - 2].set : null;
+  const e1rmDelta =
+    prev && prev.weight > 0 ? grade.e1rm - toDisplay(OneRMCalculator.estimate(toLbs(prev), prev.reps)) : 0;
+
+  return { ...grade, e1rmDelta };
 }
 
 // e1RM-flavored metric of a displayed point (reps for bodyweight sets) — only used
