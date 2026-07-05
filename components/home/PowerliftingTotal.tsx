@@ -29,14 +29,14 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
 
   return (
     <View style={styles.container}>
-      <View style={styles.topRow}>
-        <Text style={[styles.label, { color: colors.text }]}>BIG 3 TOTAL</Text>
-        <Text style={[styles.caption, { color: colors.text }]}>{caption}</Text>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: colors.text }]}>Big 3 Total</Text>
+        <Text style={[styles.caption, { color: colors.text + '99' }]}>{caption}</Text>
       </View>
 
       <View style={styles.valueRow}>
         <Text style={[styles.value, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
-        <Text style={[styles.unit, { color: colors.text }]}>lb</Text>
+        <Text style={[styles.unit, { color: colors.text + '99' }]}>lb</Text>
       </View>
 
       {/* Composition as colour-coded stats (not another bar — everything else is a bar) */}
@@ -54,12 +54,12 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { fontSize: 12, fontWeight: '600', letterSpacing: 1, opacity: 0.5 },
-  caption: { fontSize: 12, opacity: 0.55 },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  caption: { fontSize: 12, fontWeight: '500' },
+  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
   value: { fontSize: 40, fontWeight: '800', lineHeight: 44, letterSpacing: -1 },
-  unit: { fontSize: 17, fontWeight: '600', marginLeft: 6, opacity: 0.55 },
+  unit: { fontSize: 17, fontWeight: '600', marginLeft: 6 },
   lifts: { flexDirection: 'row', gap: 28, marginTop: 14 },
   lift: {},
   liftValue: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
