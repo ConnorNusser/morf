@@ -1,125 +1,117 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import playHapticFeedback from '@/lib/utils/haptic';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
+  FadeIn,
   FadeInDown,
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-const SIZE = 184;
-const STROKE = 9;
-const R = (SIZE - STROKE) / 2;
-const CIRC = 2 * Math.PI * R;
 
 interface Props {
   visible: boolean;
   routineName: string;
   subtitle?: string;
   exercises?: string[];
-  percentile: number; // overall strength percentile → drives the ring + tier
+  percentile: number; // overall strength percentile → tier accent
   onLaunch: () => void; // fire the navigation (overlay still covering)
   onClose: () => void; // unmount the overlay once the workout is mounted underneath
 }
 
-// Launch interstitial: a strength-tier ring. The arc sweeps to your percentile in
-// your tier colour, your rank stamps into the centre, and the routine name resolves
-// below — flat black, no gradient. Your rank is the whole visual.
+// Evidence-based cues surfaced before each session — grounded in the strength &
+// hypertrophy literature (progressive overload, proximity-to-failure, double
+// progression, volume landmarks, eccentric control, specificity). One per launch.
+const CUES: { tag: string; text: string }[] = [
+  { tag: 'PROGRESSIVE OVERLOAD', text: 'Beat last session by one rep — or the smallest plate. That’s the whole game.' },
+  { tag: 'PROXIMITY TO FAILURE', text: 'Leave 1–2 reps in the tank on your top sets. Close enough to grow, not so close it wrecks recovery.' },
+  { tag: 'DOUBLE PROGRESSION', text: 'Add reps first. Only add load once you top your rep range on every set.' },
+  { tag: 'EFFECTIVE VOLUME', text: '10–20 hard sets per muscle per week is the range that builds it. Quality over count.' },
+  { tag: 'ECCENTRIC CONTROL', text: 'Own the way down. A controlled eccentric loads the muscle more than the drop.' },
+  { tag: 'SPECIFICITY', text: 'Log every set. Progress is only real if it’s measured against last time.' },
+  { tag: 'FATIGUE MANAGEMENT', text: 'Strength is built between sessions. Bring intent today, not ego.' },
+];
+
+// A calm, research-grounded "session brief" — no bounce. The cue and routine
+// resolve with smooth linear/cubic motion while a time bar tracks the hold.
 export default function WorkoutLaunch({ visible, routineName, subtitle, exercises = [], percentile, onLaunch, onClose }: Props) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const tier = getStrengthTier(percentile);
   const tierColor = getTierColor(tier);
-  const pct = Math.max(0, Math.min(100, percentile));
   const meta = subtitle || (exercises.length ? `${exercises.length} exercise${exercises.length === 1 ? '' : 's'}` : '');
 
+  const [cueIdx, setCueIdx] = useState(0);
+  const cue = CUES[cueIdx];
+
   const root = useSharedValue(0);
-  const progress = useSharedValue(0);
-  const stamp = useSharedValue(0.55);
-  const stampOpacity = useSharedValue(0);
+  const timebar = useSharedValue(0);
 
   useEffect(() => {
     if (!visible) return;
+    setCueIdx(i => (i + 1) % CUES.length);
     playHapticFeedback('medium', false);
     root.value = 0;
-    progress.value = 0;
-    stamp.value = 0.55;
-    stampOpacity.value = 0;
+    timebar.value = 0;
 
-    root.value = withTiming(1, { duration: 200 });
-    stampOpacity.value = withDelay(180, withTiming(1, { duration: 240 }));
-    stamp.value = withDelay(180, withSpring(1, { damping: 9, stiffness: 150 }));
-    progress.value = withDelay(220, withTiming(pct / 100, { duration: 900, easing: Easing.out(Easing.cubic) }));
+    root.value = withTiming(1, { duration: 240, easing: Easing.out(Easing.cubic) });
+    timebar.value = withTiming(1, { duration: 1700, easing: Easing.linear });
 
-    const ding = setTimeout(() => playHapticFeedback('light', false), 1080);
-    const launchT = setTimeout(onLaunch, 1420);
+    const launchT = setTimeout(onLaunch, 1780);
     const fadeT = setTimeout(() => {
       root.value = withTiming(0, { duration: 240 });
-    }, 1600);
-    const closeT = setTimeout(onClose, 1860);
+    }, 1960);
+    const closeT = setTimeout(onClose, 2220);
     return () => {
-      clearTimeout(ding);
       clearTimeout(launchT);
       clearTimeout(fadeT);
       clearTimeout(closeT);
     };
-  }, [visible, onLaunch, onClose, pct, root, progress, stamp, stampOpacity]);
+  }, [visible, onLaunch, onClose, root, timebar]);
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: root.value }));
-  const stampStyle = useAnimatedStyle(() => ({ opacity: stampOpacity.value, transform: [{ scale: stamp.value }] }));
-  const ringProps = useAnimatedProps(() => ({ strokeDashoffset: CIRC * (1 - progress.value) }));
+  const timebarStyle = useAnimatedStyle(() => ({ width: `${timebar.value * 100}%` }));
 
   return (
     <Modal visible={visible} transparent={false} animationType="none" statusBarTranslucent>
       <Animated.View style={[styles.fill, { backgroundColor: colors.background }, rootStyle]}>
         <View style={styles.center}>
-          <View style={styles.ringWrap}>
-            <Svg width={SIZE} height={SIZE} style={styles.ringSvg}>
-              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={colors.text + '14'} strokeWidth={STROKE} fill="none" />
-              <AnimatedCircle
-                cx={SIZE / 2}
-                cy={SIZE / 2}
-                r={R}
-                stroke={tierColor}
-                strokeWidth={STROKE}
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={CIRC}
-                animatedProps={ringProps}
-              />
-            </Svg>
-            <Animated.View style={[StyleSheet.absoluteFill, styles.ringCenter, stampStyle]}>
-              <Text style={[styles.tierLetter, { color: tierColor }]}>{tier}</Text>
-              <Text style={[styles.tierLabel, { color: colors.text + '80' }]}>{pct}TH PERCENTILE</Text>
-            </Animated.View>
-          </View>
-
-          <Animated.Text
-            entering={FadeInDown.delay(360).duration(320)}
-            style={[styles.name, { color: colors.text }]}
-            numberOfLines={2}
-          >
-            {routineName}
-          </Animated.Text>
-
+          {/* Context: rank + what you're about to do. */}
+          <Animated.View entering={FadeIn.duration(240)} style={styles.headerRow}>
+            <Text style={[styles.tierChip, { color: tierColor, borderColor: tierColor + '55' }]}>{tier}</Text>
+            <Text style={[styles.routine, { color: colors.text }]} numberOfLines={1}>
+              {routineName}
+            </Text>
+          </Animated.View>
           {!!meta && (
-            <Animated.Text
-              entering={FadeInDown.delay(480).duration(280)}
-              style={[styles.meta, { color: colors.text + '99' }]}
-            >
+            <Animated.Text entering={FadeIn.delay(120).duration(240)} style={[styles.meta, { color: colors.text + '80' }]}>
               {meta}
             </Animated.Text>
           )}
+
+          {/* The brief. */}
+          <View style={styles.brief}>
+            <Animated.Text
+              entering={FadeInDown.delay(220).duration(340).easing(Easing.out(Easing.cubic))}
+              style={[styles.tag, { color: tierColor }]}
+            >
+              {cue.tag}
+            </Animated.Text>
+            <Animated.Text
+              entering={FadeInDown.delay(320).duration(420).easing(Easing.out(Easing.cubic))}
+              style={[styles.cue, { color: colors.text }]}
+            >
+              {cue.text}
+            </Animated.Text>
+          </View>
+        </View>
+
+        {/* Time bar tracks the hold — a real, linear countdown, not a bounce. */}
+        <View style={[styles.timeTrack, { backgroundColor: colors.text + '12' }]}>
+          <Animated.View style={[styles.timeFill, timebarStyle, { backgroundColor: tierColor }]} />
         </View>
       </Animated.View>
     </Modal>
@@ -128,13 +120,26 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  ringWrap: { width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' },
-  ringSvg: { transform: [{ rotate: '-90deg' }] },
-  ringCenter: { alignItems: 'center', justifyContent: 'center' },
-  tierLetter: { fontSize: 58, fontWeight: '800', letterSpacing: -1 },
-  tierLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4 },
+  center: { flex: 1, justifyContent: 'center', paddingHorizontal: 34 },
 
-  name: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3, textAlign: 'center', marginTop: 34 },
-  meta: { fontSize: 14, fontWeight: '500', marginTop: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tierChip: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    overflow: 'hidden',
+  },
+  routine: { fontSize: 17, fontWeight: '700', flex: 1 },
+  meta: { fontSize: 13, fontWeight: '500', marginTop: 6 },
+
+  brief: { marginTop: 34 },
+  tag: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
+  cue: { fontSize: 25, fontWeight: '700', lineHeight: 33, letterSpacing: -0.3 },
+
+  timeTrack: { height: 3, width: '100%' },
+  timeFill: { height: '100%' },
 });
