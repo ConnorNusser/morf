@@ -9,7 +9,8 @@ import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
-import WorkoutLaunch from "@/components/home/WorkoutLaunch";
+import StartButton from "@/components/home/StartButton";
+import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { CalculatedRoutine } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,21 +18,11 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // After dismissing the "build a routine" nudge, re-surface it once this much
 // time has passed (5 days).
@@ -51,10 +42,11 @@ function cleanName(name: string): string {
   return name.replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
-export default function TodayCard({ overallPercentile = 0 }: { overallPercentile?: number }) {
+export default function TodayCard() {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
+  const launch = useWorkoutLaunch();
 
   const [calculated, setCalculated] = useState<CalculatedRoutine | null>(null);
   // The active program's days in ring order, so the user can flip through them.
@@ -62,7 +54,6 @@ export default function TodayCard({ overallPercentile = 0 }: { overallPercentile
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
-  const [launching, setLaunching] = useState(false);
   const [adviceDismissed, setAdviceDismissed] = useState(false);
   const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
 
@@ -132,37 +123,28 @@ export default function TodayCard({ overallPercentile = 0 }: { overallPercentile
     [days],
   );
 
-  // Start-button interactions: press springs the whole button down; the arrow
-  // nudges on press and flings forward on release for a tactile "go" feel.
-  const pressScale = useSharedValue(1);
-  const arrowShift = useSharedValue(0);
-  const buttonAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
-  const arrowAnim = useAnimatedStyle(() => ({ transform: [{ translateX: arrowShift.value }] }));
-
-  // Tapping Start plays the launch interstitial; the actual navigation fires from
+  // Tapping Start plays the shared launch interstitial; the navigation fires from
   // inside the overlay once its animation lands.
   const handleStart = useCallback(() => {
     if (!calculated) return;
-    arrowShift.value = withSequence(withTiming(14, { duration: 130 }), withSpring(0));
-    setLaunching(true);
-  }, [calculated, arrowShift]);
+    const sets = calculated.exercises.reduce((n, ex) => n + ex.sets.length, 0);
+    launch({
+      routineName: calculated.name,
+      subtitle: `${calculated.exercises.length} exercises · ${sets} sets`,
+      onArrive: () => {
+        setPendingRoutine(calculated);
+        router.push("/workout");
+      },
+    });
+  }, [calculated, launch, router]);
 
-  const launchNav = useCallback(() => {
-    if (!calculated) return;
-    setPendingRoutine(calculated);
-    router.push("/workout");
-  }, [calculated, router]);
-
-  const closeLaunch = useCallback(() => setLaunching(false), []);
-
-  const onPressInStart = useCallback(() => {
-    pressScale.value = withSpring(0.96, { damping: 18, stiffness: 320 });
-    arrowShift.value = withSpring(4);
-  }, [pressScale, arrowShift]);
-  const onPressOutStart = useCallback(() => {
-    pressScale.value = withSpring(1, { damping: 14, stiffness: 260 });
-    arrowShift.value = withSpring(0);
-  }, [pressScale, arrowShift]);
+  const startFreestyle = useCallback(() => {
+    launch({
+      routineName: "Empty Workout",
+      subtitle: "Freestyle — log as you go",
+      onArrive: () => router.push("/workout"),
+    });
+  }, [launch, router]);
 
   if (loading) {
     return (
@@ -211,25 +193,11 @@ export default function TodayCard({ overallPercentile = 0 }: { overallPercentile
           </Text>
         ) : null}
 
-        <TouchableOpacity
-          style={[
-            styles.primaryButton,
-            { backgroundColor: currentTheme.colors.primary },
-          ]}
-          onPress={() => router.push("/workout")}
-          activeOpacity={0.85}
-        >
-          <Text
-            style={[
-              styles.primaryButtonText,
-              {
-                color: currentTheme.colors.surface,
-              },
-            ]}
-          >
-            Start a workout
-          </Text>
-        </TouchableOpacity>
+        <StartButton
+          label="Start a workout"
+          onPress={startFreestyle}
+          style={styles.primaryButton}
+        />
 
         {!adviceDismissed && (
           <>
@@ -351,44 +319,12 @@ export default function TodayCard({ overallPercentile = 0 }: { overallPercentile
         })}
       </View>
 
-      <AnimatedPressable
-        style={[
-          styles.primaryButton,
-          buttonAnim,
-          trainedToday
-            ? { backgroundColor: "transparent", borderWidth: 1.5, borderColor: currentTheme.colors.border }
-            : { backgroundColor: currentTheme.colors.text },
-        ]}
+      <StartButton
+        label={trainedToday ? "Train again" : "Start workout"}
+        variant={trainedToday ? "outlined" : "solid"}
         onPress={handleStart}
-        onPressIn={onPressInStart}
-        onPressOut={onPressOutStart}
-      >
-        <Text
-          style={[
-            styles.primaryButtonText,
-            {
-              color: trainedToday
-                ? currentTheme.colors.text
-                : currentTheme.colors.background,
-            },
-          ]}
-        >
-          {trainedToday ? "Train again" : "Start workout"}
-        </Text>
-        <Animated.View
-          style={[
-            styles.primaryButtonArrow,
-            arrowAnim,
-            {
-              backgroundColor: trainedToday
-                ? currentTheme.colors.text + "18"
-                : currentTheme.colors.background,
-            },
-          ]}
-        >
-          <Ionicons name="arrow-forward" size={18} color={currentTheme.colors.text} />
-        </Animated.View>
-      </AnimatedPressable>
+        style={styles.primaryButton}
+      />
     </Card>
     </TouchableOpacity>
 
@@ -401,15 +337,6 @@ export default function TodayCard({ overallPercentile = 0 }: { overallPercentile
         setShowOverview(false);
         handleStart();
       }}
-    />
-
-    <WorkoutLaunch
-      visible={launching}
-      routineName={calculated.name}
-      subtitle={`${calculated.exercises.length} exercises · ${totalSets} sets`}
-      percentile={overallPercentile}
-      onLaunch={launchNav}
-      onClose={closeLaunch}
     />
     </>
   );
@@ -511,24 +438,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    paddingLeft: 22,
-    paddingRight: 8,
-    borderRadius: 16,
     marginTop: 14,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  primaryButtonArrow: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

@@ -331,7 +331,7 @@ export default function HomeScreen() {
           />
 
           <WeeklyGoalCard />
-          <TodayCard overallPercentile={overallStats.overallPercentile} />
+          <TodayCard />
 
           <TouchableOpacity
             style={styles.actionButton}
