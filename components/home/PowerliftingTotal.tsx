@@ -23,7 +23,6 @@ export interface PowerliftingTotalData {
 export default function PowerliftingTotal({ data }: { data: PowerliftingTotalData }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const scale = Math.max(data.total, data.milestoneTarget, 1);
   const caption = data.allUnlocked
     ? `${data.milestoneTarget.toLocaleString()} lb club`
     : `${data.remaining.toLocaleString()} to ${data.milestoneTarget.toLocaleString()} club`;
@@ -40,19 +39,12 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
         <Text style={[styles.unit, { color: colors.text }]}>lb</Text>
       </View>
 
-      <View style={[styles.track, { backgroundColor: colors.text + '0D' }]}>
+      {/* Composition as colour-coded stats (not another bar — everything else is a bar) */}
+      <View style={styles.lifts}>
         {data.lifts.map(l => (
-          <View key={l.label} style={{ width: `${(l.value / scale) * 100}%`, backgroundColor: l.color }} />
-        ))}
-      </View>
-
-      <View style={styles.legend}>
-        {data.lifts.map(l => (
-          <View key={l.label} style={styles.legendItem}>
-            <View style={[styles.dot, { backgroundColor: l.color }]} />
-            <Text style={[styles.legendText, { color: colors.text + '99' }]}>
-              {l.label} <Text style={[styles.legendValue, { color: colors.text }]}>{l.value.toLocaleString()}</Text>
-            </Text>
+          <View key={l.label} style={styles.lift}>
+            <Text style={[styles.liftValue, { color: l.color }]}>{l.value.toLocaleString()}</Text>
+            <Text style={[styles.liftLabel, { color: colors.text + '99' }]}>{l.label}</Text>
           </View>
         ))}
       </View>
@@ -66,12 +58,10 @@ const styles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '600', letterSpacing: 1, opacity: 0.5 },
   caption: { fontSize: 12, opacity: 0.55 },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 2 },
-  value: { fontSize: 44, fontWeight: '800', lineHeight: 48, letterSpacing: -1 },
-  unit: { fontSize: 18, fontWeight: '600', marginLeft: 6, opacity: 0.55 },
-  track: { height: 14, borderRadius: 7, overflow: 'hidden', flexDirection: 'row', marginTop: 12, gap: 2 },
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 10 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 13, fontWeight: '500' },
-  legendValue: { fontWeight: '700' },
+  value: { fontSize: 40, fontWeight: '800', lineHeight: 44, letterSpacing: -1 },
+  unit: { fontSize: 17, fontWeight: '600', marginLeft: 6, opacity: 0.55 },
+  lifts: { flexDirection: 'row', gap: 28, marginTop: 14 },
+  lift: {},
+  liftValue: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  liftLabel: { fontSize: 12, marginTop: 1, fontWeight: '500' },
 });

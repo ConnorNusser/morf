@@ -50,9 +50,9 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
           </View>
 
           <View style={styles.statRow}>
-            <Text style={[styles.prValue, { color: currentTheme.colors.text }]}>
+            <Text style={[styles.prValue, { color: accentColor }]}>
               {convertWeightForPreference(personalRecord, 'lbs', weightUnit)}
-              <Text style={styles.prUnit}> {weightUnit}</Text>
+              <Text style={[styles.prUnit, { color: accentColor }]}> {weightUnit}</Text>
             </Text>
             <Text style={[styles.percentile, { color: currentTheme.colors.text + '99' }]}>
               {percentileRanking}
