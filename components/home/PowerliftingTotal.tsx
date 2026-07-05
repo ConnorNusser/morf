@@ -62,10 +62,6 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
     Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
   );
 
-  const caption = data.allUnlocked
-    ? `All ${n} clubs earned`
-    : `${data.remaining.toLocaleString()} lb to the ${data.nextTarget.toLocaleString()} club`;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -116,8 +112,6 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
         ))}
       </View>
 
-      <Text style={[styles.caption, { color: colors.text + '99' }]}>{caption}</Text>
-
       {/* Legend: which colour is which lift, with pounds. */}
       <View style={styles.legend}>
         {data.lifts.map(l => (
@@ -143,13 +137,11 @@ const styles = StyleSheet.create({
   headerUnit: { fontSize: 14, fontWeight: '600' },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
-  ladderCell: { flex: 1, height: 26, borderRadius: 3 },
-  ladderLabels: { flexDirection: 'row', marginTop: 6 },
-  ladderBaseLabel: { fontSize: 11, textAlign: 'center' },
+  ladderCell: { flex: 1, height: 14, borderRadius: 2 },
+  ladderLabels: { flexDirection: 'row', marginTop: 7 },
+  ladderBaseLabel: { fontSize: 11, textAlign: 'right' },
 
-  caption: { fontSize: 11, opacity: 0.6, textAlign: 'center', marginTop: 10 },
-
-  legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   legendVal: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
