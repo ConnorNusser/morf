@@ -114,19 +114,16 @@ function SessionHero({ recap, weightUnit, onPress }: {
         </RNView>
       )}
 
-      {/* how it stacks up — the % says it; keep the caption short */}
-      {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
-        <RNView style={styles.heroCompare}>
-          <DeltaPill pct={recap.comparison.deltaVolumePct} />
-          <Text style={[styles.compareText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
-            volume vs last time
-          </Text>
-        </RNView>
-      )}
-
-      {/* effort footer */}
+      {/* effort footer — spread across the FULL width (not clumped left) so the hero uses
+          the whole card. The volume-vs-last-time delta now rides right next to the Volume
+          figure it actually describes, instead of floating as its own unlabeled line that
+          read as a second, disconnected comparison next to the PR gain above it. */}
       <RNView style={[styles.heroFooter, { borderTopColor: colors.text + '10' }]}>
-        <FooterStat label="Volume" value={`${formatCompact(recap.volumeDisplay)} ${weightUnit}`} />
+        <FooterStat
+          label="Volume"
+          value={`${formatCompact(recap.volumeDisplay)} ${weightUnit}`}
+          deltaPct={recap.comparison?.deltaVolumePct}
+        />
         <FooterStat label="Sets" value={`${recap.sets}`} />
         <FooterStat label="Time" value={`${recap.durationMin}m`} />
       </RNView>
@@ -134,11 +131,14 @@ function SessionHero({ recap, weightUnit, onPress }: {
   );
 }
 
-function FooterStat({ label, value }: { label: string; value: string }) {
+function FooterStat({ label, value, deltaPct }: { label: string; value: string; deltaPct?: number }) {
   const { currentTheme } = useTheme();
   return (
     <RNView style={styles.footerStat}>
-      <Text style={[styles.footerValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{value}</Text>
+      <RNView style={styles.footerValueRow}>
+        <Text style={[styles.footerValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{value}</Text>
+        {deltaPct != null && <DeltaPill pct={deltaPct} />}
+      </RNView>
       <Text style={[styles.footerLabel, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]}>{label}</Text>
     </RNView>
   );
@@ -183,9 +183,19 @@ function MomentCard({ recap, weightUnit, onPress }: {
           {recap.headline ?? standoutLine ?? recap.title}
         </Text>
 
+        {/* the standout set gets its own line whenever a headline already claimed the lead,
+            so it never has to be crammed into the same truncating string as volume/sets. */}
+        {recap.headline && standoutLine && (
+          <Text
+            style={[styles.momentStandout, { color: colors.text + '80', fontFamily: fonts.regular }]}
+            numberOfLines={1}
+          >
+            {standoutLine}
+          </Text>
+        )}
+
         <RNView style={styles.momentMeta}>
           <Text style={[styles.momentMetaText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
-            {recap.headline && standoutLine ? `${standoutLine} · ` : ''}
             {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets
           </Text>
           {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
@@ -259,10 +269,11 @@ const styles = StyleSheet.create({
   standoutValue: { fontSize: 34, letterSpacing: -1 },
   standoutUnit: { fontSize: 18, letterSpacing: -0.3 },
   standoutName: { fontSize: 13, marginTop: 1 },
-  heroCompare: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  compareText: { fontSize: 13 },
-  heroFooter: { flexDirection: 'row', gap: 24, marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
+  // space-between spreads the three stats across the FULL card width instead of
+  // clumping them on the left with empty space to the right.
+  heroFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
   footerStat: {},
+  footerValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footerValue: { fontSize: 15 },
   footerLabel: { fontSize: 11, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
   // shared
@@ -278,6 +289,7 @@ const styles = StyleSheet.create({
   momentWhen: { fontSize: 12, letterSpacing: 0.2 },
   prDot: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   momentLead: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 4 },
+  momentStandout: { fontSize: 13, lineHeight: 17, marginTop: 2 },
   momentMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, gap: 8 },
   momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
