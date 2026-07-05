@@ -99,8 +99,10 @@ function SessionHero({ recap, weightUnit, onPress }: {
         )}
       </RNView>
 
-      {/* the emotional hook: a narrative headline, else the standout lift name */}
-      <Text style={[styles.heroHeadline, { color: colors.text, fontFamily: fonts.bold }]} numberOfLines={2}>
+      {/* the narrative hook — deliberately compact (eyebrow-adjacent, one line), so
+          the tier-colored standout number below is the hero's ONLY hero-scale element,
+          the way Career reserves scale for numbers */}
+      <Text style={[styles.heroHeadline, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
         {recap.headline ?? (recap.standout ? `${recap.standout.name}` : recap.title)}
       </Text>
 
@@ -279,6 +281,12 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
   const moments = rest.slice(0, Math.max(0, visibleCount - 1));
   const hasMore = totalCount > visibleCount;
 
+  // The NEXT banner wears its goal lift's Push/Pull/Legs color end-to-end — dot,
+  // "X to go" and the filling bar — so color keeps meaning split everywhere and the
+  // banner stops sharing a hue with the plain "View all" actions. Primary is only
+  // the fallback when the lift maps to no split.
+  const milestoneColor = milestone?.split ? PPL_COLORS[milestone.split] : colors.primary;
+
   return (
     <RNView>
       {/* Forward pull, in the Career card's NEXT grammar: the round/plate target the
@@ -289,7 +297,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
         <RNView style={[styles.milestone, { borderBottomColor: colors.text + '10' }]}>
           <RNView style={styles.milestoneHead}>
             <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>NEXT</Text>
-            <Text style={[styles.milestoneGap, { color: colors.primary, fontFamily: fonts.semiBold }]}>
+            <Text style={[styles.milestoneGap, { color: milestoneColor, fontFamily: fonts.semiBold }]}>
               {milestone.gap} {milestone.unit} to go
             </Text>
           </RNView>
@@ -308,7 +316,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
           </RNView>
           <AnimatedBar
             progress={milestone.current / milestone.target}
-            color={colors.primary}
+            color={milestoneColor}
             trackColor={colors.text + '15'}
             height={5}
             delay={150}
@@ -346,12 +354,16 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
 
 const styles = StyleSheet.create({
   emblem: { alignItems: 'center', justifyContent: 'center' },
-  // hero — flat, full-width (no box); content separated by spacing and the footer rule
-  hero: { paddingTop: 4, paddingBottom: 6, marginBottom: 4 },
-  heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  // hero — a sub-block of the shared top panel; content separated by spacing and the
+  // footer rule. Vertical gaps are tightened toward Career's stat-row density.
+  hero: { paddingTop: 2, paddingBottom: 6, marginBottom: 4 },
+  heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
   eyebrowText: { flex: 1, fontSize: 12, letterSpacing: 0.4 },
-  heroHeadline: { fontSize: 24, lineHeight: 29, letterSpacing: -0.4 },
-  heroStandout: { marginTop: 14 },
+  // ONE hero-scale element per screen: the headline sits at compact 16pt semiBold so
+  // only the 34pt tier-colored standout number reads as the hero (Career's rule —
+  // scale is reserved for numbers).
+  heroHeadline: { fontSize: 16, lineHeight: 21, letterSpacing: -0.2 },
+  heroStandout: { marginTop: 8 },
   standoutValue: { fontSize: 34, letterSpacing: -1 },
   standoutUnit: { fontSize: 18, letterSpacing: -0.3 },
   standoutName: { fontSize: 13, marginTop: 1 },

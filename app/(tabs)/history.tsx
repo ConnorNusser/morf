@@ -1,3 +1,4 @@
+import Card from '@/components/Card';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
@@ -307,25 +308,31 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* Per-lift progression — a short RANKED board (top rows only, expander for
-                the rest). Passing the milestone lets the board tag the NEXT banner's lift,
-                so the banner below visibly points back into the board. */}
-            <LiftProgressWidget lifts={liftProgress} milestone={milestone} />
-
-            {/* Sessions feed — History's reflective centerpiece. The latest workout gets
-                a cinematic recap (narrative headline + the standout set + how it stacks up),
-                past sessions follow as re-livable moment cards. Replaces the abstract
-                Strength Index and subsumes the old flat "Recent Workouts" log. */}
+            {/* The top region is ONE instrument panel — the LIFTS board, the NEXT
+                milestone banner and the SESSIONS feed live on a single shared Card
+                (the exact Card grammar CareerSection sits on: variant="elevated",
+                padding 18), with hairline dividers fusing the sub-blocks instead of
+                two unframed sections floating on the page.
+                - LiftProgressWidget: a short RANKED board (top rows only, expander
+                  for the rest); its focal "+X to tier" tag is now tier-gap only, so
+                  the NEXT banner's plate-milestone fact is never stated twice.
+                - SessionsFeed: cinematic latest-session recap + past moment cards. */}
             {workouts.length > 0 && (
-              <SessionsFeed
-                recaps={sessionRecaps}
-                weightUnit={weightUnit}
-                milestone={milestone}
-                visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
-                totalCount={sessionRecaps.length}
-                onPressSession={setSelectedWorkout}
-                onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}
-              />
+              <Card variant="elevated" padding={18}>
+                <LiftProgressWidget lifts={liftProgress} />
+                {liftProgress.length > 0 && sessionRecaps.length > 0 && (
+                  <View style={[styles.panelDivider, { backgroundColor: currentTheme.colors.text + '10' }]} />
+                )}
+                <SessionsFeed
+                  recaps={sessionRecaps}
+                  weightUnit={weightUnit}
+                  milestone={milestone}
+                  visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
+                  totalCount={sessionRecaps.length}
+                  onPressSession={setSelectedWorkout}
+                  onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}
+                />
+              </Card>
             )}
 
             {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
@@ -725,6 +732,12 @@ const styles = StyleSheet.create({
   resultCount: {
     fontSize: 12,
     marginBottom: 4,
+  },
+  // Hairline sub-block divider inside the top instrument panel — the same
+  // divider grammar CareerSection uses between its hero / stats / NEXT blocks.
+  panelDivider: {
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.7,
   },
   // Section styles
   section: {

@@ -9,9 +9,10 @@
 // The board is RANKED and CAPPED: buildLiftProgressions orders lifts by tier
 // proximity × recent movement, and only the top few rows show (an "All N lifts"
 // expander — the same viewAll text-button grammar as the sessions feed — holds the
-// rest), so the panel reads as a short leaderboard, not a wall. The single lift
-// nearest its next milestone/tier wears a primary "+X to …" tag that the NEXT
-// banner below visibly answers.
+// rest), so the panel reads as a short leaderboard, not a wall. The single graded
+// lift nearest its next TIER wears a primary "+X to <tier>" tag — a deliberately
+// different fact from the NEXT banner's plate-milestone below, so the same number
+// is never stated twice within one screen-height.
 //
 // Color discipline (one hue = one meaning, the Career rule): the left rail is the
 // lift's Push/Pull/Legs SPLIT color — the same PPL_COLORS the session emblems and
@@ -26,7 +27,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { LiftProgress, LiftTier } from '@/lib/history/liftProgress';
-import { NextMilestone } from '@/lib/history/milestones';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -103,9 +103,8 @@ function SplitRail({ lift }: { lift: LiftProgress }) {
   return <RNView style={[styles.rail, { backgroundColor: color }]} />;
 }
 
-// The focal "+X to …" tag: worn by exactly ONE row — the lift nearest its next
-// milestone/tier — in the same primary the NEXT banner below uses, so the board's
-// focal point and the banner read as one thread.
+// The focal "+X to <tier>" tag: worn by exactly ONE row — the graded lift nearest
+// its next strength tier — so the board has a single forward-pull focal point.
 function FocalTag({ label }: { label: string }) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
@@ -248,15 +247,12 @@ function LiftRow({ lift, last, tag }: { lift: LiftProgress; last: boolean; tag: 
   );
 }
 
-// The one lift the board should pull the eye to: the NEXT banner's milestone lift
-// when it's on the board, else the graded lift with the smallest absolute gap to
-// its next tier. Returns the tag text keyed by lift id (or null when nothing is
-// honestly close — no focal point is faked).
-function focalTagFor(lifts: LiftProgress[], milestone?: NextMilestone | null): { id: string; tag: string } | null {
-  if (milestone) {
-    const hit = lifts.find(l => l.id === milestone.exerciseId);
-    if (hit) return { id: hit.id, tag: `+${milestone.gap} to ${milestone.target}` };
-  }
+// The one lift the board should pull the eye to: the graded lift with the smallest
+// absolute gap to its next tier. Deliberately NOT the NEXT banner's plate milestone
+// — that fact already gets its own banner below, and stating it twice read as
+// clutter. Returns the tag text keyed by lift id (or null when nothing is honestly
+// close — no focal point is faked).
+function focalTagFor(lifts: LiftProgress[]): { id: string; tag: string } | null {
   let best: { id: string; tag: string; gap: number } | null = null;
   for (const l of lifts) {
     const t = l.tierInfo;
@@ -266,9 +262,8 @@ function focalTagFor(lifts: LiftProgress[], milestone?: NextMilestone | null): {
   return best ? { id: best.id, tag: best.tag } : null;
 }
 
-export default function LiftProgressWidget({ lifts, milestone, maxRows = 4 }: {
+export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
   lifts: LiftProgress[];
-  milestone?: NextMilestone | null;
   maxRows?: number;
 }) {
   const { currentTheme } = useTheme();
@@ -277,9 +272,9 @@ export default function LiftProgressWidget({ lifts, milestone, maxRows = 4 }: {
   if (lifts.length === 0) return null;
   const anyGraded = lifts.some(l => l.tierInfo);
 
-  const focal = focalTagFor(lifts, milestone);
-  // Top ranked rows only; if the focal (NEXT-banner) lift ranks below the cut it
-  // takes the last visible slot, so the banner always points at a visible row.
+  const focal = focalTagFor(lifts);
+  // Top ranked rows only; if the focal lift ranks below the cut it takes the last
+  // visible slot, so the board's one forward-pull tag is always visible.
   let visible = expanded ? lifts : lifts.slice(0, maxRows);
   if (!expanded && focal && !visible.some(l => l.id === focal.id)) {
     const pinned = lifts.find(l => l.id === focal.id);
@@ -318,8 +313,9 @@ export default function LiftProgressWidget({ lifts, milestone, maxRows = 4 }: {
 }
 
 const styles = StyleSheet.create({
-  // Flat: no surface/border on the panel itself — rows sit on the page, separated by
-  // hairline dividers, so the panel reads as a clean list, not a boxed card.
+  // No surface of its own: the board is the first sub-block of the shared top-panel
+  // Card in history.tsx (the same Card grammar CareerSection lives on), separated
+  // from the NEXT/SESSIONS blocks below by that panel's hairline dividers.
   panel: {
     paddingHorizontal: 0,
   },
