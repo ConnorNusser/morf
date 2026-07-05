@@ -23,111 +23,54 @@ export interface PowerliftingTotalData {
   allUnlocked: boolean;
 }
 
-// Warm "heat" ramp per club band — the stronger you get, the hotter the cells.
-// Muted, not neon. Colour ⇒ pounds, exactly like the Tier Ladder's grades.
-const HEAT = ['#E0A32E', '#E07A3E', '#D75248', '#C0433E'];
-const heatFor = (i: number, n: number) =>
-  HEAT[Math.min(HEAT.length - 1, Math.round((i / Math.max(1, n - 1)) * (HEAT.length - 1)))];
-
-const STEP = 100; // lb per ladder cell
-
-// Flat "Big 3 Total" widget — the Career Tier Ladder rebuilt for the powerlifting
-// total: a row of cells that fill up to your current total, coloured by the club
-// band they sit in (600 → 1000 → 1200), with the current cell outlined. The rung
-// labels are POUND clubs, not letter grades.
+// Flat "Big 3 Total" widget — one bar where the three lifts (Squat purple, Bench
+// red, Deadlift teal) stack into a single row. The row's length is the total
+// scaled to the club you're chasing, so it reads as both composition and progress.
 export default function PowerliftingTotal({ data }: { data: PowerliftingTotalData }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const n = data.clubs.length;
 
-  const scaleMax = data.clubs[n - 1]?.value || STEP;
-  const cellCount = Math.max(1, Math.round(scaleMax / STEP));
-  const currentCell = Math.min(cellCount - 1, Math.floor(data.total / STEP));
-
-  // Which club band a cell belongs to (its lower bound sits before that club).
-  const bandOf = (cellIdx: number) => {
-    const lower = cellIdx * STEP;
-    const b = data.clubs.findIndex(c => lower < c.value);
-    return b === -1 ? n - 1 : b;
-  };
-  const currentBand = bandOf(currentCell);
-
-  // Cells-per-band, so each pound label can span its band like the grade letters.
-  const bandCounts = data.clubs.map((_, b) =>
-    Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
-  );
+  // Scale the bar to the club being chased (or the top club once all are earned).
+  const scaleMax = data.allUnlocked ? data.clubs[n - 1]?.value || data.total : data.nextTarget;
+  const denom = data.total > scaleMax ? data.total : scaleMax; // full bar once past scale
+  const fillPct = Math.min(100, (data.total / denom) * 100);
 
   const caption = data.allUnlocked
     ? `All ${n} clubs earned`
     : `${data.remaining.toLocaleString()} lb to the ${data.nextTarget.toLocaleString()} club`;
-  const totalColor = data.achievedCount > 0 ? heatFor(data.achievedCount - 1, n) : colors.text;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Big 3 Total</Text>
         <Text style={styles.headerTotal}>
-          <Text style={[styles.headerNum, { color: totalColor }]}>{data.total.toLocaleString()}</Text>
+          <Text style={[styles.headerNum, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
           <Text style={[styles.headerUnit, { color: colors.text + '99' }]}> lb</Text>
         </Text>
       </View>
 
-      {/* Pound ladder — cells fill up to the total, coloured by club band. */}
-      <View style={styles.ladderRow}>
-        {Array.from({ length: cellCount }, (_, i) => {
-          const filled = i <= currentCell;
-          const heat = heatFor(bandOf(i), n);
-          return (
-            <View
-              key={i}
-              style={[
-                styles.ladderCell,
-                {
-                  backgroundColor: filled ? heat : colors.border,
-                  opacity: filled ? 1 : 0.3,
-                  borderWidth: i === currentCell ? 2 : 0,
-                  borderColor: colors.text,
-                },
-              ]}
-            />
-          );
-        })}
-      </View>
-
-      <View style={styles.ladderLabels}>
-        {data.clubs.map((club, b) => (
-          <Text
-            key={club.value}
-            style={[
-              styles.ladderBaseLabel,
-              {
-                flex: bandCounts[b],
-                color: club.achieved ? heatFor(b, n) : colors.text,
-                opacity: b === currentBand || club.achieved ? 1 : 0.35,
-                fontWeight: b === currentBand ? '800' : '600',
-              },
-            ]}
-          >
-            {club.value.toLocaleString()}
-          </Text>
-        ))}
+      {/* One combined bar: the three lifts stack into the filled portion. */}
+      <View style={[styles.track, { backgroundColor: colors.text + '12' }]}>
+        <View style={[styles.fillRow, { width: `${fillPct}%` }]}>
+          {data.lifts.map(l => (
+            <View key={l.label} style={{ flex: Math.max(0, l.value), backgroundColor: l.color }} />
+          ))}
+        </View>
       </View>
 
       <Text style={[styles.caption, { color: colors.text + '99' }]}>{caption}</Text>
 
-      {/* Composition: colour-coded pounds joined by faint links (no S/B/D letters). */}
-      <View style={styles.comp}>
-        {data.lifts.map((l, i) => (
-          <React.Fragment key={l.label}>
-            {i > 0 && <View style={[styles.compLink, { backgroundColor: colors.text + '14' }]} />}
-            <View style={styles.compLift}>
-              <View style={[styles.dot, { backgroundColor: l.color, opacity: l.value > 0 ? 1 : 0.4 }]} />
-              <Text style={[styles.compVal, { color: l.value > 0 ? l.color : colors.text + '55' }]}>
-                {l.value.toLocaleString()}
-                <Text style={styles.compUnit}>lb</Text>
-              </Text>
-            </View>
-          </React.Fragment>
+      {/* Legend: which colour is which lift, with pounds. */}
+      <View style={styles.legend}>
+        {data.lifts.map(l => (
+          <View key={l.label} style={styles.legendItem}>
+            <View style={[styles.dot, { backgroundColor: l.color, opacity: l.value > 0 ? 1 : 0.4 }]} />
+            <Text style={[styles.legendVal, { color: l.value > 0 ? l.color : colors.text + '55' }]}>
+              {l.value.toLocaleString()}
+            </Text>
+            <Text style={[styles.legendLabel, { color: colors.text + '80' }]}>{l.label}</Text>
+          </View>
         ))}
       </View>
     </View>
@@ -142,17 +85,14 @@ const styles = StyleSheet.create({
   headerNum: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
   headerUnit: { fontSize: 14, fontWeight: '600' },
 
-  ladderRow: { flexDirection: 'row', gap: 2 },
-  ladderCell: { flex: 1, height: 26, borderRadius: 3 },
-  ladderLabels: { flexDirection: 'row', marginTop: 6 },
-  ladderBaseLabel: { fontSize: 11, textAlign: 'center' },
+  track: { height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' },
+  fillRow: { flexDirection: 'row', height: '100%', borderRadius: 8, overflow: 'hidden' },
 
   caption: { fontSize: 11, opacity: 0.6, textAlign: 'center', marginTop: 10 },
 
-  comp: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
-  compLift: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  compVal: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
-  compUnit: { fontSize: 11, fontWeight: '600', opacity: 0.7 },
-  compLink: { flex: 1, height: 1, marginHorizontal: 12 },
+  legendVal: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
+  legendLabel: { fontSize: 13, fontWeight: '500' },
 });
