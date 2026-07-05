@@ -23,18 +23,44 @@ export interface PowerliftingTotalData {
   allUnlocked: boolean;
 }
 
-// Flat "Big 3 Total" widget — one bar where the three lifts (Squat purple, Bench
-// red, Deadlift teal) stack into a single row. The row's length is the total
-// scaled to the club you're chasing, so it reads as both composition and progress.
+const STEP = 100; // lb per ladder cell
+
+// Flat "Big 3 Total" widget — the Career Tier Ladder's segmented-cell language, but
+// the cells fill with the three lift colours (Squat purple, Bench red, Deadlift teal)
+// stacked by contribution, up to the total. The current cell is outlined; pound
+// clubs (600/1000/1200) label the scale instead of letter grades.
 export default function PowerliftingTotal({ data }: { data: PowerliftingTotalData }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const n = data.clubs.length;
 
-  // Scale the bar to the club being chased (or the top club once all are earned).
-  const scaleMax = data.allUnlocked ? data.clubs[n - 1]?.value || data.total : data.nextTarget;
-  const denom = data.total > scaleMax ? data.total : scaleMax; // full bar once past scale
-  const fillPct = Math.min(100, (data.total / denom) * 100);
+  const scaleMax = data.clubs[n - 1]?.value || STEP;
+  const cellCount = Math.max(1, Math.round(scaleMax / STEP));
+  const currentCell = Math.min(cellCount - 1, Math.floor(data.total / STEP));
+
+  // Cumulative lift bands: each lift owns a lb range [lo, hi) of the total.
+  let running = 0;
+  const liftBands = data.lifts.map(l => {
+    const lo = running;
+    running += Math.max(0, l.value);
+    return { lo, hi: running, color: l.color };
+  });
+  const colorForCell = (i: number) => {
+    const lo = i * STEP;
+    if (lo >= data.total) return null; // unfilled
+    return liftBands.find(b => lo >= b.lo && lo < b.hi)?.color ?? liftBands[liftBands.length - 1]?.color;
+  };
+
+  // Club label bands (for the scale under the ladder), like the grade letters.
+  const bandOf = (cellIdx: number) => {
+    const lower = cellIdx * STEP;
+    const b = data.clubs.findIndex(c => lower < c.value);
+    return b === -1 ? n - 1 : b;
+  };
+  const currentBand = bandOf(currentCell);
+  const bandCounts = data.clubs.map((_, b) =>
+    Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
+  );
 
   const caption = data.allUnlocked
     ? `All ${n} clubs earned`
@@ -50,13 +76,44 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
         </Text>
       </View>
 
-      {/* One combined bar: the three lifts stack into the filled portion. */}
-      <View style={[styles.track, { backgroundColor: colors.text + '12' }]}>
-        <View style={[styles.fillRow, { width: `${fillPct}%` }]}>
-          {data.lifts.map(l => (
-            <View key={l.label} style={{ flex: Math.max(0, l.value), backgroundColor: l.color }} />
-          ))}
-        </View>
+      {/* Ladder cells filled by lift composition. */}
+      <View style={styles.ladderRow}>
+        {Array.from({ length: cellCount }, (_, i) => {
+          const fill = colorForCell(i);
+          return (
+            <View
+              key={i}
+              style={[
+                styles.ladderCell,
+                {
+                  backgroundColor: fill || colors.border,
+                  opacity: fill ? 1 : 0.3,
+                  borderWidth: i === currentCell ? 2 : 0,
+                  borderColor: colors.text,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+
+      <View style={styles.ladderLabels}>
+        {data.clubs.map((club, b) => (
+          <Text
+            key={club.value}
+            style={[
+              styles.ladderBaseLabel,
+              {
+                flex: bandCounts[b],
+                color: colors.text,
+                opacity: b === currentBand ? 1 : 0.35,
+                fontWeight: b === currentBand ? '800' : '600',
+              },
+            ]}
+          >
+            {club.value.toLocaleString()}
+          </Text>
+        ))}
       </View>
 
       <Text style={[styles.caption, { color: colors.text + '99' }]}>{caption}</Text>
@@ -85,8 +142,10 @@ const styles = StyleSheet.create({
   headerNum: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
   headerUnit: { fontSize: 14, fontWeight: '600' },
 
-  track: { height: 16, borderRadius: 8, overflow: 'hidden', flexDirection: 'row' },
-  fillRow: { flexDirection: 'row', height: '100%', borderRadius: 8, overflow: 'hidden' },
+  ladderRow: { flexDirection: 'row', gap: 2 },
+  ladderCell: { flex: 1, height: 26, borderRadius: 3 },
+  ladderLabels: { flexDirection: 'row', marginTop: 6 },
+  ladderBaseLabel: { fontSize: 11, textAlign: 'center' },
 
   caption: { fontSize: 11, opacity: 0.6, textAlign: 'center', marginTop: 10 },
 
