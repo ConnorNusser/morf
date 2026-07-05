@@ -112,12 +112,16 @@ export default function HomeScreen() {
       { label: "Bench", value: e1("bench-press-barbell"), color: PPL_COLORS.push },
       { label: "Deadlift", value: e1("deadlift-barbell"), color: PPL_COLORS.pull },
     ];
+    const clubs = feats.map((f) => ({ value: f.target, achieved: f.unlocked }));
+    const allUnlocked = feats.every((f) => f.unlocked);
     return {
       total,
       lifts,
-      milestoneTarget: next.target,
+      clubs,
+      nextTarget: allUnlocked ? 0 : next.target,
       remaining: Math.max(0, next.target - total),
-      allUnlocked: feats.every((f) => f.unlocked),
+      achievedCount: feats.filter((f) => f.unlocked).length,
+      allUnlocked,
     };
   }, [workoutHistory]);
 
