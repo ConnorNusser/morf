@@ -19,7 +19,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
 import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { convertWeight, UserProfile, UserProgress, WeightUnit, WorkoutTemplate } from '@/types';
+import { convertWeight, UserProfile, UserProgress, WeightUnit } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -81,7 +81,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [parsedWorkout, setParsedWorkout] = useState<ParsedWorkout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [templateSaved, setTemplateSaved] = useState(false);
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
@@ -92,7 +91,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
-      setTemplateSaved(false);
       setSessionRewards(null);
 
       const parseWorkout = async () => {
@@ -187,39 +185,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     playHapticFeedback('light', false);
     onComplete?.();
   }, [onComplete, playTap]);
-
-  // Handle save as template
-  const handleSaveAsTemplate = useCallback(async () => {
-    if (templateSaved) return;
-
-    playTap();
-    playHapticFeedback('medium', false);
-
-    // Generate a name based on date and exercises
-    const date = new Date();
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const exerciseNames = parsedWorkout?.exercises.slice(0, 2).map(e => {
-      const info = e.matchedExerciseId ? getWorkoutById(e.matchedExerciseId) : null;
-      return info?.name || e.name;
-    }).join(', ') || 'Workout';
-    const suffix = (parsedWorkout?.exercises.length || 0) > 2 ? '...' : '';
-
-    const template: WorkoutTemplate = {
-      id: `template_${Date.now()}`,
-      name: `${exerciseNames}${suffix} - ${dateStr}`,
-      noteText: noteText,
-      createdAt: new Date(),
-    };
-
-    try {
-      await storageService.saveWorkoutTemplate(template);
-      setTemplateSaved(true);
-      playSuccess();
-    } catch (err) {
-      console.error('Error saving template:', err);
-      playHapticFeedback('error', false);
-    }
-  }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
 
   // Get the exercises to display
   const displayExercises = useMemo(() => {
@@ -532,8 +497,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       userLifts={userLifts}
       userProfile={userProfile}
       weightUnit={weightUnit}
-      templateSaved={templateSaved}
-      onSaveAsTemplate={handleSaveAsTemplate}
       onDone={handleDone}
       isSmallScreen={isSmallScreen}
       rewards={sessionRewards}

@@ -1,4 +1,4 @@
-import { CustomExercise, ExerciseRecord, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile, WorkoutTemplate } from '@/types';
+import { CustomExercise, ExerciseRecord, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -16,7 +16,6 @@ const STORAGE_KEYS = {
   CURRENT_ROUTINE: 'current_routine',
   SHARE_COUNT: 'share_count',
   CUSTOM_EXERCISES: 'custom_exercises',
-  WORKOUT_TEMPLATES: 'workout_templates',
   HOME_VIEW_MODE: 'home_view_mode',
   PENDING_STRENGTH_PROGRESS: 'pending_strength_progress',
   SHOWN_NOTIFICATIONS: 'shown_notifications',
@@ -667,63 +666,6 @@ class StorageService {
     return exercises.find(e => e.name.toLowerCase() === name.toLowerCase()) || null;
   }
 
-  // Workout Templates
-  async getWorkoutTemplates(): Promise<WorkoutTemplate[]> {
-    try {
-      const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_TEMPLATES);
-      const templates = (data ? JSON.parse(data) : []) as (Omit<WorkoutTemplate, 'createdAt' | 'lastUsed'> & { createdAt: string; lastUsed?: string })[];
-      // Convert date strings back to Date objects
-      return templates.map((t) => ({
-        ...t,
-        createdAt: new Date(t.createdAt),
-        lastUsed: t.lastUsed ? new Date(t.lastUsed) : undefined,
-      }));
-    } catch (error) {
-      console.error('Error loading workout templates:', error);
-      return [];
-    }
-  }
-
-  async saveWorkoutTemplate(template: WorkoutTemplate): Promise<void> {
-    try {
-      const templates = await this.getWorkoutTemplates();
-      const existingIndex = templates.findIndex(t => t.id === template.id);
-
-      if (existingIndex >= 0) {
-        templates[existingIndex] = template;
-      } else {
-        templates.push(template);
-      }
-
-      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(templates));
-    } catch (error) {
-      console.error('Error saving workout template:', error);
-    }
-  }
-
-  async deleteWorkoutTemplate(templateId: string): Promise<void> {
-    try {
-      const templates = await this.getWorkoutTemplates();
-      const filtered = templates.filter(t => t.id !== templateId);
-      await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(filtered));
-    } catch (error) {
-      console.error('Error deleting workout template:', error);
-    }
-  }
-
-  async updateTemplateLastUsed(templateId: string): Promise<void> {
-    try {
-      const templates = await this.getWorkoutTemplates();
-      const template = templates.find(t => t.id === templateId);
-      if (template) {
-        template.lastUsed = new Date();
-        await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_TEMPLATES, JSON.stringify(templates));
-      }
-    } catch (error) {
-      console.error('Error updating template last used:', error);
-    }
-  }
-
   /**
    * Migrate all references from an old exercise ID to a new exercise ID.
    * This updates:
@@ -750,8 +692,7 @@ class StorageService {
         await AsyncStorage.setItem(STORAGE_KEYS.WORKOUT_HISTORY, JSON.stringify(history));
       }
 
-      // Note: exercise records + WorkoutTemplates need no id migration here —
-      // records rebuild from history, and templates store raw noteText.
+      // Note: exercise records need no id migration here — they rebuild from history.
 
     } catch (error) {
       console.error('Error migrating exercise ID:', error);

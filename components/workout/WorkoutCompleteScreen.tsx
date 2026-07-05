@@ -58,8 +58,6 @@ interface WorkoutCompleteScreenProps {
   userLifts: UserProgress[];
   userProfile: UserProfile | null;
   weightUnit: WeightUnit;
-  templateSaved: boolean;
-  onSaveAsTemplate: () => void;
   onDone: () => void;
   isSmallScreen?: boolean;
   rewards?: SessionRewards | null;
@@ -326,8 +324,6 @@ export default function WorkoutCompleteScreen({
   userLifts,
   userProfile,
   weightUnit,
-  templateSaved,
-  onSaveAsTemplate,
   onDone,
   isSmallScreen = false,
   rewards,
@@ -629,38 +625,6 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
-        {/* Save as Template button */}
-        <TouchableOpacity
-          style={[
-            styles.saveTemplateButton,
-            {
-              backgroundColor: templateSaved
-                ? currentTheme.colors.accent + '20'
-                : 'rgba(255,255,255,0.15)',
-              borderColor: templateSaved
-                ? currentTheme.colors.accent
-                : 'rgba(255,255,255,0.3)',
-            }
-          ]}
-          onPress={onSaveAsTemplate}
-          activeOpacity={0.8}
-          disabled={templateSaved}
-        >
-          <Ionicons
-            name={templateSaved ? "checkmark-circle" : "bookmark-outline"}
-            size={20}
-            color={templateSaved ? currentTheme.colors.accent : '#fff'}
-          />
-          <Text style={[
-            styles.saveTemplateButtonText,
-            {
-              color: templateSaved ? currentTheme.colors.accent : '#fff',
-            }
-          ]}>
-            {templateSaved ? 'Saved to Templates' : 'Save as Template'}
-          </Text>
-        </TouchableOpacity>
-
         {/* Done button */}
         <TouchableOpacity
           style={[styles.doneButton, { backgroundColor: currentTheme.colors.primary }]}
@@ -899,19 +863,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     gap: 12,
-  },
-  saveTemplateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  saveTemplateButtonText: {
-    fontSize: 16,
   },
   doneButton: {
     paddingVertical: 16,
