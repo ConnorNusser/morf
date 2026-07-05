@@ -115,7 +115,7 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
                 flex: bandCounts[b],
                 color: colors.text,
                 opacity: b === currentBand ? 1 : 0.35,
-                fontWeight: b === currentBand ? '800' : '600',
+                fontWeight: b === currentBand ? '600' : '400',
               },
             ]}
           >
@@ -131,13 +131,13 @@ const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerTotal: {},
-  headerNum: { fontSize: 34, fontWeight: '800', letterSpacing: -1 },
-  headerUnit: { fontSize: 15, fontWeight: '600' },
+  headerNum: { fontSize: 34, fontWeight: '500', letterSpacing: -1 },
+  headerUnit: { fontSize: 15, fontWeight: '500' },
 
   liftStack: { alignItems: 'flex-end', gap: 3 },
   liftRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  liftVal: { fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
-  liftLabel: { fontSize: 12, fontWeight: '500', width: 58 },
+  liftVal: { fontSize: 15, fontWeight: '600', letterSpacing: -0.3 },
+  liftLabel: { fontSize: 12, fontWeight: '400', width: 58 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 14, borderRadius: 2 },
