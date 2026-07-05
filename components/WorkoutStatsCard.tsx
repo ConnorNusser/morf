@@ -43,7 +43,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
       <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
-            <Text style={[styles.workoutName, { color: currentTheme.colors.text }]}>
+            <Text style={[styles.workoutName, { color: accentColor }]}>
               {workout?.name}
             </Text>
             <TierBadge percentile={percentileRanking} size="medium" variant="text" />
