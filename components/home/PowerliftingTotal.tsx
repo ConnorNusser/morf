@@ -23,35 +23,97 @@ export interface PowerliftingTotalData {
   allUnlocked: boolean;
 }
 
-// Warm "heat" ramp — the higher the club, the hotter. Muted (not neon) so it reads
-// as prestige, not an arcade. One colour per rung, low→high.
+// Warm "heat" ramp per club band — the stronger you get, the hotter the cells.
+// Muted, not neon. Colour ⇒ pounds, exactly like the Tier Ladder's grades.
 const HEAT = ['#E0A32E', '#E07A3E', '#D75248', '#C0433E'];
-const heatFor = (i: number, n: number) => HEAT[Math.min(HEAT.length - 1, Math.round((i / Math.max(1, n - 1)) * (HEAT.length - 1)))];
+const heatFor = (i: number, n: number) =>
+  HEAT[Math.min(HEAT.length - 1, Math.round((i / Math.max(1, n - 1)) * (HEAT.length - 1)))];
 
-// Flat, full-width "Big 3 Total" widget — a peer of Overall Strength. The total is
-// the hero; the three lifts show composition as colour-coded pounds (no letters);
-// the milestone "clubs" (600/1000/1200) render as a subway-style stepper where each
-// rung's colour heats up with the weight. The next club glows; earned ones are
-// filled; future ones sit as dim outlined chips. Colour ⇒ pounds, never grades.
+const STEP = 100; // lb per ladder cell
+
+// Flat "Big 3 Total" widget — the Career Tier Ladder rebuilt for the powerlifting
+// total: a row of cells that fill up to your current total, coloured by the club
+// band they sit in (600 → 1000 → 1200), with the current cell outlined. The rung
+// labels are POUND clubs, not letter grades.
 export default function PowerliftingTotal({ data }: { data: PowerliftingTotalData }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const n = data.clubs.length;
-  const activeIndex = data.clubs.findIndex(c => !c.achieved); // -1 when all earned
+
+  const scaleMax = data.clubs[n - 1]?.value || STEP;
+  const cellCount = Math.max(1, Math.round(scaleMax / STEP));
+  const currentCell = Math.min(cellCount - 1, Math.floor(data.total / STEP));
+
+  // Which club band a cell belongs to (its lower bound sits before that club).
+  const bandOf = (cellIdx: number) => {
+    const lower = cellIdx * STEP;
+    const b = data.clubs.findIndex(c => lower < c.value);
+    return b === -1 ? n - 1 : b;
+  };
+  const currentBand = bandOf(currentCell);
+
+  // Cells-per-band, so each pound label can span its band like the grade letters.
+  const bandCounts = data.clubs.map((_, b) =>
+    Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
+  );
+
+  const caption = data.allUnlocked
+    ? `All ${n} clubs earned`
+    : `${data.remaining.toLocaleString()} lb to the ${data.nextTarget.toLocaleString()} club`;
+  const totalColor = data.achievedCount > 0 ? heatFor(data.achievedCount - 1, n) : colors.text;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Big 3 Total</Text>
-        <Text style={[styles.clubsCount, { color: colors.text + '80' }]}>
-          <Text style={{ color: colors.text, fontWeight: '700' }}>{data.achievedCount}</Text> of {n} clubs
+        <Text style={styles.headerTotal}>
+          <Text style={[styles.headerNum, { color: totalColor }]}>{data.total.toLocaleString()}</Text>
+          <Text style={[styles.headerUnit, { color: colors.text + '99' }]}> lb</Text>
         </Text>
       </View>
 
-      <View style={styles.valueRow}>
-        <Text style={[styles.value, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
-        <Text style={[styles.unit, { color: colors.text + '99' }]}>lb</Text>
+      {/* Pound ladder — cells fill up to the total, coloured by club band. */}
+      <View style={styles.ladderRow}>
+        {Array.from({ length: cellCount }, (_, i) => {
+          const filled = i <= currentCell;
+          const heat = heatFor(bandOf(i), n);
+          return (
+            <View
+              key={i}
+              style={[
+                styles.ladderCell,
+                {
+                  backgroundColor: filled ? heat : colors.border,
+                  opacity: filled ? 1 : 0.3,
+                  borderWidth: i === currentCell ? 2 : 0,
+                  borderColor: colors.text,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
+
+      <View style={styles.ladderLabels}>
+        {data.clubs.map((club, b) => (
+          <Text
+            key={club.value}
+            style={[
+              styles.ladderBaseLabel,
+              {
+                flex: bandCounts[b],
+                color: club.achieved ? heatFor(b, n) : colors.text,
+                opacity: b === currentBand || club.achieved ? 1 : 0.35,
+                fontWeight: b === currentBand ? '800' : '600',
+              },
+            ]}
+          >
+            {club.value.toLocaleString()}
+          </Text>
+        ))}
+      </View>
+
+      <Text style={[styles.caption, { color: colors.text + '99' }]}>{caption}</Text>
 
       {/* Composition: colour-coded pounds joined by faint links (no S/B/D letters). */}
       <View style={styles.comp}>
@@ -68,65 +130,24 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
           </React.Fragment>
         ))}
       </View>
-
-      {/* Club stepper — a rung per milestone, coloured by weight. */}
-      <View style={styles.rungs}>
-        <View style={[styles.track, { backgroundColor: colors.text + '12', left: `${50 / n}%`, right: `${50 / n}%` }]} />
-        {activeIndex > 0 && (
-          <View
-            style={[
-              styles.track,
-              styles.lead,
-              { backgroundColor: colors.primary + '55', left: `${50 / n}%`, width: `${(activeIndex * 100) / n}%` },
-            ]}
-          />
-        )}
-        <View style={styles.chips}>
-          {data.clubs.map((club, i) => {
-            const heat = heatFor(i, n);
-            const isActive = i === activeIndex;
-            const chipStyle = club.achieved
-              ? { backgroundColor: heat, borderColor: heat }
-              : isActive
-                ? { backgroundColor: heat, borderColor: heat }
-                : { backgroundColor: colors.background, borderColor: heat + '3D' };
-            const numColor = club.achieved || isActive ? '#1A1206' : heat + 'B0';
-            return (
-              <View key={club.value} style={styles.chipCol}>
-                <View
-                  style={[
-                    styles.chip,
-                    chipStyle,
-                    isActive && { shadowColor: heat, shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
-                  ]}
-                >
-                  <Text style={[styles.chipNum, { color: numColor }]}>{club.value.toLocaleString()}</Text>
-                </View>
-                <Text
-                  style={[
-                    styles.chipCap,
-                    { color: isActive ? heat : colors.text + '40', fontWeight: isActive ? '700' : '500' },
-                  ]}
-                >
-                  {club.achieved ? 'Earned' : isActive ? `${data.remaining} to go` : ' '}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 },
   title: { fontSize: 18, fontWeight: 'bold' },
-  clubsCount: { fontSize: 13, fontWeight: '500' },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline' },
-  value: { fontSize: 40, fontWeight: '800', lineHeight: 44, letterSpacing: -1 },
-  unit: { fontSize: 17, fontWeight: '600', marginLeft: 6 },
+  headerTotal: {},
+  headerNum: { fontSize: 26, fontWeight: '800', letterSpacing: -0.5 },
+  headerUnit: { fontSize: 14, fontWeight: '600' },
+
+  ladderRow: { flexDirection: 'row', gap: 2 },
+  ladderCell: { flex: 1, height: 26, borderRadius: 3 },
+  ladderLabels: { flexDirection: 'row', marginTop: 6 },
+  ladderBaseLabel: { fontSize: 11, textAlign: 'center' },
+
+  caption: { fontSize: 11, opacity: 0.6, textAlign: 'center', marginTop: 10 },
 
   comp: { flexDirection: 'row', alignItems: 'center', marginTop: 16 },
   compLift: { flexDirection: 'row', alignItems: 'center', gap: 7 },
@@ -134,21 +155,4 @@ const styles = StyleSheet.create({
   compVal: { fontSize: 16, fontWeight: '700', letterSpacing: -0.3 },
   compUnit: { fontSize: 11, fontWeight: '600', opacity: 0.7 },
   compLink: { flex: 1, height: 1, marginHorizontal: 12 },
-
-  rungs: { marginTop: 26 },
-  track: { position: 'absolute', top: 19, height: 3, borderRadius: 2 },
-  lead: { top: 18, height: 4 },
-  chips: { flexDirection: 'row', justifyContent: 'space-between' },
-  chipCol: { alignItems: 'center', flex: 1 },
-  chip: {
-    minWidth: 64,
-    paddingHorizontal: 14,
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chipNum: { fontSize: 17, fontWeight: '800', letterSpacing: -0.5 },
-  chipCap: { fontSize: 11.5, marginTop: 9, textAlign: 'center' },
 });
