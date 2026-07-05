@@ -1,135 +1,125 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   FadeInDown,
-  FadeInLeft,
+  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+const SIZE = 184;
+const STROKE = 9;
+const R = (SIZE - STROKE) / 2;
+const CIRC = 2 * Math.PI * R;
 
 interface Props {
   visible: boolean;
   routineName: string;
   subtitle?: string;
   exercises?: string[];
-  percentile: number; // overall strength percentile → sets the tier theme
+  percentile: number; // overall strength percentile → drives the ring + tier
   onLaunch: () => void; // fire the navigation (overlay still covering)
   onClose: () => void; // unmount the overlay once the workout is mounted underneath
 }
 
-const MAX_ROWS = 6;
-const NAME_DELAY = 60;
-const LIST_START = 330;
-const STEP = 78;
-
-// "Loadout reveal" launch interstitial: the routine name slams in, the exercises
-// tick in one by one (each with a haptic tap) like a game loading your loadout,
-// and a tier-coloured energy bar sweeps as it fires you into the session.
+// Launch interstitial: a strength-tier ring. The arc sweeps to your percentile in
+// your tier colour, your rank stamps into the centre, and the routine name resolves
+// below — flat black, no gradient. Your rank is the whole visual.
 export default function WorkoutLaunch({ visible, routineName, subtitle, exercises = [], percentile, onLaunch, onClose }: Props) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const tier = getStrengthTier(percentile);
   const tierColor = getTierColor(tier);
+  const pct = Math.max(0, Math.min(100, percentile));
+  const meta = subtitle || (exercises.length ? `${exercises.length} exercise${exercises.length === 1 ? '' : 's'}` : '');
 
-  const shown = exercises.slice(0, MAX_ROWS);
-  const extra = exercises.length - shown.length;
-
-  const root = useSharedValue(1);
-  const sweep = useSharedValue(0);
+  const root = useSharedValue(0);
+  const progress = useSharedValue(0);
+  const stamp = useSharedValue(0.55);
+  const stampOpacity = useSharedValue(0);
 
   useEffect(() => {
     if (!visible) return;
     playHapticFeedback('medium', false);
-    root.value = 1;
-    sweep.value = 0;
+    root.value = 0;
+    progress.value = 0;
+    stamp.value = 0.55;
+    stampOpacity.value = 0;
 
-    const rows = shown.length;
-    const listEnd = LIST_START + rows * STEP;
+    root.value = withTiming(1, { duration: 200 });
+    stampOpacity.value = withDelay(180, withTiming(1, { duration: 240 }));
+    stamp.value = withDelay(180, withSpring(1, { damping: 9, stiffness: 150 }));
+    progress.value = withDelay(220, withTiming(pct / 100, { duration: 900, easing: Easing.out(Easing.cubic) }));
 
-    // A crisp tap as each exercise snaps into the loadout.
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    for (let i = 0; i < rows; i++) {
-      timers.push(setTimeout(() => playHapticFeedback('light', false), LIST_START + i * STEP));
-    }
-
-    sweep.value = withTiming(1, { duration: 560, easing: Easing.out(Easing.cubic) });
-
-    const total = Math.max(1250, listEnd + 380);
-    timers.push(setTimeout(onLaunch, total));
-    timers.push(setTimeout(() => {
+    const ding = setTimeout(() => playHapticFeedback('light', false), 1080);
+    const launchT = setTimeout(onLaunch, 1420);
+    const fadeT = setTimeout(() => {
       root.value = withTiming(0, { duration: 240 });
-    }, total + 180));
-    timers.push(setTimeout(onClose, total + 440));
-    return () => timers.forEach(clearTimeout);
-  }, [visible, onLaunch, onClose, root, sweep, shown.length]);
+    }, 1600);
+    const closeT = setTimeout(onClose, 1860);
+    return () => {
+      clearTimeout(ding);
+      clearTimeout(launchT);
+      clearTimeout(fadeT);
+      clearTimeout(closeT);
+    };
+  }, [visible, onLaunch, onClose, pct, root, progress, stamp, stampOpacity]);
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: root.value }));
-  const sweepStyle = useAnimatedStyle(() => ({ width: `${sweep.value * 100}%` }));
+  const stampStyle = useAnimatedStyle(() => ({ opacity: stampOpacity.value, transform: [{ scale: stamp.value }] }));
+  const ringProps = useAnimatedProps(() => ({ strokeDashoffset: CIRC * (1 - progress.value) }));
 
   return (
     <Modal visible={visible} transparent={false} animationType="none" statusBarTranslucent>
       <Animated.View style={[styles.fill, { backgroundColor: colors.background }, rootStyle]}>
-        <LinearGradient
-          colors={[colors.background, tierColor + '2E', colors.background]}
-          locations={[0, 0.5, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-
         <View style={styles.center}>
-          <Text style={[styles.eyebrow, { color: tierColor }]}>{tier} · GET READY</Text>
+          <View style={styles.ringWrap}>
+            <Svg width={SIZE} height={SIZE} style={styles.ringSvg}>
+              <Circle cx={SIZE / 2} cy={SIZE / 2} r={R} stroke={colors.text + '14'} strokeWidth={STROKE} fill="none" />
+              <AnimatedCircle
+                cx={SIZE / 2}
+                cy={SIZE / 2}
+                r={R}
+                stroke={tierColor}
+                strokeWidth={STROKE}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={CIRC}
+                animatedProps={ringProps}
+              />
+            </Svg>
+            <Animated.View style={[StyleSheet.absoluteFill, styles.ringCenter, stampStyle]}>
+              <Text style={[styles.tierLetter, { color: tierColor }]}>{tier}</Text>
+              <Text style={[styles.tierLabel, { color: colors.text + '80' }]}>{pct}TH PERCENTILE</Text>
+            </Animated.View>
+          </View>
 
           <Animated.Text
-            entering={FadeInDown.delay(NAME_DELAY).duration(300).springify().damping(14)}
+            entering={FadeInDown.delay(360).duration(320)}
             style={[styles.name, { color: colors.text }]}
             numberOfLines={2}
           >
             {routineName}
           </Animated.Text>
 
-          {shown.length > 0 ? (
-            <View style={styles.list}>
-              {shown.map((ex, i) => (
-                <Animated.View
-                  key={`${ex}-${i}`}
-                  entering={FadeInLeft.delay(LIST_START + i * STEP).duration(230)}
-                  style={styles.row}
-                >
-                  <Ionicons name="chevron-forward" size={14} color={tierColor} />
-                  <Text style={[styles.rowText, { color: colors.text + 'E6' }]} numberOfLines={1}>
-                    {ex}
-                  </Text>
-                </Animated.View>
-              ))}
-              {extra > 0 && (
-                <Animated.Text
-                  entering={FadeInLeft.delay(LIST_START + shown.length * STEP).duration(230)}
-                  style={[styles.more, { color: colors.text + '80' }]}
-                >
-                  +{extra} more
-                </Animated.Text>
-              )}
-            </View>
-          ) : (
-            !!subtitle && (
-              <Animated.Text
-                entering={FadeInDown.delay(LIST_START).duration(260)}
-                style={[styles.meta, { color: colors.text + '99' }]}
-              >
-                {subtitle}
-              </Animated.Text>
-            )
+          {!!meta && (
+            <Animated.Text
+              entering={FadeInDown.delay(480).duration(280)}
+              style={[styles.meta, { color: colors.text + '99' }]}
+            >
+              {meta}
+            </Animated.Text>
           )}
-
-          <View style={[styles.track, { backgroundColor: colors.text + '14' }]}>
-            <Animated.View style={[styles.charge, sweepStyle, { backgroundColor: tierColor }]} />
-          </View>
         </View>
       </Animated.View>
     </Modal>
@@ -138,17 +128,13 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  center: { flex: 1, alignItems: 'flex-start', justifyContent: 'center', paddingHorizontal: 40 },
-  eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 3, marginBottom: 10 },
-  name: { fontSize: 32, fontWeight: '800', letterSpacing: -0.4 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  ringWrap: { width: SIZE, height: SIZE, alignItems: 'center', justifyContent: 'center' },
+  ringSvg: { transform: [{ rotate: '-90deg' }] },
+  ringCenter: { alignItems: 'center', justifyContent: 'center' },
+  tierLetter: { fontSize: 58, fontWeight: '800', letterSpacing: -1 },
+  tierLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 2, marginTop: 4 },
 
-  list: { alignSelf: 'stretch', marginTop: 20, gap: 3, maxWidth: 320 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowText: { fontSize: 16, fontWeight: '600', flex: 1 },
-  more: { fontSize: 13, fontWeight: '600', marginLeft: 22, marginTop: 2 },
-
-  meta: { fontSize: 15, fontWeight: '500', marginTop: 10 },
-
-  track: { alignSelf: 'stretch', maxWidth: 320, height: 4, borderRadius: 3, overflow: 'hidden', marginTop: 30 },
-  charge: { height: '100%', borderRadius: 3 },
+  name: { fontSize: 26, fontWeight: '800', letterSpacing: -0.3, textAlign: 'center', marginTop: 34 },
+  meta: { fontSize: 14, fontWeight: '500', marginTop: 8 },
 });
