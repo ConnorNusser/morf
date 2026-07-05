@@ -51,7 +51,7 @@ function cleanName(name: string): string {
   return name.replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
-export default function TodayCard() {
+export default function TodayCard({ overallPercentile = 0 }: { overallPercentile?: number }) {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
@@ -407,6 +407,7 @@ export default function TodayCard() {
       visible={launching}
       routineName={calculated.name}
       subtitle={`${calculated.exercises.length} exercises · ${totalSets} sets`}
+      percentile={overallPercentile}
       onLaunch={launchNav}
       onClose={closeLaunch}
     />
