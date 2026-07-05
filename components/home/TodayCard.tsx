@@ -239,11 +239,21 @@ export default function TodayCard() {
         </Text>
         {days.length > 1 && (
           <View style={styles.navRow}>
-            <TouchableOpacity onPress={() => flip(-1)} hitSlop={10} style={styles.pagerBtn} activeOpacity={0.5}>
-              <Ionicons name="chevron-back" size={20} color={currentTheme.colors.text + "99"} />
+            <TouchableOpacity
+              onPress={() => flip(-1)}
+              hitSlop={8}
+              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
+              activeOpacity={0.5}
+            >
+              <Ionicons name="chevron-back" size={18} color={currentTheme.colors.text} />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => flip(1)} hitSlop={10} style={styles.pagerBtn} activeOpacity={0.5}>
-              <Ionicons name="chevron-forward" size={20} color={currentTheme.colors.text + "99"} />
+            <TouchableOpacity
+              onPress={() => flip(1)}
+              hitSlop={8}
+              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
+              activeOpacity={0.5}
+            >
+              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text} />
             </TouchableOpacity>
           </View>
         )}
@@ -377,8 +387,11 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   pagerBtn: {
-    paddingVertical: 2,
-    paddingHorizontal: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dots: {
     flexDirection: "row",
