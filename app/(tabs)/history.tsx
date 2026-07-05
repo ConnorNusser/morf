@@ -146,8 +146,9 @@ export default function HistoryScreen() {
   );
 
   // Per-lift progression widget: best set per month for the lifts you've trained,
-  // most-recent first, capped so it stays a glanceable panel. When the profile can
-  // support honest grading (bodyweight + gender), each standard lift also carries its
+  // RANKED by tier proximity × recent movement (the widget shows the top few and
+  // holds the rest behind an "All N lifts" expander). When the profile can support
+  // honest grading (bodyweight + gender), each standard lift also carries its
   // CURRENT strength tier + progress-to-next-tier — the same percentile model Records
   // below and the Career card already use.
   const gender = userProfile?.gender;
@@ -160,7 +161,7 @@ export default function HistoryScreen() {
         weightUnit,
         4,
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
-      ).slice(0, 8),
+      ),
     [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]
   );
 
@@ -298,10 +299,10 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* Per-lift progression — best set per month across time, right-aligned so
-                the latest lines up down the right edge. A full-width widget at the top
-                of the tab. */}
-            <LiftProgressWidget lifts={liftProgress} />
+            {/* Per-lift progression — a short RANKED board (top rows only, expander for
+                the rest). Passing the milestone lets the board tag the NEXT banner's lift,
+                so the banner below visibly points back into the board. */}
+            <LiftProgressWidget lifts={liftProgress} milestone={milestone} />
 
             {/* Sessions feed — History's reflective centerpiece. The latest workout gets
                 a cinematic recap (narrative headline + the standout set + how it stacks up),

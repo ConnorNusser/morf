@@ -14,6 +14,7 @@ import {
   TIER_THRESHOLDS,
 } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { getExercise } from '@/lib/workout/workouts';
 import { Gender, GeneratedWorkout, StrengthStandard, WeightUnit, convertWeight } from '@/types';
 
@@ -54,6 +55,14 @@ export interface LiftProgress {
   // Present only when the lift has real published standards AND the profile has
   // bodyweight + gender — never faked from the 50th-percentile fallback.
   tierInfo?: LiftTier;
+  // The lift's Push/Pull/Legs family — the row's identity color, matching the
+  // SessionsFeed emblems and the Career heatmap so split hue means SPLIT everywhere.
+  // Null for unmapped/custom lifts.
+  split: PPLCategory | null;
+  // Why this lift sits where it does in the board (0..1): closeness to its next
+  // strength tier blended with real month-over-month movement. A stalled or
+  // regressing lift honestly sinks — nothing here only goes up.
+  rankScore: number;
 }
 
 // Epley 1RM in lbs, so months are compared on a unit-invariant "best set" basis.
@@ -131,11 +140,40 @@ function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading
   };
 }
 
+// e1RM-flavored metric of a displayed point (reps for bodyweight sets) — only used
+// for RELATIVE month-over-month movement, so display units are fine.
+const pointMetric = (p: LiftProgressPoint): number =>
+  p.weight > 0 ? p.weight * (1 + p.reps / 30) : p.reps;
+
+// Month-over-month movement mapped to 0..1 around a neutral 0.5: an ~8% monthly
+// e1RM move saturates either way, so a regressing lift really scores BELOW a flat
+// one. One shown month = no movement signal = neutral, never fake-positive.
+function momentum01(points: LiftProgressPoint[]): number {
+  if (points.length < 2) return 0.5;
+  const prev = pointMetric(points[points.length - 2]);
+  const last = pointMetric(points[points.length - 1]);
+  if (prev <= 0) return 0.5;
+  const rel = (last - prev) / prev;
+  return Math.min(1, Math.max(0, 0.5 + rel * 6));
+}
+
+// The board's honest rank: which lift most deserves the top slots. Graded lifts
+// score on how deep they sit in their current percentile band (bandProgress — the
+// same "X to next tier" source the Career card uses) blended with real recent
+// movement. Ungraded lifts can still surface on movement alone, but never outrank
+// a lift that is both near a tier boundary and moving.
+function rankScore(tier: LiftTier | undefined, points: LiftProgressPoint[]): number {
+  const movement = momentum01(points);
+  if (tier) return 0.65 * tier.bandProgress + 0.35 * movement;
+  return 0.12 + 0.38 * movement;
+}
+
 /**
  * Build the progression strip for the given lift ids (e.g. the user's featured
  * lifts). `months` caps how many recent months with data are shown per lift.
- * Lifts with no logged sets are dropped; the result is ordered by most-recent
- * activity so the lifts you're currently training lead.
+ * Lifts with no logged sets are dropped; the result is RANKED, not merely recent:
+ * the lifts closest to their next strength tier (and actually moving) lead, so the
+ * top of the board is always the "level this up next" shortlist.
  */
 export function buildLiftProgressions(
   history: GeneratedWorkout[],
@@ -184,17 +222,25 @@ export function buildLiftProgressions(
       monthLabel: monthLabel(set.date),
     }));
 
+    const tierInfo = grading ? gradeLift(id, recent, unit, grading) : undefined;
+    const muscle = getExercise(id)?.primaryMuscles?.[0];
     out.push({
       id,
       name: getExercise(id)?.name ?? id,
       unit,
       points,
-      tierInfo: grading ? gradeLift(id, recent, unit, grading) : undefined,
+      tierInfo,
+      split: muscle ? (MUSCLE_TO_PPL[muscle] ?? null) : null,
+      rankScore: rankScore(tierInfo, points),
     });
   }
 
+  // Rank first (tier proximity × movement), recency only breaks ties — the board
+  // leads with the lifts worth leveling next, not just whatever was trained last.
   out.sort(
-    (a, b) => (b.points[b.points.length - 1]?.date.getTime() ?? 0) - (a.points[a.points.length - 1]?.date.getTime() ?? 0),
+    (a, b) =>
+      b.rankScore - a.rankScore ||
+      (b.points[b.points.length - 1]?.date.getTime() ?? 0) - (a.points[a.points.length - 1]?.date.getTime() ?? 0),
   );
   return out;
 }
