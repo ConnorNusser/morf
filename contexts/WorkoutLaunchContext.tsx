@@ -1,14 +1,18 @@
 import WorkoutLaunch from '@/components/home/WorkoutLaunch';
 import { loadCareerData } from '@/lib/gamification/careerData';
 import { Rarity } from '@/lib/gamification/rarity';
+import { storageService } from '@/lib/storage/storage';
 import { WeightUnit } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 export interface AchievementFact {
   id: string;
   title: string;
+  description: string;
   icon: string;
   rarity: Rarity;
+  isNew: boolean;
+  unlockedAt: string; // ISO date it was first seen unlocked
 }
 
 export interface CareerSnapshot {
@@ -19,7 +23,7 @@ export interface CareerSnapshot {
   totalSets?: number;
   daysActive?: number;
   currentStreak?: number;
-  recentAchievement?: AchievementFact;
+  achievements?: AchievementFact[]; // unlocked, new ones first
 }
 
 interface LaunchConfig {
@@ -44,9 +48,26 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
   const loadCareer = useCallback(async () => {
     try {
       const d = await loadCareerData();
-      const recent =
-        d.achievements.find(a => d.newIds.has(a.id)) ??
-        [...d.achievements].reverse().find(a => a.unlocked);
+      const unlocked = d.achievements.filter(a => a.unlocked);
+      const now = new Date();
+      const dates = await storageService.reconcileAchievementUnlocks(
+        unlocked.map(a => a.id),
+        now.toISOString(),
+      );
+      const twoWeeksAgo = now.getTime() - 14 * 24 * 60 * 60 * 1000;
+      // Only surface wins from the last two weeks, most recent first.
+      const achievements = unlocked
+        .filter(a => dates[a.id] && new Date(dates[a.id]).getTime() >= twoWeeksAgo)
+        .map(a => ({
+          id: a.id,
+          title: a.title,
+          description: a.description,
+          icon: a.icon,
+          rarity: a.rarity,
+          isNew: d.newIds.has(a.id),
+          unlockedAt: dates[a.id],
+        }))
+        .sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime());
       setCareer({
         percentile: d.overall,
         unit: d.stats.unit,
@@ -55,10 +76,7 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
         totalSets: d.stats.totalSets,
         daysActive: d.stats.daysActive,
         currentStreak: d.stats.currentStreak,
-        recentAchievement:
-          d.newIds.size > 0 && recent
-            ? { id: recent.id, title: recent.title, icon: recent.icon, rarity: recent.rarity }
-            : undefined,
+        achievements,
       });
     } catch {
       // keep the last known snapshot

@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
   WEEKLY_GOAL: 'weekly_goal',
   ROUTINE_ADVICE_DISMISSED: 'routine_advice_dismissed',
   SEEN_ACHIEVEMENTS: 'seen_achievements',
+  ACHIEVEMENT_UNLOCK_DATES: 'achievement_unlock_dates',
   PROFILE_ICON: 'profile_icon',
   UP_NEXT_POINTER: 'up_next_pointer',
   CYCLE_STARTED_AT: 'cycle_started_at',
@@ -786,6 +787,36 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.SEEN_ACHIEVEMENTS, JSON.stringify(ids));
     } catch (error) {
       console.error('Error saving seen achievements:', error);
+    }
+  }
+
+  // Stamp first-seen-unlocked dates so we can show "earned X ago" and only surface
+  // recent wins. On the first ever call we backfill already-unlocked achievements
+  // with an old date (they aren't "recent"); genuine future unlocks get `nowIso`.
+  // Returns the id→ISO-date map (excluding the internal init marker).
+  async reconcileAchievementUnlocks(unlockedIds: string[], nowIso: string): Promise<Record<string, string>> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.ACHIEVEMENT_UNLOCK_DATES);
+      const map: Record<string, string> = data ? JSON.parse(data) : {};
+      const initialized = '__init' in map;
+      let changed = false;
+      if (!initialized) {
+        map.__init = nowIso;
+        changed = true;
+      }
+      for (const id of unlockedIds) {
+        if (!(id in map)) {
+          map[id] = initialized ? nowIso : '2000-01-01T00:00:00.000Z';
+          changed = true;
+        }
+      }
+      if (changed) await AsyncStorage.setItem(STORAGE_KEYS.ACHIEVEMENT_UNLOCK_DATES, JSON.stringify(map));
+      const { __init, ...dates } = map;
+      void __init;
+      return dates;
+    } catch (error) {
+      console.error('Error reconciling achievement unlocks:', error);
+      return {};
     }
   }
 
