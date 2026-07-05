@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   pagerBtn: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
   },
