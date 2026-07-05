@@ -1,6 +1,8 @@
-import { CareerSnapshot } from '@/contexts/WorkoutLaunchContext';
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { AchievementFact, CareerSnapshot } from '@/contexts/WorkoutLaunchContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect, useRef, useState } from 'react';
@@ -27,6 +29,7 @@ interface Props {
 interface Brief {
   tag: string;
   text: string;
+  achievement?: AchievementFact; // when set, render its emblem
 }
 
 const HOLD_MS = 2800;
@@ -62,7 +65,7 @@ function volumeComparison(volumeLbs: number): string {
 function buildPool(c: CareerSnapshot): Brief[] {
   const facts: Brief[] = [];
   const unit = c.unit || 'lbs';
-  if (c.recentAchievement) facts.push({ tag: 'ACHIEVEMENT UNLOCKED', text: c.recentAchievement });
+  if (c.recentAchievement) facts.push({ tag: 'ACHIEVEMENT UNLOCKED', text: c.recentAchievement.title, achievement: c.recentAchievement });
   if (c.totalVolume && c.totalVolume > 0) {
     const lbs = unit === 'kg' ? c.totalVolume * 2.20462 : c.totalVolume;
     facts.push({ tag: 'TOTAL VOLUME', text: `You’ve moved ${formatCompact(c.totalVolume)} ${unit} — about ${volumeComparison(lbs)}.` });
@@ -86,8 +89,9 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
   const meta = subtitle || (exercises.length ? `${exercises.length} exercise${exercises.length === 1 ? '' : 's'}` : '');
 
   const pool = buildPool(career);
-  const [idx, setIdx] = useState(0);
-  const item = pool[idx % pool.length] ?? CUES[0];
+  const counter = useRef(0);
+  const [displayIdx, setDisplayIdx] = useState(0);
+  const item = pool[displayIdx % Math.max(1, pool.length)] ?? CUES[0];
 
   const root = useSharedValue(0);
   const timebar = useSharedValue(0);
@@ -106,7 +110,8 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
   useEffect(() => {
     if (!visible) return;
     done.current = false;
-    setIdx(i => (i + 1) % Math.max(1, pool.length));
+    setDisplayIdx(counter.current % Math.max(1, pool.length));
+    counter.current += 1;
     playHapticFeedback('medium', false);
     root.value = 0;
     timebar.value = 0;
@@ -139,6 +144,21 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
             )}
 
             <View style={styles.brief}>
+              {item.achievement && (
+                <Animated.View
+                  key={`${item.tag}-badge`}
+                  entering={FadeIn.delay(180).duration(360)}
+                  style={styles.badge}
+                >
+                  <AchievementBadge
+                    icon={item.achievement.icon}
+                    emblem={emblemFor(item.achievement.id)}
+                    rarity={item.achievement.rarity}
+                    size={72}
+                    isNew
+                  />
+                </Animated.View>
+              )}
               <Animated.Text
                 key={`${item.tag}-tag`}
                 entering={FadeInDown.delay(220).duration(340).easing(Easing.out(Easing.cubic))}
@@ -186,6 +206,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13, fontWeight: '500', marginTop: 6 },
 
   brief: { marginTop: 34 },
+  badge: { marginBottom: 18 },
   tag: { fontSize: 12, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
   cue: { fontSize: 25, fontWeight: '700', lineHeight: 33, letterSpacing: -0.3 },
 

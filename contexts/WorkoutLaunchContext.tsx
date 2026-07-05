@@ -1,7 +1,15 @@
 import WorkoutLaunch from '@/components/home/WorkoutLaunch';
 import { loadCareerData } from '@/lib/gamification/careerData';
+import { Rarity } from '@/lib/gamification/rarity';
 import { WeightUnit } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+
+export interface AchievementFact {
+  id: string;
+  title: string;
+  icon: string;
+  rarity: Rarity;
+}
 
 export interface CareerSnapshot {
   percentile: number;
@@ -11,7 +19,7 @@ export interface CareerSnapshot {
   totalSets?: number;
   daysActive?: number;
   currentStreak?: number;
-  recentAchievement?: string;
+  recentAchievement?: AchievementFact;
 }
 
 interface LaunchConfig {
@@ -47,7 +55,10 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
         totalSets: d.stats.totalSets,
         daysActive: d.stats.daysActive,
         currentStreak: d.stats.currentStreak,
-        recentAchievement: d.newIds.size > 0 ? recent?.title : undefined,
+        recentAchievement:
+          d.newIds.size > 0 && recent
+            ? { id: recent.id, title: recent.title, icon: recent.icon, rarity: recent.rarity }
+            : undefined,
       });
     } catch {
       // keep the last known snapshot
