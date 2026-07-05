@@ -1,7 +1,18 @@
 import WorkoutLaunch from '@/components/home/WorkoutLaunch';
-import { userService } from '@/lib/services/userService';
-import { calculateOverallPercentile } from '@/lib/utils/utils';
+import { loadCareerData } from '@/lib/gamification/careerData';
+import { WeightUnit } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+
+export interface CareerSnapshot {
+  percentile: number;
+  unit?: WeightUnit;
+  totalVolume?: number;
+  totalWorkouts?: number;
+  totalSets?: number;
+  daysActive?: number;
+  currentStreak?: number;
+  recentAchievement?: string;
+}
 
 interface LaunchConfig {
   routineName: string;
@@ -12,36 +23,47 @@ interface LaunchConfig {
 
 const WorkoutLaunchContext = createContext<(cfg: LaunchConfig) => void>(() => {});
 
-// Trigger the shared "get ready" launch interstitial from anywhere (home routine,
-// empty-state start, Quick start, repeating a recent workout).
+// Trigger the shared launch interstitial from anywhere (home routine, empty-state
+// start, Quick start, repeating a recent workout).
 export const useWorkoutLaunch = () => useContext(WorkoutLaunchContext);
 
 export function WorkoutLaunchProvider({ children }: { children: React.ReactNode }) {
   const [cfg, setCfg] = useState<LaunchConfig | null>(null);
-  const [percentile, setPercentile] = useState(0);
+  const [career, setCareer] = useState<CareerSnapshot>({ percentile: 0 });
   const cfgRef = useRef<LaunchConfig | null>(null);
   cfgRef.current = cfg;
 
-  const loadPercentile = useCallback(async () => {
+  const loadCareer = useCallback(async () => {
     try {
-      const lifts = await userService.getAllFeaturedLifts();
-      const pcts = lifts.map(l => l.percentileRanking);
-      setPercentile(pcts.length ? calculateOverallPercentile(pcts) : 0);
+      const d = await loadCareerData();
+      const recent =
+        d.achievements.find(a => d.newIds.has(a.id)) ??
+        [...d.achievements].reverse().find(a => a.unlocked);
+      setCareer({
+        percentile: d.overall,
+        unit: d.stats.unit,
+        totalVolume: d.stats.totalVolume,
+        totalWorkouts: d.stats.totalWorkouts,
+        totalSets: d.stats.totalSets,
+        daysActive: d.stats.daysActive,
+        currentStreak: d.stats.currentStreak,
+        recentAchievement: d.newIds.size > 0 ? recent?.title : undefined,
+      });
     } catch {
-      // keep the last known percentile
+      // keep the last known snapshot
     }
   }, []);
 
   useEffect(() => {
-    loadPercentile();
-  }, [loadPercentile]);
+    loadCareer();
+  }, [loadCareer]);
 
   const launch = useCallback(
     (c: LaunchConfig) => {
-      loadPercentile();
+      loadCareer();
       setCfg(c);
     },
-    [loadPercentile],
+    [loadCareer],
   );
 
   const handleLaunch = useCallback(() => cfgRef.current?.onArrive(), []);
@@ -55,7 +77,7 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
         routineName={cfg?.routineName ?? ''}
         subtitle={cfg?.subtitle}
         exercises={cfg?.exercises}
-        percentile={percentile}
+        career={career}
         onLaunch={handleLaunch}
         onClose={handleClose}
       />
