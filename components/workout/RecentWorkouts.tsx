@@ -75,7 +75,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
               playHapticFeedback('medium', false);
               launch({
                 routineName: 'Repeat Workout',
-                subtitle: `${exerciseNames(w).length || ''} ${exerciseNames(w).length === 1 ? 'exercise' : 'exercises'}`.trim(),
+                exercises: exerciseNames(w),
                 onArrive: () => onPick(w),
               });
             }}

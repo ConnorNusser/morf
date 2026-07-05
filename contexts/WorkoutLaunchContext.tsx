@@ -6,6 +6,7 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 interface LaunchConfig {
   routineName: string;
   subtitle?: string;
+  exercises?: string[]; // shown as a staggered "loadout" list
   onArrive: () => void; // fired while the overlay still covers the screen
 }
 
@@ -53,6 +54,7 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
         visible={!!cfg}
         routineName={cfg?.routineName ?? ''}
         subtitle={cfg?.subtitle}
+        exercises={cfg?.exercises}
         percentile={percentile}
         onLaunch={handleLaunch}
         onClose={handleClose}

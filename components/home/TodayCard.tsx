@@ -131,6 +131,7 @@ export default function TodayCard() {
     launch({
       routineName: calculated.name,
       subtitle: `${calculated.exercises.length} exercises · ${sets} sets`,
+      exercises: calculated.exercises.map((ex) => cleanName(ex.exerciseName)),
       onArrive: () => {
         setPendingRoutine(calculated);
         router.push("/workout");
