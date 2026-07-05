@@ -4,8 +4,8 @@ import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
-import { buildLiftProgressions } from '@/lib/history/liftProgress';
 import { nextMilestone } from '@/lib/history/milestones';
+import { buildLiftProgressions } from '@/lib/history/liftProgress';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -146,7 +146,12 @@ export default function HistoryScreen() {
   );
 
   // Per-lift progression widget: best set per month for the lifts you've trained,
-  // most-recent first, capped so it stays a glanceable panel.
+  // most-recent first, capped so it stays a glanceable panel. When the profile can
+  // support honest grading (bodyweight + gender), each standard lift also carries its
+  // CURRENT strength tier + progress-to-next-tier — the same percentile model Records
+  // below and the Career card already use.
+  const gender = userProfile?.gender;
+  const age = userProfile?.age;
   const liftProgress = useMemo(
     () =>
       buildLiftProgressions(
@@ -154,8 +159,9 @@ export default function HistoryScreen() {
         exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
         weightUnit,
         4,
+        bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ).slice(0, 8),
-    [workouts, exerciseStats, weightUnit]
+    [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]
   );
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
@@ -165,9 +171,8 @@ export default function HistoryScreen() {
     [exerciseStats]
   );
 
-  // The single lift closest to a meaningful plate/round target — powers the feed's
-  // Career-style NEXT block (goal-gradient forward pull). Null when nothing is in
-  // reach, in which case the block simply doesn't render.
+  // The forward-pull milestone for the feed's NEXT block: the lift closest to its next
+  // round/plate target. Null (block hidden) when nothing is honestly within reach.
   const milestone = useMemo(
     () => nextMilestone(trackedExercises, weightUnit),
     [trackedExercises, weightUnit]
@@ -183,7 +188,6 @@ export default function HistoryScreen() {
   // est-1RM AND its normalized strength tier. The tier is the honest, comparative signal
   // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
   // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
-  const gender = userProfile?.gender;
   const topRecords = useMemo(() => {
     const stdMap = gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
     const rows = trackedExercises
@@ -307,8 +311,8 @@ export default function HistoryScreen() {
               <SessionsFeed
                 recaps={sessionRecaps}
                 weightUnit={weightUnit}
-                visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
                 milestone={milestone}
+                visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
                 totalCount={sessionRecaps.length}
                 onPressSession={setSelectedWorkout}
                 onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}

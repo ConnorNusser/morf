@@ -2,19 +2,19 @@
 // Grounded in goal-gradient / endowed-progress research: framing reflection as
 // movement toward a NEAR target is the strongest evidence-backed motivation lever,
 // so we surface the one target the lifter is closest to actually hitting.
-import { ExerciseWithMax, WeightUnit } from '@/types';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/workouts';
+import { ExerciseWithMax, WeightUnit } from '@/types';
 
 export interface NextMilestone {
   exerciseId: string;
   label: string;   // e.g. "3-plate Squat" or "300-lb Deadlift"
   gap: number;     // how far away, in the display unit
   current: number; // best lifted weight so far, in the display unit
-  target: number;  // the milestone weight, in the display unit
+  target: number;  // the milestone weight itself, in the display unit
   unit: WeightUnit;
-  // The lift's Push/Pull/Legs identity so the UI can color the progress track with
-  // the same canonical split colors the rest of the app uses; null when unknown.
+  // The goal lift's Push/Pull/Legs family, so the NEXT block can wear the same split
+  // color dot as the session emblems / Career heatmap. Null when the lift is unmapped.
   split: PPLCategory | null;
 }
 
@@ -36,16 +36,6 @@ const MAX_GAP_PCT = 0.08;
 
 const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
-// The lift's PPL split, resolved through the canonical exercise catalog (same
-// mapping sessionIdentity and the Career heatmap use).
-function liftSplit(id: string, name: string): PPLCategory | null {
-  const w =
-    ALL_WORKOUTS.find(x => x.id === id) ??
-    ALL_WORKOUTS.find(x => x.name.toLowerCase() === name.toLowerCase());
-  const muscle = w?.primaryMuscles?.[0];
-  return muscle ? MUSCLE_TO_PPL[muscle] ?? null : null;
-}
-
 function milestoneSet(unit: WeightUnit): number[] {
   return [...new Set([...Object.keys(PLATES[unit]).map(Number), ...ROUNDS[unit]])].sort((a, b) => a - b);
 }
@@ -57,7 +47,7 @@ function milestoneSet(unit: WeightUnit): number[] {
 export function nextMilestone(exercises: ExerciseWithMax[], unit: WeightUnit): NextMilestone | null {
   const targets = milestoneSet(unit);
   const plates = PLATES[unit];
-  let best: (NextMilestone & { rel: number }) | null = null;
+  let best: (Omit<NextMilestone, 'split'> & { rel: number }) | null = null;
 
   for (const ex of exercises) {
     if (ex.metric === 'bodyweight' || ex.maxWeight <= 0) continue;
@@ -74,12 +64,11 @@ export function nextMilestone(exercises: ExerciseWithMax[], unit: WeightUnit): N
       : `${next}-${unitAdj} ${shortName(ex.name)}`;
 
     const rel = gap / next;
-    if (!best || rel < best.rel) {
-      best = { exerciseId: ex.id, label, gap, current: ex.maxWeight, target: next, unit, split: liftSplit(ex.id, ex.name), rel };
-    }
+    if (!best || rel < best.rel) best = { exerciseId: ex.id, label, gap, current: ex.maxWeight, target: next, unit, rel };
   }
 
   if (!best) return null;
+  const muscle = getExercise(best.exerciseId)?.primaryMuscles?.[0];
   return {
     exerciseId: best.exerciseId,
     label: best.label,
@@ -87,6 +76,6 @@ export function nextMilestone(exercises: ExerciseWithMax[], unit: WeightUnit): N
     current: best.current,
     target: best.target,
     unit: best.unit,
-    split: best.split,
+    split: muscle ? (MUSCLE_TO_PPL[muscle] ?? null) : null,
   };
 }

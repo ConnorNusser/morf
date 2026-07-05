@@ -5,10 +5,10 @@
 import AnimatedBar from '@/components/AnimatedBar';
 import AnimatedCount from '@/components/AnimatedCount';
 import { Text } from '@/components/Themed';
+import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
-import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { NextMilestone } from '@/lib/history/milestones';
 import { sessionIdentity } from '@/lib/history/sessionIdentity';
@@ -97,16 +97,16 @@ function SessionHero({ recap, weightUnit, onPress }: {
         {recap.headline ?? (recap.standout ? `${recap.standout.name}` : recap.title)}
       </Text>
 
-      {/* the standout moment as a big, re-livable stat. Subtitle never repeats the
-          headline: on a PR it quantifies the record, otherwise it names the lift. */}
+      {/* the standout moment as a big, re-livable stat — the number counts up on
+          entry, the same AnimatedCount treatment as the Career hero percentile.
+          Subtitle never repeats the headline: on a PR it quantifies the record,
+          otherwise it names the lift. */}
       {recap.standout && (
         <RNView style={styles.heroStandout}>
           <Text style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}>
-            {/* Career-style animated hero number: counts up to the real logged value */}
             <AnimatedCount
               value={recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps}
               duration={900}
-              decimals={Number.isInteger(recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps) ? 0 : 1}
               style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
             />
             <Text style={[styles.standoutUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
@@ -235,42 +235,36 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
   const moments = rest.slice(0, Math.max(0, visibleCount - 1));
   const hasMore = totalCount > visibleCount;
 
-  const milestoneColor = milestone?.split ? PPL_COLORS[milestone.split] : colors.primary;
-
   return (
     <RNView>
-      {/* Section header — same uppercase micro-label grammar as the Career card
-          (ACTIVITY / ACHIEVEMENTS), so History reads as a sibling of that section. */}
-      <RNView style={styles.sectionHead}>
-        <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
-        <Text style={[styles.sectionMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
-          {totalCount} logged
-        </Text>
-      </RNView>
-
-      {/* Forward pull: the target you're closest to actually hitting (goal-gradient) —
-          a Career-style NEXT block with a filling progress track. Every number is the
-          lifter's real best vs a real plate/round target; if the best slips, the bar
-          honestly sits lower. Disappears when nothing is within reach. */}
+      {/* Forward pull, in the Career card's NEXT grammar: the round/plate target the
+          lifter is closest to actually hitting (goal-gradient), with a filling track of
+          best-so-far vs target. Honest by construction — `current` is the real best
+          lifted weight, and the whole block disappears when nothing is within reach. */}
       {milestone && (
         <RNView style={[styles.milestone, { borderBottomColor: colors.text + '10' }]}>
-          <RNView style={styles.milestoneTop}>
+          <RNView style={styles.milestoneHead}>
             <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>NEXT</Text>
-            <Text style={[styles.milestoneCount, { color: colors.text + '99', fontFamily: fonts.bold }]}>
-              {milestone.current}/{milestone.target} {milestone.unit}
+            <Text style={[styles.milestoneGap, { color: colors.primary, fontFamily: fonts.semiBold }]}>
+              {milestone.gap} {milestone.unit} to go
             </Text>
           </RNView>
-          <Text style={styles.milestoneLine} numberOfLines={1}>
-            <Text style={[styles.milestoneName, { color: colors.text, fontFamily: fonts.semiBold }]}>
+          <RNView style={styles.milestoneRow}>
+            {/* The goal lift wears its split's dot — the same Push/Pull/Legs color the
+                session emblems below and the Career heatmap use, so the color reads. */}
+            {milestone.split && (
+              <RNView style={[styles.milestoneSplitDot, { backgroundColor: PPL_COLORS[milestone.split] }]} />
+            )}
+            <Text style={[styles.milestoneName, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
               {milestone.label}
             </Text>
-            <Text style={[styles.milestoneGap, { color: milestoneColor, fontFamily: fonts.semiBold }]}>
-              {'  ·  '}{milestone.gap} {milestone.unit} to go
+            <Text style={[styles.milestoneCount, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
+              {milestone.current}/{milestone.target}
             </Text>
-          </Text>
+          </RNView>
           <AnimatedBar
             progress={milestone.current / milestone.target}
-            color={milestoneColor}
+            color={colors.primary}
             trackColor={colors.text + '15'}
             height={5}
             delay={150}
@@ -278,6 +272,15 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
           />
         </RNView>
       )}
+
+      {/* SESSIONS — the same uppercase micro-label header grammar the Career card
+          (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system. */}
+      <RNView style={styles.feedHead}>
+        <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
+        <Text style={[styles.headMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
+          {totalCount} logged
+        </Text>
+      </RNView>
       <SessionHero recap={hero} weightUnit={weightUnit} onPress={onPressSession} />
       {moments.length > 0 && (
         <RNView style={styles.momentsList}>
@@ -333,16 +336,17 @@ const styles = StyleSheet.create({
   momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
-  // section header + NEXT milestone block — Career micro-label grammar
-  // (fontSize 10 / bold / letterSpacing 1 / low opacity), hairline divider below.
-  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 },
+  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
   microLabel: { fontSize: 10, letterSpacing: 1 },
-  sectionMeta: { fontSize: 11 },
-  milestone: { paddingBottom: 14, marginBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  milestoneTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  headMeta: { fontSize: 11 },
+  // NEXT milestone block — hairline divider separates it from the feed below.
+  milestone: { paddingTop: 14, paddingBottom: 14, marginBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth },
+  milestoneHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  milestoneGap: { fontSize: 11 },
+  milestoneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 5 },
+  milestoneSplitDot: { width: 9, height: 9, borderRadius: 3, marginRight: -3 },
+  milestoneName: { flex: 1, fontSize: 14, letterSpacing: -0.2 },
   milestoneCount: { fontSize: 12 },
-  milestoneLine: { fontSize: 14 },
-  milestoneName: { fontSize: 14, letterSpacing: -0.2 },
-  milestoneGap: { fontSize: 13 },
   milestoneBar: { marginTop: 8 },
+  feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
 });
