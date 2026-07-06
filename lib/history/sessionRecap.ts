@@ -27,6 +27,14 @@ export interface SessionComparison {
   refLabel: string;       // e.g. "last Push Day"
 }
 
+// One entry per exercise actually performed — "what happened in the workout",
+// in workout order, each summarized by its top completed set.
+export interface LineupItem {
+  name: string;   // short display name (no equipment suffix)
+  weight: number; // top set weight in the display unit; 0 for a bodyweight movement
+  reps: number;   // reps of that top set
+}
+
 export interface SessionRecap {
   workout: GeneratedWorkout;
   title: string;
@@ -39,6 +47,7 @@ export interface SessionRecap {
   sets: number;
   durationMin: number;
   muscles: string[];            // primary muscles worked, most-hit first
+  lineup: LineupItem[];         // every exercise performed, workout order, top set each
   comparison: SessionComparison | null;
 }
 
@@ -106,6 +115,31 @@ function standoutSet(
 
 function volumeLbs(workout: GeneratedWorkout, getTrackingType: (id: string) => TrackingType | undefined): number {
   return calculateWorkoutStats(workout.exercises, getTrackingType).totalVolumeLbs;
+}
+
+/**
+ * "What happened": every exercise with at least one completed set, in workout order,
+ * summarized by its best completed set (highest e1RM; most reps for bodyweight work).
+ */
+function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[] {
+  const out: LineupItem[] = [];
+  for (const ex of workout.exercises) {
+    const done = (ex.completedSets || []).filter(s => s.completed);
+    if (done.length === 0) continue;
+    const name = getExercise(ex.id)?.name || ex.id.replace('custom_', '').replace(/-/g, ' ');
+    let top = done[0];
+    let topScore = -1;
+    for (const s of done) {
+      const score = (s.weight || 0) > 0 ? e1rmLbs({ weight: s.weight, reps: s.reps, unit: s.unit }) : s.reps;
+      if (score > topScore) { topScore = score; top = s; }
+    }
+    out.push({
+      name: shortName(name),
+      weight: (top.weight || 0) > 0 ? Math.round(convertWeight(top.weight, top.unit || 'lbs', unit)) : 0,
+      reps: top.reps,
+    });
+  }
+  return out;
 }
 
 /**
@@ -191,6 +225,7 @@ export function buildSessionRecaps(
       sets: wStats.totalSets,
       durationMin: workout.estimatedDuration || 0,
       muscles: sessionMuscles(workout),
+      lineup: sessionLineup(workout, weightUnit),
       comparison,
     };
   });
