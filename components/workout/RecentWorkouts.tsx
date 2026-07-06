@@ -1,11 +1,12 @@
 // Empty-state list of the last few workouts — tap one to load it into the draft
 // and repeat/edit it. Replaces the single "repeat last workout" button.
 import StartButton from '@/components/home/StartButton';
-import { Text } from '@/components/Themed';
+import { Text, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
+import { radius, screenGutter, space, track } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { type as typeScale } from '@/lib/ui/typography';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,18 +35,19 @@ function exerciseNames(w: GeneratedWorkout): string[] {
 export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const ink = useInk();
   const launch = useWorkoutLaunch();
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
-      {/* Generate / Import */}
+      {/* Generate / Import — bordered secondary buttons (C2) */}
       <RNView style={styles.actionRow}>
         <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>
           <Ionicons name="sparkles" size={16} color={colors.primary} />
-          <Text style={[styles.secondaryText, { color: colors.text }]}>Generate</Text>
+          <Text variant="meta" tone="primary" weight="semiBold">Generate</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onImport(); }}>
           <Ionicons name="download-outline" size={16} color={colors.primary} />
-          <Text style={[styles.secondaryText, { color: colors.text }]}>Import</Text>
+          <Text variant="meta" tone="primary" weight="semiBold">Import</Text>
         </TouchableOpacity>
       </RNView>
 
@@ -62,15 +64,13 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
         style={styles.quickStart}
       />
 
-      <Text style={[styles.title, { color: colors.text + '99', fontWeight: '600' }]}>
-        Recent workouts
-      </Text>
+      <SectionLabel style={styles.title}>Recent workouts</SectionLabel>
       {/* Flat list, rows split by faint hairlines (no card fill/border). */}
-      <RNView style={styles.card}>
+      <RNView>
         {workouts.map((w, i) => (
           <TouchableOpacity
             key={w.id}
-            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.text + '14' }]}
+            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ink.hairline }]}
             activeOpacity={0.6}
             onPress={() => {
               playHapticFeedback('medium', false);
@@ -82,19 +82,17 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
             }}
           >
             <RNView style={styles.rowText}>
-              <Text style={[styles.date, { color: colors.text + '99' }]}>{dateLabel(w.createdAt)}</Text>
+              <Text variant="meta" tone="secondary" style={styles.date}>{dateLabel(w.createdAt)}</Text>
               {exerciseNames(w).map((name, j) => (
-                <Text key={j} style={[styles.exName, { color: colors.text }]} numberOfLines={1}>{name}</Text>
+                <Text key={j} variant="body" tone="primary" numberOfLines={1}>{name}</Text>
               ))}
               {exerciseNames(w).length === 0 && (
-                <Text style={[styles.exName, { color: colors.text }]}>Workout</Text>
+                <Text variant="body" tone="primary">Workout</Text>
               )}
             </RNView>
             <RNView style={styles.rowAction}>
-              <Text style={[styles.rowActionText, { color: colors.text + '99' }]}>Repeat</Text>
-              <RNView style={[styles.rowChip, { backgroundColor: colors.text + '0D' }]}>
-                <Ionicons name="arrow-forward" size={16} color={colors.text} />
-              </RNView>
+              <Text variant="meta" tone="secondary" weight="semiBold">Repeat</Text>
+              <Ionicons name="chevron-forward" size={16} color={ink.muted} />
             </RNView>
           </TouchableOpacity>
         ))}
@@ -104,34 +102,29 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: 'transparent' },
-  content: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 24, gap: 8 },
-  actionRow: { flexDirection: 'row', gap: 10 },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: screenGutter, paddingTop: space.md, paddingBottom: space.section, gap: space.sm },
+  actionRow: { flexDirection: 'row', gap: space.md },
   secondaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: space.sm,
     height: 44,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: radius.card,
   },
-  secondaryText: { fontSize: 14 },
-  quickStart: { marginBottom: 6 },
-  title: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
-  card: {},
+  quickStart: { marginBottom: space.sm },
+  title: { paddingTop: space.sm, marginBottom: 0 },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    gap: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
   },
-  rowText: { flex: 1, gap: 3 },
-  date: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  exName: { fontSize: typeScale.body },
-  rowAction: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowActionText: { fontSize: typeScale.meta, fontWeight: '600' },
-  rowChip: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  rowText: { flex: 1, gap: space.xs },
+  date: { textTransform: 'uppercase', letterSpacing: track.caps, marginBottom: space.xs },
+  rowAction: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

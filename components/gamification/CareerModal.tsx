@@ -1,4 +1,7 @@
+import Chip from '@/components/Chip';
+import IconButton from '@/components/IconButton';
 import SectionLabel from '@/components/ui/SectionLabel';
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
@@ -20,6 +23,8 @@ import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification
 import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
 import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
+import { panelPad, radius, screenGutter, space, tint, track, withAlpha } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
@@ -27,7 +32,7 @@ import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot from 'react-native-view-shot';
 
@@ -81,17 +86,16 @@ export default function CareerModal({ visible, onClose }: Props) {
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>Career</Text>
+        <View style={[styles.header, { paddingTop: insets.top + space.sm }]}>
+          <Text variant="screenTitle" tone="primary" weight="bold">Career</Text>
           <View style={styles.headerActions}>
             {data && (
-              <TouchableOpacity onPress={() => captureAndShare(shareRef as React.RefObject<ViewShot>)} hitSlop={12}>
-                <Ionicons name="share-outline" size={24} color={currentTheme.colors.text} />
-              </TouchableOpacity>
+              <IconButton
+                icon="share-outline"
+                onPress={() => captureAndShare(shareRef as React.RefObject<ViewShot>)}
+              />
             )}
-            <TouchableOpacity onPress={onClose} hitSlop={12}>
-              <Ionicons name="close" size={26} color={currentTheme.colors.text} />
-            </TouchableOpacity>
+            <IconButton icon="close" onPress={onClose} />
           </View>
         </View>
 
@@ -125,7 +129,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
-            <View style={{ height: 24 }} />
+            <View style={styles.bottomSpacer} />
           </ScrollView>
         )}
       </View>
@@ -142,12 +146,12 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
   return (
     <View style={styles.hero}>
       <Text style={[styles.heroTier, { color }]}>{tier}</Text>
-      <Text style={[styles.heroPercentile, { color: currentTheme.colors.text }]}>
+      <Text variant="title" tone="primary" weight="semiBold" style={styles.heroPercentile}>
         {overall}
-        <Text style={[styles.heroPercentileLabel, { color: currentTheme.colors.text }]}> percentile</Text>
+        <Text variant="meta" tone="muted" weight="regular"> percentile</Text>
       </Text>
       {overall > 0 && (
-        <Text style={[styles.heroRank, { color: currentTheme.colors.text }]}>
+        <Text variant="meta" tone="muted" style={styles.heroRank}>
           Stronger than {overall}% of lifters
         </Text>
       )}
@@ -156,12 +160,12 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
           <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
             <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
           </View>
-          <Text style={[styles.heroNext, { color: currentTheme.colors.text }]}>
+          <Text variant="meta" tone="muted" style={styles.heroNext}>
             {band.toNext} to {band.nextTier}
           </Text>
         </View>
       ) : (
-        <Text style={[styles.heroNext, { color: currentTheme.colors.text }]}>Max tier reached</Text>
+        <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
       )}
     </View>
   );
@@ -178,9 +182,9 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
   const shown = items.slice(0, 4);
   const overflow = items.length - shown.length;
   return (
-    <View style={[styles.celebrate, { backgroundColor: accent + '14', borderColor: accent }]}>
+    <View style={[styles.celebrate, { backgroundColor: tint(accent), borderColor: accent }]}>
       <View style={styles.celebrateHeader}>
-        <Text style={[styles.celebrateTitle, { color: accent }]}>{title}</Text>
+        <Text variant="body" weight="bold" style={{ color: accent }}>{title}</Text>
         <TouchableOpacity onPress={onDismiss} hitSlop={10}>
           <Ionicons name="close" size={18} color={accent} />
         </TouchableOpacity>
@@ -196,13 +200,13 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
         >
           <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={38} />
           <View style={styles.celebrateText}>
-            <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
-            <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
+            <Text variant="meta" tone="primary" weight="bold">{a.title}</Text>
+            <Text variant="meta" tone="muted">{a.description}</Text>
           </View>
         </TouchableOpacity>
       ))}
       {overflow > 0 && (
-        <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text, marginLeft: 42 }]}>
+        <Text variant="meta" tone="muted" style={styles.celebrateOverflow}>
           + {overflow} more
         </Text>
       )}
@@ -214,7 +218,6 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
 
 // ---- Compact stat strip shown inside the shareable card ----
 function ShareStatStrip({ stats }: { stats: CareerStats }) {
-  const { currentTheme } = useTheme();
   const items = [
     { v: `${formatCompact(stats.totalVolume)} ${stats.unit}`, l: 'lifted' },
     { v: formatCompact(stats.totalWorkouts), l: 'workouts' },
@@ -224,8 +227,8 @@ function ShareStatStrip({ stats }: { stats: CareerStats }) {
     <View style={styles.shareStrip}>
       {items.map((it, i) => (
         <View key={i} style={styles.shareStat}>
-          <Text style={[styles.shareStatValue, { color: currentTheme.colors.text }]}>{it.v}</Text>
-          <Text style={[styles.shareStatLabel, { color: currentTheme.colors.text }]}>{it.l}</Text>
+          <Text variant="body" tone="primary" weight="bold">{it.v}</Text>
+          <Text variant="meta" tone="muted" style={styles.shareStatLabel}>{it.l}</Text>
         </View>
       ))}
     </View>
@@ -242,11 +245,11 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
   const nextEmblem = emblemFor(nextUp.id);
   return (
     <FlipCard
-      height={76}
+      height={84}
       style={styles.nextWrap}
       front={
         <View style={[styles.nextFaceFrame, frame]}>
-          <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
+          <View style={[styles.nextIcon, { backgroundColor: tint(accent) }]}>
             {nextEmblem ? (
               <Image source={nextEmblem} style={styles.nextEmblem} resizeMode="contain" />
             ) : (
@@ -254,31 +257,31 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
             )}
           </View>
           <View style={styles.nextBody}>
-            <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>NEXT GOAL</Text>
-            <Text style={[styles.nextTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
+            <Text variant="meta" tone="faint" weight="bold" style={styles.nextLabel}>NEXT GOAL</Text>
+            <Text variant="body" tone="primary" weight="semiBold" style={styles.nextTitle} numberOfLines={1}>
               {nextUp.title}
             </Text>
             <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
               <View style={[styles.nextFill, { backgroundColor: accent, width: `${Math.round(nextUp.progress * 100)}%` }]} />
             </View>
           </View>
-          <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+          <Text variant="meta" tone="muted" weight="bold">
             {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
           </Text>
         </View>
       }
       back={
         <View style={[styles.nextFaceFrame, frame]}>
-          <View style={[styles.nextIcon, { backgroundColor: accent + '1A' }]}>
+          <View style={[styles.nextIcon, { backgroundColor: tint(accent) }]}>
             <Ionicons name="information-circle-outline" size={20} color={accent} />
           </View>
           <View style={styles.nextBody}>
-            <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]}>WHAT IT TAKES</Text>
-            <Text style={[styles.nextBackDesc, { color: currentTheme.colors.text }]} numberOfLines={2}>
+            <Text variant="meta" tone="faint" weight="bold" style={styles.nextLabel}>WHAT IT TAKES</Text>
+            <Text variant="meta" tone="muted" style={styles.nextBackDesc} numberOfLines={2}>
               {nextUp.description}
             </Text>
           </View>
-          <Text style={[styles.nextCount, { color: accent }]}>
+          <Text variant="meta" weight="bold" style={{ color: withAlpha(accent, 'secondary') }}>
             {Math.round(nextUp.progress * 100)}%
           </Text>
         </View>
@@ -289,7 +292,6 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
 
 // ---- Lifetime stat grid ----
 function StatGrid({ stats }: { stats: CareerStats }) {
-  const { currentTheme } = useTheme();
   const comparison = volumeComparison(stats.totalVolume, stats.unit);
   const tiles: { label: string; value: string }[] = [
     { label: 'Total lifted', value: `${formatCompact(stats.totalVolume)} ${stats.unit}` },
@@ -307,7 +309,9 @@ function StatGrid({ stats }: { stats: CareerStats }) {
           <StatTile key={t.label} label={t.label} value={t.value} />
         ))}
       </View>
-      {comparison && <Text style={[styles.comparison, { color: currentTheme.colors.text }]}>{comparison}</Text>}
+      {comparison && (
+        <Text variant="meta" tone="faint" style={styles.comparison}>{comparison}</Text>
+      )}
     </View>
   );
 }
@@ -316,10 +320,10 @@ function StatTile({ label, value }: { label: string; value: string }) {
   const { currentTheme } = useTheme();
   return (
     <View style={[styles.tile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-      <Text style={[styles.tileValue, { color: currentTheme.colors.text }]} numberOfLines={1}>
+      <Text variant="emphasis" tone="primary" weight="bold" numberOfLines={1}>
         {value}
       </Text>
-      <Text style={[styles.tileLabel, { color: currentTheme.colors.text }]}>{label}</Text>
+      <Text variant="meta" tone="muted" style={styles.tileLabel}>{label}</Text>
     </View>
   );
 }
@@ -336,20 +340,20 @@ function BestsView({ stats }: { stats: CareerStats }) {
       <View style={styles.bestsRow}>
         {hs && (
           <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-            <Text style={[styles.bestValue, { color: currentTheme.colors.text }]}>
+            <Text variant="emphasis" tone="primary" weight="bold">
               {hs.weight} {stats.unit} × {hs.reps}
             </Text>
-            <Text style={[styles.bestLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
+            <Text variant="meta" tone="muted" style={styles.bestLabel} numberOfLines={1}>
               Heaviest set · {heaviestName}
             </Text>
           </View>
         )}
         {stats.biggestSessionVolume > 0 && (
           <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-            <Text style={[styles.bestValue, { color: currentTheme.colors.text }]}>
+            <Text variant="emphasis" tone="primary" weight="bold">
               {formatCompact(stats.biggestSessionVolume)} {stats.unit}
             </Text>
-            <Text style={[styles.bestLabel, { color: currentTheme.colors.text }]}>Biggest session</Text>
+            <Text variant="meta" tone="muted" style={styles.bestLabel}>Biggest session</Text>
           </View>
         )}
       </View>
@@ -374,18 +378,18 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
             ]}
           >
             <View style={styles.prLeft}>
-              <Text style={[styles.prName, { color: currentTheme.colors.text }]} numberOfLines={1}>
+              <Text variant="body" tone="primary" weight="semiBold" numberOfLines={1}>
                 {pr.name}
               </Text>
-              <Text style={[styles.prSub, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="muted" style={styles.prSub}>
                 {pr.topWeight} {pr.unit} × {pr.topReps} · {formatDate(pr.date)}
               </Text>
             </View>
             <View style={styles.prRight}>
-              <Text style={[styles.prValue, { color: currentTheme.colors.text }]}>
+              <Text variant="emphasis" tone="primary" weight="bold">
                 {pr.estimatedOneRM} {pr.unit}
               </Text>
-              <Text style={[styles.prValueLabel, { color: currentTheme.colors.text }]}>est. 1RM</Text>
+              <Text variant="meta" tone="faint" style={styles.prValueLabel}>est. 1RM</Text>
             </View>
           </View>
         ))}
@@ -418,15 +422,18 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionLabel>Activity</SectionLabel>
-        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>{range}</Text>
+        <Text variant="meta" tone="muted" weight="semiBold">{range}</Text>
       </View>
       {selected ? (
-        <Text style={[styles.heatCaption, { color: selected.split ? PPL_COLORS[selected.split] : currentTheme.colors.primary }]}>
+        <Text
+          variant="meta"
+          style={[styles.heatCaption, { color: selected.split ? PPL_COLORS[selected.split] : currentTheme.colors.primary }]}
+        >
           {selected.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} ·{' '}
           {selected.split ? PPL_LABELS[selected.split] : 'Mixed'} · {formatCompact(selected.volume)} {unit} lifted
         </Text>
       ) : (
-        <Text style={[styles.heatCaption, { color: currentTheme.colors.text }]}>
+        <Text variant="meta" tone="muted" style={styles.heatCaption}>
           {heatmap.totalDays} active days in the last 12 weeks — tap a day for its volume.
         </Text>
       )}
@@ -434,7 +441,7 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         {heatmap.weeks.map((week, w) => (
           <View key={w} style={styles.heatCol}>
             {monthLabels[w] ? (
-              <Text style={[styles.monthLabel, { color: currentTheme.colors.text }]}>{monthLabels[w]}</Text>
+              <Text variant="meta" tone="muted" style={styles.monthLabel}>{monthLabels[w]}</Text>
             ) : null}
             {week.map((cell, d) => {
               const isSel = selected?.date.getTime() === cell.date.getTime();
@@ -460,15 +467,15 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
         {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
           <View key={s} style={styles.heatLegendKey}>
             <View style={[styles.heatLegendCell, { backgroundColor: PPL_COLORS[s] }]} />
-            <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
+            <Text variant="meta" tone="faint">{PPL_LABELS[s]}</Text>
           </View>
         ))}
         <View style={styles.heatLegendSpacer} />
-        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>Less</Text>
+        <Text variant="meta" tone="faint">Less</Text>
         {HEAT_OPACITIES.map(o => (
           <View key={o} style={[styles.heatLegendCell, { backgroundColor: currentTheme.colors.text, opacity: o }]} />
         ))}
-        <Text style={[styles.heatLegendText, { color: currentTheme.colors.text }]}>More</Text>
+        <Text variant="meta" tone="faint">More</Text>
       </View>
     </View>
   );
@@ -486,14 +493,14 @@ function MuscleMasteryView({ mastery }: { mastery: MuscleMastery[] }) {
           const color = getTierColor(m.tier);
           return (
             <View key={m.group} style={styles.muscleRow}>
-              <Text style={[styles.muscleName, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary" weight="semiBold" style={styles.muscleName}>
                 {m.group.charAt(0).toUpperCase() + m.group.slice(1)}
               </Text>
               <View style={[styles.muscleTrack, { backgroundColor: currentTheme.colors.border }]}>
                 <View style={[styles.muscleFill, { backgroundColor: color, width: `${Math.max(3, m.percentile)}%` }]} />
               </View>
               <View style={[styles.muscleTier, { borderColor: color }]}>
-                <Text style={[styles.muscleTierText, { color }]}>{m.tier}</Text>
+                <Text variant="meta" weight="bold" style={{ color }}>{m.tier}</Text>
               </View>
             </View>
           );
@@ -539,10 +546,10 @@ function TierLadderView({ ladder }: { ladder: TierRung[] }) {
         {TIER_BASES.map(({ base, count }) => (
           <Text
             key={base}
-            style={[
-              styles.ladderBaseLabel,
-              { flex: count, color: currentTheme.colors.text, opacity: base === currentBase ? 1 : 0.35, fontWeight: base === currentBase ? '800' : '500' },
-            ]}
+            variant="meta"
+            tone={base === currentBase ? 'primary' : 'faint'}
+            weight={base === currentBase ? 'bold' : 'medium'}
+            style={[styles.ladderBaseLabel, { flex: count }]}
           >
             {base}
           </Text>
@@ -559,7 +566,7 @@ function TierTimelineView({ timeline, stats }: { timeline: TierMilestone[]; stat
     return (
       <View style={styles.section}>
         <SectionLabel>Progression</SectionLabel>
-        <Text style={[styles.empty, { color: currentTheme.colors.text }]}>
+        <Text variant="meta" tone="muted" style={styles.empty}>
           Log the big lifts (squat, bench, deadlift, press) to chart your tier climb.
         </Text>
       </View>
@@ -594,10 +601,10 @@ function TimelineRow({ color, title, date, faded }: { color: string; title: stri
         <View style={[styles.timelineLine, { backgroundColor: currentTheme.colors.border }]} />
       </View>
       <View style={styles.timelineContent}>
-        <Text style={[styles.timelineTitle, { color: currentTheme.colors.text, opacity: faded ? 0.6 : 1 }]}>
+        <Text variant="body" tone={faded ? 'muted' : 'primary'} weight="semiBold">
           {title}
         </Text>
-        <Text style={[styles.timelineDate, { color: currentTheme.colors.text }]}>{date}</Text>
+        <Text variant="meta" tone="muted" style={styles.timelineDate}>{date}</Text>
       </View>
     </View>
   );
@@ -638,7 +645,6 @@ function toSpotlight(a: Achievement): AchievementModalItem {
 }
 
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
-  const { currentTheme } = useTheme();
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
   const [rarityFilter, setRarityFilter] = useState<Rarity | null>(null);
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
@@ -672,7 +678,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
     <View style={styles.section}>
       <View style={styles.sectionHeaderRow}>
         <SectionLabel>Achievements</SectionLabel>
-        <Text style={[styles.achCount, { color: currentTheme.colors.text }]}>
+        <Text variant="meta" tone="muted" weight="semiBold">
           {unlocked}/{filtered.length}
         </Text>
       </View>
@@ -689,52 +695,41 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
               style={[
                 styles.rarityChip,
                 {
-                  backgroundColor: active ? rc + '33' : rc + '14',
-                  borderColor: active || complete ? rc : rc + '33',
+                  backgroundColor: tint(rc),
+                  borderColor: active || complete ? rc : withAlpha(rc, 'ghost'),
                   borderWidth: active ? 1.5 : 1,
                 },
               ]}
             >
-              <Text style={[styles.rarityCellLabel, { color: rc }]}>{RARITY_META[b.rarity].label}</Text>
-              <Text style={[styles.rarityCellCount, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" weight="semiBold" style={{ color: rc }}>
+                {RARITY_META[b.rarity].label}
+              </Text>
+              <Text variant="meta" tone="primary" weight="bold">
                 {b.unlocked}/{b.total}
               </Text>
             </TouchableOpacity>
           );
         })}
       </View>
-      <Text style={[styles.achHint, { color: currentTheme.colors.text }]}>
+      <Text variant="meta" tone="faint" style={styles.achHint}>
         Tap a tier to filter · tap a badge for details
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
-        {ACH_FILTERS.map(f => {
-          const active = filter === f.key;
-          return (
-            <TouchableOpacity
-              key={f.key}
-              onPress={() => setFilter(f.key)}
-              style={[
-                styles.achTab,
-                active
-                  ? { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }
-                  : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
-              ]}
-            >
-              <Text
-                style={[styles.achTabText, { color: active ? currentTheme.colors.surface : currentTheme.colors.text }]}
-              >
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {ACH_FILTERS.map(f => (
+          <Chip
+            key={f.key}
+            label={f.label}
+            selected={filter === f.key}
+            onPress={() => setFilter(f.key)}
+          />
+        ))}
       </ScrollView>
       {groups.map(g =>
         g.items.length === 0 ? null : (
           <View key={g.key} style={styles.achGroup}>
             <View style={styles.achGroupHead}>
-              <Text style={[styles.achGroupLabel, { color: currentTheme.colors.text }]}>{g.label}</Text>
-              <Text style={[styles.achGroupCount, { color: currentTheme.colors.text }]}>{g.items.length}</Text>
+              <SectionLabel>{g.label}</SectionLabel>
+              <Text variant="meta" tone="faint" weight="bold">{g.items.length}</Text>
             </View>
             <View style={styles.grid}>
               {g.items.map(a => (
@@ -759,6 +754,7 @@ const ACH_TILE_HEIGHT = 150;
 
 function AchievementTile({ achievement, isNew, onPress }: { achievement: Achievement; isNew: boolean; onPress: () => void }) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   // Rarity is the one organizing color — the tile frame, wash and progress all
   // match the badge so the grid reads as a coherent rarity-coded collection.
   const r = RARITY_META[achievement.rarity].accent;
@@ -767,9 +763,9 @@ function AchievementTile({ achievement, isNew, onPress }: { achievement: Achieve
   const almost = !achievement.unlocked && !display.masked && achievement.progress >= ALMOST_THRESHOLD;
 
   const frameStyle = achievement.unlocked
-    ? { backgroundColor: r + '0D', borderColor: isNew ? r : r + '40', borderWidth: isNew ? 2 : 1 }
+    ? { backgroundColor: withAlpha(r, 'hairline'), borderColor: isNew ? r : withAlpha(r, 'faint'), borderWidth: isNew ? 2 : 1 }
     : almost
-      ? { backgroundColor: r + '0A', borderColor: r + '66', borderWidth: 1 }
+      ? { backgroundColor: withAlpha(r, 'hairline'), borderColor: withAlpha(r, 'muted'), borderWidth: 1 }
       : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 };
 
   // The tile face: badge, title, and an unmistakable status (check / % / lock).
@@ -789,33 +785,36 @@ function AchievementTile({ achievement, isNew, onPress }: { achievement: Achieve
             <Ionicons name="checkmark" size={13} color="#fff" />
           </View>
         ) : almost ? (
-          <View style={[styles.achAlmostPill, { backgroundColor: r + '22', borderColor: r }]}>
-            <Text style={[styles.achAlmostText, { color: r }]}>{pct}%</Text>
+          <View style={[styles.achAlmostPill, { backgroundColor: tint(r), borderColor: r }]}>
+            <Text variant="meta" weight="bold" style={{ color: r }}>{pct}%</Text>
           </View>
         ) : (
           <Ionicons
             name={display.masked ? 'help' : 'lock-closed'}
             size={14}
-            color={currentTheme.colors.text + '40'}
+            color={ink.faint}
           />
         )}
       </View>
       <Text
-        style={[styles.achTitle, { color: currentTheme.colors.text, opacity: achievement.unlocked ? 1 : 0.6 }]}
+        variant="meta"
+        tone={achievement.unlocked ? 'primary' : 'muted'}
+        weight="semiBold"
+        style={styles.achTitle}
         numberOfLines={1}
       >
         {display.title}
       </Text>
       {achievement.unlocked ? (
-        <Text style={[styles.achStatusLine, { color: r }]} numberOfLines={1}>
+        <Text variant="meta" weight="bold" style={{ color: r }} numberOfLines={1}>
           {isNew ? 'Just unlocked' : 'Unlocked'}
         </Text>
       ) : display.masked ? (
-        <Text style={[styles.achDesc, { color: currentTheme.colors.text }]} numberOfLines={1}>
+        <Text variant="meta" tone="muted" numberOfLines={1}>
           Secret achievement
         </Text>
       ) : (
-        <Text style={[styles.achDesc, { color: currentTheme.colors.text }]} numberOfLines={1}>
+        <Text variant="meta" tone="muted" numberOfLines={1}>
           {formatCompact(achievement.current)} / {formatCompact(achievement.target)}
         </Text>
       )}
@@ -847,148 +846,136 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.sm,
   },
-  headerTitle: { fontSize: 28, fontWeight: '700' },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   loadingBox: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingHorizontal: 20, paddingTop: 8 },
+  scroll: { paddingHorizontal: screenGutter, paddingTop: space.sm },
+  bottomSpacer: { height: space.section },
 
-  celebrate: { borderRadius: 14, borderWidth: 1.5, padding: 14, marginTop: 4, marginBottom: 4, gap: 10 },
+  celebrate: {
+    borderRadius: radius.card,
+    borderWidth: 1.5,
+    padding: space.lg,
+    marginTop: space.xs,
+    marginBottom: space.xs,
+    gap: space.md,
+  },
   celebrateHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  celebrateTitle: { fontSize: 15, fontWeight: '700' },
-  celebrateRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  celebrateRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   celebrateText: { flex: 1 },
-  celebrateName: { fontSize: 14, fontWeight: '700' },
-  celebrateDesc: { fontSize: 12, opacity: 0.55 },
+  // Aligns the overflow line with the badge-row text column.
+  celebrateOverflow: { marginLeft: 42 },
 
-  shareCard: { borderRadius: 16, paddingBottom: 18 },
-  shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 4 },
+  shareCard: { borderRadius: radius.card, paddingBottom: panelPad },
+  shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
   shareStat: { alignItems: 'center' },
-  shareStatValue: { fontSize: 16, fontWeight: '700' },
-  shareStatLabel: { fontSize: 11, opacity: 0.5, marginTop: 2 },
+  shareStatLabel: { marginTop: space.xs },
 
-  hero: { alignItems: 'center', paddingVertical: 24 },
+  hero: { alignItems: 'center', paddingVertical: space.section },
+  // The tier letter is THE display glyph of the Career screen — a named
+  // exception to the type scale, kept at 72.
   heroTier: { fontSize: 72, fontWeight: '800', lineHeight: 78 },
-  heroPercentile: { fontSize: 20, fontWeight: '600', marginTop: 4 },
-  heroPercentileLabel: { fontSize: 14, fontWeight: '400', opacity: 0.5 },
-  heroRank: { fontSize: 13, opacity: 0.55, marginTop: 4 },
-  heroProgressWrap: { width: '70%', marginTop: 16, alignItems: 'center' },
+  heroPercentile: { marginTop: space.xs },
+  heroRank: { marginTop: space.xs },
+  heroProgressWrap: { width: '70%', marginTop: space.lg, alignItems: 'center' },
   heroTrack: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3 },
-  heroNext: { fontSize: 13, opacity: 0.6, marginTop: 8 },
+  heroNext: { marginTop: space.sm },
 
-  nextWrap: { marginTop: 12 },
+  nextWrap: { marginTop: space.md },
   nextFaceFrame: {
     width: '100%',
     height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderRadius: 12,
+    gap: space.md,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 12,
+    padding: space.md,
   },
-  nextIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  nextIcon: { width: 40, height: 40, borderRadius: radius.control, alignItems: 'center', justifyContent: 'center' },
   nextEmblem: { width: 30, height: 30 },
   nextBody: { flex: 1 },
-  nextLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  nextTitle: { fontSize: 15, fontWeight: '600', marginTop: 1, marginBottom: 6 },
-  nextBackDesc: { fontSize: 12, opacity: 0.6, marginTop: 4, lineHeight: 16 },
+  nextLabel: { letterSpacing: track.caps },
+  nextTitle: { marginTop: space.xs, marginBottom: space.sm },
+  nextBackDesc: { marginTop: space.xs, lineHeight: lineHeightFor(type.meta) },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
-  nextCount: { fontSize: 13, fontWeight: '700', opacity: 0.6 },
 
-  section: { marginTop: 28 },
+  section: { marginTop: space.section },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
-  tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },
-  tileValue: { fontSize: 18, fontWeight: '700' },
-  tileLabel: { fontSize: 11, opacity: 0.5, marginTop: 4, textAlign: 'center' },
-  comparison: { fontSize: 13, opacity: 0.45, textAlign: 'center', marginTop: 12, fontStyle: 'italic' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space.md },
+  tile: {
+    width: '31.5%',
+    borderRadius: radius.card,
+    borderWidth: 1,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.md,
+    alignItems: 'center',
+  },
+  tileLabel: { marginTop: space.xs, textAlign: 'center' },
+  comparison: { textAlign: 'center', marginTop: space.md, fontStyle: 'italic' },
 
-  bestsRow: { flexDirection: 'row', gap: 10 },
-  bestTile: { flex: 1, borderRadius: 12, borderWidth: 1, padding: 14 },
-  bestValue: { fontSize: 18, fontWeight: '700' },
-  bestLabel: { fontSize: 11, opacity: 0.5, marginTop: 4 },
+  bestsRow: { flexDirection: 'row', gap: space.md },
+  bestTile: { flex: 1, borderRadius: radius.card, borderWidth: 1, padding: space.lg },
+  bestLabel: { marginTop: space.xs },
 
-  prCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14 },
-  prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
-  prLeft: { flex: 1, marginRight: 12 },
-  prName: { fontSize: 15, fontWeight: '600' },
-  prSub: { fontSize: 12, opacity: 0.5, marginTop: 2 },
+  prCard: { borderRadius: radius.card, borderWidth: 1, paddingHorizontal: space.lg },
+  prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.md },
+  prLeft: { flex: 1, marginRight: space.md },
+  prSub: { marginTop: space.xs },
   prRight: { alignItems: 'flex-end' },
-  prValue: { fontSize: 17, fontWeight: '700' },
-  prValueLabel: { fontSize: 10, opacity: 0.45, marginTop: 1 },
+  prValueLabel: { marginTop: space.xs },
 
-  heatCaption: { fontSize: 11, opacity: 0.5, lineHeight: 16, marginTop: -4, marginBottom: 12 },
-  heatGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: 16 },
-  heatCol: { gap: 4, position: 'relative' },
-  monthLabel: { position: 'absolute', top: -14, left: 0, fontSize: 9, opacity: 0.5, width: 40 },
+  heatCaption: { lineHeight: lineHeightFor(type.meta), marginTop: -4, marginBottom: space.md },
+  heatGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: space.xl },
+  heatCol: { gap: space.xs, position: 'relative' },
+  // Floats the month abbreviation above its column; offset clears the meta
+  // line height so it doesn't overlap the first cell row.
+  monthLabel: { position: 'absolute', top: -18, left: 0, width: 40 },
   heatCell: { width: 15, height: 15, borderRadius: 3 },
-  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 4, marginTop: 12, flexWrap: 'wrap' },
-  heatLegendKey: { flexDirection: 'row', alignItems: 'center', gap: 3, marginRight: 4 },
-  heatLegendText: { fontSize: 10, opacity: 0.4 },
+  heatLegend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: space.xs, marginTop: space.md, flexWrap: 'wrap' },
+  heatLegendKey: { flexDirection: 'row', alignItems: 'center', gap: space.xs, marginRight: space.xs },
   heatLegendCell: { width: 11, height: 11, borderRadius: 2 },
   heatLegendSpacer: { flex: 1 },
 
-  muscleCard: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6 },
-  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  muscleName: { fontSize: 13, fontWeight: '600', width: 78 },
+  muscleCard: { borderRadius: radius.card, borderWidth: 1, paddingHorizontal: space.lg, paddingVertical: space.sm },
+  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
+  muscleName: { width: 78 },
   muscleTrack: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
   muscleFill: { height: 7, borderRadius: 4 },
-  muscleTier: { minWidth: 34, alignItems: 'center', borderWidth: 1.5, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 1 },
-  muscleTierText: { fontSize: 11, fontWeight: '800' },
+  muscleTier: { minWidth: 34, alignItems: 'center', borderWidth: 1.5, borderRadius: radius.badge, paddingHorizontal: space.xs, paddingVertical: 1 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 26, borderRadius: 3 },
-  ladderLabels: { flexDirection: 'row', marginTop: 6 },
-  ladderBaseLabel: { fontSize: 11, textAlign: 'center' },
+  ladderLabels: { flexDirection: 'row', marginTop: space.sm },
+  ladderBaseLabel: { textAlign: 'center' },
 
   timelineRow: { flexDirection: 'row' },
   timelineMarker: { alignItems: 'center', width: 24 },
   timelineDot: { width: 12, height: 12, borderRadius: 6, marginTop: 2 },
   timelineLine: { width: 2, flex: 1, marginVertical: 2 },
-  timelineContent: { flex: 1, paddingBottom: 18, marginLeft: 8 },
-  timelineTitle: { fontSize: 15, fontWeight: '600' },
-  timelineDate: { fontSize: 13, opacity: 0.5, marginTop: 1 },
+  timelineContent: { flex: 1, paddingBottom: space.xl, marginLeft: space.sm },
+  timelineDate: { marginTop: space.xs },
 
-  achCount: { fontSize: 13, fontWeight: '600', opacity: 0.6 },
-  rarityRow: { flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 14 },
-  rarityChip: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, borderWidth: 1, gap: 3 },
-  rarityCellLabel: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
-  rarityCellCount: { fontSize: 13, fontWeight: '700' },
-  achTabs: { gap: 8, paddingBottom: 12 },
-  achTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1 },
-  achTabText: { fontSize: 12, fontWeight: '600' },
+  rarityRow: { flexDirection: 'row', gap: space.sm, marginTop: space.xs, marginBottom: space.lg },
+  rarityChip: { flex: 1, alignItems: 'center', paddingVertical: space.sm, borderRadius: radius.control, borderWidth: 1, gap: space.xs },
+  achTabs: { gap: space.sm, paddingBottom: space.md },
   achTileWrap: { width: '48%' },
   achFace: { width: '100%', height: '100%' },
-  achTile: { borderRadius: 12, padding: 12, gap: 4 },
-  achTileBack: { justifyContent: 'flex-start' },
+  achTile: { borderRadius: radius.card, padding: space.md, gap: space.xs },
   achTileTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   achCheck: { width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  achAlmostPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, borderWidth: 1 },
-  achAlmostText: { fontSize: 10, fontWeight: '800' },
-  achStatusLine: { fontSize: 11, fontWeight: '700' },
-  achFlipHint: { position: 'absolute', bottom: 8, right: 10 },
-  achHint: { fontSize: 11, opacity: 0.45, marginTop: 2 },
-  achGroup: { marginTop: 6, gap: 8 },
+  achAlmostPill: { paddingHorizontal: space.sm, paddingVertical: 2, borderRadius: radius.badge, borderWidth: 1 },
+  achHint: { marginTop: space.xs },
+  achGroup: { marginTop: space.sm, gap: space.sm },
   achGroupHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  achGroupLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, opacity: 0.55, textTransform: 'uppercase' },
-  achGroupCount: { fontSize: 12, fontWeight: '700', opacity: 0.4 },
-  achBackRarity: { fontSize: 9, fontWeight: '800', letterSpacing: 0.8 },
-  achBackTitle: { fontSize: 14, fontWeight: '700', marginTop: 4 },
-  achBackDesc: { fontSize: 11, opacity: 0.65, marginTop: 4, lineHeight: 15, flex: 1 },
-  achBackFooter: { marginTop: 6 },
-  achBackStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  achBackStatus: { fontSize: 11, fontWeight: '700' },
-  achTitle: { fontSize: 14, fontWeight: '600', marginTop: 2 },
-  achDesc: { fontSize: 11, opacity: 0.5 },
-  achTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 6 },
+  achTitle: { marginTop: space.xs },
+  achTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: space.sm },
   achFill: { height: 4, borderRadius: 2 },
 
-  empty: { fontSize: 14, opacity: 0.5, lineHeight: 20 },
+  empty: { lineHeight: lineHeightFor(type.meta) },
 });

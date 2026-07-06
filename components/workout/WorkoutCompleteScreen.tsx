@@ -1,6 +1,9 @@
+import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, space, tint, track, trend } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
@@ -81,10 +84,10 @@ function AchievementRewardRow({
         size={34}
       />
       <View style={styles.achTextWrap}>
-        <Text style={[styles.achTitle, { color: '#fff', fontWeight: '600' }]} numberOfLines={1}>
+        <Text variant="body" weight="semiBold" style={styles.achTitle} numberOfLines={1}>
           {achievement.title}
         </Text>
-        <Text style={[styles.achSub, { color: accent, fontWeight: '500' }]}>
+        <Text variant="meta" weight="medium" style={[styles.achSub, { color: accent }]}>
           {RARITY_META[achievement.rarity].label} · unlocked
         </Text>
       </View>
@@ -93,19 +96,21 @@ function AchievementRewardRow({
   );
 
   const back = (
-    <View style={[styles.achRowFace, styles.achRowBack, { backgroundColor: accent + '1F', borderColor: accent }]}>
+    <View style={[styles.achRowFace, styles.achRowBack, { backgroundColor: tint(accent), borderColor: accent }]}>
       <View style={styles.achTextWrap}>
-        <Text style={[styles.achSub, { color: accent, fontWeight: '600' }]} numberOfLines={1}>
+        <Text variant="meta" weight="semiBold" style={[styles.achSub, { color: accent }]} numberOfLines={1}>
           {achievement.title}
         </Text>
-        <Text style={[styles.achBackDesc, { color: '#fff', fontWeight: '400' }]} numberOfLines={2}>
+        <Text variant="meta" style={styles.achBackDesc} numberOfLines={2}>
           {achievement.description}
         </Text>
       </View>
     </View>
   );
 
-  return <FlipCard front={front} back={back} height={66} style={styles.achRowWrap} />;
+  // 76 (was 66): absorbs the 12→14pt type-floor snap without clipping the
+  // two-line back face.
+  return <FlipCard front={front} back={back} height={76} style={styles.achRowWrap} />;
 }
 
 // Gamification rewards earned this session: new achievements. Sits below the PR
@@ -123,7 +128,7 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
             <AchievementRewardRow key={a.id} achievement={a} />
           ))}
           {newAchievements.length > shownAch.length && (
-            <Text style={[styles.achMore, { color: 'rgba(255,255,255,0.5)', fontWeight: '400' }]}>
+            <Text variant="meta" style={styles.achMore}>
               +{newAchievements.length - shownAch.length} more unlocked
             </Text>
           )}
@@ -195,7 +200,7 @@ const PulsingBadge = ({ text, color }: { text: string; color: string }) => {
 
   return (
     <Animated.View style={[styles.prBadge, { backgroundColor: color, borderColor: color }, animatedStyle]}>
-      <Text style={[styles.prBadgeText, { color: '#fff', fontWeight: '700' }]}>
+      <Text variant="meta" weight="bold" style={styles.prBadgeText}>
         {text}
       </Text>
     </Animated.View>
@@ -283,20 +288,18 @@ const StatCard = ({
           delay={delay}
           style={[
             styles.statCardValue,
-            { color: '#fff', fontWeight: '700' },
             isSmallScreen && styles.statCardValueSmall,
           ]}
         />
       ) : (
         <Text style={[
           styles.statCardValue,
-          { color: '#fff', fontWeight: '700' },
           isSmallScreen && styles.statCardValueSmall,
         ]}>
           {value}
         </Text>
       )}
-      <Text style={[styles.statCardLabel, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}>
+      <Text variant="meta" style={styles.statCardLabel}>
         {label}
       </Text>
     </Animated.View>
@@ -442,7 +445,7 @@ export default function WorkoutCompleteScreen({
   const handleStatPress = useCallback(() => setShowExerciseDetails(v => !v), []);
 
   return (
-    <Animated.View entering={FadeIn} style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <Animated.View entering={FadeIn} style={styles.container}>
       {/* Confetti particles */}
       {particles.map((particle) => (
         <Particle
@@ -466,20 +469,20 @@ export default function WorkoutCompleteScreen({
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.logoText, { color: 'rgba(255,255,255,0.4)', fontWeight: '500' }]}>
+            <Text variant="body" weight="medium" style={styles.logoText}>
               morf
             </Text>
           </Animated.View>
 
           <Animated.Text
             entering={FadeIn.delay(200)}
-            style={[styles.title, { color: '#fff', fontWeight: '700' }]}
+            style={styles.title}
           >
             Workout Complete!
           </Animated.Text>
           <Animated.Text
             entering={FadeIn.delay(300)}
-            style={[styles.subtitle, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}
+            style={styles.subtitle}
           >
             Great job crushing it today
           </Animated.Text>
@@ -507,22 +510,22 @@ export default function WorkoutCompleteScreen({
                     entering={FadeIn.delay(600 + index * 100)}
                     style={styles.prRow}
                   >
-                    <View style={[styles.prCardContent, { backgroundColor: 'transparent' }]}>
-                      <Text style={[styles.prExerciseName, { color: 'rgba(255,255,255,0.7)', fontWeight: '400' }]}>
+                    <View style={styles.prCardContent}>
+                      <Text variant="meta" style={styles.prExerciseName}>
                         {pr.exerciseName}
                       </Text>
-                      <View style={[styles.prValueRow, { backgroundColor: 'transparent' }]}>
+                      <View style={styles.prValueRow}>
                         <AnimatedCounter
                           value={pr.newPR}
                           delay={650 + index * 100}
                           duration={1200}
-                          style={[styles.prValue, { color: '#fff', fontWeight: '700' }]}
+                          style={styles.prValue}
                         />
-                        <Text style={[styles.prUnit, { color: 'rgba(255,255,255,0.5)', fontWeight: '400' }]}>
+                        <Text variant="meta" style={styles.prUnit}>
                           {weightUnit}
                         </Text>
                         {pr.improvement > 0 && (
-                          <Text style={[styles.improvementText, { color: '#4ADE80', fontWeight: '600' }]}>
+                          <Text variant="meta" weight="semiBold" style={styles.improvementText}>
                             ↑{pr.improvement}
                           </Text>
                         )}
@@ -551,7 +554,7 @@ export default function WorkoutCompleteScreen({
               activeOpacity={0.8}
             >
               <Ionicons name="trophy-outline" size={16} color="#fff" />
-              <Text style={[styles.viewAllText, { color: '#fff', fontWeight: '500' }]}>
+              <Text variant="meta" weight="semiBold" style={styles.viewAllText}>
                 View all achievements
               </Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
@@ -591,7 +594,7 @@ export default function WorkoutCompleteScreen({
           {/* Exercise Details (expandable) */}
           {showExerciseDetails && (
             <Animated.View entering={FadeIn} style={styles.exerciseDetailsContainer}>
-              <Text style={[styles.exerciseDetailsTitle, { color: 'rgba(255,255,255,0.8)', fontWeight: '600' }]}>
+              <Text variant="meta" weight="semiBold" style={styles.exerciseDetailsTitle}>
                 Exercises
               </Text>
               {exercises.map((exercise, index) => {
@@ -605,10 +608,10 @@ export default function WorkoutCompleteScreen({
                     key={index}
                     style={[styles.exerciseDetailRow, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]}
                   >
-                    <Text style={[styles.exerciseDetailName, { color: '#fff', fontWeight: '500' }]}>
+                    <Text variant="meta" weight="medium" style={styles.exerciseDetailName}>
                       {exerciseInfo?.name || exercise.name}
                     </Text>
-                    <Text style={[styles.exerciseDetailSets, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}>
+                    <Text variant="meta" style={styles.exerciseDetailSets}>
                       {setCount} {setCount === 1 ? 'set' : 'sets'}
                     </Text>
                   </View>
@@ -623,18 +626,17 @@ export default function WorkoutCompleteScreen({
       {/* Action buttons - pinned to bottom */}
       <Animated.View
         entering={FadeIn.delay(700)}
-        style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}
+        style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
-        {/* Done button */}
-        <TouchableOpacity
-          style={[styles.doneButton, { backgroundColor: currentTheme.colors.primary }]}
+        {/* Done button — C1 primary pill. White label kept: this screen is
+            always dark regardless of theme (named palette exception). */}
+        <Button
+          title="Done"
           onPress={onDone}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.doneButtonText, { fontWeight: '600' }]}>
-            Done
-          </Text>
-        </TouchableOpacity>
+          variant="primary"
+          size="large"
+          textStyle={styles.doneButtonText}
+        />
       </Animated.View>
 
       {/* Full achievement collection, opened from "View all achievements" */}
@@ -643,6 +645,10 @@ export default function WorkoutCompleteScreen({
   );
 }
 
+// Dark celebration screen: the white-alpha palette below is a named exception
+// (the screen is always dark, independent of theme); type roles, spacing,
+// radii, and button shapes follow the shared tokens. The 28/32/36 vertical
+// rhythm is this screen's structural composition and stays as-is.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -657,8 +663,8 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: space.section,
+    paddingTop: space.lg,
     paddingBottom: 40,
   },
   logoHeader: {
@@ -671,17 +677,20 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   logoText: {
-    fontSize: 15,
-    letterSpacing: 1,
-    marginTop: 10,
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: track.caps,
+    marginTop: space.md,
   },
   title: {
-    fontSize: 28,
+    fontSize: type.statHero,
+    fontWeight: '700',
+    color: '#fff',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: type.body,
+    color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     marginBottom: 36,
   },
@@ -689,62 +698,61 @@ const styles = StyleSheet.create({
   prSection: {
     width: '100%',
     marginBottom: 32,
-    gap: 12,
+    gap: space.md,
   },
   prBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.badge,
     alignSelf: 'center',
     borderWidth: 1.5,
-    borderColor: '#C15F3C',
   },
   prBadgeText: {
-    fontSize: 14,
-    color: '#000',
-    letterSpacing: 0.5,
+    color: '#fff',
   },
   prCard: {
-    borderRadius: 16,
-    padding: 16,
-    gap: 8,
+    borderRadius: radius.card,
+    padding: space.lg,
+    gap: space.sm,
   },
   prRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 6,
+    paddingVertical: space.sm,
   },
   prCardContent: {
     flex: 1,
     gap: 2,
   },
   prExerciseName: {
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
   },
   prValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.sm,
   },
   prValue: {
-    fontSize: 18,
+    fontSize: type.emphasis,
+    fontWeight: '700',
+    color: '#fff',
   },
   prUnit: {
-    fontSize: 14,
+    color: 'rgba(255,255,255,0.5)',
   },
   improvementText: {
-    fontSize: 13,
+    color: trend.up,
   },
   // Rewards (gamification)
   rewardsSection: {
     width: '100%',
     marginBottom: 32,
-    gap: 12,
+    gap: space.md,
   },
   achList: {
     width: '100%',
-    gap: 10,
+    gap: space.md,
   },
   achRowWrap: {
     width: '100%',
@@ -753,125 +761,121 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderRadius: 14,
-    paddingHorizontal: 14,
+    gap: space.md,
+    borderRadius: radius.card,
+    paddingHorizontal: space.lg,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   achRowBack: {
-    paddingVertical: 10,
+    paddingVertical: space.md,
   },
   achTextWrap: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   achTitle: {
-    fontSize: 15,
+    color: '#fff',
   },
   achSub: {
-    fontSize: 12,
     marginTop: 1,
   },
   achBackDesc: {
-    fontSize: 12,
+    color: '#fff',
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: lineHeightFor(type.meta),
   },
   achMore: {
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
   },
   viewAllWrap: {
     width: '100%',
     marginBottom: 28,
   },
+  // C2 secondary bordered button (white-alpha border is the dark-screen
+  // palette exception).
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 13,
-    borderRadius: 12,
+    gap: space.sm,
+    paddingVertical: space.md,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   viewAllText: {
-    fontSize: 14,
+    color: '#fff',
   },
   // Stats
   statsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space.md,
     marginBottom: 36,
   },
   statsContainerSmall: {
-    gap: 8,
+    gap: space.sm,
   },
   statCard: {
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.card,
     minWidth: 90,
   },
   statCardSmall: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
     minWidth: 75,
   },
   statCardValue: {
-    fontSize: 24,
-    marginTop: 8,
+    fontSize: type.statHero,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: track.display,
+    marginTop: space.sm,
   },
   statCardValueSmall: {
-    fontSize: 20,
-    marginTop: 6,
+    fontSize: type.title,
+    marginTop: space.sm,
   },
   statCardLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.6)',
+    marginTop: space.xs,
   },
   // Exercise Details
   exerciseDetailsContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: space.section,
   },
   exerciseDetailsTitle: {
-    fontSize: 14,
-    marginBottom: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: space.md,
     textAlign: 'center',
   },
   exerciseDetailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   exerciseDetailName: {
-    fontSize: 14,
+    color: '#fff',
     flex: 1,
   },
   exerciseDetailSets: {
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
   // Buttons
   buttonContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    gap: 12,
-  },
-  doneButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 12,
-    alignItems: 'center',
+    paddingHorizontal: space.section,
+    paddingTop: space.lg,
+    gap: space.md,
   },
   doneButtonText: {
-    fontSize: 18,
     color: '#fff',
   },
   // Confetti

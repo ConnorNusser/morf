@@ -1,4 +1,6 @@
+import Button from '@/components/Button';
 import Chip from '@/components/Chip';
+import IconButton from '@/components/IconButton';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
@@ -10,6 +12,8 @@ import {
 } from '@/lib/ai/aiRoutineGenerator';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
+import { radius, screenGutter, space, tint, track, trend, withAlpha } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { validateRoutines } from '@/lib/workout/trainingAdvancement';
 import { getAvailableWorkouts, getWorkoutsByEquipment } from '@/lib/workout/workouts';
 import { Equipment, Program, TrainingAdvancement } from '@/types';
@@ -40,8 +44,8 @@ interface RoutineGeneratorModalProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const CARD_GAP = 12;
-const CARD_WIDTH = (SCREEN_WIDTH - 48 - CARD_GAP) / 2; // 24px padding each side
+const CARD_GAP = space.md;
+const CARD_WIDTH = (SCREEN_WIDTH - screenGutter * 2 - CARD_GAP) / 2;
 
 type FlowStep = 'goal' | 'focus' | 'experience' | 'days' | 'duration' | 'exercises' | 'generating' | 'preview';
 
@@ -178,17 +182,18 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Theme-based colors
+  // Theme-based colors — this modal's own palette (named exception), with the
+  // text-emphasis steps drawn from the shared ink ramp.
   const colors = useMemo(() => ({
     bg: currentTheme.colors.background,
     surface: currentTheme.colors.surface,
     surfaceLight: currentTheme.colors.border,
     accent: currentTheme.colors.primary,
     text: currentTheme.colors.text,
-    textDim: currentTheme.colors.text + '80',
-    textMuted: currentTheme.colors.text + '50',
+    textDim: withAlpha(currentTheme.colors.text, 'secondary'),
+    textMuted: withAlpha(currentTheme.colors.text, 'faint'),
     border: currentTheme.colors.border,
-    success: '#34d399',
+    success: trend.up,
   }), [currentTheme]);
 
   useEffect(() => {
@@ -428,11 +433,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderHeader = () => (
     <View style={[styles.header, { backgroundColor: colors.bg }]}>
       {showBackButton ? (
-        <TouchableOpacity onPress={handleBack} style={styles.headerBtn}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </TouchableOpacity>
+        <IconButton icon="chevron-back" onPress={handleBack} />
       ) : (
-        <View style={styles.headerBtn} />
+        <View style={styles.headerSpacer} />
       )}
 
       {INPUT_STEPS.includes(step) && (
@@ -451,11 +454,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       )}
 
       {step !== 'generating' ? (
-        <TouchableOpacity onPress={onClose} style={styles.headerBtn}>
-          <Ionicons name="close" size={24} color={colors.textMuted} />
-        </TouchableOpacity>
+        <IconButton icon="close" onPress={onClose} iconColor={colors.textMuted} />
       ) : (
-        <View style={styles.headerBtn} />
+        <View style={styles.headerSpacer} />
       )}
     </View>
   );
@@ -463,8 +464,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderGoalStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 1</Text>
-        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>What&apos;s your goal?</Text>
+        <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 1</Text>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>What&apos;s your goal?</Text>
       </View>
 
       <View style={styles.goalGrid}>
@@ -475,11 +476,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             onPress={() => handleGoalSelect(goal.id)}
             activeOpacity={0.7}
           >
-            <View style={[styles.goalIcon, { backgroundColor: colors.accent + '15' }]}>
+            <View style={[styles.goalIcon, { backgroundColor: tint(colors.accent) }]}>
               <Ionicons name={goal.icon as any} size={22} color={colors.accent} />
             </View>
-            <Text style={[styles.goalTitle, { color: colors.text, fontWeight: '600' }]}>{goal.title}</Text>
-            <Text style={[styles.goalDesc, { color: colors.textDim, fontWeight: '400' }]}>{goal.desc}</Text>
+            <Text variant="body" tone="primary" weight="semiBold" style={styles.goalTitle}>{goal.title}</Text>
+            <Text variant="meta" tone="secondary" style={styles.goalDesc}>{goal.desc}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -489,9 +490,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderFocusStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 2</Text>
-        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>Focus or skip any areas?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>
+        <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 2</Text>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>Focus or skip any areas?</Text>
+        <Text variant="body" tone="secondary" style={styles.subtitle}>
           Tap once to focus, tap again to skip, tap again to reset
         </Text>
       </View>
@@ -500,11 +501,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.bodyAreaLegend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-          <Text style={[styles.legendText, { color: colors.textDim, fontWeight: '400' }]}>Focus</Text>
+          <Text variant="meta" tone="secondary">Focus</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-          <Text style={[styles.legendText, { color: colors.textDim, fontWeight: '400' }]}>Skip</Text>
+          <View style={[styles.legendDot, { backgroundColor: trend.down }]} />
+          <Text variant="meta" tone="secondary">Skip</Text>
         </View>
       </View>
 
@@ -519,24 +520,25 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
               style={[
                 styles.bodyAreaChip,
                 { backgroundColor: colors.surface, borderColor: colors.border },
-                isFocused && { backgroundColor: colors.success + '20', borderColor: colors.success },
-                isIgnored && { backgroundColor: '#EF444420', borderColor: '#EF4444' },
+                isFocused && { backgroundColor: tint(colors.success), borderColor: colors.success },
+                isIgnored && { backgroundColor: tint(trend.down), borderColor: trend.down },
               ]}
               onPress={() => handleBodyAreaToggle(area.id)}
               activeOpacity={0.7}
             >
               <Text
+                variant="body"
+                tone="primary"
+                weight="medium"
                 style={[
-                  styles.bodyAreaLabel,
-                  { color: colors.text, fontWeight: '500' },
                   isFocused && { color: colors.success },
-                  isIgnored && { color: '#EF4444' },
+                  isIgnored && { color: trend.down },
                 ]}
               >
                 {area.label}
               </Text>
-              {isFocused && <Ionicons name="add-circle" size={16} color={colors.success} style={{ marginLeft: 4 }} />}
-              {isIgnored && <Ionicons name="remove-circle" size={16} color="#EF4444" style={{ marginLeft: 4 }} />}
+              {isFocused && <Ionicons name="add-circle" size={16} color={colors.success} style={styles.bodyAreaIcon} />}
+              {isIgnored && <Ionicons name="remove-circle" size={16} color={trend.down} style={styles.bodyAreaIcon} />}
             </TouchableOpacity>
           );
         })}
@@ -546,12 +548,12 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       {(selectedFocus.length > 0 || ignoredMuscles.length > 0) && (
         <View style={[styles.bodyAreaSummary, { backgroundColor: colors.surface }]}>
           {selectedFocus.length > 0 && (
-            <Text style={[styles.bodyAreaSummaryText, { color: colors.success, fontWeight: '500' }]}>
+            <Text variant="meta" weight="medium" style={{ color: colors.success }}>
               Focusing: {selectedFocus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
             </Text>
           )}
           {ignoredMuscles.length > 0 && (
-            <Text style={[styles.bodyAreaSummaryText, { color: '#EF4444', fontWeight: '500' }]}>
+            <Text variant="meta" weight="medium" style={{ color: trend.down }}>
               Skipping: {ignoredMuscles.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ')}
             </Text>
           )}
@@ -559,12 +561,13 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       )}
 
       <View style={styles.bottomActions}>
+        {/* Icon + label CTA keeps the hand-rolled pill (C1 grammar). */}
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
           onPress={handleFocusContinue}
           activeOpacity={0.8}
         >
-          <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>
+          <Text variant="body" weight="semiBold" style={{ color: colors.bg }}>
             {selectedFocus.length > 0 || ignoredMuscles.length > 0 ? 'Continue' : 'Skip'}
           </Text>
           <Ionicons name="arrow-forward" size={18} color={colors.bg} />
@@ -576,9 +579,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderExperienceStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 3</Text>
-        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>Training experience?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>This helps us design appropriate volume and intensity</Text>
+        <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 3</Text>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>Training experience?</Text>
+        <Text variant="body" tone="secondary" style={styles.subtitle}>This helps us design appropriate volume and intensity</Text>
       </View>
 
       <View style={styles.experienceList}>
@@ -590,8 +593,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.experienceContent}>
-              <Text style={[styles.experienceTitle, { color: colors.text, fontWeight: '600' }]}>{option.title}</Text>
-              <Text style={[styles.experienceDesc, { color: colors.textDim, fontWeight: '400' }]}>{option.desc}</Text>
+              <Text variant="body" tone="primary" weight="semiBold" style={styles.experienceTitle}>{option.title}</Text>
+              <Text variant="meta" tone="secondary" style={styles.experienceDesc}>{option.desc}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -603,9 +606,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderDaysStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 4</Text>
-        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>How many days per week?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>We&apos;ll design the optimal split for your schedule</Text>
+        <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 4</Text>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>How many days per week?</Text>
+        <Text variant="body" tone="secondary" style={styles.subtitle}>We&apos;ll design the optimal split for your schedule</Text>
       </View>
 
       <View style={styles.daysGrid}>
@@ -616,8 +619,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             onPress={() => handleDaysSelect(days)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.dayNumber, { color: colors.text, fontWeight: '700' }]}>{days}</Text>
-            <Text style={[styles.dayLabel, { color: colors.textDim, fontWeight: '400' }]}>days</Text>
+            <Text tone="primary" weight="bold" style={styles.dayNumber}>{days}</Text>
+            <Text variant="body" tone="secondary" style={styles.dayLabel}>days</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -627,9 +630,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderDurationStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 5</Text>
-        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>How long per workout?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>This determines how many exercises we&apos;ll include</Text>
+        <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 5</Text>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>How long per workout?</Text>
+        <Text variant="body" tone="secondary" style={styles.subtitle}>This determines how many exercises we&apos;ll include</Text>
       </View>
 
       <View style={styles.durationGrid}>
@@ -640,8 +643,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             onPress={() => handleDurationSelect(option.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.durationLabel, { color: colors.text, fontWeight: '700' }]}>{option.label}</Text>
-            <Text style={[styles.durationExercises, { color: colors.textDim, fontWeight: '400' }]}>{option.exercises}</Text>
+            <Text variant="title" tone="primary" weight="bold" style={styles.durationLabel}>{option.label}</Text>
+            <Text variant="meta" tone="secondary">{option.exercises}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -657,25 +660,27 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         style={[
           styles.exerciseRow,
           { backgroundColor: colors.surface, borderColor: colors.border },
-          isIncluded && { backgroundColor: colors.success + '10', borderColor: colors.success },
-          isExcluded && { backgroundColor: '#EF444410', borderColor: '#EF4444' },
+          isIncluded && { backgroundColor: tint(colors.success), borderColor: colors.success },
+          isExcluded && { backgroundColor: tint(trend.down), borderColor: trend.down },
         ]}
         onPress={() => handleExerciseCycle(item.id)}
         activeOpacity={0.7}
       >
         <View style={styles.exerciseInfo}>
           <Text
+            variant="body"
+            tone="primary"
+            weight="medium"
             style={[
               styles.exerciseName,
-              { color: colors.text, fontWeight: '500' },
               isIncluded && { color: colors.success },
-              isExcluded && { color: '#EF4444' },
+              isExcluded && { color: trend.down },
             ]}
             numberOfLines={1}
           >
             {item.name}
           </Text>
-          <Text style={[styles.exerciseMuscle, { color: colors.textMuted, fontWeight: '400' }]}>
+          <Text variant="meta" tone="faint">
             {item.muscleGroup}
           </Text>
         </View>
@@ -686,7 +691,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             </View>
           )}
           {isExcluded && (
-            <View style={[styles.statusBadge, { backgroundColor: '#EF4444' }]}>
+            <View style={[styles.statusBadge, { backgroundColor: trend.down }]}>
               <Ionicons name="remove" size={14} color="#fff" />
             </View>
           )}
@@ -700,7 +705,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
   // Cycling hint, rendered above the exercise list.
   const renderExercisesHeader = () => (
-    <Text style={[styles.exercisesHint, { color: colors.textMuted, fontWeight: '400' }]}>
+    <Text variant="meta" tone="faint" style={styles.exercisesHint}>
       Optionally pick exercises — tap to cycle: include → exclude → reset
     </Text>
   );
@@ -710,21 +715,21 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       {/* Compact header */}
       <View style={styles.exercisesHeader}>
         <View>
-          <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 6</Text>
-          <Text style={[styles.exercisesTitle, { color: colors.text, fontWeight: '700' }]}>Exercise preferences</Text>
+          <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 6</Text>
+          <Text variant="heading" tone="primary" weight="bold">Exercise preferences</Text>
         </View>
         {(includedExercises.length > 0 || excludedExercises.length > 0) && (
           <View style={[styles.selectionPill, { backgroundColor: colors.surface }]}>
             {includedExercises.length > 0 && (
-              <Text style={[styles.pillText, { color: colors.success, fontWeight: '600' }]}>
+              <Text variant="meta" weight="semiBold" style={{ color: colors.success }}>
                 +{includedExercises.length}
               </Text>
             )}
             {includedExercises.length > 0 && excludedExercises.length > 0 && (
-              <Text style={[styles.pillDivider, { color: colors.textMuted }]}>/</Text>
+              <Text variant="meta" tone="faint">/</Text>
             )}
             {excludedExercises.length > 0 && (
-              <Text style={[styles.pillText, { color: '#EF4444', fontWeight: '600' }]}>
+              <Text variant="meta" weight="semiBold" style={{ color: trend.down }}>
                 -{excludedExercises.length}
               </Text>
             )}
@@ -737,7 +742,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
           <Ionicons name="search" size={16} color={colors.textMuted} />
           <TextInput
-            style={[styles.exerciseSearchInput, { color: colors.text, fontWeight: '400' }]}
+            style={[styles.exerciseSearchInput, { color: colors.text }]}
             placeholder="Search..."
             placeholderTextColor={colors.textMuted}
             value={exerciseSearchQuery}
@@ -746,7 +751,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             autoCorrect={false}
           />
           {exerciseSearchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setExerciseSearchQuery('')}>
+            <TouchableOpacity onPress={() => setExerciseSearchQuery('')} hitSlop={12}>
               <Ionicons name="close-circle" size={16} color={colors.textMuted} />
             </TouchableOpacity>
           )}
@@ -793,26 +798,18 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
       {/* Sticky bottom button */}
       <View style={[styles.exercisesBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
-        <TouchableOpacity
-          style={[styles.primaryBtn, { backgroundColor: colors.accent }]}
-          onPress={handleExercisesContinue}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>
-            Generate Routine
-          </Text>
-        </TouchableOpacity>
+        <Button title="Generate Routine" onPress={handleExercisesContinue} />
       </View>
     </View>
   );
 
   const renderGeneratingStep = () => (
     <View style={styles.centerContent}>
-      <Animated.View style={[styles.loadingCircle, { backgroundColor: colors.surface, borderColor: colors.accent + '30', transform: [{ scale: pulseAnim }] }]}>
+      <Animated.View style={[styles.loadingCircle, { backgroundColor: colors.surface, borderColor: withAlpha(colors.accent, 'faint'), transform: [{ scale: pulseAnim }] }]}>
         <ActivityIndicator size="large" color={colors.accent} />
       </Animated.View>
-      <Text style={[styles.loadingLabel, { color: colors.accent, fontWeight: '700' }]}>GENERATING</Text>
-      <Text style={[styles.loadingMessage, { color: colors.textDim, fontWeight: '400' }]}>{statusMessage}</Text>
+      <Text variant="meta" weight="bold" style={styles.loadingLabel}>GENERATING</Text>
+      <Text variant="body" tone="secondary">{statusMessage}</Text>
     </View>
   );
 
@@ -828,10 +825,10 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <Text style={[styles.previewProgramName, { color: colors.text, fontWeight: '700' }]}>
+        <Text variant="screenTitle" tone="primary" weight="bold" style={styles.previewProgramName}>
           {generatedProgram?.programName}
         </Text>
-        <Text style={[styles.previewMeta, { color: colors.textDim, fontWeight: '400' }]}>
+        <Text variant="meta" tone="secondary" style={styles.previewMeta}>
           {generatedProgram?.routines.length} days/week · {generatedProgram?.trainingGoal}
         </Text>
 
@@ -842,7 +839,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             activeOpacity={0.7}
           >
             <Ionicons name="document-text-outline" size={13} color={colors.accent} />
-            <Text style={[styles.sourceText, { color: colors.accent, fontWeight: '500' }]} numberOfLines={1}>
+            <Text variant="meta" weight="medium" style={styles.sourceText} numberOfLines={1}>
               Based on {generatedProgram.source.program}
             </Text>
             <Ionicons name="open-outline" size={12} color={colors.accent} />
@@ -850,9 +847,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         )}
 
         {isRefining && (
-          <View style={[styles.updatingRow, { backgroundColor: colors.accent + '12' }]}>
+          <View style={[styles.updatingRow, { backgroundColor: tint(colors.accent) }]}>
             <ActivityIndicator size="small" color={colors.accent} />
-            <Text style={[styles.updatingText, { color: colors.accent, fontWeight: '500' }]}>
+            <Text variant="meta" weight="medium">
               Updating your program…
             </Text>
           </View>
@@ -862,27 +859,27 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           {generatedProgram?.routines.map((day) => (
             <View key={day.dayNumber} style={[styles.previewDayCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.dayCardHeader}>
-                <Text style={[styles.dayName, { color: colors.text, fontWeight: '600' }]}>{day.name}</Text>
+                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.dayName}>{day.name}</Text>
                 {!!day.estimatedTime && (
-                  <Text style={[styles.dayTime, { color: colors.textMuted, fontWeight: '400' }]}>{day.estimatedTime}</Text>
+                  <Text variant="meta" tone="faint" style={styles.dayTime}>{day.estimatedTime}</Text>
                 )}
               </View>
               {!!day.focus && (
-                <Text style={[styles.dayFocus, { color: colors.textDim, fontWeight: '400' }]}>{day.focus}</Text>
+                <Text variant="meta" tone="secondary" style={styles.dayFocus}>{day.focus}</Text>
               )}
               {day.exercises.map((ex, i) => (
                 <View key={`${day.dayNumber}-${i}`} style={[styles.exerciseLine, { borderTopColor: colors.border }]}>
                   <View style={styles.exerciseLineMain}>
-                    <Text style={[styles.exerciseLineName, { color: colors.text, fontWeight: '400' }]} numberOfLines={2}>
+                    <Text variant="body" tone="primary" numberOfLines={2}>
                       {ex.name}
                     </Text>
                     {!!ex.notes && (
-                      <Text style={[styles.exerciseNote, { color: colors.textMuted, fontWeight: '400' }]} numberOfLines={2}>
+                      <Text variant="meta" tone="faint" style={styles.exerciseNote} numberOfLines={2}>
                         {ex.notes}
                       </Text>
                     )}
                   </View>
-                  <Text style={[styles.exerciseLineScheme, { color: colors.accent, fontWeight: '600' }]}>
+                  <Text variant="meta" weight="semiBold">
                     {ex.sets} × {ex.reps}
                   </Text>
                 </View>
@@ -893,7 +890,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
         <TouchableOpacity onPress={handleRegenerate} style={styles.regenBtn} activeOpacity={0.7} disabled={isRefining}>
           <Ionicons name="refresh" size={15} color={colors.textDim} />
-          <Text style={[styles.regenText, { color: colors.textDim, fontWeight: '500' }]}>Regenerate from scratch</Text>
+          <Text variant="meta" tone="secondary" weight="medium">Regenerate from scratch</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -901,7 +898,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={[styles.previewBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <View style={[styles.refineRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
-            style={[styles.refineInput, { color: colors.text, fontWeight: '400' }]}
+            style={[styles.refineInput, { color: colors.text }]}
             placeholder="Tell the coach what to change…"
             placeholderTextColor={colors.textMuted}
             value={refineInstruction}
@@ -910,9 +907,12 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             returnKeyType="send"
             onSubmitEditing={handleRefine}
           />
+          {/* Circular send control stays hand-rolled: the dense input row can't
+              fit IconButton's 40pt square, so it keeps geometry + hitSlop. */}
           <TouchableOpacity
             onPress={handleRefine}
             disabled={isRefining || !refineInstruction.trim()}
+            hitSlop={8}
             style={[
               styles.sendBtn,
               { backgroundColor: colors.accent },
@@ -926,6 +926,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           </TouchableOpacity>
         </View>
 
+        {/* Icon + label + spinner CTA keeps the hand-rolled pill (C1 grammar). */}
         <TouchableOpacity
           style={[styles.primaryBtn, { backgroundColor: colors.accent }, isSaving && { opacity: 0.6 }]}
           onPress={handleSaveProgram}
@@ -937,7 +938,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             : (
               <>
                 <Ionicons name="checkmark" size={18} color={colors.bg} />
-                <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>Save Program</Text>
+                <Text variant="body" weight="semiBold" style={{ color: colors.bg }}>Save Program</Text>
               </>
             )}
         </TouchableOpacity>
@@ -980,18 +981,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
   },
-  headerBtn: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   progressBar: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.sm,
   },
   progressDot: {
     width: 8,
@@ -1003,7 +1002,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.section,
   },
   stepContent: {
     flex: 1,
@@ -1014,21 +1014,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   titleBlock: {
-    marginBottom: 32,
+    marginBottom: space.section,
   },
   stepLabel: {
-    fontSize: 12,
-    letterSpacing: 1.5,
-    marginBottom: 8,
+    letterSpacing: track.caps,
+    marginBottom: space.sm,
   },
   title: {
-    fontSize: 28,
-    marginBottom: 4,
+    lineHeight: lineHeightFor(type.screenTitle),
+    marginBottom: space.xs,
   },
   subtitle: {
-    fontSize: 15,
-    marginTop: 8,
-    lineHeight: 22,
+    marginTop: space.sm,
+    lineHeight: lineHeightFor(type.body),
   },
   // Goal step
   goalGrid: {
@@ -1038,106 +1036,93 @@ const styles = StyleSheet.create({
   },
   goalCard: {
     width: CARD_WIDTH,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: radius.card,
+    padding: space.lg,
     borderWidth: 1,
   },
   goalIcon: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   goalTitle: {
-    fontSize: 15,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   goalDesc: {
-    fontSize: 12,
-    lineHeight: 16,
+    lineHeight: lineHeightFor(type.meta),
   },
   // Focus step
   focusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: space.md,
   },
   bodyAreaLegend: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 20,
+    gap: space.xl,
+    marginBottom: space.xl,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.sm,
   },
   legendDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  legendText: {
-    fontSize: 13,
-  },
   bodyAreaChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
-  bodyAreaLabel: {
-    fontSize: 15,
+  bodyAreaIcon: {
+    marginLeft: space.xs,
   },
   bodyAreaSummary: {
-    marginTop: 20,
-    padding: 14,
-    borderRadius: 10,
-    gap: 6,
-  },
-  bodyAreaSummaryText: {
-    fontSize: 14,
+    marginTop: space.xl,
+    padding: space.lg,
+    borderRadius: radius.card,
+    gap: space.sm,
   },
   bottomActions: {
     marginTop: 'auto',
-    paddingTop: 24,
+    paddingTop: space.section,
   },
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  primaryBtnText: {
-    fontSize: 16,
+    gap: space.sm,
+    paddingVertical: space.lg,
+    borderRadius: radius.pill,
   },
   // Experience step
   experienceList: {
-    gap: 12,
+    gap: space.md,
   },
   experienceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
+    padding: space.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   experienceContent: {
     flex: 1,
   },
   experienceTitle: {
-    fontSize: 16,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   experienceDesc: {
-    fontSize: 13,
-    lineHeight: 18,
+    lineHeight: lineHeightFor(type.meta),
   },
   // Days step
   daysGrid: {
@@ -1147,17 +1132,18 @@ const styles = StyleSheet.create({
   },
   dayCard: {
     width: CARD_WIDTH,
-    borderRadius: 12,
-    paddingVertical: 28,
+    borderRadius: radius.card,
+    paddingVertical: space.section,
     alignItems: 'center',
     borderWidth: 1,
   },
+  // The day-count display number is a named exception to the type scale (48).
   dayNumber: {
     fontSize: 48,
+    letterSpacing: track.display,
   },
   dayLabel: {
-    fontSize: 15,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   // Loading
   loadingCircle: {
@@ -1166,16 +1152,12 @@ const styles = StyleSheet.create({
     borderRadius: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: space.section,
     borderWidth: 2,
   },
   loadingLabel: {
-    fontSize: 12,
-    letterSpacing: 2,
-    marginBottom: 8,
-  },
-  loadingMessage: {
-    fontSize: 15,
+    letterSpacing: track.caps,
+    marginBottom: space.sm,
   },
   // Duration step
   durationGrid: {
@@ -1185,74 +1167,60 @@ const styles = StyleSheet.create({
   },
   durationCard: {
     width: CARD_WIDTH,
-    borderRadius: 12,
-    paddingVertical: 24,
+    borderRadius: radius.card,
+    paddingVertical: space.section,
     alignItems: 'center',
     borderWidth: 1,
   },
   durationLabel: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  durationExercises: {
-    fontSize: 13,
+    marginBottom: space.xs,
   },
   // Exercise preferences step
   exercisesContainer: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 16,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.lg,
   },
   exercisesHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  exercisesTitle: {
-    fontSize: 22,
+    marginBottom: space.md,
   },
   exercisesHint: {
-    fontSize: 13,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   selectionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    gap: 4,
-  },
-  pillText: {
-    fontSize: 14,
-  },
-  pillDivider: {
-    fontSize: 14,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.pill,
+    gap: space.xs,
   },
   searchFilterRow: {
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   muscleFilterContainer: {
     flexGrow: 0,
-    marginBottom: 10,
-    marginHorizontal: -24,
+    marginBottom: space.md,
+    marginHorizontal: -screenGutter,
   },
   muscleFilterContent: {
-    paddingHorizontal: 24,
-    gap: 6,
+    paddingHorizontal: screenGutter,
+    gap: space.sm,
   },
   exerciseSearchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 8,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
+    gap: space.sm,
   },
   exerciseSearchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: type.meta,
     paddingVertical: 0,
   },
   exerciseList: {
@@ -1260,27 +1228,23 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   exerciseListContent: {
-    gap: 6,
-    paddingBottom: 8,
+    gap: space.sm,
+    paddingBottom: space.sm,
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   exerciseInfo: {
     flex: 1,
-    marginRight: 12,
+    marginRight: space.md,
   },
   exerciseName: {
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  exerciseMuscle: {
-    fontSize: 12,
+    marginBottom: space.xs,
   },
   exerciseStatus: {
     width: 28,
@@ -1290,14 +1254,14 @@ const styles = StyleSheet.create({
   statusBadge: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
   exercisesBottomBar: {
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderTopWidth: 1,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   // Preview / refine step
   previewContainer: {
@@ -1307,46 +1271,41 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   previewScrollContent: {
-    padding: 24,
-    paddingTop: 8,
-    paddingBottom: 24,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.sm,
+    paddingBottom: space.section,
   },
   previewProgramName: {
-    fontSize: 24,
-    marginBottom: 4,
+    lineHeight: lineHeightFor(type.screenTitle),
+    marginBottom: space.xs,
   },
   previewMeta: {
-    fontSize: 14,
-    marginBottom: 10,
+    marginBottom: space.md,
     textTransform: 'capitalize',
   },
   sourceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 20,
+    gap: space.sm,
+    marginBottom: space.xl,
   },
   sourceText: {
-    fontSize: 13,
     flexShrink: 1,
   },
   updatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    marginBottom: 16,
-  },
-  updatingText: {
-    fontSize: 14,
+    gap: space.md,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.card,
+    marginBottom: space.lg,
   },
   previewDayCard: {
-    borderRadius: 14,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   dayCardHeader: {
     flexDirection: 'row',
@@ -1354,78 +1313,65 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dayName: {
-    fontSize: 17,
     flex: 1,
   },
   dayTime: {
-    fontSize: 13,
-    marginLeft: 8,
+    marginLeft: space.sm,
   },
   dayFocus: {
-    fontSize: 13,
-    marginTop: 2,
-    marginBottom: 4,
+    marginTop: space.xs,
+    marginBottom: space.xs,
   },
   exerciseLine: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    marginTop: 6,
-    gap: 12,
+    paddingVertical: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: space.sm,
+    gap: space.md,
   },
   exerciseLineMain: {
     flex: 1,
   },
-  exerciseLineName: {
-    fontSize: 15,
-  },
   exerciseNote: {
-    fontSize: 12,
-    marginTop: 2,
-    lineHeight: 16,
-  },
-  exerciseLineScheme: {
-    fontSize: 14,
+    marginTop: space.xs,
+    lineHeight: lineHeightFor(type.meta),
   },
   regenBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    marginTop: 4,
-  },
-  regenText: {
-    fontSize: 14,
+    gap: space.sm,
+    paddingVertical: space.md,
+    marginTop: space.xs,
   },
   previewBottomBar: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    paddingBottom: 8,
-    borderTopWidth: 1,
-    gap: 12,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.md,
+    paddingBottom: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: space.md,
   },
   refineRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: radius.control,
     borderWidth: 1,
-    paddingLeft: 14,
-    paddingRight: 6,
-    paddingVertical: 6,
-    gap: 8,
+    paddingLeft: space.lg,
+    paddingRight: space.sm,
+    paddingVertical: space.sm,
+    gap: space.sm,
   },
   refineInput: {
     flex: 1,
-    fontSize: 15,
-    paddingVertical: 6,
+    fontSize: type.body,
+    paddingVertical: space.sm,
   },
   sendBtn: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },

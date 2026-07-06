@@ -1,4 +1,7 @@
+import { useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { space } from '@/lib/ui/tokens';
+import { type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import {
@@ -39,6 +42,7 @@ const AUTO_MAX_HEIGHT = 124;
 const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
   ({ value, onChangeText, placeholder = "Start typing your workout...\n\nExamples:\nBench 135x8, 155x6\nSquats 225 for 5 reps\nPullups bodyweight x 10, 8, 6", autoGrow = false, ...props }, ref) => {
     const { currentTheme } = useTheme();
+    const ink = useInk();
     const inputRef = useRef<TextInput>(null);
 
     // Track actual keyboard visibility via event listeners (not local state that can get corrupted)
@@ -134,7 +138,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={currentTheme.colors.text + '40'}
+          placeholderTextColor={ink.faint}
           multiline
           // Keep scroll enabled always: with it off, an iOS multiline TextInput
           // won't report a contentSize taller than its current frame, so
@@ -161,19 +165,20 @@ WorkoutNoteInput.displayName = 'WorkoutNoteInput';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: space.lg,
+    paddingTop: space.sm,
+    paddingBottom: space.sm,
   },
   containerAuto: {
     flex: 0,
     alignSelf: 'stretch',
-    paddingHorizontal: 14,
+    paddingHorizontal: space.lg,
     paddingVertical: 0,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: typeScale.body,
+    // lineHeight 20 is load-bearing: AUTO_MIN_HEIGHT = 32 = 20 + 6 + 6.
     lineHeight: 20,
     minHeight: 200,
   },

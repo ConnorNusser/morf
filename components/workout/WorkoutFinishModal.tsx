@@ -15,6 +15,7 @@ import {
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
+import { radius, screenGutter, space, track, trend } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
 import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
@@ -27,7 +28,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
@@ -272,29 +272,22 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   // Render parsing state
   const renderParsing = () => (
-    <View style={[styles.centerContainer, { backgroundColor: 'transparent' }]}>
+    <View style={styles.centerContainer}>
       <Logo />
       <ActivityIndicator
         size="large"
         color={currentTheme.colors.primary}
         style={styles.loadingIndicator}
       />
-      <Text style={[styles.parsingText, { color: '#fff', fontWeight: '600' }]}>
+      <Text variant="title" weight="semiBold" style={styles.parsingText}>
         Analyzing your workout...
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: '#FF6B6B', fontWeight: '500' }]}>
+          <Text variant="meta" weight="medium" style={styles.errorText}>
             {error}
           </Text>
-          <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: currentTheme.colors.primary }]}
-            onPress={onCancel}
-          >
-            <Text style={[styles.retryButtonText, { fontWeight: '600' }]}>
-              Go Back
-            </Text>
-          </TouchableOpacity>
+          <Button title="Go Back" onPress={() => onCancel?.()} variant="primary" />
         </Animated.View>
       )}
     </View>
@@ -305,18 +298,18 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     return (
       <View style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(16, insets.top) }]}>
+        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(space.lg, insets.top) }]}>
           <View style={styles.headerLeft}>
             <Image
               source={require('@/assets/images/icon-original.png')}
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="meta" weight="semiBold" tone="primary">
               morf
             </Text>
           </View>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="emphasis" weight="semiBold" tone="primary" style={styles.headerTitle}>
             {''}
           </Text>
           <IconButton icon="close" onPress={handleCancel} />
@@ -328,19 +321,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                  <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                     {stats.durationStr || '--'}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.statLabel}>
                     Duration
                   </Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                  <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                     {stats.exercises}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.statLabel}>
                     Exercises
                   </Text>
                 </View>
@@ -348,10 +341,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                  <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                     {stats.sets}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.statLabel}>
                     Sets
                   </Text>
                 </View>
@@ -360,11 +353,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   {overallTierInfo ? (
                     <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
                   ) : (
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                    <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                       --
                     </Text>
                   )}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.statLabel}>
                     Overall Tier
                   </Text>
                 </View>
@@ -378,10 +371,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     {stats.totalDistanceMeters > 0 && (
                       <>
                         <View style={styles.statItem}>
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                          <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                             {formatDistance(stats.totalDistanceMeters)}
                           </Text>
-                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                          <Text variant="meta" tone="secondary" style={styles.statLabel}>
                             Distance
                           </Text>
                         </View>
@@ -392,10 +385,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     )}
                     {stats.totalCardioDurationSeconds > 0 && (
                       <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                        <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
                           {formatDuration(stats.totalCardioDurationSeconds)}
                         </Text>
-                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                        <Text variant="meta" tone="secondary" style={styles.statLabel}>
                           Cardio Time
                         </Text>
                       </View>
@@ -428,11 +421,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   >
                     <View style={styles.exerciseHeader}>
                       <View style={styles.exerciseNameContainer}>
-                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                        <Text variant="body" weight="semiBold" tone="primary">
                           {exerciseInfo?.name || exercise.name}
                         </Text>
                         {best1RM > 0 && (
-                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+                          <Text variant="meta" weight="semiBold">
                             ~{Math.round(best1RM)} {weightUnit} 1RM
                           </Text>
                         )}
@@ -453,10 +446,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                         <View style={styles.setsSection}>
                           {exercise.sets.map((set, setIndex) => (
                             <View key={setIndex} style={styles.setRow}>
-                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontWeight: '500' }]}>
+                              <Text variant="meta" weight="medium" tone="muted" style={styles.setNumber}>
                                 Set {setIndex + 1}
                               </Text>
-                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                              <Text variant="meta" weight="medium" tone="primary">
                                 {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
                               </Text>
                             </View>
@@ -473,7 +466,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             {/* Action Buttons */}
             <View style={[
               styles.actionsContainer,
-              { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(16, insets.bottom) }
+              { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(space.lg, insets.bottom) }
             ]}>
               <Button
                 title={isSaving ? "Saving..." : "Finish Workout"}
@@ -537,32 +530,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    // Extra-wide gutter is structural to the centered parsing composition.
     paddingHorizontal: 32,
   },
   loadingIndicator: {
-    marginVertical: 24,
+    marginVertical: space.section,
   },
+  // Dark parsing overlay keeps its white text (named palette exception).
   parsingText: {
-    fontSize: 20,
+    color: '#fff',
     textAlign: 'center',
   },
   errorContainer: {
-    marginTop: 24,
+    marginTop: space.section,
     alignItems: 'center',
   },
   errorText: {
-    fontSize: 14,
+    color: trend.down,
     textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
+    marginBottom: space.lg,
   },
   confirmationContainer: {
     flex: 1,
@@ -571,9 +557,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.lg,
+    paddingBottom: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerLeft: {
@@ -587,20 +573,15 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 8,
   },
-  headerLogoText: {
-    fontSize: 12,
-    letterSpacing: 0.5,
-  },
   headerTitle: {
-    fontSize: 18,
     flex: 1,
     textAlign: 'center',
   },
   statsContainer: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 16,
-    paddingVertical: 16,
+    marginHorizontal: space.lg,
+    marginTop: space.lg,
+    borderRadius: radius.card,
+    paddingVertical: space.lg,
   },
   statsRow: {
     flexDirection: 'row',
@@ -609,19 +590,18 @@ const styles = StyleSheet.create({
   },
   statsRowDivider: {
     height: 1,
-    marginVertical: 12,
-    marginHorizontal: 20,
+    marginVertical: space.md,
+    marginHorizontal: space.xl,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 24,
+    letterSpacing: track.display,
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   statDivider: {
     width: 1,
@@ -631,34 +611,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exercisesContent: {
-    padding: 16,
+    padding: space.lg,
     paddingBottom: 32,
   },
   exerciseCard: {
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   exerciseHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 12,
+    marginBottom: space.md,
+    gap: space.md,
   },
   exerciseNameContainer: {
     flex: 1,
     gap: 2,
   },
-  exerciseName: {
-    fontSize: 16,
-  },
-  estimated1RM: {
-    fontSize: 13,
-  },
   setsContainer: {
-    gap: 6,
+    gap: space.sm,
   },
   setRow: {
     flexDirection: 'row',
@@ -666,15 +640,11 @@ const styles = StyleSheet.create({
   },
   setNumber: {
     width: 50,
-    fontSize: 13,
-  },
-  setDetails: {
-    fontSize: 14,
   },
   actionsContainer: {
-    padding: 16,
+    padding: space.lg,
     paddingBottom: 32,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   confirmButton: {
     width: '100%',
@@ -685,7 +655,7 @@ const styles = StyleSheet.create({
     height: 80,
   },
   setsSection: {
-    gap: 4,
+    gap: space.xs,
   },
 });
 

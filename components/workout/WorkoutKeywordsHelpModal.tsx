@@ -1,6 +1,8 @@
 import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
@@ -27,9 +29,9 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="title" weight="semiBold" tone="primary">
             Workout Note Guide
           </Text>
           <IconButton icon="close" onPress={onClose} />
@@ -41,163 +43,163 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
           showsVerticalScrollIndicator={false}
         >
           {/* Important Note */}
-          <View style={[styles.importantNote, { backgroundColor: currentTheme.colors.primary + '15', borderColor: currentTheme.colors.primary }]}>
+          <View style={[styles.importantNote, { backgroundColor: tint(currentTheme.colors.primary), borderColor: currentTheme.colors.primary }]}>
             <Ionicons name="information-circle" size={20} color={currentTheme.colors.primary} />
-            <Text style={[styles.importantNoteText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+            <Text variant="meta" weight="medium" tone="primary" style={styles.importantNoteText}>
               {"If an exercise isn't recognized, it will automatically be saved as a custom exercise with AI-generated metadata."}
             </Text>
           </View>
 
           {/* Special Keywords Section - Most Important */}
-          <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
+          <View style={styles.section}>
+            <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Special Keywords
             </Text>
-            <Text style={[styles.sectionDescription, { color: currentTheme.colors.secondary, fontWeight: '400' }]}>
+            <Text variant="meta" style={[styles.sectionDescription, { color: currentTheme.colors.secondary }]}>
               Use these keywords on a new line after an exercise to track different types of sets:
             </Text>
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontWeight: '600' }]}>Actual</Text>
-                <Text style={[styles.keywordBadge, { color: '#fff', backgroundColor: currentTheme.colors.accent }]}>Recommended</Text>
+              <View style={styles.keywordHeader}>
+                <Text variant="body" weight="semiBold">Actual</Text>
+                <Text variant="meta" weight="medium" style={[styles.keywordBadge, { backgroundColor: currentTheme.colors.accent }]}>Recommended</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontWeight: '400' }]}>
+              <Text variant="meta" tone="primary" style={styles.keywordDesc}>
                 Marks sets as actually completed. Use this after your template sets to log what you actually did.
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
+                <Text variant="meta" tone="primary" style={styles.exampleText}>
                   Bench Press 135x10, 145x8{'\n'}
-                  <Text style={{ color: currentTheme.colors.primary }}>Actual</Text> 135x10, 145x8, 155x6
+                  <Text>Actual</Text> 135x10, 145x8, 155x6
                 </Text>
               </View>
             </View>
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontWeight: '600' }]}>Target</Text>
+              <View style={styles.keywordHeader}>
+                <Text variant="body" weight="semiBold">Target</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontWeight: '400' }]}>
+              <Text variant="meta" tone="primary" style={styles.keywordDesc}>
                 {"Marks sets as target/template sets (what you're aiming for). These won't count as completed."}
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
-                  <Text style={{ color: currentTheme.colors.primary }}>Target</Text> Squat 185x8, 205x6, 225x4
+                <Text variant="meta" tone="primary" style={styles.exampleText}>
+                  <Text>Target</Text> Squat 185x8, 205x6, 225x4
                 </Text>
               </View>
             </View>
 
             <View style={[styles.specialKeyword, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <View style={[styles.keywordHeader, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keywordName, { color: currentTheme.colors.primary, fontWeight: '600' }]}>Custom</Text>
+              <View style={styles.keywordHeader}>
+                <Text variant="body" weight="semiBold">Custom</Text>
               </View>
-              <Text style={[styles.keywordDesc, { color: currentTheme.colors.text, fontWeight: '400' }]}>
+              <Text variant="meta" tone="primary" style={styles.keywordDesc}>
                 Forces an exercise to be saved as a custom exercise, even if a similar name exists.
               </Text>
               <View style={[styles.keywordExample, { backgroundColor: currentTheme.colors.background }]}>
-                <Text style={[styles.exampleText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
-                  <Text style={{ color: currentTheme.colors.primary }}>Custom</Text> My Special Press 95x12
+                <Text variant="meta" tone="primary" style={styles.exampleText}>
+                  <Text>Custom</Text> My Special Press 95x12
                 </Text>
               </View>
             </View>
           </View>
 
           {/* Equipment Keywords */}
-          <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+          <View style={styles.section}>
+            <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Equipment Keywords
             </Text>
-            <View style={[styles.keywordGroup, { backgroundColor: 'transparent' }]}>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>barbell</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>bb</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>bar</Text>
+            <View style={styles.keywordGroup}>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>barbell</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>bb</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>bar</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>dumbbell</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>db</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>dumbbells</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>dumbbell</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>db</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>dumbbells</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>cable</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>cables</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>cable</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>cables</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>machine</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>smith</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>machine</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>smith</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>kettlebell</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>kb</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>kettlebell</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>kb</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>bodyweight</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>bw</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>bodyweight</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>bw</Text>
               </View>
             </View>
           </View>
 
           {/* Variation Keywords */}
-          <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+          <View style={styles.section}>
+            <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Variation Keywords
             </Text>
-            <View style={[styles.keywordGroup, { backgroundColor: 'transparent' }]}>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>single arm</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>one arm</Text>
+            <View style={styles.keywordGroup}>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>single arm</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>one arm</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>incline</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>decline</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>flat</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>incline</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>decline</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>flat</Text>
               </View>
-              <View style={[styles.keywordRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>close grip</Text>
-                <Text style={[styles.keyword, { color: currentTheme.colors.text, backgroundColor: currentTheme.colors.surface }]}>wide grip</Text>
+              <View style={styles.keywordRow}>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>close grip</Text>
+                <Text variant="meta" tone="primary" style={[styles.keyword, { backgroundColor: currentTheme.colors.surface }]}>wide grip</Text>
               </View>
             </View>
           </View>
 
           {/* Format Examples */}
-          <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+          <View style={styles.section}>
+            <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Format Examples
             </Text>
-            <View style={[styles.examples, { backgroundColor: currentTheme.colors.surface, borderRadius: 12, padding: 16 }]}>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+            <View style={[styles.examples, { backgroundColor: currentTheme.colors.surface }]}>
+              <Text variant="meta" tone="primary">
                 Bench 135x8, 155x6, 165x4
               </Text>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary">
                 DB bench 40x12, 45x10
               </Text>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary">
                 Machine chest press 100x10
               </Text>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary">
                 Cable fly 30x15, 35x12
               </Text>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary">
                 Tricep pushdowns 50x12
               </Text>
-              <Text style={[styles.example, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="primary">
                 Single arm db row 35x10
               </Text>
             </View>
           </View>
 
           {/* Common Abbreviations */}
-          <View style={[styles.section, { backgroundColor: 'transparent' }]}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+          <View style={styles.section}>
+            <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Common Abbreviations
             </Text>
-            <View style={[styles.abbreviations, { backgroundColor: currentTheme.colors.surface, borderRadius: 12, padding: 16 }]}>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>OHP = Overhead Press</Text>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>RDL = Romanian Deadlift</Text>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>BB = Barbell</Text>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>DB = Dumbbell</Text>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>KB = Kettlebell</Text>
-              <Text style={[styles.abbreviation, { color: currentTheme.colors.text }]}>BW = Bodyweight</Text>
+            <View style={[styles.abbreviations, { backgroundColor: currentTheme.colors.surface }]}>
+              <Text variant="meta" tone="primary">OHP = Overhead Press</Text>
+              <Text variant="meta" tone="primary">RDL = Romanian Deadlift</Text>
+              <Text variant="meta" tone="primary">BB = Barbell</Text>
+              <Text variant="meta" tone="primary">DB = Dumbbell</Text>
+              <Text variant="meta" tone="primary">KB = Kettlebell</Text>
+              <Text variant="meta" tone="primary">BW = Bodyweight</Text>
             </View>
           </View>
 
@@ -216,13 +218,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: {
-    fontSize: 17,
-  },
+  // Balances the 40pt IconButton so the title stays centered.
   headerSpacer: {
     width: 40,
   },
@@ -230,94 +230,85 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
+    padding: screenGutter,
   },
   importantNote: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 14,
-    borderRadius: 12,
+    gap: space.sm,
+    padding: space.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
-    marginBottom: 24,
+    marginBottom: space.section,
   },
   importantNoteText: {
     flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    lineHeight: lineHeightFor(type.meta),
   },
   section: {
-    marginBottom: 24,
+    marginBottom: space.section,
   },
+  // Accent-colored section titles are this guide's grammar (kept over
+  // SectionLabel caps); type role tokenized to body/semiBold.
   sectionTitle: {
-    fontSize: 16,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   sectionDescription: {
-    fontSize: 13,
-    marginBottom: 12,
-    lineHeight: 18,
+    marginBottom: space.md,
+    lineHeight: lineHeightFor(type.meta),
   },
   specialKeyword: {
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 14,
-    marginBottom: 12,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   keywordHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 6,
-  },
-  keywordName: {
-    fontSize: 16,
+    gap: space.sm,
+    marginBottom: space.sm,
   },
   keywordBadge: {
-    fontSize: 10,
-    paddingHorizontal: 8,
+    color: '#fff',
+    paddingHorizontal: space.sm,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: radius.badge,
     overflow: 'hidden',
   },
   keywordDesc: {
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 10,
+    lineHeight: lineHeightFor(type.meta),
+    marginBottom: space.md,
   },
   keywordExample: {
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: radius.control,
+    padding: space.md,
   },
   exampleText: {
-    fontSize: 13,
-    lineHeight: 20,
+    lineHeight: lineHeightFor(type.meta),
   },
   keywordGroup: {
-    gap: 10,
+    gap: space.sm,
   },
   keywordRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   keyword: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    fontSize: 14,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     overflow: 'hidden',
   },
   examples: {
-    gap: 8,
-  },
-  example: {
-    fontSize: 14,
+    gap: space.sm,
+    borderRadius: radius.card,
+    padding: space.lg,
   },
   abbreviations: {
-    gap: 6,
-  },
-  abbreviation: {
-    fontSize: 14,
+    gap: space.sm,
+    borderRadius: radius.card,
+    padding: space.lg,
   },
 });

@@ -2,8 +2,11 @@
 // keyboard with big gym-friendly buttons and quick +/- increments. Controlled:
 // the parent owns which field is being edited; this just edits one number and
 // reports changes live. "Next" jumps weight → reps within the same set.
-import { Text } from '@/components/Themed';
+import Button from '@/components/Button';
+import Chip from '@/components/Chip';
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, space, track } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -31,6 +34,7 @@ function fmt(n: number): string {
 
 export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onLiveChange, onNext, onDone, onClose }: NumberPadProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [buffer, setBuffer] = useState(fmt(value));
 
   // Reseed whenever the target field changes (new set / weight↔reps).
@@ -61,10 +65,12 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   // Dismissing (backdrop / hardware back) still keeps what was typed.
   const dismiss = () => { flush(); onClose(); };
 
+  // Digit keys are a named exception (keyboard geometry) — only their ink
+  // colors come from the ramp.
   const keyColor = currentTheme.colors.text;
   const Btn = ({ label: l, onPress, flex = 1 }: { label: React.ReactNode; onPress: () => void; flex?: number }) => (
-    <TouchableOpacity style={[styles.key, { flex, backgroundColor: currentTheme.colors.text + '0D' }]} onPress={onPress} activeOpacity={0.6}>
-      {typeof l === 'string' ? <Text style={[styles.keyText, { color: keyColor }]}>{l}</Text> : l}
+    <TouchableOpacity style={[styles.key, { flex, backgroundColor: ink.hairline }]} onPress={onPress} activeOpacity={0.6}>
+      {typeof l === 'string' ? <Text variant="heading" tone="primary">{l}</Text> : l}
     </TouchableOpacity>
   );
 
@@ -73,17 +79,21 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={dismiss} />
       <RNView style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
         <RNView style={styles.readout}>
-          <Text style={[styles.label, { color: currentTheme.colors.text + '99' }]}>{label}</Text>
-          <Text style={[styles.value, { color: currentTheme.colors.text }]}>
-            {buffer}{unit ? <Text style={[styles.valueUnit, { color: currentTheme.colors.text + '66' }]}> {unit}</Text> : null}
+          <Text variant="meta" tone="muted" weight="bold" style={styles.label}>{label}</Text>
+          <Text tone="primary" style={styles.value}>
+            {buffer}{unit ? <Text variant="emphasis" tone="muted"> {unit}</Text> : null}
           </Text>
         </RNView>
 
         <RNView style={styles.chipRow}>
           {increments.map(inc => (
-            <TouchableOpacity key={inc} style={[styles.chip, { borderColor: currentTheme.colors.border }]} onPress={() => bump(inc)} activeOpacity={0.6}>
-              <Text style={[styles.chipText, { color: currentTheme.colors.text }]}>{inc > 0 ? `+${fmt(inc)}` : fmt(inc)}</Text>
-            </TouchableOpacity>
+            <Chip
+              key={inc}
+              label={inc > 0 ? `+${fmt(inc)}` : fmt(inc)}
+              size="small"
+              onPress={() => bump(inc)}
+              style={styles.chip}
+            />
           ))}
         </RNView>
 
@@ -98,12 +108,13 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
           <Btn label={<Ionicons name="backspace-outline" size={22} color={keyColor} />} onPress={back} />
         </RNView>
 
-        <TouchableOpacity
-          style={[styles.done, { backgroundColor: currentTheme.colors.primary }]}
-          onPress={() => { playHapticFeedback('medium', false); flush(); if (hasNext) onNext(); else onDone(); }}
-        >
-          <Text style={[styles.doneText, { }]}>{hasNext ? 'Next: reps' : 'Done'}</Text>
-        </TouchableOpacity>
+        <Button
+          title={hasNext ? 'Next: reps' : 'Done'}
+          variant="primary"
+          hapticType="medium"
+          onPress={() => { flush(); if (hasNext) onNext(); else onDone(); }}
+          style={styles.done}
+        />
       </RNView>
     </Modal>
   );
@@ -119,21 +130,19 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingHorizontal: space.lg,
+    paddingTop: space.lg,
+    // Clears the home indicator — deliberate sheet geometry, not a spacing token.
     paddingBottom: 34,
-    gap: 8,
+    gap: space.sm,
   },
-  readout: { alignItems: 'center', paddingBottom: 6 },
-  label: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 36, marginTop: 2 },
-  valueUnit: { fontSize: 18 },
-  chipRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
-  chip: { flex: 1, borderWidth: 1, borderRadius: 12, paddingVertical: 9, alignItems: 'center' },
-  chipText: { fontSize: 14 },
-  keyRow: { flexDirection: 'row', gap: 8 },
-  key: { height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  keyText: { fontSize: 22 },
-  done: { marginTop: 6, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  doneText: { color: '#fff', fontSize: 16 },
+  readout: { alignItems: 'center', paddingBottom: space.sm },
+  label: { textTransform: 'uppercase', letterSpacing: track.caps },
+  // The 36pt readout is a named exception (the one oversized number here).
+  value: { fontSize: 36, marginTop: space.xs },
+  chipRow: { flexDirection: 'row', gap: space.sm, paddingBottom: space.xs },
+  chip: { flex: 1, alignItems: 'center' },
+  keyRow: { flexDirection: 'row', gap: space.sm },
+  key: { height: 52, borderRadius: radius.card, alignItems: 'center', justifyContent: 'center' },
+  done: { marginTop: space.sm, height: 50 },
 });

@@ -1,7 +1,11 @@
+import Button from '@/components/Button';
+import Chip from '@/components/Chip';
 import IconButton from '@/components/IconButton';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
+import { radius, screenGutter, space, withAlpha } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -38,6 +42,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
   initialRequest = '',
 }) => {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState(initialRequest);
   const [currentPlan, setCurrentPlan] = useState('');
@@ -158,18 +163,14 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onCancel} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="title" weight="semiBold" tone="primary">
             Plan Builder
           </Text>
           <RNView style={styles.headerRight}>
             {currentPlan ? (
-              <TouchableOpacity onPress={handleUsePlan} style={styles.createButton}>
-                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
-                  Create
-                </Text>
-              </TouchableOpacity>
+              <Button title="Create" onPress={handleUsePlan} variant="primary" size="small" />
             ) : (
               <RNView style={styles.headerRight} />
             )}
@@ -193,11 +194,11 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {/* Welcome message */}
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
-              <Ionicons name="sparkles" size={48} color={currentTheme.colors.primary + '40'} />
-              <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+              <Ionicons name="sparkles" size={48} color={withAlpha(currentTheme.colors.primary, 'faint')} />
+              <Text variant="heading" weight="semiBold" tone="primary" style={styles.welcomeTitle}>
                 {"Let's Build Your Workout"}
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+              <Text variant="body" tone="muted" style={styles.welcomeSubtitle}>
                 Describe what you want to do today
               </Text>
             </RNView>
@@ -218,12 +219,9 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               ]}
             >
               <Text
-                style={[
-                  styles.messageText,
-                  {
-                    color: message.role === 'user' ? '#fff' : currentTheme.colors.text,
-                  },
-                ]}
+                variant="body"
+                tone="primary"
+                style={[styles.messageText, message.role === 'user' && styles.userMessageText]}
               >
                 {message.content}
               </Text>
@@ -234,15 +232,11 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {contextQuestions.length > 0 && !isLoading && (
             <RNView style={styles.questionsContainer}>
               {contextQuestions.map((question, index) => (
-                <TouchableOpacity
+                <Chip
                   key={index}
-                  style={[styles.questionChip, { backgroundColor: currentTheme.colors.surface }]}
+                  label={question}
                   onPress={() => handleQuestionPress(question)}
-                >
-                  <Text style={[styles.questionText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
-                    {question}
-                  </Text>
-                </TouchableOpacity>
+                />
               ))}
             </RNView>
           )}
@@ -257,24 +251,26 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               <RNView style={styles.planHeader}>
                 <RNView style={styles.planHeaderLeft}>
                   <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold" tone="primary">
                     Current Plan
                   </Text>
                 </RNView>
                 <Ionicons
                   name={isPlanExpanded ? 'chevron-up' : 'chevron-down'}
                   size={20}
-                  color={currentTheme.colors.text + '60'}
+                  color={ink.muted}
                 />
               </RNView>
 
               {isPlanExpanded ? (
-                <Text style={[styles.planTextExpanded, { color: currentTheme.colors.text, fontWeight: '400' }]}>
+                <Text variant="meta" tone="primary" style={styles.planText}>
                   {currentPlan}
                 </Text>
               ) : (
                 <Text
-                  style={[styles.planTextCollapsed, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}
+                  variant="meta"
+                  tone="muted"
+                  style={styles.planText}
                   numberOfLines={2}
                 >
                   {currentPlan}
@@ -287,9 +283,9 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {isLoading && (
             <RNView style={[styles.messageBubble, styles.assistantMessage, { backgroundColor: currentTheme.colors.surface }]}>
               <RNView style={styles.typingIndicator}>
-                <RNView style={[styles.typingDot, { backgroundColor: currentTheme.colors.text + '40' }]} />
-                <RNView style={[styles.typingDot, { backgroundColor: currentTheme.colors.text + '40' }]} />
-                <RNView style={[styles.typingDot, { backgroundColor: currentTheme.colors.text + '40' }]} />
+                <RNView style={[styles.typingDot, { backgroundColor: ink.faint }]} />
+                <RNView style={[styles.typingDot, { backgroundColor: ink.faint }]} />
+                <RNView style={[styles.typingDot, { backgroundColor: ink.faint }]} />
               </RNView>
             </RNView>
           )}
@@ -308,7 +304,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                 value={inputText}
                 onChangeText={setInputText}
                 placeholder={currentPlan ? "Ask to refine your plan..." : "e.g., push day, leg workout..."}
-                placeholderTextColor={currentTheme.colors.text + '40'}
+                placeholderTextColor={ink.faint}
                 multiline
                 maxLength={500}
                 editable={!isLoading}
@@ -316,24 +312,17 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                 blurOnSubmit={false}
                 inputAccessoryViewID={inputAccessoryViewID}
               />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor: inputText.trim() && !isLoading
-                      ? currentTheme.colors.primary
-                      : 'transparent',
-                  },
-                ]}
+              <IconButton
+                icon="arrow-up-circle"
                 onPress={() => handleSendMessage(inputText)}
                 disabled={!inputText.trim() || isLoading}
-              >
-                <Ionicons
-                  name="arrow-up-circle"
-                  size={28}
-                  color={inputText.trim() && !isLoading ? '#fff' : currentTheme.colors.text + '30'}
-                />
-              </TouchableOpacity>
+                style={{
+                  backgroundColor: inputText.trim() && !isLoading
+                    ? currentTheme.colors.primary
+                    : 'transparent',
+                }}
+                iconColor={inputText.trim() && !isLoading ? '#fff' : ink.ghost}
+              />
             </RNView>
           </View>
 
@@ -346,7 +335,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   onPress={() => Keyboard.dismiss()}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold">
                     Done
                   </Text>
                 </TouchableOpacity>
@@ -370,9 +359,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerRight: {
     minWidth: 60,
@@ -380,41 +369,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
   },
-  createButton: {
-    paddingHorizontal: 4,
-    height: 44,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  createText: {
-    fontSize: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-  },
   chatContainer: {
     flex: 1,
   },
   chatContent: {
-    padding: 20,
-    gap: 16,
+    padding: screenGutter,
+    gap: space.lg,
   },
   welcomeContainer: {
     alignItems: 'center',
+    // Empty-state rhythm (matches EmptyState).
     paddingVertical: 60,
-    gap: 12,
+    gap: space.md,
   },
   welcomeTitle: {
-    fontSize: 22,
-    marginTop: 8,
+    marginTop: space.sm,
   },
   welcomeSubtitle: {
-    fontSize: 15,
     textAlign: 'center',
   },
+  // Chat-bubble grammar: the 20pt bubble radius is structural to this screen.
   messageBubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     borderRadius: 20,
     maxWidth: '80%',
   },
@@ -425,12 +402,14 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageText: {
-    fontSize: 15,
-    lineHeight: 21,
+    lineHeight: lineHeightFor(type.body),
+  },
+  userMessageText: {
+    color: '#fff',
   },
   typingIndicator: {
     flexDirection: 'row',
-    gap: 6,
+    gap: space.sm,
     alignItems: 'center',
   },
   typingDot: {
@@ -439,86 +418,61 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   questionsContainer: {
-    gap: 8,
-    marginTop: 4,
+    gap: space.sm,
+    marginTop: space.xs,
     alignSelf: 'flex-start',
     maxWidth: '85%',
   },
-  questionChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
-  },
-  questionText: {
-    fontSize: 14,
-  },
   planCard: {
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
-    padding: 14,
-    marginTop: 8,
+    padding: space.lg,
+    marginTop: space.sm,
   },
   planHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   planHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
-  planTitle: {
-    fontSize: 15,
-  },
-  planTextCollapsed: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  planTextExpanded: {
-    fontSize: 14,
-    lineHeight: 22,
+  planText: {
+    lineHeight: lineHeightFor(type.meta),
   },
   inputContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    paddingBottom: 8,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
+  // Composer: the 24pt radius is structural — the multiline input grows past
+  // pill geometry.
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: space.sm,
     borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
   input: {
     flex: 1,
-    fontSize: 15,
+    fontSize: type.body,
     maxHeight: 100,
-    paddingVertical: 8,
-  },
-  sendButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: space.sm,
   },
   accessoryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   doneButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  doneButtonText: {
-    fontSize: 16,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
   },
 });
 

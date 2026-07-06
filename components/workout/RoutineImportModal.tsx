@@ -1,10 +1,14 @@
-import { Text } from '@/components/Themed';
+import IconButton from '@/components/IconButton';
+import { Text, useInk } from '@/components/Themed';
+import EmptyState from '@/components/ui/EmptyState';
 import { getProgressionColor } from '@/lib/utils/utils';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
+import { radius, screenGutter, space } from '@/lib/ui/tokens';
+import { type } from '@/lib/ui/typography';
 import { CalculatedRoutine, ExerciseRecord, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -31,6 +35,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   onImport,
 }) => {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
@@ -113,30 +118,30 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <RNView style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <IconButton icon="close" onPress={onClose} />
+          <Text variant="title" weight="semiBold" tone="primary">
             Start Routine
           </Text>
-          <RNView style={{ width: 28 }} />
+          <RNView style={styles.headerSpacer} />
         </RNView>
 
         {/* Search */}
         {routines.length > 0 && (
           <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
-            <Ionicons name="search" size={18} color={currentTheme.colors.text + '50'} />
+            <Ionicons name="search" size={18} color={ink.faint} />
             <TextInput
-              style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
+              style={[styles.searchInput, { color: currentTheme.colors.text }]}
               placeholder="Search routines..."
-              placeholderTextColor={currentTheme.colors.text + '40'}
+              placeholderTextColor={ink.faint}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '40'} />
-              </TouchableOpacity>
+              <IconButton
+                icon="close-circle"
+                onPress={() => setSearchQuery('')}
+                iconColor={ink.faint}
+              />
             )}
           </RNView>
         )}
@@ -155,19 +160,19 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                   >
                     <RNView style={styles.routineHeaderLeft}>
                       <Ionicons name="barbell-outline" size={18} color={currentTheme.colors.primary} />
-                      <Text style={[styles.routineName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                      <Text variant="body" weight="semiBold" tone="primary" style={styles.routineName}>
                         {routine.name}
                       </Text>
                     </RNView>
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={20}
-                      color={currentTheme.colors.text + '60'}
+                      color={ink.muted}
                     />
                   </TouchableOpacity>
 
                   {/* Exercise Summary */}
-                  <Text style={[styles.exerciseSummary, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="faint" style={styles.exerciseSummary}>
                     {routine.exercises?.length || 0} exercise{(routine.exercises?.length || 0) !== 1 ? 's' : ''}
                   </Text>
 
@@ -180,10 +185,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                           style={[styles.exerciseRow, { borderTopColor: currentTheme.colors.border }]}
                         >
                           <RNView style={styles.exerciseInfo}>
-                            <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                            <Text variant="meta" weight="medium" tone="primary" style={styles.exerciseName}>
                               {exercise.exerciseName}
                             </Text>
-                            <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                            <Text variant="meta" tone="muted">
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
@@ -192,18 +197,18 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                           <RNView style={styles.weightInfo}>
                             {exercise.workingWeight > 0 ? (
                               <RNView style={styles.weightRow}>
-                                <Text style={[styles.weightValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                                <Text variant="meta" weight="semiBold" tone="primary">
                                   {exercise.workingWeight} {exercise.unit}
                                 </Text>
                                 <Ionicons
                                   name={getProgressionIcon(exercise.progression)}
                                   size={14}
-                                  color={getProgressionColor(exercise.progression, currentTheme.colors.text + '60')}
-                                  style={{ marginLeft: 4 }}
+                                  color={getProgressionColor(exercise.progression, ink.muted)}
+                                  style={{ marginLeft: space.xs }}
                                 />
                               </RNView>
                             ) : (
-                              <Text style={[styles.noDataText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
+                              <Text variant="meta" tone="faint" style={styles.noDataText}>
                                 No data
                               </Text>
                             )}
@@ -220,7 +225,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="play" size={18} color="#fff" />
-                    <Text style={[styles.importButtonText, { fontWeight: '600' }]}>
+                    <Text variant="meta" weight="semiBold" style={styles.importButtonText}>
                       Start
                     </Text>
                   </TouchableOpacity>
@@ -228,15 +233,11 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
               );
             })
           ) : (
-            <RNView style={styles.emptyState}>
-              <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
-                {routines.length === 0 ? 'No routines yet' : 'No matching routines'}
-              </Text>
-              <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
-                Create routines in the Routines tab
-              </Text>
-            </RNView>
+            <EmptyState
+              icon="barbell-outline"
+              title={routines.length === 0 ? 'No routines yet' : 'No matching routines'}
+              subtitle="Create routines in the Routines tab"
+            />
           )}
 
           <RNView style={{ height: 40 }} />
@@ -254,36 +255,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  title: {
-    fontSize: 17,
+  // Balances the 40pt IconButton so the title stays centered.
+  headerSpacer: {
+    width: 40,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
+    gap: space.sm,
+    paddingHorizontal: space.lg,
     height: 44,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginVertical: 12,
+    borderRadius: radius.control,
+    marginHorizontal: screenGutter,
+    marginVertical: space.md,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: type.body,
     paddingVertical: 0,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: screenGutter,
   },
   routineCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   routineHeader: {
     flexDirection: 'row',
@@ -293,36 +295,30 @@ const styles = StyleSheet.create({
   routineHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.sm,
     flex: 1,
   },
   routineName: {
-    fontSize: 16,
     flex: 1,
   },
   exerciseSummary: {
-    fontSize: 13,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   exerciseList: {
-    marginTop: 12,
+    marginTop: space.md,
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   exerciseInfo: {
     flex: 1,
   },
   exerciseName: {
-    fontSize: 14,
     marginBottom: 2,
-  },
-  exerciseSets: {
-    fontSize: 12,
   },
   weightInfo: {
     alignItems: 'flex-end',
@@ -331,39 +327,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  weightValue: {
-    fontSize: 14,
-  },
   noDataText: {
-    fontSize: 12,
     fontStyle: 'italic',
   },
+  // C1 primary CTA with an icon+label — hand-pilled per the button canon.
   importButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 12,
+    gap: space.sm,
+    paddingVertical: space.md,
+    borderRadius: radius.pill,
+    marginTop: space.md,
   },
   importButtonText: {
-    fontSize: 14,
     color: '#fff',
-  },
-  emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    marginTop: 8,
-    textAlign: 'center',
   },
 });
 

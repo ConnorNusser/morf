@@ -2,10 +2,10 @@
 // "reading…" skeleton (so it's obvious the set is being picked up); when you
 // pause it resolves to a plain card of what will be added — styled like a normal
 // set, not an AI suggestion. Local parse only (no tokens while typing).
-import { Text } from '@/components/Themed';
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { ParsedSet, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
@@ -49,6 +49,7 @@ function localIsReasonable(parsed: { exercises: { matchedExerciseId?: string; se
 export default function PredictiveCard({ text, weightUnit, onCommit }: PredictiveCardProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const ink = useInk();
   const [lines, setLines] = useState<PreviewLine[]>([]);
   const [loading, setLoading] = useState(false);
   const pulse = useRef(new Animated.Value(0.5)).current;
@@ -126,10 +127,10 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       <RNView style={styles.wrap}>
         <RNView style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <RNView style={styles.body}>
-            <Animated.View style={[styles.barWide, { backgroundColor: colors.text + '22', opacity: pulse }]} />
-            <Animated.View style={[styles.barNarrow, { backgroundColor: colors.text + '18', opacity: pulse }]} />
+            <Animated.View style={[styles.barWide, { backgroundColor: ink.ghost, opacity: pulse }]} />
+            <Animated.View style={[styles.barNarrow, { backgroundColor: ink.ghost, opacity: pulse }]} />
           </RNView>
-          <Text style={[styles.reading, { color: colors.text + '66' }]}>reading…</Text>
+          <Text variant="meta" tone="muted">reading…</Text>
         </RNView>
       </RNView>
     );
@@ -146,8 +147,8 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       >
         <RNView style={styles.body}>
           {lines.map((line, i) => (
-            <Text key={i} style={[styles.line, { color: colors.text }]} numberOfLines={1}>
-              {line.name}  <Text style={{ color: colors.text + (line.summary ? '99' : '66') }}>{line.summary || 'add exercise'}</Text>
+            <Text key={i} variant="body" tone="primary" numberOfLines={1}>
+              {line.name}  <Text tone={line.summary ? 'secondary' : 'muted'}>{line.summary || 'add exercise'}</Text>
             </Text>
           ))}
         </RNView>
@@ -160,20 +161,19 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, paddingBottom: 8, backgroundColor: 'transparent' },
+  wrap: { paddingHorizontal: screenGutter, paddingBottom: space.sm },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    borderRadius: radius.card,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
     minHeight: 56,
   },
-  body: { flex: 1, gap: 4, justifyContent: 'center' },
-  line: { fontSize: typeScale.body },
-  reading: { fontSize: typeScale.meta },
+  body: { flex: 1, gap: space.xs, justifyContent: 'center' },
+  // Skeleton bars + the add glyph keep their decorative geometry.
   barWide: { height: 11, borderRadius: 6, width: '70%' },
   barNarrow: { height: 9, borderRadius: 5, width: '45%' },
   addBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

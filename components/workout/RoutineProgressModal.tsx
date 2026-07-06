@@ -3,9 +3,14 @@
  * Dashboard with actionable insights, timeline, and consistency stats
  */
 
+import Chip from '@/components/Chip';
+import IconButton from '@/components/IconButton';
+import { Text, useInk } from '@/components/Themed';
+import EmptyState from '@/components/ui/EmptyState';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
+import { radius, screenGutter, space, tint, trend } from '@/lib/ui/tokens';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
@@ -16,7 +21,6 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -71,6 +75,7 @@ export default function RoutineProgressModal({
   onClose,
 }: RoutineProgressModalProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
@@ -82,7 +87,6 @@ export default function RoutineProgressModal({
   const [statusFilter, setStatusFilter] = useState<ExerciseStatus | null>(null);
 
   const colors = currentTheme.colors;
-  const fonts = currentTheme.fonts;
 
   useEffect(() => {
     if (visible) {
@@ -303,14 +307,15 @@ export default function RoutineProgressModal({
       <View style={[styles.chartContainer, { backgroundColor: colors.background }]}>
         {/* Chart header */}
         <View style={styles.chartHeader}>
-          <Text style={[styles.chartTitle, { color: colors.text + '70', fontWeight: '400' }]}>
+          <Text variant="meta" tone="muted">
             Weight History
           </Text>
           {totalChange !== 0 && (
-            <Text style={[styles.chartChange, {
-              color: totalChange > 0 ? '#22c55e' : '#ef4444',
-              fontWeight: '600'
-            }]}>
+            <Text
+              variant="meta"
+              weight="semiBold"
+              style={{ color: totalChange > 0 ? trend.up : trend.down }}
+            >
               {totalChange > 0 ? '+' : ''}{totalChange} {unit}
             </Text>
           )}
@@ -318,11 +323,11 @@ export default function RoutineProgressModal({
 
         {/* Chart area */}
         <View style={{ width: chartWidth, height: chartHeight }}>
-          {/* Y-axis labels */}
-          <Text style={[styles.yLabel, { top: paddingTop - 6, color: colors.text + '40', fontWeight: '400' }]}>
+          {/* Y-axis labels — fontSize stays chart geometry (fits the fixed 100pt plot) */}
+          <Text style={[styles.yLabel, { top: paddingTop - 6, color: ink.faint }]}>
             {max}
           </Text>
-          <Text style={[styles.yLabel, { top: paddingTop + graphHeight - 6, color: colors.text + '40', fontWeight: '400' }]}>
+          <Text style={[styles.yLabel, { top: paddingTop + graphHeight - 6, color: ink.faint }]}>
             {min}
           </Text>
 
@@ -376,20 +381,17 @@ export default function RoutineProgressModal({
               points.map((point, i) => (
                 <Text
                   key={i}
-                  style={[
-                    styles.xLabel,
-                    { left: point.x - 8, color: colors.text + '50', fontWeight: '400' },
-                  ]}
+                  style={[styles.xLabel, { left: point.x - 8, color: ink.faint }]}
                 >
                   #{point.session}
                 </Text>
               ))
             ) : (
               <>
-                <Text style={[styles.xLabel, { left: points[0].x - 8, color: colors.text + '50', fontWeight: '400' }]}>
+                <Text style={[styles.xLabel, { left: points[0].x - 8, color: ink.faint }]}>
                   #{points[0].session}
                 </Text>
-                <Text style={[styles.xLabel, { left: points[points.length - 1].x - 8, color: colors.text + '50', fontWeight: '400' }]}>
+                <Text style={[styles.xLabel, { left: points[points.length - 1].x - 8, color: ink.faint }]}>
                   #{points[points.length - 1].session}
                 </Text>
               </>
@@ -400,28 +402,28 @@ export default function RoutineProgressModal({
         {/* Summary row */}
         <View style={styles.chartSummary}>
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
+            <Text variant="meta" tone="faint" style={styles.summaryItemLabel}>
               Start
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
+            <Text variant="meta" tone="primary" weight="medium">
               {startWeight} {unit}
             </Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
+            <Text variant="meta" tone="faint" style={styles.summaryItemLabel}>
               Current
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
+            <Text variant="meta" tone="primary" weight="medium">
               {endWeight} {unit}
             </Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
+            <Text variant="meta" tone="faint" style={styles.summaryItemLabel}>
               Sessions
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
+            <Text variant="meta" tone="primary" weight="medium">
               {data.length}
             </Text>
           </View>
@@ -435,21 +437,21 @@ export default function RoutineProgressModal({
     if (status === 'improving') {
       return (
         <View style={styles.statusIndicator}>
-          <ProgressDots filled={repBonus} color="#22c55e" />
+          <ProgressDots filled={repBonus} color={trend.up} />
         </View>
       );
     }
     if (status === 'stable') {
       return (
         <View style={styles.statusIndicator}>
-          <View style={[styles.statusDash, { backgroundColor: colors.text + '40' }]} />
+          <View style={[styles.statusDash, { backgroundColor: ink.faint }]} />
         </View>
       );
     }
     if (status === 'declining') {
       return (
         <View style={styles.statusIndicator}>
-          <View style={[styles.statusDot, { backgroundColor: '#ef4444' }]} />
+          <View style={[styles.statusDot, { backgroundColor: trend.down }]} />
         </View>
       );
     }
@@ -489,15 +491,15 @@ export default function RoutineProgressModal({
               <StatusIndicator status={exercise.status} repBonus={exercise.repBonus} />
               {opts.showRoutineLabel ? (
                 <View>
-                  <Text style={[styles.exerciseName, { color: colors.text, fontWeight: '500' }]}>
+                  <Text variant="meta" tone="primary" weight="medium">
                     {exercise.name}
                   </Text>
-                  <Text style={[styles.routineLabel, { color: colors.text + '50', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="faint" style={styles.routineLabel}>
                     {exercise.routineName}
                   </Text>
                 </View>
               ) : (
-                <Text style={[styles.exerciseName, { color: colors.text, fontWeight: '500' }]}>
+                <Text variant="meta" tone="primary" weight="medium">
                   {exercise.name}
                 </Text>
               )}
@@ -505,19 +507,20 @@ export default function RoutineProgressModal({
 
             {exercise.status !== 'new' && (
               <View style={styles.exerciseDetail}>
-                <Text style={[styles.weightText, { color: colors.text + '70', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted">
                   {exercise.currentWeight} {weightUnit}
                   {weightGain > 0 && (
-                    <Text style={{ color: '#22c55e' }}> (+{weightGain})</Text>
+                    <Text variant="meta" style={{ color: trend.up }}> (+{weightGain})</Text>
                   )}
                 </Text>
                 {statusLabel && (
                   // The engine deloads automatically now — this is just the label
                   // (e.g. "Consider deload" in red), no manual button.
-                  <Text style={[
-                    styles.statusLabel,
-                    { color: exercise.status === 'declining' ? '#ef4444' : colors.primary, fontWeight: '500' },
-                  ]}>
+                  <Text
+                    variant="meta"
+                    weight="medium"
+                    style={{ color: exercise.status === 'declining' ? trend.down : colors.primary }}
+                  >
                     {statusLabel}
                   </Text>
                 )}
@@ -525,7 +528,7 @@ export default function RoutineProgressModal({
             )}
 
             {opts.showNoData && exercise.status === 'new' && (
-              <Text style={[styles.noDataText, { color: colors.text + '40', fontWeight: '400' }]}>
+              <Text variant="meta" tone="faint" style={styles.noDataText}>
                 No data yet
               </Text>
             )}
@@ -535,7 +538,7 @@ export default function RoutineProgressModal({
             <Ionicons
               name={isExerciseExpanded ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color={colors.text + '30'}
+              color={ink.faint}
             />
           )}
         </TouchableOpacity>
@@ -565,8 +568,8 @@ export default function RoutineProgressModal({
     const ringPoly = (frac: number) =>
       axes.map((_, i) => { const p = at(i, frac); return `${p.x},${p.y}`; }).join(' ');
     const dataPoly = values.map((v, i) => { const p = at(i, max > 0 ? v / max : 0); return `${p.x},${p.y}`; }).join(' ');
-    const grid = colors.text + '18';
-    const green = '#34C759';
+    const grid = ink.ghost;
+    const green = trend.up;
 
     return (
       <Svg width={size} height={size}>
@@ -580,10 +583,10 @@ export default function RoutineProgressModal({
           return <Line key={`spoke-${i}`} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke={grid} strokeWidth={1} />;
         })}
         {/* data polygon */}
-        <Polygon points={dataPoly} fill={green + '33'} stroke={green} strokeWidth={2} />
+        <Polygon points={dataPoly} fill={tint(green)} stroke={green} strokeWidth={2} />
         {/* vertices */}
         {values.map((v, i) => { const p = at(i, max > 0 ? v / max : 0); return <Circle key={`v-${i}`} cx={p.x} cy={p.y} r={2.5} fill={green} />; })}
-        {/* axis labels */}
+        {/* axis labels — SVG fontSize is chart geometry (sized to the 230pt radar) */}
         {axes.map((a, i) => {
           const lp = at(i, 1);
           const lx = cx + (lp.x - cx) * 1.18;
@@ -593,7 +596,7 @@ export default function RoutineProgressModal({
               key={`label-${i}`}
               x={lx}
               y={ly + 3}
-              fill={colors.text + '99'}
+              fill={ink.secondary}
               fontSize={11}
               fontWeight="500"
               textAnchor="middle"
@@ -618,26 +621,20 @@ export default function RoutineProgressModal({
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={{ width: 36 }} />
-          <Text style={[styles.headerTitle, { color: colors.text, fontWeight: '600' }]}>
+          <View style={styles.headerSpacer} />
+          <Text variant="title" tone="primary" weight="semiBold">
             Progress
           </Text>
-          <TouchableOpacity onPress={onClose} style={styles.backButton}>
-            <Ionicons name="close" size={26} color={colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         {routineProgressList.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
-              <Ionicons name="barbell-outline" size={32} color={colors.primary} />
-            </View>
-            <Text style={[styles.emptyTitle, { color: colors.text, fontWeight: '600' }]}>
-              No Progress Yet
-            </Text>
-            <Text style={[styles.emptySubtext, { color: colors.text + '60', fontWeight: '400' }]}>
-              Complete workouts to track your gains
-            </Text>
+          <View style={styles.emptyWrap}>
+            <EmptyState
+              icon="barbell-outline"
+              title="No Progress Yet"
+              subtitle="Complete workouts to track your gains"
+            />
           </View>
         ) : (
           <ScrollView
@@ -647,11 +644,11 @@ export default function RoutineProgressModal({
           >
             {/* Muscle balance radar */}
             {muscleBalance.total > 0 && (
-              <View style={[styles.radarCard, { borderColor: colors.text + '1A' }]}>
-                <Text style={[styles.radarTitle, { color: colors.text, fontWeight: '600' }]}>
+              <View style={[styles.radarCard, { borderColor: ink.ghost }]}>
+                <Text variant="body" tone="primary" weight="semiBold">
                   Muscle Balance
                 </Text>
-                <Text style={[styles.radarCaption, { color: colors.text + '55', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted" style={styles.radarCaption}>
                   Working sets by muscle group · all time
                 </Text>
                 <View style={styles.radarWrap}>
@@ -662,11 +659,11 @@ export default function RoutineProgressModal({
 
             {/* Summary Cards - Tappable filters */}
             <View style={styles.summaryRow}>
-              <View style={[styles.summaryCard, { borderColor: colors.text + '1A' }]}>
-                <Text style={[styles.summaryValue, { color: colors.text, fontWeight: '600' }]}>
+              <View style={[styles.summaryCard, { borderColor: ink.ghost }]}>
+                <Text variant="title" tone="primary" weight="semiBold">
                   {overallStats.totalSessions}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted" style={styles.summaryLabel}>
                   sessions
                 </Text>
               </View>
@@ -675,17 +672,17 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'improving' ? '#22c55e20' : 'transparent',
-                    borderColor: statusFilter === 'improving' ? '#22c55e' : colors.text + '1A',
+                    backgroundColor: statusFilter === 'improving' ? tint(trend.up) : 'transparent',
+                    borderColor: statusFilter === 'improving' ? trend.up : ink.ghost,
                   },
                 ]}
                 onPress={() => toggleFilter('improving')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: '#22c55e', fontWeight: '600' }]}>
+                <Text variant="title" weight="semiBold" style={{ color: trend.up }}>
                   {overallStats.totalImproving}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted" style={styles.summaryLabel}>
                   improving
                 </Text>
               </TouchableOpacity>
@@ -694,17 +691,17 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'stable' ? colors.text + '10' : 'transparent',
-                    borderColor: statusFilter === 'stable' ? colors.text + '40' : colors.text + '1A',
+                    backgroundColor: statusFilter === 'stable' ? ink.hairline : 'transparent',
+                    borderColor: statusFilter === 'stable' ? ink.faint : ink.ghost,
                   },
                 ]}
                 onPress={() => toggleFilter('stable')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: colors.text + '70', fontWeight: '600' }]}>
+                <Text variant="title" tone="muted" weight="semiBold">
                   {overallStats.totalStable}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted" style={styles.summaryLabel}>
                   stable
                 </Text>
               </TouchableOpacity>
@@ -713,17 +710,17 @@ export default function RoutineProgressModal({
                 style={[
                   styles.summaryCard,
                   {
-                    backgroundColor: statusFilter === 'declining' ? '#ef444420' : 'transparent',
-                    borderColor: statusFilter === 'declining' ? '#ef4444' : colors.text + '1A',
+                    backgroundColor: statusFilter === 'declining' ? tint(trend.down) : 'transparent',
+                    borderColor: statusFilter === 'declining' ? trend.down : ink.ghost,
                   },
                 ]}
                 onPress={() => toggleFilter('declining')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: '#ef4444', fontWeight: '600' }]}>
+                <Text variant="title" weight="semiBold" style={{ color: trend.down }}>
                   {overallStats.totalDeclining}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
+                <Text variant="meta" tone="muted" style={styles.summaryLabel}>
                   declining
                 </Text>
               </TouchableOpacity>
@@ -735,19 +732,16 @@ export default function RoutineProgressModal({
               {/* Clear-filter bar — explicit way back to the full view, since the
                   summary cards only deselect on an exact re-tap. */}
               <View style={styles.filterBar}>
-                <Text style={[styles.filterBarLabel, { color: colors.text + '99', fontWeight: '500' }]}>
+                <Text variant="meta" tone="secondary" weight="medium" style={styles.filterBarLabel}>
                   Showing {statusFilter}
                 </Text>
-                <TouchableOpacity
+                <Chip
+                  label="Show all"
+                  size="small"
                   onPress={() => setStatusFilter(null)}
-                  style={[styles.clearChip, { borderColor: colors.text + '1A' }]}
-                  activeOpacity={0.6}
-                >
-                  <Ionicons name="close" size={13} color={colors.text + 'CC'} />
-                  <Text style={[styles.clearChipText, { color: colors.text + 'CC', fontWeight: '500' }]}>Show all</Text>
-                </TouchableOpacity>
+                />
               </View>
-              <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A', marginBottom: 12 }]}>
+              <View style={[styles.exerciseList, styles.filteredList, { borderColor: ink.ghost }]}>
                 {routineProgressList.flatMap(routine =>
                   routine.exercises
                     .filter(e => e.status === statusFilter)
@@ -769,25 +763,25 @@ export default function RoutineProgressModal({
                 <View key={routine.id} style={styles.routineSection}>
                   {/* Routine Header */}
                   <TouchableOpacity
-                    style={[styles.routineHeader, { backgroundColor: 'transparent', borderColor: colors.text + '1A' }]}
+                    style={styles.routineHeader}
                     onPress={() => toggleRoutine(routine.id)}
                     activeOpacity={0.7}
                   >
                     <View style={styles.routineHeaderTop}>
-                      <Text style={[styles.routineName, { color: colors.text, fontWeight: '600' }]}>
+                      <Text variant="body" tone="primary" weight="semiBold" style={styles.routineName}>
                         {routine.name}
                       </Text>
                       <View style={styles.headerBadges}>
                         {routine.improving > 0 && (
-                          <View style={[styles.miniBadge, { backgroundColor: '#22c55e20' }]}>
-                            <Text style={[styles.miniBadgeText, { color: '#22c55e', fontWeight: '500' }]}>
+                          <View style={[styles.miniBadge, { backgroundColor: tint(trend.up) }]}>
+                            <Text variant="meta" weight="medium" style={{ color: trend.up }}>
                               {routine.improving} improving
                             </Text>
                           </View>
                         )}
                         {routine.declining > 0 && (
-                          <View style={[styles.miniBadge, { backgroundColor: '#ef444420' }]}>
-                            <Text style={[styles.miniBadgeText, { color: '#ef4444', fontWeight: '500' }]}>
+                          <View style={[styles.miniBadge, { backgroundColor: tint(trend.down) }]}>
+                            <Text variant="meta" weight="medium" style={{ color: trend.down }}>
                               {routine.declining} declining
                             </Text>
                           </View>
@@ -795,13 +789,13 @@ export default function RoutineProgressModal({
                         <Ionicons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
                           size={18}
-                          color={colors.text + '40'}
+                          color={ink.faint}
                         />
                       </View>
                     </View>
 
                     <View style={styles.routineMeta}>
-                      <Text style={[styles.metaText, { color: colors.text + '50', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="faint">
                         {routine.completions} sessions · Last: {formatLastWorkout(routine.daysSinceLastWorkout)}
                       </Text>
                     </View>
@@ -811,10 +805,10 @@ export default function RoutineProgressModal({
                     {routine.exercises.length > 0 && (
                       <View style={styles.distBar}>
                         {routine.exercises.map((ex, i) => {
-                          const c = ex.status === 'improving' ? '#34C759'
-                            : ex.status === 'declining' ? '#ef4444'
-                            : ex.status === 'stable' ? colors.text + '40'
-                            : colors.text + '15';
+                          const c = ex.status === 'improving' ? trend.up
+                            : ex.status === 'declining' ? trend.down
+                            : ex.status === 'stable' ? ink.faint
+                            : ink.ghost;
                           return <View key={`${ex.exerciseId}-${i}`} style={[styles.distSeg, { backgroundColor: c }]} />;
                         })}
                       </View>
@@ -823,7 +817,7 @@ export default function RoutineProgressModal({
 
                   {/* Expanded Content */}
                   {isExpanded && (
-                    <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A' }]}>
+                    <View style={[styles.exerciseList, { borderWidth: 1, borderColor: ink.ghost }]}>
                       {routine.exercises.map((exercise, index) =>
                         renderExerciseRow(exercise, index, {
                           showNoData: true,
@@ -835,7 +829,7 @@ export default function RoutineProgressModal({
               );
             })}
 
-            <View style={{ height: 40 }} />
+            <View style={styles.bottomSpacer} />
           </ScrollView>
         )}
       </View>
@@ -851,90 +845,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: screenGutter,
     paddingTop: 60,
-    paddingBottom: 12,
+    paddingBottom: space.md,
   },
-  backButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
+  headerSpacer: {
+    width: 40,
   },
   content: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 4,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.xs,
   },
-  emptyState: {
+  emptyWrap: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    padding: 40,
-  },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    textAlign: 'center',
   },
 
   // Summary
   summaryRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 20,
+    gap: space.md,
+    marginBottom: space.xl,
   },
   summaryCard: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    paddingVertical: space.md,
+    paddingHorizontal: space.sm,
+    borderRadius: radius.card,
     borderWidth: 1,
-    backgroundColor: 'transparent',
     alignItems: 'center',
   },
-  summaryValue: {
-    fontSize: 20,
-  },
   summaryLabel: {
-    fontSize: 11,
-    marginTop: 2,
+    marginTop: space.xs,
   },
 
   // Radar
   radarCard: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  radarTitle: {
-    fontSize: 15,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginBottom: space.lg,
   },
   radarCaption: {
-    fontSize: 12,
-    marginTop: 3,
+    marginTop: space.xs,
   },
   radarWrap: {
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: space.sm,
   },
 
   // Clear-filter bar above the filtered list
@@ -942,30 +902,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   filterBarLabel: {
-    fontSize: 13,
     textTransform: 'capitalize',
   },
-  clearChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+  filteredList: {
     borderWidth: 1,
-  },
-  clearChipText: {
-    fontSize: 12.5,
+    marginBottom: space.md,
   },
 
   // Per-exercise status strip (routine header)
   distBar: {
     flexDirection: 'row',
-    gap: 3,
-    marginTop: 10,
+    gap: space.xs,
+    marginTop: space.md,
   },
   distSeg: {
     flex: 1,
@@ -1005,11 +956,11 @@ const styles = StyleSheet.create({
 
   // Routine Section
   routineSection: {
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   routineHeader: {
-    padding: 14,
-    borderRadius: 12,
+    padding: space.lg,
+    borderRadius: radius.card,
   },
   routineHeaderTop: {
     flexDirection: 'row',
@@ -1017,44 +968,37 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   routineName: {
-    fontSize: 15,
     flex: 1,
   },
   headerBadges: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   miniBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 10,
-    gap: 3,
-  },
-  miniBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
+    gap: space.xs,
   },
   routineMeta: {
-    marginTop: 6,
-  },
-  metaText: {
-    fontSize: 12,
+    marginTop: space.sm,
   },
 
   // Exercise List
   exerciseList: {
-    marginTop: 2,
-    borderRadius: 12,
+    marginTop: space.xs,
+    borderRadius: radius.card,
     overflow: 'hidden',
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
   },
   exerciseLeft: {
     flex: 1,
@@ -1062,55 +1006,40 @@ const styles = StyleSheet.create({
   exerciseNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  exerciseName: {
-    fontSize: 14,
+    gap: space.sm,
   },
   routineLabel: {
-    fontSize: 11,
-    marginTop: 1,
+    marginTop: space.xs,
   },
   exerciseDetail: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 4,
+    gap: space.md,
+    marginTop: space.xs,
     marginLeft: 28,
   },
-  weightText: {
-    fontSize: 13,
-  },
-  statusLabel: {
-    fontSize: 11,
-  },
   noDataText: {
-    fontSize: 12,
-    marginTop: 4,
+    marginTop: space.xs,
     marginLeft: 28,
   },
 
   // Chart
   chartWrapper: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
   },
   chartContainer: {
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: radius.card,
+    padding: space.md,
   },
   chartHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: space.md,
   },
-  chartTitle: {
-    fontSize: 12,
-  },
-  chartChange: {
-    fontSize: 13,
-  },
+  // Axis labels keep their 10pt size: they're chart geometry, positioned
+  // against the fixed 280×100 plot.
   yLabel: {
     position: 'absolute',
     left: -4,
@@ -1145,21 +1074,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: space.md,
+    paddingTop: space.md,
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryItemLabel: {
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  summaryItemValue: {
-    fontSize: 14,
+    marginBottom: space.xs,
   },
   summaryDivider: {
     width: 1,
     height: 24,
+  },
+  bottomSpacer: {
+    height: 40,
   },
 });

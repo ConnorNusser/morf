@@ -1,4 +1,6 @@
-import { Text, View } from '@/components/Themed';
+import Button from '@/components/Button';
+import IconButton from '@/components/IconButton';
+import { Text, useInk, View } from '@/components/Themed';
 import PlanBuilderModal from '@/components/workout/PlanBuilderModal';
 import RoutineImportModal from '@/components/workout/RoutineImportModal';
 import WorkoutFinishModal from '@/components/workout/WorkoutFinishModal';
@@ -14,7 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAlert } from '@/components/CustomAlert';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import {
@@ -57,6 +59,7 @@ const isLastRemainingSet = (draft: DraftExercise[], key: string, index: number):
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const noteInputRef = useRef<WorkoutNoteInputRef>(null);
 
   // Workout session hook (handles note, timer, persistence, saving)
@@ -414,18 +417,18 @@ export default function WorkoutScreen() {
         keyboardVerticalOffset={0}
       >
         {/* Header — overflow (utilities) · timer/title · Finish */}
-        <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-            <View style={[styles.headerSide, { alignItems: 'flex-start', backgroundColor: 'transparent' }]}>
+        <View style={styles.header}>
+            <View style={[styles.headerSide, { alignItems: 'flex-start' }]}>
               {hasWorkoutStarted && (
-                <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard}>
-                  <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text + '99' }]}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleDiscard} hitSlop={8}>
+                  <Text variant="body" tone="secondary">
                     Cancel
                   </Text>
                 </TouchableOpacity>
               )}
             </View>
 
-            <View style={[styles.headerCenter, { backgroundColor: 'transparent' }]}>
+            <View style={styles.headerCenter}>
               {hasWorkoutStarted ? (
                 <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
                   <RNView style={[
@@ -440,45 +443,41 @@ export default function WorkoutScreen() {
                       size={16}
                       color={isResting ? '#fff' : currentTheme.colors.accent}
                     />
-                    <Text style={[
-                      styles.timerText,
-                      { color: isResting ? '#fff' : currentTheme.colors.text }
-                    ]}>
+                    <Text variant="emphasis" tone="primary" style={isResting && { color: '#fff' }}>
                       {isResting ? formattedRestTime : formatTime(elapsedTime)}
                     </Text>
                     {isResting && (
-                      <Text style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)' }]}>
+                      <Text variant="meta" style={[styles.restLabel, { color: 'rgba(255,255,255,0.8)' }]}>
                         REST
                       </Text>
                     )}
                   </RNView>
                 </TouchableOpacity>
               ) : (
-                <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                <Text variant="title" weight="semiBold" tone="primary">
                   Workout
                 </Text>
               )}
             </View>
 
-            <View style={[styles.headerSide, { alignItems: 'flex-end', backgroundColor: 'transparent' }]}>
+            <View style={[styles.headerSide, { alignItems: 'flex-end' }]}>
               {hasWorkoutStarted ? (
-                <TouchableOpacity
-                  style={[styles.finishButton, { backgroundColor: currentTheme.colors.accent }]}
+                <Button
+                  title="Finish"
+                  variant="primary"
+                  size="small"
                   onPress={handleFinishPress}
-                >
-                  <Text style={[styles.finishButtonText, { }]}>
-                    Finish
-                  </Text>
-                </TouchableOpacity>
+                  style={styles.finishButton}
+                />
               ) : (
-                <RNView style={[styles.unitSegment, { backgroundColor: currentTheme.colors.text + '0F' }]}>
+                <RNView style={[styles.unitSegment, { backgroundColor: ink.hairline }]}>
                   {(['lbs', 'kg'] as const).map(u => (
                     <TouchableOpacity
                       key={u}
                       style={[styles.unitSegmentBtn, weightUnit === u && { backgroundColor: currentTheme.colors.surface }]}
                       onPress={() => { playHapticFeedback('selection', false); setWeightUnitPref(u); }}
                     >
-                      <Text style={[styles.unitSegmentText, { color: weightUnit === u ? currentTheme.colors.text : currentTheme.colors.text + '66' }]}>{u}</Text>
+                      <Text variant="meta" tone={weightUnit === u ? 'primary' : 'muted'} style={styles.unitSegmentText}>{u}</Text>
                     </TouchableOpacity>
                   ))}
                 </RNView>
@@ -491,59 +490,57 @@ export default function WorkoutScreen() {
           <RNView style={[styles.expandedTimer, { backgroundColor: currentTheme.colors.surface }]}>
             <RNView style={styles.expandedTimerRow}>
               {/* Subtract time */}
-              <TouchableOpacity
-                style={[styles.adjustButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+              <IconButton
+                icon="remove"
                 onPress={() => handleAddRestTime(-30)}
-              >
-                <Ionicons name="remove" size={24} color={currentTheme.colors.text} />
-              </TouchableOpacity>
+                style={{ ...styles.adjustButton, backgroundColor: ink.hairline }}
+              />
 
               {/* Rest timer display */}
               <RNView style={styles.expandedTimerCenter}>
-                <Text style={[styles.expandedTimerTime, { color: currentTheme.colors.primary }]}>
+                <Text variant="statHero">
                   {formattedRestTime}
                 </Text>
-                <Text style={[styles.expandedTimerLabel, { color: currentTheme.colors.text + '60' }]}>
+                <Text variant="meta" tone="muted" style={styles.expandedTimerLabel}>
                   rest remaining
                 </Text>
               </RNView>
 
               {/* Add time */}
-              <TouchableOpacity
-                style={[styles.adjustButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+              <IconButton
+                icon="add"
                 onPress={() => handleAddRestTime(30)}
-              >
-                <Ionicons name="add" size={24} color={currentTheme.colors.primary} />
-              </TouchableOpacity>
+                iconColor={currentTheme.colors.primary}
+                style={{ ...styles.adjustButton, backgroundColor: tint(currentTheme.colors.primary) }}
+              />
             </RNView>
 
             {/* Buttons row */}
             <RNView style={styles.expandedButtonsRow}>
-              {/* Reset workout timer with duration */}
+              {/* Reset workout timer with duration — quiet wide button (keeps its
+                  elapsed-time label, so it can't collapse to an icon-only control) */}
               <TouchableOpacity
-                style={[styles.resetWorkoutButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                style={[styles.resetWorkoutButton, { backgroundColor: ink.hairline }]}
                 onPress={resetWorkoutTimer}
               >
-                <Text style={[styles.resetWorkoutButtonText, { color: currentTheme.colors.text + '80' }]}>
+                <Text variant="meta" tone="secondary">
                   Restart Workout ({formatTime(elapsedTime)})
                 </Text>
               </TouchableOpacity>
 
               {/* Done button */}
-              <TouchableOpacity
-                style={[styles.doneRestButton, { backgroundColor: currentTheme.colors.accent }]}
+              <Button
+                title="Done"
+                variant="primary"
                 onPress={handleFinishRest}
-              >
-                <Text style={[styles.doneRestButtonText, { }]}>
-                  Done
-                </Text>
-              </TouchableOpacity>
+                style={styles.doneRestButton}
+              />
             </RNView>
           </RNView>
         )}
 
         {/* Workout (fills) — the editable source of truth, with one empty state */}
-        <View style={[layout.flex1, { backgroundColor: 'transparent' }]}>
+        <View style={layout.flex1}>
           <EditableWorkout
             draft={draft}
             weightUnit={weightUnit}
@@ -567,11 +564,11 @@ export default function WorkoutScreen() {
               />
             ) : (
               <RNView style={styles.empty}>
-                <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                <Ionicons name="barbell-outline" size={30} color={ink.faint} />
+                <Text variant="title" weight="semiBold" tone="primary" style={styles.emptyTitle}>
                   Log your workout
                 </Text>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+                <Text variant="meta" tone="muted" style={styles.emptyText}>
                   Type or speak a set below — it appears here, ready to edit.
                 </Text>
               </RNView>
@@ -579,11 +576,11 @@ export default function WorkoutScreen() {
           )}
           {hasWorkoutStarted && draft.length === 0 && (
             <RNView style={styles.empty}>
-              <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+              <Ionicons name="barbell-outline" size={30} color={ink.faint} />
+              <Text variant="title" weight="semiBold" tone="primary" style={styles.emptyTitle}>
                 Empty workout
               </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
+              <Text variant="meta" tone="muted" style={styles.emptyText}>
                 Add your first set below — type or speak it.
               </Text>
             </RNView>
@@ -598,7 +595,7 @@ export default function WorkoutScreen() {
             {/* Composer (open) — auto-growing input + mic + send. No Done button:
                 scrolling the workout, tapping outside, or swiping the keyboard down
                 collapses it (the typed text stays cached for next time). */}
-            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + 14 }}>
+            <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + space.lg }}>
               <RNView style={styles.composerRow}>
                 <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
                   <WorkoutNoteInput
@@ -610,41 +607,45 @@ export default function WorkoutScreen() {
                     placeholder="Log a set — Bench 135×8"
                   />
                 </RNView>
-                <TouchableOpacity
-                  style={[styles.circleBtn, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.text + '10' }]}
+                <IconButton
+                  icon={voice.isListening ? 'stop' : 'mic'}
                   onPress={handleMicPress}
-                >
-                  <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={24} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.circleBtn, { backgroundColor: composerText.trim() ? currentTheme.colors.primary : currentTheme.colors.text + '10' }]}
+                  iconColor={voice.isListening ? '#fff' : currentTheme.colors.text}
+                  style={{ ...styles.circleBtn, backgroundColor: voice.isListening ? currentTheme.colors.accent : ink.hairline }}
+                />
+                <IconButton
+                  icon="arrow-up"
                   onPress={handleComposerSend}
                   disabled={!composerText.trim()}
-                >
-                  <Ionicons name="arrow-up" size={24} color={composerText.trim() ? '#fff' : currentTheme.colors.text + '50'} />
-                </TouchableOpacity>
+                  iconColor={composerText.trim() ? '#fff' : ink.faint}
+                  style={{ ...styles.circleBtn, backgroundColor: composerText.trim() ? currentTheme.colors.primary : ink.hairline }}
+                />
               </RNView>
             </RNView>
           </>
         ) : (
           /* Collapsed — a compose bar that opens the composer, plus a mic */
-          <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? 8 : TAB_BAR_CLEARANCE + 14 }}>
+          <RNView style={{ ...styles.collapsedBar, paddingBottom: keyboardVisible ? space.sm : TAB_BAR_CLEARANCE + space.lg }}>
             <TouchableOpacity
               style={[styles.collapsedInput, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
               onPress={openComposer}
               activeOpacity={0.7}
             >
-              <Ionicons name="create-outline" size={18} color={currentTheme.colors.text + '88'} />
-              <Text style={[styles.collapsedPlaceholder, { color: currentTheme.colors.text + '88' }]}>
+              <Ionicons name="create-outline" size={18} color={ink.secondary} />
+              <Text variant="body" tone="secondary">
                 Log a set — type or speak
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.fabCircle, { backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+            <IconButton
+              icon={voice.isListening ? 'stop' : 'mic'}
               onPress={handleMicPress}
-            >
-              <Ionicons name={voice.isListening ? 'stop' : 'mic'} size={22} color={voice.isListening ? '#fff' : currentTheme.colors.text} />
-            </TouchableOpacity>
+              iconColor={voice.isListening ? '#fff' : currentTheme.colors.text}
+              style={{
+                ...styles.fabCircle,
+                backgroundColor: voice.isListening ? currentTheme.colors.accent : currentTheme.colors.surface,
+                borderColor: currentTheme.colors.border,
+              }}
+            />
           </RNView>
         )}
       </KeyboardAvoidingView>
@@ -707,51 +708,44 @@ const styles = StyleSheet.create({
   composerBar: {
     // No bar background/border — the input pill and the two circle buttons each
     // float over the workout content, lined up by the row's flex-end alignment.
-    backgroundColor: 'transparent',
-    paddingTop: 8,
+    paddingTop: space.sm,
   },
   composerRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 6,
-    backgroundColor: 'transparent',
+    gap: space.sm,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.sm,
   },
   collapsedBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    backgroundColor: 'transparent',
+    gap: space.md,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.sm,
   },
   collapsedInput: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
     height: 48,
-    paddingHorizontal: 16,
-    borderRadius: 24,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.pill,
     borderWidth: 1,
-  },
-  collapsedPlaceholder: {
-    fontSize: typeScale.body,
   },
   fabCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   composerInput: {
     flex: 1,
     // Hug the input's measured height (WorkoutNoteInput drives it). overflow
     // hidden clips the text to the rounded border so glyphs can't spill out
-    // past the corners as it grows or scrolls at max height.
+    // past the corners as it grows or scrolls at max height. The 20pt radius is
+    // deliberate geometry: radius.pill would balloon as the field grows tall.
     borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
@@ -759,11 +753,9 @@ const styles = StyleSheet.create({
   circleBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.pill,
     // Float a touch above the input's baseline (the row aligns to flex-end).
-    marginBottom: 5,
+    marginBottom: space.xs,
   },
   empty: {
     position: 'absolute',
@@ -773,27 +765,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 40,
-    backgroundColor: 'transparent',
+    gap: space.sm,
+    paddingHorizontal: screenGutter * 2,
   },
   emptyTitle: {
-    fontSize: typeScale.title,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   emptyText: {
-    fontSize: typeScale.meta,
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.sm,
+    paddingBottom: space.sm,
   },
   headerSide: {
     width: 88,
@@ -802,11 +791,10 @@ const styles = StyleSheet.create({
   cancelButton: {
     height: 40,
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: space.xs,
   },
-  cancelButtonText: {
-    fontSize: typeScale.body,
-  },
+  // The lbs/kg thumb segment keeps its compact geometry (named exception) —
+  // only its colors are tokenized.
   unitSegment: {
     flexDirection: 'row',
     borderRadius: 999,
@@ -819,7 +807,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unitSegmentText: {
-    fontSize: typeScale.meta,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
@@ -830,90 +817,60 @@ const styles = StyleSheet.create({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
-    gap: 5,
+    gap: space.xs,
   },
   restLabel: {
-    fontSize: typeScale.meta,
-    letterSpacing: 1,
-    marginLeft: 2,
-  },
-  timerText: {
-    fontSize: typeScale.emphasis,
+    letterSpacing: track.caps,
+    marginLeft: space.xs,
   },
   expandedTimer: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 16,
+    marginHorizontal: screenGutter,
+    marginBottom: space.md,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.card,
   },
   expandedTimerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 20,
+    gap: space.xl,
   },
   expandedTimerCenter: {
     alignItems: 'center',
     minWidth: 100,
   },
-  expandedTimerTime: {
-    fontSize: typeScale.statHero,
-  },
   expandedTimerLabel: {
-    fontSize: typeScale.meta,
-    marginTop: 2,
+    marginTop: space.xs,
   },
   adjustButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: radius.pill,
   },
   expandedButtonsRow: {
     flexDirection: 'row',
-    marginTop: 16,
-    gap: 10,
+    marginTop: space.lg,
+    gap: space.md,
   },
   resetWorkoutButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  resetWorkoutButtonText: {
-    fontSize: typeScale.meta,
+    gap: space.sm,
+    paddingVertical: space.md,
+    borderRadius: radius.card,
   },
   doneRestButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  doneRestButtonText: {
-    color: '#fff',
-    fontSize: typeScale.body,
-  },
-  headerTitle: {
-    fontSize: 18,
   },
   finishButton: {
+    // Keep the 40pt header row height stable (Button small is minHeight 36).
     height: 40,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  finishButtonText: {
-    color: '#fff',
-    fontSize: 14,
   },
 });

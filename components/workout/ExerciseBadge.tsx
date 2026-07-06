@@ -2,6 +2,7 @@ import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { calculateStrengthPercentile, getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { radius, space, tint, trend } from '@/lib/ui/tokens';
 import { Gender, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -113,10 +114,10 @@ export default function ExerciseBadge({
 
   if (badgeInfo.type === 'tier') {
     return (
-      <View style={[styles.badgeRow, { backgroundColor: 'transparent' }]}>
+      <View style={styles.badgeRow}>
         {badgeInfo.isPR && (
-          <View style={[styles.prBadge, { backgroundColor: '#22C55E20' }]}>
-            <Text style={[styles.prBadgeText, { color: '#22C55E', fontWeight: '700' }]}>
+          <View style={[styles.prBadge, { backgroundColor: tint(trend.up) }]}>
+            <Text variant="meta" weight="bold" style={{ color: trend.up }}>
               PR
             </Text>
           </View>
@@ -128,14 +129,9 @@ export default function ExerciseBadge({
 
   if (badgeInfo.type === 'new') {
     return (
-      <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
+      <View style={[styles.newBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
         <Ionicons name="sparkles" size={12} color={currentTheme.colors.primary} />
-        <Text
-          style={[
-            styles.newBadgeText,
-            { color: currentTheme.colors.primary, fontWeight: '600' },
-          ]}
-        >
+        <Text variant="meta" weight="semiBold">
           New
         </Text>
       </View>
@@ -144,13 +140,8 @@ export default function ExerciseBadge({
 
   if (badgeInfo.type === 'custom') {
     return (
-      <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
-        <Text
-          style={[
-            styles.customBadgeText,
-            { color: currentTheme.colors.accent, fontWeight: '500' },
-          ]}
-        >
+      <View style={[styles.customBadge, { backgroundColor: tint(currentTheme.colors.accent) }]}>
+        <Text variant="meta" weight="medium" style={{ color: currentTheme.colors.accent }}>
           Custom
         </Text>
       </View>
@@ -159,14 +150,9 @@ export default function ExerciseBadge({
 
   if (badgeInfo.type === 'volume') {
     return (
-      <View style={[styles.volumeBadge, { backgroundColor: currentTheme.colors.accent + '20' }]}>
+      <View style={[styles.volumeBadge, { backgroundColor: tint(currentTheme.colors.accent) }]}>
         <Ionicons name="barbell-outline" size={12} color={currentTheme.colors.accent} />
-        <Text
-          style={[
-            styles.volumeBadgeText,
-            { color: currentTheme.colors.accent, fontWeight: '600' },
-          ]}
-        >
+        <Text variant="meta" weight="semiBold" style={{ color: currentTheme.colors.accent }}>
           {badgeInfo.label} {weightUnit}
         </Text>
       </View>
@@ -180,44 +166,32 @@ const styles = StyleSheet.create({
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: space.sm,
   },
   prBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  prBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   newBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  newBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
+    gap: space.xs,
   },
   customBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  customBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   volumeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  volumeBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
+    gap: space.xs,
   },
 });

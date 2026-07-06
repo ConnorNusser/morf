@@ -1,8 +1,12 @@
 import { useAlert } from '@/components/CustomAlert';
-import { Text, View } from '@/components/Themed';
+import IconButton from '@/components/IconButton';
+import { Text, View, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage/storage';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { type } from '@/lib/ui/typography';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { CustomExercise, Routine, RoutineExercise, RoutineSet, Workout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,6 +51,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   customExercises = [],
 }) => {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -103,37 +108,37 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
         <RNView style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose}>
-            <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-          </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <IconButton icon="close" onPress={onClose} />
+          <Text variant="title" weight="semiBold" tone="primary">
             Add Exercises
           </Text>
-          <TouchableOpacity onPress={handleDone} disabled={selectedIds.size === 0}>
-            <Text style={[
-              styles.saveButton,
-              { color: currentTheme.colors.primary, fontWeight: '600' },
-              selectedIds.size === 0 && { opacity: 0.4 }
-            ]}>
+          <TouchableOpacity onPress={handleDone} disabled={selectedIds.size === 0} hitSlop={8}>
+            <Text
+              variant="emphasis"
+              weight="semiBold"
+              style={selectedIds.size === 0 && { opacity: 0.4 }}
+            >
               Add{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
             </Text>
           </TouchableOpacity>
         </RNView>
 
         <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
-          <Ionicons name="search" size={18} color={currentTheme.colors.text + '50'} />
+          <Ionicons name="search" size={18} color={ink.faint} />
           <TextInput
-            style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
+            style={[styles.searchInput, { color: currentTheme.colors.text }]}
             placeholder="Search exercises..."
-            placeholderTextColor={currentTheme.colors.text + '40'}
+            placeholderTextColor={ink.faint}
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '40'} />
-            </TouchableOpacity>
+            <IconButton
+              icon="close-circle"
+              onPress={() => setSearchQuery('')}
+              iconColor={ink.faint}
+            />
           )}
         </RNView>
 
@@ -148,7 +153,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                   styles.exerciseItem,
                   {
                     borderBottomColor: currentTheme.colors.border,
-                    backgroundColor: isSelected ? currentTheme.colors.primary + '12' : 'transparent',
+                    backgroundColor: isSelected ? tint(currentTheme.colors.primary) : 'transparent',
                     borderLeftWidth: isSelected ? 3 : 0,
                     borderLeftColor: currentTheme.colors.primary,
                   }
@@ -157,20 +162,17 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                 activeOpacity={0.6}
               >
                 <RNView style={styles.exerciseItemContent}>
-                  <Text style={[
-                    styles.exerciseName,
-                    { color: currentTheme.colors.text, fontWeight: '500' }
-                  ]}>
+                  <Text variant="body" weight="medium" tone="primary" style={styles.exerciseName}>
                     {item.name}
                   </Text>
-                  <Text style={[styles.exerciseMuscles, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="muted">
                     {item.primaryMuscles.join(', ')}
                   </Text>
                 </RNView>
                 <Ionicons
                   name={isSelected ? 'checkmark-circle' : 'ellipse-outline'}
                   size={24}
-                  color={isSelected ? currentTheme.colors.primary : currentTheme.colors.text + '30'}
+                  color={isSelected ? currentTheme.colors.primary : ink.ghost}
                 />
               </TouchableOpacity>
             );
@@ -192,6 +194,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   onSave,
 }) => {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const { customExercises } = useCustomExercises();
   const [name, setName] = useState('');
@@ -347,18 +350,12 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         >
           {/* Header */}
           <RNView style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <IconButton icon="close" onPress={handleClose} />
+            <Text variant="title" weight="semiBold" tone="primary">
               {routine ? 'Edit Routine' : programId ? 'New Day' : 'New Routine'}
             </Text>
-            <TouchableOpacity onPress={handleSave} disabled={isSaving}>
-              <Text style={[
-                styles.saveButton,
-                { color: currentTheme.colors.primary, fontWeight: '600' },
-                isSaving && { opacity: 0.5 }
-              ]}>
+            <TouchableOpacity onPress={handleSave} disabled={isSaving} hitSlop={8}>
+              <Text variant="emphasis" weight="semiBold" style={isSaving && { opacity: 0.5 }}>
                 Save
               </Text>
             </TouchableOpacity>
@@ -366,31 +363,29 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Name Input */}
-            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
-              Routine Name
-            </Text>
+            <SectionLabel>Routine Name</SectionLabel>
             <TextInput
-              style={[styles.textInput, { backgroundColor: currentTheme.colors.surface, color: currentTheme.colors.text, fontWeight: '400' }]}
+              style={[styles.textInput, { backgroundColor: currentTheme.colors.surface, color: currentTheme.colors.text }]}
               value={name}
               onChangeText={setName}
               placeholder="e.g., Push Day, Leg Day"
-              placeholderTextColor={currentTheme.colors.text + '40'}
+              placeholderTextColor={ink.faint}
             />
 
             {/* Exercises */}
-            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontWeight: '500', marginTop: 16 }]}>
-              Exercises
-            </Text>
+            <SectionLabel style={styles.exercisesLabel}>Exercises</SectionLabel>
 
             {exercises.map((exercise, exerciseIndex) => (
               <View key={`${exercise.exerciseId}-${exerciseIndex}`} style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface }]}>
                 <RNView style={styles.exerciseCardHeader}>
-                  <Text style={[styles.exerciseCardName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                  <Text variant="body" weight="medium" tone="primary" style={styles.exerciseCardName}>
                     {getExerciseName(exercise)}
                   </Text>
-                  <TouchableOpacity onPress={() => handleRemoveExercise(exerciseIndex)}>
-                    <Ionicons name="trash-outline" size={20} color={currentTheme.colors.text + '60'} />
-                  </TouchableOpacity>
+                  <IconButton
+                    icon="trash-outline"
+                    onPress={() => handleRemoveExercise(exerciseIndex)}
+                    iconColor={ink.muted}
+                  />
                 </RNView>
 
                 {/* Individual Sets */}
@@ -406,47 +401,52 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                     >
                       {/* Set number and warmup badge */}
                       <RNView style={styles.setLabelContainer}>
-                        <Text style={[styles.setLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                        <Text variant="meta" tone="muted" style={styles.setLabel}>
                           {setIndex + 1}
                         </Text>
                         {set.isWarmup && (
-                          <RNView style={[styles.warmupBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                            <Text style={[styles.warmupBadgeText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+                          <RNView style={[styles.warmupBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                            <Text weight="medium" style={styles.warmupBadgeText}>
                               W
                             </Text>
                           </RNView>
                         )}
                       </RNView>
 
-                      {/* Warmup toggle */}
+                      {/* Warmup toggle — keeps its compact 32pt geometry in the
+                          dense set row; hitSlop restores the ≥44pt target. */}
                       <TouchableOpacity
                         style={[
                           styles.warmupToggle,
-                          { backgroundColor: set.isWarmup ? currentTheme.colors.primary + '15' : currentTheme.colors.background }
+                          { backgroundColor: set.isWarmup ? tint(currentTheme.colors.primary) : currentTheme.colors.background }
                         ]}
                         onPress={() => handleUpdateSet(exerciseIndex, setIndex, { isWarmup: !set.isWarmup })}
+                        hitSlop={6}
                       >
                         <Ionicons
                           name={set.isWarmup ? 'flame' : 'flame-outline'}
                           size={16}
-                          color={set.isWarmup ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
+                          color={set.isWarmup ? currentTheme.colors.primary : ink.faint}
                         />
                       </TouchableOpacity>
 
-                      {/* Reps control */}
+                      {/* Reps control — steppers keep 28pt geometry (dense row),
+                          hitSlop widens the effective target. */}
                       <RNView style={styles.repsControl}>
                         <TouchableOpacity
                           style={[styles.smallButton, { backgroundColor: currentTheme.colors.background }]}
                           onPress={() => handleUpdateSet(exerciseIndex, setIndex, { reps: Math.max(1, set.reps - 1) })}
+                          hitSlop={8}
                         >
                           <Ionicons name="remove" size={14} color={currentTheme.colors.text} />
                         </TouchableOpacity>
-                        <Text style={[styles.repsValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                        <Text variant="body" weight="semiBold" tone="primary" style={styles.repsValue}>
                           {set.reps}
                         </Text>
                         <TouchableOpacity
                           style={[styles.smallButton, { backgroundColor: currentTheme.colors.background }]}
                           onPress={() => handleUpdateSet(exerciseIndex, setIndex, { reps: set.reps + 1 })}
+                          hitSlop={8}
                         >
                           <Ionicons name="add" size={14} color={currentTheme.colors.text} />
                         </TouchableOpacity>
@@ -457,8 +457,9 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         style={[styles.removeSetButton, { opacity: exercise.sets.length > 1 ? 1 : 0.3 }]}
                         onPress={() => handleRemoveSet(exerciseIndex, setIndex)}
                         disabled={exercise.sets.length <= 1}
+                        hitSlop={8}
                       >
-                        <Ionicons name="close" size={16} color={currentTheme.colors.text + '50'} />
+                        <Ionicons name="close" size={16} color={ink.faint} />
                       </TouchableOpacity>
                     </RNView>
                   ))}
@@ -471,16 +472,16 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                     onPress={() => handleAddSet(exerciseIndex, false)}
                   >
                     <Ionicons name="add" size={16} color={currentTheme.colors.text} />
-                    <Text style={[styles.addSetText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                    <Text variant="meta" weight="medium" tone="primary">
                       Set
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.addSetButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+                    style={[styles.addSetButton, { backgroundColor: tint(currentTheme.colors.primary) }]}
                     onPress={() => handleAddSet(exerciseIndex, true)}
                   >
                     <Ionicons name="flame-outline" size={16} color={currentTheme.colors.primary} />
-                    <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+                    <Text variant="meta" weight="medium">
                       Warmup
                     </Text>
                   </TouchableOpacity>
@@ -488,14 +489,14 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               </View>
             ))}
 
-            {/* Add Exercise Button */}
+            {/* Add Exercise Button — C1 primary CTA with icon+label, hand-pilled */}
             <TouchableOpacity
               style={[styles.addExerciseButton, { backgroundColor: currentTheme.colors.primary }]}
               onPress={() => setShowExercisePicker(true)}
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={[styles.addExerciseText, { color: '#fff', fontWeight: '600' }]}>
+              <Text variant="body" weight="semiBold" style={styles.addExerciseText}>
                 Add Exercise
               </Text>
             </TouchableOpacity>
@@ -528,82 +529,73 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalTitle: {
-    fontSize: 17,
-  },
-  saveButton: {
-    fontSize: 17,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: screenGutter,
   },
-  label: {
-    fontSize: 13,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  exercisesLabel: {
+    marginTop: space.lg,
   },
   textInput: {
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    marginBottom: 16,
+    borderRadius: radius.control,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    fontSize: type.body,
+    marginBottom: space.lg,
   },
   exerciseCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   exerciseCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   exerciseCardName: {
-    fontSize: 16,
     flex: 1,
   },
   setsContainer: {
-    marginTop: 8,
+    marginTop: space.sm,
   },
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 8,
+    gap: space.sm,
   },
   setLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     width: 40,
-    gap: 4,
+    gap: space.xs,
   },
   setLabel: {
-    fontSize: 14,
     width: 18,
   },
   warmupBadge: {
     width: 18,
     height: 18,
-    borderRadius: 9,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Named exception: a micro-glyph inside a fixed 18pt badge — the 14pt floor
+  // physically doesn't fit.
   warmupBadgeText: {
     fontSize: 10,
   },
   warmupToggle: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -612,17 +604,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   smallButton: {
     width: 28,
     height: 28,
-    borderRadius: 6,
+    borderRadius: radius.badge,
     alignItems: 'center',
     justifyContent: 'center',
   },
   repsValue: {
-    fontSize: 16,
     minWidth: 28,
     textAlign: 'center',
   },
@@ -634,67 +625,60 @@ const styles = StyleSheet.create({
   },
   addSetRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: space.sm,
+    marginTop: space.md,
   },
   addSetButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addSetText: {
-    fontSize: 13,
+    gap: space.xs,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
   },
   addExerciseButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
+    gap: space.sm,
+    paddingVertical: space.lg,
+    borderRadius: radius.pill,
   },
   addExerciseText: {
-    fontSize: 15,
+    color: '#fff',
   },
   // Exercise Picker styles
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 14,
+    gap: space.sm,
+    paddingHorizontal: space.lg,
     height: 44,
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginVertical: 12,
+    borderRadius: radius.control,
+    marginHorizontal: screenGutter,
+    marginVertical: space.md,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: type.body,
     paddingVertical: 0,
   },
   exerciseList: {
-    paddingHorizontal: 20,
+    paddingHorizontal: screenGutter,
     paddingBottom: 40,
   },
   exerciseItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   exerciseItemContent: {
     flex: 1,
   },
   exerciseName: {
-    fontSize: 16,
     marginBottom: 2,
-  },
-  exerciseMuscles: {
-    fontSize: 13,
   },
 });
 

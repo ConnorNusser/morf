@@ -3,7 +3,7 @@ import IconButton from "@/components/IconButton";
 import ProgressBar from "@/components/ProgressBar";
 import RadarChart from "@/components/RadarChart";
 import StrengthHistoryModal from "@/components/StrengthHistoryModal";
-import { Text, View } from "@/components/Themed";
+import { Text, useInk, View } from "@/components/Themed";
 import TierBadge from "@/components/TierBadge";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/lib/data/strengthStandards";
 import { userService } from "@/lib/services/userService";
 import { userSyncService } from "@/lib/services/userSyncService";
+import { radius, screenGutter, space, track } from "@/lib/ui/tokens";
 import {
   calculateOverallPercentile,
   roundedAverage as toAvg,
@@ -43,6 +44,7 @@ export default function OverallStrengthModal({
   onClose,
 }: OverallStrengthModalProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [lifts, setLifts] = useState<UserProgress[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number>(-1);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -272,29 +274,19 @@ export default function OverallStrengthModal({
         <View
           style={[
             styles.modalHeader,
-            {
-              backgroundColor: "transparent",
-              borderBottomColor: currentTheme.colors.border,
-            },
+            { borderBottomColor: currentTheme.colors.border },
           ]}
         >
           <View style={styles.headerSpacer} />
-          <Text
-            style={[
-              styles.modalHeaderTitle,
-              { color: currentTheme.colors.text, fontWeight: "600" },
-            ]}
-          >
+          <Text variant="title" tone="primary" weight="semiBold">
             Overall Strength
           </Text>
           <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={[styles.header, { backgroundColor: "transparent" }]}>
-            <Text
-              style={[styles.subtitle, { color: currentTheme.colors.text }]}
-            >
+          <View style={styles.header}>
+            <Text variant="meta" tone="secondary">
               Radar shows your percentile per main lift
             </Text>
           </View>
@@ -303,26 +295,21 @@ export default function OverallStrengthModal({
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowHistoryModal(true)}
-              style={{ ...styles.chartHeader }}
+              style={styles.chartHeader}
             >
               {/* Header with Tier Badge and Percentile */}
               <View style={styles.tierHeaderRow}>
                 <TierBadge percentile={overallPercentile} size="large" />
                 <View style={styles.heroNumberBlock}>
                   <Text
-                    style={[
-                      styles.heroNumber,
-                      { color: currentTheme.colors.text },
-                    ]}
+                    variant="hero"
+                    tone="primary"
+                    weight="bold"
+                    style={styles.heroNumber}
                   >
                     {overallPercentile}
                   </Text>
-                  <Text
-                    style={[
-                      styles.heroSub,
-                      { color: currentTheme.colors.text + "80" },
-                    ]}
-                  >
+                  <Text variant="meta" tone="secondary" style={styles.heroSub}>
                     percentile
                   </Text>
                 </View>
@@ -330,25 +317,15 @@ export default function OverallStrengthModal({
               <ProgressBar
                 progress={overallPercentile}
                 height={10}
-                style={{ marginVertical: 12, width: "100%" }}
+                style={{ marginVertical: space.md, width: "100%" }}
               />
               <View style={styles.heroHintRow}>
-                <Text
-                  style={[
-                    styles.heroHint,
-                    { color: currentTheme.colors.text + "90" },
-                  ]}
-                >
+                <Text variant="meta" tone="secondary">
                   {!getNextTierInfo(overallPercentile).next
                     ? `Maximum Tier Reached!`
                     : `+${getNextTierInfo(overallPercentile).needed}% to ${getNextTierInfo(overallPercentile).next} Tier`}
                 </Text>
-                <Text
-                  style={[
-                    styles.historyHint,
-                    { color: currentTheme.colors.text + "50" },
-                  ]}
-                >
+                <Text variant="meta" tone="faint">
                   Tap for history
                 </Text>
               </View>
@@ -378,56 +355,27 @@ export default function OverallStrengthModal({
                 ],
               }}
             >
-              <Card
-
-                style={{
-                  ...styles.standardCard,
-                  backgroundColor: "transparent",
-                }}
-              >
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 6,
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.sheetTitle,
-                      {
-                        color: currentTheme.colors.text,
-                        backgroundColor: "transparent",
-                      },
-                    ]}
-                  >
+              <Card style={styles.standardCard}>
+                <View style={styles.sheetHeaderRow}>
+                  <Text variant="body" tone="primary" weight="bold">
                     {chartData[selectedIdx].label}
                   </Text>
-                  <TouchableOpacity onPress={() => setSelectedIdx(-1)}>
-                    <Text
-                      style={[
-                        styles.questSubtitle,
-                        { color: currentTheme.colors.text },
-                      ]}
-                    >
+                  <TouchableOpacity
+                    onPress={() => setSelectedIdx(-1)}
+                    hitSlop={8}
+                  >
+                    <Text variant="meta" tone="secondary">
                       Clear
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <Text
-                  style={[
-                    styles.sheetPercent,
-                    { color: currentTheme.colors.primary },
-                  ]}
-                >
+                <Text variant="statHero" weight="bold" style={styles.sheetPercent}>
                   {chartData[selectedIdx].value}%
                 </Text>
                 <Text
-                  style={[
-                    styles.sheetSubtitle,
-                    { color: currentTheme.colors.text },
-                  ]}
+                  variant="meta"
+                  tone="secondary"
+                  style={styles.sheetSubtitle}
                 >
                   Top contributors
                 </Text>
@@ -435,20 +383,10 @@ export default function OverallStrengthModal({
                   .slice(0, 6)
                   .map((item) => (
                     <View key={item.id} style={styles.sheetRow}>
-                      <Text
-                        style={[
-                          styles.sheetLift,
-                          { color: currentTheme.colors.text },
-                        ]}
-                      >
+                      <Text variant="meta" tone="primary">
                         {item.name}
                       </Text>
-                      <Text
-                        style={[
-                          styles.sheetValue,
-                          { color: currentTheme.colors.text },
-                        ]}
-                      >
+                      <Text variant="meta" tone="primary" weight="bold">
                         {item.pct}%
                       </Text>
                     </View>
@@ -458,50 +396,24 @@ export default function OverallStrengthModal({
           )}
 
           {/* Target Weights Card (replaces quest) */}
-          <Card
-
-            style={{ ...styles.standardCard, backgroundColor: "transparent" }}
-          >
-            <View
-              style={[
-                styles.questHeaderRow,
-                { backgroundColor: "transparent" },
-              ]}
-            >
-              <Text
-                style={[styles.questTitle, { color: currentTheme.colors.text }]}
-              >
+          <Card style={styles.standardCard}>
+            <View style={styles.questHeaderRow}>
+              <Text variant="body" tone="primary" weight="bold">
                 Next Tier Targets
               </Text>
-              <Text
-                style={[
-                  styles.questSubtitle,
-                  {
-                    color: currentTheme.colors.text + "90",
-                    backgroundColor: "transparent",
-                  },
-                ]}
-              >
+              <Text variant="meta" tone="secondary">
                 {getNextTierInfo(overallPercentile).current} →{" "}
                 {getNextTierInfo(overallPercentile).next || "MAX"}
               </Text>
             </View>
             {nextTargets.map((t) => (
               <View key={t.id} style={styles.targetBlock}>
-                <View
-                  style={[
-                    styles.targetHeaderRow,
-                    { backgroundColor: "transparent" },
-                  ]}
-                >
+                <View style={styles.targetHeaderRow}>
                   <Text
-                    style={[
-                      styles.targetName,
-                      {
-                        color: currentTheme.colors.text,
-                        backgroundColor: "transparent",
-                      },
-                    ]}
+                    variant="meta"
+                    tone="primary"
+                    weight="bold"
+                    style={styles.targetName}
                   >
                     {t.name}
                   </Text>
@@ -512,10 +424,9 @@ export default function OverallStrengthModal({
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.deltaText,
-                        { color: currentTheme.colors.background },
-                      ]}
+                      variant="meta"
+                      weight="bold"
+                      style={{ color: currentTheme.colors.background }}
                     >
                       +{t.delta}
                     </Text>
@@ -530,20 +441,10 @@ export default function OverallStrengthModal({
                   style={styles.targetProgress}
                 />
                 <View style={styles.targetValuesRow}>
-                  <Text
-                    style={[
-                      styles.targetValue,
-                      { color: currentTheme.colors.text },
-                    ]}
-                  >
+                  <Text variant="meta" tone="secondary">
                     {t.current} now
                   </Text>
-                  <Text
-                    style={[
-                      styles.targetValue,
-                      { color: currentTheme.colors.text },
-                    ]}
-                  >
+                  <Text variant="meta" tone="secondary">
                     {t.target} goal
                   </Text>
                 </View>
@@ -553,24 +454,21 @@ export default function OverallStrengthModal({
 
           <Card style={styles.liftsCard}>
             <View style={styles.insightRow}>
-              <Text
-                style={[
-                  styles.insightText,
-                  { color: currentTheme.colors.text },
-                ]}
-              >
+              <Text variant="meta" tone="secondary">
                 {`Strongest: ${bestGroup.label} • Weakest: ${weakGroup.label}`}
               </Text>
             </View>
             {sortedLifts.map((l, _i) => (
-              <View key={l.workoutId} style={styles.liftRow}>
-                <Text
-                  style={[styles.liftName, { color: currentTheme.colors.text }]}
-                >
+              <View
+                key={l.workoutId}
+                style={[styles.liftRow, { borderBottomColor: ink.hairline }]}
+              >
+                <Text variant="meta" tone="primary" style={styles.liftName}>
                   {l.workoutId.replace("-", " ")}
                 </Text>
                 <View style={styles.rowRight}>
                   <Text
+                    variant="meta"
                     style={[
                       styles.liftValue,
                       { color: getPercentileColor(l.percentileRanking) },
@@ -589,10 +487,9 @@ export default function OverallStrengthModal({
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.percentileText,
-                        { color: currentTheme.colors.background },
-                      ]}
+                      variant="meta"
+                      weight="semiBold"
+                      style={{ color: currentTheme.colors.background }}
                     >
                       {l.strengthLevel}
                     </Text>
@@ -619,124 +516,112 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalHeaderTitle: {
-    fontSize: 17,
   },
   headerSpacer: {
     width: 40,
   },
-  content: { padding: 20, paddingTop: 16 },
+  content: { padding: screenGutter, paddingTop: space.lg },
   header: {
     alignItems: "center",
-    marginBottom: 8,
-    backgroundColor: "transparent",
+    marginBottom: space.sm,
   },
-  subtitle: { fontSize: 12, opacity: 0.7 },
-  chartCard: { marginTop: 8 },
+  chartCard: { marginTop: space.sm },
   chartHeader: {
     alignItems: "center",
-    marginBottom: 8,
-    backgroundColor: "transparent",
+    marginBottom: space.sm,
   },
   tierHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
-    backgroundColor: "transparent",
   },
-  heroNumberBlock: { alignItems: "flex-end", backgroundColor: "transparent" },
-  heroNumber: { fontSize: 36, fontWeight: "800" },
+  heroNumberBlock: { alignItems: "flex-end" },
+  heroNumber: { letterSpacing: track.display },
   heroSub: {
-    fontSize: 10,
     textTransform: "uppercase",
-    letterSpacing: 1,
-    opacity: 0.7,
+    letterSpacing: track.caps,
   },
-  heroHint: { fontSize: 12, opacity: 0.8 },
   heroHintRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 6,
+    marginTop: space.sm,
     width: "100%",
-    backgroundColor: "transparent",
   },
-  historyHint: { fontSize: 11, opacity: 0.6 },
-  liftsCard: { marginTop: 16, paddingTop: 12, paddingBottom: 12 },
-  standardCard: { marginTop: 8, paddingTop: 12, paddingBottom: 12 },
+  liftsCard: {
+    marginTop: space.lg,
+    paddingTop: space.md,
+    paddingBottom: space.md,
+  },
+  standardCard: {
+    marginTop: space.sm,
+    paddingTop: space.md,
+    paddingBottom: space.md,
+  },
   liftRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: space.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "rgba(255,255,255,0.08)",
-    backgroundColor: "transparent",
   },
   liftName: { textTransform: "capitalize" },
   liftValue: { width: 42, textAlign: "right", fontVariant: ["tabular-nums"] },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "transparent",
+    gap: space.sm,
   },
   percentileBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
-  percentileText: { fontSize: 12, fontWeight: "600" },
   insightRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-    backgroundColor: "transparent",
+    gap: space.sm,
+    marginBottom: space.sm,
   },
-  insightText: { fontSize: 12, opacity: 0.8 },
   questHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
-  questTitle: { fontSize: 16, fontWeight: "700", letterSpacing: 0.5 },
-  questSubtitle: { fontSize: 12, opacity: 0.8 },
-  targetBlock: { marginBottom: 10, backgroundColor: "transparent" },
+  targetBlock: { marginBottom: space.md },
   targetHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 6,
-    backgroundColor: "transparent",
+    marginBottom: space.sm,
   },
-  targetName: { fontSize: 14, fontWeight: "700", textTransform: "capitalize" },
-  deltaBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  deltaText: { fontSize: 12, fontWeight: "700" },
-  targetProgress: { marginBottom: 6 },
+  targetName: { textTransform: "capitalize" },
+  deltaBadge: {
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
+  },
+  targetProgress: { marginBottom: space.sm },
   targetValuesRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "transparent",
   },
-  targetValue: { fontSize: 12, opacity: 0.8 },
-  sheetTitle: { fontSize: 16, fontWeight: "700" },
-  sheetPercent: { fontSize: 28, fontWeight: "800", marginBottom: 6 },
-  sheetSubtitle: { fontSize: 12, opacity: 0.8, marginBottom: 6 },
+  sheetHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: space.sm,
+  },
+  sheetPercent: { letterSpacing: track.display, marginBottom: space.sm },
+  sheetSubtitle: { marginBottom: space.sm },
   sheetRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "transparent",
-    backgroundColor: "transparent",
+    paddingVertical: space.sm,
   },
-  sheetLift: { fontSize: 14 },
-  sheetValue: { fontSize: 14, fontWeight: "700" },
 });
