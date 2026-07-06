@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: space.md,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
     borderWidth: 1,
     marginTop: space.md,
   },

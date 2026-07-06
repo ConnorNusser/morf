@@ -80,11 +80,13 @@ function Button({
         backgroundColor: currentTheme.colors.primary,
         borderRadius: radius.pill,
       },
+      // Labeled action buttons are pills across the app; radius.card is
+      // reserved for tappable cards/tiles/rows.
       secondary: {
         backgroundColor: currentTheme.colors.surface,
         borderWidth: 1,
         borderColor: currentTheme.colors.border,
-        borderRadius: radius.card,
+        borderRadius: radius.pill,
       },
     };
 

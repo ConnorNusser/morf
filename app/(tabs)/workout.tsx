@@ -17,6 +17,7 @@ import { useAlert } from '@/components/CustomAlert';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
+import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import {
@@ -553,34 +554,24 @@ export default function WorkoutScreen() {
             onScrollBeginDrag={closeComposer}
           />
           {!hasWorkoutStarted && (
-            recentWorkouts.length > 0 ? (
-              <RecentWorkouts
-                workouts={recentWorkouts}
-                onPick={prefillWorkout}
-                onQuickStart={handleQuickStart}
-                onGenerate={() => setShowPlanBuilder(true)}
-                onImport={() => setShowRoutineImport(true)}
-                onScrollBeginDrag={closeComposer}
-              />
-            ) : (
-              <RNView style={styles.empty}>
-                <Ionicons name="barbell-outline" size={30} color={ink.faint} />
-                <Text variant="title" weight="semiBold" tone="primary" style={styles.emptyTitle}>
-                  Log your workout
-                </Text>
-                <Text variant="meta" tone="muted" style={styles.emptyText}>
-                  Type or speak a set below — it appears here, ready to edit.
-                </Text>
-              </RNView>
-            )
+            /* RecentWorkouts owns the fresh-user case too: with no history it
+               renders a full-view hero with the same launch actions. */
+            <RecentWorkouts
+              workouts={recentWorkouts}
+              onPick={prefillWorkout}
+              onQuickStart={handleQuickStart}
+              onGenerate={() => setShowPlanBuilder(true)}
+              onImport={() => setShowRoutineImport(true)}
+              onScrollBeginDrag={closeComposer}
+            />
           )}
           {hasWorkoutStarted && draft.length === 0 && (
             <RNView style={styles.empty}>
-              <Ionicons name="barbell-outline" size={30} color={ink.faint} />
-              <Text variant="title" weight="semiBold" tone="primary" style={styles.emptyTitle}>
+              <Ionicons name="barbell-outline" size={56} color={ink.ghost} />
+              <Text variant="heading" weight="semiBold" tone="primary" style={styles.emptyTitle}>
                 Empty workout
               </Text>
-              <Text variant="meta" tone="muted" style={styles.emptyText}>
+              <Text variant="body" tone="muted" style={styles.emptyText}>
                 Add your first set below — type or speak it.
               </Text>
             </RNView>
@@ -769,12 +760,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter * 2,
   },
   emptyTitle: {
-    marginTop: space.xs,
+    marginTop: space.md,
   },
   emptyText: {
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: lineHeightFor(typeScale.body),
     marginBottom: space.sm,
+    paddingHorizontal: space.section,
   },
   header: {
     flexDirection: 'row',
@@ -797,13 +789,13 @@ const styles = StyleSheet.create({
   // only its colors are tokenized.
   unitSegment: {
     flexDirection: 'row',
-    borderRadius: 999,
+    borderRadius: radius.pill,
     padding: 2,
   },
   unitSegmentBtn: {
     paddingHorizontal: 12,
     paddingVertical: 5,
-    borderRadius: 999,
+    borderRadius: radius.pill,
     alignItems: 'center',
   },
   unitSegmentText: {
@@ -864,7 +856,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingVertical: space.md,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
   },
   doneRestButton: {
     flex: 1,

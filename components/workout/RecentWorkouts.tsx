@@ -6,6 +6,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
 import { radius, screenGutter, space, track } from '@/lib/ui/tokens';
+import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
@@ -37,30 +38,57 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
   const { colors } = currentTheme;
   const ink = useInk();
   const launch = useWorkoutLaunch();
+
+  const quickStart = () => {
+    playHapticFeedback('medium', false);
+    launch({
+      routineName: 'Empty Workout',
+      subtitle: 'Freestyle — log as you go',
+      onArrive: onQuickStart,
+    });
+  };
+
+  const actionRow = (
+    /* Generate / Import — bordered secondary buttons (C2 shape, pill grammar) */
+    <RNView style={styles.actionRow}>
+      <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>
+        <Ionicons name="sparkles" size={16} color={colors.primary} />
+        <Text variant="meta" tone="primary" weight="semiBold">Generate</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onImport(); }}>
+        <Ionicons name="download-outline" size={16} color={colors.primary} />
+        <Text variant="meta" tone="primary" weight="semiBold">Import</Text>
+      </TouchableOpacity>
+    </RNView>
+  );
+
+  // Fresh user: no history to list, so the launcher becomes a full-view hero —
+  // copy centered in the void with the same actions at full presence.
+  if (workouts.length === 0) {
+    return (
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.emptyContent} keyboardShouldPersistTaps="always" onScrollBeginDrag={onScrollBeginDrag}>
+        <RNView style={styles.emptyHero}>
+          <Ionicons name="barbell-outline" size={64} color={ink.ghost} />
+          <Text variant="heading" weight="semiBold" tone="primary" style={styles.emptyTitle}>
+            Start your first workout
+          </Text>
+          <Text variant="body" tone="muted" style={styles.emptySubtitle}>
+            Quick start and log sets as you go — or generate a routine to follow.
+          </Text>
+        </RNView>
+        <StartButton label="Quick start — empty workout" onPress={quickStart} />
+        {actionRow}
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
-      {/* Generate / Import — bordered secondary buttons (C2) */}
-      <RNView style={styles.actionRow}>
-        <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>
-          <Ionicons name="sparkles" size={16} color={colors.primary} />
-          <Text variant="meta" tone="primary" weight="semiBold">Generate</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onImport(); }}>
-          <Ionicons name="download-outline" size={16} color={colors.primary} />
-          <Text variant="meta" tone="primary" weight="semiBold">Import</Text>
-        </TouchableOpacity>
-      </RNView>
+      {actionRow}
 
       <StartButton
         label="Quick start — empty workout"
-        onPress={() => {
-          playHapticFeedback('medium', false);
-          launch({
-            routineName: 'Empty Workout',
-            subtitle: 'Freestyle — log as you go',
-            onArrive: onQuickStart,
-          });
-        }}
+        onPress={quickStart}
         style={styles.quickStart}
       />
 
@@ -104,6 +132,27 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: screenGutter, paddingTop: space.md, paddingBottom: space.section, gap: space.sm },
+  // Empty launcher: fill the view, center the group above the composer.
+  emptyContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.section * 2,
+    gap: space.lg,
+  },
+  emptyHero: {
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: space.section,
+  },
+  emptyTitle: {
+    marginTop: space.md,
+  },
+  emptySubtitle: {
+    textAlign: 'center',
+    lineHeight: lineHeightFor(typeScale.body),
+    paddingHorizontal: space.section,
+  },
   actionRow: { flexDirection: 'row', gap: space.md },
   secondaryBtn: {
     flex: 1,
@@ -113,7 +162,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     height: 44,
     borderWidth: 1,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
   },
   quickStart: { marginBottom: space.sm },
   title: { paddingTop: space.sm, marginBottom: 0 },

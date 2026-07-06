@@ -72,11 +72,15 @@ const seed = {
   user_profile: JSON.stringify({ height: { value: 5.9, unit: 'feet' }, weight: { value: 185, unit: 'lbs' }, gender: 'male', age: 28, weightUnitPreference: 'lbs' }),
 };
 
-const ROUTES = [
-  { route: '/', name: 'home' },
-  { route: '/history', name: 'history' },
-  { route: '/workout', name: 'workout' },
-];
+// EMPTY=1 skips seeding and shoots only the workout tab (fresh-user state).
+const EMPTY = !!process.env.EMPTY;
+const ROUTES = EMPTY
+  ? [{ route: '/workout', name: 'workout-empty' }]
+  : [
+      { route: '/', name: 'home' },
+      { route: '/history', name: 'history' },
+      { route: '/workout', name: 'workout' },
+    ];
 
 (async () => {
   const srv = await serveDist(PORT);
@@ -88,7 +92,9 @@ const ROUTES = [
 
   // seed storage once, before the app boots for real
   await page.goto(`${base}/history`, { waitUntil: 'domcontentloaded' });
-  await page.evaluate((s) => { for (const [k, v] of Object.entries(s)) window.localStorage.setItem(k, v); }, seed);
+  // EMPTY still seeds the profile (skips onboarding) — just no workout history.
+  const effectiveSeed = EMPTY ? { user_profile: seed.user_profile } : seed;
+  await page.evaluate((s) => { for (const [k, v] of Object.entries(s)) window.localStorage.setItem(k, v); }, effectiveSeed);
 
   for (const { route, name } of ROUTES) {
     await page.goto(`${base}${route}`, { waitUntil: 'networkidle' });

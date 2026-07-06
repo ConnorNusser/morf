@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: space.sm,
     paddingVertical: space.md,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
   viewAllText: {

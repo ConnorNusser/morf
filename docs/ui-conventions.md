@@ -15,6 +15,10 @@ to write a `fontSize:`, a `color: theme.colors.text + "50"`, or a
 | `tint(color)` | 12% wash | badge / delta-pill backgrounds behind an accent color |
 | `space` | xs 4 · sm 8 · md 12 · lg 16 · xl 20 · section 24 | margins, paddings, gaps |
 | `radius` | badge 6 · control 10 · card 12 · pill 999 | corner radius by element role |
+
+Radius rule of thumb: **labeled action buttons are pills** (primary and
+secondary alike); `radius.card` is for tappable cards, tiles, and rows;
+`radius.control` is for inputs and icon-button squares.
 | `screenGutter` | 20 | the horizontal page gutter on every tab |
 
 Never write a raw alpha suffix (`+ "50"`). Never pick a one-off spacing or
