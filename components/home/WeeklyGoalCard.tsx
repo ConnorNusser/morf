@@ -2,6 +2,7 @@ import WeeklyOverviewModal from '@/components/WeeklyOverviewModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { storageService } from '@/lib/storage/storage';
+import { type as typeScale } from '@/lib/ui/typography';
 import { formatVolume } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import {
@@ -115,7 +116,7 @@ export default function WeeklyGoalCard() {
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text }]}>
-          This week
+          THIS WEEK
         </Text>
 
         <TouchableOpacity
@@ -247,9 +248,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  // The shared uppercase micro-label section grammar (History / Career).
   title: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontSize: typeScale.meta,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   goalButton: {
     flexDirection: 'row',
@@ -257,7 +261,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   count: {
-    fontSize: 15,
+    fontSize: typeScale.emphasis,
   },
   dotRow: {
     flexDirection: 'row',
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   dayLabel: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     opacity: 0.6,
   },
   loadRow: {
@@ -286,7 +290,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   trendChip: {
     flexDirection: 'row',
@@ -294,7 +298,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   trendText: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     fontWeight: '600',
   },
   backdrop: {
@@ -314,10 +318,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetTitle: {
-    fontSize: 20,
+    fontSize: typeScale.heading,
   },
   sheetSubtitle: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     opacity: 0.6,
     marginTop: 4,
     marginBottom: 18,
@@ -335,6 +339,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: typeScale.emphasis,
   },
 });

@@ -1,19 +1,23 @@
 import Card from "@/components/Card";
+import StartButton from "@/components/home/StartButton";
+import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
+import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { getUpNextCandidates, getUpNextRoutine } from "@/lib/workout/activeRoutine";
+import { type as typeScale } from "@/lib/ui/typography";
+import {
+  getUpNextCandidates,
+  getUpNextRoutine,
+} from "@/lib/workout/activeRoutine";
+import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
-import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { getStreakState } from "@/lib/workout/retentionSignals";
-import TodayOverviewModal from "@/components/home/TodayOverviewModal";
-import StartButton from "@/components/home/StartButton";
-import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { CalculatedRoutine } from "@/types";
-import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -64,18 +68,20 @@ export default function TodayCard() {
   // context only loads once at startup, which is why it went stale before.)
   const load = useCallback(async () => {
     try {
-      const [history, dismissedAt, routines, programs, pointerId] = await Promise.all([
-        storageService.getWorkoutHistory(),
-        storageService.getRoutineAdviceDismissedAt(),
-        storageService.getRoutines(),
-        storageService.getPrograms(),
-        storageService.getUpNextPointerId(),
-      ]);
+      const [history, dismissedAt, routines, programs, pointerId] =
+        await Promise.all([
+          storageService.getWorkoutHistory(),
+          storageService.getRoutineAdviceDismissedAt(),
+          storageService.getRoutines(),
+          storageService.getPrograms(),
+          storageService.getUpNextPointerId(),
+        ]);
       setTrainedToday(getStreakState(history).trainedToday);
 
       // Advice stays hidden only until the cooldown elapses, then re-surfaces.
       setAdviceDismissed(
-        dismissedAt !== null && Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
+        dismissedAt !== null &&
+          Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
       );
 
       const latest = history.reduce<Date | null>((max, w) => {
@@ -86,9 +92,13 @@ export default function TodayCard() {
 
       const records = await loadExerciseRecords(history);
       const candidates = getUpNextCandidates(routines, programs);
-      setDays(candidates.map((rt) => calculateRoutine(rt, records, weightUnit)));
+      setDays(
+        candidates.map((rt) => calculateRoutine(rt, records, weightUnit)),
+      );
       const today = getUpNextRoutine(routines, programs, pointerId);
-      setCalculated(today ? calculateRoutine(today, records, weightUnit) : null);
+      setCalculated(
+        today ? calculateRoutine(today, records, weightUnit) : null,
+      );
     } catch (err) {
       console.error("TodayCard: failed to load", err);
     } finally {
@@ -186,7 +196,8 @@ export default function TodayCard() {
         </Text>
         {!adviceDismissed ? (
           <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
-            Jump straight in — or build a routine for guided sessions and progress tracking.
+            Jump straight in — or build a routine for guided sessions and
+            progress tracking.
           </Text>
         ) : freestyleSubtitle ? (
           <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
@@ -210,13 +221,27 @@ export default function TodayCard() {
               onPress={() => router.push("/notes")}
               activeOpacity={0.85}
             >
-              <Text style={[styles.secondaryButtonText, { color: currentTheme.colors.text }]}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: currentTheme.colors.text },
+                ]}
+              >
                 Build a routine
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={dismissAdvice} hitSlop={8} activeOpacity={0.6}>
-              <Text style={[styles.dismissText, { color: currentTheme.colors.text }]}>
+            <TouchableOpacity
+              onPress={dismissAdvice}
+              hitSlop={8}
+              activeOpacity={0.6}
+            >
+              <Text
+                style={[
+                  styles.dismissText,
+                  { color: currentTheme.colors.text },
+                ]}
+              >
                 Don&apos;t suggest routines
               </Text>
             </TouchableOpacity>
@@ -235,110 +260,135 @@ export default function TodayCard() {
 
   return (
     <>
-    <TouchableOpacity activeOpacity={0.9} onPress={() => setShowOverview(true)}>
-    <Card variant="elevated" padding={8}>
-      <View style={styles.headerRow}>
-        <Text
-          numberOfLines={1}
-          style={[styles.routineName, { color: currentTheme.colors.text, flex: 1 }]}
-        >
-          {calculated.name}
-        </Text>
-        {days.length > 1 && (
-          <View style={styles.navRow}>
-            <TouchableOpacity
-              onPress={() => flip(-1)}
-              hitSlop={8}
-              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
-              activeOpacity={0.5}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => setShowOverview(true)}
+      >
+        <Card variant="elevated" padding={8}>
+          <View style={styles.headerRow}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.routineName,
+                { color: currentTheme.colors.text, flex: 1 },
+              ]}
             >
-              <Ionicons name="chevron-back" size={18} color={currentTheme.colors.text} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => flip(1)}
-              hitSlop={8}
-              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
-              activeOpacity={0.5}
-            >
-              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text} />
-            </TouchableOpacity>
+              {calculated.name}
+            </Text>
+            {days.length > 1 && (
+              <View style={styles.navRow}>
+                <TouchableOpacity
+                  onPress={() => flip(-1)}
+                  hitSlop={8}
+                  style={[
+                    styles.pagerBtn,
+                    { backgroundColor: currentTheme.colors.text + "0D" },
+                  ]}
+                  activeOpacity={0.5}
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={24}
+                    color={currentTheme.colors.text}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => flip(1)}
+                  hitSlop={8}
+                  style={[
+                    styles.pagerBtn,
+                    { backgroundColor: currentTheme.colors.text + "0D" },
+                  ]}
+                  activeOpacity={0.5}
+                >
+                  <Ionicons
+                    name="chevron-forward"
+                    size={24}
+                    color={currentTheme.colors.text}
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        )}
-      </View>
-      <View style={styles.subRow}>
-        <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
-          {calculated.exercises.length} exercises · {totalSets} sets
-        </Text>
-        {days.length > 1 && (
-          <View style={styles.dots}>
-            {days.map((d) => (
-              <View
-                key={d.id}
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor:
-                      d.id === calculated.id
-                        ? currentTheme.colors.primary
-                        : currentTheme.colors.text + "30",
-                  },
-                ]}
-              />
-            ))}
+          <View style={styles.subRow}>
+            <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+              {calculated.exercises.length} exercises · {totalSets} sets
+            </Text>
+            {days.length > 1 && (
+              <View style={styles.dots}>
+                {days.map((d) => (
+                  <View
+                    key={d.id}
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor:
+                          d.id === calculated.id
+                            ? currentTheme.colors.primary
+                            : currentTheme.colors.text + "30",
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+            )}
           </View>
-        )}
-      </View>
 
-      <View style={styles.exerciseList}>
-        {exercises.map((ex, i) => {
-          const workingSets = ex.sets.filter((s) => !s.isWarmup);
-          const setCount = workingSets.length || ex.sets.length;
-          const reps = (workingSets[0] ?? ex.sets[0])?.reps;
-          const detail =
-            ex.workingWeight > 0
-              ? `${setCount}×${reps} · ${ex.workingWeight} ${ex.unit}`
-              : `${setCount}×${reps}`;
-          return (
-            <View key={`${ex.exerciseId}-${i}`} style={styles.exerciseRow}>
-              <Text
-                style={[
-                  styles.exerciseName,
-                  {
-                    color: currentTheme.colors.text,
-                    fontWeight: '500',
-                  },
-                ]}
-                numberOfLines={1}
-              >
-                {cleanName(ex.exerciseName)}
-              </Text>
-              <Text style={[styles.exerciseDetail, { color: currentTheme.colors.text }]}>
-                {detail}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+          <View style={styles.exerciseList}>
+            {exercises.map((ex, i) => {
+              const workingSets = ex.sets.filter((s) => !s.isWarmup);
+              const setCount = workingSets.length || ex.sets.length;
+              const reps = (workingSets[0] ?? ex.sets[0])?.reps;
+              const detail =
+                ex.workingWeight > 0
+                  ? `${setCount}×${reps} · ${ex.workingWeight} ${ex.unit}`
+                  : `${setCount}×${reps}`;
+              return (
+                <View key={`${ex.exerciseId}-${i}`} style={styles.exerciseRow}>
+                  <Text
+                    style={[
+                      styles.exerciseName,
+                      {
+                        color: currentTheme.colors.text,
+                        fontWeight: "500",
+                      },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {cleanName(ex.exerciseName)}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.exerciseDetail,
+                      { color: currentTheme.colors.text },
+                    ]}
+                  >
+                    {detail}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
 
-      <StartButton
-        label={trainedToday ? "Train again" : "Start workout"}
-        variant={trainedToday ? "outlined" : "solid"}
-        onPress={handleStart}
-        style={styles.primaryButton}
+          <StartButton
+            label={trainedToday ? "Train again" : "Start workout"}
+            variant={trainedToday ? "outlined" : "solid"}
+            onPress={handleStart}
+            style={styles.primaryButton}
+          />
+        </Card>
+      </TouchableOpacity>
+
+      <TodayOverviewModal
+        visible={showOverview}
+        onClose={() => setShowOverview(false)}
+        routine={calculated}
+        splitLabel={label}
+        onStart={() => {
+          setShowOverview(false);
+          handleStart();
+        }}
       />
-    </Card>
-    </TouchableOpacity>
-
-    <TodayOverviewModal
-      visible={showOverview}
-      onClose={() => setShowOverview(false)}
-      routine={calculated}
-      splitLabel={label}
-      onStart={() => {
-        setShowOverview(false);
-        handleStart();
-      }}
-    />
     </>
   );
 }
@@ -350,13 +400,13 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   eyebrow: {
-    fontSize: 12,
-    letterSpacing: 1.2,
-    opacity: 0.6,
-    fontWeight: "600",
+    fontSize: typeScale.meta,
+    letterSpacing: 1,
+    opacity: 0.45,
+    fontWeight: "700",
   },
   routineName: {
-    fontSize: 20,
+    fontSize: typeScale.heading,
     fontWeight: "700",
   },
   headerRow: {
@@ -377,8 +427,8 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
   pagerBtn: {
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderRadius: 9,
     alignItems: "center",
     justifyContent: "center",
@@ -393,18 +443,18 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: typeScale.heading,
     marginTop: 6,
     marginBottom: 4,
     fontWeight: "700",
   },
   subtle: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     opacity: 0.6,
   },
   exerciseList: {
     marginTop: 10,
-    gap: 6,
+    gap: 10,
   },
   exerciseRow: {
     flexDirection: "row",
@@ -412,12 +462,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   exerciseName: {
-    fontSize: 15,
+    fontSize: typeScale.body,
     flex: 1,
     marginRight: 12,
   },
   exerciseDetail: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     opacity: 0.55,
   },
   secondaryButton: {
@@ -429,11 +479,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: typeScale.title,
     fontWeight: "600",
   },
   dismissText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     opacity: 0.4,
     textAlign: "center",
     marginTop: 12,

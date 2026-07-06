@@ -2,6 +2,7 @@ import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { computeTopMovers } from '@/lib/history/topMovers';
+import { type as typeScale } from '@/lib/ui/typography';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -109,21 +110,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
   heading: {
-    fontSize: 10,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
   },
   seeAll: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   firstRow: {
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 15,
+    fontSize: typeScale.body,
     marginBottom: 4,
   },
   statsRow: {
@@ -142,10 +143,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    fontSize: 17,
+    fontSize: typeScale.emphasis,
   },
   unit: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
   },
   deltaPill: {
     flexDirection: 'row',
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
   },
   rowRight: {
     flexDirection: 'row',

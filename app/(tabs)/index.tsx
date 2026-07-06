@@ -31,6 +31,7 @@ import {
   storageService,
 } from "@/lib/storage/storage";
 import { gap, layout } from "@/lib/ui/styles";
+import { type as typeScale } from "@/lib/ui/typography";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
 import {
@@ -375,7 +376,7 @@ export default function HomeScreen() {
               <Text
                 style={[styles.sectionTitle, { color: currentTheme.colors.text, marginBottom: 0 }]}
               >
-                Your Lifts
+                YOUR LIFTS
               </Text>
 
               <LiftDisplayFilter
@@ -435,17 +436,23 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  // 24 between blocks — the same section rhythm as History's section marginTop,
+  // so the two tabs breathe identically.
   content: {
     padding: 20,
-    gap: 14,
+    gap: 24,
   },
   feedHeader: {
     paddingHorizontal: 20,
     paddingBottom: 10,
   },
+  // Same uppercase micro-label grammar as History's LIFTS / SESSIONS and the
+  // Career card, so every tab introduces sections the same way.
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: typeScale.meta,
+    fontWeight: "700",
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   strengthDivider: {
     height: 1,
@@ -460,6 +467,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionButtonText: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
 });

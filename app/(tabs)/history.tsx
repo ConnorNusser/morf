@@ -26,6 +26,7 @@ import {
 } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
+import { type as typeScale } from '@/lib/ui/typography';
 import { userService } from '@/lib/services/userService';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -347,7 +348,7 @@ export default function HistoryScreen() {
                           style={[styles.recordName, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}
                           numberOfLines={1}
                         >
-                          {ex.name}
+                          {ex.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}
                         </Text>
                         <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
                           <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontWeight: '700' }]} numberOfLines={1}>
@@ -636,7 +637,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: typeScale.screenTitle,
     marginBottom: 12,
   },
   // Tab styles
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -675,10 +676,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: typeScale.emphasis,
   },
   summaryLabel: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
     marginTop: 3,
   },
   summaryDivider: {
@@ -698,7 +699,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: typeScale.body,
     padding: 0,
   },
   workoutSearchBar: {
@@ -711,16 +712,16 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sortChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 16,
     borderWidth: 1,
   },
   sortChipText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   resultCount: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     marginBottom: 4,
   },
   // Hairline sub-block divider inside the top instrument panel — the same
@@ -735,7 +736,7 @@ const styles = StyleSheet.create({
   },
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: 10,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
@@ -746,35 +747,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
   },
   // Records strip
   recordsStrip: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   recordCard: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
   },
   recordName: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
   },
   recordValueRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 3,
-    marginTop: 6,
+    marginTop: 8,
   },
   recordValue: {
-    fontSize: 22,
+    fontSize: typeScale.title,
     letterSpacing: -0.5,
   },
   recordUnit: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
   },
   recordTierBadge: {
     alignSelf: 'flex-start',
@@ -784,7 +785,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   recordTierText: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
     letterSpacing: 0.3,
   },
   // Monthly trends button
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   monthlyTrendsText: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   // Lift card styles - minimal
   liftCard: {
@@ -821,7 +822,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -829,17 +830,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 9,
+    fontSize: typeScale.meta,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 18,
+    fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
   },
   liftRight: {
     flexDirection: 'row',
@@ -862,11 +863,11 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: typeScale.heading,
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: typeScale.body,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -881,6 +882,6 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: typeScale.title,
   },
 });

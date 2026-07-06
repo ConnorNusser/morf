@@ -1,6 +1,7 @@
 import SessionVolumeBars from '@/components/history/SessionVolumeBars';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
 import { SessionRecap } from '@/lib/history/sessionRecap';
@@ -268,14 +269,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 10,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
   },
   dateRange: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     letterSpacing: 0.2,
     opacity: 0.5,
   },
@@ -295,13 +296,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: typeScale.emphasis,
+    lineHeight: 20,
     fontWeight: '600',
   },
   statLabel: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 2,
   },
   trendSection: {
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   trendLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
   },
 });

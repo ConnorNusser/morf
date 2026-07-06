@@ -4,6 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
+import { type as typeScale } from '@/lib/ui/typography';
 import {
   calculateWorkoutStats,
   combineWorkoutStats,
@@ -788,10 +789,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitleWrap: { flex: 1, marginRight: 12 },
-  title: { fontSize: 20, fontWeight: 'bold' },
-  headerSubtitle: { fontSize: 13, opacity: 0.55, marginTop: 2 },
+  title: { fontSize: typeScale.title, fontWeight: 'bold' },
+  headerSubtitle: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 2 },
   closeButton: { paddingVertical: 4, paddingHorizontal: 4 },
-  closeText: { fontSize: 16, fontWeight: '600' },
+  closeText: { fontSize: typeScale.body, fontWeight: '600' },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   content: { paddingHorizontal: 16, paddingTop: 14 },
@@ -807,9 +808,9 @@ const styles = StyleSheet.create({
   // stat strip
   statStrip: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
-  statValue: { fontSize: 21, fontWeight: '700', letterSpacing: -0.3 },
+  statValue: { fontSize: typeScale.statHero, fontWeight: '700', letterSpacing: -0.3 },
   statLabel: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     opacity: 0.45,
     marginTop: 4,
   },
@@ -821,10 +822,10 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  secondaryText: { fontSize: 12.5, opacity: 0.7 },
+  secondaryText: { fontSize: typeScale.meta, opacity: 0.7 },
 
   sectionLabel: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     fontWeight: '600',
     opacity: 0.4,
     marginTop: 22,
@@ -843,34 +844,34 @@ const styles = StyleSheet.create({
   dayCol: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 44,
+    width: 52,
     paddingRight: 10,
     marginRight: 10,
     borderRightWidth: StyleSheet.hairlineWidth,
   },
-  weekday: { fontSize: 11, textTransform: 'uppercase', opacity: 0.55 },
-  dayNum: { fontSize: 18, fontWeight: 'bold' },
+  weekday: { fontSize: typeScale.meta, textTransform: 'uppercase', opacity: 0.55 },
+  dayNum: { fontSize: typeScale.emphasis, fontWeight: 'bold' },
   workoutInfo: { flex: 1 },
   workoutTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   legendDot: { width: 9, height: 9, borderRadius: 4.5, marginRight: 7 },
-  workoutTitle: { fontSize: 15, fontWeight: '600', flex: 1 },
-  workoutMeta: { fontSize: 12.5, opacity: 0.65 },
+  workoutTitle: { fontSize: typeScale.body, fontWeight: '600', flex: 1 },
+  workoutMeta: { fontSize: typeScale.meta, opacity: 0.65 },
 
   // inline bars
   barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
-  barLabel: { width: 50, fontSize: 12.5 },
+  barLabel: { width: 58, fontSize: typeScale.meta },
   barTrack: { flex: 1, height: 8, borderRadius: 4, marginHorizontal: 8, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
-  barValue: { width: 66, textAlign: 'right', fontSize: 12.5, fontWeight: '600' },
+  barValue: { width: 78, textAlign: 'right', fontSize: typeScale.meta, fontWeight: '600' },
 
   // exercise list
   exRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
-  exRank: { width: 18, fontSize: 13, fontWeight: '700', opacity: 0.45 },
+  exRank: { width: 21, fontSize: typeScale.meta, fontWeight: '700', opacity: 0.45 },
   exMain: { flex: 1, marginRight: 10 },
-  exName: { fontSize: 13.5, fontWeight: '500', marginBottom: 5 },
+  exName: { fontSize: typeScale.body, fontWeight: '500', marginBottom: 5 },
   exMeta: { alignItems: 'flex-end' },
-  exVal: { fontSize: 13, fontWeight: '600' },
-  exSub: { fontSize: 11, opacity: 0.55, marginTop: 1 },
+  exVal: { fontSize: typeScale.meta, fontWeight: '600' },
+  exSub: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 1 },
 
   // day sessions
   exerciseLine: {
@@ -879,9 +880,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
-  exerciseLineName: { fontSize: 13.5, flex: 1, marginRight: 10 },
-  exerciseLineVal: { fontSize: 12.5, opacity: 0.7 },
-  moreText: { fontSize: 12.5, opacity: 0.55, marginTop: 4 },
+  exerciseLineName: { fontSize: typeScale.body, flex: 1, marginRight: 10 },
+  exerciseLineVal: { fontSize: typeScale.meta, opacity: 0.7 },
+  moreText: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 4 },
 
   // daily breakdown (time)
   dailyRow: {
@@ -890,8 +891,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
   },
-  dailyDay: { fontSize: 13.5 },
-  dailyVal: { fontSize: 12.5, opacity: 0.7 },
+  dailyDay: { fontSize: typeScale.body },
+  dailyVal: { fontSize: typeScale.meta, opacity: 0.7 },
 
   // goal editor
   goalHeader: {
@@ -900,10 +901,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  goalTitle: { fontSize: 15, fontWeight: '700' },
+  goalTitle: { fontSize: typeScale.body, fontWeight: '700' },
   goalCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  goalCountText: { fontSize: 14, fontWeight: '600' },
-  goalPrompt: { fontSize: 12.5, opacity: 0.6, marginTop: 12, marginBottom: 10 },
+  goalCountText: { fontSize: typeScale.meta, fontWeight: '600' },
+  goalPrompt: { fontSize: typeScale.meta, opacity: 0.6, marginTop: 12, marginBottom: 10 },
   pillRow: { flexDirection: 'row', justifyContent: 'space-between' },
   pill: {
     width: 38,
@@ -913,19 +914,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillText: { fontSize: 15, fontWeight: '600' },
+  pillText: { fontSize: typeScale.body, fontWeight: '600' },
 
   // personal records
   prRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
   prAccent: { width: 3, height: 30, borderRadius: 1.5, marginRight: 13 },
   prMain: { flex: 1, marginRight: 10 },
-  prName: { fontSize: 15, fontWeight: '600' },
-  prContext: { fontSize: 12, opacity: 0.45, marginTop: 2 },
+  prName: { fontSize: typeScale.body, fontWeight: '600' },
+  prContext: { fontSize: typeScale.meta, opacity: 0.45, marginTop: 2 },
   prMeta: { alignItems: 'flex-end' },
-  prVal: { fontSize: 15, fontWeight: '600' },
+  prVal: { fontSize: typeScale.emphasis, fontWeight: '600' },
 
   // empty
   empty: { alignItems: 'center', paddingVertical: 44 },
-  emptyText: { fontSize: 16, fontWeight: '600', opacity: 0.75, marginTop: 12 },
-  emptySub: { fontSize: 13, opacity: 0.5, marginTop: 6, textAlign: 'center' },
+  emptyText: { fontSize: typeScale.body, fontWeight: '600', opacity: 0.75, marginTop: 12 },
+  emptySub: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6, textAlign: 'center' },
 });

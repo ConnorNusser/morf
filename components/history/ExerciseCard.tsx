@@ -3,6 +3,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -102,17 +103,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 9,
+    fontSize: typeScale.meta,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 18,
+    fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
   },
   liftRight: {
     flexDirection: 'row',

@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { CalculatedRoutine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
@@ -110,10 +111,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 22,
+    fontSize: typeScale.heading,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     opacity: 0.6,
     marginTop: 2,
   },
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   exerciseName: {
-    fontSize: 16,
+    fontSize: typeScale.emphasis,
     flexShrink: 1,
   },
   setRow: {
@@ -142,11 +143,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   setLabel: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     opacity: 0.55,
   },
   setValue: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   startButton: {
     paddingVertical: 14,
@@ -155,6 +156,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   startText: {
-    fontSize: 16,
+    fontSize: typeScale.title,
   },
 });

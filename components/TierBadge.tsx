@@ -135,13 +135,13 @@ export default function TierBadge({
 const SIZE_STYLES = {
   tiny: StyleSheet.create({
     badge: {
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 7,
       borderWidth: 1,
     },
     text: {
-      fontSize: 10,
+      fontSize: 12,
       fontWeight: '700',
     },
   }),

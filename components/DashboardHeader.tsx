@@ -1,12 +1,13 @@
-import TierRing from '@/components/gamification/TierRing';
-import { useTheme } from '@/contexts/ThemeContext';
-import { StrengthTier } from '@/lib/data/strengthStandards';
-import { WeightUnit } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import TierRing from "@/components/gamification/TierRing";
+import { useTheme } from "@/contexts/ThemeContext";
+import { StrengthTier } from "@/lib/data/strengthStandards";
+import { type as typeScale } from "@/lib/ui/typography";
+import { WeightUnit } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useState } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-type ViewMode = 'home' | 'feed';
+type ViewMode = "home" | "feed";
 
 export interface HeaderStats {
   totalVolume: number;
@@ -25,7 +26,13 @@ interface DashboardHeaderProps {
   title?: string;
 }
 
-export default function DashboardHeader({ viewMode, onViewModeChange, stats, onTierPress, title }: DashboardHeaderProps) {
+export default function DashboardHeader({
+  viewMode,
+  onViewModeChange,
+  stats,
+  onTierPress,
+  title,
+}: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -35,7 +42,8 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
   };
 
   // If no view mode props, show original Morf text
-  const showViewSelector = viewMode !== undefined && onViewModeChange !== undefined;
+  const showViewSelector =
+    viewMode !== undefined && onViewModeChange !== undefined;
 
   return (
     <View style={styles.container}>
@@ -44,24 +52,29 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
               <Image
-                source={require('@/assets/images/icon-original.png')}
+                source={require("@/assets/images/icon-original.png")}
                 style={styles.logo}
               />
               <TouchableOpacity
-                style={[styles.viewSelector, { backgroundColor: currentTheme.colors.surface }]}
+                style={[
+                  styles.viewSelector,
+                  { backgroundColor: currentTheme.colors.surface },
+                ]}
                 onPress={() => setShowDropdown(!showDropdown)}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.appName,
-                  {
-                    color: currentTheme.colors.text,
-                  }
-                ]}>
-                  {viewMode === 'home' ? 'Morf' : 'Feed'}
+                <Text
+                  style={[
+                    styles.appName,
+                    {
+                      color: currentTheme.colors.text,
+                    },
+                  ]}
+                >
+                  {viewMode === "home" ? "Morf" : "Feed"}
                 </Text>
                 <Ionicons
-                  name={showDropdown ? 'chevron-up' : 'chevron-down'}
+                  name={showDropdown ? "chevron-up" : "chevron-down"}
                   size={24}
                   color={currentTheme.colors.text}
                 />
@@ -76,7 +89,10 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                 disabled={!onTierPress}
                 accessibilityLabel={`${stats.tier} tier, view career`}
               >
-                <TierRing tier={stats.tier} progress={stats.tierProgress ?? 0} />
+                <TierRing
+                  tier={stats.tier}
+                  progress={stats.tierProgress ?? 0}
+                />
               </TouchableOpacity>
             )}
           </View>
@@ -89,31 +105,97 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                 onPress={() => setShowDropdown(false)}
                 activeOpacity={1}
               />
-              <View style={[styles.dropdown, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+              <View
+                style={[
+                  styles.dropdown,
+                  {
+                    backgroundColor: currentTheme.colors.surface,
+                    borderColor: currentTheme.colors.border,
+                  },
+                ]}
+              >
                 <TouchableOpacity
-                  style={[styles.dropdownItem, viewMode === 'home' && { backgroundColor: currentTheme.colors.primary + '15' }]}
-                  onPress={() => handleViewSelect('home')}
+                  style={[
+                    styles.dropdownItem,
+                    viewMode === "home" && {
+                      backgroundColor: currentTheme.colors.primary + "15",
+                    },
+                  ]}
+                  onPress={() => handleViewSelect("home")}
                 >
-                  <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons
+                    name="home"
+                    size={18}
+                    color={
+                      viewMode === "home"
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.text + "80"
+                    }
+                  />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        {
+                          color:
+                            viewMode === "home"
+                              ? currentTheme.colors.primary
+                              : currentTheme.colors.text,
+                          fontWeight: "600",
+                        },
+                      ]}
+                    >
                       Morf
                     </Text>
-                    <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
+                    <Text
+                      style={[
+                        styles.dropdownSubtext,
+                        { color: currentTheme.colors.text + "50" },
+                      ]}
+                    >
                       Your stats
                     </Text>
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.dropdownItem, viewMode === 'feed' && { backgroundColor: currentTheme.colors.primary + '15' }]}
-                  onPress={() => handleViewSelect('feed')}
+                  style={[
+                    styles.dropdownItem,
+                    viewMode === "feed" && {
+                      backgroundColor: currentTheme.colors.primary + "15",
+                    },
+                  ]}
+                  onPress={() => handleViewSelect("feed")}
                 >
-                  <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons
+                    name="people"
+                    size={18}
+                    color={
+                      viewMode === "feed"
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.text + "80"
+                    }
+                  />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
+                    <Text
+                      style={[
+                        styles.dropdownText,
+                        {
+                          color:
+                            viewMode === "feed"
+                              ? currentTheme.colors.primary
+                              : currentTheme.colors.text,
+                          fontWeight: "600",
+                        },
+                      ]}
+                    >
                       Feed
                     </Text>
-                    <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
+                    <Text
+                      style={[
+                        styles.dropdownSubtext,
+                        { color: currentTheme.colors.text + "50" },
+                      ]}
+                    >
                       Community workouts
                     </Text>
                   </View>
@@ -123,13 +205,15 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
           )}
         </>
       ) : (
-        <Text style={[
-          styles.appName,
-          {
-            color: currentTheme.colors.text,
-          }
-        ]}>
-          {title ?? 'Morf'}
+        <Text
+          style={[
+            styles.appName,
+            {
+              color: currentTheme.colors.text,
+            },
+          ]}
+        >
+          {title ?? "Morf"}
         </Text>
       )}
     </View>
@@ -144,14 +228,14 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   headerLeft: {
     flexShrink: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   levelButton: {
@@ -165,22 +249,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   appName: {
-    fontSize: 32,
-    fontWeight: '700',
+    fontSize: typeScale.screenTitle,
+    fontWeight: "700",
     letterSpacing: -1,
   },
   viewSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
     gap: 6,
-    paddingVertical: 8,
-    paddingLeft: 16,
-    paddingRight: 12,
+    paddingVertical: 10,
+    paddingLeft: 18,
+    paddingRight: 14,
     borderRadius: 12,
   },
   backdrop: {
-    position: 'absolute',
+    position: "absolute",
     top: -100,
     left: -100,
     right: -100,
@@ -188,22 +272,22 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   dropdown: {
-    position: 'absolute',
+    position: "absolute",
     top: 64,
     left: 56,
     borderRadius: 14,
     borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 16,
     elevation: 12,
-    minWidth: 200,
+    minWidth: 210,
     zIndex: 1000,
   },
   dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 14,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -212,10 +296,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: typeScale.body,
   },
   dropdownSubtext: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     marginTop: 2,
   },
-}); 
+});

@@ -4,6 +4,7 @@
 // card, which owns the volume story.)
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
+import { type as typeScale } from '@/lib/ui/typography';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
@@ -148,23 +149,23 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
 const styles = StyleSheet.create({
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
   feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
-  microLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   // Log entries, separated by hairlines like every list on the tab.
   entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
-  entry: { paddingTop: 12, paddingBottom: 4 },
+  entry: { paddingTop: 14, paddingBottom: 8 },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  entryIdentity: { flex: 1, gap: 1 },
-  entryTitle: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
-  entryMeta: { fontSize: 12, opacity: 0.5 },
-  entryVolume: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
-  entryNote: { fontSize: 12, opacity: 0.5, marginTop: 6 },
+  entryIdentity: { flex: 1, gap: 2 },
+  entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2 },
+  entryMeta: { fontSize: typeScale.meta, opacity: 0.5 },
+  entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
+  entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
   // The per-exercise table.
-  exList: { marginTop: 8, gap: 7 },
+  exList: { marginTop: 10, gap: 8 },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  exName: { flex: 1, fontSize: 13 },
-  exSets: { fontSize: 11 },
-  prTag: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
-  exSet: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
+  exName: { flex: 1, fontSize: typeScale.body },
+  exSets: { fontSize: typeScale.meta },
+  prTag: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.3 },
+  exSet: { fontSize: typeScale.emphasis, fontWeight: '600', letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
-  viewAllText: { fontSize: 13, fontWeight: '600' },
+  viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
 });

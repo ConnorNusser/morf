@@ -2,6 +2,7 @@ import { useAlert } from '@/components/CustomAlert';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { type as typeScale } from '@/lib/ui/typography';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
@@ -331,8 +332,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerTitle: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: typeScale.title,
+    lineHeight: 24,
   },
   headerButton: {
     width: 40,
@@ -352,13 +353,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: 28,
+    fontSize: typeScale.screenTitle,
     lineHeight: 34,
     letterSpacing: -0.5,
   },
   date: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: typeScale.body,
+    lineHeight: 22,
     marginTop: 4,
   },
   prSection: {
@@ -376,19 +377,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   prChipText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     color: '#FFFFFF',
   },
   prLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
   },
   summaryRow: {
     marginBottom: 32,
   },
   summaryText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: typeScale.body,
+    lineHeight: 22,
   },
   exerciseList: {
     gap: 0,
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    fontSize: 16,
+    fontSize: typeScale.body,
     lineHeight: 22,
   },
   prBadge: {
@@ -419,11 +420,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prBadgeText: {
-    fontSize: 10,
+    fontSize: typeScale.meta,
   },
   exerciseBest: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
   },
   setsGrid: {
     flexDirection: 'row',
@@ -437,8 +438,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(128, 128, 128, 0.1)',
   },
   setPillText: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: typeScale.body,
+    lineHeight: 22,
   },
   footer: {
     paddingHorizontal: 20,
@@ -452,7 +453,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: typeScale.title,
     color: '#FFFFFF',
   },
 });

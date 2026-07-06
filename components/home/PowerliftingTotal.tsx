@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -131,16 +132,16 @@ const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerTotal: {},
-  headerNum: { fontSize: 34, fontWeight: '500', letterSpacing: -1 },
-  headerUnit: { fontSize: 15, fontWeight: '500' },
+  headerNum: { fontSize: typeScale.hero, fontWeight: '500', letterSpacing: -1 },
+  headerUnit: { fontSize: typeScale.emphasis, fontWeight: '500' },
 
   liftStack: { alignItems: 'flex-end', gap: 3 },
   liftRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  liftVal: { fontSize: 15, fontWeight: '600', letterSpacing: -0.3 },
-  liftLabel: { fontSize: 12, fontWeight: '400', width: 58 },
+  liftVal: { fontSize: typeScale.emphasis, fontWeight: '600', letterSpacing: -0.3 },
+  liftLabel: { fontSize: typeScale.meta, fontWeight: '400', width: 58 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 14, borderRadius: 2 },
   ladderLabels: { flexDirection: 'row', marginTop: 7 },
-  ladderBaseLabel: { fontSize: 11, textAlign: 'right' },
+  ladderBaseLabel: { fontSize: typeScale.meta, textAlign: 'right' },
 });

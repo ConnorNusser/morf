@@ -1,6 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
+import { type as typeScale } from '@/lib/ui/typography';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { SessionPR } from '@/components/history/prSessions';
 import { calculateWorkoutStats, formatWorkoutStatsLine } from '@/lib/utils/utils';
@@ -148,23 +149,23 @@ const styles = StyleSheet.create({
   },
   workoutTitle: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: typeScale.title,
+    lineHeight: 24,
     letterSpacing: -0.2,
   },
   workoutMeta: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 3,
   },
   topLiftLine: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 4,
   },
   prLine: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 4,
   },
   prChip: {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
     letterSpacing: 0.5,
   },
 });

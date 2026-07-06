@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -392,17 +393,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 10,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
   },
   subtitle: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     letterSpacing: 0.4,
     opacity: 0.5,
   },
@@ -422,12 +423,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   verdict: {
-    fontSize: 14,
-    lineHeight: 19,
+    fontSize: typeScale.body,
+    lineHeight: 22,
   },
   evidence: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 1,
   },
   ladder: {
@@ -440,8 +441,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   barName: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     width: 66,
   },
   barTrack: {
@@ -455,14 +456,14 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   barValue: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     minWidth: 52,
     textAlign: 'right',
   },
   footnote: {
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: typeScale.meta,
+    lineHeight: 19,
     marginTop: 4,
   },
   // Modal
@@ -484,8 +485,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: typeScale.title,
+    lineHeight: 27,
   },
   modalContent: {
     flex: 1,
@@ -494,7 +495,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalMeta: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -509,8 +510,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   exerciseName: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: typeScale.body,
+    lineHeight: 22,
     flex: 1,
   },
   exerciseCountBadge: {
@@ -520,6 +521,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   exerciseCountText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
 });

@@ -1,11 +1,12 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
-import { OverallStats } from '@/lib/storage/userProfile';
-import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Card from './Card';
-import ProgressBar from './ProgressBar';
-import TierBadge from './TierBadge';
+import { useTheme } from "@/contexts/ThemeContext";
+import { getTierColor, StrengthTier } from "@/lib/data/strengthStandards";
+import { OverallStats } from "@/lib/storage/userProfile";
+import { type } from "@/lib/ui/typography";
+import React, { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Card from "./Card";
+import ProgressBar from "./ProgressBar";
+import TierBadge from "./TierBadge";
 
 interface OverallStatsCardProps {
   stats: OverallStats;
@@ -14,63 +15,86 @@ interface OverallStatsCardProps {
 export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   const { currentTheme } = useTheme();
 
-  const percentile = Number.isNaN(stats.overallPercentile) ? 0 : stats.overallPercentile;
+  const percentile = Number.isNaN(stats.overallPercentile)
+    ? 0
+    : stats.overallPercentile;
   const tierColor = getTierColor(stats.strengthLevel as StrengthTier);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   return (
     <>
-    <TouchableOpacity activeOpacity={0.8} onPress={() => setIsModalOpen(true)}>
-    <Card variant="elevated" style={styles.container}>
-      <View style={styles.header}>
-        <Text style={[
-          styles.title,
-          {
-            color: currentTheme.colors.text,
-          }
-        ]}>
-          Overall Strength
-        </Text>
-      </View>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => setIsModalOpen(true)}
+      >
+        <Card variant="elevated" style={styles.container}>
+          <View style={styles.header}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: type.meta,
+                  color: currentTheme.colors.text,
+                },
+              ]}
+            >
+              OVERALL STRENGTH
+            </Text>
+          </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statBlock}>
-          <Text style={[styles.statValue, { color: tierColor }]}>
-            {percentile}
-          </Text>
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-            percentile
-          </Text>
-        </View>
+          <View style={styles.statsContainer}>
+            <View style={styles.statBlock}>
+              <Text style={[styles.statValue, { color: tierColor }]}>
+                {percentile}
+              </Text>
+              <Text
+                style={[styles.statLabel, { color: currentTheme.colors.text }]}
+              >
+                percentile
+              </Text>
+            </View>
 
-        <View style={styles.statBlock}>
-          <TierBadge tier={stats.strengthLevel as StrengthTier} size="large" variant="text" />
-          <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>
-            tier
-          </Text>
-        </View>
-      </View>
+            <View style={styles.statBlock}>
+              <TierBadge
+                tier={stats.strengthLevel as StrengthTier}
+                size="large"
+                variant="text"
+              />
+              <Text
+                style={[styles.statLabel, { color: currentTheme.colors.text }]}
+              >
+                tier
+              </Text>
+            </View>
+          </View>
 
-      <View style={styles.progressContainer}>
-        <ProgressBar
-          progress={percentile}
-          height={10}
-          style={styles.progressBar}
-          showTicks={true}
-          exerciseName="Overall Strength"
-          color={tierColor}
-        />
-        <Text style={[styles.progressLabel, { color: currentTheme.colors.text }]}>
-          Progress to S Tier
-        </Text>
-      </View>
-    </Card>
-    </TouchableOpacity>
-    {isModalOpen && (
-      // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-      React.createElement(require('./OverallStrengthModal').default, { visible: isModalOpen, onClose: () => setIsModalOpen(false) })
-    )}
+          <View style={styles.progressContainer}>
+            <ProgressBar
+              progress={percentile}
+              height={10}
+              style={styles.progressBar}
+              showTicks={true}
+              exerciseName="Overall Strength"
+              color={tierColor}
+            />
+            <Text
+              style={[
+                styles.progressLabel,
+                { color: currentTheme.colors.text },
+              ]}
+            >
+              Progress to S Tier
+            </Text>
+          </View>
+        </Card>
+      </TouchableOpacity>
+      {isModalOpen &&
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
+        React.createElement(require("./OverallStrengthModal").default, {
+          visible: isModalOpen,
+          onClose: () => setIsModalOpen(false),
+        })}
     </>
   );
 }
@@ -78,31 +102,33 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 const styles = StyleSheet.create({
   container: {},
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 10,
   },
+  // The shared uppercase micro-label section grammar (History / Career).
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "700",
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   statBlock: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statValue: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontSize: type.hero,
+    fontWeight: "bold",
+    lineHeight: 33,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: type.meta,
     opacity: 0.7,
   },
   progressContainer: {
@@ -112,8 +138,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   progressLabel: {
-    fontSize: 11,
+    fontSize: type.meta,
     opacity: 0.6,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

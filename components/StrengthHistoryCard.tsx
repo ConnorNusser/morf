@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
 import { formatShortDate as formatDate } from '@/lib/ui/formatters';
+import { type as typeScale } from '@/lib/ui/typography';
 import Svg, { Path, Line, Text as SvgText, Circle } from 'react-native-svg';
 import Card from './Card';
 import StrengthHistoryModal from './StrengthHistoryModal';
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontSize: 16,
+    fontSize: typeScale.body,
   },
   changeContainer: {
     paddingHorizontal: 8,
@@ -257,10 +258,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(128, 128, 128, 0.1)',
   },
   changeText: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     marginTop: 8,
     textAlign: 'center',
   },

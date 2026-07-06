@@ -11,6 +11,7 @@ import {
   nearestLift,
 } from '@/components/history/liftSeries';
 import { computeActivityStatus } from '@/lib/history/activityStatus';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -481,7 +482,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  kicker: { fontSize: 13, letterSpacing: 0.2 },
+  kicker: { fontSize: typeScale.meta, letterSpacing: 0.2 },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
   titleRow: { height: 42, justifyContent: 'center' },
@@ -492,29 +493,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   titleLeft: { flex: 1, marginRight: 12 },
-  liftName: { fontSize: 20, letterSpacing: -0.4 },
-  gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
-  value: { fontSize: 34, letterSpacing: -0.8 },
-  valueUnit: { fontSize: 13, letterSpacing: 0 },
+  liftName: { fontSize: typeScale.heading, letterSpacing: -0.4 },
+  gain: { fontSize: typeScale.meta, letterSpacing: 0.1, marginTop: 1 },
+  value: { fontSize: typeScale.hero, letterSpacing: -0.8 },
+  valueUnit: { fontSize: typeScale.meta, letterSpacing: 0 },
   // Index-mode focal score: the biggest, first-read numeral on the screen.
   scoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
-  scoreValue: { fontSize: 46, letterSpacing: -1.2, lineHeight: 50 },
-  scoreUnit: { fontSize: 16, letterSpacing: 0 },
+  scoreValue: { fontSize: typeScale.hero, letterSpacing: -1.2, lineHeight: 33 },
+  scoreUnit: { fontSize: typeScale.emphasis, letterSpacing: 0 },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
-  deltaBig: { fontSize: 16, letterSpacing: 0.1 },
-  contextLine: { fontSize: 12, letterSpacing: 0.2, marginTop: 8 },
+  deltaBig: { fontSize: typeScale.emphasis, letterSpacing: 0.1 },
+  contextLine: { fontSize: typeScale.meta, letterSpacing: 0.2, marginTop: 8 },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  axisLabel: { fontSize: 11, letterSpacing: 0.2 },
+  axisLabel: { fontSize: typeScale.meta, letterSpacing: 0.2 },
   tfRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 8 },
-  tfBtnText: { fontSize: 12.5, letterSpacing: 0.2 },
-  caption: { fontSize: 11.5, letterSpacing: 0.2, marginTop: 10 },
+  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
+  tfBtnText: { fontSize: typeScale.meta, letterSpacing: 0.2 },
+  caption: { fontSize: typeScale.meta, letterSpacing: 0.2, marginTop: 10 },
   empty: { paddingVertical: 22, alignItems: 'center' },
-  emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
-  emptyLift: { fontSize: 16, letterSpacing: -0.2, marginBottom: 3 },
+  emptyText: { fontSize: typeScale.body, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 },
+  emptyLift: { fontSize: typeScale.title, letterSpacing: -0.2, marginBottom: 3 },
   pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   pip: { width: 22, height: 5, borderRadius: 2.5 },
-  comebackTitle: { fontSize: 20, letterSpacing: -0.4, marginBottom: 6 },
+  comebackTitle: { fontSize: typeScale.heading, letterSpacing: -0.4, marginBottom: 6 },
   comebackCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,5 +525,5 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginTop: 16,
   },
-  comebackCtaText: { color: '#fff', fontSize: 15 },
+  comebackCtaText: { color: '#fff', fontSize: typeScale.title },
 });

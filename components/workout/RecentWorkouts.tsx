@@ -5,6 +5,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { type as typeScale } from '@/lib/ui/typography';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   },
   secondaryText: { fontSize: 14 },
   quickStart: { marginBottom: 6 },
-  title: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
+  title: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
   card: {},
   row: {
     flexDirection: 'row',
@@ -128,9 +129,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowText: { flex: 1, gap: 3 },
-  date: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
-  exName: { fontSize: 15 },
+  date: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  exName: { fontSize: typeScale.body },
   rowAction: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rowActionText: { fontSize: 13, fontWeight: '600' },
+  rowActionText: { fontSize: typeScale.meta, fontWeight: '600' },
   rowChip: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 });

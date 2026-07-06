@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { useExpandToggle } from '@/hooks/useExpandToggle';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   filterSummary: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
   },
   filterList: {
     paddingTop: 8,
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   filterChipText: {
-    fontSize: 16,
+    fontSize: typeScale.body,
   },
   chipIcon: {
     marginLeft: 3,

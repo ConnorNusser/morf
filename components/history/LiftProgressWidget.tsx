@@ -23,6 +23,7 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { LiftProgress, LiftTier } from '@/lib/history/liftProgress';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
@@ -42,14 +43,19 @@ const metricOf = (p: { weight: number; reps: number }): number => (p.weight > 0 
 
 // The month-chip strip — shared by graded fronts and ungraded plain rows.
 // `accent` tints the latest "you are here" capsule (tier color when graded).
+// At the app's type scale three chips is the most that fits beside a lift name
+// on a small phone, so the strip shows the latest three months.
+const MAX_POINTS = 3;
+
 function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const points = lift.points.slice(-MAX_POINTS);
   return (
     <RNView style={styles.points}>
-      {lift.points.map((p, i) => {
-        const latest = i === lift.points.length - 1;
-        const prev = i > 0 ? lift.points[i - 1] : null;
+      {points.map((p, i) => {
+        const latest = i === points.length - 1;
+        const prev = i > 0 ? points[i - 1] : null;
         const trendColor = prev
           ? metricOf(p) > metricOf(prev)
             ? UP
@@ -244,10 +250,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
-  headLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  headMeta: { fontSize: 11, opacity: 0.5 },
+  headLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: typeScale.meta, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   face: {
@@ -258,31 +264,31 @@ const styles = StyleSheet.create({
   },
   // Two-line left column, flush left: name over badge, one shared edge down the board.
   nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  name: { fontSize: 15, fontWeight: '600' },
+  name: { fontSize: typeScale.emphasis, fontWeight: '600' },
   gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
-  viewAll: { paddingVertical: 12, alignItems: 'center' },
-  viewAllText: { fontSize: 13, fontWeight: '600' },
-  points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  viewAll: { paddingVertical: 16, alignItems: 'center' },
+  viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
+  points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
   // Each point is a small themed chip (matches the pill language used by delta/sort/
   // record chips elsewhere in History) rather than bare floating text.
   point: {
     alignItems: 'center',
-    minWidth: 50,
+    minWidth: 46,
     borderRadius: 8,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
-  set: { fontSize: 13, letterSpacing: -0.2 },
-  month: { fontSize: 9, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
+  set: { fontSize: typeScale.body, letterSpacing: -0.2 },
+  month: { fontSize: typeScale.meta, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  backLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   backTrend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTrendText: { fontSize: 11, fontWeight: '500' },
+  backTrendText: { fontSize: typeScale.meta, fontWeight: '500' },
   backMainRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
-  backMain: { fontSize: 14, fontWeight: '600', letterSpacing: -0.2 },
-  backPct: { fontSize: 11, fontWeight: '500' },
+  backMain: { fontSize: typeScale.body, fontWeight: '600', letterSpacing: -0.2 },
+  backPct: { fontSize: typeScale.meta, fontWeight: '500' },
   backBar: { marginTop: 2 },
 });
