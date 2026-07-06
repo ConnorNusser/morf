@@ -3,6 +3,7 @@ import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import IconButton from "@/components/IconButton";
 import { Text, useInk } from "@/components/Themed";
+import NavRow from "@/components/ui/NavRow";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
@@ -180,6 +181,12 @@ export default function TodayCard() {
           label="Start a workout"
           onPress={startFreestyle}
           style={styles.primaryButton}
+        />
+        {/* Quiet secondary path — same grammar as View Leaderboards below. */}
+        <NavRow
+          label="Build a routine"
+          onPress={() => router.push("/notes")}
+          style={styles.buildRoutineRow}
         />
       </Card>
     );
@@ -367,5 +374,9 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: space.lg,
+  },
+  buildRoutineRow: {
+    marginTop: space.xs,
+    paddingBottom: 0,
   },
 });
