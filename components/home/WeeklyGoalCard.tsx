@@ -235,18 +235,21 @@ export default function WeeklyGoalCard() {
   );
 }
 
+// Roomy row spacing: this card sits on the home top page, which is sized to
+// most of a viewport — the breathing room lives inside the card, not as raw
+// empty bands around it.
 const styles = StyleSheet.create({
   // Flat: no surface/border/radius — reads as inline content and saves the card's
   // padding + chrome height.
   card: {
     paddingHorizontal: 0,
-    paddingVertical: 4,
+    paddingVertical: 8,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   // The shared uppercase micro-label section grammar (History / Career).
   title: {
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
   },
   dayColumn: {
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   dot: {
     width: 22,
@@ -285,8 +288,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 10,
+    marginTop: 18,
+    paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {

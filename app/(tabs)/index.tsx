@@ -354,9 +354,10 @@ export default function HomeScreen() {
             { paddingTop: contentTopPadding, backgroundColor: "transparent" },
           ]}
         >
-          {/* Page 1: header + routine + leaderboards, spread across one
-              viewport with the leaderboard row sitting at the fold. */}
-          <View style={[styles.topPage, { minHeight: pageMinHeight }]}>
+          {/* Page 1: header + routine + leaderboards. Like the strength page,
+              capped at ~80% of a viewport with the breathing room inside the
+              cards, so the wrapper only distributes a little slack. */}
+          <View style={[styles.topPage, { minHeight: Math.round(pageMinHeight * 0.8) }]}>
             <DashboardHeader
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}

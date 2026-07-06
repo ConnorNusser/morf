@@ -264,7 +264,7 @@ export default function TodayCard() {
         activeOpacity={0.9}
         onPress={() => setShowOverview(true)}
       >
-        <Card variant="elevated" padding={8}>
+        <Card variant="elevated" padding={12}>
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 3,
+    marginTop: 6,
   },
   pagerBtn: {
     width: 36,
@@ -452,9 +452,11 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
     opacity: 0.6,
   },
+  // Roomier list rhythm: this card anchors the home top page, which is sized
+  // to most of a viewport — the breathing room lives between its rows.
   exerciseList: {
-    marginTop: 10,
-    gap: 10,
+    marginTop: 20,
+    gap: 14,
   },
   exerciseRow: {
     flexDirection: "row",
@@ -489,6 +491,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   primaryButton: {
-    marginTop: 14,
+    marginTop: 24,
   },
 });
