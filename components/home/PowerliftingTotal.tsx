@@ -1,7 +1,12 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { type as typeScale } from '@/lib/ui/typography';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+
+// Club gold — the same legendary accent the rarity system uses, because a pound
+// club IS the lifter's legendary title.
+const CLUB_GOLD = '#F59E0B';
 
 export interface TotalLift {
   label: string; // "Squat" / "Bench" / "Deadlift"
@@ -63,12 +68,28 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
     Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
   );
 
+  // The lifter's current title: the biggest pound club the total has claimed.
+  const currentClub = [...data.clubs].reverse().find(c => c.achieved)?.value ?? 0;
+
   return (
     <View style={styles.container}>
+      {/* Identity row: what this number IS, and the club title it has earned. */}
+      <View style={styles.titleRow}>
+        <Text style={[styles.microLabel, { color: colors.text }]}>MAIN LIFT TOTAL</Text>
+        {currentClub > 0 && (
+          <View style={[styles.clubChip, { backgroundColor: CLUB_GOLD + '1A', borderColor: CLUB_GOLD + '55' }]}>
+            <Ionicons name="trophy" size={11} color={CLUB_GOLD} />
+            <Text style={[styles.clubChipText, { color: CLUB_GOLD }]}>
+              {currentClub.toLocaleString()} LB CLUB
+            </Text>
+          </View>
+        )}
+      </View>
+
       <View style={styles.header}>
         {/* Total on the left. */}
         <Text style={styles.headerTotal}>
-          <Text style={[styles.headerNum, { color: colors.text + '99' }]}>{data.total.toLocaleString()}</Text>
+          <Text style={[styles.headerNum, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
           <Text style={[styles.headerUnit, { color: colors.text + '70' }]}> lb</Text>
         </Text>
 
@@ -124,12 +145,39 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
           </Text>
         ))}
       </View>
+
+      {/* The chase — Career's NEXT grammar pointed at the next pound club. */}
+      <Text style={[styles.nextLine, { color: colors.text + '99' }]}>
+        {data.allUnlocked ? (
+          <Text style={{ color: CLUB_GOLD, fontWeight: '600' }}>Every club conquered</Text>
+        ) : (
+          <>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{data.remaining.toLocaleString()} lb</Text>
+            {' to the '}
+            <Text style={{ color: CLUB_GOLD, fontWeight: '600' }}>{data.nextTarget.toLocaleString()} lb Club</Text>
+          </>
+        )}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
+  // The shared uppercase micro-label grammar + the earned club title.
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  clubChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  clubChipText: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.4 },
+  nextLine: { fontSize: typeScale.meta, marginTop: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerTotal: {},
   headerNum: { fontSize: typeScale.hero, fontWeight: '500', letterSpacing: -1 },
