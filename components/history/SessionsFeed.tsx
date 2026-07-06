@@ -152,15 +152,15 @@ const styles = StyleSheet.create({
   microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   // Log entries, separated by hairlines like every list on the tab.
   entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
-  entry: { paddingTop: 12, paddingBottom: 4 },
+  entry: { paddingTop: 14, paddingBottom: 8 },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  entryIdentity: { flex: 1, gap: 1 },
+  entryIdentity: { flex: 1, gap: 2 },
   entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2 },
   entryMeta: { fontSize: typeScale.meta, opacity: 0.5 },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
   // The per-exercise table.
-  exList: { marginTop: 8, gap: 7 },
+  exList: { marginTop: 10, gap: 8 },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   exName: { flex: 1, fontSize: typeScale.body },
   exSets: { fontSize: typeScale.meta },

@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
   headLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   headMeta: { fontSize: typeScale.meta, opacity: 0.5 },
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   name: { fontSize: typeScale.emphasis, fontWeight: '600' },
   gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
-  viewAll: { paddingVertical: 12, alignItems: 'center' },
+  viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
   points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
   // Each point is a small themed chip (matches the pill language used by delta/sort/

@@ -752,14 +752,14 @@ const styles = StyleSheet.create({
   // Records strip
   recordsStrip: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   recordCard: {
     flex: 1,
     borderRadius: 12,
     borderWidth: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
   },
   recordName: {
     fontSize: typeScale.meta,
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: 3,
-    marginTop: 6,
+    marginTop: 8,
   },
   recordValue: {
     fontSize: typeScale.title,

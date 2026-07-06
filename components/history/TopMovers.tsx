@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingBottom: 6,
+    paddingBottom: 10,
   },
   heading: {
     fontSize: typeScale.meta,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   firstRow: {
