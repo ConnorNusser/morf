@@ -2,14 +2,16 @@ import AchievementBadge from "@/components/gamification/AchievementBadge";
 import AchievementModal, {
   AchievementModalItem,
 } from "@/components/gamification/AchievementModal";
+import { Text } from "@/components/Themed";
+import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { TIER_COLORS } from "@/lib/data/strengthStandards";
 import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity, RARITY_META } from "@/lib/gamification/rarity";
 import { TOTAL_CLUB_TIERS } from "@/lib/gamification/strengthFeats";
-import { type as typeScale } from "@/lib/ui/typography";
+import { radius, space, tint, withAlpha } from "@/lib/ui/tokens";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 // A club's color is its strength-tier color (600 = E grey ... 2000 = S gold).
 const clubColor = (target: number): string =>
@@ -104,16 +106,14 @@ export default function PowerliftingTotal({
     <View style={styles.container}>
       {/* Identity row: what this number IS, and the club title it has earned. */}
       <View style={styles.titleRow}>
-        <Text style={[styles.microLabel, { color: colors.text }]}>
-          MAIN LIFT TOTAL
-        </Text>
+        <SectionLabel style={styles.microLabel}>MAIN LIFT TOTAL</SectionLabel>
         {club && (
           <TouchableOpacity
             style={[
               styles.clubChip,
               {
-                backgroundColor: clubAccent + "1A",
-                borderColor: clubAccent + "55",
+                backgroundColor: tint(clubAccent),
+                borderColor: withAlpha(clubAccent, "muted"),
               },
             ]}
             activeOpacity={0.7}
@@ -127,7 +127,11 @@ export default function PowerliftingTotal({
               rarity={club.rarity}
               size={20}
             />
-            <Text style={[styles.clubChipText, { color: clubAccent }]}>
+            <Text
+              variant="meta"
+              weight="bold"
+              style={[styles.clubChipText, { color: clubAccent }]}
+            >
               {club.title.toUpperCase()}
             </Text>
           </TouchableOpacity>
@@ -136,11 +140,16 @@ export default function PowerliftingTotal({
 
       <View style={styles.header}>
         {/* Total on the left. */}
-        <Text style={styles.headerTotal}>
-          <Text style={[styles.headerNum, { color: colors.text }]}>
+        <Text>
+          <Text
+            variant="hero"
+            tone="primary"
+            weight="medium"
+            style={styles.headerNum}
+          >
             {data.total.toLocaleString()}
           </Text>
-          <Text style={[styles.headerUnit, { color: colors.text + "70" }]}>
+          <Text variant="emphasis" tone="muted" weight="medium">
             {" "}
             lb
           </Text>
@@ -151,14 +160,14 @@ export default function PowerliftingTotal({
           {data.lifts.map((l) => (
             <View key={l.label} style={styles.liftRow}>
               <Text
-                style={[
-                  styles.liftVal,
-                  { color: l.value > 0 ? l.color : colors.text + "55" },
-                ]}
+                variant="emphasis"
+                tone="muted"
+                weight="semiBold"
+                style={[styles.liftVal, l.value > 0 && { color: l.color }]}
               >
                 {l.value.toLocaleString()}
               </Text>
-              <Text style={[styles.liftLabel, { color: colors.text + "80" }]}>
+              <Text variant="meta" tone="secondary" style={styles.liftLabel}>
                 {l.label}
               </Text>
             </View>
@@ -191,15 +200,10 @@ export default function PowerliftingTotal({
         {data.clubs.map((club, b) => (
           <Text
             key={club.value}
-            style={[
-              styles.ladderBaseLabel,
-              {
-                flex: bandCounts[b],
-                color: colors.text,
-                opacity: b === currentBand ? 1 : 0.35,
-                fontWeight: b === currentBand ? "600" : "400",
-              },
-            ]}
+            variant="meta"
+            tone={b === currentBand ? "primary" : "faint"}
+            weight={b === currentBand ? "semiBold" : "regular"}
+            style={[styles.ladderBaseLabel, { flex: bandCounts[b] }]}
           >
             {club.value.toLocaleString()}
           </Text>
@@ -208,19 +212,20 @@ export default function PowerliftingTotal({
 
       {/* The chase — Career's NEXT grammar pointed at the next pound club,
           colored by the tier that club sits on (E grey up to S gold). */}
-      <Text style={[styles.nextLine, { color: colors.text + "99" }]}>
+      <Text variant="meta" tone="secondary" style={styles.nextLine}>
         {data.allUnlocked ? (
-          <Text style={{ color: TIER_COLORS.S, fontWeight: "600" }}>
+          <Text weight="semiBold" style={{ color: TIER_COLORS.S }}>
             Every club conquered
           </Text>
         ) : (
           <>
-            <Text style={{ color: colors.text, fontWeight: "700" }}>
+            <Text tone="primary" weight="bold">
               {data.remaining.toLocaleString()} lb
             </Text>
             {" to the "}
             <Text
-              style={{ color: clubColor(data.nextTarget), fontWeight: "600" }}
+              weight="semiBold"
+              style={{ color: clubColor(data.nextTarget) }}
             >
               {data.nextTarget.toLocaleString()} lb Club
             </Text>
@@ -238,62 +243,53 @@ export default function PowerliftingTotal({
 }
 
 const styles = StyleSheet.create({
-  container: { paddingVertical: 4, gap: 12 },
+  container: { paddingVertical: space.xs, gap: space.md },
   // The shared uppercase micro-label grammar + the earned club title.
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   microLabel: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
-    letterSpacing: 1,
-    opacity: 0.45,
+    marginBottom: 0,
   },
   clubChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingLeft: 4,
-    paddingRight: 9,
-    paddingVertical: 3,
-    borderRadius: 14,
+    gap: space.sm,
+    paddingLeft: space.xs,
+    paddingRight: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
   clubChipText: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
     letterSpacing: 0.4,
   },
-  nextLine: { fontSize: typeScale.meta, marginBottom: 24 },
+  nextLine: { marginBottom: space.section },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
-  headerTotal: {},
-  headerNum: { fontSize: typeScale.hero, fontWeight: "500", letterSpacing: -1 },
-  headerUnit: { fontSize: typeScale.emphasis, fontWeight: "500" },
+  headerNum: { letterSpacing: -1 },
 
-  liftStack: { alignItems: "flex-end", gap: 3 },
+  liftStack: { alignItems: "flex-end", gap: space.xs },
   liftRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 12,
-    padding: 2,
+    gap: space.md,
+    padding: space.xs,
   },
   liftVal: {
-    fontSize: typeScale.emphasis,
-    fontWeight: "600",
     letterSpacing: -0.3,
   },
-  liftLabel: { fontSize: typeScale.meta, fontWeight: "400", width: 58 },
+  liftLabel: { width: 58 },
 
-  ladderRow: { flexDirection: "row", gap: 2, marginTop: 12 },
+  ladderRow: { flexDirection: "row", gap: 2, marginTop: space.md },
   ladderCell: { flex: 1, height: 14, borderRadius: 2 },
-  ladderLabels: { flexDirection: "row", marginTop: 4 },
-  ladderBaseLabel: { fontSize: typeScale.meta, textAlign: "right" },
+  ladderLabels: { flexDirection: "row", marginTop: space.xs },
+  ladderBaseLabel: { textAlign: "right" },
 });

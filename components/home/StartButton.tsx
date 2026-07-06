@@ -1,8 +1,9 @@
+import { Text, useInk } from "@/components/Themed";
 import { useTheme } from "@/contexts/ThemeContext";
-import { type as typeScale } from "@/lib/ui/typography";
+import { radius, space } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback } from "react";
-import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -32,6 +33,7 @@ export default function StartButton({
 }: StartButtonProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const ink = useInk();
   const outlined = variant === "outlined";
 
   const pressScale = useSharedValue(1);
@@ -78,10 +80,9 @@ export default function StartButton({
       onPressOut={onPressOut}
     >
       <Text
-        style={[
-          styles.label,
-          { color: outlined ? colors.text : colors.background },
-        ]}
+        variant="emphasis"
+        weight="semiBold"
+        style={{ color: outlined ? colors.text : colors.background }}
       >
         {label}
       </Text>
@@ -90,7 +91,7 @@ export default function StartButton({
           styles.arrow,
           arrowAnim,
           {
-            backgroundColor: outlined ? colors.text + "18" : colors.background,
+            backgroundColor: outlined ? ink.ghost : colors.background,
           },
         ]}
       >
@@ -105,16 +106,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    paddingLeft: 24,
-    paddingRight: 10,
-    borderRadius: 18,
+    paddingVertical: space.md,
+    paddingLeft: space.section,
+    paddingRight: space.md,
+    // CTA grammar: primary launch actions are pills, like EmptyState's CTA.
+    borderRadius: radius.pill,
   },
-  label: { fontSize: typeScale.emphasis, fontWeight: "600" },
   arrow: {
     width: 43,
     height: 43,
-    borderRadius: 13,
+    borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },

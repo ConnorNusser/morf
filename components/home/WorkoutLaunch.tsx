@@ -1,14 +1,16 @@
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import { Text, useInk } from '@/components/Themed';
 import { AchievementFact, CareerSnapshot } from '@/contexts/WorkoutLaunchContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { formatRelativeTime } from '@/lib/ui/formatters';
+import { radius, space, withAlpha } from '@/lib/ui/tokens';
 import { type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -91,6 +93,7 @@ function buildPool(c: CareerSnapshot): Brief[] {
 export default function WorkoutLaunch({ visible, routineName, subtitle, exercises = [], career, onLaunch, onClose }: Props) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const ink = useInk();
   const tier = getStrengthTier(career.percentile);
   const tierColor = getTierColor(tier);
   const meta = subtitle || (exercises.length ? `${exercises.length} exercise${exercises.length === 1 ? '' : 's'}` : '');
@@ -139,13 +142,19 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
         <Pressable style={styles.fill} onPress={finish}>
           <View style={styles.center}>
             <Animated.View entering={FadeIn.duration(240)} style={styles.headerRow}>
-              <Text style={[styles.tierChip, { color: tierColor, borderColor: tierColor + '55' }]}>{tier}</Text>
-              <Text style={[styles.routine, { color: colors.text }]} numberOfLines={1}>
+              <Text
+                variant="meta"
+                weight="bold"
+                style={[styles.tierChip, { color: tierColor, borderColor: withAlpha(tierColor, 'muted') }]}
+              >
+                {tier}
+              </Text>
+              <Text variant="title" tone="primary" weight="bold" style={styles.routine} numberOfLines={1}>
                 {routineName}
               </Text>
             </Animated.View>
             {!!meta && (
-              <Animated.Text entering={FadeIn.delay(120).duration(240)} style={[styles.meta, { color: colors.text + '80' }]}>
+              <Animated.Text entering={FadeIn.delay(120).duration(240)} style={[styles.meta, { color: ink.secondary }]}>
                 {meta}
               </Animated.Text>
             )}
@@ -182,8 +191,10 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
               </Animated.Text>
               {item.achievement && (
                 <Animated.View key={`${item.tag}-ach`} entering={FadeInDown.delay(430).duration(360)}>
-                  <Text style={[styles.achDesc, { color: colors.text + 'B0' }]}>{item.achievement.description}</Text>
-                  <Text style={[styles.achDate, { color: colors.text + '66' }]}>
+                  <Text variant="body" tone="secondary" weight="medium" style={styles.achDesc}>
+                    {item.achievement.description}
+                  </Text>
+                  <Text variant="meta" tone="muted" weight="semiBold" style={styles.achDate}>
                     Earned {formatRelativeTime(new Date(item.achievement.unlockedAt))}
                   </Text>
                 </Animated.View>
@@ -191,10 +202,12 @@ export default function WorkoutLaunch({ visible, routineName, subtitle, exercise
             </View>
           </View>
 
-          <Text style={[styles.hint, { color: colors.text + '4D' }]}>Tap to start</Text>
+          <Text variant="meta" tone="faint" weight="semiBold" style={styles.hint}>
+            Tap to start
+          </Text>
         </Pressable>
 
-        <View style={[styles.timeTrack, { backgroundColor: colors.text + '12' }]}>
+        <View style={[styles.timeTrack, { backgroundColor: ink.hairline }]}>
           <Animated.View style={[styles.timeFill, timebarStyle, { backgroundColor: tierColor }]} />
         </View>
       </Animated.View>
@@ -206,28 +219,26 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', paddingHorizontal: 34 },
 
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   tierChip: {
-    fontSize: typeScale.meta,
-    fontWeight: '800',
     letterSpacing: 0.5,
     borderWidth: 1,
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    borderRadius: radius.badge,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
     overflow: 'hidden',
   },
-  routine: { fontSize: typeScale.title, fontWeight: '700', flex: 1 },
-  meta: { fontSize: typeScale.meta, fontWeight: '500', marginTop: 6 },
+  routine: { flex: 1 },
+  meta: { fontSize: typeScale.meta, fontWeight: '500', marginTop: space.sm },
 
   brief: { marginTop: 34 },
-  badge: { marginBottom: 18 },
-  tag: { fontSize: typeScale.meta, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
+  badge: { marginBottom: space.xl },
+  tag: { fontSize: typeScale.meta, fontWeight: '800', letterSpacing: 2, marginBottom: space.md },
   cue: { fontSize: typeScale.screenTitle, fontWeight: '700', lineHeight: 34, letterSpacing: -0.3 },
-  achDesc: { fontSize: typeScale.body, fontWeight: '500', lineHeight: 22, marginTop: 12 },
-  achDate: { fontSize: typeScale.meta, fontWeight: '600', marginTop: 8 },
+  achDesc: { lineHeight: 22, marginTop: space.md },
+  achDate: { marginTop: space.sm },
 
-  hint: { fontSize: typeScale.meta, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
+  hint: { textAlign: 'center', marginBottom: space.section },
   timeTrack: { height: 3, width: '100%' },
   timeFill: { height: '100%' },
 });

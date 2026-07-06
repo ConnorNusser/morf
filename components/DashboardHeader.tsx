@@ -1,11 +1,12 @@
 import TierRing from "@/components/gamification/TierRing";
+import { Text, useInk } from "@/components/Themed";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
-import { type as typeScale } from "@/lib/ui/typography";
+import { radius, space, tint } from "@/lib/ui/tokens";
 import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type ViewMode = "home" | "feed";
 
@@ -34,6 +35,7 @@ export default function DashboardHeader({
   title,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const handleViewSelect = (mode: ViewMode) => {
@@ -64,12 +66,10 @@ export default function DashboardHeader({
                 activeOpacity={0.7}
               >
                 <Text
-                  style={[
-                    styles.appName,
-                    {
-                      color: currentTheme.colors.text,
-                    },
-                  ]}
+                  variant="screenTitle"
+                  tone="primary"
+                  weight="bold"
+                  style={styles.appName}
                 >
                   {viewMode === "home" ? "Morf" : "Feed"}
                 </Text>
@@ -118,7 +118,7 @@ export default function DashboardHeader({
                   style={[
                     styles.dropdownItem,
                     viewMode === "home" && {
-                      backgroundColor: currentTheme.colors.primary + "15",
+                      backgroundColor: tint(currentTheme.colors.primary),
                     },
                   ]}
                   onPress={() => handleViewSelect("home")}
@@ -129,29 +129,21 @@ export default function DashboardHeader({
                     color={
                       viewMode === "home"
                         ? currentTheme.colors.primary
-                        : currentTheme.colors.text + "80"
+                        : ink.secondary
                     }
                   />
                   <View style={styles.dropdownTextContainer}>
                     <Text
-                      style={[
-                        styles.dropdownText,
-                        {
-                          color:
-                            viewMode === "home"
-                              ? currentTheme.colors.primary
-                              : currentTheme.colors.text,
-                          fontWeight: "600",
-                        },
-                      ]}
+                      variant="body"
+                      weight="semiBold"
+                      tone={viewMode === "home" ? undefined : "primary"}
                     >
                       Morf
                     </Text>
                     <Text
-                      style={[
-                        styles.dropdownSubtext,
-                        { color: currentTheme.colors.text + "50" },
-                      ]}
+                      variant="meta"
+                      tone="faint"
+                      style={styles.dropdownSubtext}
                     >
                       Your stats
                     </Text>
@@ -161,7 +153,7 @@ export default function DashboardHeader({
                   style={[
                     styles.dropdownItem,
                     viewMode === "feed" && {
-                      backgroundColor: currentTheme.colors.primary + "15",
+                      backgroundColor: tint(currentTheme.colors.primary),
                     },
                   ]}
                   onPress={() => handleViewSelect("feed")}
@@ -172,29 +164,21 @@ export default function DashboardHeader({
                     color={
                       viewMode === "feed"
                         ? currentTheme.colors.primary
-                        : currentTheme.colors.text + "80"
+                        : ink.secondary
                     }
                   />
                   <View style={styles.dropdownTextContainer}>
                     <Text
-                      style={[
-                        styles.dropdownText,
-                        {
-                          color:
-                            viewMode === "feed"
-                              ? currentTheme.colors.primary
-                              : currentTheme.colors.text,
-                          fontWeight: "600",
-                        },
-                      ]}
+                      variant="body"
+                      weight="semiBold"
+                      tone={viewMode === "feed" ? undefined : "primary"}
                     >
                       Feed
                     </Text>
                     <Text
-                      style={[
-                        styles.dropdownSubtext,
-                        { color: currentTheme.colors.text + "50" },
-                      ]}
+                      variant="meta"
+                      tone="faint"
+                      style={styles.dropdownSubtext}
                     >
                       Community workouts
                     </Text>
@@ -206,12 +190,10 @@ export default function DashboardHeader({
         </>
       ) : (
         <Text
-          style={[
-            styles.appName,
-            {
-              color: currentTheme.colors.text,
-            },
-          ]}
+          variant="screenTitle"
+          tone="primary"
+          weight="bold"
+          style={styles.appName}
         >
           {title ?? "Morf"}
         </Text>
@@ -222,9 +204,9 @@ export default function DashboardHeader({
 
 const styles = StyleSheet.create({
   container: {
-    paddingTop: 4,
+    paddingTop: space.xs,
     paddingBottom: 0,
-    paddingHorizontal: 4,
+    paddingHorizontal: space.xs,
     zIndex: 1000,
   },
   headerRow: {
@@ -236,32 +218,30 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: space.md,
   },
   levelButton: {
     flexShrink: 0,
-    marginLeft: 12,
-    padding: 2,
+    marginLeft: space.md,
+    padding: space.xs,
   },
   logo: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: radius.control,
   },
   appName: {
-    fontSize: typeScale.screenTitle,
-    fontWeight: "700",
     letterSpacing: -1,
   },
   viewSelector: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    gap: 6,
-    paddingVertical: 10,
-    paddingLeft: 18,
-    paddingRight: 14,
-    borderRadius: 12,
+    gap: space.sm,
+    paddingVertical: space.md,
+    paddingLeft: space.xl,
+    paddingRight: space.lg,
+    borderRadius: radius.card,
   },
   backdrop: {
     position: "absolute",
@@ -275,7 +255,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 64,
     left: 56,
-    borderRadius: 14,
+    borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 8 },
@@ -288,18 +268,14 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: space.lg,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
   },
   dropdownTextContainer: {
     flex: 1,
   },
-  dropdownText: {
-    fontSize: typeScale.body,
-  },
   dropdownSubtext: {
-    fontSize: typeScale.meta,
-    marginTop: 2,
+    marginTop: space.xs,
   },
 });

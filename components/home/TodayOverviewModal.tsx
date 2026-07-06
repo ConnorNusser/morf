@@ -1,9 +1,10 @@
+import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, space } from '@/lib/ui/tokens';
 import { CalculatedRoutine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   visible: boolean;
@@ -27,10 +28,10 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
         <View style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+              <Text variant="heading" tone="primary" weight="bold">
                 {routine.name}
               </Text>
-              <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" tone="secondary" style={styles.subtitle}>
                 {splitLabel ? `${splitLabel} · ` : ''}
                 {routine.exercises.length} exercises · {totalSets} sets
               </Text>
@@ -47,26 +48,24 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
                 style={[styles.exerciseBlock, { borderTopColor: currentTheme.colors.border }]}
               >
                 <View style={styles.exerciseHeader}>
-                  <Text
-                    style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}
-                  >
+                  <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.exerciseName}>
                     {ex.exerciseName}
                   </Text>
                 </View>
 
                 {ex.sets.map((set, si) => (
                   <View key={si} style={styles.setRow}>
-                    <Text style={[styles.setLabel, { color: currentTheme.colors.text }]}>
+                    <Text variant="meta" tone="secondary">
                       {set.isWarmup ? 'Warmup' : `Set ${ex.sets.slice(0, si + 1).filter(s => !s.isWarmup).length}`}
                     </Text>
-                    <Text style={[styles.setValue, { color: currentTheme.colors.text }]}>
+                    <Text variant="body" tone="primary">
                       {set.targetWeight > 0 ? `${set.targetWeight} ${ex.unit}` : 'Bodyweight'} × {set.reps}
                     </Text>
                   </View>
                 ))}
               </View>
             ))}
-            <View style={{ height: 12 }} />
+            <View style={{ height: space.md }} />
           </ScrollView>
 
           <TouchableOpacity
@@ -74,7 +73,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
             onPress={onStart}
             activeOpacity={0.85}
           >
-            <Text style={[styles.startText, { color: currentTheme.colors.surface, fontWeight: '600' }]}>
+            <Text variant="title" weight="semiBold" style={{ color: currentTheme.colors.surface }}>
               Start workout
             </Text>
           </TouchableOpacity>
@@ -97,65 +96,49 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    padding: space.xl,
     paddingBottom: 34,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   headerText: {
     flex: 1,
-    marginRight: 12,
-  },
-  title: {
-    fontSize: typeScale.heading,
+    marginRight: space.md,
   },
   subtitle: {
-    fontSize: typeScale.meta,
-    opacity: 0.6,
-    marginTop: 2,
+    marginTop: space.xs,
   },
   scroll: {
     flexGrow: 0,
   },
   exerciseBlock: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    paddingTop: 14,
-    marginTop: 14,
+    paddingTop: space.lg,
+    marginTop: space.lg,
   },
   exerciseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
+    gap: space.sm,
+    marginBottom: space.sm,
   },
   exerciseName: {
-    fontSize: typeScale.emphasis,
     flexShrink: 1,
   },
   setRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
-  },
-  setLabel: {
-    fontSize: typeScale.meta,
-    opacity: 0.55,
-  },
-  setValue: {
-    fontSize: typeScale.body,
+    paddingVertical: space.xs,
   },
   startButton: {
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: space.lg,
+    borderRadius: radius.card,
     alignItems: 'center',
-    marginTop: 16,
-  },
-  startText: {
-    fontSize: typeScale.title,
+    marginTop: space.lg,
   },
 });

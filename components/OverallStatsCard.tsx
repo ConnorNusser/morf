@@ -1,9 +1,9 @@
-import { useTheme } from "@/contexts/ThemeContext";
+import { Text } from "@/components/Themed";
 import { getTierColor, StrengthTier } from "@/lib/data/strengthStandards";
 import { OverallStats } from "@/lib/storage/userProfile";
-import { type } from "@/lib/ui/typography";
+import { space } from "@/lib/ui/tokens";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "./Card";
 import ProgressBar from "./ProgressBar";
 import TierBadge from "./TierBadge";
@@ -13,8 +13,6 @@ interface OverallStatsCardProps {
 }
 
 export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
-  const { currentTheme } = useTheme();
-
   const percentile = Number.isNaN(stats.overallPercentile)
     ? 0
     : stats.overallPercentile;
@@ -30,16 +28,13 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
       >
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
+            {/* A notch above the shared micro-label size — this is the
+                home strength block's headline, not a section eyebrow. */}
             <Text
-              style={[
-                styles.title,
-                {
-                  // A notch above the shared micro-label size — this is the
-                  // home strength block's headline, not a section eyebrow.
-                  fontSize: type.body,
-                  color: currentTheme.colors.text,
-                },
-              ]}
+              variant="body"
+              tone="muted"
+              weight="bold"
+              style={styles.title}
             >
               OVERALL STRENGTH
             </Text>
@@ -47,12 +42,14 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 
           <View style={styles.statsContainer}>
             <View style={styles.statBlock}>
-              <Text style={[styles.statValue, { color: tierColor }]}>
+              <Text
+                variant="header"
+                weight="bold"
+                style={{ color: tierColor }}
+              >
                 {percentile}
               </Text>
-              <Text
-                style={[styles.statLabel, { color: currentTheme.colors.text }]}
-              >
+              <Text variant="meta" tone="secondary">
                 percentile
               </Text>
             </View>
@@ -63,9 +60,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
                 size="large"
                 variant="text"
               />
-              <Text
-                style={[styles.statLabel, { color: currentTheme.colors.text }]}
-              >
+              <Text variant="meta" tone="secondary">
                 tier
               </Text>
             </View>
@@ -80,12 +75,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
               exerciseName="Overall Strength"
               color={tierColor}
             />
-            <Text
-              style={[
-                styles.progressLabel,
-                { color: currentTheme.colors.text },
-              ]}
-            >
+            <Text variant="meta" tone="secondary" style={styles.progressLabel}>
               Progress to S Tier
             </Text>
           </View>
@@ -102,45 +92,33 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { gap: 12 },
+  container: { gap: space.md },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   // The shared uppercase micro-label section grammar (History / Career).
   title: {
-    fontWeight: "700",
     letterSpacing: 1,
-    opacity: 0.45,
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   statBlock: {
     alignItems: "center",
   },
-  statValue: {
-    fontSize: type.header,
-    fontWeight: "bold",
-  },
-  statLabel: {
-    fontSize: type.meta,
-    opacity: 0.7,
-  },
   progressContainer: {
-    marginTop: 12,
+    marginTop: space.md,
   },
   progressBar: {
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   progressLabel: {
-    fontSize: type.meta,
-    opacity: 0.6,
     textAlign: "center",
   },
 });

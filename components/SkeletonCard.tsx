@@ -1,5 +1,7 @@
+import { useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { gap } from '@/lib/ui/styles';
+import { radius, space } from '@/lib/ui/tokens';
 import React, { useEffect, useRef } from 'react';
 import { Animated, DimensionValue, StyleSheet, View, ViewStyle } from 'react-native';
 import Card from './Card';
@@ -16,7 +18,7 @@ interface SkeletonLineProps {
 }
 
 const SkeletonLine = ({ width, height = 16, style }: SkeletonLineProps) => {
-  const { currentTheme } = useTheme();
+  const ink = useInk();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -52,7 +54,7 @@ const SkeletonLine = ({ width, height = 16, style }: SkeletonLineProps) => {
           height,
           // A light overlay reads on the flat page; the old `border` fill was
           // invisible once the framing card went flat.
-          backgroundColor: currentTheme.colors.text + '18',
+          backgroundColor: ink.ghost,
         },
         { opacity },
         style,
@@ -80,7 +82,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         {/* User info */}
         <View style={styles.leaderboardUserInfo}>
           <SkeletonLine width={100} height={15} />
-          <SkeletonLine width={60} height={12} style={{ marginTop: 4 }} />
+          <SkeletonLine width={60} height={12} style={{ marginTop: space.xs }} />
         </View>
         {/* Value */}
         <SkeletonLine width={50} height={16} />
@@ -96,7 +98,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         {/* User info */}
         <View style={styles.profileInfo}>
           <SkeletonLine width={120} height={18} />
-          <SkeletonLine width={80} height={14} style={{ marginTop: 6 }} />
+          <SkeletonLine width={80} height={14} style={{ marginTop: space.sm }} />
         </View>
       </View>
     );
@@ -118,10 +120,10 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         </View>
 
         {/* Workout title */}
-        <SkeletonLine width="75%" height={22} style={{ marginTop: 12 }} />
+        <SkeletonLine width="75%" height={22} style={{ marginTop: space.md }} />
 
         {/* Stats row */}
-        <SkeletonLine width="60%" height={14} style={{ marginTop: 10 }} />
+        <SkeletonLine width="60%" height={14} style={{ marginTop: space.md }} />
 
         {/* PPL chips */}
         <View style={styles.feedChips}>
@@ -160,20 +162,20 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
     return (
       <Card variant="elevated" style={StyleSheet.flatten([styles.container, style])}>
         {/* Title */}
-        <View style={{ marginBottom: 20 }}>
+        <View style={{ marginBottom: space.xl }}>
           <SkeletonLine width="60%" height={20} />
         </View>
 
         {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.statBlock}>
-            <View style={{ marginBottom: 8 }}>
+            <View style={{ marginBottom: space.sm }}>
               <SkeletonLine width={60} height={36} />
             </View>
             <SkeletonLine width={70} height={14} />
           </View>
           <View style={[styles.statBlock, { alignItems: 'flex-end' }]}>
-            <View style={{ marginBottom: 8 }}>
+            <View style={{ marginBottom: space.sm }}>
               <SkeletonLine width={50} height={24} />
             </View>
             <SkeletonLine width={30} height={14} />
@@ -181,9 +183,9 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         </View>
 
         {/* Progress bar */}
-        <View style={{ marginTop: 24 }}>
+        <View style={{ marginTop: space.section }}>
           <SkeletonLine width="100%" height={12} style={{ borderRadius: 6 }} />
-          <SkeletonLine width="40%" height={12} style={{ marginTop: 12, alignSelf: 'center' }} />
+          <SkeletonLine width="40%" height={12} style={{ marginTop: space.md, alignSelf: 'center' }} />
         </View>
       </Card>
     );
@@ -205,13 +207,13 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
       {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.statBlock}>
-          <View style={{ marginBottom: 6 }}>
+          <View style={{ marginBottom: space.sm }}>
             <SkeletonLine width={80} height={12} />
           </View>
           <SkeletonLine width={100} height={24} />
         </View>
         <View style={[styles.statBlock, { alignItems: 'flex-end' }]}>
-          <View style={{ marginBottom: 6 }}>
+          <View style={{ marginBottom: space.sm }}>
             <SkeletonLine width={100} height={12} />
           </View>
           <SkeletonLine width={60} height={24} />
@@ -219,9 +221,9 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
       </View>
 
       {/* Progress bar */}
-      <View style={{ marginTop: 16 }}>
+      <View style={{ marginTop: space.lg }}>
         <SkeletonLine width="100%" height={8} style={{ borderRadius: 4 }} />
-        <SkeletonLine width="50%" height={12} style={{ marginTop: 8, alignSelf: 'center' }} />
+        <SkeletonLine width="50%" height={12} style={{ marginTop: space.sm, alignSelf: 'center' }} />
       </View>
     </Card>
   );
@@ -229,18 +231,18 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   statBlock: {
     flex: 1,
@@ -252,17 +254,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderRadius: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   leaderboardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    gap: 12,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xs,
+    gap: space.md,
   },
   leaderboardUserInfo: {
     flex: 1,
@@ -270,14 +272,14 @@ const styles = StyleSheet.create({
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingVertical: 8,
+    gap: space.lg,
+    paddingVertical: space.sm,
   },
   profileInfo: {
     flex: 1,
   },
   feedCard: {
-    paddingVertical: 24,
+    paddingVertical: space.section,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   feedHeader: {
@@ -288,28 +290,28 @@ const styles = StyleSheet.create({
   feedUserInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
   },
   feedChips: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
+    gap: space.sm,
+    marginTop: space.md,
   },
   feedExercises: {
-    marginTop: 16,
-    gap: 12,
+    marginTop: space.lg,
+    gap: space.md,
   },
   feedExerciseRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: space.sm,
   },
   feedActions: {
-    marginTop: 16,
+    marginTop: space.lg,
   },
   feedActionButtons: {
     flexDirection: 'row',
-    gap: 20,
+    gap: space.xl,
   },
 });

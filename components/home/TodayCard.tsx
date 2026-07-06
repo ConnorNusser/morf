@@ -1,12 +1,14 @@
 import Card from "@/components/Card";
 import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
+import { Text, useInk } from "@/components/Themed";
+import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { type as typeScale } from "@/lib/ui/typography";
+import { radius, space } from "@/lib/ui/tokens";
 import {
   getUpNextCandidates,
   getUpNextRoutine,
@@ -23,7 +25,6 @@ import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -49,6 +50,7 @@ function cleanName(name: string): string {
 
 export default function TodayCard() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const router = useRouter();
   const launch = useWorkoutLaunch();
@@ -175,33 +177,22 @@ export default function TodayCard() {
         : null;
     return (
       <Card variant="elevated">
+        <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
         <Text
-          style={[
-            styles.eyebrow,
-            {
-              color: currentTheme.colors.text,
-            },
-          ]}
-        >
-          TODAY
-        </Text>
-        <Text
-          style={[
-            styles.emptyTitle,
-            {
-              color: currentTheme.colors.text,
-            },
-          ]}
+          variant="heading"
+          tone="primary"
+          weight="bold"
+          style={styles.emptyTitle}
         >
           Ready to train?
         </Text>
         {!adviceDismissed ? (
-          <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+          <Text variant="meta" tone="secondary">
             Jump straight in — or build a routine for guided sessions and
             progress tracking.
           </Text>
         ) : freestyleSubtitle ? (
-          <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+          <Text variant="meta" tone="secondary">
             {freestyleSubtitle}
           </Text>
         ) : null}
@@ -222,12 +213,7 @@ export default function TodayCard() {
               onPress={() => router.push("/notes")}
               activeOpacity={0.85}
             >
-              <Text
-                style={[
-                  styles.secondaryButtonText,
-                  { color: currentTheme.colors.text },
-                ]}
-              >
+              <Text variant="title" tone="primary" weight="semiBold">
                 Build a routine
               </Text>
             </TouchableOpacity>
@@ -237,12 +223,7 @@ export default function TodayCard() {
               hitSlop={8}
               activeOpacity={0.6}
             >
-              <Text
-                style={[
-                  styles.dismissText,
-                  { color: currentTheme.colors.text },
-                ]}
-              >
+              <Text variant="meta" tone="muted" style={styles.dismissText}>
                 Don&apos;t suggest routines
               </Text>
             </TouchableOpacity>
@@ -269,10 +250,10 @@ export default function TodayCard() {
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}
-              style={[
-                styles.routineName,
-                { color: currentTheme.colors.text, flex: 1 },
-              ]}
+              variant="heading"
+              tone="primary"
+              weight="bold"
+              style={styles.routineName}
             >
               {calculated.name}
             </Text>
@@ -281,10 +262,7 @@ export default function TodayCard() {
                 <TouchableOpacity
                   onPress={() => flip(-1)}
                   hitSlop={8}
-                  style={[
-                    styles.pagerBtn,
-                    { backgroundColor: currentTheme.colors.text + "0D" },
-                  ]}
+                  style={[styles.pagerBtn, { backgroundColor: ink.hairline }]}
                   activeOpacity={0.5}
                 >
                   <Ionicons
@@ -296,10 +274,7 @@ export default function TodayCard() {
                 <TouchableOpacity
                   onPress={() => flip(1)}
                   hitSlop={8}
-                  style={[
-                    styles.pagerBtn,
-                    { backgroundColor: currentTheme.colors.text + "0D" },
-                  ]}
+                  style={[styles.pagerBtn, { backgroundColor: ink.hairline }]}
                   activeOpacity={0.5}
                 >
                   <Ionicons
@@ -312,7 +287,7 @@ export default function TodayCard() {
             )}
           </View>
           <View style={styles.subRow}>
-            <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+            <Text variant="meta" tone="secondary">
               {calculated.exercises.length} exercises · {totalSets} sets
             </Text>
             {days.length > 1 && (
@@ -326,7 +301,7 @@ export default function TodayCard() {
                         backgroundColor:
                           d.id === calculated.id
                             ? currentTheme.colors.primary
-                            : currentTheme.colors.text + "30",
+                            : ink.ghost,
                       },
                     ]}
                   />
@@ -347,23 +322,15 @@ export default function TodayCard() {
               return (
                 <View key={`${ex.exerciseId}-${i}`} style={styles.exerciseRow}>
                   <Text
-                    style={[
-                      styles.exerciseName,
-                      {
-                        color: currentTheme.colors.text,
-                        fontWeight: "500",
-                      },
-                    ]}
+                    variant="body"
+                    tone="primary"
+                    weight="medium"
+                    style={styles.exerciseName}
                     numberOfLines={1}
                   >
                     {cleanName(ex.exerciseName)}
                   </Text>
-                  <Text
-                    style={[
-                      styles.exerciseDetail,
-                      { color: currentTheme.colors.text },
-                    ]}
-                  >
+                  <Text variant="meta" tone="secondary">
                     {detail}
                   </Text>
                 </View>
@@ -401,43 +368,39 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   eyebrow: {
-    fontSize: typeScale.meta,
-    letterSpacing: 1,
-    opacity: 0.45,
-    fontWeight: "700",
+    marginBottom: 0,
   },
   routineName: {
-    fontSize: typeScale.heading,
-    fontWeight: "700",
+    flex: 1,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: space.sm,
     marginTop: -12,
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   navRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 16,
+    gap: space.lg,
   },
   subRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 3,
+    marginTop: space.xs,
   },
   pagerBtn: {
     width: 36,
     height: 36,
-    borderRadius: 9,
+    borderRadius: radius.control,
     alignItems: "center",
     justifyContent: "center",
   },
   dots: {
     flexDirection: "row",
-    gap: 6,
+    gap: space.sm,
   },
   dot: {
     width: 6,
@@ -445,18 +408,12 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   emptyTitle: {
-    fontSize: typeScale.heading,
-    marginTop: 6,
-    marginBottom: 4,
-    fontWeight: "700",
-  },
-  subtle: {
-    fontSize: typeScale.meta,
-    opacity: 0.6,
+    marginTop: space.sm,
+    marginBottom: space.xs,
   },
   exerciseList: {
-    marginTop: 14,
-    gap: 14,
+    marginTop: space.lg,
+    gap: space.lg,
   },
   exerciseRow: {
     flexDirection: "row",
@@ -464,33 +421,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   exerciseName: {
-    fontSize: typeScale.body,
     flex: 1,
-    marginRight: 12,
-  },
-  exerciseDetail: {
-    fontSize: typeScale.meta,
-    opacity: 0.55,
+    marginRight: space.md,
   },
   secondaryButton: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: space.md,
+    borderRadius: radius.card,
     borderWidth: 1,
-    marginTop: 10,
-  },
-  secondaryButtonText: {
-    fontSize: typeScale.title,
-    fontWeight: "600",
+    marginTop: space.md,
   },
   dismissText: {
-    fontSize: typeScale.meta,
-    opacity: 0.4,
     textAlign: "center",
-    marginTop: 12,
+    marginTop: space.md,
   },
   primaryButton: {
-    marginTop: 14,
+    marginTop: space.lg,
   },
 });

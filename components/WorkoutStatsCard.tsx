@@ -1,23 +1,24 @@
 import Card from '@/components/Card';
 import LiftProgressionModal from '@/components/LiftProgressionModal';
+import { Text, useInk } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getPercentileColor } from '@/lib/data/strengthStandards';
+import { space } from '@/lib/ui/tokens';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface WorkoutStatsCardProps {
   stats: UserProgress;
 }
 
 export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
-  const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const { workoutId, personalRecord, percentileRanking } = stats;
   const [modalVisible, setModalVisible] = useState(false);
@@ -43,25 +44,29 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
       <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
-            <Text style={[styles.workoutName, { color: accentColor }]}>
+            <Text
+              variant="emphasis"
+              weight="semiBold"
+              style={[styles.workoutName, { color: accentColor }]}
+            >
               {workout?.name}
             </Text>
             <TierBadge percentile={percentileRanking} size="medium" variant="text" />
           </View>
 
           <View style={styles.statRow}>
-            <Text style={[styles.prValue, { color: accentColor }]}>
+            <Text variant="statHero" weight="bold" style={{ color: accentColor }}>
               {convertWeightForPreference(personalRecord, 'lbs', weightUnit)}
-              <Text style={[styles.prUnit, { color: accentColor }]}> {weightUnit}</Text>
+              <Text variant="meta" weight="medium" style={{ color: accentColor }}> {weightUnit}</Text>
             </Text>
-            <Text style={[styles.percentile, { color: currentTheme.colors.text + '99' }]}>
+            <Text variant="meta" weight="medium" tone="secondary">
               {percentileRanking}
               {getPercentileSuffix(percentileRanking)} percentile
             </Text>
           </View>
 
           {/* Tier-coloured strength bar — matches the Big-3 total's bar language */}
-          <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '0D' }]}>
+          <View style={[styles.track, { backgroundColor: ink.hairline }]}>
             <View
               style={[
                 styles.trackFill,
@@ -89,36 +94,22 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   workoutName: {
-    fontSize: 18,
-    fontWeight: '600',
     flex: 1,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 12,
-  },
-  prValue: {
-    fontSize: 26,
-    fontWeight: 'bold',
-  },
-  prUnit: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  percentile: {
-    fontSize: 13,
-    fontWeight: '500',
+    marginBottom: space.md,
   },
   track: {
     height: 9,

@@ -1,14 +1,15 @@
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { type as typeScale } from '@/lib/ui/typography';
 import { useExpandToggle } from '@/hooks/useExpandToggle';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
+import { radius, space, tint } from '@/lib/ui/tokens';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface LiftDisplayFilterProps {
   availableLifts: UserProgress[];
@@ -17,6 +18,7 @@ interface LiftDisplayFilterProps {
 
 export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: LiftDisplayFilterProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { play: playSound } = useSound('pop');
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
 
@@ -46,7 +48,7 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
 
       const newFilters = { ...filters, hiddenLiftIds: newHiddenIds };
       setFilters(newFilters);
-      
+
       await storageService.saveLiftDisplayFilters(newFilters);
       onFiltersChanged(newFilters);
     } catch (error) {
@@ -61,7 +63,7 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
   const getFilterSummary = () => {
     const visibleCount = getVisibleCount();
     const totalCount = availableLifts.length;
-    
+
     if (visibleCount === totalCount) {
       return `Showing all ${totalCount} lifts`;
     }
@@ -74,42 +76,32 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
 
   return (
     <View>
-      <TouchableOpacity 
-        style={[
-          styles.header, 
-          { 
-            borderBottomColor: currentTheme.colors.border + '30',
-          }
-        ]}
+      <TouchableOpacity
+        style={styles.header}
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
         <View style={styles.headerContent}>
-          <Ionicons 
-            name="options-outline" 
-            size={16} 
-            color={currentTheme.colors.text + '70'} 
+          <Ionicons
+            name="options-outline"
+            size={16}
+            color={ink.muted}
             style={styles.icon}
           />
-          <Text style={[
-            styles.filterSummary, 
-            { 
-              color: currentTheme.colors.text + '70',
-            }
-          ]}>
+          <Text variant="meta" tone="muted">
             {getFilterSummary()}
           </Text>
         </View>
-        <Ionicons 
-          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-          size={16} 
-          color={currentTheme.colors.text + '70'} 
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={16}
+          color={ink.muted}
         />
       </TouchableOpacity>
 
       {isExpanded && (
-        <ScrollView 
-          horizontal 
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.filterList}
           contentContainerStyle={styles.filterListContent}
@@ -117,17 +109,17 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
           {availableLifts.map((lift) => {
             const workout = getWorkoutById(lift.workoutId);
             const isHidden = filters.hiddenLiftIds.includes(lift.workoutId);
-            
+
             return (
               <TouchableOpacity
                 key={lift.workoutId}
                 style={[
                   styles.filterChip,
                   {
-                    backgroundColor: isHidden 
+                    backgroundColor: isHidden
                       ? currentTheme.colors.background
-                      : currentTheme.colors.primary + '20',
-                    borderColor: isHidden 
+                      : tint(currentTheme.colors.primary),
+                    borderColor: isHidden
                       ? currentTheme.colors.border
                       : currentTheme.colors.primary,
                   }
@@ -135,21 +127,14 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
                 onPress={() => toggleLiftVisibility(lift.workoutId)}
                 activeOpacity={0.7}
               >
-                <Text style={[
-                  styles.filterChipText,
-                  {
-                    color: isHidden 
-                      ? currentTheme.colors.text + '60'
-                      : currentTheme.colors.primary,
-                  }
-                ]}>
+                <Text variant="body" tone={isHidden ? 'muted' : undefined}>
                   {workout?.name || lift.workoutId}
                 </Text>
                 {isHidden && (
-                  <Ionicons 
-                    name="eye-off-outline" 
-                    size={14} 
-                    color={currentTheme.colors.text + '60'}
+                  <Ionicons
+                    name="eye-off-outline"
+                    size={14}
+                    color={ink.muted}
                     style={styles.chipIcon}
                   />
                 )}
@@ -167,7 +152,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 4
+    paddingTop: space.xs
   },
   headerContent: {
     flexDirection: 'row',
@@ -175,30 +160,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   icon: {
-    marginRight: 6,
-  },
-  filterSummary: {
-    fontSize: typeScale.meta,
+    marginRight: space.sm,
   },
   filterList: {
-    paddingTop: 8,
+    paddingTop: space.sm,
   },
   filterListContent: {
-    paddingHorizontal: 12,
-    gap: 6,
+    paddingHorizontal: space.md,
+    gap: space.sm,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 18,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
-  filterChipText: {
-    fontSize: typeScale.body,
-  },
   chipIcon: {
-    marginLeft: 3,
+    marginLeft: space.xs,
   },
-}); 
+});

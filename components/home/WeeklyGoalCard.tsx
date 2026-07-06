@@ -1,3 +1,5 @@
+import { Text, useInk } from "@/components/Themed";
+import SectionLabel from "@/components/ui/SectionLabel";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -6,7 +8,7 @@ import {
   PPLCategory,
 } from "@/lib/data/pplCategories";
 import { storageService } from "@/lib/storage/storage";
-import { type as typeScale } from "@/lib/ui/typography";
+import { space } from "@/lib/ui/tokens";
 import { formatVolume } from "@/lib/utils/utils";
 import {
   DEFAULT_WEEKLY_GOAL,
@@ -20,7 +22,7 @@ import { GeneratedWorkout, WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useMemo, useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]; // Monday-start
 
@@ -57,6 +59,7 @@ const GOAL_OPTIONS = Array.from(
 
 export default function WeeklyGoalCard() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [history, setHistory] = useState<GeneratedWorkout[] | null>(null);
   const [goal, setGoal] = useState(DEFAULT_WEEKLY_GOAL);
   const [unit, setUnit] = useState<WeightUnit>("lbs");
@@ -123,9 +126,8 @@ export default function WeeklyGoalCard() {
         onPress={() => setOverviewOpen(true)}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text }]}>
-            THIS WEEK
-          </Text>
+          {/* The shared uppercase micro-label section grammar (History / Career). */}
+          <SectionLabel style={styles.title}>THIS WEEK</SectionLabel>
 
           <TouchableOpacity
             style={styles.goalButton}
@@ -135,18 +137,13 @@ export default function WeeklyGoalCard() {
           >
             {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
             <Text
-              style={[
-                styles.count,
-                { color: metGoal ? accent : currentTheme.colors.text + "99" },
-              ]}
+              variant="emphasis"
+              tone="secondary"
+              style={metGoal ? { color: accent } : undefined}
             >
               {daysTrained}/{goal}
             </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={currentTheme.colors.text + "70"}
-            />
+            <Ionicons name="chevron-forward" size={16} color={ink.muted} />
           </TouchableOpacity>
         </View>
 
@@ -161,15 +158,10 @@ export default function WeeklyGoalCard() {
                         backgroundColor: dayColors[i],
                         borderColor: dayColors[i],
                       }
-                    : {
-                        backgroundColor: "transparent",
-                        borderColor: currentTheme.colors.border,
-                      },
+                    : { borderColor: currentTheme.colors.border },
                 ]}
               />
-              <Text
-                style={[styles.dayLabel, { color: currentTheme.colors.text }]}
-              >
+              <Text variant="meta" tone="secondary">
                 {DAY_LABELS[i]}
               </Text>
             </View>
@@ -183,35 +175,23 @@ export default function WeeklyGoalCard() {
               { borderBottomColor: currentTheme.colors.border },
             ]}
           >
-            <Text
-              style={[
-                styles.loadText,
-                { color: currentTheme.colors.text + "B0" },
-              ]}
-            >
-              <Text style={{ color: currentTheme.colors.text }}>
-                {formatVolume(load.volumeLbs, unit)}
-              </Text>
+            <Text variant="meta" tone="secondary">
+              <Text tone="primary">{formatVolume(load.volumeLbs, unit)}</Text>
               {" lifted · "}
-              <Text style={{ color: currentTheme.colors.text }}>
-                {load.sets}
-              </Text>
+              <Text tone="primary">{load.sets}</Text>
               {load.sets === 1 ? " set" : " sets"}
             </Text>
             {load.deltaPct !== null && (
               <View style={styles.trendChip}>
                 <Text
-                  style={[
-                    styles.trendText,
-                    {
-                      color:
-                        load.deltaPct > 0
-                          ? TREND_UP
-                          : load.deltaPct < 0
-                            ? TREND_DOWN
-                            : currentTheme.colors.text + "80",
-                    },
-                  ]}
+                  variant="meta"
+                  weight="semiBold"
+                  tone="secondary"
+                  style={
+                    load.deltaPct !== 0
+                      ? { color: load.deltaPct > 0 ? TREND_UP : TREND_DOWN }
+                      : undefined
+                  }
                 >
                   {load.deltaPct > 0 ? "+" : ""}
                   {load.deltaPct}% vs last week
@@ -251,12 +231,7 @@ export default function WeeklyGoalCard() {
             ]}
           >
             <View style={styles.sheetHeader}>
-              <Text
-                style={[
-                  styles.sheetTitle,
-                  { color: currentTheme.colors.text, fontWeight: "700" },
-                ]}
-              >
+              <Text variant="heading" tone="primary" weight="bold">
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
@@ -267,12 +242,7 @@ export default function WeeklyGoalCard() {
                 />
               </TouchableOpacity>
             </View>
-            <Text
-              style={[
-                styles.sheetSubtitle,
-                { color: currentTheme.colors.text },
-              ]}
-            >
+            <Text variant="meta" tone="secondary" style={styles.sheetSubtitle}>
               How many days a week do you want to train?
             </Text>
 
@@ -298,15 +268,14 @@ export default function WeeklyGoalCard() {
                     ]}
                   >
                     <Text
-                      style={[
-                        styles.optionText,
-                        {
-                          color: selected
-                            ? currentTheme.colors.surface
-                            : currentTheme.colors.text,
-                          fontWeight: "600",
-                        },
-                      ]}
+                      variant="emphasis"
+                      tone="primary"
+                      weight="semiBold"
+                      style={
+                        selected
+                          ? { color: currentTheme.colors.surface }
+                          : undefined
+                      }
                     >
                       {value}
                     </Text>
@@ -326,28 +295,21 @@ const styles = StyleSheet.create({
   // padding + chrome height.
   card: {
     paddingHorizontal: 0,
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: space.md,
   },
-  // The shared uppercase micro-label section grammar (History / Career).
   title: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
-    letterSpacing: 1,
-    opacity: 0.45,
+    marginBottom: 0,
   },
   goalButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-  },
-  count: {
-    fontSize: typeScale.emphasis,
+    gap: space.xs,
   },
   dotRow: {
     flexDirection: "row",
@@ -355,7 +317,7 @@ const styles = StyleSheet.create({
   },
   dayColumn: {
     alignItems: "center",
-    gap: 6,
+    gap: space.sm,
   },
   dot: {
     width: 22,
@@ -363,29 +325,18 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 2,
   },
-  dayLabel: {
-    fontSize: typeScale.meta,
-    opacity: 0.6,
-  },
   loadRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4,
-    paddingTop: 10,
+    marginBottom: space.xs,
+    paddingTop: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  loadText: {
-    fontSize: typeScale.meta,
   },
   trendChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 3,
-  },
-  trendText: {
-    fontSize: typeScale.meta,
-    fontWeight: "600",
+    gap: space.xs,
   },
   backdrop: {
     flex: 1,
@@ -395,7 +346,7 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
+    padding: space.xl,
     paddingBottom: 34,
   },
   sheetHeader: {
@@ -403,14 +354,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  sheetTitle: {
-    fontSize: typeScale.heading,
-  },
   sheetSubtitle: {
-    fontSize: typeScale.meta,
-    opacity: 0.6,
-    marginTop: 4,
-    marginBottom: 18,
+    marginTop: space.xs,
+    marginBottom: space.xl,
   },
   optionsRow: {
     flexDirection: "row",
@@ -423,8 +369,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     alignItems: "center",
     justifyContent: "center",
-  },
-  optionText: {
-    fontSize: typeScale.emphasis,
   },
 });
