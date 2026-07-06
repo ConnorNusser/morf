@@ -393,7 +393,7 @@ export default function HistoryScreen() {
                 block wears exactly one label. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
-                <WeeklyOverview workoutHistory={workouts} />
+                <WeeklyOverview workoutHistory={workouts} sessionRecaps={sessionRecaps} />
               </View>
             )}
 
