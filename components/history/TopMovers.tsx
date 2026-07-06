@@ -42,19 +42,15 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
 
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+      {/* Same micro-label header grammar as LIFTS / SESSIONS / the Career card. */}
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.heading, { color: colors.text, fontWeight: '600' }]}>
-          Your Movers
-        </Text>
+        <Text style={[styles.heading, { color: colors.text }]}>YOUR MOVERS</Text>
         <TouchableOpacity onPress={onSeeAll} hitSlop={8} activeOpacity={0.7}>
-          <Text style={[styles.seeAll, { color: colors.primary, fontWeight: '500' }]}>
+          <Text style={[styles.seeAll, { color: colors.primary, fontWeight: '600' }]}>
             See all
           </Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.subhead, { color: colors.text + '70', fontWeight: '400' }]}>
-        Biggest changes across your recent sessions
-      </Text>
 
       {movers.map((m, i) => {
         const up = m.delta > 0;
@@ -111,19 +107,18 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
     justifyContent: 'space-between',
+    paddingBottom: 6,
   },
   heading: {
-    fontSize: 17,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   seeAll: {
     fontSize: 13,
-  },
-  subhead: {
-    fontSize: 12,
-    marginTop: 2,
-    marginBottom: 4,
   },
   row: {
     flexDirection: 'row',

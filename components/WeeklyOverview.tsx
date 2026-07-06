@@ -190,10 +190,8 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         {/* One label for the whole block: "This Week" + its date range. The parent screen
             no longer renders a separate section heading, so this card wears exactly one title. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-            This Week
-          </Text>
-          <Text style={[styles.dateRange, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}>
+          <Text style={[styles.title, { color: currentTheme.colors.text }]}>THIS WEEK</Text>
+          <Text style={[styles.dateRange, { color: currentTheme.colors.text }]}>
             {formatDateRange(weekData.startDate, weekData.endDate)}
           </Text>
         </View>
@@ -327,14 +325,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   title: {
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   dateRange: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 15,
     letterSpacing: 0.2,
+    opacity: 0.5,
   },
   statsContainer: {
     flexDirection: 'row',

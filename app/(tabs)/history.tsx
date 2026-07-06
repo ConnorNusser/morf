@@ -331,9 +331,7 @@ export default function HistoryScreen() {
                 tappable straight into that lift's history. */}
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-                  Records
-                </Text>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text }]}>RECORDS</Text>
                 <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
                   {topRecords.map(({ ex, pct }) => {
                     const tierColor = pct != null ? getPercentileColor(pct) : currentTheme.colors.primary;
@@ -734,9 +732,13 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 24,
   },
+  // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: 17,
-    marginBottom: 12,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
+    marginBottom: 10,
   },
   viewAllButton: {
     paddingVertical: 16,

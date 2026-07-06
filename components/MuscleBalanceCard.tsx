@@ -235,11 +235,9 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
       <Card variant="elevated" style={styles.container}>
         {/* Header — one label, matching the This Week card's single-title restraint. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-            Muscle Balance
-          </Text>
+          <Text style={[styles.title, { color: currentTheme.colors.text }]}>MUSCLE BALANCE</Text>
           {state !== 'building' && (
-            <Text style={[styles.subtitle, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}>
+            <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
               SETS/WK · LAST {activeWeeks} WK
             </Text>
           )}
@@ -397,14 +395,16 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: {
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   subtitle: {
     fontSize: 11,
     lineHeight: 15,
     letterSpacing: 0.4,
+    opacity: 0.5,
   },
   verdictRow: {
     flexDirection: 'row',
