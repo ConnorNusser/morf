@@ -2,9 +2,8 @@ import Card from '@/components/Card';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
-import SessionsFeed, { SessionAchievement } from '@/components/history/SessionsFeed';
-import { loadCareerData } from '@/lib/gamification/careerData';
-import { Rarity } from '@/lib/gamification/rarity';
+import SessionsFeed from '@/components/history/SessionsFeed';
+import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import { buildLiftProgressions } from '@/lib/history/liftProgress';
@@ -121,61 +120,30 @@ export default function HistoryScreen() {
     }
   }, [weightUnit, customExercises]);
 
-  // Unlocked achievements with their persisted first-seen dates (the same
-  // reconcile path the workout-launch interstitial uses), so the sessions feed
-  // can pin each medal on the session that earned it.
-  const [unlockFacts, setUnlockFacts] = useState<
-    { id: string; title: string; icon: string; rarity: Rarity; unlockedAt: string }[]
-  >([]);
-  const loadUnlocks = useCallback(async () => {
-    try {
-      const d = await loadCareerData();
-      const unlocked = d.achievements.filter(a => a.unlocked);
-      const dates = await storageService.reconcileAchievementUnlocks(
-        unlocked.map(a => a.id),
-        new Date().toISOString(),
-      );
-      setUnlockFacts(
-        unlocked
-          .filter(a => dates[a.id])
-          .map(a => ({ id: a.id, title: a.title, icon: a.icon, rarity: a.rarity, unlockedAt: dates[a.id] })),
-      );
-    } catch {
-      // keep the last known set
-    }
-  }, []);
-
-  // Pin each unlock on the most recent session at-or-before its first-seen
-  // date — unlocks only change when a workout lands, so that session earned it.
-  const achievementsByWorkout = useMemo(() => {
-    const map: Record<string, SessionAchievement[]> = {};
-    for (const f of unlockFacts) {
-      const t = new Date(f.unlockedAt).getTime();
-      const w = workouts.find(x => new Date(x.createdAt).getTime() <= t); // newest-first
-      if (!w) continue;
-      (map[w.id] ??= []).push({ id: f.id, title: f.title, icon: f.icon, rarity: f.rarity });
-    }
-    return map;
-  }, [unlockFacts, workouts]);
+  // Pin achievements on the session that earned them — replayed from history
+  // itself (see lib/history/achievementAttribution), so it's deterministic and
+  // works retroactively with no unlock timestamps.
+  const achievementsByWorkout = useMemo(
+    () => attributeAchievements(workouts, weightUnit),
+    [workouts, weightUnit],
+  );
 
   useEffect(() => {
     loadHistory();
     loadExerciseStats();
-    loadUnlocks();
-  }, [loadHistory, loadExerciseStats, loadUnlocks]);
+  }, [loadHistory, loadExerciseStats]);
 
   // Refresh data when screen comes into focus (e.g., after completing a workout)
   useFocusEffect(
     useCallback(() => {
       loadHistory();
       loadExerciseStats();
-      loadUnlocks();
-    }, [loadHistory, loadExerciseStats, loadUnlocks])
+    }, [loadHistory, loadExerciseStats])
   );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadHistory(), loadExerciseStats(), loadUnlocks()]);
+    await Promise.all([loadHistory(), loadExerciseStats()]);
     setRefreshing(false);
   };
 
