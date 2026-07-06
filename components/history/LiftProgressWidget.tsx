@@ -133,7 +133,7 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
           </Text>
           {delta !== 0 && (
             <>
-              <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={deltaColor} />
+              <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={12} color={deltaColor} />
               <Text style={[styles.backTrendText, { color: deltaColor, fontWeight: '600' }]}>
                 {Math.abs(delta)}
               </Text>
@@ -246,8 +246,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 6,
   },
-  headLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  headMeta: { fontSize: 11, opacity: 0.5 },
+  headLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: 13, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   face: {
@@ -258,31 +258,31 @@ const styles = StyleSheet.create({
   },
   // Two-line left column, flush left: name over badge, one shared edge down the board.
   nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  name: { fontSize: 15, fontWeight: '600' },
+  name: { fontSize: 17, fontWeight: '600' },
   gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 12, alignItems: 'center' },
-  viewAllText: { fontSize: 13, fontWeight: '600' },
-  points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  viewAllText: { fontSize: 16, fontWeight: '600' },
+  points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
   // Each point is a small themed chip (matches the pill language used by delta/sort/
   // record chips elsewhere in History) rather than bare floating text.
   point: {
     alignItems: 'center',
-    minWidth: 50,
+    minWidth: 46,
     borderRadius: 8,
     paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
   },
-  set: { fontSize: 13, letterSpacing: -0.2 },
-  month: { fontSize: 9, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
+  set: { fontSize: 15, letterSpacing: -0.2 },
+  month: { fontSize: 11, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  backLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   backTrend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTrendText: { fontSize: 11, fontWeight: '500' },
+  backTrendText: { fontSize: 13, fontWeight: '500' },
   backMainRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
-  backMain: { fontSize: 14, fontWeight: '600', letterSpacing: -0.2 },
-  backPct: { fontSize: 11, fontWeight: '500' },
+  backMain: { fontSize: 17, fontWeight: '600', letterSpacing: -0.2 },
+  backPct: { fontSize: 13, fontWeight: '500' },
   backBar: { marginTop: 2 },
 });

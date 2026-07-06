@@ -252,7 +252,7 @@ export default function TodayCard() {
               style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
               activeOpacity={0.5}
             >
-              <Ionicons name="chevron-back" size={18} color={currentTheme.colors.text} />
+              <Ionicons name="chevron-back" size={21} color={currentTheme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => flip(1)}
@@ -260,7 +260,7 @@ export default function TodayCard() {
               style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
               activeOpacity={0.5}
             >
-              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text} />
+              <Ionicons name="chevron-forward" size={21} color={currentTheme.colors.text} />
             </TouchableOpacity>
           </View>
         )}
@@ -350,13 +350,13 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   eyebrow: {
-    fontSize: 12,
+    fontSize: 14,
     letterSpacing: 1.2,
     opacity: 0.6,
     fontWeight: "600",
   },
   routineName: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
   },
   headerRow: {
@@ -393,13 +393,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 24,
     marginTop: 6,
     marginBottom: 4,
     fontWeight: "700",
   },
   subtle: {
-    fontSize: 14,
+    fontSize: 17,
     opacity: 0.6,
   },
   exerciseList: {
@@ -412,12 +412,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   exerciseName: {
-    fontSize: 15,
+    fontSize: 18,
     flex: 1,
     marginRight: 12,
   },
   exerciseDetail: {
-    fontSize: 14,
+    fontSize: 17,
     opacity: 0.55,
   },
   secondaryButton: {
@@ -429,11 +429,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: 19,
     fontWeight: "600",
   },
   dismissText: {
-    fontSize: 13,
+    fontSize: 16,
     opacity: 0.4,
     textAlign: "center",
     marginTop: 12,

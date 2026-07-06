@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   title: {
-    fontSize: 22,
+    fontSize: 26,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 17,
     opacity: 0.6,
     marginTop: 2,
   },
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   exerciseName: {
-    fontSize: 16,
+    fontSize: 19,
     flexShrink: 1,
   },
   setRow: {
@@ -142,11 +142,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   setLabel: {
-    fontSize: 14,
+    fontSize: 17,
     opacity: 0.55,
   },
   setValue: {
-    fontSize: 15,
+    fontSize: 18,
   },
   startButton: {
     paddingVertical: 14,
@@ -155,6 +155,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   startText: {
-    fontSize: 16,
+    fontSize: 19,
   },
 });

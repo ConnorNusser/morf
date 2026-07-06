@@ -94,7 +94,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                   style={[styles.dropdownItem, viewMode === 'home' && { backgroundColor: currentTheme.colors.primary + '15' }]}
                   onPress={() => handleViewSelect('home')}
                 >
-                  <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons name="home" size={21} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
                     <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Morf
@@ -108,7 +108,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                   style={[styles.dropdownItem, viewMode === 'feed' && { backgroundColor: currentTheme.colors.primary + '15' }]}
                   onPress={() => handleViewSelect('feed')}
                 >
-                  <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons name="people" size={21} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
                     <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Feed
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   appName: {
-    fontSize: 32,
+    fontSize: 35,
     fontWeight: '700',
     letterSpacing: -1,
   },
@@ -174,9 +174,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    paddingVertical: 8,
-    paddingLeft: 16,
-    paddingRight: 12,
+    paddingVertical: 10,
+    paddingLeft: 18,
+    paddingRight: 14,
     borderRadius: 12,
   },
   backdrop: {
@@ -212,10 +212,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: 19,
   },
   dropdownSubtext: {
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 2,
   },
 }); 

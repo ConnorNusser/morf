@@ -69,7 +69,7 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
         {trend.sparkline.length >= 2 && (
           <MiniSparkline data={trend.sparkline} />
         )}
-        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '25'} />
+        <Ionicons name="chevron-forward" size={19} color={currentTheme.colors.text + '25'} />
       </View>
     </TouchableOpacity>
   );
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 15,
+    fontSize: 18,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -102,17 +102,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 9,
+    fontSize: 11,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 18,
+    fontSize: 22,
   },
   liftLabel: {
-    fontSize: 13,
+    fontSize: 16,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: 13,
   },
   liftRight: {
     flexDirection: 'row',

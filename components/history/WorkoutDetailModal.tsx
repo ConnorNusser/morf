@@ -331,8 +331,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   headerTitle: {
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 20,
+    lineHeight: 26,
   },
   headerButton: {
     width: 40,
@@ -352,13 +352,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 31,
+    lineHeight: 37,
     letterSpacing: -0.5,
   },
   date: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 24,
     marginTop: 4,
   },
   prSection: {
@@ -376,19 +376,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   prChipText: {
-    fontSize: 13,
+    fontSize: 16,
     color: '#FFFFFF',
   },
   prLabel: {
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 14,
+    lineHeight: 19,
   },
   summaryRow: {
     marginBottom: 32,
   },
   summaryText: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 17,
+    lineHeight: 24,
   },
   exerciseList: {
     gap: 0,
@@ -410,8 +410,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 19,
+    lineHeight: 26,
   },
   prBadge: {
     paddingHorizontal: 6,
@@ -419,11 +419,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prBadgeText: {
-    fontSize: 10,
+    fontSize: 12,
   },
   exerciseBest: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 16,
+    lineHeight: 22,
   },
   setsGrid: {
     flexDirection: 'row',
@@ -437,8 +437,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(128, 128, 128, 0.1)',
   },
   setPillText: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 17,
+    lineHeight: 22,
   },
   footer: {
     paddingHorizontal: 20,
@@ -452,7 +452,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 19,
     color: '#FFFFFF',
   },
 });

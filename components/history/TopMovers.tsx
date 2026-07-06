@@ -81,7 +81,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
                   {m.isBodyweight ? ' reps' : ' est. 1RM'}
                 </Text>
                 <View style={[styles.deltaPill, { backgroundColor: color + '15' }]}>
-                  <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
+                  <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={13} color={color} />
                   <Text style={[styles.deltaText, { color, fontWeight: '600' }]}>
                     {Math.abs(m.delta)}
                   </Text>
@@ -90,7 +90,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
             </View>
             <View style={[styles.rowRight, { backgroundColor: 'transparent' }]}>
               <MiniSparkline data={m.sparkline} />
-              <Ionicons name="chevron-forward" size={16} color={colors.text + '25'} />
+              <Ionicons name="chevron-forward" size={19} color={colors.text + '25'} />
             </View>
           </TouchableOpacity>
         );
@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   heading: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
   },
   seeAll: {
-    fontSize: 13,
+    fontSize: 16,
   },
   row: {
     flexDirection: 'row',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 15,
+    fontSize: 18,
     marginBottom: 4,
   },
   statsRow: {
@@ -142,10 +142,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    fontSize: 17,
+    fontSize: 20,
   },
   unit: {
-    fontSize: 12,
+    fontSize: 14,
   },
   deltaPill: {
     flexDirection: 'row',
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: 13,
   },
   rowRight: {
     flexDirection: 'row',

@@ -124,11 +124,11 @@ export default function WeeklyGoalCard() {
           hitSlop={10}
           onPress={() => setPicking(true)}
         >
-          {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
+          {metGoal && <Ionicons name="checkmark" size={17} color={accent} />}
           <Text style={[styles.count, { color: metGoal ? accent : currentTheme.colors.text + '99' }]}>
             {daysTrained}/{goal}
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
+          <Ionicons name="chevron-forward" size={19} color={currentTheme.colors.text + '70'} />
         </TouchableOpacity>
       </View>
 
@@ -190,7 +190,7 @@ export default function WeeklyGoalCard() {
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
-                <Ionicons name="close" size={22} color={currentTheme.colors.text} />
+                <Ionicons name="close" size={26} color={currentTheme.colors.text} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.sheetSubtitle, { color: currentTheme.colors.text }]}>
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '600',
   },
   goalButton: {
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   count: {
-    fontSize: 15,
+    fontSize: 18,
   },
   dotRow: {
     flexDirection: 'row',
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   dayLabel: {
-    fontSize: 12,
+    fontSize: 14,
     opacity: 0.6,
   },
   loadRow: {
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {
-    fontSize: 13,
+    fontSize: 16,
   },
   trendChip: {
     flexDirection: 'row',
@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   trendText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   backdrop: {
@@ -314,10 +314,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetTitle: {
-    fontSize: 20,
+    fontSize: 24,
   },
   sheetSubtitle: {
-    fontSize: 14,
+    fontSize: 17,
     opacity: 0.6,
     marginTop: 4,
     marginBottom: 18,
@@ -335,6 +335,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 19,
   },
 });

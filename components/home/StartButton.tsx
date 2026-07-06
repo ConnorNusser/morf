@@ -68,7 +68,7 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
           { backgroundColor: outlined ? colors.text + '18' : colors.background },
         ]}
       >
-        <Ionicons name="arrow-forward" size={18} color={colors.text} />
+        <Ionicons name="arrow-forward" size={21} color={colors.text} />
       </Animated.View>
     </AnimatedPressable>
   );
@@ -79,16 +79,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingLeft: 22,
-    paddingRight: 8,
-    borderRadius: 16,
+    paddingVertical: 10,
+    paddingLeft: 24,
+    paddingRight: 10,
+    borderRadius: 18,
   },
-  label: { fontSize: 16, fontWeight: '600' },
+  label: { fontSize: 19, fontWeight: '600' },
   arrow: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 43,
+    height: 43,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },

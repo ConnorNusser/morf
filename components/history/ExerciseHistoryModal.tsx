@@ -249,8 +249,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 20,
+    lineHeight: 26,
     textAlign: 'center',
     marginHorizontal: 8,
   },
@@ -270,10 +270,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 26,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 13,
     marginTop: 4,
   },
   trendRow: {
@@ -284,15 +284,15 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
   trendText: {
-    fontSize: 13,
+    fontSize: 16,
   },
   sectionHeader: {
-    fontSize: 12,
+    fontSize: 14,
     letterSpacing: 1,
     marginBottom: 12,
   },
   noHistoryText: {
-    fontSize: 14,
+    fontSize: 17,
     textAlign: 'center',
     paddingVertical: 20,
   },
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sessionDate: {
-    fontSize: 14,
+    fontSize: 17,
   },
   prChip: {
     flexDirection: 'row',
@@ -324,14 +324,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 0.5,
   },
   sessionOneRM: {
-    fontSize: 17,
+    fontSize: 20,
   },
   sessionOneRMLabel: {
-    fontSize: 12,
+    fontSize: 14,
   },
   barTrack: {
     height: 4,
@@ -355,10 +355,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   setPillText: {
-    fontSize: 13,
+    fontSize: 16,
   },
   sessionVolume: {
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 10,
   },
 });

@@ -290,7 +290,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           >
             <RNView style={styles.kickerRow}>
               <Text style={[styles.kicker, { color: colors.text + '99', fontWeight: '600' }]}>Strength Index</Text>
-              <Ionicons name="chevron-forward" size={13} color={colors.text + '55'} />
+              <Ionicons name="chevron-forward" size={15} color={colors.text + '55'} />
             </RNView>
           </TouchableOpacity>
 
@@ -309,7 +309,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           </RNView>
 
           <RNView style={styles.deltaRow}>
-            <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={16} color={deltaColor} />
+            <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={19} color={deltaColor} />
             <Text style={[styles.deltaBig, { color: deltaColor, fontWeight: '700' }]}>
               {index.delta >= 0 ? '+' : '-'}
               {Math.abs(index.delta)} this {TF_DELTA_LABEL[timeframe]}
@@ -427,7 +427,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             onPress={() => router.push('/workout')}
             activeOpacity={0.85}
           >
-            <Ionicons name="barbell" size={16} color="#fff" />
+            <Ionicons name="barbell" size={19} color="#fff" />
             <Text style={[styles.comebackCtaText, { fontWeight: '600' }]}>Start a workout</Text>
           </TouchableOpacity>
         </RNView>
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  kicker: { fontSize: 13, letterSpacing: 0.2 },
+  kicker: { fontSize: 16, letterSpacing: 0.2 },
   dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
   titleRow: { height: 42, justifyContent: 'center' },
@@ -492,29 +492,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   titleLeft: { flex: 1, marginRight: 12 },
-  liftName: { fontSize: 20, letterSpacing: -0.4 },
-  gain: { fontSize: 12, letterSpacing: 0.1, marginTop: 1 },
-  value: { fontSize: 34, letterSpacing: -0.8 },
-  valueUnit: { fontSize: 13, letterSpacing: 0 },
+  liftName: { fontSize: 24, letterSpacing: -0.4 },
+  gain: { fontSize: 14, letterSpacing: 0.1, marginTop: 1 },
+  value: { fontSize: 37, letterSpacing: -0.8 },
+  valueUnit: { fontSize: 16, letterSpacing: 0 },
   // Index-mode focal score: the biggest, first-read numeral on the screen.
   scoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
-  scoreValue: { fontSize: 46, letterSpacing: -1.2, lineHeight: 50 },
-  scoreUnit: { fontSize: 16, letterSpacing: 0 },
+  scoreValue: { fontSize: 51, letterSpacing: -1.2, lineHeight: 55 },
+  scoreUnit: { fontSize: 19, letterSpacing: 0 },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
-  deltaBig: { fontSize: 16, letterSpacing: 0.1 },
-  contextLine: { fontSize: 12, letterSpacing: 0.2, marginTop: 8 },
+  deltaBig: { fontSize: 19, letterSpacing: 0.1 },
+  contextLine: { fontSize: 14, letterSpacing: 0.2, marginTop: 8 },
   axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  axisLabel: { fontSize: 11, letterSpacing: 0.2 },
+  axisLabel: { fontSize: 13, letterSpacing: 0.2 },
   tfRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 8 },
-  tfBtnText: { fontSize: 12.5, letterSpacing: 0.2 },
-  caption: { fontSize: 11.5, letterSpacing: 0.2, marginTop: 10 },
+  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
+  tfBtnText: { fontSize: 15, letterSpacing: 0.2 },
+  caption: { fontSize: 14, letterSpacing: 0.2, marginTop: 10 },
   empty: { paddingVertical: 22, alignItems: 'center' },
-  emptyText: { fontSize: 13, textAlign: 'center', lineHeight: 19, paddingHorizontal: 12 },
-  emptyLift: { fontSize: 16, letterSpacing: -0.2, marginBottom: 3 },
+  emptyText: { fontSize: 16, textAlign: 'center', lineHeight: 23, paddingHorizontal: 12 },
+  emptyLift: { fontSize: 19, letterSpacing: -0.2, marginBottom: 3 },
   pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   pip: { width: 22, height: 5, borderRadius: 2.5 },
-  comebackTitle: { fontSize: 20, letterSpacing: -0.4, marginBottom: 6 },
+  comebackTitle: { fontSize: 24, letterSpacing: -0.4, marginBottom: 6 },
   comebackCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,5 +524,5 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginTop: 16,
   },
-  comebackCtaText: { color: '#fff', fontSize: 15 },
+  comebackCtaText: { color: '#fff', fontSize: 18 },
 });

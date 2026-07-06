@@ -347,7 +347,7 @@ export default function HistoryScreen() {
                           style={[styles.recordName, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}
                           numberOfLines={1}
                         >
-                          {ex.name}
+                          {ex.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}
                         </Text>
                         <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
                           <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontWeight: '700' }]} numberOfLines={1}>
@@ -417,12 +417,12 @@ export default function HistoryScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.monthlyTrendsContent}>
-                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
+                  <Ionicons name="stats-chart" size={21} color={currentTheme.colors.primary} />
                   <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     View Monthly Trends
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+                <Ionicons name="chevron-forward" size={21} color={currentTheme.colors.text + '60'} />
               </TouchableOpacity>
             )}
 
@@ -441,7 +441,7 @@ export default function HistoryScreen() {
                   onPress={() => router.push('/workout')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="add" size={18} color="#fff" />
+                  <Ionicons name="add" size={21} color="#fff" />
                   <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
@@ -496,7 +496,7 @@ export default function HistoryScreen() {
 
                 {/* Search */}
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                  <Ionicons name="search" size={21} color={currentTheme.colors.text + '60'} />
                   <TextInput
                     style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
@@ -509,7 +509,7 @@ export default function HistoryScreen() {
                   />
                   {exerciseSearch.length > 0 && (
                     <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={8}>
-                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                      <Ionicons name="close-circle" size={21} color={currentTheme.colors.text + '60'} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -587,7 +587,7 @@ export default function HistoryScreen() {
                   onPress={() => router.push('/workout')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="add" size={18} color="#fff" />
+                  <Ionicons name="add" size={21} color="#fff" />
                   <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 31,
     marginBottom: 12,
   },
   // Tab styles
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: 15,
+    fontSize: 18,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -675,10 +675,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   summaryValue: {
-    fontSize: 20,
+    fontSize: 24,
   },
   summaryLabel: {
-    fontSize: 11,
+    fontSize: 13,
     marginTop: 3,
   },
   summaryDivider: {
@@ -698,7 +698,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 19,
     padding: 0,
   },
   workoutSearchBar: {
@@ -711,16 +711,16 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sortChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 16,
     borderWidth: 1,
   },
   sortChipText: {
-    fontSize: 13,
+    fontSize: 16,
   },
   resultCount: {
-    fontSize: 12,
+    fontSize: 14,
     marginBottom: 4,
   },
   // Hairline sub-block divider inside the top instrument panel — the same
@@ -735,7 +735,7 @@ const styles = StyleSheet.create({
   },
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
@@ -746,7 +746,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 17,
   },
   // Records strip
   recordsStrip: {
@@ -761,7 +761,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   recordName: {
-    fontSize: 12,
+    fontSize: 14,
   },
   recordValueRow: {
     flexDirection: 'row',
@@ -770,11 +770,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   recordValue: {
-    fontSize: 22,
+    fontSize: 26,
     letterSpacing: -0.5,
   },
   recordUnit: {
-    fontSize: 12,
+    fontSize: 14,
   },
   recordTierBadge: {
     alignSelf: 'flex-start',
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   recordTierText: {
-    fontSize: 11,
+    fontSize: 13,
     letterSpacing: 0.3,
   },
   // Monthly trends button
@@ -805,7 +805,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   monthlyTrendsText: {
-    fontSize: 15,
+    fontSize: 18,
   },
   // Lift card styles - minimal
   liftCard: {
@@ -821,7 +821,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 15,
+    fontSize: 18,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -829,17 +829,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 9,
+    fontSize: 11,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 18,
+    fontSize: 22,
   },
   liftLabel: {
-    fontSize: 13,
+    fontSize: 16,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -848,7 +848,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 11,
+    fontSize: 13,
   },
   liftRight: {
     flexDirection: 'row',
@@ -862,11 +862,11 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 22,
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
+    fontSize: 17,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -881,6 +881,6 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 18,
   },
 });

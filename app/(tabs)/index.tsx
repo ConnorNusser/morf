@@ -351,7 +351,7 @@ export default function HomeScreen() {
             </Text>
             <Ionicons
               name="chevron-forward"
-              size={18}
+              size={21}
               color={currentTheme.colors.text + "60"}
             />
           </TouchableOpacity>
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "600",
   },
   strengthDivider: {
@@ -460,6 +460,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionButtonText: {
-    fontSize: 15,
+    fontSize: 18,
   },
 });
