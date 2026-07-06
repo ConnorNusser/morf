@@ -26,13 +26,18 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import Spacer from "../Spacer";
 
-// The card's floor across loading / freestyle / routine states, so the page
-// doesn't jump as it resolves or its content changes.
-const CARD_MIN_HEIGHT = 200;
+// After dismissing the "build a routine" nudge, re-surface it once this much
+// time has passed (5 days).
+const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
+
+// The card is the home hero: it claims ~70% of the viewport in every state
+// (loading / freestyle / routine), headline pinned top, CTAs pinned bottom.
+const CARD_HEIGHT_FRACTION = 0.7;
 
 // Human-readable label for the routine's split type.
 function splitLabel(splitType?: string): string | null {
@@ -61,22 +66,33 @@ export default function TodayCard() {
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
+  const [adviceDismissed, setAdviceDismissed] = useState(false);
   const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
+  const { height: windowHeight } = useWindowDimensions();
+  const cardMinHeight = Math.round(windowHeight * CARD_HEIGHT_FRACTION);
 
   // Read routines fresh from storage on every focus, so pausing or deleting a
   // routine elsewhere is reflected without restarting the app. (The routine
   // context only loads once at startup, which is why it went stale before.)
   const load = useCallback(async () => {
     try {
-      const [history, routines, programs, pointerId] = await Promise.all([
-        storageService.getWorkoutHistory(),
-        storageService.getRoutines(),
-        storageService.getPrograms(),
-        storageService.getUpNextPointerId(),
-      ]);
+      const [history, dismissedAt, routines, programs, pointerId] =
+        await Promise.all([
+          storageService.getWorkoutHistory(),
+          storageService.getRoutineAdviceDismissedAt(),
+          storageService.getRoutines(),
+          storageService.getPrograms(),
+          storageService.getUpNextPointerId(),
+        ]);
       setTrainedToday(getStreakState(history).trainedToday);
+
+      // Advice stays hidden only until the cooldown elapses, then re-surfaces.
+      setAdviceDismissed(
+        dismissedAt !== null &&
+          Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
+      );
 
       const latest = history.reduce<Date | null>((max, w) => {
         const d = new Date(w.createdAt);
@@ -99,6 +115,11 @@ export default function TodayCard() {
       setLoading(false);
     }
   }, [weightUnit]);
+
+  const dismissAdvice = useCallback(() => {
+    setAdviceDismissed(true);
+    storageService.setRoutineAdviceDismissedAt(Date.now());
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -148,13 +169,14 @@ export default function TodayCard() {
 
   if (loading) {
     return (
-      <Card style={styles.loadingCard}>
+      <Card style={[styles.loadingCard, { minHeight: cardMinHeight }]}>
         <ActivityIndicator color={currentTheme.colors.primary} />
       </Card>
     );
   }
 
-  // No active routine — one job: start a freestyle workout.
+  // No active routine — a poster hero: headline up top, actions at the bottom
+  // where the thumb lives, open space between.
   if (!calculated) {
     const freestyleSubtitle = trainedToday
       ? "You've trained today — back for more?"
@@ -162,39 +184,53 @@ export default function TodayCard() {
         ? `Last workout ${formatRelativeTime(lastWorkoutAt)}.`
         : "Jump straight in — log sets as you go.";
     return (
-      <Card style={styles.card}>
-        <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
-        <Text
-          variant="heading"
-          tone="primary"
-          weight="bold"
-          style={styles.emptyTitle}
-        >
-          Ready to train?
-        </Text>
-        <Text variant="meta" tone="secondary">
-          {freestyleSubtitle}
-        </Text>
-
-        <StartButton
-          label="Start a workout"
-          onPress={startFreestyle}
-          style={styles.primaryButton}
-        />
-        {/* Secondary path: bordered pill, quiet by contrast with the solid
-            Start pill — one card, two contained choices. */}
-        <TouchableOpacity
-          style={[
-            styles.secondaryButton,
-            { borderColor: currentTheme.colors.border },
-          ]}
-          onPress={() => router.push("/notes")}
-          activeOpacity={0.85}
-        >
-          <Text variant="title" tone="primary" weight="semiBold">
-            Build a routine
+      <Card style={[styles.heroCard, { minHeight: cardMinHeight }]}>
+        <View>
+          <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
+          <Text
+            variant="heading"
+            tone="primary"
+            weight="bold"
+            style={styles.emptyTitle}
+          >
+            Ready to train?
           </Text>
-        </TouchableOpacity>
+          <Text variant="meta" tone="secondary">
+            {freestyleSubtitle}
+          </Text>
+        </View>
+
+        <View>
+          <StartButton label="Start a workout" onPress={startFreestyle} />
+          {!adviceDismissed && (
+            <>
+              {/* Secondary path: bordered pill, quiet by contrast with the
+                  solid Start pill — one card, two contained choices. */}
+              <TouchableOpacity
+                style={[
+                  styles.secondaryButton,
+                  { borderColor: currentTheme.colors.border },
+                ]}
+                onPress={() => router.push("/notes")}
+                activeOpacity={0.85}
+              >
+                <Text variant="title" tone="primary" weight="semiBold">
+                  Build a routine
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={dismissAdvice}
+                // Single line of meta text; hitSlop keeps the target ≥44pt.
+                hitSlop={16}
+                activeOpacity={0.6}
+              >
+                <Text variant="meta" tone="muted" style={styles.dismissText}>
+                  Don&apos;t suggest routines
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </Card>
     );
   }
@@ -212,7 +248,7 @@ export default function TodayCard() {
         activeOpacity={0.9}
         onPress={() => setShowOverview(true)}
       >
-        <Card padding={0} style={styles.pagerCard}>
+        <Card padding={0} style={[styles.pagerCard, { minHeight: cardMinHeight }]}>
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}
@@ -316,13 +352,12 @@ export default function TodayCard() {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    minHeight: CARD_MIN_HEIGHT,
+  heroCard: {
+    justifyContent: "space-between",
   },
   loadingCard: {
     alignItems: "center",
     justifyContent: "center",
-    minHeight: CARD_MIN_HEIGHT,
   },
   eyebrow: {
     marginBottom: 0,
@@ -334,7 +369,6 @@ const styles = StyleSheet.create({
   // the heading sits flush at the top, with a small breath below the button.
   pagerCard: {
     paddingBottom: space.sm,
-    minHeight: CARD_MIN_HEIGHT,
   },
   headerRow: {
     flexDirection: "row",
@@ -381,6 +415,10 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     marginTop: space.lg,
+  },
+  dismissText: {
+    textAlign: "center",
+    marginTop: space.md,
   },
   secondaryButton: {
     alignItems: "center",
