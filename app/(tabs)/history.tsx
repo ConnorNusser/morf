@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.emphasis,
   },
   summaryLabel: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     marginTop: 3,
   },
   summaryDivider: {
@@ -736,7 +736,7 @@ const styles = StyleSheet.create({
   },
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   recordName: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   recordValueRow: {
     flexDirection: 'row',
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   recordUnit: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   recordTierBadge: {
     alignSelf: 'flex-start',
@@ -785,7 +785,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   recordTierText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     letterSpacing: 0.3,
   },
   // Monthly trends button
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
   },
   liftStats: {
     flexDirection: 'row',
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -849,7 +849,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   liftRight: {
     flexDirection: 'row',

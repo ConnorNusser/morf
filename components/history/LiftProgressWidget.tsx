@@ -247,8 +247,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 6,
   },
-  headLabel: { fontSize: typeScale.micro, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  headMeta: { fontSize: typeScale.caption, opacity: 0.5 },
+  headLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: typeScale.meta, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   face: {
@@ -275,15 +275,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   set: { fontSize: typeScale.body, letterSpacing: -0.2 },
-  month: { fontSize: typeScale.micro, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
+  month: { fontSize: typeScale.meta, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backLabel: { fontSize: typeScale.micro, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  backLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   backTrend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTrendText: { fontSize: typeScale.caption, fontWeight: '500' },
+  backTrendText: { fontSize: typeScale.meta, fontWeight: '500' },
   backMainRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
   backMain: { fontSize: typeScale.body, fontWeight: '600', letterSpacing: -0.2 },
-  backPct: { fontSize: typeScale.caption, fontWeight: '500' },
+  backPct: { fontSize: typeScale.meta, fontWeight: '500' },
   backBar: { marginTop: 2 },
 });

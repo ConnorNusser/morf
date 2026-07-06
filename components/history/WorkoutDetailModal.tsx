@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   prLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     lineHeight: 16,
   },
   summaryRow: {
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prBadgeText: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
   },
   exerciseBest: {
     fontSize: typeScale.meta,

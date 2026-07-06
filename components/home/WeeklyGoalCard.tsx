@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   dayLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     opacity: 0.6,
   },
   loadRow: {
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   trendText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     fontWeight: '600',
   },
   backdrop: {

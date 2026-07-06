@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   heading: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.emphasis,
   },
   unit: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   deltaPill: {
     flexDirection: 'row',
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   rowRight: {
     flexDirection: 'row',

@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
   },
   liftStats: {
     flexDirection: 'row',
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   liftRight: {
     flexDirection: 'row',

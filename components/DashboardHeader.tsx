@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.body,
   },
   dropdownSubtext: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     marginTop: 2,
   },
 }); 

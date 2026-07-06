@@ -5,11 +5,7 @@
 //
 // Roles, smallest to largest:
 export const type = {
-  /** Uppercase micro-labels (LIFTS, ACTIVITY, NEXT) — pair with letterSpacing ~1. */
-  micro: 11,
-  /** Fine print: timestamps, axis/legend labels, chip sublines. */
-  caption: 12,
-  /** Secondary row text: subtitles, counts, set markers. */
+  /** The floor: micro-labels, fine print, and secondary row text. */
   meta: 13,
   /** Primary row and paragraph text. */
   body: 15,

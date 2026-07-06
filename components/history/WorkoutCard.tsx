@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     letterSpacing: 0.5,
   },
 });

@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.emphasis,
   },
   statLabel: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     marginTop: 4,
   },
   trendRow: {
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   sectionHeader: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     letterSpacing: 1,
     marginBottom: 12,
   },
@@ -325,14 +325,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     letterSpacing: 0.5,
   },
   sessionOneRM: {
     fontSize: typeScale.emphasis,
   },
   sessionOneRMLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
   },
   barTrack: {
     height: 4,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   sessionVolume: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     marginTop: 10,
   },
 });

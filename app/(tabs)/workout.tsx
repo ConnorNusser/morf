@@ -819,7 +819,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unitSegmentText: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
@@ -837,7 +837,7 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   restLabel: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     letterSpacing: 1,
     marginLeft: 2,
   },
@@ -865,7 +865,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.statHero,
   },
   expandedTimerLabel: {
-    fontSize: typeScale.caption,
+    fontSize: typeScale.meta,
     marginTop: 2,
   },
   adjustButton: {

@@ -222,12 +222,12 @@ const styles = StyleSheet.create({
 
   brief: { marginTop: 34 },
   badge: { marginBottom: 18 },
-  tag: { fontSize: typeScale.micro, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
+  tag: { fontSize: typeScale.meta, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
   cue: { fontSize: 26, fontWeight: '700', lineHeight: 35, letterSpacing: -0.3 },
   achDesc: { fontSize: typeScale.body, fontWeight: '500', lineHeight: 20, marginTop: 12 },
-  achDate: { fontSize: typeScale.caption, fontWeight: '600', marginTop: 8 },
+  achDate: { fontSize: typeScale.meta, fontWeight: '600', marginTop: 8 },
 
-  hint: { fontSize: typeScale.caption, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
+  hint: { fontSize: typeScale.meta, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
   timeTrack: { height: 3, width: '100%' },
   timeFill: { height: '100%' },
 });

@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   eyebrow: {
-    fontSize: typeScale.micro,
+    fontSize: typeScale.meta,
     letterSpacing: 1.2,
     opacity: 0.6,
     fontWeight: "600",

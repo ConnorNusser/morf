@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   secondaryText: { fontSize: 14 },
   quickStart: { marginBottom: 6 },
-  title: { fontSize: typeScale.micro, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
+  title: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
   card: {},
   row: {
     flexDirection: 'row',
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   rowText: { flex: 1, gap: 3 },
-  date: { fontSize: typeScale.micro, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
+  date: { fontSize: typeScale.meta, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   exName: { fontSize: typeScale.body },
   rowAction: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowActionText: { fontSize: typeScale.meta, fontWeight: '600' },
