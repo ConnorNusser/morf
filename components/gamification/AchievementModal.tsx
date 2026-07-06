@@ -19,6 +19,12 @@ export interface AchievementModalItem {
   rarity: Rarity;
   /** Where/when it was earned, already formatted (e.g. "Pull Day · Jun 24"). */
   earnedLabel?: string;
+  /** Locked achievements render muted, with progress instead of an earned line. */
+  unlocked?: boolean;
+  /** Secret achievement — rarity reads SECRET. */
+  masked?: boolean;
+  /** Standing toward the target, already formatted (e.g. "12.4k / 100k · 12%"). */
+  progressLabel?: string;
 }
 
 interface Props {
@@ -44,10 +50,11 @@ export default function AchievementModal({ item, onClose }: Props) {
             icon={item.icon}
             emblem={emblemFor(item.id)}
             rarity={item.rarity}
+            unlocked={item.unlocked ?? true}
             size={132}
           />
           <Text style={[styles.rarity, { color: accent }]}>
-            {RARITY_META[item.rarity].label.toUpperCase()}
+            {item.masked ? 'SECRET' : RARITY_META[item.rarity].label.toUpperCase()}
           </Text>
           <Text style={[styles.title, { color: colors.text }]}>{item.title}</Text>
           <Text style={[styles.desc, { color: colors.text + 'B0' }]}>{item.description}</Text>
@@ -55,6 +62,9 @@ export default function AchievementModal({ item, onClose }: Props) {
             <Text style={[styles.earned, { color: colors.text + '66' }]}>
               Earned · {item.earnedLabel}
             </Text>
+          )}
+          {!!item.progressLabel && (
+            <Text style={[styles.earned, { color: colors.text + '66' }]}>{item.progressLabel}</Text>
           )}
         </View>
 
