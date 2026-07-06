@@ -300,16 +300,15 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* The top region is the SEASON PAGE — one designed object on a single
-                shared Card (the exact Card grammar CareerSection sits on:
-                variant="elevated", padding 18), with a hairline divider fusing the
-                two halves the way a sports app fuses standings and results.
-                - LiftProgressWidget: the STANDINGS TABLE — ranked lifts, team-color
-                  tick, month form strip, grade column; next-tier stake on each
-                  graded row's flip side.
-                - SessionsFeed: the MATCH RESULTS — each session a box score
-                  (matchup line, final-score set, stat line, lineup), newest first;
-                  the latest PR is the page's one celebrated highlight. */}
+            {/* The top region is ONE instrument panel — the LIFTS board and the
+                SESSIONS feed live on a single shared Card (the exact Card grammar
+                CareerSection sits on: variant="elevated", padding 18), with a
+                hairline divider fusing the sub-blocks instead of two unframed
+                sections floating on the page.
+                - LiftProgressWidget: a short RANKED board (top rows only, expander
+                  for the rest); tier detail on each row's flip side.
+                - SessionsFeed: a uniform feed of plain session posts, newest
+                  first; the newest PR gain is the page's one celebrated accent. */}
             {workouts.length > 0 && (
               <Card variant="elevated" padding={18}>
                 <LiftProgressWidget lifts={liftProgress} />
