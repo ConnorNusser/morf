@@ -2,14 +2,13 @@
 // Strength Index with a re-livable record of each gym session: the latest workout
 // as a cinematic hero recap, past sessions as narrative moment cards. Every card
 // leads with meaning (a headline or the standout set), not a stat dump.
-import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
 
 // Suppress the auto-generated default title ("Workout - 7/3/2026") so the eyebrow
 // reads as just the day; keep real titles like "Leg Day".
@@ -33,7 +32,7 @@ function SessionPost({ recap, weightUnit, onPress }: {
   onPress: (w: GeneratedWorkout) => void;
 }) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   const isPR = !!recap.pr;
 
   // One compact lead: narrative (or standout lift) + the top set, one line.
@@ -59,18 +58,18 @@ function SessionPost({ recap, weightUnit, onPress }: {
       {/* post header — identity left (bold name, quiet timestamp), effort right */}
       <RNView style={styles.postHead}>
         <RNView style={styles.postIdentity}>
-          <Text style={[styles.postTitle, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          <Text style={[styles.postTitle, { color: colors.text }]} numberOfLines={1}>
             {cleanTitle(recap.title) ?? 'Workout'}
           </Text>
-          <Text style={[styles.postWhen, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+          <Text style={[styles.postWhen, { color: colors.text }]} numberOfLines={1}>
             {formatRelativeDate(recap.workout.createdAt)}
           </Text>
         </RNView>
         <RNView style={styles.postDetails}>
-          <Text style={[styles.detailMain, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          <Text style={[styles.detailMain, { color: colors.text }]} numberOfLines={1}>
             {formatCompact(recap.volumeDisplay)} {weightUnit}
           </Text>
-          <Text style={[styles.detailSub, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+          <Text style={[styles.detailSub, { color: colors.text }]} numberOfLines={1}>
             {recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
@@ -78,24 +77,24 @@ function SessionPost({ recap, weightUnit, onPress }: {
 
       {/* the story: narrative + top set on one modest line, PR gain as a quiet tail */}
       {lead && (
-        <Text style={[styles.postLead, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.postLead, { color: colors.text }]} numberOfLines={1}>
           {lead}
           {setText ? (
-            <Text style={[styles.postLeadSet, { color: colors.text + '99', fontFamily: fonts.medium }]}>
+            <Text style={[styles.postLeadSet, { color: colors.text + '99' }]}>
               {'  ·  '}{setText}
             </Text>
           ) : null}
         </Text>
       )}
       {caption && (
-        <Text style={[styles.postCaption, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+        <Text style={[styles.postCaption, { color: colors.text }]} numberOfLines={1}>
           {caption}
         </Text>
       )}
 
       {/* what happened — the full lineup, each exercise's top set */}
       {lineup.length > 0 && (
-        <Text style={[styles.postLineup, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={2}>
+        <Text style={[styles.postLineup, { color: colors.text }]} numberOfLines={2}>
           {lineup}
         </Text>
       )}
@@ -114,7 +113,7 @@ interface SessionsFeedProps {
 
 export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   if (recaps.length === 0) return null;
 
   const posts = recaps.slice(0, Math.max(1, visibleCount));
@@ -126,7 +125,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
           (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system.
           No count meta here: the "View all N sessions" action below already states it. */}
       <RNView style={styles.feedHead}>
-        <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
+        <Text style={[styles.microLabel, { color: colors.text }]}>SESSIONS</Text>
       </RNView>
       {posts.map((r, i) => (
         <RNView
@@ -138,7 +137,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
       ))}
       {onToggleShowAll && (hasMore || visibleCount > 6) && (
         <TouchableOpacity style={styles.viewAll} onPress={onToggleShowAll} activeOpacity={0.7}>
-          <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+          <Text style={[styles.viewAllText, { color: currentTheme.colors.primary }]}>
             {hasMore ? `View all ${totalCount} sessions` : 'Show less'}
           </Text>
         </TouchableOpacity>
@@ -157,19 +156,19 @@ const styles = StyleSheet.create({
   // as two organized tiers instead of a scatter of sizes and weights.
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   postIdentity: { flex: 1, gap: 1 },
-  postTitle: { fontSize: 15, letterSpacing: -0.2 },
-  postWhen: { fontSize: 12 },
+  postTitle: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
+  postWhen: { fontSize: 12, opacity: 0.5 },
   postDetails: { alignItems: 'flex-end', gap: 1 },
-  detailMain: { fontSize: 13, letterSpacing: -0.2 },
-  detailSub: { fontSize: 12 },
+  detailMain: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+  detailSub: { fontSize: 11, opacity: 0.5 },
   // The story: lead (narrative · top set) at body scale, quiet caption and lineup.
-  postLead: { fontSize: 14, lineHeight: 19, letterSpacing: -0.2, marginTop: 10 },
-  postLeadSet: { fontSize: 13, letterSpacing: -0.2 },
-  postCaption: { fontSize: 12, lineHeight: 16, marginTop: 2 },
-  postLineup: { fontSize: 12, lineHeight: 17, marginTop: 6 },
+  postLead: { fontSize: 14, fontWeight: '600', lineHeight: 19, letterSpacing: -0.2, marginTop: 10 },
+  postLeadSet: { fontSize: 13, fontWeight: '500', letterSpacing: -0.2 },
+  postCaption: { fontSize: 12, lineHeight: 16, marginTop: 2, opacity: 0.5 },
+  postLineup: { fontSize: 12, lineHeight: 17, marginTop: 6, opacity: 0.5 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
-  viewAllText: { fontSize: 14 },
+  viewAllText: { fontSize: 13, fontWeight: '600' },
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
-  microLabel: { fontSize: 10, letterSpacing: 1 },
+  microLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
 });

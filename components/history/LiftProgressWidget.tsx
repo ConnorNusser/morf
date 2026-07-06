@@ -19,14 +19,13 @@
 // (the Career FlipCard) to the stake: how much e1RM to the next tier.
 import AnimatedBar from '@/components/AnimatedBar';
 import FlipCard from '@/components/gamification/FlipCard';
-import { Text } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { LiftProgress, LiftTier } from '@/lib/history/liftProgress';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
 
 // Semantic gain/loss colors, matched to ExerciseCard / TopMovers so the same green
 // means the same thing across every tab.
@@ -45,7 +44,7 @@ const metricOf = (p: { weight: number; reps: number }): number => (p.weight > 0 
 // `accent` tints the latest "you are here" capsule (tier color when graded).
 function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   return (
     <RNView style={styles.points}>
       {lift.points.map((p, i) => {
@@ -72,16 +71,13 @@ function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
             <Text
               style={[
                 styles.set,
-                {
-                  color: latest ? accent : trendColor,
-                  fontFamily: latest ? fonts.bold : fonts.semiBold,
-                },
+                { color: latest ? accent : trendColor, fontWeight: latest ? '700' : '600' },
               ]}
               numberOfLines={1}
             >
               {setLabel(p.weight, p.reps)}
             </Text>
-            <Text style={[styles.month, { color: colors.text + '55', fontFamily: fonts.medium }]}>
+            <Text style={[styles.month, { color: colors.text + '55' }]}>
               {p.monthLabel}
             </Text>
           </RNView>
@@ -96,12 +92,12 @@ function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
 // chip strip right. Ungraded lifts simply omit the badge — no fake tiers.
 function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null }) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   const accent = tier ? getTierColor(tier.tier) : colors.primary;
   return (
     <RNView style={styles.face}>
       <RNView style={styles.nameCol}>
-        <Text style={[styles.name, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {shortName(lift.name)}
         </Text>
         {tier && (
@@ -120,7 +116,7 @@ function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null })
 // e1RM trend (it reads red-and-down when the lifter regresses).
 function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   const tierColor = getTierColor(tier.tier);
   const delta = tier.e1rmDelta;
   const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text + '55';
@@ -128,17 +124,17 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
   return (
     <RNView style={styles.backFace}>
       <RNView style={styles.backHead}>
-        <Text style={[styles.backLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>
+        <Text style={[styles.backLabel, { color: colors.text }]}>
           {tier.nextTier ? 'NEXT TIER' : 'MAX TIER'}
         </Text>
         <RNView style={styles.backTrend}>
-          <Text style={[styles.backTrendText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+          <Text style={[styles.backTrendText, { color: colors.text + '80' }]}>
             e1RM {tier.e1rm} {lift.unit}
           </Text>
           {delta !== 0 && (
             <>
               <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={deltaColor} />
-              <Text style={[styles.backTrendText, { color: deltaColor, fontFamily: fonts.semiBold }]}>
+              <Text style={[styles.backTrendText, { color: deltaColor, fontWeight: '600' }]}>
                 {Math.abs(delta)}
               </Text>
             </>
@@ -148,18 +144,18 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
 
       <RNView style={styles.backMainRow}>
         {tier.nextTier && tier.gapWeight != null ? (
-          <Text style={[styles.backMain, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          <Text style={[styles.backMain, { color: colors.text }]} numberOfLines={1}>
             {tier.gapWeight} {lift.unit} to{' '}
-            <Text style={[styles.backMain, { color: getTierColor(tier.nextTier), fontFamily: fonts.bold }]}>
+            <Text style={[styles.backMain, { color: getTierColor(tier.nextTier), fontWeight: '700' }]}>
               {tier.nextTier}
             </Text>
           </Text>
         ) : (
-          <Text style={[styles.backMain, { color: tierColor, fontFamily: fonts.semiBold }]}>
+          <Text style={[styles.backMain, { color: tierColor }]}>
             Max tier reached
           </Text>
         )}
-        <Text style={[styles.backPct, { color: colors.text + '60', fontFamily: fonts.medium }]}>
+        <Text style={[styles.backPct, { color: colors.text + '60' }]}>
           {tier.percentile}th pctile
         </Text>
       </RNView>
@@ -204,7 +200,7 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
   maxRows?: number;
 }) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   const [expanded, setExpanded] = useState(false);
   if (lifts.length === 0) return null;
   const anyGraded = lifts.some(l => l.tierInfo);
@@ -217,8 +213,8 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
       {/* Same uppercase micro-label header grammar as the Career card (ACTIVITY / NEXT),
           so the two History sections and the Profile read as one design system. */}
       <RNView style={styles.head}>
-        <Text style={[styles.headLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>LIFTS</Text>
-        <Text style={[styles.headMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
+        <Text style={[styles.headLabel, { color: colors.text }]}>LIFTS</Text>
+        <Text style={[styles.headMeta, { color: colors.text }]}>
           {anyGraded ? 'tap for next tier' : 'best set · by month'}
         </Text>
       </RNView>
@@ -228,7 +224,7 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
       {/* Same viewAll text-button grammar as the sessions feed below. */}
       {hasMore && (
         <TouchableOpacity style={styles.viewAll} onPress={() => setExpanded(v => !v)} activeOpacity={0.7}>
-          <Text style={[styles.viewAllText, { color: colors.primary, fontFamily: fonts.medium }]}>
+          <Text style={[styles.viewAllText, { color: colors.primary }]}>
             {expanded ? 'Show less' : `All ${lifts.length} lifts`}
           </Text>
         </TouchableOpacity>
@@ -250,8 +246,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 6,
   },
-  headLabel: { fontSize: 10, letterSpacing: 1 },
-  headMeta: { fontSize: 11 },
+  headLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: 11, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   face: {
@@ -262,11 +258,11 @@ const styles = StyleSheet.create({
   },
   // Two-line left column, flush left: name over badge, one shared edge down the board.
   nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  name: { fontSize: 14 },
+  name: { fontSize: 15, fontWeight: '600' },
   gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 12, alignItems: 'center' },
-  viewAllText: { fontSize: 14 },
+  viewAllText: { fontSize: 13, fontWeight: '600' },
   points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   // Each point is a small themed chip (matches the pill language used by delta/sort/
   // record chips elsewhere in History) rather than bare floating text.
@@ -278,15 +274,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   set: { fontSize: 13, letterSpacing: -0.2 },
-  month: { fontSize: 9, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
+  month: { fontSize: 9, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backLabel: { fontSize: 10, letterSpacing: 1 },
+  backLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   backTrend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTrendText: { fontSize: 11 },
+  backTrendText: { fontSize: 11, fontWeight: '500' },
   backMainRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
-  backMain: { fontSize: 14, letterSpacing: -0.2 },
-  backPct: { fontSize: 11 },
+  backMain: { fontSize: 14, fontWeight: '600', letterSpacing: -0.2 },
+  backPct: { fontSize: 11, fontWeight: '500' },
   backBar: { marginTop: 2 },
 });
