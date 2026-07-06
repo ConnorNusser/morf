@@ -5,8 +5,6 @@
 import AnimatedBar from '@/components/AnimatedBar';
 import AnimatedCount from '@/components/AnimatedCount';
 import { Text } from '@/components/Themed';
-import TierBadge from '@/components/TierBadge';
-import { getTierColor } from '@/lib/data/strengthStandards';
 import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
@@ -27,6 +25,10 @@ const cleanTitle = (t: string): string | null => {
   const s = (t || '').trim();
   return !s || /^workout\b/i.test(s) ? null : s;
 };
+
+// Drop the trailing "(Equipment)" — matches the shortening sessionRecap's headlines
+// use, so "does the headline already name this lift?" compares like with like.
+const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
 // The per-split visual identity: a custom white movement pictogram on a solid PPL
 // circle — bold, instantly legible, giving each session a scannable, memorable face.
@@ -72,11 +74,20 @@ function SessionHero({ recap, weightUnit, onPress }: {
   // earn the narrative headline, just not the icon.
   const showTrophy = recap.pr?.tier === 'major';
   const id = sessionIdentity(recap.title, recap.muscles);
-  // The standout set's earned strength tier — graded by the SAME gradeE1rm path the
-  // lift rows above use, null when there's no published standard or no bodyweight/
-  // gender on the profile. Null = the hero renders exactly as before: no fake tiers.
-  const tier = recap.standout?.tierInfo ?? null;
-  const tierColor = tier ? getTierColor(tier.tier) : colors.text;
+  // One statement per fact: when the headline already names the PR lift, the caption
+  // only quantifies the record; it repeats the lift name only when the headline didn't.
+  const headline = recap.headline ?? (recap.standout ? recap.standout.name : recap.title);
+  const headlineNamesLift =
+    !!recap.standout && !!recap.headline && recap.headline.includes(shortHeroName(recap.standout.name));
+  const caption = !recap.standout
+    ? null
+    : isPR
+      ? headlineNamesLift
+        ? `+${recap.prGainDisplay} ${weightUnit} over your best`
+        : `${recap.standout.name} · +${recap.prGainDisplay} ${weightUnit} over your best`
+      : recap.headline
+        ? recap.standout.name
+        : 'top set';
 
   return (
     <TouchableOpacity
@@ -84,10 +95,11 @@ function SessionHero({ recap, weightUnit, onPress }: {
       onPress={() => onPress(recap.workout)}
       style={styles.hero}
     >
-      {/* emblem + eyebrow (the day, tinted by the split's identity colour) */}
+      {/* emblem + eyebrow. The emblem is the ONE split-color statement on the card;
+          the eyebrow text stays neutral so the hero doesn't say the same hue twice. */}
       <RNView style={styles.heroEyebrow}>
         <Emblem color={id.color} emblem={id.emblem} size={40} />
-        <Text style={[styles.eyebrowText, { color: id.color, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.eyebrowText, { color: colors.text + '70', fontFamily: fonts.semiBold }]} numberOfLines={1}>
           {formatRelativeDate(recap.workout.createdAt).toUpperCase()}
           {cleanTitle(recap.title) ? ` · ${cleanTitle(recap.title)}` : ''}
         </Text>
@@ -99,72 +111,33 @@ function SessionHero({ recap, weightUnit, onPress }: {
         )}
       </RNView>
 
-      {/* the narrative hook — deliberately compact (eyebrow-adjacent, one line), so
-          the tier-colored standout number below is the hero's ONLY hero-scale element,
-          the way Career reserves scale for numbers */}
+      {/* the narrative hook — compact, one line, so the standout number below is the
+          hero's ONLY hero-scale element (Career's rule: scale is reserved for numbers) */}
       <Text style={[styles.heroHeadline, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-        {recap.headline ?? (recap.standout ? `${recap.standout.name}` : recap.title)}
+        {headline}
       </Text>
 
-      {/* the standout moment as a big, re-livable stat — the number counts up on
-          entry, the same AnimatedCount treatment as the Career hero percentile.
-          Subtitle never repeats the headline: on a PR it quantifies the record,
-          otherwise it names the lift. */}
+      {/* the standout moment as a big, re-livable stat — the number counts up on entry,
+          the same AnimatedCount treatment as the Career hero percentile, and like that
+          hero it stays plain text color: scale carries the emphasis, not another hue.
+          (Tier context lives on the LIFTS board above — its badge and flip-back already
+          grade this lift, so the hero doesn't restate it.) */}
       {recap.standout && (
         <RNView style={styles.heroStandout}>
-          {/* The big number wears its EARNED tier color (plain text color when ungraded)
-              — the same strengthStandards hue the lift rows above and the Career hero
-              use, so the hero's focal figure carries meaning, not decoration. */}
-          <Text style={[styles.standoutValue, { color: tierColor, fontFamily: fonts.bold }]}>
+          <Text style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}>
             <AnimatedCount
               value={recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps}
               duration={900}
-              style={[styles.standoutValue, { color: tierColor, fontFamily: fonts.bold }]}
+              style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
             />
             <Text style={[styles.standoutUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
               {recap.standout.weight > 0 ? ` ${weightUnit} × ${recap.standout.reps}` : ' reps'}
             </Text>
           </Text>
-          <Text style={[styles.standoutName, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
-            {isPR
-              ? `${recap.standout.name} · +${recap.prGainDisplay} ${weightUnit} over your best`
-              : recap.headline
-                ? recap.standout.name
-                : 'top set'}
-          </Text>
-
-          {/* Career's "X to Gold" mechanic on the session itself: the set's tier badge,
-              how much e1RM stands between it and the NEXT tier (named in that tier's
-              color), and a filling band-progress track. Derived from this session's
-              actual set — a lighter day honestly reads further from the line — and the
-              whole block disappears when the lift can't be graded. */}
-          {tier && (
-            <>
-              <RNView style={styles.tierRow}>
-                <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />
-                <Text style={[styles.tierText, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
-                  e1RM {tier.e1rm}
-                  {tier.nextTier && tier.gapWeight != null ? (
-                    <>
-                      {' · '}{tier.gapWeight} {weightUnit} to{' '}
-                      <Text style={[styles.tierNext, { color: getTierColor(tier.nextTier), fontFamily: fonts.bold }]}>
-                        {tier.nextTier}
-                      </Text>
-                    </>
-                  ) : (
-                    ' · max tier'
-                  )}
-                </Text>
-              </RNView>
-              <AnimatedBar
-                progress={tier.bandProgress}
-                color={tierColor}
-                trackColor={colors.text + '15'}
-                height={4}
-                delay={250}
-                style={styles.tierBar}
-              />
-            </>
+          {caption && (
+            <Text style={[styles.standoutName, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
+              {caption}
+            </Text>
           )}
         </RNView>
       )}
@@ -208,9 +181,21 @@ function MomentCard({ recap, weightUnit, onPress }: {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
   const id = sessionIdentity(recap.title, recap.muscles);
-  const standoutLine = recap.standout
-    ? `${recap.standout.name} · ${recap.standout.weight > 0 ? `${recap.standout.weight} ${weightUnit} × ${recap.standout.reps}` : `${recap.standout.reps} reps`}`
+  const setText = recap.standout
+    ? recap.standout.weight > 0
+      ? `${recap.standout.weight} ${weightUnit} × ${recap.standout.reps}`
+      : `${recap.standout.reps} reps`
     : null;
+  // ONE lead line per card: the headline with its set fused on ("Row PR · 160 lbs × 6"),
+  // or the plain standout when there's no narrative. The old separate headline +
+  // standout lines said the lift name twice and made every card four text rows deep.
+  const lead = recap.headline
+    ? setText
+      ? `${recap.headline} · ${setText}`
+      : recap.headline
+    : recap.standout && setText
+      ? `${shortHeroName(recap.standout.name)} · ${setText}`
+      : recap.title;
 
   return (
     <TouchableOpacity
@@ -233,21 +218,9 @@ function MomentCard({ recap, weightUnit, onPress }: {
           )}
         </RNView>
 
-        {/* lead with the headline if there is one, else the standout set */}
         <Text style={[styles.momentLead, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-          {recap.headline ?? standoutLine ?? recap.title}
+          {lead}
         </Text>
-
-        {/* the standout set gets its own line whenever a headline already claimed the lead,
-            so it never has to be crammed into the same truncating string as volume/sets. */}
-        {recap.headline && standoutLine && (
-          <Text
-            style={[styles.momentStandout, { color: colors.text + '80', fontFamily: fonts.regular }]}
-            numberOfLines={1}
-          >
-            {standoutLine}
-          </Text>
-        )}
 
         <RNView style={styles.momentMeta}>
           <Text style={[styles.momentMetaText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
@@ -326,12 +299,10 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
       )}
 
       {/* SESSIONS — the same uppercase micro-label header grammar the Career card
-          (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system. */}
+          (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system.
+          No count meta here: the "View all N sessions" action below already states it. */}
       <RNView style={styles.feedHead}>
         <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
-        <Text style={[styles.headMeta, { color: colors.text + '80', fontFamily: fonts.regular }]}>
-          {totalCount} logged
-        </Text>
       </RNView>
       <SessionHero recap={hero} weightUnit={weightUnit} onPress={onPressSession} />
       {moments.length > 0 && (
@@ -367,12 +338,6 @@ const styles = StyleSheet.create({
   standoutValue: { fontSize: 34, letterSpacing: -1 },
   standoutUnit: { fontSize: 18, letterSpacing: -0.3 },
   standoutName: { fontSize: 13, marginTop: 1 },
-  // tier context under the standout — same quiet-text + 4pt band-progress grammar as
-  // the lift rows' flip-backs and the NEXT milestone block above.
-  tierRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
-  tierText: { flex: 1, fontSize: 12, letterSpacing: 0.1 },
-  tierNext: { fontSize: 12, letterSpacing: 0.1 },
-  tierBar: { marginTop: 7 },
   // space-between spreads the three stats across the FULL card width instead of
   // clumping them on the left with empty space to the right.
   heroFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
@@ -393,14 +358,12 @@ const styles = StyleSheet.create({
   momentWhen: { fontSize: 12, letterSpacing: 0.2 },
   prDot: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   momentLead: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 4 },
-  momentStandout: { fontSize: 13, lineHeight: 17, marginTop: 2 },
   momentMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, gap: 8 },
   momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
-  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
+  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
   microLabel: { fontSize: 10, letterSpacing: 1 },
-  headMeta: { fontSize: 11 },
   // NEXT milestone block — hairline divider separates it from the feed below.
   milestone: { paddingTop: 14, paddingBottom: 14, marginBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth },
   milestoneHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
