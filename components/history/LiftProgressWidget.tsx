@@ -63,23 +63,33 @@ function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null })
         </Text>
         {tier && <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />}
       </RNView>
-      {/* space-between spreads a full strip edge to edge; short histories keep
-          their months packed at the "now" end instead of floating apart. */}
-      <RNView style={[styles.monthsRow, points.length < 4 && styles.monthsRowShort]}>
+      {/* Left-aligned timeline: month → month → month, the arrow doing the
+          "this became that" storytelling between columns. */}
+      <RNView style={styles.monthsRow}>
         {points.map((p, i) => {
           const isLatest = i === points.length - 1;
           return (
-            <RNView key={i} style={styles.monthCol}>
-              <Text
-                style={[styles.monthVal, { color: isLatest ? latestColor : colors.text + '77' }, isLatest && styles.monthValLatest]}
-                numberOfLines={1}
-              >
-                {setLabel(p.weight, p.reps)}
-              </Text>
-              <Text style={[styles.monthLabel, { color: colors.text + '4D' }]}>
-                {p.monthLabel.toUpperCase()}
-              </Text>
-            </RNView>
+            <React.Fragment key={i}>
+              {i > 0 && (
+                <Ionicons
+                  name="arrow-forward"
+                  size={11}
+                  color={colors.text + '38'}
+                  style={styles.monthArrow}
+                />
+              )}
+              <RNView style={styles.monthCol}>
+                <Text
+                  style={[styles.monthVal, { color: isLatest ? latestColor : colors.text + '77' }, isLatest && styles.monthValLatest]}
+                  numberOfLines={1}
+                >
+                  {setLabel(p.weight, p.reps)}
+                </Text>
+                <Text style={[styles.monthLabel, { color: colors.text + '4D' }]}>
+                  {p.monthLabel.toUpperCase()}
+                </Text>
+              </RNView>
+            </React.Fragment>
           );
         })}
       </RNView>
@@ -242,19 +252,18 @@ const styles = StyleSheet.create({
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
-  // The month strip: every month side by side, value over label, newest at the
-  // right edge. Plain text columns — no chip chrome.
+  // The month strip: a left-aligned timeline of value-over-month columns with a
+  // quiet arrow between each — one type size throughout, no chip chrome.
   monthsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  monthsRowShort: {
-    justifyContent: 'flex-end',
-    gap: 20,
+    alignItems: 'center',
+    gap: 5,
   },
   monthCol: { alignItems: 'center', gap: 1 },
+  // Raised so the arrow sits on the value line, not between the two text lines.
+  monthArrow: { marginBottom: 16 },
   monthVal: { fontSize: typeScale.meta, fontWeight: '600', letterSpacing: -0.2 },
-  monthValLatest: { fontSize: typeScale.emphasis, fontWeight: '700' },
+  monthValLatest: { fontWeight: '700' },
   monthLabel: { fontSize: typeScale.meta, fontWeight: '500', letterSpacing: 0.3 },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
