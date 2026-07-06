@@ -220,7 +220,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
       <RNView style={styles.feedHead}>
         <Text style={[styles.microLabel, { color: colors.text }]}>SESSIONS</Text>
         <Text style={[styles.headMeta, { color: colors.text }]}>
-          {totalCount} played
+          {totalCount} logged
         </Text>
       </RNView>
       {posts.map((r, i) => (
