@@ -3,6 +3,7 @@
 // log, not a social feed. (The volume-per-session bars live on the This Week
 // card, which owns the volume story.)
 import { useTheme } from '@/contexts/ThemeContext';
+import { PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { type as typeScale } from '@/lib/ui/typography';
 import { formatCompact } from '@/lib/utils/utils';
@@ -43,19 +44,41 @@ function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(recap.workout)} style={styles.entry}>
-      {/* entry header — identity left, session volume right */}
+      {/* entry header — identity left (split-colored dot: the Career activity
+          grid's Push/Pull/Legs language), volume + vs-last-same-split right */}
       <RNView style={styles.entryHead}>
         <RNView style={styles.entryIdentity}>
-          <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
-            {cleanTitle(recap.title) ?? 'Workout'}
-          </Text>
+          <RNView style={styles.titleLine}>
+            {recap.split && (
+              <RNView style={[styles.splitDot, { backgroundColor: PPL_COLORS[recap.split] }]} />
+            )}
+            <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
+              {cleanTitle(recap.title) ?? (recap.split ? `${PPL_LABELS[recap.split]} session` : 'Workout')}
+            </Text>
+          </RNView>
           <Text style={[styles.entryMeta, { color: colors.text }]} numberOfLines={1}>
             {formatRelativeDate(recap.workout.createdAt)} · {recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
-        <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
-          {formatCompact(recap.volumeDisplay)} {weightUnit}
-        </Text>
+        <RNView style={styles.entryRight}>
+          <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
+            {formatCompact(recap.volumeDisplay)} {weightUnit}
+          </Text>
+          {recap.comparison && Math.round(recap.comparison.deltaVolumePct) !== 0 && (
+            <Text
+              style={[
+                styles.entryDelta,
+                // Up is the earned green; down reads muted, not alarmed — a
+                // lighter session isn't a failure.
+                { color: recap.comparison.deltaVolumePct > 0 ? POS : colors.text + '99' },
+              ]}
+              numberOfLines={1}
+            >
+              {recap.comparison.deltaVolumePct > 0 ? '+' : ''}
+              {Math.round(recap.comparison.deltaVolumePct)}% vs {recap.comparison.refLabel}
+            </Text>
+          )}
+        </RNView>
       </RNView>
 
       {note && (
@@ -155,9 +178,13 @@ const styles = StyleSheet.create({
   entry: { paddingTop: 14, paddingBottom: 8 },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   entryIdentity: { flex: 1, gap: 2 },
-  entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2 },
+  titleLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  splitDot: { width: 8, height: 8, borderRadius: 4 },
+  entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2, flexShrink: 1 },
   entryMeta: { fontSize: typeScale.meta, opacity: 0.5 },
+  entryRight: { alignItems: 'flex-end', gap: 2 },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
+  entryDelta: { fontSize: typeScale.meta, fontWeight: '500' },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
   // The per-exercise table.
   exList: { marginTop: 10, gap: 8 },
