@@ -162,7 +162,7 @@ export default function TodayCard() {
 
   if (loading) {
     return (
-      <Card variant="elevated" style={styles.loadingCard}>
+      <Card style={styles.loadingCard}>
         <ActivityIndicator color={currentTheme.colors.primary} />
       </Card>
     );
@@ -176,7 +176,7 @@ export default function TodayCard() {
         ? `Last workout ${formatRelativeTime(lastWorkoutAt)}.`
         : null;
     return (
-      <Card variant="elevated">
+      <Card>
         <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
         <Text
           variant="heading"
@@ -247,7 +247,7 @@ export default function TodayCard() {
         activeOpacity={0.9}
         onPress={() => setShowOverview(true)}
       >
-        <Card variant="elevated" padding={0} style={styles.pagerCard}>
+        <Card padding={0} style={styles.pagerCard}>
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}

@@ -42,7 +42,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   return (
     <>
       <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
-        <Card variant="elevated">
+        <Card>
           <View style={styles.header}>
             <Text
               variant="emphasis"

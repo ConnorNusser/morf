@@ -171,7 +171,7 @@ export default function ExercisesSection() {
 
   return (
     <>
-      <Card style={styles.card} variant="clean">
+      <Card style={styles.card}>
         <TouchableOpacity
           style={styles.sectionHeader}
           onPress={openModal}

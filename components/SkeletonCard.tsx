@@ -159,7 +159,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
 
   if (variant === 'overall') {
     return (
-      <Card variant="elevated" style={StyleSheet.flatten([styles.container, style])}>
+      <Card style={StyleSheet.flatten([styles.container, style])}>
         {/* Title */}
         <View style={{ marginBottom: space.xl }}>
           <SkeletonLine width="60%" height={20} />
@@ -192,7 +192,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
 
   // Default: stats card
   return (
-    <Card variant="elevated" style={StyleSheet.flatten([styles.container, style])}>
+    <Card style={StyleSheet.flatten([styles.container, style])}>
       {/* Header */}
       <View style={styles.header}>
         <SkeletonLine width="45%" height={18} />

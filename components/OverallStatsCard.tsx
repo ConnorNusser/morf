@@ -27,7 +27,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
         activeOpacity={0.8}
         onPress={() => setIsModalOpen(true)}
       >
-        <Card variant="elevated" style={styles.container}>
+        <Card style={styles.container}>
           <View style={styles.header}>
             <SectionLabel style={styles.title}>OVERALL STRENGTH</SectionLabel>
           </View>
@@ -64,7 +64,6 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
               height={10}
               style={styles.progressBar}
               showTicks={true}
-              exerciseName="Overall Strength"
               color={tierColor}
             />
             <Text variant="meta" tone="secondary" style={styles.progressLabel}>

@@ -52,7 +52,7 @@ const NotificationPreferencesSection = () => {
   );
 
   return (
-    <Card style={styles.card} variant="clean">
+    <Card style={styles.card}>
       <TouchableOpacity style={styles.sectionHeader} onPress={() => setIsExpanded(!isExpanded)} activeOpacity={0.7}>
         <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
           <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>Reminders</Text>

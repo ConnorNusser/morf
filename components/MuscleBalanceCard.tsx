@@ -236,7 +236,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
 
   return (
     <>
-      <Card variant="elevated">
+      <Card>
         {/* Header — one label, matching the This Week card's single-title restraint. */}
         <View style={styles.header}>
           <SectionLabel style={styles.title}>MUSCLE BALANCE</SectionLabel>

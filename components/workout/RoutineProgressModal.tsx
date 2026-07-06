@@ -1084,12 +1084,6 @@ const styles = StyleSheet.create({
   statusLabel: {
     fontSize: 11,
   },
-  deloadButton: {
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 4,
-    backgroundColor: '#ef444415',
-  },
   noDataText: {
     fontSize: 12,
     marginTop: 4,

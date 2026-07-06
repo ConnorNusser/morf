@@ -3,17 +3,14 @@ import { Text, useInk } from "@/components/Themed";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
 import { radius, space, tint, track } from "@/lib/ui/tokens";
-import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type ViewMode = "home" | "feed";
 
+// Only what the header actually renders: the tier ring.
 export interface HeaderStats {
-  totalVolume: number;
-  totalWorkouts: number;
-  unit: WeightUnit;
   tier?: StrengthTier; // strength tier (gamification)
   tierProgress?: number; // 0..1 toward the next tier
 }

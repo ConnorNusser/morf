@@ -299,7 +299,7 @@ export default function OverallStrengthModal({
             </Text>
           </View>
 
-          <Card variant="surface" style={styles.chartCard}>
+          <Card style={styles.chartCard}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowHistoryModal(true)}
@@ -331,7 +331,6 @@ export default function OverallStrengthModal({
                 progress={overallPercentile}
                 height={10}
                 style={{ marginVertical: 12, width: "100%" }}
-                exerciseName="overall"
               />
               <View style={styles.heroHintRow}>
                 <Text
@@ -380,7 +379,7 @@ export default function OverallStrengthModal({
               }}
             >
               <Card
-                variant="surface"
+
                 style={{
                   ...styles.standardCard,
                   backgroundColor: "transparent",
@@ -460,7 +459,7 @@ export default function OverallStrengthModal({
 
           {/* Target Weights Card (replaces quest) */}
           <Card
-            variant="surface"
+
             style={{ ...styles.standardCard, backgroundColor: "transparent" }}
           >
             <View
@@ -529,7 +528,6 @@ export default function OverallStrengthModal({
                   )}
                   height={6}
                   style={styles.targetProgress}
-                  exerciseName={`target-${t.id}`}
                 />
                 <View style={styles.targetValuesRow}>
                   <Text
@@ -553,7 +551,7 @@ export default function OverallStrengthModal({
             ))}
           </Card>
 
-          <Card variant="surface" style={styles.liftsCard}>
+          <Card style={styles.liftsCard}>
             <View style={styles.insightRow}>
               <Text
                 style={[
@@ -644,24 +642,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: "transparent",
   },
-  headerStatsRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  overallNumberBlock: { alignItems: "center", backgroundColor: "transparent" },
-  overallValue: { fontSize: 32, fontWeight: "700", lineHeight: 36 },
-  overallLabel: { fontSize: 12, opacity: 0.7 },
-  heroTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    opacity: 0.9,
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  heroRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    width: "100%",
-    backgroundColor: "transparent",
-  },
   tierHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -700,32 +680,12 @@ const styles = StyleSheet.create({
   },
   liftName: { textTransform: "capitalize" },
   liftValue: { width: 42, textAlign: "right", fontVariant: ["tabular-nums"] },
-  liftLevel: { width: 96, textAlign: "right" },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     backgroundColor: "transparent",
   },
-  closeText: { textAlign: "center", fontWeight: "600" },
-  tierLegendRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "center",
-    marginTop: 12,
-  },
-  tierChip: {
-    flexDirection: "row",
-    gap: 6,
-    alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  tierChipText: { fontSize: 12, fontWeight: "600" },
-  tierChipPct: { fontSize: 11, opacity: 0.7 },
   percentileBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -739,9 +699,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: "transparent",
   },
-  insightEmoji: { fontSize: 16 },
   insightText: { fontSize: 12, opacity: 0.8 },
-  questCard: { marginTop: 12, paddingTop: 12, paddingBottom: 12 },
   questHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -750,22 +708,6 @@ const styles = StyleSheet.create({
   },
   questTitle: { fontSize: 16, fontWeight: "700", letterSpacing: 0.5 },
   questSubtitle: { fontSize: 12, opacity: 0.8 },
-  questProgressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 8,
-  },
-  questNeeded: { fontSize: 12, fontWeight: "700" },
-  questChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  questChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  questChipText: { fontSize: 12, fontWeight: "600" },
-  questArrow: { fontSize: 14, opacity: 0.7 },
   targetBlock: { marginBottom: 10, backgroundColor: "transparent" },
   targetHeaderRow: {
     flexDirection: "row",
@@ -784,23 +726,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   targetValue: { fontSize: 12, opacity: 0.8 },
-  sheetOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.3)",
-  },
-  sheet: {
-    position: "absolute",
-    left: 20,
-    right: 20,
-    bottom: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 16,
-    padding: 16,
-  },
   sheetTitle: { fontSize: 16, fontWeight: "700" },
   sheetPercent: { fontSize: 28, fontWeight: "800", marginBottom: 6 },
   sheetSubtitle: { fontSize: 12, opacity: 0.8, marginBottom: 6 },
@@ -814,11 +739,4 @@ const styles = StyleSheet.create({
   },
   sheetLift: { fontSize: 14 },
   sheetValue: { fontSize: 14, fontWeight: "700" },
-  sheetClose: {
-    marginTop: 8,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: "center",
-  },
 });

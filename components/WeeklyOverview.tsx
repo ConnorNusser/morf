@@ -155,7 +155,7 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
 
   return (
     <>
-      <Card variant="elevated">
+      <Card>
         {/* One label for the whole block: "This Week" + its date range. The parent screen
             no longer renders a separate section heading, so this card wears exactly one title. */}
         <View style={styles.header}>

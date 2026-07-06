@@ -78,7 +78,7 @@ export default function PersonalInformationSection({
   }, [userProfile]);
 
   return (
-    <Card style={styles.profileCard} variant="clean">
+    <Card style={styles.profileCard}>
       <TouchableOpacity 
         style={styles.sectionHeader}
         onPress={toggleExpanded}

@@ -102,7 +102,7 @@ const EquipmentFilterSection = () => {
   const allSelected = selectedEquipment.length === ALL_EQUIPMENT.length;
 
   return (
-    <Card style={styles.card} variant="clean">
+    <Card style={styles.card}>
       <TouchableOpacity
         style={styles.sectionHeader}
         onPress={toggleExpanded}

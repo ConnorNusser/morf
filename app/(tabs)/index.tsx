@@ -38,7 +38,6 @@ import { layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { screenGutter, scrollBottom, space } from "@/lib/ui/tokens";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
   GeneratedWorkout,
   LiftDisplayFilters,
@@ -167,7 +166,8 @@ export default function HomeScreen() {
 
   const loadUserData = async () => {
     try {
-      const profile = await userService.getUserProfileOrDefault();
+      // Ensure a profile exists before reading user-scoped data.
+      await userService.getUserProfileOrDefault();
 
       const [userProgressData, savedFilters, history] = await Promise.all([
         userService.getAllFeaturedLifts(),
@@ -178,8 +178,6 @@ export default function HomeScreen() {
       setUserProgress(userProgressData);
       setLiftFilters(savedFilters);
       setWorkoutHistory(history);
-
-      const unit = profile?.weightUnitPreference || "lbs";
 
       // Surface the strength tier on the header (gamification).
       const visibleLifts = userProgressData.filter(
@@ -192,8 +190,6 @@ export default function HomeScreen() {
         : 0;
 
       setLifetimeStats({
-        ...getLifetimeTotals(history, unit),
-        unit,
         tier: getStrengthTier(overall),
         tierProgress: getTierBandProgress(overall).progress,
       });

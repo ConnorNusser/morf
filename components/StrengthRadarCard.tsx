@@ -82,7 +82,7 @@ export default function StrengthRadarCard({
   const displayedTierColor = getTierColor(getStrengthTier(displayedPercentile));
 
   return (
-    <Card variant="surface" style={styles.card}>
+    <Card style={styles.card}>
       {/* Header with Tier and Percentile - changes based on selection */}
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
         {/* Tier Badge - shows selected muscle group or overall */}
@@ -123,7 +123,6 @@ export default function StrengthRadarCard({
         progress={displayedPercentile}
         height={8}
         style={{ marginVertical: 12 }}
-        exerciseName={selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].label.toLowerCase() : 'overall'}
         color={displayedTierColor}
       />
 

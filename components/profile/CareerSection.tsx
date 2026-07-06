@@ -66,7 +66,7 @@ export default function CareerSection() {
   return (
     <>
       <TouchableOpacity activeOpacity={0.9} onPress={open}>
-        <Card variant="elevated" style={styles.card} padding={18}>
+        <Card style={styles.card} padding={18}>
           {/* Header */}
           <View style={styles.headerRow}>
             <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>

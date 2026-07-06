@@ -89,7 +89,7 @@ export default function ThemeEvolutionSection() {
       activeOpacity={0.7}
     >
       <Card
-        variant="clean"
+
         padding={12}
         style={StyleSheet.flatten([
           styles.themeCard,
@@ -207,7 +207,7 @@ export default function ThemeEvolutionSection() {
   };
 
   return (
-    <Card variant="clean">
+    <Card>
       <TouchableOpacity 
         style={styles.sectionHeader}
         onPress={toggleExpanded}

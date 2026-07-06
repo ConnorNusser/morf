@@ -36,7 +36,7 @@ const WeightUnitPreferenceSection = () => {
   };
 
   return (
-    <Card style={styles.card} variant="clean">
+    <Card style={styles.card}>
       <TouchableOpacity 
         style={styles.sectionHeader}
         onPress={() => setIsExpanded(!isExpanded)}

@@ -361,7 +361,7 @@ export default function HistoryScreen() {
         {activeTab === "workouts" ? (
           <>
             {workouts.length > 0 && (
-              <Card variant="elevated" padding={panelPad}>
+              <Card padding={panelPad}>
                 <LiftProgressWidget lifts={liftProgress} />
                 {liftProgress.length > 0 && sessionRecaps.length > 0 && (
                   <Divider />

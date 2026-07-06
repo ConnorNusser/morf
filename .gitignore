@@ -50,3 +50,4 @@ simulator-screenshots/
 # vim swap files
 *.swp
 *.swo
+visual-loop/audit-renders/

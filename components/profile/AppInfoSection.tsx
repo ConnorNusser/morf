@@ -79,7 +79,7 @@ export default function AppInfoSection() {
   const appVersion = Constants.expoConfig?.version;
 
   return (
-    <Card style={styles.appInfoCard} variant="clean">
+    <Card style={styles.appInfoCard}>
       <TouchableOpacity 
         style={styles.sectionHeader}
         onPress={toggleExpanded}
