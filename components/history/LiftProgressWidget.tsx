@@ -1,8 +1,8 @@
 // History widget: a full-width panel listing the user's lifts as stacked rows —
-// lift name (plus tier badge) on top, and under it the lift's story at a glance:
-// the latest best set, one signed month-over-month delta pill, and a per-month
-// MiniSparkline (oldest → newest, the same green/red trend + bar language as
-// TopMovers, so the two boards read identically).
+// lift name (plus tier badge) on top, and under it every month's best set side
+// by side (oldest → newest, ending "now" at the right edge). Plain value-over-
+// month text columns, older months muted; the single change accent is the
+// latest value tinted green/red by its month-over-month direction.
 //
 // The board is RANKED and CAPPED: buildLiftProgressions orders lifts by tier
 // proximity × recent movement, so the top row IS the "closest to leveling up"
@@ -16,7 +16,6 @@
 // NEXT dot where they already mean something. Tapping a graded row flips it
 // (the Career FlipCard) to the stake: how much e1RM to the next tier.
 import AnimatedBar from '@/components/AnimatedBar';
-import MiniSparkline from '@/components/MiniSparkline';
 import FlipCard from '@/components/gamification/FlipCard';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -34,28 +33,27 @@ const DOWN = '#FF6B6B';
 
 // Fixed row height — FlipCard stacks its faces absolutely, so both faces are built
 // to this height and plain (ungraded) rows match it for an even rhythm.
-const ROW_H = 72;
+const ROW_H = 76;
 
 const shortName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 const setLabel = (weight: number, reps: number): string => (weight > 0 ? `${weight}×${reps}` : `×${reps}`);
 const metricOf = (p: { weight: number; reps: number }): number => (p.weight > 0 ? p.weight : p.reps);
 
 // One layout for every row, stacked so the data line gets the full panel width:
-// the lift name (with its tier badge) on top, and under it the story of the lift —
-// latest best set, one signed month-over-month delta, and a per-month sparkline.
-// Exactly two color systems: tier color (identity: the badge) and a single
-// green/red (change: the delta pill + the sparkline's trend). Ungraded lifts
-// simply omit the badge — no fake tiers.
+// the lift name (with its tier badge) on top, and under it every month side by
+// side — plain value-over-month columns, oldest → newest ending "now" at the
+// right edge. No boxes, no per-chip colors: older months are muted text, and the
+// only change accent is the latest value tinted green/red by its month-over-month
+// direction. Tier color stays on the badge (identity). Ungraded lifts simply
+// omit the badge — no fake tiers.
 function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const points = lift.points;
   const latest = points[points.length - 1];
   const prev = points.length > 1 ? points[points.length - 2] : null;
-  // Graded lifts get the honest e1RM delta; ungraded fall back to the raw
-  // best-set metric so the pill never invents precision it doesn't have.
-  const delta = tier ? tier.e1rmDelta : prev ? metricOf(latest) - metricOf(prev) : 0;
-  const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text + '55';
+  const delta = prev ? metricOf(latest) - metricOf(prev) : 0;
+  const latestColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text;
 
   return (
     <RNView style={styles.face}>
@@ -65,22 +63,25 @@ function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null })
         </Text>
         {tier && <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />}
       </RNView>
-      <RNView style={styles.dataRow}>
-        <Text style={[styles.set, { color: colors.text }]} numberOfLines={1}>
-          {setLabel(latest.weight, latest.reps)}
-          <Text style={[styles.month, { color: colors.text + '55' }]}>
-            {'  '}{latest.monthLabel.toUpperCase()}
-          </Text>
-        </Text>
-        {delta !== 0 && (
-          <RNView style={[styles.deltaPill, { backgroundColor: deltaColor + '14' }]}>
-            <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={deltaColor} />
-            <Text style={[styles.deltaText, { color: deltaColor }]}>{Math.abs(delta)}</Text>
-          </RNView>
-        )}
-        <RNView style={styles.sparkWrap}>
-          <MiniSparkline data={points.map(metricOf)} width={120} height={26} barWidth={12} gap={5} />
-        </RNView>
+      {/* space-between spreads a full strip edge to edge; short histories keep
+          their months packed at the "now" end instead of floating apart. */}
+      <RNView style={[styles.monthsRow, points.length < 4 && styles.monthsRowShort]}>
+        {points.map((p, i) => {
+          const isLatest = i === points.length - 1;
+          return (
+            <RNView key={i} style={styles.monthCol}>
+              <Text
+                style={[styles.monthVal, { color: isLatest ? latestColor : colors.text + '77' }, isLatest && styles.monthValLatest]}
+                numberOfLines={1}
+              >
+                {setLabel(p.weight, p.reps)}
+              </Text>
+              <Text style={[styles.monthLabel, { color: colors.text + '4D' }]}>
+                {p.monthLabel.toUpperCase()}
+              </Text>
+            </RNView>
+          );
+        })}
       </RNView>
     </RNView>
   );
@@ -241,24 +242,20 @@ const styles = StyleSheet.create({
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
-  // Latest best set + delta pill left, sparkline right (TopMovers' pill grammar).
-  dataRow: {
+  // The month strip: every month side by side, value over label, newest at the
+  // right edge. Plain text columns — no chip chrome.
+  monthsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  set: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
-  month: { fontSize: typeScale.meta, fontWeight: '500', letterSpacing: 0.3 },
-  deltaPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 1,
-    marginLeft: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  monthsRowShort: {
+    justifyContent: 'flex-end',
+    gap: 20,
   },
-  deltaText: { fontSize: typeScale.meta, fontWeight: '600' },
-  sparkWrap: { flex: 1, alignItems: 'flex-end' },
+  monthCol: { alignItems: 'center', gap: 1 },
+  monthVal: { fontSize: typeScale.meta, fontWeight: '600', letterSpacing: -0.2 },
+  monthValLatest: { fontSize: typeScale.emphasis, fontWeight: '700' },
+  monthLabel: { fontSize: typeScale.meta, fontWeight: '500', letterSpacing: 0.3 },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
