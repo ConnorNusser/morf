@@ -1,4 +1,4 @@
-import { Text } from '@/components/Themed';
+import { Text, useInk } from '@/components/Themed';
 import StrengthHistoryModal from '@/components/StrengthHistoryModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, Gender, WeightUnit } from '@/types';
@@ -11,7 +11,7 @@ import {
   nearestLift,
 } from '@/components/history/liftSeries';
 import { computeActivityStatus } from '@/lib/history/activityStatus';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -31,7 +31,7 @@ import Svg, { Circle, Defs, Line, LinearGradient as SvgGradient, Path, Stop, Tex
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-const PAGE_PADDING = 20;
+const PAGE_PADDING = screenGutter;
 const CARD_PADDING = 18;
 const CHART_H = 116;
 const TOP = 8;
@@ -119,6 +119,7 @@ function morphPath(from: number[], to: number[], prog: number, x0: number, dx: n
 export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, gender, age }: HistoryHeroProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const ink = useInk();
   const router = useRouter();
 
   const [timeframe, setTimeframe] = useState<IndexTimeframe>('3M');
@@ -251,7 +252,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           y1={TOP + USABLE_H}
           x2={X0 + (N - 1) * DX}
           y2={TOP + USABLE_H}
-          stroke={colors.text + '1A'}
+          stroke={ink.ghost}
           strokeWidth={1}
         />
         {mk && (
@@ -260,12 +261,12 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               x={mk.startX + 7}
               y={mk.labelY}
               fontSize={10.5}
-              fill={colors.text + '80'}
+              fill={ink.secondary}
               fontWeight="600"
             >
               {mk.startValue}
             </SvgText>
-            <Circle cx={mk.startX} cy={mk.startY} r={3.5} fill={colors.surface} stroke={colors.text + '66'} strokeWidth={1.5} />
+            <Circle cx={mk.startX} cy={mk.startY} r={3.5} fill={colors.surface} stroke={ink.muted} strokeWidth={1.5} />
             <Circle cx={mk.endX} cy={mk.endY} r={4.5} fill={colors.primary} stroke={colors.surface} strokeWidth={1.5} />
           </>
         )}
@@ -290,8 +291,8 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             onPress={() => setShowStrengthModal(true)}
           >
             <RNView style={styles.kickerRow}>
-              <Text style={[styles.kicker, { color: colors.text + '99', fontWeight: '600' }]}>Strength Index</Text>
-              <Ionicons name="chevron-forward" size={13} color={colors.text + '55'} />
+              <Text variant="meta" tone="secondary" weight="semiBold" style={styles.kicker}>Strength Index</Text>
+              <Ionicons name="chevron-forward" size={13} color={ink.muted} />
             </RNView>
           </TouchableOpacity>
 
@@ -303,21 +304,21 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               ("Advanced · 45th percentile among lifters") drops to a demoted context
               line below, present but no longer the headline. */}
           <RNView style={styles.scoreRow}>
-            <Text style={[styles.scoreValue, { color: colors.text, fontWeight: '700' }]}>
+            <Text variant="hero" tone="primary" weight="bold" style={styles.scoreValue}>
               {index.current}
-              <Text style={[styles.scoreUnit, { color: colors.text + '55', fontWeight: '500' }]}> /100</Text>
+              <Text variant="emphasis" tone="muted" weight="medium" style={styles.scoreUnit}> /100</Text>
             </Text>
           </RNView>
 
           <RNView style={styles.deltaRow}>
             <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={16} color={deltaColor} />
-            <Text style={[styles.deltaBig, { color: deltaColor, fontWeight: '700' }]}>
+            <Text variant="emphasis" weight="bold" style={[styles.deltaBig, { color: deltaColor }]}>
               {index.delta >= 0 ? '+' : '-'}
               {Math.abs(index.delta)} this {TF_DELTA_LABEL[timeframe]}
             </Text>
           </RNView>
 
-          <Text style={[styles.contextLine, { color: colors.text + '70', fontWeight: '500' }]}>
+          <Text variant="meta" tone="muted" weight="medium" style={styles.contextLine}>
             {strengthLevel(index.current)} · {index.current}
             {ordinal(index.current)} percentile among lifters
           </Text>
@@ -326,10 +327,10 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
 
           {/* timeline x-axis */}
           <RNView style={[styles.axisRow, { width: chartW }]}>
-            <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
+            <Text variant="meta" tone="muted" weight="medium" style={styles.axisLabel}>
               {fmtMonth(index.startDate)}
             </Text>
-            <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
+            <Text variant="meta" tone="muted" weight="medium" style={styles.axisLabel}>
               {fmtMonth(index.endDate)}
             </Text>
           </RNView>
@@ -346,10 +347,10 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
                   style={[styles.tfBtn, on && { backgroundColor: colors.primary }]}
                 >
                   <Text
-                    style={[
-                      styles.tfBtnText,
-                      { color: on ? '#fff' : colors.text + '80', fontWeight: on ? '600' : '500' },
-                    ]}
+                    variant="meta"
+                    tone="secondary"
+                    weight={on ? 'semiBold' : 'medium'}
+                    style={[styles.tfBtnText, on && { color: '#fff' }]}
                   >
                     {tf.label}
                   </Text>
@@ -359,7 +360,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           </RNView>
 
           <Animated.View key={`cap-${timeframe}`} entering={FadeIn.delay(120).duration(360)}>
-            <Text style={[styles.caption, { color: colors.text + '70', fontWeight: '500' }]}>
+            <Text variant="meta" tone="muted" weight="medium" style={styles.caption}>
               Across {index.liftCount} lift{index.liftCount !== 1 ? 's' : ''} vs bodyweight standards for your weight
             </Text>
           </Animated.View>
@@ -369,11 +370,11 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
         <GestureDetector gesture={swipe}>
           <RNView>
             <RNView style={styles.headerTop}>
-              <Text style={[styles.kicker, { color: colors.text + '99', fontWeight: '600' }]}>PR progression</Text>
+              <Text variant="meta" tone="secondary" weight="semiBold" style={styles.kicker}>PR progression</Text>
               {lifts.length > 1 && (
                 <RNView style={styles.dots}>
                   {lifts.map((_, i) => (
-                    <RNView key={i} style={[styles.dot, { backgroundColor: i === liftIndex ? colors.primary : colors.text + '26' }]} />
+                    <RNView key={i} style={[styles.dot, { backgroundColor: i === liftIndex ? colors.primary : ink.ghost }]} />
                   ))}
                 </RNView>
               )}
@@ -382,18 +383,18 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             <RNView style={styles.titleRow}>
               <Animated.View key={activeLift.name} entering={FadeInDown.duration(320)} exiting={FadeOutUp.duration(200)} style={styles.titleSwap}>
                 <RNView style={styles.titleLeft}>
-                  <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontWeight: '700' }]}>
+                  <Text variant="heading" tone="primary" weight="bold" numberOfLines={1} style={styles.liftName}>
                     {activeLift.name}
                   </Text>
                   {activeLift.gainLbs > 0 ? (
-                    <Text style={[styles.gain, { color: colors.text + '99', fontWeight: '600' }]}>
+                    <Text variant="meta" tone="secondary" weight="semiBold" style={styles.gain}>
                       +{activeLift.gainLbs} {weightUnit} all-time
                     </Text>
                   ) : null}
                 </RNView>
-                <Text style={[styles.value, { color: colors.text, fontWeight: '700' }]}>
+                <Text variant="hero" tone="primary" weight="bold" style={styles.value}>
                   {activeLift.current}
-                  <Text style={[styles.valueUnit, { color: colors.text + '70', fontWeight: '500' }]}> {weightUnit}</Text>
+                  <Text variant="meta" tone="muted" weight="medium" style={styles.valueUnit}> {weightUnit}</Text>
                 </Text>
               </Animated.View>
             </RNView>
@@ -401,16 +402,16 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             {renderChart(null)}
 
             <RNView style={[styles.axisRow, { width: chartW }]}>
-              <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
+              <Text variant="meta" tone="muted" weight="medium" style={styles.axisLabel}>
                 {fmtMonth(activeLift.startDate)}
               </Text>
-              <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
+              <Text variant="meta" tone="muted" weight="medium" style={styles.axisLabel}>
                 {fmtMonth(activeLift.endDate)}
               </Text>
             </RNView>
 
             <Animated.View key={`cap-${activeLift.name}`} entering={FadeIn.delay(150).duration(360)}>
-              <Text style={[styles.caption, { color: colors.text + '70', fontWeight: '500' }]}>
+              <Text variant="meta" tone="muted" weight="medium" style={styles.caption}>
                 {activeLift.sessions} sessions logged · estimated 1RM{lifts.length > 1 ? ' · swipe to compare lifts' : ''}
               </Text>
             </Animated.View>
@@ -418,8 +419,8 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
         </GestureDetector>
       ) : activity.isLapsed && activity.daysSinceLastWorkout !== null ? (
         <RNView style={styles.empty}>
-          <Text style={[styles.comebackTitle, { color: colors.text, fontWeight: '700' }]}>Welcome back</Text>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
+          <Text variant="heading" tone="primary" weight="bold" style={styles.comebackTitle}>Welcome back</Text>
+          <Text variant="body" tone="secondary" weight="medium" style={styles.emptyText}>
             Last trained {activity.daysSinceLastWorkout} day{activity.daysSinceLastWorkout !== 1 ? 's' : ''} ago ·
             pick up where you left off.
           </Text>
@@ -429,7 +430,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             activeOpacity={0.85}
           >
             <Ionicons name="barbell" size={16} color="#fff" />
-            <Text style={[styles.comebackCtaText, { fontWeight: '600' }]}>Start a workout</Text>
+            <Text variant="title" weight="semiBold" style={styles.comebackCtaText}>Start a workout</Text>
           </TouchableOpacity>
         </RNView>
       ) : nearest ? (
@@ -438,21 +439,21 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             {Array.from({ length: MIN_SESSIONS }).map((_, i) => (
               <RNView
                 key={i}
-                style={[styles.pip, { backgroundColor: i < nearest.sessions ? colors.primary : colors.text + '1F' }]}
+                style={[styles.pip, { backgroundColor: i < nearest.sessions ? colors.primary : ink.ghost }]}
               />
             ))}
           </RNView>
-          <Text style={[styles.emptyLift, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
+          <Text variant="title" tone="primary" weight="semiBold" style={styles.emptyLift} numberOfLines={1}>
             {nearest.name}
           </Text>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
+          <Text variant="body" tone="secondary" weight="medium" style={styles.emptyText}>
             {nearest.sessions} of {MIN_SESSIONS} sessions logged · {MIN_SESSIONS - nearest.sessions} more to unlock its
             PR progression.
           </Text>
         </RNView>
       ) : (
         <RNView style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
+          <Text variant="body" tone="secondary" weight="medium" style={styles.emptyText}>
             Log a lift a few times and your Strength Index will animate here.
           </Text>
         </RNView>
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: StyleSheet.hairlineWidth,
     padding: CARD_PADDING,
-    marginBottom: 16,
+    marginBottom: space.lg,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -479,11 +480,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  kicker: { fontSize: typeScale.meta, letterSpacing: 0.2 },
-  dots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  kicker: { letterSpacing: 0.2 },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   dot: { width: 5, height: 5, borderRadius: 2.5 },
   titleRow: { height: 42, justifyContent: 'center' },
   titleSwap: {
@@ -492,38 +493,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  titleLeft: { flex: 1, marginRight: 12 },
-  liftName: { fontSize: typeScale.heading, letterSpacing: -0.4 },
-  gain: { fontSize: typeScale.meta, letterSpacing: 0.1, marginTop: 1 },
-  value: { fontSize: typeScale.hero, letterSpacing: -0.8 },
-  valueUnit: { fontSize: typeScale.meta, letterSpacing: 0 },
+  titleLeft: { flex: 1, marginRight: space.md },
+  liftName: { letterSpacing: -0.4 },
+  gain: { letterSpacing: 0.1, marginTop: 1 },
+  value: { letterSpacing: -0.8 },
+  valueUnit: { letterSpacing: 0 },
   // Index-mode focal score: the biggest, first-read numeral on the screen.
   scoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
-  scoreValue: { fontSize: typeScale.hero, letterSpacing: -1.2, lineHeight: 33 },
-  scoreUnit: { fontSize: typeScale.emphasis, letterSpacing: 0 },
+  scoreValue: { letterSpacing: -1.2, lineHeight: 33 },
+  scoreUnit: { letterSpacing: 0 },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
-  deltaBig: { fontSize: typeScale.emphasis, letterSpacing: 0.1 },
-  contextLine: { fontSize: typeScale.meta, letterSpacing: 0.2, marginTop: 8 },
-  axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  axisLabel: { fontSize: typeScale.meta, letterSpacing: 0.2 },
-  tfRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
-  tfBtnText: { fontSize: typeScale.meta, letterSpacing: 0.2 },
-  caption: { fontSize: typeScale.meta, letterSpacing: 0.2, marginTop: 10 },
-  empty: { paddingVertical: 22, alignItems: 'center' },
-  emptyText: { fontSize: typeScale.body, textAlign: 'center', lineHeight: 22, paddingHorizontal: 12 },
-  emptyLift: { fontSize: typeScale.title, letterSpacing: -0.2, marginBottom: 3 },
-  pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
+  deltaBig: { letterSpacing: 0.1 },
+  contextLine: { letterSpacing: 0.2, marginTop: space.sm },
+  axisRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.sm },
+  axisLabel: { letterSpacing: 0.2 },
+  tfRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.md },
+  tfBtn: { flex: 1, alignItems: 'center', paddingVertical: space.sm, borderRadius: radius.control },
+  tfBtnText: { letterSpacing: 0.2 },
+  caption: { letterSpacing: 0.2, marginTop: space.md },
+  empty: { paddingVertical: space.section, alignItems: 'center' },
+  emptyText: { textAlign: 'center', lineHeight: 22, paddingHorizontal: space.md },
+  emptyLift: { letterSpacing: -0.2, marginBottom: 3 },
+  pips: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginBottom: space.md },
   pip: { width: 22, height: 5, borderRadius: 2.5 },
-  comebackTitle: { fontSize: typeScale.heading, letterSpacing: -0.4, marginBottom: 6 },
+  comebackTitle: { letterSpacing: -0.4, marginBottom: space.sm },
   comebackCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 11,
-    borderRadius: 22,
-    marginTop: 16,
+    gap: space.sm,
+    paddingHorizontal: space.xl,
+    paddingVertical: space.md,
+    borderRadius: radius.pill,
+    marginTop: space.lg,
   },
-  comebackCtaText: { color: '#fff', fontSize: typeScale.title },
+  comebackCtaText: { color: '#fff' },
 });

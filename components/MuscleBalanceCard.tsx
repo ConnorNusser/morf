@@ -1,10 +1,12 @@
+import { Text, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, space, tint, withAlpha } from '@/lib/ui/tokens';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, MuscleGroup } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { Modal, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 
 // "Balance" is a distribution question, not a this-week question. It reads across the
@@ -180,6 +182,7 @@ function fmtAvg(avg: number): string {
 
 export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<MuscleBalanceRow | null>(null);
 
@@ -198,7 +201,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
   if (state === 'building') {
     headline = 'Building your baseline';
     evidence = 'Log a couple weeks and your balance shows here';
-    headlineColor = currentTheme.colors.text + '99';
+    headlineColor = ink.secondary;
     icon = 'ellipse-outline';
   } else if (state === 'underweight' && laggard && leader) {
     const name = MUSCLE_LABEL[laggard.muscle];
@@ -224,7 +227,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
   const barColor = (r: MuscleBalanceRow): string => {
     if (laggard && r.muscle === laggard.muscle) return AMBER;
     if (leader && r.muscle === leader.muscle) return currentTheme.colors.primary;
-    return currentTheme.colors.primary + '80';
+    return withAlpha(currentTheme.colors.primary, 'secondary');
   };
 
   const handleRowPress = (r: MuscleBalanceRow) => {
@@ -236,9 +239,9 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
       <Card variant="elevated" style={styles.container}>
         {/* Header — one label, matching the This Week card's single-title restraint. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text }]}>MUSCLE BALANCE</Text>
+          <SectionLabel style={styles.title}>MUSCLE BALANCE</SectionLabel>
           {state !== 'building' && (
-            <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
+            <Text variant="meta" tone="secondary" style={styles.subtitle}>
               SETS/WK · LAST {activeWeeks} WK
             </Text>
           )}
@@ -255,18 +258,18 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
           <View style={styles.verdictLeft}>
             <Ionicons name={icon} size={16} color={headlineColor} />
             <View style={styles.verdictText}>
-              <Text style={[styles.verdict, { color: headlineColor, fontWeight: '600' }]} numberOfLines={1}>
+              <Text variant="body" weight="semiBold" style={[styles.verdict, { color: headlineColor }]} numberOfLines={1}>
                 {headline}
               </Text>
               {evidence && (
-                <Text style={[styles.evidence, { color: currentTheme.colors.text + '99', fontWeight: '400' }]} numberOfLines={1}>
+                <Text variant="meta" tone="secondary" style={styles.evidence} numberOfLines={1}>
                   {evidence}
                 </Text>
               )}
             </View>
           </View>
           {state !== 'building' && (
-            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={currentTheme.colors.text + '55'} />
+            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={ink.muted} />
           )}
         </TouchableOpacity>
 
@@ -278,7 +281,6 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
               row={laggard}
               scaleMax={scaleMax}
               color={AMBER}
-              theme={currentTheme}
               onPress={handleRowPress}
             />
           </View>
@@ -294,11 +296,10 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
                 row={r}
                 scaleMax={scaleMax}
                 color={barColor(r)}
-                theme={currentTheme}
                 onPress={handleRowPress}
               />
             ))}
-            <Text style={[styles.footnote, { color: currentTheme.colors.text + '4D', fontWeight: '400' }]}>
+            <Text variant="meta" tone="faint" style={styles.footnote}>
               Average completed sets per training week, each muscle vs your most-trained group.
             </Text>
           </View>
@@ -315,9 +316,9 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
           <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
             <TouchableOpacity onPress={() => setSelected(null)} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={currentTheme.colors.text} />
+              <Ionicons name="close" size={24} color={ink.primary} />
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="title" tone="primary" weight="semiBold" style={styles.modalTitle}>
               {selected ? MUSCLE_LABEL[selected.muscle] : ''}
             </Text>
             <View style={styles.closeButton} />
@@ -326,7 +327,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
             {selected && (
               <>
-                <Text style={[styles.modalMeta, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                <Text variant="meta" tone="secondary" style={styles.modalMeta}>
                   {fmtAvg(selected.avgSets)} over your last {activeWeeks} training week{activeWeeks !== 1 ? 's' : ''}
                 </Text>
                 <View style={styles.exerciseList}>
@@ -334,11 +335,11 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
                     .sort((a, b) => b.count - a.count)
                     .map((ex, i) => (
                       <View key={ex.id + i} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
-                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                        <Text variant="body" tone="primary" weight="medium" style={styles.exerciseName}>
                           {ex.name}
                         </Text>
-                        <View style={[styles.exerciseCountBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                          <Text style={[styles.exerciseCountText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+                        <View style={[styles.exerciseCountBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                          <Text variant="meta" weight="semiBold">
                             {ex.count}x
                           </Text>
                         </View>
@@ -358,11 +359,11 @@ interface BalanceBarProps {
   row: MuscleBalanceRow;
   scaleMax: number;
   color: string;
-  theme: ReturnType<typeof useTheme>['currentTheme'];
   onPress: (r: MuscleBalanceRow) => void;
 }
 
-function BalanceBar({ row, scaleMax, color, theme, onPress }: BalanceBarProps) {
+function BalanceBar({ row, scaleMax, color, onPress }: BalanceBarProps) {
+  const ink = useInk();
   const fillPct = Math.min(100, (row.avgSets / scaleMax) * 100);
   const tappable = row.instanceCount > 0;
   return (
@@ -372,13 +373,18 @@ function BalanceBar({ row, scaleMax, color, theme, onPress }: BalanceBarProps) {
       disabled={!tappable}
       onPress={() => onPress(row)}
     >
-      <Text style={[styles.barName, { color: theme.colors.text + (row.avgSets > 0 ? 'CC' : '80'), fontWeight: '500' }]}>
+      <Text
+        variant="meta"
+        tone={row.avgSets > 0 ? 'primary' : 'secondary'}
+        weight="medium"
+        style={styles.barName}
+      >
         {MUSCLE_LABEL[row.muscle]}
       </Text>
-      <View style={[styles.barTrack, { backgroundColor: theme.colors.text + '12' }]}>
+      <View style={[styles.barTrack, { backgroundColor: ink.hairline }]}>
         {fillPct > 0 && <View style={[styles.barFill, { width: `${fillPct}%`, backgroundColor: color }]} />}
       </View>
-      <Text style={[styles.barValue, { color: theme.colors.text, fontWeight: '600' }]}>
+      <Text variant="meta" tone="primary" weight="semiBold" style={styles.barValue}>
         {fmtAvg(row.avgSets)}
       </Text>
     </TouchableOpacity>
@@ -387,61 +393,53 @@ function BalanceBar({ row, scaleMax, color, theme, onPress }: BalanceBarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   title: {
-    fontSize: typeScale.meta,
-    fontWeight: '700',
-    letterSpacing: 1,
-    opacity: 0.45,
+    marginBottom: 0,
   },
   subtitle: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     letterSpacing: 0.4,
-    opacity: 0.5,
   },
   verdictRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: space.md,
   },
   verdictLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
     flexShrink: 1,
   },
   verdictText: {
     flexShrink: 1,
   },
   verdict: {
-    fontSize: typeScale.body,
     lineHeight: 22,
   },
   evidence: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     marginTop: 1,
   },
   ladder: {
-    marginTop: 14,
-    gap: 10,
+    marginTop: space.lg,
+    gap: space.md,
   },
   barRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.md,
   },
   barName: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     width: 66,
   },
@@ -456,15 +454,13 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   barValue: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     minWidth: 52,
     textAlign: 'right',
   },
   footnote: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   // Modal
   modalContainer: {
@@ -474,8 +470,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeButton: {
@@ -485,19 +481,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalTitle: {
-    fontSize: typeScale.title,
     lineHeight: 27,
   },
   modalContent: {
     flex: 1,
   },
   modalContentContainer: {
-    padding: 16,
+    padding: space.lg,
   },
   modalMeta: {
-    fontSize: typeScale.meta,
     lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   exerciseList: {
     gap: 0,
@@ -506,21 +500,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 14,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   exerciseName: {
-    fontSize: typeScale.body,
     lineHeight: 22,
     flex: 1,
   },
   exerciseCountBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginLeft: 12,
-  },
-  exerciseCountText: {
-    fontSize: typeScale.meta,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
+    marginLeft: space.md,
   },
 });

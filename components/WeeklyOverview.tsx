@@ -1,13 +1,14 @@
 import SessionVolumeBars from '@/components/history/SessionVolumeBars';
+import { Text, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { type as typeScale } from '@/lib/ui/typography';
+import { space } from '@/lib/ui/tokens';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Card from './Card';
 import WeeklyOverviewModal from './WeeklyOverviewModal';
 
@@ -36,7 +37,7 @@ interface WeekData {
 }
 
 export default function WeeklyOverview({ workoutHistory, sessionRecaps }: WeeklyOverviewProps) {
-  const { currentTheme } = useTheme();
+  const ink = useInk();
   const { customExercises } = useCustomExercises();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -157,23 +158,23 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
         {/* One label for the whole block: "This Week" + its date range. The parent screen
             no longer renders a separate section heading, so this card wears exactly one title. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text }]}>THIS WEEK</Text>
-          <Text style={[styles.dateRange, { color: currentTheme.colors.text }]}>
+          <SectionLabel style={styles.title}>THIS WEEK</SectionLabel>
+          <Text variant="meta" tone="secondary" style={styles.dateRange}>
             {formatDateRange(weekData.startDate, weekData.endDate)}
           </Text>
         </View>
 
         {/* Stats */}
-        <View style={styles.statsContainer}>
+        <View style={[styles.statsContainer, { borderTopColor: ink.hairline }]}>
           <TouchableOpacity
             style={styles.statItem}
             onPress={handleWeekPress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
               {weekStats.totalWorkouts}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+            <Text variant="meta" tone="secondary" style={styles.statLabel}>
               Workouts
             </Text>
           </TouchableOpacity>
@@ -183,10 +184,10 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
             onPress={handleTimePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
               {weekStats.totalTime}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+            <Text variant="meta" tone="secondary" style={styles.statLabel}>
               Time
             </Text>
           </TouchableOpacity>
@@ -196,10 +197,10 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
             onPress={handleVolumePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
               {weekStats.totalVolume}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+            <Text variant="meta" tone="secondary" style={styles.statLabel}>
               Volume
             </Text>
           </TouchableOpacity>
@@ -210,20 +211,20 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
           <View style={[styles.statsContainer, styles.cardioStatsContainer]}>
             {weekStats.totalDistanceMeters > 0 && (
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
                   {formatDistance(weekStats.totalDistanceMeters)}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                <Text variant="meta" tone="secondary" style={styles.statLabel}>
                   Distance
                 </Text>
               </View>
             )}
             {weekStats.totalCardioDurationSeconds > 0 && (
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
                   {formatDuration(weekStats.totalCardioDurationSeconds)}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                <Text variant="meta" tone="secondary" style={styles.statLabel}>
                   Cardio
                 </Text>
               </View>
@@ -235,10 +236,10 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
             newest full-strength), moved here from the SESSIONS section so the This
             Week card owns the volume story in one place. */}
         {sessionRecaps.length > 0 && (
-          <View style={styles.trendSection}>
+          <View style={[styles.trendSection, { borderTopColor: ink.hairline }]}>
             <SessionVolumeBars recaps={sessionRecaps} />
             <View style={styles.trendCaption}>
-              <Text style={[styles.trendLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+              <Text variant="meta" tone="secondary" style={styles.trendLabel}>
                 Volume · per session
               </Text>
             </View>
@@ -260,65 +261,54 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
   title: {
-    fontSize: typeScale.meta,
-    fontWeight: '700',
-    letterSpacing: 1,
-    opacity: 0.45,
+    marginBottom: 0,
   },
   dateRange: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     letterSpacing: 0.2,
-    opacity: 0.5,
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingTop: 16,
+    paddingTop: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128, 128, 128, 0.2)',
   },
   cardioStatsContainer: {
     borderTopWidth: 0,
-    paddingTop: 12,
+    paddingTop: space.md,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: typeScale.emphasis,
     lineHeight: 20,
-    fontWeight: '600',
   },
   statLabel: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     marginTop: 2,
   },
   trendSection: {
-    marginTop: 16,
-    paddingTop: 12,
+    marginTop: space.lg,
+    paddingTop: space.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(128, 128, 128, 0.2)',
   },
   trendCaption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: space.sm,
   },
   trendLabel: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
   },
 });

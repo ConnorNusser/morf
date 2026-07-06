@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { screenGutter } from '@/lib/ui/tokens';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { ReactNode, useEffect, useState } from 'react';
@@ -87,7 +88,7 @@ export function AuroraSurface({ children, style, contentStyle }: AuroraSurfacePr
   const { colors } = currentTheme;
   const dark = isDarkColor(colors.background);
 
-  const [dims, setDims] = useState({ w: Dimensions.get('window').width - 40, h: 220 });
+  const [dims, setDims] = useState({ w: Dimensions.get('window').width - screenGutter * 2, h: 220 });
   const { w, h } = dims;
   const blurI = Platform.OS === 'android' ? 28 : 36;
 

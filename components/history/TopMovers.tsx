@@ -1,8 +1,9 @@
 import MiniSparkline from '@/components/MiniSparkline';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { computeTopMovers } from '@/lib/history/topMovers';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, space, tint } from '@/lib/ui/tokens';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -33,6 +34,7 @@ interface TopMoversProps {
 function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps) {
   const { currentTheme } = useTheme();
   const { colors} = currentTheme;
+  const ink = useInk();
 
   const movers = useMemo(
     () => computeTopMovers(exercises, weightUnit, { limit: 3 }),
@@ -42,12 +44,12 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
   if (movers.length === 0) return null;
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <View style={styles.container}>
       {/* Same micro-label header grammar as LIFTS / SESSIONS / the Career card. */}
-      <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.heading, { color: colors.text }]}>YOUR MOVERS</Text>
+      <View style={styles.headerRow}>
+        <SectionLabel style={styles.heading}>YOUR MOVERS</SectionLabel>
         <TouchableOpacity onPress={onSeeAll} hitSlop={8} activeOpacity={0.7}>
-          <Text style={[styles.seeAll, { color: colors.primary, fontWeight: '600' }]}>
+          <Text variant="meta" weight="semiBold">
             See all
           </Text>
         </TouchableOpacity>
@@ -67,31 +69,34 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
             onPress={() => onSelect(m.exercise)}
             activeOpacity={0.7}
           >
-            <View style={[styles.rowMain, { backgroundColor: 'transparent' }]}>
+            <View style={styles.rowMain}>
               <Text
-                style={[styles.name, { color: colors.text, fontWeight: '600' }]}
+                variant="body"
+                tone="primary"
+                weight="semiBold"
+                style={styles.name}
                 numberOfLines={1}
               >
                 {m.name}
               </Text>
-              <View style={[styles.statsRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.value, { color: colors.text, fontWeight: '700' }]}>
+              <View style={styles.statsRow}>
+                <Text variant="emphasis" tone="primary" weight="bold">
                   {m.value}
                 </Text>
-                <Text style={[styles.unit, { color: colors.text + '40', fontWeight: '400' }]}>
+                <Text variant="meta" tone="faint">
                   {m.isBodyweight ? ' reps' : ' est. 1RM'}
                 </Text>
-                <View style={[styles.deltaPill, { backgroundColor: color + '15' }]}>
+                <View style={[styles.deltaPill, { backgroundColor: tint(color) }]}>
                   <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
-                  <Text style={[styles.deltaText, { color, fontWeight: '600' }]}>
+                  <Text variant="meta" weight="semiBold" style={{ color }}>
                     {Math.abs(m.delta)}
                   </Text>
                 </View>
               </View>
             </View>
-            <View style={[styles.rowRight, { backgroundColor: 'transparent' }]}>
+            <View style={styles.rowRight}>
               <MiniSparkline data={m.sparkline} />
-              <Ionicons name="chevron-forward" size={16} color={colors.text + '25'} />
+              <Ionicons name="chevron-forward" size={16} color={ink.ghost} />
             </View>
           </TouchableOpacity>
         );
@@ -104,27 +109,21 @@ export default React.memo(TopMovers);
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 20,
+    marginTop: space.xl,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'space-between',
-    paddingBottom: 10,
+    paddingBottom: space.md,
   },
   heading: {
-    fontSize: typeScale.meta,
-    fontWeight: '700',
-    letterSpacing: 1,
-    opacity: 0.45,
-  },
-  seeAll: {
-    fontSize: typeScale.meta,
+    marginBottom: 0,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   firstRow: {
@@ -132,37 +131,27 @@ const styles = StyleSheet.create({
   },
   rowMain: {
     flex: 1,
-    marginRight: 12,
+    marginRight: space.md,
   },
   name: {
-    fontSize: typeScale.body,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  value: {
-    fontSize: typeScale.emphasis,
-  },
-  unit: {
-    fontSize: typeScale.meta,
-  },
   deltaPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 1,
-    marginLeft: 10,
-    paddingHorizontal: 6,
+    marginLeft: space.md,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
-  deltaText: {
-    fontSize: typeScale.meta,
+    borderRadius: radius.badge,
   },
   rowRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.md,
   },
 });

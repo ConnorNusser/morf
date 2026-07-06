@@ -17,18 +17,15 @@
 // (the Career FlipCard) to the stake: how much e1RM to the next tier.
 import AnimatedBar from "@/components/AnimatedBar";
 import FlipCard from "@/components/gamification/FlipCard";
+import { Text, useInk } from "@/components/Themed";
+import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getTierColor } from "@/lib/data/strengthStandards";
 import { LiftProgress, LiftTier } from "@/lib/history/liftProgress";
-import { type as typeScale } from "@/lib/ui/typography";
+import { space } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import {
-  View as RNView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
 // Semantic gain/loss colors, matched to ExerciseCard / TopMovers so the same green
 // means the same thing across every tab.
@@ -60,18 +57,23 @@ function RowFront({
   lift: LiftProgress;
   tier: LiftTier | null;
 }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
+  const ink = useInk();
   const points = lift.points;
   const latest = points[points.length - 1];
   const prev = points.length > 1 ? points[points.length - 2] : null;
   const delta = prev ? metricOf(latest) - metricOf(prev) : 0;
-  const latestColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text;
+  const latestColor = delta > 0 ? UP : delta < 0 ? DOWN : ink.primary;
 
   return (
     <RNView style={styles.face}>
       <RNView style={styles.titleRow}>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+        <Text
+          variant="emphasis"
+          tone="primary"
+          weight="semiBold"
+          style={styles.name}
+          numberOfLines={1}
+        >
           {shortName(lift.name)}
         </Text>
       </RNView>
@@ -86,23 +88,24 @@ function RowFront({
                 <Ionicons
                   name="arrow-forward"
                   size={11}
-                  color={colors.text + "38"}
+                  color={ink.faint}
                   style={styles.monthArrow}
                 />
               )}
               <RNView style={styles.monthCol}>
                 <Text
-                  style={[
-                    styles.monthVal,
-                    { color: isLatest ? latestColor : colors.text + "77" },
-                    isLatest && styles.monthValLatest,
-                  ]}
+                  variant="meta"
+                  weight={isLatest ? "bold" : "semiBold"}
+                  style={{ color: isLatest ? latestColor : ink.muted }}
                   numberOfLines={1}
                 >
                   {setLabel(p.weight, p.reps)}
                 </Text>
                 <Text
-                  style={[styles.monthLabel, { color: colors.text + "4D" }]}
+                  variant="meta"
+                  tone="faint"
+                  weight="medium"
+                  style={styles.monthLabel}
                 >
                   {p.monthLabel.toUpperCase()}
                 </Text>
@@ -119,20 +122,19 @@ function RowFront({
 // with the Career card's band-progress AnimatedBar, plus the honest month-over-month
 // e1RM trend (it reads red-and-down when the lifter regresses).
 function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
+  const ink = useInk();
   const tierColor = getTierColor(tier.tier);
   const delta = tier.e1rmDelta;
-  const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text + "55";
+  const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : ink.muted;
 
   return (
     <RNView style={styles.backFace}>
       <RNView style={styles.backHead}>
-        <Text style={[styles.backLabel, { color: colors.text }]}>
+        <SectionLabel style={styles.backLabel}>
           {tier.nextTier ? "NEXT TIER" : "MAX TIER"}
-        </Text>
+        </SectionLabel>
         <RNView style={styles.backTrend}>
-          <Text style={[styles.backTrendText, { color: colors.text + "80" }]}>
+          <Text variant="meta" tone="secondary" weight="medium">
             e1RM {tier.e1rm} {lift.unit}
           </Text>
           {delta !== 0 && (
@@ -142,12 +144,7 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
                 size={10}
                 color={deltaColor}
               />
-              <Text
-                style={[
-                  styles.backTrendText,
-                  { color: deltaColor, fontWeight: "600" },
-                ]}
-              >
+              <Text variant="meta" weight="semiBold" style={{ color: deltaColor }}>
                 {Math.abs(delta)}
               </Text>
             </>
@@ -158,25 +155,31 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
       <RNView style={styles.backMainRow}>
         {tier.nextTier && tier.gapWeight != null ? (
           <Text
-            style={[styles.backMain, { color: colors.text }]}
+            variant="body"
+            tone="primary"
+            weight="semiBold"
+            style={styles.backMain}
             numberOfLines={1}
           >
             {tier.gapWeight} {lift.unit} to{" "}
             <Text
-              style={[
-                styles.backMain,
-                { color: getTierColor(tier.nextTier), fontWeight: "700" },
-              ]}
+              variant="body"
+              weight="bold"
+              style={[styles.backMain, { color: getTierColor(tier.nextTier) }]}
             >
               {tier.nextTier}
             </Text>
           </Text>
         ) : (
-          <Text style={[styles.backMain, { color: tierColor }]}>
+          <Text
+            variant="body"
+            weight="semiBold"
+            style={[styles.backMain, { color: tierColor }]}
+          >
             Max tier reached
           </Text>
         )}
-        <Text style={[styles.backPct, { color: colors.text + "60" }]}>
+        <Text variant="meta" tone="muted" weight="medium">
           {tier.percentile}th pctile
         </Text>
       </RNView>
@@ -184,7 +187,7 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
       <AnimatedBar
         progress={tier.bandProgress}
         color={tierColor}
-        trackColor={colors.text + "15"}
+        trackColor={ink.ghost}
         height={4}
         delay={120}
         style={styles.backBar}
@@ -226,8 +229,6 @@ export default function LiftProgressWidget({
   lifts: LiftProgress[];
   maxRows?: number;
 }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
   const [expanded, setExpanded] = useState(false);
   if (lifts.length === 0) return null;
   const anyGraded = lifts.some((l) => l.tierInfo);
@@ -240,8 +241,8 @@ export default function LiftProgressWidget({
       {/* Same uppercase micro-label header grammar as the Career card (ACTIVITY / NEXT),
           so the two History sections and the Profile read as one design system. */}
       <RNView style={styles.head}>
-        <Text style={[styles.headLabel, { color: colors.text }]}>LIFTS</Text>
-        <Text style={[styles.headMeta, { color: colors.text }]}>
+        <SectionLabel style={styles.headLabel}>LIFTS</SectionLabel>
+        <Text variant="meta" tone="secondary">
           {anyGraded ? "tap for next tier" : "best set · monthly trend"}
         </Text>
       </RNView>
@@ -255,7 +256,7 @@ export default function LiftProgressWidget({
           onPress={() => setExpanded((v) => !v)}
           activeOpacity={0.7}
         >
-          <Text style={[styles.viewAllText, { color: colors.primary }]}>
+          <Text variant="meta" weight="semiBold">
             {expanded ? "Show less" : `All ${lifts.length} lifts`}
           </Text>
         </TouchableOpacity>
@@ -275,79 +276,56 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
-    paddingBottom: 10,
+    paddingBottom: space.md,
   },
-  headLabel: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
-    letterSpacing: 1,
-    opacity: 0.45,
-  },
-  headMeta: { fontSize: typeScale.meta, opacity: 0.5 },
+  headLabel: { marginBottom: 0 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   // Stacked: title line over the full-width data line.
   face: {
     height: "100%",
     justifyContent: "center",
-    gap: 6,
+    gap: space.sm,
   },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 8,
+    gap: space.sm,
   },
-  name: { fontSize: typeScale.emphasis, fontWeight: "600", flexShrink: 1 },
+  name: { flexShrink: 1 },
   // Same expander grammar as the sessions feed's "View all N sessions".
-  viewAll: { paddingVertical: 16, alignItems: "center" },
-  viewAllText: { fontSize: typeScale.meta, fontWeight: "600" },
+  viewAll: { paddingVertical: space.lg, alignItems: "center" },
   // The month strip: a left-aligned timeline of value-over-month columns with a
   // quiet arrow between each — one type size throughout, no chip chrome.
   monthsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: space.xs,
   },
   monthCol: { alignItems: "center", gap: 1 },
   // Raised so the arrow sits on the value line, not between the two text lines.
-  monthArrow: { marginBottom: 16 },
-  monthVal: {
-    fontSize: typeScale.meta,
-    fontWeight: "600",
-  },
-  monthValLatest: { fontWeight: "700" },
+  monthArrow: { marginBottom: space.lg },
   monthLabel: {
-    fontSize: typeScale.meta,
-    fontWeight: "500",
     letterSpacing: 0.3,
   },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
-  backFace: { height: "100%", justifyContent: "center", gap: 5 },
+  backFace: { height: "100%", justifyContent: "center", gap: space.xs },
   backHead: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  backLabel: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
-    letterSpacing: 1,
-    opacity: 0.45,
-  },
+  backLabel: { marginBottom: 0 },
   backTrend: { flexDirection: "row", alignItems: "center", gap: 2 },
-  backTrendText: { fontSize: typeScale.meta, fontWeight: "500" },
   backMainRow: {
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
-    gap: 10,
+    gap: space.md,
   },
   backMain: {
-    fontSize: typeScale.body,
-    fontWeight: "600",
     letterSpacing: -0.2,
   },
-  backPct: { fontSize: typeScale.meta, fontWeight: "500" },
   backBar: { marginTop: 2 },
 });

@@ -1,12 +1,17 @@
 import MiniSparkline from '@/components/MiniSparkline';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, space, tint } from '@/lib/ui/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+
+// Semantic gain/loss colors, matched to TopMovers so the same green means the same
+// thing across both tabs.
+const UP = '#00C85C';
+const DOWN = '#FF6B6B';
 
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;
@@ -16,6 +21,7 @@ interface ExerciseCardProps {
 
 function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
 
   // A calisthenics lift (pull-ups, push-ups) has no meaningful 1RM, so it is scored on
   // reps instead: the headline is its best set's rep count and the trend tracks rep
@@ -37,40 +43,40 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
       onPress={() => onPress(exercise)}
       activeOpacity={0.7}
     >
-      <View style={[styles.liftMain, { backgroundColor: 'transparent' }]}>
-        <View style={[styles.liftNameRow, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+      <View style={styles.liftMain}>
+        <View style={styles.liftNameRow}>
+          <Text variant="body" tone="primary" weight="semiBold">
             {exercise.name}
           </Text>
           {exercise.isCustom && (
-            <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+            <View style={[styles.customBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+              <Text variant="meta" weight="medium">
                 Custom
               </Text>
             </View>
           )}
         </View>
-        <View style={[styles.liftStats, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+        <View style={styles.liftStats}>
+          <Text variant="emphasis" tone="primary" weight="bold">
             {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
           </Text>
-          <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
+          <Text variant="meta" tone="faint">
             {isBodyweight ? ' reps' : ' est. 1RM'}
           </Text>
           {trend.deltaDisplay > 0 && (
-            <View style={[styles.deltaContainer, { backgroundColor: trend.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>
-              <Text style={[styles.deltaText, { color: trend.isPositive ? '#00C85C' : '#FF6B6B', fontWeight: '600' }]}>
+            <View style={[styles.deltaContainer, { backgroundColor: tint(trend.isPositive ? UP : DOWN) }]}>
+              <Text variant="meta" weight="semiBold" style={{ color: trend.isPositive ? UP : DOWN }}>
                 {trend.isPositive ? '+' : '-'}{trend.deltaDisplay}
               </Text>
             </View>
           )}
         </View>
       </View>
-      <View style={[styles.liftRight, { backgroundColor: 'transparent' }]}>
+      <View style={styles.liftRight}>
         {trend.sparkline.length >= 2 && (
           <MiniSparkline data={trend.sparkline} />
         )}
-        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '25'} />
+        <Ionicons name="chevron-forward" size={16} color={ink.ghost} />
       </View>
     </TouchableOpacity>
   );
@@ -80,7 +86,7 @@ export default React.memo(ExerciseCard);
 
 const styles = StyleSheet.create({
   liftCard: {
-    paddingVertical: 14,
+    paddingVertical: space.lg,
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -91,42 +97,27 @@ const styles = StyleSheet.create({
   liftNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  liftName: {
-    fontSize: typeScale.body,
+    gap: space.sm,
+    marginBottom: space.xs,
   },
   customBadge: {
-    paddingHorizontal: 5,
+    paddingHorizontal: space.xs,
     paddingVertical: 1,
-    borderRadius: 3,
-  },
-  customBadgeText: {
-    fontSize: typeScale.meta,
+    borderRadius: radius.badge,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  liftValue: {
-    fontSize: typeScale.emphasis,
-  },
-  liftLabel: {
-    fontSize: typeScale.meta,
-  },
   deltaContainer: {
-    marginLeft: 10,
-    paddingHorizontal: 6,
+    marginLeft: space.md,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
-  deltaText: {
-    fontSize: typeScale.meta,
+    borderRadius: radius.badge,
   },
   liftRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.md,
   },
 });

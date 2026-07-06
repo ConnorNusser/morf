@@ -4,17 +4,19 @@
 // card, which owns the volume story.)
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
+import { Text } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { Rarity } from '@/lib/gamification/rarity';
 import { formatRelativeDate } from '@/lib/ui/formatters';
-import { type as typeScale } from '@/lib/ui/typography';
+import { space } from '@/lib/ui/tokens';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
+import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 // An achievement earned by a specific session — shown as its real badge art
 // on that session's entry; tap for the full-screen spotlight.
@@ -52,8 +54,6 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
   onPress: (w: GeneratedWorkout) => void;
   onPressAchievement: (a: SessionAchievement, recap: SessionRecap) => void;
 }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
   const prName = recap.pr ? shortHeroName(recap.pr.name) : null;
   // The narrative note earns its line only when it says something the exercise
   // table can't (comeback / biggest-yet); a plain "X PR" is told on the row itself.
@@ -66,15 +66,15 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
           PPL_COLORS the Career activity grid and This Week bars use). */}
       <RNView style={styles.entryHead}>
         <RNView style={styles.entryIdentity}>
-          <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
+          <Text variant="title" tone="primary" weight="semiBold" style={styles.entryTitle} numberOfLines={1}>
             {cleanTitle(recap.title) ?? (recap.split ? `${PPL_LABELS[recap.split]} session` : 'Workout')}
           </Text>
-          <Text style={[styles.entryMeta, { color: colors.text + '80' }]} numberOfLines={1}>
+          <Text variant="meta" tone="secondary" numberOfLines={1}>
             {formatRelativeDate(recap.workout.createdAt)}
             {recap.split && (
               <>
                 {' · '}
-                <Text style={{ color: PPL_COLORS[recap.split], fontWeight: '600' }}>
+                <Text variant="meta" weight="semiBold" style={{ color: PPL_COLORS[recap.split] }}>
                   {PPL_LABELS[recap.split]}
                 </Text>
               </>
@@ -82,13 +82,13 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
             {' · '}{recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
-        <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
+        <Text variant="emphasis" tone="primary" weight="bold" style={styles.entryVolume} numberOfLines={1}>
           {formatCompact(recap.volumeDisplay)} {weightUnit}
         </Text>
       </RNView>
 
       {note && (
-        <Text style={[styles.entryNote, { color: colors.text }]} numberOfLines={1}>
+        <Text variant="meta" tone="secondary" style={styles.entryNote} numberOfLines={1}>
           {note}
         </Text>
       )}
@@ -109,7 +109,7 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
               accessibilityRole="button"
             >
               <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={30} />
-              <Text style={[styles.achTitle, { color: colors.text + 'CC' }]} numberOfLines={1}>
+              <Text variant="meta" tone="secondary" weight="semiBold" numberOfLines={1}>
                 {a.title}
               </Text>
             </TouchableOpacity>
@@ -124,25 +124,24 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
           const isPRRow = prName != null && l.name === prName;
           return (
             <RNView key={`${l.name}-${i}`} style={styles.exRow}>
-              <Text style={[styles.exName, { color: colors.text }]} numberOfLines={1}>
+              <Text variant="emphasis" tone="primary" weight="medium" style={styles.exName} numberOfLines={1}>
                 {l.name}
-                <Text style={[styles.exSets, { color: colors.text + '55' }]}>  {l.sets}×</Text>
+                <Text variant="meta" tone="muted">  {l.sets}×</Text>
               </Text>
               {isPRRow && (
                 <Text
-                  style={[
-                    styles.prTag,
-                    celebrate ? { color: POS } : { color: colors.text + '80' },
-                  ]}
+                  variant="meta"
+                  tone="secondary"
+                  weight="bold"
+                  style={[styles.prTag, celebrate && { color: POS }]}
                 >
                   {celebrate && recap.prGainDisplay > 0 ? `PR +${recap.prGainDisplay}` : 'PR'}
                 </Text>
               )}
               <Text
-                style={[
-                  styles.exSet,
-                  { color: isPRRow && celebrate ? POS : colors.text + 'CC' },
-                ]}
+                variant="meta"
+                tone="secondary"
+                style={[styles.exSet, isPRRow && celebrate && { color: POS }]}
                 numberOfLines={1}
               >
                 {l.weight > 0 ? `${l.weight} × ${l.reps}` : `${l.reps} reps`}
@@ -184,7 +183,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
     <RNView>
       {/* SESSIONS — the same micro-label header grammar as every section on the tab. */}
       <RNView style={styles.feedHead}>
-        <Text style={[styles.microLabel, { color: colors.text }]}>SESSIONS</Text>
+        <SectionLabel style={styles.microLabel}>SESSIONS</SectionLabel>
       </RNView>
 
       {entries.map((r, i) => (
@@ -205,7 +204,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
 
       {onToggleShowAll && (hasMore || visibleCount > 6) && (
         <TouchableOpacity style={styles.viewAll} onPress={onToggleShowAll} activeOpacity={0.7}>
-          <Text style={[styles.viewAllText, { color: colors.primary }]}>
+          <Text variant="meta" weight="semiBold">
             {hasMore ? `View all ${totalCount} sessions` : 'Show less'}
           </Text>
         </TouchableOpacity>
@@ -217,30 +216,26 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
 }
 
 const styles = StyleSheet.create({
-  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
-  feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
-  microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  // Career-grammar shared bits: the SectionLabel micro-label heads the feed.
+  feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: space.md, paddingBottom: space.md },
+  microLabel: { marginBottom: 0 },
   // Log entries, separated by hairlines like every list on the tab.
-  entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
-  entry: { paddingTop: 14, paddingBottom: 12 },
-  entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: space.md },
+  entry: { paddingTop: space.lg, paddingBottom: space.md },
+  entryHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   entryIdentity: { flex: 1, gap: 2 },
-  entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2 },
-  entryMeta: { fontSize: typeScale.meta },
-  entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
-  entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
+  entryTitle: { letterSpacing: -0.2 },
+  entryVolume: { letterSpacing: -0.2 },
+  entryNote: { marginTop: space.sm },
   // Earned-this-session achievements: badge art + title, tappable.
-  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
-  achItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  achTitle: { fontSize: typeScale.meta, fontWeight: '600' },
+  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginTop: space.md },
+  achItem: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   // The per-exercise table.
-  exList: { marginTop: 10, gap: 8 },
-  exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exList: { marginTop: space.md, gap: space.sm },
+  exRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   // The lift names are the table's primary read; the set values sit quiet.
-  exName: { flex: 1, fontSize: typeScale.emphasis, fontWeight: '500' },
-  exSets: { fontSize: typeScale.meta },
-  prTag: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.3 },
-  exSet: { fontSize: typeScale.meta, letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
-  viewAll: { paddingVertical: 16, alignItems: 'center' },
-  viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
+  exName: { flex: 1 },
+  prTag: { letterSpacing: 0.3 },
+  exSet: { letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
+  viewAll: { paddingVertical: space.lg, alignItems: 'center' },
 });

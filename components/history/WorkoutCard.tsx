@@ -1,7 +1,7 @@
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, space, withAlpha } from '@/lib/ui/tokens';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { SessionPR } from '@/components/history/prSessions';
 import { calculateWorkoutStats, formatWorkoutStatsLine } from '@/lib/utils/utils';
@@ -30,6 +30,7 @@ function WorkoutCard({
   onLongPress,
 }: WorkoutCardProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
 
   // Helper to get tracking type for an exercise
   const getTrackingType = useCallback((exerciseId: string): TrackingType | undefined => {
@@ -89,9 +90,12 @@ function WorkoutCard({
       activeOpacity={0.7}
     >
       {/* Title + at-most-one PR marker — the filled badge is reserved for MAJOR records */}
-      <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
+      <View style={styles.titleRow}>
         <Text
-          style={[styles.workoutTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}
+          variant="title"
+          tone="primary"
+          weight="semiBold"
+          style={styles.workoutTitle}
           numberOfLines={1}
         >
           {workout.title}
@@ -99,16 +103,16 @@ function WorkoutCard({
         {isMajorPR && (
           <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
             <Ionicons name="trophy" size={10} color="#fff" />
-            <Text style={[styles.prChipText, { color: '#fff', fontWeight: '600' }]}>
+            <Text variant="meta" weight="semiBold" style={styles.prChipText}>
               PR
             </Text>
           </RNView>
         )}
-        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '35'} />
+        <Ionicons name="chevron-forward" size={16} color={ink.ghost} />
       </View>
 
       {/* Summary line: when + total sets + session volume */}
-      <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '80', fontWeight: '400' }]} numberOfLines={1}>
+      <Text variant="meta" tone="secondary" style={styles.workoutMeta} numberOfLines={1}>
         {formatRelativeDate(workout.createdAt)} • {statsLine}
       </Text>
 
@@ -116,18 +120,18 @@ function WorkoutCard({
           bold/primary; a standard PR is present but de-emphasized so it doesn't shout. */}
       {sessionPR ? (
         <Text
+          variant="meta"
+          weight={isMajorPR ? 'semiBold' : 'medium'}
           style={[
             styles.prLine,
-            isMajorPR
-              ? { color: currentTheme.colors.primary, fontWeight: '600' }
-              : { color: currentTheme.colors.primary + 'B0', fontWeight: '500' },
+            !isMajorPR && { color: withAlpha(currentTheme.colors.primary, 'secondary') },
           ]}
           numberOfLines={1}
         >
           {sessionPR.name} · {isMajorPR ? 'new PR' : 'PR'} +{prGainDisplay} {weightUnit}
         </Text>
       ) : topLift ? (
-        <Text style={[styles.topLiftLine, { color: currentTheme.colors.text + '99', fontWeight: '400' }]} numberOfLines={1}>
+        <Text variant="meta" tone="secondary" style={styles.topLiftLine} numberOfLines={1}>
           {topLift.name} · {topLift.setCount} set{topLift.setCount !== 1 ? 's' : ''}
         </Text>
       ) : null}
@@ -139,45 +143,41 @@ export default React.memo(WorkoutCard);
 
 const styles = StyleSheet.create({
   workoutCard: {
-    paddingVertical: 16,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   workoutTitle: {
     flex: 1,
-    fontSize: typeScale.title,
     lineHeight: 24,
     letterSpacing: -0.2,
   },
   workoutMeta: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
     marginTop: 3,
   },
   topLiftLine: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   prLine: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   prChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
     paddingVertical: 3,
-    borderRadius: 4,
+    borderRadius: radius.badge,
   },
   prChipText: {
-    fontSize: typeScale.meta,
+    color: '#fff',
     letterSpacing: 0.5,
   },
 });
