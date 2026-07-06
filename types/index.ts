@@ -454,6 +454,8 @@ export interface RemoteUserData {
   instagram_username?: string;
   tiktok_username?: string;
   discord_username?: string;
+  /** Achievement the user chose to show on their profile (badge id). */
+  featured_achievement_id?: string;
 }
 
 // Remote user from Supabase

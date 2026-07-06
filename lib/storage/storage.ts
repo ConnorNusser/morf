@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   SEEN_ACHIEVEMENTS: 'seen_achievements',
   ACHIEVEMENT_UNLOCK_DATES: 'achievement_unlock_dates',
   PROFILE_ICON: 'profile_icon',
+  FEATURED_ACHIEVEMENT: 'featured_achievement',
   UP_NEXT_POINTER: 'up_next_pointer',
   CYCLE_STARTED_AT: 'cycle_started_at',
   EXERCISE_RECORDS: 'exercise_records',
@@ -828,6 +829,25 @@ class StorageService {
     } catch (error) {
       console.error('Error loading profile icon:', error);
       return null;
+    }
+  }
+
+  // The achievement the user features on their profile (null if none chosen).
+  async getFeaturedAchievementId(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.FEATURED_ACHIEVEMENT);
+    } catch (error) {
+      console.error('Error loading featured achievement:', error);
+      return null;
+    }
+  }
+
+  async setFeaturedAchievementId(id: string | null): Promise<void> {
+    try {
+      if (id) await AsyncStorage.setItem(STORAGE_KEYS.FEATURED_ACHIEVEMENT, id);
+      else await AsyncStorage.removeItem(STORAGE_KEYS.FEATURED_ACHIEVEMENT);
+    } catch (error) {
+      console.error('Error saving featured achievement:', error);
     }
   }
 

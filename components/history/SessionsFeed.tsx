@@ -211,7 +211,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
         </TouchableOpacity>
       )}
 
-      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </RNView>
   );
 }

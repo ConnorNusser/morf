@@ -206,7 +206,7 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
         </Text>
       )}
 
-      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }
@@ -749,7 +749,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
         ),
       )}
 
-      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }

@@ -34,6 +34,8 @@ export interface FeedComment {
 export interface WorkoutFeedData {
   strength_level?: string;
   pr_count?: number;
+  /** Achievements this workout earned — ids only; art/copy are bundled. */
+  achievement_ids?: string[];
   likes?: FeedLike[];
   comments?: FeedComment[];
 }
@@ -246,12 +248,12 @@ class FeedService {
     total_distance_meters?: number;
     total_cardio_seconds?: number;
     exercises: WorkoutExerciseSummary[];
-  }): Promise<boolean> {
+  }, feedData?: WorkoutFeedData): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.saveWorkout(user.id, workout, user.username, user.profile_picture_url);
+      return await feedApi.saveWorkout(user.id, workout, user.username, user.profile_picture_url, feedData);
     } catch (error) {
       console.error('Error saving workout to feed:', error);
       return false;

@@ -182,7 +182,7 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
         )}
       </Text>
 
-      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }

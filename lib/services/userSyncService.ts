@@ -7,6 +7,8 @@ import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs
 import { userService } from './userService';
 import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
+import { attributeAchievements } from '@/lib/history/achievementAttribution';
+import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
 
 class UserSyncService {
@@ -147,10 +149,42 @@ class UserSyncService {
   }
 
   /**
-   * Sync user profile data (height, weight, gender) to Supabase
+   * Sync user profile data (height, weight, gender) to Supabase. Merges into
+   * the existing user_data jsonb so fields other callers own (like the
+   * featured achievement) survive a profile save.
    */
   async syncProfileData(profileData: RemoteUserData): Promise<boolean> {
-    return this.updateUserField({ user_data: profileData });
+    return this.mergeUserData(profileData);
+  }
+
+  /**
+   * The achievement badge shown on this user's public profile (null clears it).
+   */
+  async syncFeaturedAchievement(achievementId: string | null): Promise<boolean> {
+    return this.mergeUserData({ featured_achievement_id: achievementId ?? undefined });
+  }
+
+  /** Patch user_data without clobbering fields the patch doesn't mention. */
+  private async mergeUserData(patch: Partial<RemoteUserData>): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const user = await this.getOrCreateUser();
+      if (!user) return false;
+      const { data } = await supabase
+        .from('users')
+        .select('user_data')
+        .eq('id', this.currentUserId)
+        .single();
+      const merged = { ...(data?.user_data ?? {}), ...patch };
+      // An explicit undefined means "clear this field".
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === undefined) delete (merged as Record<string, unknown>)[k];
+      }
+      return this.updateUserField({ user_data: merged });
+    } catch (error) {
+      console.error('Error merging user data:', error);
+      return false;
+    }
   }
 
   /**
@@ -986,9 +1020,22 @@ class UserSyncService {
 
       // Get user's current strength level for feed display
       const percentileData = await this.getUserPercentileData(user.id);
+      // Achievements THIS workout earned — the same history replay the History
+      // tab pins medals with, so the feed and the log always agree. Ids only:
+      // every client bundles the art/copy (see lib/gamification/achievementMeta).
+      let achievementIds: string[] = [];
+      try {
+        const history = await storageService.getWorkoutHistory();
+        const withThis = history.some(w => w.id === workout.id) ? history : [...history, workout];
+        const unit = userProfile.weightUnitPreference || 'lbs';
+        achievementIds = (attributeAchievements(withThis, unit)[workout.id] ?? []).map(a => a.id);
+      } catch (err) {
+        console.error('Error attributing achievements for feed:', err);
+      }
       const feedData: WorkoutFeedData = {
         strength_level: percentileData?.strength_level,
         pr_count: prCount,
+        achievement_ids: achievementIds.length > 0 ? achievementIds : undefined,
       };
 
       // Upsert workout
@@ -1030,7 +1077,8 @@ class UserSyncService {
         prCount
       });
 
-      // Also sync to feed server for social feed
+      // Also sync to feed server for social feed — including the gamification
+      // snapshot (tier, PRs, earned achievements) the cards render from.
       feedService.saveWorkoutToFeed({
         title: workout.title,
         duration_seconds: durationSeconds,
@@ -1040,7 +1088,7 @@ class UserSyncService {
         total_distance_meters: Math.round(totalDistanceMeters),
         total_cardio_seconds: Math.round(totalCardioSeconds),
         exercises: exerciseSummaries,
-      }).catch(err => {
+      }, feedData).catch(err => {
         console.error('Error syncing workout to feed server:', err);
         analyticsService.logErr('sync', 'feed_workout_sync_failed', err instanceof Error ? err.message : 'Unknown error');
       });
