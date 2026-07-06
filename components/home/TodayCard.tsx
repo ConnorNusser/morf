@@ -26,7 +26,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from "react-native";
 import Spacer from "../Spacer";
@@ -37,7 +36,9 @@ const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
 
 // The card is the home hero: it claims ~70% of the viewport in every state
 // (loading / freestyle / routine), headline pinned top, CTAs pinned bottom.
-const CARD_HEIGHT_FRACTION = 0.7;
+// Small floor so the page doesn't jump while the card resolves. The card is
+// otherwise content-sized: reserved emptiness has no mass to hold it.
+const CARD_MIN_HEIGHT = 200;
 
 // Human-readable label for the routine's split type.
 function splitLabel(splitType?: string): string | null {
@@ -70,8 +71,6 @@ export default function TodayCard() {
   const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
-  const { height: windowHeight } = useWindowDimensions();
-  const cardMinHeight = Math.round(windowHeight * CARD_HEIGHT_FRACTION);
 
   // Read routines fresh from storage on every focus, so pausing or deleting a
   // routine elsewhere is reflected without restarting the app. (The routine
@@ -169,14 +168,13 @@ export default function TodayCard() {
 
   if (loading) {
     return (
-      <Card style={[styles.loadingCard, { minHeight: cardMinHeight }]}>
+      <Card style={styles.loadingCard}>
         <ActivityIndicator color={currentTheme.colors.primary} />
       </Card>
     );
   }
 
-  // No active routine — a poster hero: headline up top, actions at the bottom
-  // where the thumb lives, open space between.
+  // No active routine — content-sized: headline, context, two pills, dismiss.
   if (!calculated) {
     const freestyleSubtitle = trainedToday
       ? "You've trained today — back for more?"
@@ -184,7 +182,7 @@ export default function TodayCard() {
         ? `Last workout ${formatRelativeTime(lastWorkoutAt)}.`
         : "Jump straight in — log sets as you go.";
     return (
-      <Card style={[styles.heroCard, { minHeight: cardMinHeight }]}>
+      <Card style={styles.card}>
         <View>
           <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
           <Text
@@ -248,7 +246,7 @@ export default function TodayCard() {
         activeOpacity={0.9}
         onPress={() => setShowOverview(true)}
       >
-        <Card padding={0} style={[styles.pagerCard, { minHeight: cardMinHeight }]}>
+        <Card padding={0} style={styles.pagerCard}>
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}
@@ -352,12 +350,13 @@ export default function TodayCard() {
 }
 
 const styles = StyleSheet.create({
-  heroCard: {
-    justifyContent: "space-between",
+  card: {
+    minHeight: CARD_MIN_HEIGHT,
   },
   loadingCard: {
     alignItems: "center",
     justifyContent: "center",
+    minHeight: CARD_MIN_HEIGHT,
   },
   eyebrow: {
     marginBottom: 0,
