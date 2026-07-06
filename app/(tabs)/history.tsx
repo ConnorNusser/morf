@@ -168,7 +168,7 @@ export default function HistoryScreen() {
         workouts,
         exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
         weightUnit,
-        4,
+        6,
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ),
     [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]

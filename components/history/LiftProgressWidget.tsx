@@ -1,10 +1,8 @@
-// History widget: a full-width panel listing the user's lifts, each row showing its
-// best set per month across time (oldest → newest, right-aligned so the latest
-// lines up down the right edge). Month under each point makes the timeline explicit;
-// left→right is time. Each point is a themed chip: the latest is a tier-tinted
-// "you are here" capsule, earlier ones are quiet outlined chips colored by whether
-// that month rose or fell from the one before it — the same green/red gain-loss
-// language as ExerciseCard and TopMovers.
+// History widget: a full-width panel listing the user's lifts as stacked rows —
+// lift name (plus tier badge) on top, and under it the lift's story at a glance:
+// the latest best set, one signed month-over-month delta pill, and a per-month
+// MiniSparkline (oldest → newest, the same green/red trend + bar language as
+// TopMovers, so the two boards read identically).
 //
 // The board is RANKED and CAPPED: buildLiftProgressions orders lifts by tier
 // proximity × recent movement, so the top row IS the "closest to leveling up"
@@ -18,6 +16,7 @@
 // NEXT dot where they already mean something. Tapping a graded row flips it
 // (the Career FlipCard) to the stake: how much e1RM to the next tier.
 import AnimatedBar from '@/components/AnimatedBar';
+import MiniSparkline from '@/components/MiniSparkline';
 import FlipCard from '@/components/gamification/FlipCard';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -35,84 +34,54 @@ const DOWN = '#FF6B6B';
 
 // Fixed row height — FlipCard stacks its faces absolutely, so both faces are built
 // to this height and plain (ungraded) rows match it for an even rhythm.
-const ROW_H = 64;
+const ROW_H = 72;
 
 const shortName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 const setLabel = (weight: number, reps: number): string => (weight > 0 ? `${weight}×${reps}` : `×${reps}`);
 const metricOf = (p: { weight: number; reps: number }): number => (p.weight > 0 ? p.weight : p.reps);
 
-// The month-chip strip — shared by graded fronts and ungraded plain rows.
-// `accent` tints the latest "you are here" capsule (tier color when graded).
-// At the app's type scale three chips is the most that fits beside a lift name
-// on a small phone, so the strip shows the latest three months.
-const MAX_POINTS = 3;
-
-function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
-  const points = lift.points.slice(-MAX_POINTS);
-  return (
-    <RNView style={styles.points}>
-      {points.map((p, i) => {
-        const latest = i === points.length - 1;
-        const prev = i > 0 ? points[i - 1] : null;
-        const trendColor = prev
-          ? metricOf(p) > metricOf(prev)
-            ? UP
-            : metricOf(p) < metricOf(prev)
-              ? DOWN
-              : colors.text + '80'
-          : colors.text + '80';
-
-        return (
-          <RNView
-            key={i}
-            style={[
-              styles.point,
-              latest
-                ? { backgroundColor: accent + '16' }
-                : { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-            ]}
-          >
-            <Text
-              style={[
-                styles.set,
-                { color: latest ? accent : trendColor, fontWeight: latest ? '700' : '600' },
-              ]}
-              numberOfLines={1}
-            >
-              {setLabel(p.weight, p.reps)}
-            </Text>
-            <Text style={[styles.month, { color: colors.text + '55' }]}>
-              {p.monthLabel}
-            </Text>
-          </RNView>
-        );
-      })}
-    </RNView>
-  );
-}
-
-// One layout for every row: a two-line left column (name over its tier badge, both
-// flush to the panel's left edge so the board scans as one clean column) and the
-// chip strip right. Ungraded lifts simply omit the badge — no fake tiers.
+// One layout for every row, stacked so the data line gets the full panel width:
+// the lift name (with its tier badge) on top, and under it the story of the lift —
+// latest best set, one signed month-over-month delta, and a per-month sparkline.
+// Exactly two color systems: tier color (identity: the badge) and a single
+// green/red (change: the delta pill + the sparkline's trend). Ungraded lifts
+// simply omit the badge — no fake tiers.
 function RowFront({ lift, tier }: { lift: LiftProgress; tier: LiftTier | null }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const accent = tier ? getTierColor(tier.tier) : colors.primary;
+  const points = lift.points;
+  const latest = points[points.length - 1];
+  const prev = points.length > 1 ? points[points.length - 2] : null;
+  // Graded lifts get the honest e1RM delta; ungraded fall back to the raw
+  // best-set metric so the pill never invents precision it doesn't have.
+  const delta = tier ? tier.e1rmDelta : prev ? metricOf(latest) - metricOf(prev) : 0;
+  const deltaColor = delta > 0 ? UP : delta < 0 ? DOWN : colors.text + '55';
+
   return (
     <RNView style={styles.face}>
-      <RNView style={styles.nameCol}>
+      <RNView style={styles.titleRow}>
         <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
           {shortName(lift.name)}
         </Text>
-        {tier && (
-          <RNView style={styles.gradeRow}>
-            <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />
+        {tier && <TierBadge tier={tier.tier} size="tiny" showTooltip={false} />}
+      </RNView>
+      <RNView style={styles.dataRow}>
+        <Text style={[styles.set, { color: colors.text }]} numberOfLines={1}>
+          {setLabel(latest.weight, latest.reps)}
+          <Text style={[styles.month, { color: colors.text + '55' }]}>
+            {'  '}{latest.monthLabel.toUpperCase()}
+          </Text>
+        </Text>
+        {delta !== 0 && (
+          <RNView style={[styles.deltaPill, { backgroundColor: deltaColor + '14' }]}>
+            <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={deltaColor} />
+            <Text style={[styles.deltaText, { color: deltaColor }]}>{Math.abs(delta)}</Text>
           </RNView>
         )}
+        <RNView style={styles.sparkWrap}>
+          <MiniSparkline data={points.map(metricOf)} width={120} height={26} barWidth={12} gap={5} />
+        </RNView>
       </RNView>
-      <ChipStrip lift={lift} accent={accent} />
     </RNView>
   );
 }
@@ -221,7 +190,7 @@ export default function LiftProgressWidget({ lifts, maxRows = 4 }: {
       <RNView style={styles.head}>
         <Text style={[styles.headLabel, { color: colors.text }]}>LIFTS</Text>
         <Text style={[styles.headMeta, { color: colors.text }]}>
-          {anyGraded ? 'tap for next tier' : 'best set · by month'}
+          {anyGraded ? 'tap for next tier' : 'best set · monthly trend'}
         </Text>
       </RNView>
       {visible.map((lift, i) => (
@@ -256,31 +225,40 @@ const styles = StyleSheet.create({
   headMeta: { fontSize: typeScale.meta, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
+  // Stacked: title line over the full-width data line.
   face: {
     height: '100%',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
   },
-  // Two-line left column, flush left: name over badge, one shared edge down the board.
-  nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  name: { fontSize: typeScale.emphasis, fontWeight: '600' },
-  gradeRow: { flexDirection: 'row', alignItems: 'center' },
+  name: { fontSize: typeScale.emphasis, fontWeight: '600', flexShrink: 1 },
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
-  points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
-  // Each point is a small themed chip (matches the pill language used by delta/sort/
-  // record chips elsewhere in History) rather than bare floating text.
-  point: {
+  // Latest best set + delta pill left, sparkline right (TopMovers' pill grammar).
+  dataRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    minWidth: 46,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
   },
-  set: { fontSize: typeScale.body, letterSpacing: -0.2 },
-  month: { fontSize: typeScale.meta, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
+  set: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
+  month: { fontSize: typeScale.meta, fontWeight: '500', letterSpacing: 0.3 },
+  deltaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1,
+    marginLeft: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  deltaText: { fontSize: typeScale.meta, fontWeight: '600' },
+  sparkWrap: { flex: 1, alignItems: 'flex-end' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
