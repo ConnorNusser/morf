@@ -14,8 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
-const POS = '#34C759';
-
 // Suppress the auto-generated default title ("Workout - 7/3/2026") so the eyebrow
 // reads as just the day; keep real titles like "Leg Day".
 const cleanTitle = (t: string): string | null => {
@@ -38,30 +36,11 @@ function Emblem({ color, emblem, size }: { color: string; emblem: ImageSourcePro
   );
 }
 
-// Asymmetric by design: a bigger session is celebrated (green), a lighter one is
-// stated neutrally, never punished with an alarm color. The research is clear that
-// "failure"-framed regressions drive avoidance, so a deload should read as information,
-// not a red mark.
-function DeltaPill({ pct }: { pct: number }) {
-  const { currentTheme } = useTheme();
-  if (pct === 0) return null;
-  const up = pct > 0;
-  const color = up ? POS : currentTheme.colors.text + '70';
-  return (
-    <RNView style={styles.deltaRow}>
-      <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={12} color={color} />
-      <Text style={[styles.deltaText, { color, fontFamily: currentTheme.fonts.semiBold }]}>
-        {Math.abs(pct)}%
-      </Text>
-    </RNView>
-  );
-}
-
 // ── one session as a feed post — the SAME anatomy for every session, the way an
-// Instagram feed repeats one post shape. Header (avatar + name + timestamp), then
-// the content payload (the standout set as the "photo": headline, big number,
-// caption), then a quiet stat row (the likes-row analog). The newest post simply
-// comes first and gets the count-up; nothing else about it is special.
+// Instagram feed repeats one post shape. Header row: avatar + name + timestamp on
+// the left, the session's effort details (volume / sets / time) right-aligned on
+// the right. Content below: headline, the standout set, caption. The newest post
+// simply comes first and gets the count-up; nothing else about it is special.
 function SessionPost({ recap, weightUnit, animate, onPress }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
@@ -100,31 +79,36 @@ function SessionPost({ recap, weightUnit, animate, onPress }: {
       onPress={() => onPress(recap.workout)}
       style={styles.post}
     >
-      {/* post header — avatar + stacked identity, the Instagram grammar: bold name
-          ("Leg Day"), quiet timestamp underneath. The emblem is the card's single
-          split-color statement. */}
+      {/* post header — avatar + stacked identity on the left (bold name, quiet
+          timestamp), the session's effort details right-aligned opposite them. The
+          emblem is the card's single split-color statement. */}
       <RNView style={styles.postHead}>
         <Emblem color={id.color} emblem={id.emblem} size={40} />
         <RNView style={styles.postIdentity}>
-          <Text style={[styles.postTitle, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-            {cleanTitle(recap.title) ?? 'Workout'}
-          </Text>
+          <RNView style={styles.postTitleRow}>
+            <Text style={[styles.postTitle, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+              {cleanTitle(recap.title) ?? 'Workout'}
+            </Text>
+            {showTrophy && <Ionicons name="trophy" size={12} color={id.color} />}
+          </RNView>
           <Text style={[styles.postWhen, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
             {formatRelativeDate(recap.workout.createdAt)}
           </Text>
         </RNView>
-        {showTrophy && (
-          <RNView style={[styles.prChip, { backgroundColor: id.color }]}>
-            <Ionicons name="trophy" size={10} color="#fff" />
-            <Text style={[styles.prChipText, { color: '#fff', fontFamily: fonts.semiBold }]}>PR</Text>
-          </RNView>
-        )}
+        <RNView style={styles.postDetails}>
+          <Text style={[styles.detailMain, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+            {formatCompact(recap.volumeDisplay)} {weightUnit}
+          </Text>
+          <Text style={[styles.detailSub, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+            {recap.sets} sets · {recap.durationMin}m
+          </Text>
+        </RNView>
       </RNView>
 
-      {/* content — the standout set is the post's "photo": narrative line, big number,
-          quiet caption. Plain text color; scale carries the emphasis (the Career rule). */}
+      {/* content — the standout set is the post's payload: narrative line, the set
+          number, quiet caption. Plain text color; scale carries the emphasis. */}
       {headline && (
-        <Text style={[styles.postHeadline, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.postHeadline, { color: colors.text + 'CC', fontFamily: fonts.medium }]} numberOfLines={1}>
           {headline}
         </Text>
       )}
@@ -145,23 +129,12 @@ function SessionPost({ recap, weightUnit, animate, onPress }: {
             </Text>
           </Text>
           {caption && (
-            <Text style={[styles.standoutName, { color: colors.text + '80', fontFamily: fonts.medium }]} numberOfLines={1}>
+            <Text style={[styles.standoutName, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
               {caption}
             </Text>
           )}
         </RNView>
       )}
-
-      {/* stat row — the likes-row analog: one quiet line of session effort, with the
-          volume-vs-last delta riding right where a feed would put its counter. */}
-      <RNView style={styles.postStats}>
-        <Text style={[styles.postStatsText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
-          {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets · {recap.durationMin}m
-        </Text>
-        {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
-          <DeltaPill pct={recap.comparison.deltaVolumePct} />
-        )}
-      </RNView>
     </TouchableOpacity>
   );
 }
@@ -216,22 +189,22 @@ const styles = StyleSheet.create({
   // app's flat Card language IS the flat-post feed language.
   post: { paddingVertical: 14 },
   postDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
+  // Header: identity left, effort details right. A deliberately tight type ramp —
+  // primaries are semiBold 15/13, secondaries regular 12 at 60% — so the post reads
+  // as two organized tiers instead of a scatter of sizes and weights.
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   postIdentity: { flex: 1, gap: 1 },
-  postTitle: { fontSize: 15, letterSpacing: -0.2 },
+  postTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  postTitle: { fontSize: 15, letterSpacing: -0.2, flexShrink: 1 },
   postWhen: { fontSize: 12 },
-  postHeadline: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 10 },
+  postDetails: { alignItems: 'flex-end', gap: 1 },
+  detailMain: { fontSize: 13, letterSpacing: -0.2 },
+  detailSub: { fontSize: 12 },
+  postHeadline: { fontSize: 14, lineHeight: 19, letterSpacing: -0.2, marginTop: 10 },
   postStandout: { marginTop: 2 },
-  standoutValue: { fontSize: 28, letterSpacing: -0.8 },
-  standoutUnit: { fontSize: 16, letterSpacing: -0.3 },
-  standoutName: { fontSize: 13, marginTop: 1 },
-  postStats: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 },
-  postStatsText: { flex: 1, fontSize: 12, lineHeight: 16 },
-  // shared
-  deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
-  deltaText: { fontSize: 13 },
-  prChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
-  prChipText: { fontSize: 10, letterSpacing: 0.5 },
+  standoutValue: { fontSize: 22, letterSpacing: -0.5 },
+  standoutUnit: { fontSize: 14, letterSpacing: -0.2 },
+  standoutName: { fontSize: 12, marginTop: 2 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
