@@ -1,8 +1,9 @@
-// The Sessions feed — History's reflective centerpiece. Replaces the abstract
-// Strength Index with a re-livable record of each gym session: the latest workout
-// as a cinematic hero recap, past sessions as narrative moment cards. Every card
-// leads with meaning (a headline or the standout set), not a stat dump.
+// The Sessions feed — a workout HISTORY: a volume-by-session bar chart for the
+// section's at-a-glance rhythm, then the last few sessions as detailed log
+// entries (header + a per-exercise table), newest first. Reads like a training
+// log, not a social feed.
 import { useTheme } from '@/contexts/ThemeContext';
+import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
@@ -10,27 +11,59 @@ import { GeneratedWorkout, WeightUnit } from '@/types';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
 
-// Suppress the auto-generated default title ("Workout - 7/3/2026") so the eyebrow
-// reads as just the day; keep real titles like "Leg Day".
+// One green accent per screen: the newest entry's PR row. Rare and earned — older
+// entries mark their PRs quietly, so celebration never becomes wallpaper.
+const POS = '#34C759';
+
+// Suppress the auto-generated default title ("Workout - 7/3/2026") so the entry
+// header reads as just the day; keep real titles like "Leg Day".
 const cleanTitle = (t: string): string | null => {
   const s = (t || '').trim();
   return !s || /^workout\b/i.test(s) ? null : s;
 };
 
-// Drop the trailing "(Equipment)" — matches the shortening sessionRecap's headlines
-// use, so "does the headline already name this lift?" compares like with like.
+// Drop the trailing "(Equipment)" — matches the shortening the lineup/headlines use.
 const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
-// ── one session as a feed post — the SAME anatomy for every session, the way a
-// feed repeats one post shape. Header row: name + timestamp left, effort details
-// (volume / sets · time) right. Content below: the narrative + top set on one
-// compact line, then the lineup — what actually happened in the workout, every
-// exercise with its top set.
-// One green accent per screen: the newest post's PR gain. Rare and earned — every
-// older post states its PR quietly, so celebration never becomes wallpaper.
-const POS = '#34C759';
+// ── the section's glance: volume per session as BARS (one bar = one workout,
+// oldest → newest, wearing the session's split color; the newest bar is full
+// strength, older ones fade). Bars, deliberately not a line: sessions are discrete
+// efforts, and the This Week card below already owns the weekly-trend view.
+const CHART_SESSIONS = 10;
+const BAR_MAX_H = 34;
+const BAR_MIN_H = 6;
 
-function SessionPost({ recap, weightUnit, celebrate, onPress }: {
+function VolumeBars({ recaps }: { recaps: SessionRecap[] }) {
+  const { currentTheme } = useTheme();
+  const { colors } = currentTheme;
+  const bars = recaps.slice(0, CHART_SESSIONS).reverse(); // oldest → newest
+  if (bars.length < 3) return null;
+  const max = Math.max(...bars.map(r => r.volumeDisplay), 1);
+
+  return (
+    <RNView style={styles.chart}>
+      {bars.map((r, i) => {
+        const latest = i === bars.length - 1;
+        const h = BAR_MIN_H + (r.volumeDisplay / max) * (BAR_MAX_H - BAR_MIN_H);
+        const color = r.split ? PPL_COLORS[r.split] : colors.primary;
+        return (
+          <RNView
+            key={r.workout.id}
+            style={[
+              styles.chartBar,
+              { height: h, backgroundColor: color, opacity: latest ? 1 : 0.35 + (i / bars.length) * 0.4 },
+            ]}
+          />
+        );
+      })}
+    </RNView>
+  );
+}
+
+// ── one session as a detailed log entry: header (title, date · sets · time,
+// volume right), an optional narrative note, then the per-exercise table —
+// every exercise with its set count and top set, PRs marked on their row.
+function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
   celebrate: boolean;
@@ -38,79 +71,68 @@ function SessionPost({ recap, weightUnit, celebrate, onPress }: {
 }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const isPR = !!recap.pr;
-
-  // One compact lead: narrative (or standout lift) + the top set, one line.
-  const setText = recap.standout
-    ? recap.standout.weight > 0
-      ? `${recap.standout.weight} ${weightUnit} × ${recap.standout.reps}`
-      : `${recap.standout.reps} reps`
-    : null;
-  const lead = recap.headline ?? (recap.standout ? shortHeroName(recap.standout.name) : null);
-  const caption = isPR && recap.standout ? `+${recap.prGainDisplay} ${weightUnit} over your best` : null;
-
-  // What happened: every exercise's top set, workout order.
-  const lineup = recap.lineup
-    .map(l => `${l.name} ${l.weight > 0 ? `${l.weight}×${l.reps}` : `×${l.reps}`}`)
-    .join('  ·  ');
+  const prName = recap.pr ? shortHeroName(recap.pr.name) : null;
+  // The narrative note earns its line only when it says something the exercise
+  // table can't (comeback / biggest-yet); a plain "X PR" is told on the row itself.
+  const note = recap.headline && !/\bPR\b/.test(recap.headline) ? recap.headline : null;
 
   return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => onPress(recap.workout)}
-      style={styles.post}
-    >
-      {/* post header — identity left (bold name, quiet timestamp), effort right */}
-      <RNView style={styles.postHead}>
-        <RNView style={styles.postIdentity}>
-          <Text style={[styles.postTitle, { color: colors.text }]} numberOfLines={1}>
+    <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(recap.workout)} style={styles.entry}>
+      {/* entry header — identity left, session volume right */}
+      <RNView style={styles.entryHead}>
+        <RNView style={styles.entryIdentity}>
+          <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
             {cleanTitle(recap.title) ?? 'Workout'}
           </Text>
-          <Text style={[styles.postWhen, { color: colors.text }]} numberOfLines={1}>
-            {formatRelativeDate(recap.workout.createdAt)}
+          <Text style={[styles.entryMeta, { color: colors.text }]} numberOfLines={1}>
+            {formatRelativeDate(recap.workout.createdAt)} · {recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
-        <RNView style={styles.postDetails}>
-          <Text style={[styles.detailMain, { color: colors.text }]} numberOfLines={1}>
-            {formatCompact(recap.volumeDisplay)} {weightUnit}
-          </Text>
-          <Text style={[styles.detailSub, { color: colors.text }]} numberOfLines={1}>
-            {recap.sets} sets · {recap.durationMin}m
-          </Text>
-        </RNView>
+        <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
+          {formatCompact(recap.volumeDisplay)} {weightUnit}
+        </Text>
       </RNView>
 
-      {/* the story: narrative + top set on one modest line, PR gain as a quiet tail */}
-      {lead && (
-        <Text style={[styles.postLead, { color: colors.text }]} numberOfLines={1}>
-          {lead}
-          {setText ? (
-            <Text style={[styles.postLeadSet, { color: colors.text + '99' }]}>
-              {'  ·  '}{setText}
-            </Text>
-          ) : null}
-        </Text>
-      )}
-      {caption && (
-        <Text
-          style={[
-            styles.postCaption,
-            celebrate && isPR
-              ? { color: POS, opacity: 1, fontWeight: '600' }
-              : { color: colors.text },
-          ]}
-          numberOfLines={1}
-        >
-          {caption}
+      {note && (
+        <Text style={[styles.entryNote, { color: colors.text }]} numberOfLines={1}>
+          {note}
         </Text>
       )}
 
-      {/* what happened — the full lineup, each exercise's top set */}
-      {lineup.length > 0 && (
-        <Text style={[styles.postLineup, { color: colors.text }]} numberOfLines={2}>
-          {lineup}
-        </Text>
-      )}
+      {/* the log proper — one aligned row per exercise: name + set count left,
+          top set right; the day's PR wears its marker on the row it happened. */}
+      <RNView style={styles.exList}>
+        {recap.lineup.map((l, i) => {
+          const isPRRow = prName != null && l.name === prName;
+          return (
+            <RNView key={`${l.name}-${i}`} style={styles.exRow}>
+              <Text style={[styles.exName, { color: colors.text }]} numberOfLines={1}>
+                {l.name}
+                <Text style={[styles.exSets, { color: colors.text + '55' }]}>  {l.sets}×</Text>
+              </Text>
+              {isPRRow && (
+                <Text
+                  style={[
+                    styles.prTag,
+                    celebrate ? { color: POS } : { color: colors.text + '80' },
+                  ]}
+                >
+                  {celebrate && recap.prGainDisplay > 0 ? `PR +${recap.prGainDisplay}` : 'PR'}
+                </Text>
+              )}
+              <Text
+                style={[
+                  styles.exSet,
+                  { color: isPRRow && celebrate ? POS : colors.text + 'CC' },
+                ]}
+                numberOfLines={1}
+              >
+                {l.weight > 0 ? `${l.weight} × ${l.reps}` : `${l.reps} reps`}
+              </Text>
+            </RNView>
+          );
+        })}
+      </RNView>
     </TouchableOpacity>
   );
 }
@@ -129,28 +151,31 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
   const { colors } = currentTheme;
   if (recaps.length === 0) return null;
 
-  const posts = recaps.slice(0, Math.max(1, visibleCount));
+  const entries = recaps.slice(0, Math.max(1, visibleCount));
   const hasMore = totalCount > visibleCount;
 
   return (
     <RNView>
-      {/* SESSIONS — the same uppercase micro-label header grammar the Career card
-          (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system.
-          No count meta here: the "View all N sessions" action below already states it. */}
+      {/* SESSIONS — the same micro-label header grammar as every section on the tab. */}
       <RNView style={styles.feedHead}>
         <Text style={[styles.microLabel, { color: colors.text }]}>SESSIONS</Text>
+        <Text style={[styles.headMeta, { color: colors.text }]}>volume per session</Text>
       </RNView>
-      {posts.map((r, i) => (
+
+      <VolumeBars recaps={recaps} />
+
+      {entries.map((r, i) => (
         <RNView
           key={r.workout.id}
-          style={i < posts.length - 1 ? [styles.postDivider, { borderBottomColor: colors.border }] : undefined}
+          style={[styles.entryWrap, { borderTopColor: colors.border }]}
         >
-          <SessionPost recap={r} weightUnit={weightUnit} celebrate={i === 0} onPress={onPressSession} />
+          <SessionEntry recap={r} weightUnit={weightUnit} celebrate={i === 0} onPress={onPressSession} />
         </RNView>
       ))}
+
       {onToggleShowAll && (hasMore || visibleCount > 6) && (
         <TouchableOpacity style={styles.viewAll} onPress={onToggleShowAll} activeOpacity={0.7}>
-          <Text style={[styles.viewAllText, { color: currentTheme.colors.primary }]}>
+          <Text style={[styles.viewAllText, { color: colors.primary }]}>
             {hasMore ? `View all ${totalCount} sessions` : 'Show less'}
           </Text>
         </TouchableOpacity>
@@ -160,28 +185,29 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
 }
 
 const styles = StyleSheet.create({
-  // posts — one repeated anatomy, separated by hairlines like a feed. No box: the
-  // app's flat Card language IS the flat-post feed language.
-  post: { paddingVertical: 14 },
-  postDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
-  // Header: identity left, effort details right. A deliberately tight type ramp —
-  // primaries are semiBold 15/13, secondaries regular 12 at 60% — so the post reads
-  // as two organized tiers instead of a scatter of sizes and weights.
-  postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  postIdentity: { flex: 1, gap: 1 },
-  postTitle: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
-  postWhen: { fontSize: 12, opacity: 0.5 },
-  postDetails: { alignItems: 'flex-end', gap: 1 },
-  detailMain: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
-  detailSub: { fontSize: 11, opacity: 0.5 },
-  // The story: lead (narrative · top set) at body scale, quiet caption and lineup.
-  postLead: { fontSize: 14, fontWeight: '600', lineHeight: 19, letterSpacing: -0.2, marginTop: 10 },
-  postLeadSet: { fontSize: 13, fontWeight: '500', letterSpacing: -0.2 },
-  postCaption: { fontSize: 12, lineHeight: 16, marginTop: 2, opacity: 0.5 },
-  postLineup: { fontSize: 12, lineHeight: 17, marginTop: 6, opacity: 0.5 },
+  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
+  feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
+  microLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: 11, opacity: 0.5 },
+  // The bar chart: bottom-aligned bars, evenly spread.
+  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, height: BAR_MAX_H, marginBottom: 4 },
+  chartBar: { flex: 1, borderRadius: 2.5 },
+  // Log entries, separated by hairlines like every list on the tab.
+  entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
+  entry: { paddingTop: 12, paddingBottom: 4 },
+  entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  entryIdentity: { flex: 1, gap: 1 },
+  entryTitle: { fontSize: 15, fontWeight: '600', letterSpacing: -0.2 },
+  entryMeta: { fontSize: 12, opacity: 0.5 },
+  entryVolume: { fontSize: 13, fontWeight: '700', letterSpacing: -0.2 },
+  entryNote: { fontSize: 12, opacity: 0.5, marginTop: 6 },
+  // The per-exercise table.
+  exList: { marginTop: 8, gap: 7 },
+  exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exName: { flex: 1, fontSize: 13 },
+  exSets: { fontSize: 11 },
+  prTag: { fontSize: 11, fontWeight: '700', letterSpacing: 0.3 },
+  exSet: { fontSize: 13, fontWeight: '600', letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 13, fontWeight: '600' },
-  // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
-  microLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
 });

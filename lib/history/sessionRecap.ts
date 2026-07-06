@@ -34,6 +34,7 @@ export interface LineupItem {
   name: string;   // short display name (no equipment suffix)
   weight: number; // top set weight in the display unit; 0 for a bodyweight movement
   reps: number;   // reps of that top set
+  sets: number;   // completed sets of this exercise
 }
 
 export interface SessionRecap {
@@ -142,6 +143,7 @@ function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[
       name: shortName(name),
       weight: (top.weight || 0) > 0 ? Math.round(convertWeight(top.weight, top.unit || 'lbs', unit)) : 0,
       reps: top.reps,
+      sets: done.length,
     });
   }
   return out;

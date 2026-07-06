@@ -307,8 +307,9 @@ export default function HistoryScreen() {
                 sections floating on the page.
                 - LiftProgressWidget: a short RANKED board (top rows only, expander
                   for the rest); tier detail on each row's flip side.
-                - SessionsFeed: a uniform feed of plain session posts, newest
-                  first; the newest PR gain is the page's one celebrated accent. */}
+                - SessionsFeed: a workout history — volume-per-session bars, then
+                  the last 3 sessions as detailed log entries (per-exercise table);
+                  the newest PR row is the page's one celebrated accent. */}
             {workouts.length > 0 && (
               <Card variant="elevated" padding={18}>
                 <LiftProgressWidget lifts={liftProgress} />
@@ -318,10 +319,10 @@ export default function HistoryScreen() {
                 <SessionsFeed
                   recaps={sessionRecaps}
                   weightUnit={weightUnit}
-                  visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
+                  visibleCount={showAllWorkouts ? sessionRecaps.length : 3}
                   totalCount={sessionRecaps.length}
                   onPressSession={setSelectedWorkout}
-                  onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}
+                  onToggleShowAll={sessionRecaps.length > 3 ? () => setShowAllWorkouts(v => !v) : undefined}
                 />
               </Card>
             )}
