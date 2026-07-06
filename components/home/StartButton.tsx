@@ -1,22 +1,22 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { type as typeScale } from '@/lib/ui/typography';
-import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback } from 'react';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { useTheme } from "@/contexts/ThemeContext";
+import { type as typeScale } from "@/lib/ui/typography";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback } from "react";
+import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSequence,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface StartButtonProps {
   label: string;
   onPress: () => void;
-  variant?: 'solid' | 'outlined';
+  variant?: "solid" | "outlined";
   style?: ViewStyle;
 }
 
@@ -24,15 +24,24 @@ interface StartButtonProps {
 // the right, and a tactile press (the whole button springs to 0.96 and the arrow
 // nudges forward on press, flinging forward on release). Shared by the home
 // routine card and the Quick start button so they look and feel identical.
-export default function StartButton({ label, onPress, variant = 'solid', style }: StartButtonProps) {
+export default function StartButton({
+  label,
+  onPress,
+  variant = "solid",
+  style,
+}: StartButtonProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const outlined = variant === 'outlined';
+  const outlined = variant === "outlined";
 
   const pressScale = useSharedValue(1);
   const arrowShift = useSharedValue(0);
-  const buttonAnim = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
-  const arrowAnim = useAnimatedStyle(() => ({ transform: [{ translateX: arrowShift.value }] }));
+  const buttonAnim = useAnimatedStyle(() => ({
+    transform: [{ scale: pressScale.value }],
+  }));
+  const arrowAnim = useAnimatedStyle(() => ({
+    transform: [{ translateX: arrowShift.value }],
+  }));
 
   const onPressIn = useCallback(() => {
     pressScale.value = withSpring(0.96, { damping: 18, stiffness: 320 });
@@ -43,7 +52,10 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
     arrowShift.value = withSpring(0);
   }, [pressScale, arrowShift]);
   const handlePress = useCallback(() => {
-    arrowShift.value = withSequence(withTiming(14, { duration: 130 }), withSpring(0));
+    arrowShift.value = withSequence(
+      withTiming(14, { duration: 130 }),
+      withSpring(0),
+    );
     onPress();
   }, [arrowShift, onPress]);
 
@@ -53,7 +65,11 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
         styles.button,
         buttonAnim,
         outlined
-          ? { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.border }
+          ? {
+              backgroundColor: "transparent",
+              borderWidth: 1.5,
+              borderColor: colors.border,
+            }
           : { backgroundColor: colors.text },
         style,
       ]}
@@ -61,12 +77,21 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
       onPressIn={onPressIn}
       onPressOut={onPressOut}
     >
-      <Text style={[styles.label, { color: outlined ? colors.text : colors.background }]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          { color: outlined ? colors.text : colors.background },
+        ]}
+      >
+        {label}
+      </Text>
       <Animated.View
         style={[
           styles.arrow,
           arrowAnim,
-          { backgroundColor: outlined ? colors.text + '18' : colors.background },
+          {
+            backgroundColor: outlined ? colors.text + "18" : colors.background,
+          },
         ]}
       >
         <Ionicons name="arrow-forward" size={18} color={colors.text} />
@@ -77,20 +102,20 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
 
 const styles = StyleSheet.create({
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 10,
     paddingLeft: 24,
     paddingRight: 10,
     borderRadius: 18,
   },
-  label: { fontSize: typeScale.title, fontWeight: '600' },
+  label: { fontSize: typeScale.emphasis, fontWeight: "600" },
   arrow: {
     width: 43,
     height: 43,
     borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

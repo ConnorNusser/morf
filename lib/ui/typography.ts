@@ -6,21 +6,21 @@
 // Roles, smallest to largest:
 export const type = {
   /** The floor: micro-labels, fine print, and secondary row text. */
-  meta: 15,
+  meta: 14,
   /** Primary row and paragraph text. */
-  body: 18,
+  body: 16,
   /** Inline stat values and emphasized numbers. */
-  emphasis: 19,
+  emphasis: 18,
   /** Card titles and button labels. */
   title: 20,
   /** Section headings. */
-  heading: 24,
+  heading: 22,
   /** Big per-card stat number. */
-  statHero: 38,
+  statHero: 26,
   /** Tab screen title. */
-  screenTitle: 41,
+  screenTitle: 30,
   /** The one headline number on a screen (Career percentile). */
-  hero: 43,
+  hero: 30,
 } as const;
 
 /** Comfortable line height for a given role size (multi-line text). */

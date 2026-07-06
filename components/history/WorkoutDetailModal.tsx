@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: typeScale.title,
-    lineHeight: 28,
+    lineHeight: 24,
   },
   headerButton: {
     width: 40,
@@ -354,12 +354,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: typeScale.screenTitle,
-    lineHeight: 46,
+    lineHeight: 34,
     letterSpacing: -0.5,
   },
   date: {
     fontSize: typeScale.body,
-    lineHeight: 24,
+    lineHeight: 22,
     marginTop: 4,
   },
   prSection: {
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   summaryText: {
     fontSize: typeScale.body,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   exerciseList: {
     gap: 0,
@@ -412,7 +412,7 @@ const styles = StyleSheet.create({
   },
   exerciseName: {
     fontSize: typeScale.body,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   prBadge: {
     paddingHorizontal: 6,
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
   },
   exerciseBest: {
     fontSize: typeScale.meta,
-    lineHeight: 22,
+    lineHeight: 19,
   },
   setsGrid: {
     flexDirection: 'row',
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   setPillText: {
     fontSize: typeScale.body,
-    lineHeight: 24,
+    lineHeight: 22,
   },
   footer: {
     paddingHorizontal: 20,

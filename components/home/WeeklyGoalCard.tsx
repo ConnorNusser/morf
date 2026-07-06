@@ -116,7 +116,7 @@ export default function WeeklyGoalCard() {
     >
       <View style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text }]}>
-          This week
+          THIS WEEK
         </Text>
 
         <TouchableOpacity
@@ -248,9 +248,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
+  // The shared uppercase micro-label section grammar (History / Career).
   title: {
-    fontSize: typeScale.title,
-    fontWeight: '600',
+    fontSize: typeScale.meta,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   goalButton: {
     flexDirection: 'row',

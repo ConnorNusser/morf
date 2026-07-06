@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   hero: { gap: 6 },
   heroStatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroStat: { alignItems: 'center' },
-  percentile: { fontSize: typeScale.hero, fontWeight: '800', lineHeight: 48, letterSpacing: -0.5 },
+  percentile: { fontSize: typeScale.hero, fontWeight: '800', lineHeight: 33, letterSpacing: -0.5 },
   heroStatLabel: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 2 },
   heroBar: { marginTop: 10 },
   toNext: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 6 },
