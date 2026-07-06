@@ -175,10 +175,11 @@ const styles = StyleSheet.create({
   // The per-exercise table.
   exList: { marginTop: 10, gap: 8 },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  exName: { flex: 1, fontSize: typeScale.body },
+  // The lift names are the table's primary read; the set values sit quiet.
+  exName: { flex: 1, fontSize: typeScale.emphasis, fontWeight: '500' },
   exSets: { fontSize: typeScale.meta },
   prTag: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.3 },
-  exSet: { fontSize: typeScale.emphasis, fontWeight: '600', letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
+  exSet: { fontSize: typeScale.meta, letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
 });
