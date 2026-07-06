@@ -26,14 +26,10 @@ const cleanTitle = (t: string): string | null => {
 // Drop the trailing "(Equipment)" — matches the shortening the lineup/headlines use.
 const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
-const topSet = (l: { weight: number; reps: number }): string =>
-  l.weight > 0 ? `${l.weight}×${l.reps}` : `${l.reps} reps`;
-
-// ── one session as a log entry with a spine and a hero: a split-colored bar
-// down the left edge (the Career activity grid's Push/Pull/Legs language),
-// header (title, date · sets · time, volume right), then ONE focal line — the
-// session's standout set, big — with the rest of the lineup compressed into a
-// muted single breath underneath. Full detail stays a tap away in the modal.
+// ── one session as a detailed log entry: header (title; date · split · sets ·
+// time, the split word carrying its Push/Pull/Legs color; volume right), an
+// optional narrative note, then the full per-exercise table — every exercise
+// with its set count and top set, PRs marked on their row.
 function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
@@ -42,69 +38,78 @@ function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
 }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const heroName = recap.standout ? shortHeroName(recap.standout.name) : null;
-  const isPRHero = recap.pr != null && heroName === shortHeroName(recap.pr.name);
-  // The narrative note earns its line only when it says something the hero
-  // line can't (comeback / biggest-yet); a plain "X PR" is told on the hero.
+  const prName = recap.pr ? shortHeroName(recap.pr.name) : null;
+  // The narrative note earns its line only when it says something the exercise
+  // table can't (comeback / biggest-yet); a plain "X PR" is told on the row itself.
   const note = recap.headline && !/\bPR\b/.test(recap.headline) ? recap.headline : null;
-  const rest = recap.lineup.filter(l => l.name !== heroName);
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(recap.workout)} style={styles.entry}>
-      <RNView
-        style={[
-          styles.spine,
-          { backgroundColor: recap.split ? PPL_COLORS[recap.split] : colors.border },
-        ]}
-      />
-      <RNView style={styles.entryBody}>
-        {/* header — identity left, session volume right */}
-        <RNView style={styles.entryHead}>
-          <RNView style={styles.entryIdentity}>
-            <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
-              {cleanTitle(recap.title) ?? (recap.split ? `${PPL_LABELS[recap.split]} session` : 'Workout')}
-            </Text>
-            <Text style={[styles.entryMeta, { color: colors.text }]} numberOfLines={1}>
-              {formatRelativeDate(recap.workout.createdAt)} · {recap.sets} sets · {recap.durationMin}m
-            </Text>
-          </RNView>
-          <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
-            {formatCompact(recap.volumeDisplay)} {weightUnit}
+      {/* entry header — identity left, session volume right. The split word in
+          the meta line is the entry's one dab of Push/Pull/Legs color (the same
+          PPL_COLORS the Career activity grid and This Week bars use). */}
+      <RNView style={styles.entryHead}>
+        <RNView style={styles.entryIdentity}>
+          <Text style={[styles.entryTitle, { color: colors.text }]} numberOfLines={1}>
+            {cleanTitle(recap.title) ?? (recap.split ? `${PPL_LABELS[recap.split]} session` : 'Workout')}
+          </Text>
+          <Text style={[styles.entryMeta, { color: colors.text + '80' }]} numberOfLines={1}>
+            {formatRelativeDate(recap.workout.createdAt)}
+            {recap.split && (
+              <>
+                {' · '}
+                <Text style={{ color: PPL_COLORS[recap.split], fontWeight: '600' }}>
+                  {PPL_LABELS[recap.split]}
+                </Text>
+              </>
+            )}
+            {' · '}{recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
+        <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
+          {formatCompact(recap.volumeDisplay)} {weightUnit}
+        </Text>
+      </RNView>
 
-        {note && (
-          <Text style={[styles.entryNote, { color: colors.text }]} numberOfLines={1}>
-            {note}
-          </Text>
-        )}
+      {note && (
+        <Text style={[styles.entryNote, { color: colors.text }]} numberOfLines={1}>
+          {note}
+        </Text>
+      )}
 
-        {/* the hero — the session's standout working set, PR marker on the line */}
-        {recap.standout && (
-          <RNView style={styles.heroLine}>
-            <Text
-              style={[styles.heroSet, { color: isPRHero && celebrate ? POS : colors.text }]}
-              numberOfLines={1}
-            >
-              {topSet(recap.standout)}
-            </Text>
-            <Text style={[styles.heroName, { color: colors.text + 'AA' }]} numberOfLines={1}>
-              {heroName}
-            </Text>
-            {isPRHero && (
-              <Text style={[styles.prTag, { color: celebrate ? POS : colors.text + '80' }]}>
-                {celebrate && recap.prGainDisplay > 0 ? `PR +${recap.prGainDisplay}` : 'PR'}
+      {/* the log proper — one aligned row per exercise: name + set count left,
+          top set right; the day's PR wears its marker on the row it happened. */}
+      <RNView style={styles.exList}>
+        {recap.lineup.map((l, i) => {
+          const isPRRow = prName != null && l.name === prName;
+          return (
+            <RNView key={`${l.name}-${i}`} style={styles.exRow}>
+              <Text style={[styles.exName, { color: colors.text }]} numberOfLines={1}>
+                {l.name}
+                <Text style={[styles.exSets, { color: colors.text + '55' }]}>  {l.sets}×</Text>
               </Text>
-            )}
-          </RNView>
-        )}
-
-        {/* everything else, one muted breath */}
-        {rest.length > 0 && (
-          <Text style={[styles.restLine, { color: colors.text + '66' }]} numberOfLines={2}>
-            {rest.map(l => `${topSet(l)} ${l.name}`).join('   ·   ')}
-          </Text>
-        )}
+              {isPRRow && (
+                <Text
+                  style={[
+                    styles.prTag,
+                    celebrate ? { color: POS } : { color: colors.text + '80' },
+                  ]}
+                >
+                  {celebrate && recap.prGainDisplay > 0 ? `PR +${recap.prGainDisplay}` : 'PR'}
+                </Text>
+              )}
+              <Text
+                style={[
+                  styles.exSet,
+                  { color: isPRRow && celebrate ? POS : colors.text + 'CC' },
+                ]}
+                numberOfLines={1}
+              >
+                {l.weight > 0 ? `${l.weight} × ${l.reps}` : `${l.reps} reps`}
+              </Text>
+            </RNView>
+          );
+        })}
       </RNView>
     </TouchableOpacity>
   );
@@ -160,23 +165,20 @@ const styles = StyleSheet.create({
   microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   // Log entries, separated by hairlines like every list on the tab.
   entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
-  entry: { flexDirection: 'row', paddingTop: 14, paddingBottom: 12 },
-  // The split-colored spine: one committed stroke of the Push/Pull/Legs color
-  // down the entry's left edge, so the feed scans as a colored timeline.
-  spine: { width: 3, borderRadius: 2, marginRight: 12, alignSelf: 'stretch' },
-  entryBody: { flex: 1 },
+  entry: { paddingTop: 14, paddingBottom: 12 },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   entryIdentity: { flex: 1, gap: 2 },
   entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2 },
-  entryMeta: { fontSize: typeScale.meta, opacity: 0.5 },
+  entryMeta: { fontSize: typeScale.meta },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
-  // The hero line: one big set, its lift, its marker.
-  heroLine: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 12 },
-  heroSet: { fontSize: typeScale.heading, fontWeight: '700', letterSpacing: -0.4 },
-  heroName: { fontSize: typeScale.body, fontWeight: '500', flexShrink: 1 },
+  // The per-exercise table.
+  exList: { marginTop: 10, gap: 8 },
+  exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exName: { flex: 1, fontSize: typeScale.body },
+  exSets: { fontSize: typeScale.meta },
   prTag: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.3 },
-  restLine: { fontSize: typeScale.meta, lineHeight: 19, marginTop: 8 },
+  exSet: { fontSize: typeScale.emphasis, fontWeight: '600', letterSpacing: -0.2, minWidth: 64, textAlign: 'right' },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
 });
