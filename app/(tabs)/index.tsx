@@ -48,16 +48,26 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ViewMode = HomeViewMode;
 
+// The floating tab bar in (tabs)/_layout.tsx — content behind it isn't usable
+// viewport, so home "pages" size against the space above it.
+const TAB_BAR_HEIGHT = 85;
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   // Tighten the top: clear the status bar/notch via real insets instead of a
   // hardcoded 60px, which left a big gap above the Today card on most devices.
   const contentTopPadding = insets.top - 2;
+  // One home "page": the viewport between the notch and the floating tab bar,
+  // less the section gap so the next page just peeks in from the fold. The top
+  // group (header/routine/leaderboards) and the strength group each get one.
+  const pageMinHeight = windowHeight - contentTopPadding - TAB_BAR_HEIGHT - 24;
   const { currentTheme, setThemeLevel } = useTheme();
   const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -344,42 +354,47 @@ export default function HomeScreen() {
             { paddingTop: contentTopPadding, backgroundColor: "transparent" },
           ]}
         >
-          <DashboardHeader
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            stats={lifetimeStats ?? undefined}
-            onTierPress={() => setShowCareer(true)}
-          />
-
-          <WeeklyGoalCard />
-          <TodayCard />
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setShowLeaderboard(true)}
-            activeOpacity={0.7}
-          >
-            <Text
-              style={[
-                styles.actionButtonText,
-                {
-                  color: currentTheme.colors.text,
-                  fontWeight: '500',
-                },
-              ]}
-            >
-              View Leaderboards
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={currentTheme.colors.text + "60"}
+          {/* Page 1: header + routine + leaderboards, spread across one
+              viewport with the leaderboard row sitting at the fold. */}
+          <View style={[styles.topPage, { minHeight: pageMinHeight }]}>
+            <DashboardHeader
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              stats={lifetimeStats ?? undefined}
+              onTierPress={() => setShowCareer(true)}
             />
-          </TouchableOpacity>
 
-          {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
-              grouped as one block, split by a hairline divider. */}
-          <View>
+            <WeeklyGoalCard />
+            <TodayCard />
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => setShowLeaderboard(true)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.actionButtonText,
+                  {
+                    color: currentTheme.colors.text,
+                    fontWeight: '500',
+                  },
+                ]}
+              >
+                View Leaderboards
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={currentTheme.colors.text + "60"}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Page 2 — strength summary: relative (percentile/tier) + absolute
+              (Big-3 total) as one block, aired out across its own viewport
+              with a hairline divider between the halves. */}
+          <View style={[styles.strengthPage, { minHeight: pageMinHeight }]}>
             <OverallStatsCard stats={overallStats} />
             {powerliftingTotal && (
               <>
@@ -474,10 +489,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     opacity: 0.45,
   },
+  // Each "page" keeps the 24 section gap as a floor; leftover viewport is
+  // distributed between the blocks so the group fills its screen.
+  topPage: {
+    justifyContent: "space-between",
+    gap: 24,
+  },
+  strengthPage: {
+    justifyContent: "space-evenly",
+    gap: 24,
+  },
   strengthDivider: {
     height: 1,
-    marginTop: 6,
-    marginBottom: 12,
   },
   actionButton: {
     flexDirection: "row",
