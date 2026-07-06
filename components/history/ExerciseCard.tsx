@@ -3,6 +3,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -69,7 +70,7 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
         {trend.sparkline.length >= 2 && (
           <MiniSparkline data={trend.sparkline} />
         )}
-        <Ionicons name="chevron-forward" size={19} color={currentTheme.colors.text + '25'} />
+        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '25'} />
       </View>
     </TouchableOpacity>
   );
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 18,
+    fontSize: typeScale.body,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -102,17 +103,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 11,
+    fontSize: typeScale.micro,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 22,
+    fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: 16,
+    fontSize: typeScale.caption,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 13,
+    fontSize: typeScale.caption,
   },
   liftRight: {
     flexDirection: 'row',

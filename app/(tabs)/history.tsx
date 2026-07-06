@@ -26,6 +26,7 @@ import {
 } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
+import { type as typeScale } from '@/lib/ui/typography';
 import { userService } from '@/lib/services/userService';
 import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -417,12 +418,12 @@ export default function HistoryScreen() {
                 activeOpacity={0.7}
               >
                 <View style={styles.monthlyTrendsContent}>
-                  <Ionicons name="stats-chart" size={21} color={currentTheme.colors.primary} />
+                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
                   <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     View Monthly Trends
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={21} color={currentTheme.colors.text + '60'} />
+                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
               </TouchableOpacity>
             )}
 
@@ -441,7 +442,7 @@ export default function HistoryScreen() {
                   onPress={() => router.push('/workout')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="add" size={21} color="#fff" />
+                  <Ionicons name="add" size={18} color="#fff" />
                   <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
@@ -496,7 +497,7 @@ export default function HistoryScreen() {
 
                 {/* Search */}
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                  <Ionicons name="search" size={21} color={currentTheme.colors.text + '60'} />
+                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
                     style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
@@ -509,7 +510,7 @@ export default function HistoryScreen() {
                   />
                   {exerciseSearch.length > 0 && (
                     <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={8}>
-                      <Ionicons name="close-circle" size={21} color={currentTheme.colors.text + '60'} />
+                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -587,7 +588,7 @@ export default function HistoryScreen() {
                   onPress={() => router.push('/workout')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="add" size={21} color="#fff" />
+                  <Ionicons name="add" size={18} color="#fff" />
                   <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
@@ -636,7 +637,7 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
   },
   headerTitle: {
-    fontSize: 31,
+    fontSize: typeScale.screenTitle,
     marginBottom: 12,
   },
   // Tab styles
@@ -653,7 +654,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
   },
   tabText: {
-    fontSize: 18,
+    fontSize: typeScale.body,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -675,10 +676,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   summaryValue: {
-    fontSize: 24,
+    fontSize: typeScale.emphasis,
   },
   summaryLabel: {
-    fontSize: 13,
+    fontSize: typeScale.micro,
     marginTop: 3,
   },
   summaryDivider: {
@@ -698,7 +699,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 19,
+    fontSize: typeScale.body,
     padding: 0,
   },
   workoutSearchBar: {
@@ -717,10 +718,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sortChipText: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
   },
   resultCount: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     marginBottom: 4,
   },
   // Hairline sub-block divider inside the top instrument panel — the same
@@ -735,7 +736,7 @@ const styles = StyleSheet.create({
   },
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: 12,
+    fontSize: typeScale.micro,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
@@ -746,7 +747,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllText: {
-    fontSize: 17,
+    fontSize: typeScale.meta,
   },
   // Records strip
   recordsStrip: {
@@ -761,7 +762,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   recordName: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
   },
   recordValueRow: {
     flexDirection: 'row',
@@ -770,11 +771,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   recordValue: {
-    fontSize: 26,
+    fontSize: typeScale.title,
     letterSpacing: -0.5,
   },
   recordUnit: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
   },
   recordTierBadge: {
     alignSelf: 'flex-start',
@@ -784,7 +785,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   recordTierText: {
-    fontSize: 13,
+    fontSize: typeScale.caption,
     letterSpacing: 0.3,
   },
   // Monthly trends button
@@ -805,7 +806,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   monthlyTrendsText: {
-    fontSize: 18,
+    fontSize: typeScale.body,
   },
   // Lift card styles - minimal
   liftCard: {
@@ -821,7 +822,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   liftName: {
-    fontSize: 18,
+    fontSize: typeScale.body,
   },
   customBadge: {
     paddingHorizontal: 5,
@@ -829,17 +830,17 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   customBadgeText: {
-    fontSize: 11,
+    fontSize: typeScale.micro,
   },
   liftStats: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   liftValue: {
-    fontSize: 22,
+    fontSize: typeScale.emphasis,
   },
   liftLabel: {
-    fontSize: 16,
+    fontSize: typeScale.caption,
   },
   deltaContainer: {
     marginLeft: 10,
@@ -848,7 +849,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 13,
+    fontSize: typeScale.caption,
   },
   liftRight: {
     flexDirection: 'row',
@@ -862,11 +863,11 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: 22,
+    fontSize: typeScale.heading,
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 17,
+    fontSize: typeScale.body,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -881,6 +882,6 @@ const styles = StyleSheet.create({
   },
   emptyCtaText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: typeScale.title,
   },
 });

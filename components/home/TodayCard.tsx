@@ -3,6 +3,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
+import { type as typeScale } from "@/lib/ui/typography";
 import { getUpNextCandidates, getUpNextRoutine } from "@/lib/workout/activeRoutine";
 import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
@@ -252,7 +253,7 @@ export default function TodayCard() {
               style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
               activeOpacity={0.5}
             >
-              <Ionicons name="chevron-back" size={21} color={currentTheme.colors.text} />
+              <Ionicons name="chevron-back" size={18} color={currentTheme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => flip(1)}
@@ -260,7 +261,7 @@ export default function TodayCard() {
               style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
               activeOpacity={0.5}
             >
-              <Ionicons name="chevron-forward" size={21} color={currentTheme.colors.text} />
+              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text} />
             </TouchableOpacity>
           </View>
         )}
@@ -350,13 +351,13 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   eyebrow: {
-    fontSize: 14,
+    fontSize: typeScale.micro,
     letterSpacing: 1.2,
     opacity: 0.6,
     fontWeight: "600",
   },
   routineName: {
-    fontSize: 24,
+    fontSize: typeScale.heading,
     fontWeight: "700",
   },
   headerRow: {
@@ -393,13 +394,13 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   emptyTitle: {
-    fontSize: 24,
+    fontSize: typeScale.heading,
     marginTop: 6,
     marginBottom: 4,
     fontWeight: "700",
   },
   subtle: {
-    fontSize: 17,
+    fontSize: typeScale.meta,
     opacity: 0.6,
   },
   exerciseList: {
@@ -412,12 +413,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   exerciseName: {
-    fontSize: 18,
+    fontSize: typeScale.body,
     flex: 1,
     marginRight: 12,
   },
   exerciseDetail: {
-    fontSize: 17,
+    fontSize: typeScale.meta,
     opacity: 0.55,
   },
   secondaryButton: {
@@ -429,11 +430,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   secondaryButtonText: {
-    fontSize: 19,
+    fontSize: typeScale.title,
     fontWeight: "600",
   },
   dismissText: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
     opacity: 0.4,
     textAlign: "center",
     marginTop: 12,

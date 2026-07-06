@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
@@ -68,7 +69,7 @@ export default function StartButton({ label, onPress, variant = 'solid', style }
           { backgroundColor: outlined ? colors.text + '18' : colors.background },
         ]}
       >
-        <Ionicons name="arrow-forward" size={21} color={colors.text} />
+        <Ionicons name="arrow-forward" size={18} color={colors.text} />
       </Animated.View>
     </AnimatedPressable>
   );
@@ -84,7 +85,7 @@ const styles = StyleSheet.create({
     paddingRight: 10,
     borderRadius: 18,
   },
-  label: { fontSize: 19, fontWeight: '600' },
+  label: { fontSize: typeScale.title, fontWeight: '600' },
   arrow: {
     width: 43,
     height: 43,

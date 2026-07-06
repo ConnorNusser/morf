@@ -31,6 +31,7 @@ import {
   storageService,
 } from "@/lib/storage/storage";
 import { gap, layout } from "@/lib/ui/styles";
+import { type as typeScale } from "@/lib/ui/typography";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
 import {
@@ -351,7 +352,7 @@ export default function HomeScreen() {
             </Text>
             <Ionicons
               name="chevron-forward"
-              size={21}
+              size={18}
               color={currentTheme.colors.text + "60"}
             />
           </TouchableOpacity>
@@ -444,7 +445,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: typeScale.heading,
     fontWeight: "600",
   },
   strengthDivider: {
@@ -460,6 +461,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   actionButtonText: {
-    fontSize: 18,
+    fontSize: typeScale.body,
   },
 });

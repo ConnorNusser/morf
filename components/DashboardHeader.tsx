@@ -1,5 +1,6 @@
 import TierRing from '@/components/gamification/TierRing';
 import { useTheme } from '@/contexts/ThemeContext';
+import { type as typeScale } from '@/lib/ui/typography';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -94,7 +95,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                   style={[styles.dropdownItem, viewMode === 'home' && { backgroundColor: currentTheme.colors.primary + '15' }]}
                   onPress={() => handleViewSelect('home')}
                 >
-                  <Ionicons name="home" size={21} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
                     <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Morf
@@ -108,7 +109,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                   style={[styles.dropdownItem, viewMode === 'feed' && { backgroundColor: currentTheme.colors.primary + '15' }]}
                   onPress={() => handleViewSelect('feed')}
                 >
-                  <Ionicons name="people" size={21} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
+                  <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
                     <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Feed
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   appName: {
-    fontSize: 35,
+    fontSize: typeScale.screenTitle,
     fontWeight: '700',
     letterSpacing: -1,
   },
@@ -212,10 +213,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dropdownText: {
-    fontSize: 19,
+    fontSize: typeScale.body,
   },
   dropdownSubtext: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
     marginTop: 2,
   },
 }); 

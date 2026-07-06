@@ -2,6 +2,7 @@ import WeeklyOverviewModal from '@/components/WeeklyOverviewModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { storageService } from '@/lib/storage/storage';
+import { type as typeScale } from '@/lib/ui/typography';
 import { formatVolume } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import {
@@ -124,11 +125,11 @@ export default function WeeklyGoalCard() {
           hitSlop={10}
           onPress={() => setPicking(true)}
         >
-          {metGoal && <Ionicons name="checkmark" size={17} color={accent} />}
+          {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}
           <Text style={[styles.count, { color: metGoal ? accent : currentTheme.colors.text + '99' }]}>
             {daysTrained}/{goal}
           </Text>
-          <Ionicons name="chevron-forward" size={19} color={currentTheme.colors.text + '70'} />
+          <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '70'} />
         </TouchableOpacity>
       </View>
 
@@ -190,7 +191,7 @@ export default function WeeklyGoalCard() {
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
-                <Ionicons name="close" size={26} color={currentTheme.colors.text} />
+                <Ionicons name="close" size={22} color={currentTheme.colors.text} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.sheetSubtitle, { color: currentTheme.colors.text }]}>
@@ -248,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontSize: 18,
+    fontSize: typeScale.title,
     fontWeight: '600',
   },
   goalButton: {
@@ -257,7 +258,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   count: {
-    fontSize: 18,
+    fontSize: typeScale.emphasis,
   },
   dotRow: {
     flexDirection: 'row',
@@ -274,7 +275,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   dayLabel: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
     opacity: 0.6,
   },
   loadRow: {
@@ -286,7 +287,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
   },
   trendChip: {
     flexDirection: 'row',
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   trendText: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
     fontWeight: '600',
   },
   backdrop: {
@@ -314,10 +315,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sheetTitle: {
-    fontSize: 24,
+    fontSize: typeScale.heading,
   },
   sheetSubtitle: {
-    fontSize: 17,
+    fontSize: typeScale.meta,
     opacity: 0.6,
     marginTop: 4,
     marginBottom: 18,
@@ -335,6 +336,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   optionText: {
-    fontSize: 19,
+    fontSize: typeScale.emphasis,
   },
 });

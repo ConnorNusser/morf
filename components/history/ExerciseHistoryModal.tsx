@@ -2,6 +2,7 @@ import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { layout } from '@/lib/ui/styles';
+import { type as typeScale } from '@/lib/ui/typography';
 import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -249,8 +250,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    fontSize: 20,
-    lineHeight: 26,
+    fontSize: typeScale.title,
+    lineHeight: 23,
     textAlign: 'center',
     marginHorizontal: 8,
   },
@@ -270,10 +271,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 26,
+    fontSize: typeScale.emphasis,
   },
   statLabel: {
-    fontSize: 13,
+    fontSize: typeScale.micro,
     marginTop: 4,
   },
   trendRow: {
@@ -284,15 +285,15 @@ const styles = StyleSheet.create({
     marginTop: -8,
   },
   trendText: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
   },
   sectionHeader: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
     letterSpacing: 1,
     marginBottom: 12,
   },
   noHistoryText: {
-    fontSize: 17,
+    fontSize: typeScale.body,
     textAlign: 'center',
     paddingVertical: 20,
   },
@@ -313,7 +314,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sessionDate: {
-    fontSize: 17,
+    fontSize: typeScale.body,
   },
   prChip: {
     flexDirection: 'row',
@@ -324,14 +325,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: 11,
+    fontSize: typeScale.micro,
     letterSpacing: 0.5,
   },
   sessionOneRM: {
-    fontSize: 20,
+    fontSize: typeScale.emphasis,
   },
   sessionOneRMLabel: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
   },
   barTrack: {
     height: 4,
@@ -355,10 +356,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   setPillText: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
   },
   sessionVolume: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
     marginTop: 10,
   },
 });

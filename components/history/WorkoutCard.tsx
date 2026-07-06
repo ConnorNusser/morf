@@ -1,6 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
+import { type as typeScale } from '@/lib/ui/typography';
 import { dayKeyOf } from '@/components/history/liftSeries';
 import { SessionPR } from '@/components/history/prSessions';
 import { calculateWorkoutStats, formatWorkoutStatsLine } from '@/lib/utils/utils';
@@ -97,13 +98,13 @@ function WorkoutCard({
         </Text>
         {isMajorPR && (
           <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-            <Ionicons name="trophy" size={12} color="#fff" />
+            <Ionicons name="trophy" size={10} color="#fff" />
             <Text style={[styles.prChipText, { color: '#fff', fontWeight: '600' }]}>
               PR
             </Text>
           </RNView>
         )}
-        <Ionicons name="chevron-forward" size={19} color={currentTheme.colors.text + '35'} />
+        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '35'} />
       </View>
 
       {/* Summary line: when + total sets + session volume */}
@@ -148,23 +149,23 @@ const styles = StyleSheet.create({
   },
   workoutTitle: {
     flex: 1,
-    fontSize: 19,
-    lineHeight: 26,
+    fontSize: typeScale.title,
+    lineHeight: 23,
     letterSpacing: -0.2,
   },
   workoutMeta: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: typeScale.meta,
+    lineHeight: 18,
     marginTop: 3,
   },
   topLiftLine: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: typeScale.meta,
+    lineHeight: 18,
     marginTop: 4,
   },
   prLine: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: typeScale.meta,
+    lineHeight: 18,
     marginTop: 4,
   },
   prChip: {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   prChipText: {
-    fontSize: 13,
+    fontSize: typeScale.micro,
     letterSpacing: 0.5,
   },
 });

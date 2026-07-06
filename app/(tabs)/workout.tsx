@@ -14,6 +14,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useAlert } from '@/components/CustomAlert';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
+import { type as typeScale } from '@/lib/ui/typography';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import {
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   collapsedPlaceholder: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   fabCircle: {
     width: 48,
@@ -777,11 +778,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   emptyTitle: {
-    fontSize: 17,
+    fontSize: typeScale.title,
     marginTop: 4,
   },
   emptyText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     textAlign: 'center',
     lineHeight: 19,
     marginBottom: 6,
@@ -804,7 +805,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   cancelButtonText: {
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   unitSegment: {
     flexDirection: 'row',
@@ -818,7 +819,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unitSegmentText: {
-    fontSize: 12,
+    fontSize: typeScale.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
@@ -836,12 +837,12 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   restLabel: {
-    fontSize: 10,
+    fontSize: typeScale.micro,
     letterSpacing: 1,
     marginLeft: 2,
   },
   timerText: {
-    fontSize: 16,
+    fontSize: typeScale.emphasis,
   },
   expandedTimer: {
     marginHorizontal: 20,
@@ -861,10 +862,10 @@ const styles = StyleSheet.create({
     minWidth: 100,
   },
   expandedTimerTime: {
-    fontSize: 32,
+    fontSize: typeScale.statHero,
   },
   expandedTimerLabel: {
-    fontSize: 12,
+    fontSize: typeScale.caption,
     marginTop: 2,
   },
   adjustButton: {
@@ -889,7 +890,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   resetWorkoutButtonText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   doneRestButton: {
     flex: 1,
@@ -899,7 +900,7 @@ const styles = StyleSheet.create({
   },
   doneRestButtonText: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: typeScale.body,
   },
   headerTitle: {
     fontSize: 18,

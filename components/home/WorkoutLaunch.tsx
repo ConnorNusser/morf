@@ -5,6 +5,7 @@ import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { formatRelativeTime } from '@/lib/ui/formatters';
+import { type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -207,7 +208,7 @@ const styles = StyleSheet.create({
 
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   tierChip: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
     fontWeight: '800',
     letterSpacing: 0.5,
     borderWidth: 1,
@@ -216,17 +217,17 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     overflow: 'hidden',
   },
-  routine: { fontSize: 20, fontWeight: '700', flex: 1 },
-  meta: { fontSize: 16, fontWeight: '500', marginTop: 6 },
+  routine: { fontSize: typeScale.title, fontWeight: '700', flex: 1 },
+  meta: { fontSize: typeScale.meta, fontWeight: '500', marginTop: 6 },
 
   brief: { marginTop: 34 },
   badge: { marginBottom: 18 },
-  tag: { fontSize: 14, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
-  cue: { fontSize: 28, fontWeight: '700', lineHeight: 36, letterSpacing: -0.3 },
-  achDesc: { fontSize: 19, fontWeight: '500', lineHeight: 26, marginTop: 12 },
-  achDate: { fontSize: 16, fontWeight: '600', marginTop: 8 },
+  tag: { fontSize: typeScale.micro, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
+  cue: { fontSize: 26, fontWeight: '700', lineHeight: 35, letterSpacing: -0.3 },
+  achDesc: { fontSize: typeScale.body, fontWeight: '500', lineHeight: 20, marginTop: 12 },
+  achDate: { fontSize: typeScale.caption, fontWeight: '600', marginTop: 8 },
 
-  hint: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
+  hint: { fontSize: typeScale.caption, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
   timeTrack: { height: 3, width: '100%' },
   timeFill: { height: '100%' },
 });

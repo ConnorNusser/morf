@@ -5,6 +5,7 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { type as typeScale } from '@/lib/ui/typography';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { ParsedSet, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
@@ -171,8 +172,8 @@ const styles = StyleSheet.create({
     minHeight: 56,
   },
   body: { flex: 1, gap: 4, justifyContent: 'center' },
-  line: { fontSize: 15 },
-  reading: { fontSize: 12 },
+  line: { fontSize: typeScale.body },
+  reading: { fontSize: typeScale.caption },
   barWide: { height: 11, borderRadius: 6, width: '70%' },
   barNarrow: { height: 9, borderRadius: 5, width: '45%' },
   addBtn: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },

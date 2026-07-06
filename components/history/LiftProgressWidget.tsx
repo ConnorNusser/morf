@@ -23,6 +23,7 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { LiftProgress, LiftTier } from '@/lib/history/liftProgress';
+import { type as typeScale } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
@@ -133,7 +134,7 @@ function GradedBack({ lift, tier }: { lift: LiftProgress; tier: LiftTier }) {
           </Text>
           {delta !== 0 && (
             <>
-              <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={12} color={deltaColor} />
+              <Ionicons name={delta > 0 ? 'arrow-up' : 'arrow-down'} size={10} color={deltaColor} />
               <Text style={[styles.backTrendText, { color: deltaColor, fontWeight: '600' }]}>
                 {Math.abs(delta)}
               </Text>
@@ -246,8 +247,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingBottom: 6,
   },
-  headLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  headMeta: { fontSize: 13, opacity: 0.5 },
+  headLabel: { fontSize: typeScale.micro, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  headMeta: { fontSize: typeScale.caption, opacity: 0.5 },
   // Plain (ungraded) rows match the FlipCard rows' fixed height for an even rhythm.
   row: { height: ROW_H },
   face: {
@@ -258,11 +259,11 @@ const styles = StyleSheet.create({
   },
   // Two-line left column, flush left: name over badge, one shared edge down the board.
   nameCol: { flex: 1, gap: 4, alignItems: 'flex-start' },
-  name: { fontSize: 17, fontWeight: '600' },
+  name: { fontSize: typeScale.emphasis, fontWeight: '600' },
   gradeRow: { flexDirection: 'row', alignItems: 'center' },
   // Same expander grammar as the sessions feed's "View all N sessions".
   viewAll: { paddingVertical: 12, alignItems: 'center' },
-  viewAllText: { fontSize: 16, fontWeight: '600' },
+  viewAllText: { fontSize: typeScale.meta, fontWeight: '600' },
   points: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
   // Each point is a small themed chip (matches the pill language used by delta/sort/
   // record chips elsewhere in History) rather than bare floating text.
@@ -273,16 +274,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 6,
   },
-  set: { fontSize: 15, letterSpacing: -0.2 },
-  month: { fontSize: 11, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
+  set: { fontSize: typeScale.body, letterSpacing: -0.2 },
+  month: { fontSize: typeScale.micro, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3, fontWeight: '500' },
   // Back face — the Career NEXT-block grammar: micro-label, "X to <tier>", filling bar.
   backFace: { height: '100%', justifyContent: 'center', gap: 5 },
   backHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  backLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  backLabel: { fontSize: typeScale.micro, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   backTrend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  backTrendText: { fontSize: 13, fontWeight: '500' },
+  backTrendText: { fontSize: typeScale.caption, fontWeight: '500' },
   backMainRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 },
-  backMain: { fontSize: 17, fontWeight: '600', letterSpacing: -0.2 },
-  backPct: { fontSize: 13, fontWeight: '500' },
+  backMain: { fontSize: typeScale.body, fontWeight: '600', letterSpacing: -0.2 },
+  backPct: { fontSize: typeScale.caption, fontWeight: '500' },
   backBar: { marginTop: 2 },
 });

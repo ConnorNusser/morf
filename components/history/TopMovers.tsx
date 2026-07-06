@@ -2,6 +2,7 @@ import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { computeTopMovers } from '@/lib/history/topMovers';
+import { type as typeScale } from '@/lib/ui/typography';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
@@ -81,7 +82,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
                   {m.isBodyweight ? ' reps' : ' est. 1RM'}
                 </Text>
                 <View style={[styles.deltaPill, { backgroundColor: color + '15' }]}>
-                  <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={13} color={color} />
+                  <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
                   <Text style={[styles.deltaText, { color, fontWeight: '600' }]}>
                     {Math.abs(m.delta)}
                   </Text>
@@ -90,7 +91,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
             </View>
             <View style={[styles.rowRight, { backgroundColor: 'transparent' }]}>
               <MiniSparkline data={m.sparkline} />
-              <Ionicons name="chevron-forward" size={19} color={colors.text + '25'} />
+              <Ionicons name="chevron-forward" size={16} color={colors.text + '25'} />
             </View>
           </TouchableOpacity>
         );
@@ -112,13 +113,13 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   heading: {
-    fontSize: 12,
+    fontSize: typeScale.micro,
     fontWeight: '700',
     letterSpacing: 1,
     opacity: 0.45,
   },
   seeAll: {
-    fontSize: 16,
+    fontSize: typeScale.meta,
   },
   row: {
     flexDirection: 'row',
@@ -134,7 +135,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   name: {
-    fontSize: 18,
+    fontSize: typeScale.body,
     marginBottom: 4,
   },
   statsRow: {
@@ -142,10 +143,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   value: {
-    fontSize: 20,
+    fontSize: typeScale.emphasis,
   },
   unit: {
-    fontSize: 14,
+    fontSize: typeScale.caption,
   },
   deltaPill: {
     flexDirection: 'row',
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   deltaText: {
-    fontSize: 13,
+    fontSize: typeScale.caption,
   },
   rowRight: {
     flexDirection: 'row',
