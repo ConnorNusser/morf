@@ -61,7 +61,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
         style={styles.quickStart}
       />
 
-      <Text style={[styles.title, { color: colors.text + '99', fontFamily: currentTheme.fonts.semiBold }]}>
+      <Text style={[styles.title, { color: colors.text + '99', fontWeight: '600' }]}>
         Recent workouts
       </Text>
       {/* Flat list, rows split by faint hairlines (no card fill/border). */}

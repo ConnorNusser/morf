@@ -117,7 +117,7 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
           <TouchableOpacity onPress={onClose} hitSlop={8}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]} numberOfLines={1}>
             {exercise.name}
           </Text>
           <View style={{ width: 28 }} />
@@ -127,26 +127,26 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
           {exercise.estimated1RM > 0 && (
             <View style={[styles.statsBanner, { backgroundColor: currentTheme.colors.surface }]}>
               <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                   {exercise.estimated1RM}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                   Est. 1RM
                 </Text>
               </View>
               <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                   {exercise.maxWeight}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                   Best Weight
                 </Text>
               </View>
               <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                   {sessions.length}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                   Session{sessions.length !== 1 ? 's' : ''}
                 </Text>
               </View>
@@ -160,7 +160,7 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                 size={16}
                 color={trend.change > 0 ? '#00C85C' : trend.change < 0 ? '#FF6B6B' : currentTheme.colors.text + '60'}
               />
-              <Text style={[styles.trendText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.trendText, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}>
                 {trend.change === 0
                   ? 'No 1RM change'
                   : `${trend.change > 0 ? '+' : '−'}${Math.abs(trend.change)} ${weightUnit} 1RM`}
@@ -169,12 +169,12 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
             </View>
           )}
 
-          <Text style={[styles.sectionHeader, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.sectionHeader, { color: currentTheme.colors.text + '50', fontWeight: '600' }]}>
             SESSION HISTORY
           </Text>
 
           {sessions.length === 0 ? (
-            <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
               No history recorded yet
             </Text>
           ) : (
@@ -187,21 +187,21 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                 >
                   <View style={[styles.sessionTop, { backgroundColor: 'transparent' }]}>
                     <View style={[styles.sessionDateRow, { backgroundColor: 'transparent' }]}>
-                      <Text style={[styles.sessionDate, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                      <Text style={[styles.sessionDate, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                         {session.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                       </Text>
                       {session.isPR && (
                         <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary + '18' }]}>
                           <Ionicons name="trophy" size={10} color={currentTheme.colors.primary} />
-                          <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                          <Text style={[styles.prChipText, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                             BEST
                           </Text>
                         </View>
                       )}
                     </View>
-                    <Text style={[styles.sessionOneRM, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.sessionOneRM, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       {session.bestOneRMDisplay}
-                      <Text style={[styles.sessionOneRMLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.sessionOneRMLabel, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
                         {' '}1RM
                       </Text>
                     </Text>
@@ -215,14 +215,14 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                   <View style={[styles.sessionSets, { backgroundColor: 'transparent' }]}>
                     {session.sets.map((set, i) => (
                       <View key={i} style={[styles.setPill, { backgroundColor: currentTheme.colors.background }]}>
-                        <Text style={[styles.setPillText, { color: currentTheme.colors.text + 'CC', fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.setPillText, { color: currentTheme.colors.text + 'CC', fontWeight: '500' }]}>
                           {set.displayWeight > 0 ? `${set.displayWeight}×${set.reps}` : `${set.reps} reps`}
                         </Text>
                       </View>
                     ))}
                   </View>
 
-                  <Text style={[styles.sessionVolume, { color: currentTheme.colors.text + '45', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.sessionVolume, { color: currentTheme.colors.text + '45', fontWeight: '400' }]}>
                     {session.sets.length} set{session.sets.length !== 1 ? 's' : ''} · {Math.round(session.volume).toLocaleString()} {weightUnit} volume
                   </Text>
                 </View>

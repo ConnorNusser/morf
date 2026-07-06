@@ -186,7 +186,7 @@ export default function WeeklyGoalCard() {
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setPicking(false)}>
           <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.sheetTitle, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
@@ -217,7 +217,7 @@ export default function WeeklyGoalCard() {
                         styles.optionText,
                         {
                           color: selected ? currentTheme.colors.surface : currentTheme.colors.text,
-                          fontFamily: currentTheme.fonts.semiBold,
+                          fontWeight: '600',
                         },
                       ]}
                     >

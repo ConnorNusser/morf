@@ -117,7 +117,7 @@ function morphPath(from: number[], to: number[], prog: number, x0: number, dx: n
 
 export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, gender, age }: HistoryHeroProps) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors } = currentTheme;
   const router = useRouter();
 
   const [timeframe, setTimeframe] = useState<IndexTimeframe>('3M');
@@ -260,7 +260,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               y={mk.labelY}
               fontSize={10.5}
               fill={colors.text + '80'}
-              fontFamily={fonts.semiBold}
+              fontWeight="600"
             >
               {mk.startValue}
             </SvgText>
@@ -289,7 +289,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             onPress={() => setShowStrengthModal(true)}
           >
             <RNView style={styles.kickerRow}>
-              <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>Strength Index</Text>
+              <Text style={[styles.kicker, { color: colors.text + '99', fontWeight: '600' }]}>Strength Index</Text>
               <Ionicons name="chevron-forward" size={13} color={colors.text + '55'} />
             </RNView>
           </TouchableOpacity>
@@ -302,21 +302,21 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               ("Advanced · 45th percentile among lifters") drops to a demoted context
               line below, present but no longer the headline. */}
           <RNView style={styles.scoreRow}>
-            <Text style={[styles.scoreValue, { color: colors.text, fontFamily: fonts.bold }]}>
+            <Text style={[styles.scoreValue, { color: colors.text, fontWeight: '700' }]}>
               {index.current}
-              <Text style={[styles.scoreUnit, { color: colors.text + '55', fontFamily: fonts.medium }]}> /100</Text>
+              <Text style={[styles.scoreUnit, { color: colors.text + '55', fontWeight: '500' }]}> /100</Text>
             </Text>
           </RNView>
 
           <RNView style={styles.deltaRow}>
             <Ionicons name={index.delta >= 0 ? 'arrow-up' : 'arrow-down'} size={16} color={deltaColor} />
-            <Text style={[styles.deltaBig, { color: deltaColor, fontFamily: fonts.bold }]}>
+            <Text style={[styles.deltaBig, { color: deltaColor, fontWeight: '700' }]}>
               {index.delta >= 0 ? '+' : '-'}
               {Math.abs(index.delta)} this {TF_DELTA_LABEL[timeframe]}
             </Text>
           </RNView>
 
-          <Text style={[styles.contextLine, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+          <Text style={[styles.contextLine, { color: colors.text + '70', fontWeight: '500' }]}>
             {strengthLevel(index.current)} · {index.current}
             {ordinal(index.current)} percentile among lifters
           </Text>
@@ -325,10 +325,10 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
 
           {/* timeline x-axis */}
           <RNView style={[styles.axisRow, { width: chartW }]}>
-            <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+            <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
               {fmtMonth(index.startDate)}
             </Text>
-            <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+            <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
               {fmtMonth(index.endDate)}
             </Text>
           </RNView>
@@ -347,7 +347,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
                   <Text
                     style={[
                       styles.tfBtnText,
-                      { color: on ? '#fff' : colors.text + '80', fontFamily: on ? fonts.semiBold : fonts.medium },
+                      { color: on ? '#fff' : colors.text + '80', fontWeight: on ? '600' : '500' },
                     ]}
                   >
                     {tf.label}
@@ -358,7 +358,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
           </RNView>
 
           <Animated.View key={`cap-${timeframe}`} entering={FadeIn.delay(120).duration(360)}>
-            <Text style={[styles.caption, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+            <Text style={[styles.caption, { color: colors.text + '70', fontWeight: '500' }]}>
               Across {index.liftCount} lift{index.liftCount !== 1 ? 's' : ''} vs bodyweight standards for your weight
             </Text>
           </Animated.View>
@@ -368,7 +368,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
         <GestureDetector gesture={swipe}>
           <RNView>
             <RNView style={styles.headerTop}>
-              <Text style={[styles.kicker, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>PR progression</Text>
+              <Text style={[styles.kicker, { color: colors.text + '99', fontWeight: '600' }]}>PR progression</Text>
               {lifts.length > 1 && (
                 <RNView style={styles.dots}>
                   {lifts.map((_, i) => (
@@ -381,18 +381,18 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             <RNView style={styles.titleRow}>
               <Animated.View key={activeLift.name} entering={FadeInDown.duration(320)} exiting={FadeOutUp.duration(200)} style={styles.titleSwap}>
                 <RNView style={styles.titleLeft}>
-                  <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontFamily: fonts.bold }]}>
+                  <Text numberOfLines={1} style={[styles.liftName, { color: colors.text, fontWeight: '700' }]}>
                     {activeLift.name}
                   </Text>
                   {activeLift.gainLbs > 0 ? (
-                    <Text style={[styles.gain, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
+                    <Text style={[styles.gain, { color: colors.text + '99', fontWeight: '600' }]}>
                       +{activeLift.gainLbs} {weightUnit} all-time
                     </Text>
                   ) : null}
                 </RNView>
-                <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
+                <Text style={[styles.value, { color: colors.text, fontWeight: '700' }]}>
                   {activeLift.current}
-                  <Text style={[styles.valueUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}> {weightUnit}</Text>
+                  <Text style={[styles.valueUnit, { color: colors.text + '70', fontWeight: '500' }]}> {weightUnit}</Text>
                 </Text>
               </Animated.View>
             </RNView>
@@ -400,16 +400,16 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             {renderChart(null)}
 
             <RNView style={[styles.axisRow, { width: chartW }]}>
-              <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
                 {fmtMonth(activeLift.startDate)}
               </Text>
-              <Text style={[styles.axisLabel, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              <Text style={[styles.axisLabel, { color: colors.text + '70', fontWeight: '500' }]}>
                 {fmtMonth(activeLift.endDate)}
               </Text>
             </RNView>
 
             <Animated.View key={`cap-${activeLift.name}`} entering={FadeIn.delay(150).duration(360)}>
-              <Text style={[styles.caption, { color: colors.text + '70', fontFamily: fonts.medium }]}>
+              <Text style={[styles.caption, { color: colors.text + '70', fontWeight: '500' }]}>
                 {activeLift.sessions} sessions logged · estimated 1RM{lifts.length > 1 ? ' · swipe to compare lifts' : ''}
               </Text>
             </Animated.View>
@@ -417,8 +417,8 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
         </GestureDetector>
       ) : activity.isLapsed && activity.daysSinceLastWorkout !== null ? (
         <RNView style={styles.empty}>
-          <Text style={[styles.comebackTitle, { color: colors.text, fontFamily: fonts.bold }]}>Welcome back</Text>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+          <Text style={[styles.comebackTitle, { color: colors.text, fontWeight: '700' }]}>Welcome back</Text>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
             Last trained {activity.daysSinceLastWorkout} day{activity.daysSinceLastWorkout !== 1 ? 's' : ''} ago ·
             pick up where you left off.
           </Text>
@@ -428,7 +428,7 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
             activeOpacity={0.85}
           >
             <Ionicons name="barbell" size={16} color="#fff" />
-            <Text style={[styles.comebackCtaText, { fontFamily: fonts.semiBold }]}>Start a workout</Text>
+            <Text style={[styles.comebackCtaText, { fontWeight: '600' }]}>Start a workout</Text>
           </TouchableOpacity>
         </RNView>
       ) : nearest ? (
@@ -441,17 +441,17 @@ export default function HistoryHero({ exerciseStats, weightUnit, bodyweightLbs, 
               />
             ))}
           </RNView>
-          <Text style={[styles.emptyLift, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          <Text style={[styles.emptyLift, { color: colors.text, fontWeight: '600' }]} numberOfLines={1}>
             {nearest.name}
           </Text>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
             {nearest.sessions} of {MIN_SESSIONS} sessions logged · {MIN_SESSIONS - nearest.sessions} more to unlock its
             PR progression.
           </Text>
         </RNView>
       ) : (
         <RNView style={styles.empty}>
-          <Text style={[styles.emptyText, { color: colors.text + '80', fontFamily: fonts.medium }]}>
+          <Text style={[styles.emptyText, { color: colors.text + '80', fontWeight: '500' }]}>
             Log a lift a few times and your Strength Index will animate here.
           </Text>
         </RNView>

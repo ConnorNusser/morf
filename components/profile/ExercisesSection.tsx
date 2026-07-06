@@ -126,21 +126,21 @@ export default function ExercisesSection() {
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {exercise.category}
                 </Text>
               </View>
@@ -150,7 +150,7 @@ export default function ExercisesSection() {
           {liftRecord && (
             <View style={[styles.liftRecordRow, { backgroundColor: currentTheme.colors.accent + '15' }]}>
               <Ionicons name="trophy" size={12} color={currentTheme.colors.accent} />
-              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontWeight: '600' }]}>
                 PR: {liftRecord.weight} {liftRecord.unit} x {liftRecord.reps}
               </Text>
             </View>
@@ -219,7 +219,7 @@ export default function ExercisesSection() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.modalHeader}>
             <View style={{ width: 40 }} />
-            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Exercises
             </Text>
             <TouchableOpacity
@@ -234,7 +234,7 @@ export default function ExercisesSection() {
             <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
               <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
               <TextInput
-                style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                 placeholder="Search by name, muscle, equipment..."
                 placeholderTextColor={currentTheme.colors.text + '40'}
                 value={searchQuery}
@@ -322,13 +322,13 @@ export default function ExercisesSection() {
                 />
                 <Text style={[
                   styles.emptyText,
-                  { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }
+                  { color: currentTheme.colors.text + '60', fontWeight: '500' }
                 ]}>
                   No exercises found
                 </Text>
                 <Text style={[
                   styles.emptySubtext,
-                  { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }
+                  { color: currentTheme.colors.text + '40', fontWeight: '400' }
                 ]}>
                   Try a different search term
                 </Text>
@@ -336,7 +336,7 @@ export default function ExercisesSection() {
             ) : (
               <>
                 {searchQuery && (
-                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                     {filteredExercises.length} result{filteredExercises.length !== 1 ? 's' : ''}
                   </Text>
                 )}

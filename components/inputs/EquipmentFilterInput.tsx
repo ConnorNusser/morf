@@ -110,7 +110,7 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
         })}
       </View>
 
-      <Text style={[styles.hint, { color: currentTheme.colors.secondary, fontFamily: currentTheme.fonts.regular }]}>
+      <Text style={[styles.hint, { color: currentTheme.colors.secondary, fontWeight: '400' }]}>
         Select the equipment you have access to
       </Text>
     </View>

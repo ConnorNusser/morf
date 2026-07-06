@@ -31,7 +31,7 @@ interface TopMoversProps {
  */
 function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps) {
   const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
+  const { colors} = currentTheme;
 
   const movers = useMemo(
     () => computeTopMovers(exercises, weightUnit, { limit: 3 }),
@@ -43,16 +43,16 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
   return (
     <View style={[styles.container, { backgroundColor: 'transparent' }]}>
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.heading, { color: colors.text, fontFamily: fonts.semiBold }]}>
+        <Text style={[styles.heading, { color: colors.text, fontWeight: '600' }]}>
           Your Movers
         </Text>
         <TouchableOpacity onPress={onSeeAll} hitSlop={8} activeOpacity={0.7}>
-          <Text style={[styles.seeAll, { color: colors.primary, fontFamily: fonts.medium }]}>
+          <Text style={[styles.seeAll, { color: colors.primary, fontWeight: '500' }]}>
             See all
           </Text>
         </TouchableOpacity>
       </View>
-      <Text style={[styles.subhead, { color: colors.text + '70', fontFamily: fonts.regular }]}>
+      <Text style={[styles.subhead, { color: colors.text + '70', fontWeight: '400' }]}>
         Biggest changes across your recent sessions
       </Text>
 
@@ -72,21 +72,21 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
           >
             <View style={[styles.rowMain, { backgroundColor: 'transparent' }]}>
               <Text
-                style={[styles.name, { color: colors.text, fontFamily: fonts.semiBold }]}
+                style={[styles.name, { color: colors.text, fontWeight: '600' }]}
                 numberOfLines={1}
               >
                 {m.name}
               </Text>
               <View style={[styles.statsRow, { backgroundColor: 'transparent' }]}>
-                <Text style={[styles.value, { color: colors.text, fontFamily: fonts.bold }]}>
+                <Text style={[styles.value, { color: colors.text, fontWeight: '700' }]}>
                   {m.value}
                 </Text>
-                <Text style={[styles.unit, { color: colors.text + '40', fontFamily: fonts.regular }]}>
+                <Text style={[styles.unit, { color: colors.text + '40', fontWeight: '400' }]}>
                   {m.isBodyweight ? ' reps' : ' est. 1RM'}
                 </Text>
                 <View style={[styles.deltaPill, { backgroundColor: color + '15' }]}>
                   <Ionicons name={up ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
-                  <Text style={[styles.deltaText, { color, fontFamily: fonts.semiBold }]}>
+                  <Text style={[styles.deltaText, { color, fontWeight: '600' }]}>
                     {Math.abs(m.delta)}
                   </Text>
                 </View>

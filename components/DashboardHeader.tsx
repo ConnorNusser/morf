@@ -96,7 +96,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                 >
                   <Ionicons name="home" size={18} color={viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'home' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Morf
                     </Text>
                     <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>
@@ -110,7 +110,7 @@ export default function DashboardHeader({ viewMode, onViewModeChange, stats, onT
                 >
                   <Ionicons name="people" size={18} color={viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
                   <View style={styles.dropdownTextContainer}>
-                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.dropdownText, { color: viewMode === 'feed' ? currentTheme.colors.primary : currentTheme.colors.text, fontWeight: '600' }]}>
                       Feed
                     </Text>
                     <Text style={[styles.dropdownSubtext, { color: currentTheme.colors.text + '50' }]}>

@@ -26,7 +26,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
         <View style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 {routine.name}
               </Text>
               <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
@@ -47,7 +47,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
               >
                 <View style={styles.exerciseHeader}>
                   <Text
-                    style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}
+                    style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}
                   >
                     {ex.exerciseName}
                   </Text>
@@ -73,7 +73,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
             onPress={onStart}
             activeOpacity={0.85}
           >
-            <Text style={[styles.startText, { color: currentTheme.colors.surface, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.startText, { color: currentTheme.colors.surface, fontWeight: '600' }]}>
               Start workout
             </Text>
           </TouchableOpacity>

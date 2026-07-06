@@ -190,10 +190,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
         {/* One label for the whole block: "This Week" + its date range. The parent screen
             no longer renders a separate section heading, so this card wears exactly one title. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             This Week
           </Text>
-          <Text style={[styles.dateRange, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+          <Text style={[styles.dateRange, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}>
             {formatDateRange(weekData.startDate, weekData.endDate)}
           </Text>
         </View>
@@ -205,10 +205,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleWeekPress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {weekStats.totalWorkouts}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
               Workouts
             </Text>
           </TouchableOpacity>
@@ -218,10 +218,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleTimePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {weekStats.totalTime}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
               Time
             </Text>
           </TouchableOpacity>
@@ -231,10 +231,10 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
             onPress={handleVolumePress}
             activeOpacity={0.6}
           >
-            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {weekStats.totalVolume}
             </Text>
-            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
               Volume
             </Text>
           </TouchableOpacity>
@@ -245,20 +245,20 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
           <View style={[styles.statsContainer, styles.cardioStatsContainer]}>
             {weekStats.totalDistanceMeters > 0 && (
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   {formatDistance(weekStats.totalDistanceMeters)}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   Distance
                 </Text>
               </View>
             )}
             {weekStats.totalCardioDurationSeconds > 0 && (
               <View style={styles.statItem}>
-                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   {formatDuration(weekStats.totalCardioDurationSeconds)}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.statLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   Cardio
                 </Text>
               </View>
@@ -291,11 +291,11 @@ export default function WeeklyOverview({ workoutHistory }: WeeklyOverviewProps) 
               })()}
             </View>
             <View style={styles.trendCaption}>
-              <Text style={[styles.trendLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.trendLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                 Volume · last 8 wk
               </Text>
               {deltaPct !== null && (
-                <Text style={[styles.trendDelta, { color: deltaColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.trendDelta, { color: deltaColor, fontWeight: '600' }]}>
                   {deltaSign}{Math.abs(deltaPct)}% vs last week
                 </Text>
               )}

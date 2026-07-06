@@ -89,10 +89,10 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
             </View>
           )}
           <View>
-            <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}
             </Text>
-            <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
               {formatRelativeTime(workout.created_at)}
             </Text>
           </View>
@@ -107,7 +107,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
       </View>
 
       {/* Workout title - larger */}
-      <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+      <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
         {workout.title}
       </Text>
 
@@ -123,7 +123,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
       )}
 
       {/* Stats row */}
-      <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+      <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
         {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)}
         {workout.total_volume > 0 && ` · ${formatVolume(workout.total_volume, weightUnit)}`}
         {(workout.total_distance_meters ?? 0) > 0 && ` · ${formatDistance(workout.total_distance_meters ?? 0)}`}
@@ -141,10 +141,10 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
                 style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
               >
                 <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                   {PPL_LABELS[category]}
                 </Text>
-                <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontWeight: '700' }]}>
                   {pplBreakdown.counts[category]}
                 </Text>
               </View>
@@ -158,20 +158,20 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
           {workout.exercises.slice(0, 3).map((ex, i) => (
             <View key={i} style={styles.exerciseRow}>
               <View style={styles.exerciseNameContainer}>
-                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                   {ex.name}
                 </Text>
                 {ex.percentile && ex.percentile > 0 && (
                   <TierBadge tier={getStrengthTier(ex.percentile)} size="tiny" />
                 )}
               </View>
-              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 {ex.bestSet}
               </Text>
             </View>
           ))}
           {workout.exercises.length > 3 && (
-            <Text style={[styles.moreExercises, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.moreExercises, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
               +{workout.exercises.length - 3} more
             </Text>
           )}
@@ -198,7 +198,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
               />
             </Animated.View>
             {likeCount > 0 && (
-              <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontWeight: '500' }]}>
                 {likeCount}
               </Text>
             )}
@@ -216,7 +216,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
               color={currentTheme.colors.text + '70'}
             />
             {commentCount > 0 && (
-              <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                 {commentCount}
               </Text>
             )}

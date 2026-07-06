@@ -343,7 +343,7 @@ export default function HomeScreen() {
                 styles.actionButtonText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: currentTheme.fonts.medium,
+                  fontWeight: '500',
                 },
               ]}
             >

@@ -249,7 +249,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '700' }]}>
           History
         </Text>
 
@@ -266,7 +266,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'workouts' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'workouts' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
+                { fontWeight: activeTab === 'workouts' ? '600' : '400' }
               ]}>
                 Workouts
               </Text>
@@ -282,7 +282,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'exercises' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'exercises' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
+                { fontWeight: activeTab === 'exercises' ? '600' : '400' }
               ]}>
                 Exercises
               </Text>
@@ -330,7 +330,7 @@ export default function HistoryScreen() {
                 tappable straight into that lift's history. */}
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Records
                 </Text>
                 <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
@@ -344,22 +344,22 @@ export default function HistoryScreen() {
                         activeOpacity={0.7}
                       >
                         <Text
-                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}
+                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}
                           numberOfLines={1}
                         >
                           {ex.name}
                         </Text>
                         <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
-                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]} numberOfLines={1}>
+                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontWeight: '700' }]} numberOfLines={1}>
                             {ex.estimated1RM}
                           </Text>
-                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
                             {weightUnit}
                           </Text>
                         </View>
                         {pct != null && (
                           <View style={[styles.recordTierBadge, { backgroundColor: tierColor + '1F' }]}>
-                            <Text style={[styles.recordTierText, { color: tierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                            <Text style={[styles.recordTierText, { color: tierColor, fontWeight: '600' }]}>
                               {getStrengthTier(pct)}
                             </Text>
                           </View>
@@ -418,7 +418,7 @@ export default function HistoryScreen() {
               >
                 <View style={styles.monthlyTrendsContent}>
                   <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     View Monthly Trends
                   </Text>
                 </View>
@@ -430,10 +430,10 @@ export default function HistoryScreen() {
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                   No workouts yet
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
                   Start logging to track your progress
                 </Text>
                 <TouchableOpacity
@@ -442,7 +442,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -457,19 +457,19 @@ export default function HistoryScreen() {
                 {/* All-time overview */}
                 <View style={[styles.exerciseSummary, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       {exerciseSummary.count}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       Exercises
                     </Text>
                   </View>
                   <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
                   <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       {exerciseSummary.totalSets.toLocaleString()}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       Sets logged
                     </Text>
                   </View>
@@ -478,13 +478,13 @@ export default function HistoryScreen() {
                       <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
                       <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
                         <Text
-                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}
+                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}
                           numberOfLines={1}
                         >
                           {exerciseSummary.topLift.estimated1RM}
                         </Text>
                         <Text
-                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}
+                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}
                           numberOfLines={1}
                         >
                           Top 1RM
@@ -498,7 +498,7 @@ export default function HistoryScreen() {
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
                     placeholderTextColor={currentTheme.colors.text + '40'}
                     value={exerciseSearch}
@@ -540,7 +540,7 @@ export default function HistoryScreen() {
                           styles.sortChipText,
                           {
                             color: active ? '#fff' : currentTheme.colors.text + '99',
-                            fontFamily: active ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
+                            fontWeight: active ? '600' : '500',
                           },
                         ]}>
                           {label}
@@ -552,7 +552,7 @@ export default function HistoryScreen() {
 
                 {liftsWithData.length > 0 ? (
                   <View style={styles.section}>
-                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       {liftsWithData.length} exercise{liftsWithData.length !== 1 ? 's' : ''}
                     </Text>
                     {liftsWithData.map((exercise) => (
@@ -567,7 +567,7 @@ export default function HistoryScreen() {
                 ) : (
                   <View style={styles.emptyState}>
                     <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
-                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                       No matches for &quot;{exerciseSearch.trim()}&quot;
                     </Text>
                   </View>
@@ -576,10 +576,10 @@ export default function HistoryScreen() {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                   No exercises tracked
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
                   Complete workouts to build your exercise history
                 </Text>
                 <TouchableOpacity
@@ -588,7 +588,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>

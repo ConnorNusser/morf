@@ -211,7 +211,7 @@ export default function MonthlyTrendsModal({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Monthly Trends
           </Text>
           <View style={styles.closeButton} />
@@ -236,7 +236,7 @@ export default function MonthlyTrendsModal({
               />
             </TouchableOpacity>
 
-            <Text style={[styles.dateRangeLabel, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.dateRangeLabel, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {dateRangeLabel}
             </Text>
 
@@ -256,7 +256,7 @@ export default function MonthlyTrendsModal({
           {/* PPL Stacked Chart */}
           <Animated.View entering={FadeInDown.delay(150)} style={styles.chartSection}>
             <View style={styles.chartHeader}>
-              <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                 Training Focus
               </Text>
               {/* Legend */}
@@ -264,7 +264,7 @@ export default function MonthlyTrendsModal({
                 {(['push', 'pull', 'legs'] as PPLCategory[]).map(category => (
                   <View key={category} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       {PPL_LABELS[category]}
                     </Text>
                   </View>
@@ -287,7 +287,7 @@ export default function MonthlyTrendsModal({
                   <View key={index} style={styles.barColumn}>
                     <Text style={[
                       styles.barValue,
-                      { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }
+                      { color: currentTheme.colors.text + '80', fontWeight: '600' }
                     ]}>
                       {total || '-'}
                     </Text>
@@ -312,7 +312,7 @@ export default function MonthlyTrendsModal({
                       styles.barLabel,
                       {
                         color: isCurrentMonth ? currentTheme.colors.primary : currentTheme.colors.text + '60',
-                        fontFamily: isCurrentMonth ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
+                        fontWeight: isCurrentMonth ? '600' : '500',
                       }
                     ]}>
                       {month.shortMonth}
@@ -325,7 +325,7 @@ export default function MonthlyTrendsModal({
 
           {/* Monthly Cards */}
           <Animated.View entering={FadeInDown.delay(250)} style={styles.cardsSection}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Details
             </Text>
 
@@ -340,18 +340,18 @@ export default function MonthlyTrendsModal({
                   {/* Month Header */}
                   <View style={styles.monthHeader}>
                     <View>
-                      <Text style={[styles.monthName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                      <Text style={[styles.monthName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                         {month.month}
                       </Text>
-                      <Text style={[styles.monthYear, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.monthYear, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                         {month.year}
                       </Text>
                     </View>
                     <View style={[styles.workoutsBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                      <Text style={[styles.workoutsCount, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                      <Text style={[styles.workoutsCount, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                         {month.workoutCount}
                       </Text>
-                      <Text style={[styles.workoutsLabel, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text style={[styles.workoutsLabel, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                         workouts
                       </Text>
                     </View>
@@ -362,19 +362,19 @@ export default function MonthlyTrendsModal({
                     <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border }]}>
                       <View style={styles.statItem}>
                         <Ionicons name="fitness-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                           {month.totalExercises} exercises
                         </Text>
                       </View>
                       <View style={styles.statItem}>
                         <Ionicons name="barbell-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                           {formatVolume(month.totalVolume)} {weightUnit}
                         </Text>
                       </View>
                       <View style={styles.statItem}>
                         <Ionicons name="time-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                           {formatTime(month.totalTime)}
                         </Text>
                       </View>
@@ -387,7 +387,7 @@ export default function MonthlyTrendsModal({
                       {month.totalDistanceMeters > 0 && (
                         <View style={styles.statItem}>
                           <Ionicons name="navigate-outline" size={16} color={currentTheme.colors.text + '60'} />
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                             {formatDistance(month.totalDistanceMeters)}
                           </Text>
                         </View>
@@ -395,7 +395,7 @@ export default function MonthlyTrendsModal({
                       {month.totalCardioDurationSeconds > 0 && (
                         <View style={styles.statItem}>
                           <Ionicons name="heart-outline" size={16} color={currentTheme.colors.text + '60'} />
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                             {formatDuration(month.totalCardioDurationSeconds)} cardio
                           </Text>
                         </View>
@@ -414,10 +414,10 @@ export default function MonthlyTrendsModal({
                               style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
                             >
                               <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                              <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                                 {PPL_LABELS[category]}
                               </Text>
-                              <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
+                              <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontWeight: '700' }]}>
                                 {month.pplCounts[category]}
                               </Text>
                             </View>
@@ -430,7 +430,7 @@ export default function MonthlyTrendsModal({
                   {/* Empty State */}
                   {month.workoutCount === 0 && (
                     <View style={styles.emptyMonth}>
-                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
                         No workouts recorded
                       </Text>
                     </View>

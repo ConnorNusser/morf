@@ -878,7 +878,7 @@ export default function NotesScreen() {
               Rename program
             </Text>
             <TextInput
-              style={[styles.renameInput, { color: currentTheme.colors.text, borderColor: currentTheme.colors.border, fontFamily: currentTheme.fonts.regular }]}
+              style={[styles.renameInput, { color: currentTheme.colors.text, borderColor: currentTheme.colors.border, fontWeight: '400' }]}
               value={renameText}
               onChangeText={setRenameText}
               placeholder="Program name"

@@ -116,7 +116,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Start Routine
           </Text>
           <RNView style={{ width: 28 }} />
@@ -127,7 +127,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
           <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
             <Ionicons name="search" size={18} color={currentTheme.colors.text + '50'} />
             <TextInput
-              style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+              style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
               placeholder="Search routines..."
               placeholderTextColor={currentTheme.colors.text + '40'}
               value={searchQuery}
@@ -155,7 +155,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                   >
                     <RNView style={styles.routineHeaderLeft}>
                       <Ionicons name="barbell-outline" size={18} color={currentTheme.colors.primary} />
-                      <Text style={[styles.routineName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                      <Text style={[styles.routineName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                         {routine.name}
                       </Text>
                     </RNView>
@@ -167,7 +167,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                   </TouchableOpacity>
 
                   {/* Exercise Summary */}
-                  <Text style={[styles.exerciseSummary, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.exerciseSummary, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                     {routine.exercises?.length || 0} exercise{(routine.exercises?.length || 0) !== 1 ? 's' : ''}
                   </Text>
 
@@ -180,10 +180,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                           style={[styles.exerciseRow, { borderTopColor: currentTheme.colors.border }]}
                         >
                           <RNView style={styles.exerciseInfo}>
-                            <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                            <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                               {exercise.exerciseName}
                             </Text>
-                            <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                            <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                               {exercise.sets?.length || 0} sets • {exercise.sets?.[0]?.reps || 0} reps
                               {exercise.sets?.some(s => s.isWarmup) && ' (incl. warmup)'}
                             </Text>
@@ -192,7 +192,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                           <RNView style={styles.weightInfo}>
                             {exercise.workingWeight > 0 ? (
                               <RNView style={styles.weightRow}>
-                                <Text style={[styles.weightValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                                <Text style={[styles.weightValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                                   {exercise.workingWeight} {exercise.unit}
                                 </Text>
                                 <Ionicons
@@ -203,7 +203,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                                 />
                               </RNView>
                             ) : (
-                              <Text style={[styles.noDataText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                              <Text style={[styles.noDataText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
                                 No data
                               </Text>
                             )}
@@ -220,7 +220,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                     activeOpacity={0.8}
                   >
                     <Ionicons name="play" size={18} color="#fff" />
-                    <Text style={[styles.importButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.importButtonText, { fontWeight: '600' }]}>
                       Start
                     </Text>
                   </TouchableOpacity>
@@ -230,10 +230,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
           ) : (
             <RNView style={styles.emptyState}>
               <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                 {routines.length === 0 ? 'No routines yet' : 'No matching routines'}
               </Text>
-              <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
                 Create routines in the Routines tab
               </Text>
             </RNView>

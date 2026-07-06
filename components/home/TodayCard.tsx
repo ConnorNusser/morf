@@ -305,7 +305,7 @@ export default function TodayCard() {
                   styles.exerciseName,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: currentTheme.fonts.medium,
+                    fontWeight: '500',
                   },
                 ]}
                 numberOfLines={1}

@@ -139,10 +139,10 @@ export default function ProfileScreen() {
           <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
             <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
             <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                 {username ? `@${username}` : 'Set Username'}
               </Text>
-              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
           onPress={handleResetStats}
           activeOpacity={0.7}
         >
-          <Text style={[styles.resetButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.resetButtonText, { fontWeight: '600' }]}>
             Reset All Data
           </Text>
         </TouchableOpacity>

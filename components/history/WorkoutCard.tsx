@@ -90,7 +90,7 @@ function WorkoutCard({
       {/* Title + at-most-one PR marker — the filled badge is reserved for MAJOR records */}
       <View style={[styles.titleRow, { backgroundColor: 'transparent' }]}>
         <Text
-          style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}
+          style={[styles.workoutTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}
           numberOfLines={1}
         >
           {workout.title}
@@ -98,7 +98,7 @@ function WorkoutCard({
         {isMajorPR && (
           <RNView style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
             <Ionicons name="trophy" size={10} color="#fff" />
-            <Text style={[styles.prChipText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.prChipText, { color: '#fff', fontWeight: '600' }]}>
               PR
             </Text>
           </RNView>
@@ -107,7 +107,7 @@ function WorkoutCard({
       </View>
 
       {/* Summary line: when + total sets + session volume */}
-      <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+      <Text style={[styles.workoutMeta, { color: currentTheme.colors.text + '80', fontWeight: '400' }]} numberOfLines={1}>
         {formatRelativeDate(workout.createdAt)} • {statsLine}
       </Text>
 
@@ -118,15 +118,15 @@ function WorkoutCard({
           style={[
             styles.prLine,
             isMajorPR
-              ? { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }
-              : { color: currentTheme.colors.primary + 'B0', fontFamily: currentTheme.fonts.medium },
+              ? { color: currentTheme.colors.primary, fontWeight: '600' }
+              : { color: currentTheme.colors.primary + 'B0', fontWeight: '500' },
           ]}
           numberOfLines={1}
         >
           {sessionPR.name} · {isMajorPR ? 'new PR' : 'PR'} +{prGainDisplay} {weightUnit}
         </Text>
       ) : topLift ? (
-        <Text style={[styles.topLiftLine, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+        <Text style={[styles.topLiftLine, { color: currentTheme.colors.text + '99', fontWeight: '400' }]} numberOfLines={1}>
           {topLift.name} · {topLift.setCount} set{topLift.setCount !== 1 ? 's' : ''}
         </Text>
       ) : null}

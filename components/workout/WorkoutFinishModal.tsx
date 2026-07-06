@@ -279,19 +279,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         color={currentTheme.colors.primary}
         style={styles.loadingIndicator}
       />
-      <Text style={[styles.parsingText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
+      <Text style={[styles.parsingText, { color: '#fff', fontWeight: '600' }]}>
         Analyzing your workout...
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: '#FF6B6B', fontFamily: currentTheme.fonts.medium }]}>
+          <Text style={[styles.errorText, { color: '#FF6B6B', fontWeight: '500' }]}>
             {error}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: currentTheme.colors.primary }]}
             onPress={onCancel}
           >
-            <Text style={[styles.retryButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.retryButtonText, { fontWeight: '600' }]}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -312,11 +312,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               morf
             </Text>
           </View>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {''}
           </Text>
           <IconButton icon="close" onPress={handleCancel} variant="surface" />
@@ -328,19 +328,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.durationStr || '--'}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Duration
                   </Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.exercises}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Exercises
                   </Text>
                 </View>
@@ -348,10 +348,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.sets}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Sets
                   </Text>
                 </View>
@@ -360,11 +360,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   {overallTierInfo ? (
                     <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
                   ) : (
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       --
                     </Text>
                   )}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Overall Tier
                   </Text>
                 </View>
@@ -378,10 +378,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     {stats.totalDistanceMeters > 0 && (
                       <>
                         <View style={styles.statItem}>
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                             {formatDistance(stats.totalDistanceMeters)}
                           </Text>
-                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                             Distance
                           </Text>
                         </View>
@@ -392,10 +392,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     )}
                     {stats.totalCardioDurationSeconds > 0 && (
                       <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                           {formatDuration(stats.totalCardioDurationSeconds)}
                         </Text>
-                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                           Cardio Time
                         </Text>
                       </View>
@@ -428,11 +428,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   >
                     <View style={styles.exerciseHeader}>
                       <View style={styles.exerciseNameContainer}>
-                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                           {exerciseInfo?.name || exercise.name}
                         </Text>
                         {best1RM > 0 && (
-                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                             ~{Math.round(best1RM)} {weightUnit} 1RM
                           </Text>
                         )}
@@ -453,10 +453,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                         <View style={styles.setsSection}>
                           {exercise.sets.map((set, setIndex) => (
                             <View key={setIndex} style={styles.setRow}>
-                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontWeight: '500' }]}>
                                 Set {setIndex + 1}
                               </Text>
-                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                                 {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
                               </Text>
                             </View>

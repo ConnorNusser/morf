@@ -106,13 +106,13 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
           <TouchableOpacity onPress={onClose}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Add Exercises
           </Text>
           <TouchableOpacity onPress={handleDone} disabled={selectedIds.size === 0}>
             <Text style={[
               styles.saveButton,
-              { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold },
+              { color: currentTheme.colors.primary, fontWeight: '600' },
               selectedIds.size === 0 && { opacity: 0.4 }
             ]}>
               Add{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
@@ -123,7 +123,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
         <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
           <Ionicons name="search" size={18} color={currentTheme.colors.text + '50'} />
           <TextInput
-            style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+            style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
             placeholder="Search exercises..."
             placeholderTextColor={currentTheme.colors.text + '40'}
             value={searchQuery}
@@ -159,11 +159,11 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
                 <RNView style={styles.exerciseItemContent}>
                   <Text style={[
                     styles.exerciseName,
-                    { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }
+                    { color: currentTheme.colors.text, fontWeight: '500' }
                   ]}>
                     {item.name}
                   </Text>
-                  <Text style={[styles.exerciseMuscles, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.exerciseMuscles, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                     {item.primaryMuscles.join(', ')}
                   </Text>
                 </RNView>
@@ -350,13 +350,13 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             <TouchableOpacity onPress={handleClose}>
               <Ionicons name="close" size={28} color={currentTheme.colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {routine ? 'Edit Routine' : programId ? 'New Day' : 'New Routine'}
             </Text>
             <TouchableOpacity onPress={handleSave} disabled={isSaving}>
               <Text style={[
                 styles.saveButton,
-                { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold },
+                { color: currentTheme.colors.primary, fontWeight: '600' },
                 isSaving && { opacity: 0.5 }
               ]}>
                 Save
@@ -366,11 +366,11 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {/* Name Input */}
-            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
               Routine Name
             </Text>
             <TextInput
-              style={[styles.textInput, { backgroundColor: currentTheme.colors.surface, color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+              style={[styles.textInput, { backgroundColor: currentTheme.colors.surface, color: currentTheme.colors.text, fontWeight: '400' }]}
               value={name}
               onChangeText={setName}
               placeholder="e.g., Push Day, Leg Day"
@@ -378,14 +378,14 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             />
 
             {/* Exercises */}
-            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium, marginTop: 16 }]}>
+            <Text style={[styles.label, { color: currentTheme.colors.text + '80', fontWeight: '500', marginTop: 16 }]}>
               Exercises
             </Text>
 
             {exercises.map((exercise, exerciseIndex) => (
               <View key={`${exercise.exerciseId}-${exerciseIndex}`} style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface }]}>
                 <RNView style={styles.exerciseCardHeader}>
-                  <Text style={[styles.exerciseCardName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.exerciseCardName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     {getExerciseName(exercise)}
                   </Text>
                   <TouchableOpacity onPress={() => handleRemoveExercise(exerciseIndex)}>
@@ -406,12 +406,12 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                     >
                       {/* Set number and warmup badge */}
                       <RNView style={styles.setLabelContainer}>
-                        <Text style={[styles.setLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.setLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                           {setIndex + 1}
                         </Text>
                         {set.isWarmup && (
                           <RNView style={[styles.warmupBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                            <Text style={[styles.warmupBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                            <Text style={[styles.warmupBadgeText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                               W
                             </Text>
                           </RNView>
@@ -441,7 +441,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         >
                           <Ionicons name="remove" size={14} color={currentTheme.colors.text} />
                         </TouchableOpacity>
-                        <Text style={[styles.repsValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.repsValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                           {set.reps}
                         </Text>
                         <TouchableOpacity
@@ -471,7 +471,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                     onPress={() => handleAddSet(exerciseIndex, false)}
                   >
                     <Ionicons name="add" size={16} color={currentTheme.colors.text} />
-                    <Text style={[styles.addSetText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.addSetText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                       Set
                     </Text>
                   </TouchableOpacity>
@@ -480,7 +480,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                     onPress={() => handleAddSet(exerciseIndex, true)}
                   >
                     <Ionicons name="flame-outline" size={16} color={currentTheme.colors.primary} />
-                    <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.addSetText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                       Warmup
                     </Text>
                   </TouchableOpacity>
@@ -495,7 +495,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={[styles.addExerciseText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.addExerciseText, { color: '#fff', fontWeight: '600' }]}>
                 Add Exercise
               </Text>
             </TouchableOpacity>

@@ -146,7 +146,7 @@ export default function StrengthRadarCard({
       {/* Top Contributions */}
       {showContributions && filteredContributions.length > 0 && (
         <View style={[styles.contributionsSection, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.contributionsTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.contributionsTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {selectedIdx >= 0 && chartData[selectedIdx] ? `${chartData[selectedIdx].label} Lifts` : 'Top Contributions'}
           </Text>
           {filteredContributions.slice(0, 5).map((c, i) => {

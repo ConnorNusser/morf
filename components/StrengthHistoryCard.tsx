@@ -105,12 +105,12 @@ function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
       <TouchableOpacity activeOpacity={0.7} onPress={() => setShowModal(true)}>
         <Card style={styles.card}>
           <View style={styles.header}>
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Strength Over Time
             </Text>
             <View style={styles.headerRight}>
               <View style={styles.changeContainer}>
-                <Text style={[styles.changeText, { color: changeColor, fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.changeText, { color: changeColor, fontWeight: '500' }]}>
                   {changeText}%
                 </Text>
               </View>
@@ -216,7 +216,7 @@ function StrengthHistoryCard({ userId }: StrengthHistoryCardProps) {
         )}
       </Svg>
 
-        <Text style={[styles.subtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.subtitle, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
           {displayHistory.length} data point{displayHistory.length !== 1 ? 's' : ''} • Tap for details
         </Text>
         </Card>

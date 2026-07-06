@@ -81,7 +81,7 @@ function ExerciseEditForm({
 
   return (
     <View style={styles.editForm}>
-      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
         Exercise Name (without equipment)
       </Text>
       <TextInput
@@ -100,7 +100,7 @@ function ExerciseEditForm({
         autoFocus
       />
 
-      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium, marginTop: 12 }]}>
+      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontWeight: '500', marginTop: 12 }]}>
         Equipment Type
       </Text>
       <View style={styles.equipmentRow}>
@@ -134,23 +134,23 @@ function ExerciseEditForm({
 
       {fullNamePreview && (
         <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
             Full Name:
           </Text>
-          <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {fullNamePreview}
           </Text>
-          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular, marginTop: 4 }]}>
+          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontWeight: '400', marginTop: 4 }]}>
             ID:
           </Text>
-          <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
             {previewId}
           </Text>
         </View>
       )}
 
       {hint && (
-        <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
           {hint}
         </Text>
       )}
@@ -161,7 +161,7 @@ function ExerciseEditForm({
           onPress={onCancel}
           disabled={saving}
         >
-          <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Cancel
           </Text>
         </TouchableOpacity>
@@ -177,7 +177,7 @@ function ExerciseEditForm({
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={[styles.editActionText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.editActionText, { color: '#FFFFFF', fontWeight: '600' }]}>
               {saveLabel}
             </Text>
           )}
@@ -480,21 +480,21 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {exercise.category}
                 </Text>
               </View>
@@ -627,7 +627,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             >
               <View style={styles.modalHeader}>
                 <View style={{ width: 40 }} />
-                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Custom Exercises
                 </Text>
                 <TouchableOpacity
@@ -640,7 +640,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
               <View style={[styles.disclaimerBanner, { backgroundColor: currentTheme.colors.primary + '10', borderColor: currentTheme.colors.primary + '30' }]}>
                 <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
-                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                   Custom exercises are auto-created when you log workouts with new exercises. You can also add them manually here.
                 </Text>
               </View>
@@ -649,7 +649,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
                     placeholderTextColor={currentTheme.colors.text + '40'}
                     value={searchQuery}
@@ -730,7 +730,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     activeOpacity={0.7}
                   >
                     <Ionicons name="add" size={18} color="#FFFFFF" />
-                    <Text style={[styles.addButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.addButtonText, { fontWeight: '600' }]}>
                       Add Custom Exercise
                     </Text>
                   </TouchableOpacity>
@@ -754,13 +754,13 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     />
                     <Text style={[
                       styles.emptyText,
-                      { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }
+                      { color: currentTheme.colors.text + '60', fontWeight: '500' }
                     ]}>
                       {searchQuery ? 'No exercises found' : 'No custom exercises yet'}
                     </Text>
                     <Text style={[
                       styles.emptySubtext,
-                      { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }
+                      { color: currentTheme.colors.text + '40', fontWeight: '400' }
                     ]}>
                       {searchQuery
                         ? 'Try a different search term'
@@ -770,7 +770,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 ) : (
                   <>
                     {searchQuery && (
-                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                         {filteredCustomExercises.length} result{filteredCustomExercises.length !== 1 ? 's' : ''}
                       </Text>
                     )}
@@ -783,7 +783,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                         onPress={handleClearAll}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.clearAllText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.clearAllText, { fontWeight: '600' }]}>
                           Clear All Custom Exercises
                         </Text>
                       </TouchableOpacity>

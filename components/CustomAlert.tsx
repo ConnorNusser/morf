@@ -121,7 +121,7 @@ function AlertContent({
       <Text
         style={[
           styles.title,
-          { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold },
+          { color: currentTheme.colors.text, fontWeight: '700' },
         ]}
       >
         {config.title}
@@ -132,7 +132,7 @@ function AlertContent({
         <Text
           style={[
             styles.message,
-            { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular },
+            { color: currentTheme.colors.text + '80', fontWeight: '400' },
           ]}
         >
           {config.message}
@@ -151,7 +151,7 @@ function AlertContent({
             size={16}
             color={copied ? '#22C55E' : currentTheme.colors.text + '70'}
           />
-          <Text style={[styles.copyButtonText, { color: copied ? '#22C55E' : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+          <Text style={[styles.copyButtonText, { color: copied ? '#22C55E' : currentTheme.colors.text + '70', fontWeight: '500' }]}>
             {copied ? 'Copied!' : 'Copy'}
           </Text>
         </TouchableOpacity>
@@ -181,7 +181,7 @@ function AlertContent({
               <Text
                 style={[
                   styles.buttonText,
-                  { fontFamily: currentTheme.fonts.semiBold },
+                  { fontWeight: '600' },
                   isCancel && { color: currentTheme.colors.text },
                   (isDestructive || isPrimary || buttons.length === 1) && { color: '#fff' },
                 ]}

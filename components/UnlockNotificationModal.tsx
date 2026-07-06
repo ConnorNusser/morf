@@ -95,7 +95,7 @@ export default function UnlockNotificationModal({
                   styles.title,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: currentTheme.fonts.bold,
+                    fontWeight: '700',
                   },
                 ]}
               >
@@ -108,7 +108,7 @@ export default function UnlockNotificationModal({
                   styles.subtitle,
                   {
                     color: currentTheme.colors.primary,
-                    fontFamily: currentTheme.fonts.semiBold,
+                    fontWeight: '600',
                   },
                 ]}
               >
@@ -158,7 +158,7 @@ export default function UnlockNotificationModal({
                   styles.description,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: currentTheme.fonts.regular,
+                    fontWeight: '400',
                     opacity: 0.7,
                   },
                 ]}
@@ -184,7 +184,7 @@ export default function UnlockNotificationModal({
                     style={[
                       styles.buttonText,
                       styles.primaryButtonText,
-                      { fontFamily: currentTheme.fonts.semiBold },
+                      { fontWeight: '600' },
                     ]}
                   >
                     {content.activateText}
@@ -208,7 +208,7 @@ export default function UnlockNotificationModal({
                       styles.buttonText,
                       {
                         color: currentTheme.colors.text,
-                        fontFamily: currentTheme.fonts.medium,
+                        fontWeight: '500',
                         opacity: 0.7,
                       },
                     ]}
@@ -225,7 +225,7 @@ export default function UnlockNotificationModal({
             style={[
               styles.hint,
               {
-                fontFamily: currentTheme.fonts.regular,
+                fontWeight: '400',
                 paddingBottom: insets.bottom + 20,
               },
             ]}

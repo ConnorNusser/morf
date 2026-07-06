@@ -384,7 +384,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       ) : (
         <View style={styles.noHistoryContainer}>
           <Ionicons name="trending-up-outline" size={24} color={currentTheme.colors.text + '40'} />
-          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.noHistoryText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
             Not enough data for progression chart
           </Text>
         </View>
@@ -398,7 +398,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Profile
           </Text>
           <TouchableOpacity
@@ -446,11 +446,11 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* User Info */}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
-                  <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     @{user.username}
                   </Text>
                   {user.country_code && (
-                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.countryName, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                       {getCountryName(user.country_code)}
                     </Text>
                   )}
@@ -532,10 +532,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* 1000lb Club Progress */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                 <View style={[styles.cardHeader, { backgroundColor: 'transparent' }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     1000lb Club
                   </Text>
-                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.cardValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                     {big3Total} lbs
                   </Text>
                 </View>
@@ -551,7 +551,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     ]}
                   />
                 </View>
-                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.progressText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                   {thousandPoundProgress >= 100 ? 'Member!' : `${thousandPoundProgress}% to 1000lbs`}
                 </Text>
 
@@ -569,10 +569,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={benchMax ? 0.7 : 1}
                     disabled={!benchMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Bench
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       {benchMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -588,10 +588,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={squatMax ? 0.7 : 1}
                     disabled={!squatMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Squat
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       {squatMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -607,10 +607,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     activeOpacity={deadliftMax ? 0.7 : 1}
                     disabled={!deadliftMax}
                   >
-                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.big3Label, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Deadlift
                     </Text>
-                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.big3Value, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       {deadliftMax || '-'}
                     </Text>
                   </TouchableOpacity>
@@ -623,31 +623,31 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
               {/* Stats Card */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Stats
                 </Text>
                 <View style={styles.statsGrid}>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                       {workoutCount}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Workouts
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                       {lifts.length}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Exercises
                     </Text>
                   </View>
                   <View style={[styles.statItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
                       {Math.round(totalVolume).toLocaleString()}
                     </Text>
-                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
                       Total 1RM lbs
                     </Text>
                   </View>
@@ -658,7 +658,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {liftComparison && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={styles.comparisonHeader}>
-                    <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       You vs @{user.username}
                     </Text>
                     <View style={styles.comparisonSummary}>
@@ -735,7 +735,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                               styles.comparisonNumber,
                               {
                                 color: comp.iWin && !comp.isTie ? '#22C55E' : currentTheme.colors.text,
-                                fontFamily: currentTheme.fonts.semiBold,
+                                fontWeight: '600',
                               }
                             ]}>
                               {comp.myValue}{comparisonMode === 'percentile' ? '%' : ''}
@@ -759,7 +759,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                               styles.comparisonNumber,
                               {
                                 color: currentTheme.colors.text,
-                                fontFamily: currentTheme.fonts.semiBold,
+                                fontWeight: '600',
                               }
                             ]}>
                               {comp.theirValue}{comparisonMode === 'percentile' ? '%' : ''}
@@ -794,7 +794,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* Other Top Lifts */}
               {otherLifts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Top Lifts
                   </Text>
                   <View style={styles.liftsList}>
@@ -815,10 +815,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                           activeOpacity={0.7}
                         >
                           <View style={styles.liftRowLeft}>
-                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                            <Text style={[styles.liftName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                               {getExerciseName(lift.exercise_id)}
                             </Text>
-                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.semiBold }]}>
+                            <Text style={[styles.liftValue, { color: currentTheme.colors.text + '70', fontWeight: '600' }]}>
                               {Math.round(lift.estimated_1rm)} lbs
                             </Text>
                           </View>
@@ -843,7 +843,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {/* Recent Workouts */}
               {recentWorkouts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Recent Workouts
                   </Text>
                   <View style={styles.workoutsList}>
@@ -865,14 +865,14 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                           >
                             <View style={styles.workoutRowContent}>
                               <View style={styles.workoutRowTop}>
-                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                                <Text style={[styles.workoutTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                                   {workout.title}
                                 </Text>
-                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                                <Text style={[styles.workoutTime, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                                   {formatRelativeTime(workout.created_at)}
                                 </Text>
                               </View>
-                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                              <Text style={[styles.workoutStats, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
                                 {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
                               </Text>
                             </View>
@@ -906,15 +906,15 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                                   ]}
                                 >
                                   <View style={styles.workoutExerciseLeft}>
-                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                                    <Text style={[styles.workoutExerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                                       {exercise.name}
                                     </Text>
-                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                                    <Text style={[styles.workoutExerciseSets, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                                       {exercise.sets} sets
                                     </Text>
                                   </View>
                                   <View style={styles.workoutExerciseRight}>
-                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.semiBold }]}>
+                                    <Text style={[styles.workoutExerciseBest, { color: currentTheme.colors.text + '80', fontWeight: '600' }]}>
                                       {exercise.bestSet}
                                     </Text>
                                     {exercise.isPR && (
@@ -937,7 +937,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               {lifts.length === 0 && (
                 <View style={styles.emptyState}>
                   <Ionicons name="barbell-outline" size={32} color={currentTheme.colors.text + '30'} />
-                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                     No lift data available yet
                   </Text>
                 </View>
