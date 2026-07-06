@@ -2,15 +2,12 @@
 // Strength Index with a re-livable record of each gym session: the latest workout
 // as a cinematic hero recap, past sessions as narrative moment cards. Every card
 // leads with meaning (a headline or the standout set), not a stat dump.
-import AnimatedBar from '@/components/AnimatedBar';
 import AnimatedCount from '@/components/AnimatedCount';
 import { Text } from '@/components/Themed';
-import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
-import { NextMilestone } from '@/lib/history/milestones';
 import { sessionIdentity } from '@/lib/history/sessionIdentity';
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -173,13 +170,12 @@ interface SessionsFeedProps {
   recaps: SessionRecap[];
   weightUnit: WeightUnit;
   visibleCount: number;
-  milestone?: NextMilestone | null;
   onPressSession: (w: GeneratedWorkout) => void;
   onToggleShowAll?: () => void;
   totalCount: number;
 }
 
-export default function SessionsFeed({ recaps, weightUnit, visibleCount, milestone, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
+export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
   if (recaps.length === 0) return null;
@@ -187,50 +183,8 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
   const posts = recaps.slice(0, Math.max(1, visibleCount));
   const hasMore = totalCount > visibleCount;
 
-  // The NEXT banner wears its goal lift's Push/Pull/Legs color end-to-end — dot,
-  // "X to go" and the filling bar — so color keeps meaning split everywhere and the
-  // banner stops sharing a hue with the plain "View all" actions. Primary is only
-  // the fallback when the lift maps to no split.
-  const milestoneColor = milestone?.split ? PPL_COLORS[milestone.split] : colors.primary;
-
   return (
     <RNView>
-      {/* Forward pull, in the Career card's NEXT grammar: the round/plate target the
-          lifter is closest to actually hitting (goal-gradient), with a filling track of
-          best-so-far vs target. Honest by construction — `current` is the real best
-          lifted weight, and the whole block disappears when nothing is within reach. */}
-      {milestone && (
-        <RNView style={[styles.milestone, { borderBottomColor: colors.text + '10' }]}>
-          <RNView style={styles.milestoneHead}>
-            <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>NEXT</Text>
-            <Text style={[styles.milestoneGap, { color: milestoneColor, fontFamily: fonts.semiBold }]}>
-              {milestone.gap} {milestone.unit} to go
-            </Text>
-          </RNView>
-          <RNView style={styles.milestoneRow}>
-            {/* The goal lift wears its split's dot — the same Push/Pull/Legs color the
-                session emblems below and the Career heatmap use, so the color reads. */}
-            {milestone.split && (
-              <RNView style={[styles.milestoneSplitDot, { backgroundColor: PPL_COLORS[milestone.split] }]} />
-            )}
-            <Text style={[styles.milestoneName, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-              {milestone.label}
-            </Text>
-            <Text style={[styles.milestoneCount, { color: colors.text + '99', fontFamily: fonts.semiBold }]}>
-              {milestone.current}/{milestone.target}
-            </Text>
-          </RNView>
-          <AnimatedBar
-            progress={milestone.current / milestone.target}
-            color={milestoneColor}
-            trackColor={colors.text + '15'}
-            height={5}
-            delay={150}
-            style={styles.milestoneBar}
-          />
-        </RNView>
-      )}
-
       {/* SESSIONS — the same uppercase micro-label header grammar the Career card
           (ACTIVITY, NEXT, ACHIEVEMENTS) uses, so History and Profile read as one system.
           No count meta here: the "View all N sessions" action below already states it. */}
@@ -282,14 +236,5 @@ const styles = StyleSheet.create({
   viewAllText: { fontSize: 14 },
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
   microLabel: { fontSize: 10, letterSpacing: 1 },
-  // NEXT milestone block — hairline divider separates it from the feed below.
-  milestone: { paddingTop: 14, paddingBottom: 14, marginBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth },
-  milestoneHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  milestoneGap: { fontSize: 11 },
-  milestoneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 5 },
-  milestoneSplitDot: { width: 9, height: 9, borderRadius: 3, marginRight: -3 },
-  milestoneName: { flex: 1, fontSize: 14, letterSpacing: -0.2 },
-  milestoneCount: { fontSize: 12 },
-  milestoneBar: { marginTop: 8 },
   feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
 });

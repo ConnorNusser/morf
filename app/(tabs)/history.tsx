@@ -5,7 +5,6 @@ import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
-import { nextMilestone } from '@/lib/history/milestones';
 import { buildLiftProgressions } from '@/lib/history/liftProgress';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
@@ -181,13 +180,6 @@ export default function HistoryScreen() {
     [exerciseStats]
   );
 
-  // The forward-pull milestone for the feed's NEXT block: the lift closest to its next
-  // round/plate target. Null (block hidden) when nothing is honestly within reach.
-  const milestone = useMemo(
-    () => nextMilestone(trackedExercises, weightUnit),
-    [trackedExercises, weightUnit]
-  );
-
   // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
@@ -308,15 +300,14 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* The top region is ONE instrument panel — the LIFTS board, the NEXT
-                milestone banner and the SESSIONS feed live on a single shared Card
-                (the exact Card grammar CareerSection sits on: variant="elevated",
-                padding 18), with hairline dividers fusing the sub-blocks instead of
-                two unframed sections floating on the page.
+            {/* The top region is ONE instrument panel — the LIFTS board and the
+                SESSIONS feed live on a single shared Card (the exact Card grammar
+                CareerSection sits on: variant="elevated", padding 18), with a
+                hairline divider fusing the sub-blocks instead of two unframed
+                sections floating on the page.
                 - LiftProgressWidget: a short RANKED board (top rows only, expander
-                  for the rest); its focal "+X to tier" tag is now tier-gap only, so
-                  the NEXT banner's plate-milestone fact is never stated twice.
-                - SessionsFeed: cinematic latest-session recap + past moment cards. */}
+                  for the rest); tier detail on each row's flip side.
+                - SessionsFeed: a uniform feed of session posts, newest first. */}
             {workouts.length > 0 && (
               <Card variant="elevated" padding={18}>
                 <LiftProgressWidget lifts={liftProgress} />
@@ -326,7 +317,6 @@ export default function HistoryScreen() {
                 <SessionsFeed
                   recaps={sessionRecaps}
                   weightUnit={weightUnit}
-                  milestone={milestone}
                   visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
                   totalCount={sessionRecaps.length}
                   onPressSession={setSelectedWorkout}
