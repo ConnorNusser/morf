@@ -60,23 +60,27 @@ function DeltaPill({ pct }: { pct: number }) {
   );
 }
 
-// ── the latest session, given the cinematic treatment ────────────────────────
-function SessionHero({ recap, weightUnit, onPress }: {
+// ── one session as a feed post — the SAME anatomy for every session, the way an
+// Instagram feed repeats one post shape. Header (avatar + name + timestamp), then
+// the content payload (the standout set as the "photo": headline, big number,
+// caption), then a quiet stat row (the likes-row analog). The newest post simply
+// comes first and gets the count-up; nothing else about it is special.
+function SessionPost({ recap, weightUnit, animate, onPress }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
+  animate: boolean;
   onPress: (w: GeneratedWorkout) => void;
 }) {
   const { currentTheme } = useTheme();
   const { colors, fonts } = currentTheme;
   const isPR = !!recap.pr;
-  // The trophy is reserved for MAJOR records so celebration stays rare and meaningful
-  // (badge spam reads as childish and de-motivating past a point). Standard PRs still
-  // earn the narrative headline, just not the icon.
+  // The trophy is reserved for MAJOR records so celebration stays rare and meaningful.
   const showTrophy = recap.pr?.tier === 'major';
   const id = sessionIdentity(recap.title, recap.muscles);
+
   // One statement per fact: when the headline already names the PR lift, the caption
   // only quantifies the record; it repeats the lift name only when the headline didn't.
-  const headline = recap.headline ?? (recap.standout ? recap.standout.name : recap.title);
+  const headline = recap.headline ?? (recap.standout ? shortHeroName(recap.standout.name) : null);
   const headlineNamesLift =
     !!recap.standout && !!recap.headline && recap.headline.includes(shortHeroName(recap.standout.name));
   const caption = !recap.standout
@@ -89,20 +93,29 @@ function SessionHero({ recap, weightUnit, onPress }: {
         ? recap.standout.name
         : 'top set';
 
+  const standoutValue = recap.standout
+    ? recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps
+    : null;
+
   return (
     <TouchableOpacity
       activeOpacity={0.7}
       onPress={() => onPress(recap.workout)}
-      style={styles.hero}
+      style={styles.post}
     >
-      {/* emblem + eyebrow. The emblem is the ONE split-color statement on the card;
-          the eyebrow text stays neutral so the hero doesn't say the same hue twice. */}
-      <RNView style={styles.heroEyebrow}>
+      {/* post header — avatar + stacked identity, the Instagram grammar: bold name
+          ("Leg Day"), quiet timestamp underneath. The emblem is the card's single
+          split-color statement. */}
+      <RNView style={styles.postHead}>
         <Emblem color={id.color} emblem={id.emblem} size={40} />
-        <Text style={[styles.eyebrowText, { color: colors.text + '70', fontFamily: fonts.semiBold }]} numberOfLines={1}>
-          {formatRelativeDate(recap.workout.createdAt).toUpperCase()}
-          {cleanTitle(recap.title) ? ` · ${cleanTitle(recap.title)}` : ''}
-        </Text>
+        <RNView style={styles.postIdentity}>
+          <Text style={[styles.postTitle, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+            {cleanTitle(recap.title) ?? 'Workout'}
+          </Text>
+          <Text style={[styles.postWhen, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+            {formatRelativeDate(recap.workout.createdAt)}
+          </Text>
+        </RNView>
         {showTrophy && (
           <RNView style={[styles.prChip, { backgroundColor: id.color }]}>
             <Ionicons name="trophy" size={10} color="#fff" />
@@ -111,25 +124,25 @@ function SessionHero({ recap, weightUnit, onPress }: {
         )}
       </RNView>
 
-      {/* the narrative hook — compact, one line, so the standout number below is the
-          hero's ONLY hero-scale element (Career's rule: scale is reserved for numbers) */}
-      <Text style={[styles.heroHeadline, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-        {headline}
-      </Text>
-
-      {/* the standout moment as a big, re-livable stat — the number counts up on entry,
-          the same AnimatedCount treatment as the Career hero percentile, and like that
-          hero it stays plain text color: scale carries the emphasis, not another hue.
-          (Tier context lives on the LIFTS board above — its badge and flip-back already
-          grade this lift, so the hero doesn't restate it.) */}
-      {recap.standout && (
-        <RNView style={styles.heroStandout}>
+      {/* content — the standout set is the post's "photo": narrative line, big number,
+          quiet caption. Plain text color; scale carries the emphasis (the Career rule). */}
+      {headline && (
+        <Text style={[styles.postHeadline, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
+          {headline}
+        </Text>
+      )}
+      {standoutValue != null && recap.standout && (
+        <RNView style={styles.postStandout}>
           <Text style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}>
-            <AnimatedCount
-              value={recap.standout.weight > 0 ? recap.standout.weight : recap.standout.reps}
-              duration={900}
-              style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
-            />
+            {animate ? (
+              <AnimatedCount
+                value={standoutValue}
+                duration={900}
+                style={[styles.standoutValue, { color: colors.text, fontFamily: fonts.bold }]}
+              />
+            ) : (
+              `${standoutValue}`
+            )}
             <Text style={[styles.standoutUnit, { color: colors.text + '70', fontFamily: fonts.medium }]}>
               {recap.standout.weight > 0 ? ` ${weightUnit} × ${recap.standout.reps}` : ' reps'}
             </Text>
@@ -142,94 +155,15 @@ function SessionHero({ recap, weightUnit, onPress }: {
         </RNView>
       )}
 
-      {/* effort footer — spread across the FULL width (not clumped left) so the hero uses
-          the whole card. The volume-vs-last-time delta now rides right next to the Volume
-          figure it actually describes, instead of floating as its own unlabeled line that
-          read as a second, disconnected comparison next to the PR gain above it. */}
-      <RNView style={[styles.heroFooter, { borderTopColor: colors.text + '10' }]}>
-        <FooterStat
-          label="Volume"
-          value={`${formatCompact(recap.volumeDisplay)} ${weightUnit}`}
-          deltaPct={recap.comparison?.deltaVolumePct}
-        />
-        <FooterStat label="Sets" value={`${recap.sets}`} />
-        <FooterStat label="Time" value={`${recap.durationMin}m`} />
-      </RNView>
-    </TouchableOpacity>
-  );
-}
-
-function FooterStat({ label, value, deltaPct }: { label: string; value: string; deltaPct?: number }) {
-  const { currentTheme } = useTheme();
-  return (
-    <RNView style={styles.footerStat}>
-      <RNView style={styles.footerValueRow}>
-        <Text style={[styles.footerValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{value}</Text>
-        {deltaPct != null && <DeltaPill pct={deltaPct} />}
-      </RNView>
-      <Text style={[styles.footerLabel, { color: currentTheme.colors.text + '55', fontFamily: currentTheme.fonts.regular }]}>{label}</Text>
-    </RNView>
-  );
-}
-
-// ── a past session as a compact moment card ──────────────────────────────────
-function MomentCard({ recap, weightUnit, onPress }: {
-  recap: SessionRecap;
-  weightUnit: WeightUnit;
-  onPress: (w: GeneratedWorkout) => void;
-}) {
-  const { currentTheme } = useTheme();
-  const { colors, fonts } = currentTheme;
-  const id = sessionIdentity(recap.title, recap.muscles);
-  const setText = recap.standout
-    ? recap.standout.weight > 0
-      ? `${recap.standout.weight} ${weightUnit} × ${recap.standout.reps}`
-      : `${recap.standout.reps} reps`
-    : null;
-  // ONE lead line per card: the headline with its set fused on ("Row PR · 160 lbs × 6"),
-  // or the plain standout when there's no narrative. The old separate headline +
-  // standout lines said the lift name twice and made every card four text rows deep.
-  const lead = recap.headline
-    ? setText
-      ? `${recap.headline} · ${setText}`
-      : recap.headline
-    : recap.standout && setText
-      ? `${shortHeroName(recap.standout.name)} · ${setText}`
-      : recap.title;
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.7}
-      onPress={() => onPress(recap.workout)}
-      style={[styles.moment, { borderBottomColor: colors.border }]}
-    >
-      {/* the split emblem gives the row a scannable, colour-coded identity */}
-      <Emblem color={id.color} emblem={id.emblem} size={38} />
-      <RNView style={styles.momentBody}>
-        <RNView style={styles.momentTop}>
-          <Text style={[styles.momentWhen, { color: colors.text + '70', fontFamily: fonts.medium }]} numberOfLines={1}>
-            {formatRelativeDate(recap.workout.createdAt)}
-            {cleanTitle(recap.title) ? ` · ${cleanTitle(recap.title)}` : ''}
-          </Text>
-          {recap.pr?.tier === 'major' && (
-            <RNView style={[styles.prDot, { backgroundColor: id.color }]}>
-              <Ionicons name="trophy" size={9} color="#fff" />
-            </RNView>
-          )}
-        </RNView>
-
-        <Text style={[styles.momentLead, { color: colors.text, fontFamily: fonts.semiBold }]} numberOfLines={1}>
-          {lead}
+      {/* stat row — the likes-row analog: one quiet line of session effort, with the
+          volume-vs-last delta riding right where a feed would put its counter. */}
+      <RNView style={styles.postStats}>
+        <Text style={[styles.postStatsText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
+          {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets · {recap.durationMin}m
         </Text>
-
-        <RNView style={styles.momentMeta}>
-          <Text style={[styles.momentMetaText, { color: colors.text + '60', fontFamily: fonts.regular }]} numberOfLines={1}>
-            {formatCompact(recap.volumeDisplay)} {weightUnit} · {recap.sets} sets
-          </Text>
-          {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
-            <DeltaPill pct={recap.comparison.deltaVolumePct} />
-          )}
-        </RNView>
+        {recap.comparison && recap.comparison.deltaVolumePct !== 0 && (
+          <DeltaPill pct={recap.comparison.deltaVolumePct} />
+        )}
       </RNView>
     </TouchableOpacity>
   );
@@ -250,8 +184,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
   const { colors, fonts } = currentTheme;
   if (recaps.length === 0) return null;
 
-  const [hero, ...rest] = recaps;
-  const moments = rest.slice(0, Math.max(0, visibleCount - 1));
+  const posts = recaps.slice(0, Math.max(1, visibleCount));
   const hasMore = totalCount > visibleCount;
 
   // The NEXT banner wears its goal lift's Push/Pull/Legs color end-to-end — dot,
@@ -304,14 +237,14 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
       <RNView style={styles.feedHead}>
         <Text style={[styles.microLabel, { color: colors.text + '73', fontFamily: fonts.bold }]}>SESSIONS</Text>
       </RNView>
-      <SessionHero recap={hero} weightUnit={weightUnit} onPress={onPressSession} />
-      {moments.length > 0 && (
-        <RNView style={styles.momentsList}>
-          {moments.map(r => (
-            <MomentCard key={r.workout.id} recap={r} weightUnit={weightUnit} onPress={onPressSession} />
-          ))}
+      {posts.map((r, i) => (
+        <RNView
+          key={r.workout.id}
+          style={i < posts.length - 1 ? [styles.postDivider, { borderBottomColor: colors.border }] : undefined}
+        >
+          <SessionPost recap={r} weightUnit={weightUnit} animate={i === 0} onPress={onPressSession} />
         </RNView>
-      )}
+      ))}
       {onToggleShowAll && (hasMore || visibleCount > 6) && (
         <TouchableOpacity style={styles.viewAll} onPress={onToggleShowAll} activeOpacity={0.7}>
           <Text style={[styles.viewAllText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
@@ -325,41 +258,26 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, milesto
 
 const styles = StyleSheet.create({
   emblem: { alignItems: 'center', justifyContent: 'center' },
-  // hero — a sub-block of the shared top panel; content separated by spacing and the
-  // footer rule. Vertical gaps are tightened toward Career's stat-row density.
-  hero: { paddingTop: 2, paddingBottom: 6, marginBottom: 4 },
-  heroEyebrow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  eyebrowText: { flex: 1, fontSize: 12, letterSpacing: 0.4 },
-  // ONE hero-scale element per screen: the headline sits at compact 16pt semiBold so
-  // only the 34pt tier-colored standout number reads as the hero (Career's rule —
-  // scale is reserved for numbers).
-  heroHeadline: { fontSize: 16, lineHeight: 21, letterSpacing: -0.2 },
-  heroStandout: { marginTop: 8 },
-  standoutValue: { fontSize: 34, letterSpacing: -1 },
-  standoutUnit: { fontSize: 18, letterSpacing: -0.3 },
+  // posts — one repeated anatomy, separated by hairlines like a feed. No box: the
+  // app's flat Card language IS the flat-post feed language.
+  post: { paddingVertical: 14 },
+  postDivider: { borderBottomWidth: StyleSheet.hairlineWidth },
+  postHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  postIdentity: { flex: 1, gap: 1 },
+  postTitle: { fontSize: 15, letterSpacing: -0.2 },
+  postWhen: { fontSize: 12 },
+  postHeadline: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 10 },
+  postStandout: { marginTop: 2 },
+  standoutValue: { fontSize: 28, letterSpacing: -0.8 },
+  standoutUnit: { fontSize: 16, letterSpacing: -0.3 },
   standoutName: { fontSize: 13, marginTop: 1 },
-  // space-between spreads the three stats across the FULL card width instead of
-  // clumping them on the left with empty space to the right.
-  heroFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
-  footerStat: {},
-  footerValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  footerValue: { fontSize: 15 },
-  footerLabel: { fontSize: 11, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.3 },
+  postStats: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 10 },
+  postStatsText: { flex: 1, fontSize: 12, lineHeight: 16 },
   // shared
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   deltaText: { fontSize: 13 },
   prChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 },
   prChipText: { fontSize: 10, letterSpacing: 0.5 },
-  // moments
-  momentsList: { marginTop: 8 },
-  moment: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
-  momentBody: { flex: 1 },
-  momentTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  momentWhen: { fontSize: 12, letterSpacing: 0.2 },
-  prDot: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  momentLead: { fontSize: 15, lineHeight: 20, letterSpacing: -0.2, marginTop: 4 },
-  momentMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 3, gap: 8 },
-  momentMetaText: { flex: 1, fontSize: 12, lineHeight: 16 },
   viewAll: { paddingVertical: 16, alignItems: 'center' },
   viewAllText: { fontSize: 14 },
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45%.
