@@ -366,30 +366,35 @@ export default function HomeScreen() {
             />
 
             <WeeklyGoalCard />
-            <TodayCard />
 
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => setShowLeaderboard(true)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[
-                  styles.actionButtonText,
-                  {
-                    color: currentTheme.colors.text,
-                    fontWeight: '500',
-                  },
-                ]}
+            {/* Leaderboards rides with the Today card — grouped so the page's
+                leftover slack never opens a band between them. */}
+            <View style={styles.todayGroup}>
+              <TodayCard />
+
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => setShowLeaderboard(true)}
+                activeOpacity={0.7}
               >
-                View Leaderboards
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={18}
-                color={currentTheme.colors.text + "60"}
-              />
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.actionButtonText,
+                    {
+                      color: currentTheme.colors.text,
+                      fontWeight: '500',
+                    },
+                  ]}
+                >
+                  View Leaderboards
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={currentTheme.colors.text + "60"}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Page 2 — strength summary: relative (percentile/tier) + absolute
@@ -496,6 +501,10 @@ const styles = StyleSheet.create({
   topPage: {
     justifyContent: "space-between",
     gap: 24,
+  },
+  // The action row's own 12 vertical padding supplies the visual gap.
+  todayGroup: {
+    gap: 4,
   },
   strengthPage: {
     justifyContent: "space-evenly",

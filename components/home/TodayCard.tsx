@@ -409,11 +409,14 @@ const styles = StyleSheet.create({
     fontSize: typeScale.heading,
     fontWeight: "700",
   },
+  // The routine name + pager arrows get clear air below them; the rows
+  // underneath stay in a tight list rhythm.
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     marginTop: -2,
+    marginBottom: 10,
   },
   navRow: {
     flexDirection: "row",
@@ -424,7 +427,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6,
   },
   pagerBtn: {
     width: 36,
@@ -452,11 +454,9 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
     opacity: 0.6,
   },
-  // Roomier list rhythm: this card anchors the home top page, which is sized
-  // to most of a viewport — the breathing room lives between its rows.
   exerciseList: {
-    marginTop: 20,
-    gap: 14,
+    marginTop: 12,
+    gap: 10,
   },
   exerciseRow: {
     flexDirection: "row",
