@@ -22,6 +22,8 @@ const TIERS: TotalTier[] = [
   { id: 'total-600', title: 'Rising Total', icon: 'barbell', rarity: 'rare', target: 600 },
   { id: 'total-1000', title: 'Thousand-Pound Club', icon: 'trophy', rarity: 'epic', target: 1000 },
   { id: 'total-1200', title: 'Twelve Hundred', icon: 'medal', rarity: 'legendary', target: 1200 },
+  { id: 'total-1500', title: 'Fifteen Hundred', icon: 'ribbon', rarity: 'legendary', target: 1500 },
+  { id: 'total-2000', title: 'Two Thousand', icon: 'planet', rarity: 'legendary', target: 2000 },
 ];
 
 // `prsLbs` must be in lbs (the total is an absolute, unit-specific milestone).

@@ -950,9 +950,10 @@ export class OneRMCalculator {
   static estimate(weight: number, reps: number): number {
     if (reps <= 1) return weight;
     // Rep-max formulas lose accuracy past ~15 reps, but refusing to estimate
-    // reported a 21-rep set's 1RM as the bar weight itself. Clamp the reps
-    // instead: a high-rep set credits at least the 15-rep estimate.
-    const r = Math.min(reps, 15);
+    // reported a 21-rep set's 1RM as the bar weight itself. Past 15, each rep
+    // counts a quarter (capped at an effective 20), so grinding out high-rep
+    // sets keeps nudging the estimate up without the formulas running away.
+    const r = reps <= 15 ? reps : Math.min(20, 15 + (reps - 15) * 0.25);
 
     const epley = this.epley(weight, r);
     const brzycki = this.brzycki(weight, r);

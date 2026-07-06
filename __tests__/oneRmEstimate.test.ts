@@ -13,8 +13,14 @@ describe('OneRMCalculator.estimate', () => {
     const at21 = OneRMCalculator.estimate(100, 21);
     // Regression: this used to return 100 — a 21-rep set scored like a single.
     expect(at21).toBeGreaterThan(100);
-    // Clamped at the 15-rep estimate: high-rep sets credit that, no more.
-    expect(at21).toBe(OneRMCalculator.estimate(100, 15));
+    // Quarter-credit continuation: more than the 15-rep estimate, but only a
+    // minimal step — never a formula runaway.
+    expect(at21).toBeGreaterThan(OneRMCalculator.estimate(100, 15));
+    expect(at21).toBeLessThan(OneRMCalculator.estimate(100, 15) * 1.1);
+  });
+
+  it('plateaus at an effective 20 reps so marathon sets cannot run away', () => {
+    expect(OneRMCalculator.estimate(100, 35)).toBe(OneRMCalculator.estimate(100, 60));
   });
 
   it('never decreases as reps rise', () => {
