@@ -463,8 +463,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderGoalStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 1</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>What&apos;s your goal?</Text>
+        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 1</Text>
+        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>What&apos;s your goal?</Text>
       </View>
 
       <View style={styles.goalGrid}>
@@ -478,8 +478,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             <View style={[styles.goalIcon, { backgroundColor: colors.accent + '15' }]}>
               <Ionicons name={goal.icon as any} size={22} color={colors.accent} />
             </View>
-            <Text style={[styles.goalTitle, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{goal.title}</Text>
-            <Text style={[styles.goalDesc, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{goal.desc}</Text>
+            <Text style={[styles.goalTitle, { color: colors.text, fontWeight: '600' }]}>{goal.title}</Text>
+            <Text style={[styles.goalDesc, { color: colors.textDim, fontWeight: '400' }]}>{goal.desc}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -489,9 +489,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderFocusStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 2</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Focus or skip any areas?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 2</Text>
+        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>Focus or skip any areas?</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>
           Tap once to focus, tap again to skip, tap again to reset
         </Text>
       </View>
@@ -500,11 +500,11 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={styles.bodyAreaLegend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
-          <Text style={[styles.legendText, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Focus</Text>
+          <Text style={[styles.legendText, { color: colors.textDim, fontWeight: '400' }]}>Focus</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#EF4444' }]} />
-          <Text style={[styles.legendText, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>Skip</Text>
+          <Text style={[styles.legendText, { color: colors.textDim, fontWeight: '400' }]}>Skip</Text>
         </View>
       </View>
 
@@ -528,7 +528,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
               <Text
                 style={[
                   styles.bodyAreaLabel,
-                  { color: colors.text, fontFamily: currentTheme.fonts.medium },
+                  { color: colors.text, fontWeight: '500' },
                   isFocused && { color: colors.success },
                   isIgnored && { color: '#EF4444' },
                 ]}
@@ -546,12 +546,12 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       {(selectedFocus.length > 0 || ignoredMuscles.length > 0) && (
         <View style={[styles.bodyAreaSummary, { backgroundColor: colors.surface }]}>
           {selectedFocus.length > 0 && (
-            <Text style={[styles.bodyAreaSummaryText, { color: colors.success, fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.bodyAreaSummaryText, { color: colors.success, fontWeight: '500' }]}>
               Focusing: {selectedFocus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
             </Text>
           )}
           {ignoredMuscles.length > 0 && (
-            <Text style={[styles.bodyAreaSummaryText, { color: '#EF4444', fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.bodyAreaSummaryText, { color: '#EF4444', fontWeight: '500' }]}>
               Skipping: {ignoredMuscles.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ')}
             </Text>
           )}
@@ -564,7 +564,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           onPress={handleFocusContinue}
           activeOpacity={0.8}
         >
-          <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>
             {selectedFocus.length > 0 || ignoredMuscles.length > 0 ? 'Continue' : 'Skip'}
           </Text>
           <Ionicons name="arrow-forward" size={18} color={colors.bg} />
@@ -576,9 +576,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderExperienceStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 3</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Training experience?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This helps us design appropriate volume and intensity</Text>
+        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 3</Text>
+        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>Training experience?</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>This helps us design appropriate volume and intensity</Text>
       </View>
 
       <View style={styles.experienceList}>
@@ -590,8 +590,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             activeOpacity={0.7}
           >
             <View style={styles.experienceContent}>
-              <Text style={[styles.experienceTitle, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{option.title}</Text>
-              <Text style={[styles.experienceDesc, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{option.desc}</Text>
+              <Text style={[styles.experienceTitle, { color: colors.text, fontWeight: '600' }]}>{option.title}</Text>
+              <Text style={[styles.experienceDesc, { color: colors.textDim, fontWeight: '400' }]}>{option.desc}</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
@@ -603,9 +603,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderDaysStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 4</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How many days per week?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>We&apos;ll design the optimal split for your schedule</Text>
+        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 4</Text>
+        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>How many days per week?</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>We&apos;ll design the optimal split for your schedule</Text>
       </View>
 
       <View style={styles.daysGrid}>
@@ -616,8 +616,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             onPress={() => handleDaysSelect(days)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.dayNumber, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{days}</Text>
-            <Text style={[styles.dayLabel, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>days</Text>
+            <Text style={[styles.dayNumber, { color: colors.text, fontWeight: '700' }]}>{days}</Text>
+            <Text style={[styles.dayLabel, { color: colors.textDim, fontWeight: '400' }]}>days</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -627,9 +627,9 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const renderDurationStep = () => (
     <Animated.View style={[styles.stepContent, { opacity: fadeAnim }]}>
       <View style={styles.titleBlock}>
-        <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 5</Text>
-        <Text style={[styles.title, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>How long per workout?</Text>
-        <Text style={[styles.subtitle, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>This determines how many exercises we&apos;ll include</Text>
+        <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 5</Text>
+        <Text style={[styles.title, { color: colors.text, fontWeight: '700' }]}>How long per workout?</Text>
+        <Text style={[styles.subtitle, { color: colors.textDim, fontWeight: '400' }]}>This determines how many exercises we&apos;ll include</Text>
       </View>
 
       <View style={styles.durationGrid}>
@@ -640,8 +640,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             onPress={() => handleDurationSelect(option.id)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.durationLabel, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>{option.label}</Text>
-            <Text style={[styles.durationExercises, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{option.exercises}</Text>
+            <Text style={[styles.durationLabel, { color: colors.text, fontWeight: '700' }]}>{option.label}</Text>
+            <Text style={[styles.durationExercises, { color: colors.textDim, fontWeight: '400' }]}>{option.exercises}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -667,7 +667,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           <Text
             style={[
               styles.exerciseName,
-              { color: colors.text, fontFamily: currentTheme.fonts.medium },
+              { color: colors.text, fontWeight: '500' },
               isIncluded && { color: colors.success },
               isExcluded && { color: '#EF4444' },
             ]}
@@ -675,7 +675,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           >
             {item.name}
           </Text>
-          <Text style={[styles.exerciseMuscle, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.exerciseMuscle, { color: colors.textMuted, fontWeight: '400' }]}>
             {item.muscleGroup}
           </Text>
         </View>
@@ -700,7 +700,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
   // Cycling hint, rendered above the exercise list.
   const renderExercisesHeader = () => (
-    <Text style={[styles.exercisesHint, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>
+    <Text style={[styles.exercisesHint, { color: colors.textMuted, fontWeight: '400' }]}>
       Optionally pick exercises — tap to cycle: include → exclude → reset
     </Text>
   );
@@ -710,13 +710,13 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       {/* Compact header */}
       <View style={styles.exercisesHeader}>
         <View>
-          <Text style={[styles.stepLabel, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>STEP 6</Text>
-          <Text style={[styles.exercisesTitle, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>Exercise preferences</Text>
+          <Text style={[styles.stepLabel, { color: colors.accent, fontWeight: '600' }]}>STEP 6</Text>
+          <Text style={[styles.exercisesTitle, { color: colors.text, fontWeight: '700' }]}>Exercise preferences</Text>
         </View>
         {(includedExercises.length > 0 || excludedExercises.length > 0) && (
           <View style={[styles.selectionPill, { backgroundColor: colors.surface }]}>
             {includedExercises.length > 0 && (
-              <Text style={[styles.pillText, { color: colors.success, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.pillText, { color: colors.success, fontWeight: '600' }]}>
                 +{includedExercises.length}
               </Text>
             )}
@@ -724,7 +724,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
               <Text style={[styles.pillDivider, { color: colors.textMuted }]}>/</Text>
             )}
             {excludedExercises.length > 0 && (
-              <Text style={[styles.pillText, { color: '#EF4444', fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.pillText, { color: '#EF4444', fontWeight: '600' }]}>
                 -{excludedExercises.length}
               </Text>
             )}
@@ -737,7 +737,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
           <Ionicons name="search" size={16} color={colors.textMuted} />
           <TextInput
-            style={[styles.exerciseSearchInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
+            style={[styles.exerciseSearchInput, { color: colors.text, fontWeight: '400' }]}
             placeholder="Search..."
             placeholderTextColor={colors.textMuted}
             value={exerciseSearchQuery}
@@ -798,7 +798,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           onPress={handleExercisesContinue}
           activeOpacity={0.8}
         >
-          <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>
             Generate Routine
           </Text>
         </TouchableOpacity>
@@ -811,8 +811,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <Animated.View style={[styles.loadingCircle, { backgroundColor: colors.surface, borderColor: colors.accent + '30', transform: [{ scale: pulseAnim }] }]}>
         <ActivityIndicator size="large" color={colors.accent} />
       </Animated.View>
-      <Text style={[styles.loadingLabel, { color: colors.accent, fontFamily: currentTheme.fonts.bold }]}>GENERATING</Text>
-      <Text style={[styles.loadingMessage, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{statusMessage}</Text>
+      <Text style={[styles.loadingLabel, { color: colors.accent, fontWeight: '700' }]}>GENERATING</Text>
+      <Text style={[styles.loadingMessage, { color: colors.textDim, fontWeight: '400' }]}>{statusMessage}</Text>
     </View>
   );
 
@@ -828,10 +828,10 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <Text style={[styles.previewProgramName, { color: colors.text, fontFamily: currentTheme.fonts.bold }]}>
+        <Text style={[styles.previewProgramName, { color: colors.text, fontWeight: '700' }]}>
           {generatedProgram?.programName}
         </Text>
-        <Text style={[styles.previewMeta, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.previewMeta, { color: colors.textDim, fontWeight: '400' }]}>
           {generatedProgram?.routines.length} days/week · {generatedProgram?.trainingGoal}
         </Text>
 
@@ -842,7 +842,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             activeOpacity={0.7}
           >
             <Ionicons name="document-text-outline" size={13} color={colors.accent} />
-            <Text style={[styles.sourceText, { color: colors.accent, fontFamily: currentTheme.fonts.medium }]} numberOfLines={1}>
+            <Text style={[styles.sourceText, { color: colors.accent, fontWeight: '500' }]} numberOfLines={1}>
               Based on {generatedProgram.source.program}
             </Text>
             <Ionicons name="open-outline" size={12} color={colors.accent} />
@@ -852,7 +852,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {isRefining && (
           <View style={[styles.updatingRow, { backgroundColor: colors.accent + '12' }]}>
             <ActivityIndicator size="small" color={colors.accent} />
-            <Text style={[styles.updatingText, { color: colors.accent, fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.updatingText, { color: colors.accent, fontWeight: '500' }]}>
               Updating your program…
             </Text>
           </View>
@@ -862,27 +862,27 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           {generatedProgram?.routines.map((day) => (
             <View key={day.dayNumber} style={[styles.previewDayCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <View style={styles.dayCardHeader}>
-                <Text style={[styles.dayName, { color: colors.text, fontFamily: currentTheme.fonts.semiBold }]}>{day.name}</Text>
+                <Text style={[styles.dayName, { color: colors.text, fontWeight: '600' }]}>{day.name}</Text>
                 {!!day.estimatedTime && (
-                  <Text style={[styles.dayTime, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]}>{day.estimatedTime}</Text>
+                  <Text style={[styles.dayTime, { color: colors.textMuted, fontWeight: '400' }]}>{day.estimatedTime}</Text>
                 )}
               </View>
               {!!day.focus && (
-                <Text style={[styles.dayFocus, { color: colors.textDim, fontFamily: currentTheme.fonts.regular }]}>{day.focus}</Text>
+                <Text style={[styles.dayFocus, { color: colors.textDim, fontWeight: '400' }]}>{day.focus}</Text>
               )}
               {day.exercises.map((ex, i) => (
                 <View key={`${day.dayNumber}-${i}`} style={[styles.exerciseLine, { borderTopColor: colors.border }]}>
                   <View style={styles.exerciseLineMain}>
-                    <Text style={[styles.exerciseLineName, { color: colors.text, fontFamily: currentTheme.fonts.regular }]} numberOfLines={2}>
+                    <Text style={[styles.exerciseLineName, { color: colors.text, fontWeight: '400' }]} numberOfLines={2}>
                       {ex.name}
                     </Text>
                     {!!ex.notes && (
-                      <Text style={[styles.exerciseNote, { color: colors.textMuted, fontFamily: currentTheme.fonts.regular }]} numberOfLines={2}>
+                      <Text style={[styles.exerciseNote, { color: colors.textMuted, fontWeight: '400' }]} numberOfLines={2}>
                         {ex.notes}
                       </Text>
                     )}
                   </View>
-                  <Text style={[styles.exerciseLineScheme, { color: colors.accent, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.exerciseLineScheme, { color: colors.accent, fontWeight: '600' }]}>
                     {ex.sets} × {ex.reps}
                   </Text>
                 </View>
@@ -893,7 +893,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
         <TouchableOpacity onPress={handleRegenerate} style={styles.regenBtn} activeOpacity={0.7} disabled={isRefining}>
           <Ionicons name="refresh" size={15} color={colors.textDim} />
-          <Text style={[styles.regenText, { color: colors.textDim, fontFamily: currentTheme.fonts.medium }]}>Regenerate from scratch</Text>
+          <Text style={[styles.regenText, { color: colors.textDim, fontWeight: '500' }]}>Regenerate from scratch</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -901,7 +901,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       <View style={[styles.previewBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <View style={[styles.refineRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
-            style={[styles.refineInput, { color: colors.text, fontFamily: currentTheme.fonts.regular }]}
+            style={[styles.refineInput, { color: colors.text, fontWeight: '400' }]}
             placeholder="Tell the coach what to change…"
             placeholderTextColor={colors.textMuted}
             value={refineInstruction}
@@ -937,7 +937,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             : (
               <>
                 <Ionicons name="checkmark" size={18} color={colors.bg} />
-                <Text style={[styles.primaryBtnText, { color: colors.bg, fontFamily: currentTheme.fonts.semiBold }]}>Save Program</Text>
+                <Text style={[styles.primaryBtnText, { color: colors.bg, fontWeight: '600' }]}>Save Program</Text>
               </>
             )}
         </TouchableOpacity>

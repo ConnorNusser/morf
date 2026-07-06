@@ -235,11 +235,9 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
       <Card variant="elevated" style={styles.container}>
         {/* Header — one label, matching the This Week card's single-title restraint. */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-            Muscle Balance
-          </Text>
+          <Text style={[styles.title, { color: currentTheme.colors.text }]}>MUSCLE BALANCE</Text>
           {state !== 'building' && (
-            <Text style={[styles.subtitle, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.subtitle, { color: currentTheme.colors.text }]}>
               SETS/WK · LAST {activeWeeks} WK
             </Text>
           )}
@@ -256,11 +254,11 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
           <View style={styles.verdictLeft}>
             <Ionicons name={icon} size={16} color={headlineColor} />
             <View style={styles.verdictText}>
-              <Text style={[styles.verdict, { color: headlineColor, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+              <Text style={[styles.verdict, { color: headlineColor, fontWeight: '600' }]} numberOfLines={1}>
                 {headline}
               </Text>
               {evidence && (
-                <Text style={[styles.evidence, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]} numberOfLines={1}>
+                <Text style={[styles.evidence, { color: currentTheme.colors.text + '99', fontWeight: '400' }]} numberOfLines={1}>
                   {evidence}
                 </Text>
               )}
@@ -299,7 +297,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
                 onPress={handleRowPress}
               />
             ))}
-            <Text style={[styles.footnote, { color: currentTheme.colors.text + '4D', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.footnote, { color: currentTheme.colors.text + '4D', fontWeight: '400' }]}>
               Average completed sets per training week, each muscle vs your most-trained group.
             </Text>
           </View>
@@ -318,7 +316,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
             <TouchableOpacity onPress={() => setSelected(null)} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={currentTheme.colors.text} />
             </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.modalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {selected ? MUSCLE_LABEL[selected.muscle] : ''}
             </Text>
             <View style={styles.closeButton} />
@@ -327,7 +325,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
           <ScrollView style={styles.modalContent} contentContainerStyle={styles.modalContentContainer}>
             {selected && (
               <>
-                <Text style={[styles.modalMeta, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.modalMeta, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   {fmtAvg(selected.avgSets)} over your last {activeWeeks} training week{activeWeeks !== 1 ? 's' : ''}
                 </Text>
                 <View style={styles.exerciseList}>
@@ -335,11 +333,11 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
                     .sort((a, b) => b.count - a.count)
                     .map((ex, i) => (
                       <View key={ex.id + i} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
-                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                           {ex.name}
                         </Text>
                         <View style={[styles.exerciseCountBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                          <Text style={[styles.exerciseCountText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.exerciseCountText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                             {ex.count}x
                           </Text>
                         </View>
@@ -373,13 +371,13 @@ function BalanceBar({ row, scaleMax, color, theme, onPress }: BalanceBarProps) {
       disabled={!tappable}
       onPress={() => onPress(row)}
     >
-      <Text style={[styles.barName, { color: theme.colors.text + (row.avgSets > 0 ? 'CC' : '80'), fontFamily: theme.fonts.medium }]}>
+      <Text style={[styles.barName, { color: theme.colors.text + (row.avgSets > 0 ? 'CC' : '80'), fontWeight: '500' }]}>
         {MUSCLE_LABEL[row.muscle]}
       </Text>
       <View style={[styles.barTrack, { backgroundColor: theme.colors.text + '12' }]}>
         {fillPct > 0 && <View style={[styles.barFill, { width: `${fillPct}%`, backgroundColor: color }]} />}
       </View>
-      <Text style={[styles.barValue, { color: theme.colors.text, fontFamily: theme.fonts.semiBold }]}>
+      <Text style={[styles.barValue, { color: theme.colors.text, fontWeight: '600' }]}>
         {fmtAvg(row.avgSets)}
       </Text>
     </TouchableOpacity>
@@ -397,14 +395,16 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: {
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.2,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
   },
   subtitle: {
     fontSize: 11,
     lineHeight: 15,
     letterSpacing: 0.4,
+    opacity: 0.5,
   },
   verdictRow: {
     flexDirection: 'row',

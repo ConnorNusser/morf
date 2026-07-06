@@ -73,10 +73,10 @@ export default function CustomNumberKeyboard({
     if (key === 'backspace') {
       keyContent = <Ionicons name="backspace-outline" size={24} color={currentTheme.colors.text} />;
     } else if (key === 'done') {
-      keyContent = <Text style={[styles.keyText, { color: '#FFFFFF', fontFamily: currentTheme.fonts.semiBold }]}>Done</Text>;
+      keyContent = <Text style={[styles.keyText, { color: '#FFFFFF', fontWeight: '600' }]}>Done</Text>;
       onPress = onDone;
     } else {
-      keyContent = <Text style={[styles.keyText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>{key}</Text>;
+      keyContent = <Text style={[styles.keyText, { color: currentTheme.colors.text, fontWeight: '500' }]}>{key}</Text>;
     }
 
     return (
@@ -115,12 +115,12 @@ export default function CustomNumberKeyboard({
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onCancel} style={styles.cancelButtonContainer}>
-              <Text style={[styles.cancelButton, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.cancelButton, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                 Cancel
               </Text>
             </TouchableOpacity>
             
-            <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               {title}
             </Text>
             

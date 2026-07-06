@@ -109,11 +109,8 @@ export default function WeeklyGoalCard() {
   return (
     <>
     <TouchableOpacity
-      style={[
-        styles.card,
-        { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
-      ]}
-      activeOpacity={0.85}
+      style={styles.card}
+      activeOpacity={0.7}
       onPress={() => setOverviewOpen(true)}
     >
       <View style={styles.header}>
@@ -189,7 +186,7 @@ export default function WeeklyGoalCard() {
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setPicking(false)}>
           <TouchableOpacity activeOpacity={1} style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.sheetTitle, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>
@@ -212,7 +209,7 @@ export default function WeeklyGoalCard() {
                       styles.option,
                       selected
                         ? { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }
-                        : { backgroundColor: 'transparent', borderColor: currentTheme.colors.border },
+                        : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border },
                     ]}
                   >
                     <Text
@@ -220,7 +217,7 @@ export default function WeeklyGoalCard() {
                         styles.optionText,
                         {
                           color: selected ? currentTheme.colors.surface : currentTheme.colors.text,
-                          fontFamily: currentTheme.fonts.semiBold,
+                          fontWeight: '600',
                         },
                       ]}
                     >
@@ -238,17 +235,17 @@ export default function WeeklyGoalCard() {
 }
 
 const styles = StyleSheet.create({
+  // Flat: no surface/border/radius — reads as inline content and saves the card's
+  // padding + chrome height.
   card: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
     fontSize: 15,
@@ -284,8 +281,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 12,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   loadText: {

@@ -19,7 +19,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
 import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { convertWeight, UserProfile, UserProgress, WeightUnit, WorkoutTemplate } from '@/types';
+import { convertWeight, UserProfile, UserProgress, WeightUnit } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -81,7 +81,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [parsedWorkout, setParsedWorkout] = useState<ParsedWorkout | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [templateSaved, setTemplateSaved] = useState(false);
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
@@ -92,7 +91,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
-      setTemplateSaved(false);
       setSessionRewards(null);
 
       const parseWorkout = async () => {
@@ -188,39 +186,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     onComplete?.();
   }, [onComplete, playTap]);
 
-  // Handle save as template
-  const handleSaveAsTemplate = useCallback(async () => {
-    if (templateSaved) return;
-
-    playTap();
-    playHapticFeedback('medium', false);
-
-    // Generate a name based on date and exercises
-    const date = new Date();
-    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const exerciseNames = parsedWorkout?.exercises.slice(0, 2).map(e => {
-      const info = e.matchedExerciseId ? getWorkoutById(e.matchedExerciseId) : null;
-      return info?.name || e.name;
-    }).join(', ') || 'Workout';
-    const suffix = (parsedWorkout?.exercises.length || 0) > 2 ? '...' : '';
-
-    const template: WorkoutTemplate = {
-      id: `template_${Date.now()}`,
-      name: `${exerciseNames}${suffix} - ${dateStr}`,
-      noteText: noteText,
-      createdAt: new Date(),
-    };
-
-    try {
-      await storageService.saveWorkoutTemplate(template);
-      setTemplateSaved(true);
-      playSuccess();
-    } catch (err) {
-      console.error('Error saving template:', err);
-      playHapticFeedback('error', false);
-    }
-  }, [templateSaved, parsedWorkout, noteText, playTap, playSuccess]);
-
   // Get the exercises to display
   const displayExercises = useMemo(() => {
     return parsedWorkout?.exercises || [];
@@ -314,19 +279,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         color={currentTheme.colors.primary}
         style={styles.loadingIndicator}
       />
-      <Text style={[styles.parsingText, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]}>
+      <Text style={[styles.parsingText, { color: '#fff', fontWeight: '600' }]}>
         Analyzing your workout...
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: '#FF6B6B', fontFamily: currentTheme.fonts.medium }]}>
+          <Text style={[styles.errorText, { color: '#FF6B6B', fontWeight: '500' }]}>
             {error}
           </Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: currentTheme.colors.primary }]}
             onPress={onCancel}
           >
-            <Text style={[styles.retryButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.retryButtonText, { fontWeight: '600' }]}>
               Go Back
             </Text>
           </TouchableOpacity>
@@ -347,11 +312,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.headerLogoText, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               morf
             </Text>
           </View>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {''}
           </Text>
           <IconButton icon="close" onPress={handleCancel} variant="surface" />
@@ -363,19 +328,19 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.durationStr || '--'}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Duration
                   </Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.exercises}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Exercises
                   </Text>
                 </View>
@@ -383,10 +348,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                  <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                     {stats.sets}
                   </Text>
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Sets
                   </Text>
                 </View>
@@ -395,11 +360,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   {overallTierInfo ? (
                     <TierBadge tier={overallTierInfo.tier} size="medium" variant="text" />
                   ) : (
-                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       --
                     </Text>
                   )}
-                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                     Overall Tier
                   </Text>
                 </View>
@@ -413,10 +378,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     {stats.totalDistanceMeters > 0 && (
                       <>
                         <View style={styles.statItem}>
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                             {formatDistance(stats.totalDistanceMeters)}
                           </Text>
-                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                          <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                             Distance
                           </Text>
                         </View>
@@ -427,10 +392,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                     )}
                     {stats.totalCardioDurationSeconds > 0 && (
                       <View style={styles.statItem}>
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                           {formatDuration(stats.totalCardioDurationSeconds)}
                         </Text>
-                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
                           Cardio Time
                         </Text>
                       </View>
@@ -463,11 +428,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   >
                     <View style={styles.exerciseHeader}>
                       <View style={styles.exerciseNameContainer}>
-                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                           {exerciseInfo?.name || exercise.name}
                         </Text>
                         {best1RM > 0 && (
-                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.estimated1RM, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                             ~{Math.round(best1RM)} {weightUnit} 1RM
                           </Text>
                         )}
@@ -488,10 +453,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                         <View style={styles.setsSection}>
                           {exercise.sets.map((set, setIndex) => (
                             <View key={setIndex} style={styles.setRow}>
-                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.setNumber, { color: currentTheme.colors.text + '60', fontWeight: '500' }]}>
                                 Set {setIndex + 1}
                               </Text>
-                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.setDetails, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                                 {formatSet(set, { trackingType: exercise.trackingType, showUnit: true })}
                               </Text>
                             </View>
@@ -532,8 +497,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       userLifts={userLifts}
       userProfile={userProfile}
       weightUnit={weightUnit}
-      templateSaved={templateSaved}
-      onSaveAsTemplate={handleSaveAsTemplate}
       onDone={handleDone}
       isSmallScreen={isSmallScreen}
       rewards={sessionRewards}

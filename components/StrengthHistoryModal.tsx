@@ -158,7 +158,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {headerTitle}
           </Text>
           <IconButton icon="close" onPress={onClose} />
@@ -168,7 +168,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
           {/* Current Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: tierColor, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: tierColor, fontWeight: '700' }]}>
                 {currentPercentile}
               </Text>
               <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60' }]}>
@@ -177,7 +177,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: changeColor, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: changeColor, fontWeight: '700' }]}>
                 {change > 0 ? '+' : ''}{change}
               </Text>
               <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60' }]}>
@@ -186,7 +186,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: overallChange >= 0 ? '#22C55E' : '#EF4444', fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: overallChange >= 0 ? '#22C55E' : '#EF4444', fontWeight: '700' }]}>
                 {overallChange > 0 ? '+' : ''}{overallChange}
               </Text>
               <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60' }]}>
@@ -341,7 +341,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
               {selectedCategory ? (
                 <>
                   <View style={styles.sectionHeader}>
-                    <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                    <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       Muscles
                     </Text>
                     <TouchableOpacity
@@ -378,7 +378,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                               style={[styles.progressFill, { width: `${musclePercentile}%`, backgroundColor: muscleTierColor }]}
                             />
                           </View>
-                          <Text style={[styles.categoryValue, { color: muscleTierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.categoryValue, { color: muscleTierColor, fontWeight: '600' }]}>
                             {musclePercentile}
                           </Text>
                         </View>
@@ -388,7 +388,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                 </>
               ) : (
                 <>
-                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold, marginBottom: 12 }]}>
+                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600', marginBottom: 12 }]}>
                     By Category
                   </Text>
                   {Object.entries(MUSCLE_CATEGORIES).map(([key, category]) => {
@@ -413,7 +413,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                               style={[styles.progressFill, { width: `${categoryPercentile}%`, backgroundColor: catTierColor }]}
                             />
                           </View>
-                          <Text style={[styles.categoryValue, { color: catTierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.categoryValue, { color: catTierColor, fontWeight: '600' }]}>
                             {categoryPercentile}
                           </Text>
                           <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '40'} />
@@ -451,7 +451,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                       ]}
                     >
                       <View style={styles.historyLeft}>
-                        <Text style={[styles.historyDate, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                        <Text style={[styles.historyDate, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                           {formatDateLong(entry.date)}
                         </Text>
                         {!selectedCategory && entry.muscleGroups && (
@@ -468,7 +468,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                         )}
                       </View>
                       <View style={styles.historyRight}>
-                        <Text style={[styles.historyValue, { color: entryTierColor, fontFamily: currentTheme.fonts.bold }]}>
+                        <Text style={[styles.historyValue, { color: entryTierColor, fontWeight: '700' }]}>
                           {currentPct}
                         </Text>
                         {entryChange !== 0 && (

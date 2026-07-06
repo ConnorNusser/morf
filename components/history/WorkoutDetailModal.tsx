@@ -193,7 +193,7 @@ export default function WorkoutDetailModal({
               color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
             />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Workout
           </Text>
           <TouchableOpacity
@@ -213,10 +213,10 @@ export default function WorkoutDetailModal({
             >
               {/* Hero section with title */}
               <View style={styles.hero}>
-                <Text style={[styles.title, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                   {workout.title}
                 </Text>
-                <Text style={[styles.date, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.date, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   {formatFullDate(workout.createdAt)}
                 </Text>
               </View>
@@ -227,13 +227,13 @@ export default function WorkoutDetailModal({
                   <View style={styles.prChipsRow}>
                     {prs.map(pr => (
                       <View key={pr.id} style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-                        <Text style={[styles.prChipText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.prChipText, { fontWeight: '600' }]}>
                           {pr.name}
                         </Text>
                       </View>
                     ))}
                   </View>
-                  <Text style={[styles.prLabel, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.prLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                     Personal Records
                   </Text>
                 </View>
@@ -241,7 +241,7 @@ export default function WorkoutDetailModal({
 
               {/* Summary stats - horizontal inline */}
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   {workout.estimatedDuration > 0 ? `${formatMinutes(workout.estimatedDuration)} · ` : ''}{statsLine}
                 </Text>
               </View>
@@ -260,19 +260,19 @@ export default function WorkoutDetailModal({
                     <View key={idx} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
                       <View style={styles.exerciseHeader}>
                         <View style={styles.exerciseNameRow}>
-                          <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                             {name}
                           </Text>
                           {isPR && (
                             <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                              <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                              <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                                 PR
                               </Text>
                             </View>
                           )}
                         </View>
                         {bestE1RM && (
-                          <Text style={[styles.exerciseBest, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                          <Text style={[styles.exerciseBest, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                             e1RM: {bestE1RM.e1rm} {weightUnit}
                           </Text>
                         )}
@@ -285,7 +285,7 @@ export default function WorkoutDetailModal({
 
                           return (
                             <View key={setIdx} style={styles.setPill}>
-                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                                 {formatSet(
                                   { weight: displayWeight, reps: set.reps, unit: weightUnit, duration: set.duration, distance: set.distance },
                                   { trackingType, compact: true }
@@ -307,7 +307,7 @@ export default function WorkoutDetailModal({
                 onPress={handleDelete}
                 style={styles.deleteButton}
               >
-                <Text style={[styles.deleteButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.deleteButtonText, { fontWeight: '600' }]}>
                   Delete Workout
                 </Text>
               </TouchableOpacity>

@@ -1,9 +1,11 @@
+import Card from '@/components/Card';
 import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
+import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
-import { nextMilestone } from '@/lib/history/milestones';
+import { buildLiftProgressions } from '@/lib/history/liftProgress';
 import TopMovers from '@/components/history/TopMovers';
 import { buildPRDays } from '@/components/history/prSessions';
 import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
@@ -137,73 +139,39 @@ export default function HistoryScreen() {
 
   // The reflective session feed: each workout enriched with its standout set, the
   // day's record, a narrative headline, muscles worked, and how its volume stacks up
-  // against the last session of the same kind. Newest first.
+  // against the last session of the same kind. Newest first. When the profile can
+  // support honest grading (bodyweight + gender), the standout set also carries its
+  // strength tier + gap-to-next-tier — the same gradeE1rm path the lift board uses.
+  const gender = userProfile?.gender;
+  const age = userProfile?.age;
   const sessionRecaps = useMemo(
-    () => buildSessionRecaps(workouts, customExercises, weightUnit),
-    [workouts, customExercises, weightUnit]
+    () =>
+      buildSessionRecaps(
+        workouts,
+        customExercises,
+        weightUnit,
+        bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
+      ),
+    [workouts, customExercises, weightUnit, bodyweightLbs, gender, age]
   );
 
-  // The nearest round/plate target across the user's lifts — a forward pull atop the
-  // reflective feed (goal-gradient). Computed from the same tracked stats as the rest
-  // of the tab, so it can only appear once a lift is genuinely close.
-  const milestone = useMemo(
-    () => nextMilestone(exerciseStats, weightUnit),
-    [exerciseStats, weightUnit]
+  // Per-lift progression widget: best set per month for the lifts you've trained,
+  // RANKED by tier proximity × recent movement (the widget shows the top few and
+  // holds the rest behind an "All N lifts" expander). When the profile can support
+  // honest grading (bodyweight + gender), each standard lift also carries its
+  // CURRENT strength tier + progress-to-next-tier — the same percentile model Records
+  // below and the Career card already use.
+  const liftProgress = useMemo(
+    () =>
+      buildLiftProgressions(
+        workouts,
+        exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
+        weightUnit,
+        4,
+        bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
+      ),
+    [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]
   );
-
-  // Calculate quick stats
-  const quickStats = useMemo(() => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // This month's workouts
-    const thisMonthWorkouts = workouts.filter(w => new Date(w.createdAt) >= startOfMonth);
-
-    // Calculate streak as consecutive WEEKS with at least one workout. A day-based
-    // streak is meaningless for lifting, where rest days are mandatory — a normal
-    // 3x/week program would never exceed a 1-day streak. Weeks start Sunday, matching
-    // startOfWeek above.
-    let streak = 0;
-    // The Sunday (midnight) that starts the week containing `d`.
-    const weekStartOf = (d: Date) => {
-      const s = new Date(d);
-      s.setHours(0, 0, 0, 0);
-      s.setDate(s.getDate() - s.getDay());
-      return s;
-    };
-    const weekKey = (d: Date) => {
-      const s = weekStartOf(d);
-      return `${s.getFullYear()}-${s.getMonth()}-${s.getDate()}`;
-    };
-
-    if (workouts.length > 0) {
-      const workoutWeeks = new Set<string>();
-      workouts.forEach(w => workoutWeeks.add(weekKey(new Date(w.createdAt))));
-
-      const thisWeek = weekStartOf(now);
-      const lastWeek = new Date(thisWeek);
-      lastWeek.setDate(lastWeek.getDate() - 7);
-
-      // Start at this week if it has a workout; otherwise last week, since the current
-      // week isn't over yet and shouldn't break a streak prematurely.
-      let cursor: Date | null = workoutWeeks.has(weekKey(thisWeek))
-        ? thisWeek
-        : workoutWeeks.has(weekKey(lastWeek))
-          ? lastWeek
-          : null;
-
-      while (cursor && workoutWeeks.has(weekKey(cursor))) {
-        streak++;
-        cursor = new Date(cursor);
-        cursor.setDate(cursor.getDate() - 7);
-      }
-    }
-
-    return {
-      streak,
-      thisMonth: thisMonthWorkouts.length,
-    };
-  }, [workouts]);
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
@@ -222,7 +190,6 @@ export default function HistoryScreen() {
   // est-1RM AND its normalized strength tier. The tier is the honest, comparative signal
   // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
   // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
-  const gender = userProfile?.gender;
   const topRecords = useMemo(() => {
     const stdMap = gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
     const rows = trackedExercises
@@ -282,7 +249,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '700' }]}>
           History
         </Text>
 
@@ -299,7 +266,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'workouts' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'workouts' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
+                { fontWeight: activeTab === 'workouts' ? '600' : '400' }
               ]}>
                 Workouts
               </Text>
@@ -315,7 +282,7 @@ export default function HistoryScreen() {
               <Text style={[
                 styles.tabText,
                 { color: activeTab === 'exercises' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontFamily: activeTab === 'exercises' ? currentTheme.fonts.semiBold : currentTheme.fonts.regular }
+                { fontWeight: activeTab === 'exercises' ? '600' : '400' }
               ]}>
                 Exercises
               </Text>
@@ -333,37 +300,31 @@ export default function HistoryScreen() {
       >
         {activeTab === 'workouts' ? (
           <>
-            {/* Streak status line — a small motivational anchor above the feed. Keeps only
-                what WeeklyOverview (further down) does not already own: the multi-week streak,
-                else a month / all-time roll-up. */}
+            {/* The top region is ONE instrument panel — the LIFTS board and the
+                SESSIONS feed live on a single shared Card (the exact Card grammar
+                CareerSection sits on: variant="elevated", padding 18), with a
+                hairline divider fusing the sub-blocks instead of two unframed
+                sections floating on the page.
+                - LiftProgressWidget: a short RANKED board (top rows only, expander
+                  for the rest); tier detail on each row's flip side.
+                - SessionsFeed: a workout history — volume-per-session bars, then
+                  the last 3 sessions as detailed log entries (per-exercise table);
+                  the newest PR row is the page's one celebrated accent. */}
             {workouts.length > 0 && (
-              <View style={[styles.quickStatsInline, { backgroundColor: 'transparent' }]}>
-                {quickStats.streak > 0 ? (
-                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
-                    {quickStats.streak} week streak
-                  </Text>
-                ) : (
-                  <Text style={[styles.quickStatInlineText, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
-                    {quickStats.thisMonth > 0 ? `${quickStats.thisMonth} workout${quickStats.thisMonth !== 1 ? 's' : ''} this month` : `${workouts.length} total workout${workouts.length !== 1 ? 's' : ''}`}
-                  </Text>
+              <Card variant="elevated" padding={18}>
+                <LiftProgressWidget lifts={liftProgress} />
+                {liftProgress.length > 0 && sessionRecaps.length > 0 && (
+                  <View style={[styles.panelDivider, { backgroundColor: currentTheme.colors.text + '10' }]} />
                 )}
-              </View>
-            )}
-
-            {/* Sessions feed — History's reflective centerpiece. The latest workout gets
-                a cinematic recap (narrative headline + the standout set + how it stacks up),
-                past sessions follow as re-livable moment cards. Replaces the abstract
-                Strength Index and subsumes the old flat "Recent Workouts" log. */}
-            {workouts.length > 0 && (
-              <SessionsFeed
-                recaps={sessionRecaps}
-                weightUnit={weightUnit}
-                milestone={milestone}
-                visibleCount={showAllWorkouts ? sessionRecaps.length : 4}
-                totalCount={sessionRecaps.length}
-                onPressSession={setSelectedWorkout}
-                onToggleShowAll={sessionRecaps.length > 4 ? () => setShowAllWorkouts(v => !v) : undefined}
-              />
+                <SessionsFeed
+                  recaps={sessionRecaps}
+                  weightUnit={weightUnit}
+                  visibleCount={showAllWorkouts ? sessionRecaps.length : 3}
+                  totalCount={sessionRecaps.length}
+                  onPressSession={setSelectedWorkout}
+                  onToggleShowAll={sessionRecaps.length > 3 ? () => setShowAllWorkouts(v => !v) : undefined}
+                />
+              </Card>
             )}
 
             {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
@@ -371,9 +332,7 @@ export default function HistoryScreen() {
                 tappable straight into that lift's history. */}
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
-                  Records
-                </Text>
+                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text }]}>RECORDS</Text>
                 <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
                   {topRecords.map(({ ex, pct }) => {
                     const tierColor = pct != null ? getPercentileColor(pct) : currentTheme.colors.primary;
@@ -385,22 +344,22 @@ export default function HistoryScreen() {
                         activeOpacity={0.7}
                       >
                         <Text
-                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.medium }]}
+                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}
                           numberOfLines={1}
                         >
                           {ex.name}
                         </Text>
                         <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
-                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]} numberOfLines={1}>
+                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontWeight: '700' }]} numberOfLines={1}>
                             {ex.estimated1RM}
                           </Text>
-                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
                             {weightUnit}
                           </Text>
                         </View>
                         {pct != null && (
                           <View style={[styles.recordTierBadge, { backgroundColor: tierColor + '1F' }]}>
-                            <Text style={[styles.recordTierText, { color: tierColor, fontFamily: currentTheme.fonts.semiBold }]}>
+                            <Text style={[styles.recordTierText, { color: tierColor, fontWeight: '600' }]}>
                               {getStrengthTier(pct)}
                             </Text>
                           </View>
@@ -459,7 +418,7 @@ export default function HistoryScreen() {
               >
                 <View style={styles.monthlyTrendsContent}>
                   <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     View Monthly Trends
                   </Text>
                 </View>
@@ -471,10 +430,10 @@ export default function HistoryScreen() {
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
                 <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                   No workouts yet
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
                   Start logging to track your progress
                 </Text>
                 <TouchableOpacity
@@ -483,7 +442,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -498,19 +457,19 @@ export default function HistoryScreen() {
                 {/* All-time overview */}
                 <View style={[styles.exerciseSummary, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       {exerciseSummary.count}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       Exercises
                     </Text>
                   </View>
                   <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
                   <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                       {exerciseSummary.totalSets.toLocaleString()}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       Sets logged
                     </Text>
                   </View>
@@ -519,13 +478,13 @@ export default function HistoryScreen() {
                       <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
                       <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
                         <Text
-                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.bold }]}
+                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}
                           numberOfLines={1}
                         >
                           {exerciseSummary.topLift.estimated1RM}
                         </Text>
                         <Text
-                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}
+                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}
                           numberOfLines={1}
                         >
                           Top 1RM
@@ -539,7 +498,7 @@ export default function HistoryScreen() {
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
                   <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}
+                    style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
                     placeholderTextColor={currentTheme.colors.text + '40'}
                     value={exerciseSearch}
@@ -581,7 +540,7 @@ export default function HistoryScreen() {
                           styles.sortChipText,
                           {
                             color: active ? '#fff' : currentTheme.colors.text + '99',
-                            fontFamily: active ? currentTheme.fonts.semiBold : currentTheme.fonts.medium,
+                            fontWeight: active ? '600' : '500',
                           },
                         ]}>
                           {label}
@@ -593,7 +552,7 @@ export default function HistoryScreen() {
 
                 {liftsWithData.length > 0 ? (
                   <View style={styles.section}>
-                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                       {liftsWithData.length} exercise{liftsWithData.length !== 1 ? 's' : ''}
                     </Text>
                     {liftsWithData.map((exercise) => (
@@ -608,7 +567,7 @@ export default function HistoryScreen() {
                 ) : (
                   <View style={styles.emptyState}>
                     <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
-                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                       No matches for &quot;{exerciseSearch.trim()}&quot;
                     </Text>
                   </View>
@@ -617,10 +576,10 @@ export default function HistoryScreen() {
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                   No exercises tracked
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
                   Complete workouts to build your exercise history
                 </Text>
                 <TouchableOpacity
@@ -629,7 +588,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -701,16 +660,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 120,
   },
-  // Quick stats inline
-  quickStatsInline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  quickStatInlineText: {
-    fontSize: 13,
-  },
   // Exercises tab: overview + search + sort
   exerciseSummary: {
     flexDirection: 'row',
@@ -774,13 +723,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 4,
   },
+  // Hairline sub-block divider inside the top instrument panel — the same
+  // divider grammar CareerSection uses between its hero / stats / NEXT blocks.
+  panelDivider: {
+    height: StyleSheet.hairlineWidth,
+    opacity: 0.7,
+  },
   // Section styles
   section: {
     marginTop: 24,
   },
+  // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: 17,
-    marginBottom: 12,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    opacity: 0.45,
+    marginBottom: 10,
   },
   viewAllButton: {
     paddingVertical: 16,

@@ -274,7 +274,7 @@ export default function StrengthProgressOverlay({
               from={progress.previousPercentile}
               to={progress.newPercentile}
               tierChanged={tierChanged}
-              style={[styles.rankText, { fontFamily: currentTheme.fonts.bold }]}
+              style={[styles.rankText, { fontWeight: '700' }]}
               delay={animationDelay}
               duration={animationDuration}
             />
@@ -284,10 +284,10 @@ export default function StrengthProgressOverlay({
               <PercentileJourney
                 from={progress.previousPercentile}
                 to={progress.newPercentile}
-                fromStyle={[styles.percentileFrom, { fontFamily: currentTheme.fonts.regular }]}
-                toStyle={[styles.percentileTo, { fontFamily: currentTheme.fonts.medium }]}
-                arrowStyle={[styles.percentileArrow, { fontFamily: currentTheme.fonts.regular }]}
-                labelStyle={[styles.percentileLabel, { fontFamily: currentTheme.fonts.regular }]}
+                fromStyle={[styles.percentileFrom, { fontWeight: '400' }]}
+                toStyle={[styles.percentileTo, { fontWeight: '500' }]}
+                arrowStyle={[styles.percentileArrow, { fontWeight: '400' }]}
+                labelStyle={[styles.percentileLabel, { fontWeight: '400' }]}
                 delay={animationDelay}
                 duration={animationDuration}
               />
@@ -295,7 +295,7 @@ export default function StrengthProgressOverlay({
           </View>
 
           {/* Dismiss hint */}
-          <Text style={[styles.hint, { fontFamily: currentTheme.fonts.regular, paddingBottom: insets.bottom + 20 }]}>
+          <Text style={[styles.hint, { fontWeight: '400', paddingBottom: insets.bottom + 20 }]}>
             tap anywhere to continue
           </Text>
         </Animated.View>

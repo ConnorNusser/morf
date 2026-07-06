@@ -112,6 +112,20 @@ const seed = {
     }
   } catch (e) { console.log('exercises tab:', e.message); }
 
+  // Optional: capture the Profile tab (the Career section) as a design reference —
+  // full-page so the whole Career card is in frame. Gated behind PROFILE=1 since it
+  // only needs capturing once per loop, not per candidate.
+  if (process.env.PROFILE) {
+    try {
+      await page.goto(`${base}/profile`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(3000);
+      await page.setViewportSize({ width: 402, height: 3600 });
+      await page.waitForTimeout(1500);
+      await page.screenshot({ path: path.join(OUT, `${TAG}-profile-full.png`) });
+      await page.setViewportSize({ width: 402, height: 874 });
+    } catch (e) { console.log('profile tab:', e.message); }
+  }
+
   await browser.close();
   srv.close();
   console.log(`${TAG}: captured ${workouts.length} workouts -> ${OUT}`);

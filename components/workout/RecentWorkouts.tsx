@@ -1,7 +1,9 @@
 // Empty-state list of the last few workouts — tap one to load it into the draft
 // and repeat/edit it. Replaces the single "repeat last workout" button.
+import StartButton from '@/components/home/StartButton';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
@@ -31,6 +33,7 @@ function exerciseNames(w: GeneratedWorkout): string[] {
 export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const launch = useWorkoutLaunch();
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
       {/* Generate / Import */}
@@ -45,26 +48,37 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
         </TouchableOpacity>
       </RNView>
 
-      <TouchableOpacity
-        style={[styles.quickStart, { backgroundColor: colors.primary }]}
-        activeOpacity={0.85}
-        onPress={() => { playHapticFeedback('medium', false); onQuickStart(); }}
-      >
-        <Ionicons name="add" size={20} color="#fff" />
-        <Text style={[styles.quickStartText, { fontFamily: currentTheme.fonts.semiBold }]}>Quick start — empty workout</Text>
-      </TouchableOpacity>
+      <StartButton
+        label="Quick start — empty workout"
+        onPress={() => {
+          playHapticFeedback('medium', false);
+          launch({
+            routineName: 'Empty Workout',
+            subtitle: 'Freestyle — log as you go',
+            onArrive: onQuickStart,
+          });
+        }}
+        style={styles.quickStart}
+      />
 
-      <Text style={[styles.title, { color: colors.text + '99', fontFamily: currentTheme.fonts.semiBold }]}>
+      <Text style={[styles.title, { color: colors.text + '99', fontWeight: '600' }]}>
         Recent workouts
       </Text>
-      {/* One card that grows downward, rows split by hairlines */}
-      <RNView style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {/* Flat list, rows split by faint hairlines (no card fill/border). */}
+      <RNView style={styles.card}>
         {workouts.map((w, i) => (
           <TouchableOpacity
             key={w.id}
-            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}
+            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.text + '14' }]}
             activeOpacity={0.6}
-            onPress={() => { playHapticFeedback('medium', false); onPick(w); }}
+            onPress={() => {
+              playHapticFeedback('medium', false);
+              launch({
+                routineName: 'Repeat Workout',
+                exercises: exerciseNames(w),
+                onArrive: () => onPick(w),
+              });
+            }}
           >
             <RNView style={styles.rowText}>
               <Text style={[styles.date, { color: colors.text + '99' }]}>{dateLabel(w.createdAt)}</Text>
@@ -75,7 +89,12 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
                 <Text style={[styles.exName, { color: colors.text }]}>Workout</Text>
               )}
             </RNView>
-            <Ionicons name="repeat" size={18} color={colors.primary} />
+            <RNView style={styles.rowAction}>
+              <Text style={[styles.rowActionText, { color: colors.text + '99' }]}>Repeat</Text>
+              <RNView style={[styles.rowChip, { backgroundColor: colors.text + '0D' }]}>
+                <Ionicons name="arrow-forward" size={16} color={colors.text} />
+              </RNView>
+            </RNView>
           </TouchableOpacity>
         ))}
       </RNView>
@@ -98,18 +117,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   secondaryText: { fontSize: 14 },
-  quickStart: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 50,
-    borderRadius: 14,
-    marginBottom: 6,
-  },
-  quickStartText: { color: '#fff', fontSize: 15 },
+  quickStart: { marginBottom: 6 },
   title: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 6, paddingBottom: 2 },
-  card: { borderWidth: 1, borderRadius: 14, overflow: 'hidden' },
+  card: {},
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -120,4 +130,7 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, gap: 3 },
   date: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 2 },
   exName: { fontSize: 15 },
+  rowAction: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rowActionText: { fontSize: 13, fontWeight: '600' },
+  rowChip: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
 });

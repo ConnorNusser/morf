@@ -372,15 +372,6 @@ export interface CustomExercise extends Workout {
   createdAt: Date;      // When the user created this exercise
 }
 
-// Workout template (saved workout notes for reuse)
-export interface WorkoutTemplate {
-  id: string;
-  name: string;
-  noteText: string;  // The workout note format (e.g., "Bench Press 135x10, 145x8")
-  createdAt: Date;
-  lastUsed?: Date;
-}
-
 // Lift Display Filters for "Your Lifts" section
 export interface LiftDisplayFilters {
   hiddenLiftIds: string[]; // Exercise IDs to hide from the main dashboard

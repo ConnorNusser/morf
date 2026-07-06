@@ -166,10 +166,10 @@ function FeedPostCard({
               </View>
             )}
             <View>
-              <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}
               </Text>
-              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 {formatRelativeTime(post.created_at)}
               </Text>
             </View>
@@ -178,7 +178,7 @@ function FeedPostCard({
 
         {/* Post text */}
         {post.text && (
-          <Text style={[styles.postText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.postText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
             {post.text}
           </Text>
         )}
@@ -306,7 +306,7 @@ function FeedPostCard({
                 />
               </Animated.View>
               {likeCount > 0 && (
-                <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.actionCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {likeCount}
                 </Text>
               )}
@@ -324,7 +324,7 @@ function FeedPostCard({
                 color={currentTheme.colors.text + '70'}
               />
               {commentCount > 0 && (
-                <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                <Text style={[styles.actionCount, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
                   {commentCount}
                 </Text>
               )}

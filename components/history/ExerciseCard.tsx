@@ -38,27 +38,27 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
     >
       <View style={[styles.liftMain, { backgroundColor: 'transparent' }]}>
         <View style={[styles.liftNameRow, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.liftName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {exercise.name}
           </Text>
           {exercise.isCustom && (
             <View style={[styles.customBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.customBadgeText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
                 Custom
               </Text>
             </View>
           )}
         </View>
         <View style={[styles.liftStats, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+          <Text style={[styles.liftValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
             {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
           </Text>
-          <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.liftLabel, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
             {isBodyweight ? ' reps' : ' est. 1RM'}
           </Text>
           {trend.deltaDisplay > 0 && (
             <View style={[styles.deltaContainer, { backgroundColor: trend.isPositive ? '#00C85C15' : '#FF6B6B15' }]}>
-              <Text style={[styles.deltaText, { color: trend.isPositive ? '#00C85C' : '#FF6B6B', fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.deltaText, { color: trend.isPositive ? '#00C85C' : '#FF6B6B', fontWeight: '600' }]}>
                 {trend.isPositive ? '+' : '-'}{trend.deltaDisplay}
               </Text>
             </View>

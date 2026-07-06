@@ -102,7 +102,7 @@ export default function CareerSection() {
             <AnimatedBar
               progress={band.progress}
               color={color}
-              trackColor={currentTheme.colors.border}
+              trackColor={currentTheme.colors.text + '15'}
               height={8}
               delay={150}
               style={styles.heroBar}
@@ -112,7 +112,7 @@ export default function CareerSection() {
             </Text>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
 
           {/* Stat row */}
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
@@ -150,7 +150,7 @@ export default function CareerSection() {
                           ? { backgroundColor: 'transparent', borderWidth: StyleSheet.hairlineWidth, borderColor: currentTheme.colors.border }
                           : cell.trained
                             ? { backgroundColor: cell.split ? PPL_COLORS[cell.split] : currentTheme.colors.primary, opacity: HEAT_OPACITIES[heatLevel(cell.intensity)] }
-                            : { backgroundColor: currentTheme.colors.border, opacity: 0.45 },
+                            : { backgroundColor: currentTheme.colors.surface },
                       ]}
                     />
                   ))}
@@ -169,7 +169,7 @@ export default function CareerSection() {
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: currentTheme.colors.border }]} />
+          <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
 
           {/* Next goal — tap to flip for what it takes */}
           {nextUp && (
@@ -182,7 +182,7 @@ export default function CareerSection() {
                     <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
                       NEXT · {nextUp.title}
                     </Text>
-                    <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
+                    <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.text + '15' }]}>
                       <View
                         style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
                       />
@@ -232,7 +232,7 @@ export default function CareerSection() {
                 <AnimatedBar
                   progress={achProgress}
                   color={currentTheme.colors.primary}
-                  trackColor={currentTheme.colors.border}
+                  trackColor={currentTheme.colors.text + '15'}
                   height={6}
                   delay={250}
                 />

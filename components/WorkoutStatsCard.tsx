@@ -1,6 +1,5 @@
 import Card from '@/components/Card';
 import LiftProgressionModal from '@/components/LiftProgressionModal';
-import ProgressBar from '@/components/ProgressBar';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
@@ -29,7 +28,8 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const { play: playForwardMinimal } = useSound('forwardMinimal');
 
   const workout = getWorkoutById(workoutId);
-  
+  const accentColor = getPercentileColor(percentileRanking);
+
   const handleCardPress = () => {
     playHapticFeedback('medium', false);
     playForwardMinimal();
@@ -43,79 +43,34 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
       <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
-            <Text style={[
-              styles.workoutName, 
-              { 
-                color: currentTheme.colors.text,
-              }
-            ]}>
+            <Text style={[styles.workoutName, { color: accentColor }]}>
               {workout?.name}
             </Text>
-            <View style={styles.tierBlock}>
-              <TierBadge percentile={percentileRanking} size="medium" variant="text" />
-              <Text style={[styles.tierLabel, { color: currentTheme.colors.text + '70' }]}>
-                tier
-              </Text>
-            </View>
+            <TierBadge percentile={percentileRanking} size="medium" variant="text" />
           </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.prSection}>
-              <Text style={[
-                styles.prLabel, 
-                { 
-                  color: currentTheme.colors.text,
-                }
-              ]}>
-                Personal Record
-              </Text>
-              <Text style={[
-                styles.prValue,
-                {
-                  color: getPercentileColor(percentileRanking),
-                }
-              ]}>
-                {convertWeightForPreference(personalRecord, 'lbs', weightUnit)} {weightUnit}
-              </Text>
-            </View>
-
-            <View style={styles.percentileSection}>
-              <Text style={[
-                styles.percentileLabel, 
-                { 
-                  color: currentTheme.colors.text,
-                }
-              ]}>
-                Percentile Ranking
-              </Text>
-              <Text style={[
-                styles.percentileValue, 
-                { 
-                  color: getPercentileColor(percentileRanking),
-                }
-              ]}>
-                {percentileRanking}{getPercentileSuffix(percentileRanking)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.progressSection}>
-            <ProgressBar
-              progress={percentileRanking}
-              height={8}
-              style={styles.progressBar}
-              currentWeight={personalRecord}
-              exerciseName={workoutId}
-              color={getPercentileColor(percentileRanking)}
-            />
-            <Text style={[
-              styles.progressText, 
-              { 
-                color: currentTheme.colors.text,
-              }
-            ]}>
-              Better than {percentileRanking}% of lifters
+          <View style={styles.statRow}>
+            <Text style={[styles.prValue, { color: accentColor }]}>
+              {convertWeightForPreference(personalRecord, 'lbs', weightUnit)}
+              <Text style={[styles.prUnit, { color: accentColor }]}> {weightUnit}</Text>
             </Text>
+            <Text style={[styles.percentile, { color: currentTheme.colors.text + '99' }]}>
+              {percentileRanking}
+              {getPercentileSuffix(percentileRanking)} percentile
+            </Text>
+          </View>
+
+          {/* Tier-coloured strength bar — matches the Big-3 total's bar language */}
+          <View style={[styles.track, { backgroundColor: currentTheme.colors.text + '0D' }]}>
+            <View
+              style={[
+                styles.trackFill,
+                {
+                  width: `${Math.max(3, Math.min(100, percentileRanking))}%`,
+                  backgroundColor: accentColor,
+                },
+              ]}
+            />
           </View>
         </Card>
       </TouchableOpacity>
@@ -140,60 +95,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   workoutName: {
     fontSize: 18,
     fontWeight: '600',
     flex: 1,
   },
-  tierBlock: {
-    alignItems: 'center',
-    minWidth: 40,
-  },
-  tierLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-  },
-  statsRow: {
+  statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  prSection: {
-    flex: 1,
-  },
-  prLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 1,
+    alignItems: 'baseline',
+    marginBottom: 12,
   },
   prValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
   },
-  percentileSection: {
-    flex: 1,
-    alignItems: 'flex-end',
+  prUnit: {
+    fontSize: 15,
+    fontWeight: '500',
   },
-  percentileLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 1,
+  percentile: {
+    fontSize: 13,
+    fontWeight: '500',
   },
-  percentileValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  track: {
+    height: 9,
+    borderRadius: 5,
+    overflow: 'hidden',
   },
-  progressSection: {
-    marginTop: 8,
+  trackFill: {
+    height: '100%',
+    borderRadius: 5,
   },
-  progressBar: {
-    marginBottom: 8,
-  },
-  progressText: {
-    fontSize: 12,
-    opacity: 0.7,
-    textAlign: 'center',
-  },
-}); 
+});

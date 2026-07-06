@@ -160,13 +160,13 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onCancel} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Plan Builder
           </Text>
           <RNView style={styles.headerRight}>
             {currentPlan ? (
               <TouchableOpacity onPress={handleUsePlan} style={styles.createButton}>
-                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.createText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                   Create
                 </Text>
               </TouchableOpacity>
@@ -194,10 +194,10 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
               <Ionicons name="sparkles" size={48} color={currentTheme.colors.primary + '40'} />
-              <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.welcomeTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                 {"Let's Build Your Workout"}
               </Text>
-              <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.welcomeSubtitle, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 Describe what you want to do today
               </Text>
             </RNView>
@@ -239,7 +239,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   style={[styles.questionChip, { backgroundColor: currentTheme.colors.surface }]}
                   onPress={() => handleQuestionPress(question)}
                 >
-                  <Text style={[styles.questionText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.questionText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     {question}
                   </Text>
                 </TouchableOpacity>
@@ -257,7 +257,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               <RNView style={styles.planHeader}>
                 <RNView style={styles.planHeaderLeft}>
                   <Ionicons name="document-text-outline" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.planTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Current Plan
                   </Text>
                 </RNView>
@@ -269,12 +269,12 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
               </RNView>
 
               {isPlanExpanded ? (
-                <Text style={[styles.planTextExpanded, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.planTextExpanded, { color: currentTheme.colors.text, fontWeight: '400' }]}>
                   {currentPlan}
                 </Text>
               ) : (
                 <Text
-                  style={[styles.planTextCollapsed, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}
+                  style={[styles.planTextCollapsed, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}
                   numberOfLines={2}
                 >
                   {currentPlan}
@@ -346,7 +346,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
                   onPress={() => Keyboard.dismiss()}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                     Done
                   </Text>
                 </TouchableOpacity>

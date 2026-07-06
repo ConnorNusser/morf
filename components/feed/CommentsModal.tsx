@@ -112,15 +112,15 @@ function CommentItem({
             onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               @{comment.username}
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
             {formatRelativeTime(new Date(comment.created_at))}
           </Text>
         </View>
-        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
           {comment.text}
         </Text>
       </View>
@@ -142,7 +142,7 @@ function CommentItem({
             styles.commentLikeCount,
             {
               color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
-              fontFamily: currentTheme.fonts.medium
+              fontWeight: '500'
             }
           ]}>
             {likeCount}
@@ -328,7 +328,7 @@ export default function CommentsModal({
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <View style={styles.handle} />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Comments {comments.length > 0 && `(${comments.length})`}
             </Text>
           </View>
@@ -343,10 +343,10 @@ export default function CommentsModal({
             {comments.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubble-outline" size={40} color={currentTheme.colors.text + '30'} />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   No comments yet
                 </Text>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                   Be the first to comment!
                 </Text>
               </View>
@@ -375,7 +375,7 @@ export default function CommentsModal({
               activeOpacity={0.7}
             >
               <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text style={[styles.placeholderText, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.placeholderText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
                   Add a comment...
                 </Text>
                 <RNView style={styles.sendButtonPlaceholder}>

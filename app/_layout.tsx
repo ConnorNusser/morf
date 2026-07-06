@@ -3,6 +3,7 @@ import ThemeOverlay from '@/components/ThemeOverlay';
 import { CustomExercisesProvider } from '@/contexts/CustomExercisesContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { VideoPlayerProvider } from '@/contexts/VideoPlayerContext';
+import { WorkoutLaunchProvider } from '@/contexts/WorkoutLaunchContext';
 import { notificationService } from '@/lib/services/notificationService';
 import { retentionNotificationService } from '@/lib/services/retentionNotificationService';
 import { layout } from '@/lib/ui/styles';
@@ -203,15 +204,17 @@ function ThemedApp() {
       <AlertProvider>
         <VideoPlayerProvider>
           <CustomExercisesProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: currentTheme.colors.background },
-                animation: 'fade',
-              }}
-            >
-              <Stack.Screen name="(tabs)" />
-            </Stack>
+            <WorkoutLaunchProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: currentTheme.colors.background },
+                  animation: 'fade',
+                }}
+              >
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+            </WorkoutLaunchProvider>
           </CustomExercisesProvider>
         </VideoPlayerProvider>
       </AlertProvider>

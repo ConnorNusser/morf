@@ -40,7 +40,7 @@ const SkeletonLine = ({ width, height = 16, style }: SkeletonLineProps) => {
 
   const opacity = shimmerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.6],
+    outputRange: [0.5, 1],
   });
 
   return (
@@ -50,7 +50,9 @@ const SkeletonLine = ({ width, height = 16, style }: SkeletonLineProps) => {
         {
           width,
           height,
-          backgroundColor: currentTheme.colors.border,
+          // A light overlay reads on the flat page; the old `border` fill was
+          // invisible once the framing card went flat.
+          backgroundColor: currentTheme.colors.text + '18',
         },
         { opacity },
         style,

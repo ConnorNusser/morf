@@ -236,7 +236,7 @@ export default function CreatePostModal({
         {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             New Post
           </Text>
           <TouchableOpacity
@@ -251,7 +251,7 @@ export default function CreatePostModal({
             onPress={handleSubmit}
             disabled={!canPost}
           >
-            <Text style={[styles.postButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.postButtonText, { fontWeight: '600' }]}>
               Post
             </Text>
           </TouchableOpacity>
@@ -334,7 +334,7 @@ export default function CreatePostModal({
                     ) : (
                       <>
                         <Ionicons name="add" size={32} color={currentTheme.colors.primary} />
-                        <Text style={[styles.addMoreText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.addMoreText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                           {MAX_IMAGES - imageCount} left
                         </Text>
                       </>
@@ -357,10 +357,10 @@ export default function CreatePostModal({
                   ) : (
                     <>
                       <Ionicons name="videocam" size={24} color={currentTheme.colors.primary} />
-                      <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                         Video
                       </Text>
-                      <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                         Max {MAX_VIDEO_DURATION}s
                       </Text>
                     </>
@@ -373,10 +373,10 @@ export default function CreatePostModal({
                   disabled={isPickingMedia}
                 >
                   <Ionicons name="images" size={24} color={currentTheme.colors.primary} />
-                  <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.mediaButtonText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                     Photos
                   </Text>
-                  <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                  <Text style={[styles.mediaButtonSubtext, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                     Up to {MAX_IMAGES}
                   </Text>
                 </TouchableOpacity>
@@ -394,7 +394,7 @@ export default function CreatePostModal({
                   onPress={() => Keyboard.dismiss()}
                   style={styles.doneButton}
                 >
-                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.doneButtonText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                     Done
                   </Text>
                 </TouchableOpacity>

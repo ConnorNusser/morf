@@ -4,21 +4,37 @@
 // no storage/clock side effects (caller passes `now`).
 import { buildSessionPRs, SessionPR } from '@/components/history/prSessions';
 import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
+import { gradeE1rm, LiftGrading, TierGrade } from '@/lib/history/liftProgress';
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 
 export interface StandoutSet {
   name: string;   // exercise display name
   weight: number; // in the display unit
   reps: number;
   unit: WeightUnit;
+  // The set graded against the published strength standards — the exact grading
+  // path the lift board uses (gradeE1rm), so the hero and the rows above it can
+  // never disagree about what tier a number is. Null when the lift has no real
+  // standard or the profile lacks bodyweight/gender: no fake 50th-percentile tiers.
+  tierInfo: TierGrade | null;
 }
 
 export interface SessionComparison {
   deltaVolumePct: number; // signed % vs the reference session
   refLabel: string;       // e.g. "last Push Day"
+}
+
+// One entry per exercise actually performed — "what happened in the workout",
+// in workout order, each summarized by its top completed set.
+export interface LineupItem {
+  name: string;   // short display name (no equipment suffix)
+  weight: number; // top set weight in the display unit; 0 for a bodyweight movement
+  reps: number;   // reps of that top set
+  sets: number;   // completed sets of this exercise
 }
 
 export interface SessionRecap {
@@ -33,6 +49,11 @@ export interface SessionRecap {
   sets: number;
   durationMin: number;
   muscles: string[];            // primary muscles worked, most-hit first
+  // The session's dominant Push/Pull/Legs split (from its most-hit muscle) — the
+  // match's "team color" in the feed, matching the lift board's per-row split so
+  // PPL hue means SPLIT everywhere on the History page. Null when unmapped.
+  split: PPLCategory | null;
+  lineup: LineupItem[];         // every exercise performed, workout order, top set each
   comparison: SessionComparison | null;
 }
 
@@ -43,8 +64,8 @@ const COMEBACK_MIN_DAYS = 7;
 const DAY_MS = 86400000;
 
 /** Primary muscles worked in a session, ordered by how many sets hit them. */
-function sessionMuscles(workout: GeneratedWorkout): string[] {
-  const counts = new Map<string, number>();
+function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
+  const counts = new Map<MuscleGroup, number>();
   for (const ex of workout.exercises) {
     const done = (ex.completedSets || []).filter(s => s.completed).length;
     if (done === 0) continue;
@@ -57,15 +78,18 @@ function sessionMuscles(workout: GeneratedWorkout): string[] {
 /**
  * The session's headline set. When the day set a record we show THAT lift's top set
  * (so the "Squat PR" headline and the big number agree); otherwise the single most
- * impressive working set by estimated 1RM.
+ * impressive working set by estimated 1RM. When the profile supports honest grading,
+ * the winning set is graded through the same gradeE1rm path as the lift board, so
+ * the hero can carry its earned tier ("e1RM 293 · 12 lbs to B+").
  */
 function standoutSet(
   workout: GeneratedWorkout,
   unit: WeightUnit,
+  grading: LiftGrading | null,
   preferName?: string,
 ): StandoutSet | null {
-  let best: { e1rm: number; set: StandoutSet } | null = null;
-  let preferred: { e1rm: number; set: StandoutSet } | null = null;
+  let best: { e1rm: number; id: string; set: StandoutSet } | null = null;
+  let preferred: { e1rm: number; id: string; set: StandoutSet } | null = null;
   for (const ex of workout.exercises) {
     const info = getExercise(ex.id);
     const trackingType: TrackingType = info?.trackingType || 'reps';
@@ -79,18 +103,50 @@ function standoutSet(
         weight: Math.round(convertWeight(s.weight, s.unit || 'lbs', unit)),
         reps: s.reps,
         unit,
+        tierInfo: null,
       };
-      if (!best || lbs > best.e1rm) best = { e1rm: lbs, set };
+      if (!best || lbs > best.e1rm) best = { e1rm: lbs, id: ex.id, set };
       if (preferName && name === preferName && (!preferred || lbs > preferred.e1rm)) {
-        preferred = { e1rm: lbs, set };
+        preferred = { e1rm: lbs, id: ex.id, set };
       }
     }
   }
-  return (preferred ?? best)?.set ?? null;
+  const winner = preferred ?? best;
+  if (!winner) return null;
+  // Grade THIS session's set (not the all-time record) so the hero stays honest —
+  // a lighter day really does read a lower e1RM / further from the next tier.
+  const tierInfo = grading ? (gradeE1rm(winner.id, winner.e1rm, unit, grading) ?? null) : null;
+  return { ...winner.set, tierInfo };
 }
 
 function volumeLbs(workout: GeneratedWorkout, getTrackingType: (id: string) => TrackingType | undefined): number {
   return calculateWorkoutStats(workout.exercises, getTrackingType).totalVolumeLbs;
+}
+
+/**
+ * "What happened": every exercise with at least one completed set, in workout order,
+ * summarized by its best completed set (highest e1RM; most reps for bodyweight work).
+ */
+function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[] {
+  const out: LineupItem[] = [];
+  for (const ex of workout.exercises) {
+    const done = (ex.completedSets || []).filter(s => s.completed);
+    if (done.length === 0) continue;
+    const name = getExercise(ex.id)?.name || ex.id.replace('custom_', '').replace(/-/g, ' ');
+    let top = done[0];
+    let topScore = -1;
+    for (const s of done) {
+      const score = (s.weight || 0) > 0 ? e1rmLbs({ weight: s.weight, reps: s.reps, unit: s.unit }) : s.reps;
+      if (score > topScore) { topScore = score; top = s; }
+    }
+    out.push({
+      name: shortName(name),
+      weight: (top.weight || 0) > 0 ? Math.round(convertWeight(top.weight, top.unit || 'lbs', unit)) : 0,
+      reps: top.reps,
+      sets: done.length,
+    });
+  }
+  return out;
 }
 
 /**
@@ -103,6 +159,7 @@ export function buildSessionRecaps(
   workouts: GeneratedWorkout[],
   customExercises: CustomExercise[],
   weightUnit: WeightUnit,
+  grading: LiftGrading | null = null,
 ): SessionRecap[] {
   if (workouts.length === 0) return [];
 
@@ -139,8 +196,9 @@ export function buildSessionRecaps(
     }
 
     const pr = sessionPRs.get(dayKeyOf(workout.createdAt)) ?? null;
-    const standout = standoutSet(workout, weightUnit, pr?.name);
+    const standout = standoutSet(workout, weightUnit, grading, pr?.name);
     const wStats = calculateWorkoutStats(workout.exercises, getTrackingType);
+    const muscles = sessionMuscles(workout);
 
     // Gap since the previous session of any kind (drives the comeback beat).
     const prevDate = prior.length ? new Date(prior[prior.length - 1].createdAt) : null;
@@ -174,7 +232,9 @@ export function buildSessionRecaps(
       volumeDisplay: Math.round(convertWeight(myVol, 'lbs', weightUnit)),
       sets: wStats.totalSets,
       durationMin: workout.estimatedDuration || 0,
-      muscles: sessionMuscles(workout),
+      muscles,
+      split: muscles.length > 0 ? (MUSCLE_TO_PPL[muscles[0]] ?? null) : null,
+      lineup: sessionLineup(workout, weightUnit),
       comparison,
     };
   });

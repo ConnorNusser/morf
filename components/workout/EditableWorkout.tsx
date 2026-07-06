@@ -59,7 +59,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
         activeOpacity={0.6}
         onLongPress={() => { playHapticFeedback('medium', false); onRemoveExercise(exercise.key); }}
       >
-        <Text style={[styles.exName, { color: text, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.exName, { color: text, fontWeight: '600' }]} numberOfLines={1}>
           {exercise.name || 'Unnamed exercise'}
         </Text>
       </TouchableOpacity>

@@ -453,7 +453,7 @@ export default function WorkoutScreen() {
                   </RNView>
                 </TouchableOpacity>
               ) : (
-                <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Workout
                 </Text>
               )}
@@ -567,7 +567,7 @@ export default function WorkoutScreen() {
             ) : (
               <RNView style={styles.empty}>
                 <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Log your workout
                 </Text>
                 <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>
@@ -579,7 +579,7 @@ export default function WorkoutScreen() {
           {hasWorkoutStarted && draft.length === 0 && (
             <RNView style={styles.empty}>
               <Ionicons name="barbell-outline" size={30} color={currentTheme.colors.text + '30'} />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                 Empty workout
               </Text>
               <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60' }]}>

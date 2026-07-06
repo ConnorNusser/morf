@@ -167,7 +167,7 @@ export default function OverallStrengthModal({ visible, onClose }: OverallStreng
         {/* Header */}
         <View style={[styles.modalHeader, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             Overall Strength
           </Text>
           <IconButton icon="close" onPress={onClose} />
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   historyHint: { fontSize: 11, opacity: 0.6 },
   liftsCard: { marginTop: 16, paddingTop: 12, paddingBottom: 12 },
   standardCard: { marginTop: 8, paddingTop: 12, paddingBottom: 12 },
-  liftRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#00000010', backgroundColor: 'transparent' },
+  liftRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.08)', backgroundColor: 'transparent' },
   liftName: { textTransform: 'capitalize' },
   liftValue: { width: 42, textAlign: 'right', fontVariant: ['tabular-nums'] },
   liftLevel: { width: 96, textAlign: 'right' },

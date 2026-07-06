@@ -110,15 +110,15 @@ function WorkoutCommentItem({
             onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
             activeOpacity={0.7}
           >
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               @{comment.username}
             </Text>
           </TouchableOpacity>
-          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
             {formatRelativeTime(new Date(comment.created_at))}
           </Text>
         </View>
-        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.regular }]}>
+        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
           {comment.text}
         </Text>
       </View>
@@ -140,7 +140,7 @@ function WorkoutCommentItem({
             styles.commentLikeCount,
             {
               color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
-              fontFamily: currentTheme.fonts.medium
+              fontWeight: '500'
             }
           ]}>
             {likeCount}
@@ -350,7 +350,7 @@ export default function WorkoutThreadModal({
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
           <Text
-            style={[styles.headerTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}
+            style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}
             numberOfLines={1}
           >
             {workout.title}
@@ -386,10 +386,10 @@ export default function WorkoutThreadModal({
                 </View>
               )}
               <View style={styles.userInfo}>
-                <Text style={[styles.username, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   @{workout.username}
                 </Text>
-                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                   {formatRelativeTime(workout.created_at)}
                 </Text>
               </View>
@@ -402,28 +402,28 @@ export default function WorkoutThreadModal({
           {/* Stats grid */}
           <View style={[styles.statsGrid, { backgroundColor: currentTheme.colors.surface }]}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 {workout.exercise_count}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 exercises
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 {formatDuration(workout.duration_seconds)}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 duration
               </Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.bold }]}>
+              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 {formatVolumeNumber(workout.total_volume, weightUnit)}
               </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 {weightUnit}
               </Text>
             </View>
@@ -449,10 +449,10 @@ export default function WorkoutThreadModal({
                     activeOpacity={0.7}
                   >
                     <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                       {PPL_LABELS[category]}
                     </Text>
-                    <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontFamily: currentTheme.fonts.bold }]}>
+                    <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontWeight: '700' }]}>
                       {pplBreakdown.counts[category]}
                     </Text>
                   </TouchableOpacity>
@@ -485,7 +485,7 @@ export default function WorkoutThreadModal({
                           style={{ marginRight: 6 }}
                         />
                       )}
-                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                         {ex.name}
                       </Text>
                       {ex.percentile && ex.percentile > 0 && (
@@ -493,11 +493,11 @@ export default function WorkoutThreadModal({
                       )}
                     </View>
                     <View style={styles.exerciseRight}>
-                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
                         {ex.bestSet}
                       </Text>
                       {hasDetailedSets && (
-                        <Text style={[styles.setCount, { color: currentTheme.colors.text + '40', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.setCount, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
                           {ex.sets} sets
                         </Text>
                       )}
@@ -515,16 +515,16 @@ export default function WorkoutThreadModal({
                             setIndex < ex.allSets!.length - 1 && { borderBottomColor: currentTheme.colors.border + '30', borderBottomWidth: StyleSheet.hairlineWidth }
                           ]}
                         >
-                          <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.medium }]}>
+                          <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
                             Set {set.setNumber}
                           </Text>
                           <View style={styles.setDetails}>
-                            <Text style={[styles.setWeight, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                            <Text style={[styles.setWeight, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                               {formatSet(set, { trackingType: ex.trackingType, showUnit: true })}
                             </Text>
                             {set.isPersonalRecord && (
                               <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                                <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                                <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
                                   Best
                                 </Text>
                               </View>
@@ -564,7 +564,7 @@ export default function WorkoutThreadModal({
                   />
                 </Animated.View>
                 {likeCount > 0 && (
-                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontFamily: currentTheme.fonts.medium }]}>
+                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontWeight: '500' }]}>
                     {likeCount}
                   </Text>
                 )}
@@ -573,7 +573,7 @@ export default function WorkoutThreadModal({
 
             <View style={styles.commentCount}>
               <Ionicons name="chatbubble-outline" size={18} color={currentTheme.colors.text + '60'} />
-              <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontWeight: '500' }]}>
                 {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
               </Text>
             </View>
@@ -581,12 +581,12 @@ export default function WorkoutThreadModal({
 
           {/* Comments Section */}
           <View style={styles.commentsSection}>
-            <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+            <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Comments {comments.length > 0 && `(${comments.length})`}
             </Text>
 
             {comments.length === 0 ? (
-              <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontFamily: currentTheme.fonts.regular }]}>
+              <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
                 No comments yet. Be the first!
               </Text>
             ) : (
@@ -670,7 +670,7 @@ export default function WorkoutThreadModal({
               {selectedPplCategory && (
                 <View style={[styles.pplModalTitleChip, { backgroundColor: PPL_COLORS[selectedPplCategory] + '20' }]}>
                   <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[selectedPplCategory] }]} />
-                  <Text style={[styles.pplModalTitle, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.semiBold }]}>
+                  <Text style={[styles.pplModalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     {PPL_LABELS[selectedPplCategory]}
                   </Text>
                 </View>
@@ -683,7 +683,7 @@ export default function WorkoutThreadModal({
           <ScrollView style={styles.pplModalContent} contentContainerStyle={styles.pplModalContentContainer}>
             {selectedPplCategory && (
               <>
-                <Text style={[styles.pplModalExerciseCount, { color: currentTheme.colors.text + '99', fontFamily: currentTheme.fonts.regular }]}>
+                <Text style={[styles.pplModalExerciseCount, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
                   {pplExercises[selectedPplCategory].length} exercise{pplExercises[selectedPplCategory].length !== 1 ? 's' : ''}
                 </Text>
 
@@ -693,11 +693,11 @@ export default function WorkoutThreadModal({
                       key={index}
                       style={[styles.pplModalExerciseRow, { borderBottomColor: currentTheme.colors.border }]}
                     >
-                      <Text style={[styles.pplModalExerciseName, { color: currentTheme.colors.text, fontFamily: currentTheme.fonts.medium }]}>
+                      <Text style={[styles.pplModalExerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
                         {exercise.name}
                       </Text>
                       <View style={[styles.pplModalSetsBadge, { backgroundColor: selectedPplCategory ? PPL_COLORS[selectedPplCategory] + '15' : currentTheme.colors.primary + '15' }]}>
-                        <Text style={[styles.pplModalSetsText, { color: selectedPplCategory ? PPL_COLORS[selectedPplCategory] : currentTheme.colors.primary, fontFamily: currentTheme.fonts.semiBold }]}>
+                        <Text style={[styles.pplModalSetsText, { color: selectedPplCategory ? PPL_COLORS[selectedPplCategory] : currentTheme.colors.primary, fontWeight: '600' }]}>
                           {exercise.sets} sets
                         </Text>
                       </View>

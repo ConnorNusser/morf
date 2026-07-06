@@ -211,7 +211,7 @@ const EquipmentFilterSection = () => {
 
           <Text style={[
             styles.hint,
-            { color: currentTheme.colors.secondary, fontFamily: currentTheme.fonts.regular }
+            { color: currentTheme.colors.secondary, fontWeight: '400' }
           ]}>
             AI will only suggest exercises using your selected equipment
           </Text>

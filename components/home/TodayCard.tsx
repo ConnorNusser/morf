@@ -9,6 +9,8 @@ import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
+import StartButton from "@/components/home/StartButton";
+import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { CalculatedRoutine } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,6 +46,7 @@ export default function TodayCard() {
   const { currentTheme } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
+  const launch = useWorkoutLaunch();
 
   const [calculated, setCalculated] = useState<CalculatedRoutine | null>(null);
   // The active program's days in ring order, so the user can flip through them.
@@ -120,11 +123,29 @@ export default function TodayCard() {
     [days],
   );
 
+  // Tapping Start plays the shared launch interstitial; the navigation fires from
+  // inside the overlay once its animation lands.
   const handleStart = useCallback(() => {
     if (!calculated) return;
-    setPendingRoutine(calculated);
-    router.push("/workout");
-  }, [calculated, router]);
+    const sets = calculated.exercises.reduce((n, ex) => n + ex.sets.length, 0);
+    launch({
+      routineName: calculated.name,
+      subtitle: `${calculated.exercises.length} exercises · ${sets} sets`,
+      exercises: calculated.exercises.map((ex) => cleanName(ex.exerciseName)),
+      onArrive: () => {
+        setPendingRoutine(calculated);
+        router.push("/workout");
+      },
+    });
+  }, [calculated, launch, router]);
+
+  const startFreestyle = useCallback(() => {
+    launch({
+      routineName: "Empty Workout",
+      subtitle: "Freestyle — log as you go",
+      onArrive: () => router.push("/workout"),
+    });
+  }, [launch, router]);
 
   if (loading) {
     return (
@@ -173,25 +194,11 @@ export default function TodayCard() {
           </Text>
         ) : null}
 
-        <TouchableOpacity
-          style={[
-            styles.primaryButton,
-            { backgroundColor: currentTheme.colors.primary },
-          ]}
-          onPress={() => router.push("/workout")}
-          activeOpacity={0.85}
-        >
-          <Text
-            style={[
-              styles.primaryButtonText,
-              {
-                color: currentTheme.colors.surface,
-              },
-            ]}
-          >
-            Start a workout
-          </Text>
-        </TouchableOpacity>
+        <StartButton
+          label="Start a workout"
+          onPress={startFreestyle}
+          style={styles.primaryButton}
+        />
 
         {!adviceDismissed && (
           <>
@@ -229,68 +236,58 @@ export default function TodayCard() {
   return (
     <>
     <TouchableOpacity activeOpacity={0.9} onPress={() => setShowOverview(true)}>
-    <Card variant="elevated">
-      <Text
-        style={[
-          styles.eyebrow,
-          {
-            color: currentTheme.colors.text,
-          },
-        ]}
-      >
-        {(trainedToday ? "DONE TODAY" : "TODAY") + (label ? ` · ${label.toUpperCase()}` : "")}
-      </Text>
-      <View style={styles.pagerRow}>
-        {days.length > 1 && (
-          <TouchableOpacity onPress={() => flip(-1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-            <Ionicons name="chevron-back" size={22} color={currentTheme.colors.text} />
-          </TouchableOpacity>
-        )}
+    <Card variant="elevated" padding={8}>
+      <View style={styles.headerRow}>
         <Text
           numberOfLines={1}
-          style={[
-            styles.routineName,
-            {
-              color: currentTheme.colors.text,
-              flex: 1,
-              textAlign: days.length > 1 ? "center" : "left",
-            },
-          ]}
+          style={[styles.routineName, { color: currentTheme.colors.text, flex: 1 }]}
         >
           {calculated.name}
         </Text>
         {days.length > 1 && (
-          <TouchableOpacity onPress={() => flip(1)} hitSlop={12} style={styles.pagerBtn} activeOpacity={0.6}>
-            <Ionicons name="chevron-forward" size={22} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <View style={styles.navRow}>
+            <TouchableOpacity
+              onPress={() => flip(-1)}
+              hitSlop={8}
+              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
+              activeOpacity={0.5}
+            >
+              <Ionicons name="chevron-back" size={18} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => flip(1)}
+              hitSlop={8}
+              style={[styles.pagerBtn, { backgroundColor: currentTheme.colors.text + "0D" }]}
+              activeOpacity={0.5}
+            >
+              <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
-      <Text
-        style={[
-          styles.subtle,
-          { color: currentTheme.colors.text, textAlign: days.length > 1 ? "center" : "left" },
-        ]}
-      >
-        {calculated.exercises.length} exercises · {totalSets} sets
-      </Text>
-      {days.length > 1 && (
-        <View style={styles.dots}>
-          {days.map((d) => (
-            <View
-              key={d.id}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor:
-                    d.id === calculated.id
-                      ? currentTheme.colors.primary
-                      : currentTheme.colors.text + "30",
-                },
-              ]}
-            />
-          ))}
-        </View>
-      )}
+      <View style={styles.subRow}>
+        <Text style={[styles.subtle, { color: currentTheme.colors.text }]}>
+          {calculated.exercises.length} exercises · {totalSets} sets
+        </Text>
+        {days.length > 1 && (
+          <View style={styles.dots}>
+            {days.map((d) => (
+              <View
+                key={d.id}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      d.id === calculated.id
+                        ? currentTheme.colors.primary
+                        : currentTheme.colors.text + "30",
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </View>
 
       <View style={styles.exerciseList}>
         {exercises.map((ex, i) => {
@@ -308,7 +305,7 @@ export default function TodayCard() {
                   styles.exerciseName,
                   {
                     color: currentTheme.colors.text,
-                    fontFamily: currentTheme.fonts.medium,
+                    fontWeight: '500',
                   },
                 ]}
                 numberOfLines={1}
@@ -323,31 +320,12 @@ export default function TodayCard() {
         })}
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.primaryButton,
-          {
-            backgroundColor: trainedToday
-              ? currentTheme.colors.secondary
-              : currentTheme.colors.primary,
-          },
-        ]}
+      <StartButton
+        label={trainedToday ? "Train again" : "Start workout"}
+        variant={trainedToday ? "outlined" : "solid"}
         onPress={handleStart}
-        activeOpacity={0.85}
-      >
-        <Text
-          style={[
-            styles.primaryButtonText,
-            {
-              color: trainedToday
-                ? currentTheme.colors.text
-                : currentTheme.colors.surface,
-            },
-          ]}
-        >
-          {trainedToday ? "Train again" : "Start workout"}
-        </Text>
-      </TouchableOpacity>
+        style={styles.primaryButton}
+      />
     </Card>
     </TouchableOpacity>
 
@@ -379,22 +357,35 @@ const styles = StyleSheet.create({
   },
   routineName: {
     fontSize: 20,
-    marginTop: 2,
     fontWeight: "700",
   },
-  pagerRow: {
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
+    marginTop: -2,
+  },
+  navRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  subRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 3,
   },
   pagerBtn: {
-    paddingVertical: 2,
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
   },
   dots: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 6,
-    marginTop: 8,
   },
   dot: {
     width: 6,
@@ -410,7 +401,6 @@ const styles = StyleSheet.create({
   subtle: {
     fontSize: 14,
     opacity: 0.6,
-    marginTop: 2,
   },
   exerciseList: {
     marginTop: 10,
@@ -449,16 +439,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   primaryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
     marginTop: 14,
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

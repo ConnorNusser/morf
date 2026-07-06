@@ -303,13 +303,13 @@ export default function RoutineProgressModal({
       <View style={[styles.chartContainer, { backgroundColor: colors.background }]}>
         {/* Chart header */}
         <View style={styles.chartHeader}>
-          <Text style={[styles.chartTitle, { color: colors.text + '70', fontFamily: fonts.regular }]}>
+          <Text style={[styles.chartTitle, { color: colors.text + '70', fontWeight: '400' }]}>
             Weight History
           </Text>
           {totalChange !== 0 && (
             <Text style={[styles.chartChange, {
               color: totalChange > 0 ? '#22c55e' : '#ef4444',
-              fontFamily: fonts.semiBold
+              fontWeight: '600'
             }]}>
               {totalChange > 0 ? '+' : ''}{totalChange} {unit}
             </Text>
@@ -319,10 +319,10 @@ export default function RoutineProgressModal({
         {/* Chart area */}
         <View style={{ width: chartWidth, height: chartHeight }}>
           {/* Y-axis labels */}
-          <Text style={[styles.yLabel, { top: paddingTop - 6, color: colors.text + '40', fontFamily: fonts.regular }]}>
+          <Text style={[styles.yLabel, { top: paddingTop - 6, color: colors.text + '40', fontWeight: '400' }]}>
             {max}
           </Text>
-          <Text style={[styles.yLabel, { top: paddingTop + graphHeight - 6, color: colors.text + '40', fontFamily: fonts.regular }]}>
+          <Text style={[styles.yLabel, { top: paddingTop + graphHeight - 6, color: colors.text + '40', fontWeight: '400' }]}>
             {min}
           </Text>
 
@@ -378,7 +378,7 @@ export default function RoutineProgressModal({
                   key={i}
                   style={[
                     styles.xLabel,
-                    { left: point.x - 8, color: colors.text + '50', fontFamily: fonts.regular },
+                    { left: point.x - 8, color: colors.text + '50', fontWeight: '400' },
                   ]}
                 >
                   #{point.session}
@@ -386,10 +386,10 @@ export default function RoutineProgressModal({
               ))
             ) : (
               <>
-                <Text style={[styles.xLabel, { left: points[0].x - 8, color: colors.text + '50', fontFamily: fonts.regular }]}>
+                <Text style={[styles.xLabel, { left: points[0].x - 8, color: colors.text + '50', fontWeight: '400' }]}>
                   #{points[0].session}
                 </Text>
-                <Text style={[styles.xLabel, { left: points[points.length - 1].x - 8, color: colors.text + '50', fontFamily: fonts.regular }]}>
+                <Text style={[styles.xLabel, { left: points[points.length - 1].x - 8, color: colors.text + '50', fontWeight: '400' }]}>
                   #{points[points.length - 1].session}
                 </Text>
               </>
@@ -400,28 +400,28 @@ export default function RoutineProgressModal({
         {/* Summary row */}
         <View style={styles.chartSummary}>
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
               Start
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontFamily: fonts.medium }]}>
+            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
               {startWeight} {unit}
             </Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
               Current
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontFamily: fonts.medium }]}>
+            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
               {endWeight} {unit}
             </Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+            <Text style={[styles.summaryItemLabel, { color: colors.text + '50', fontWeight: '400' }]}>
               Sessions
             </Text>
-            <Text style={[styles.summaryItemValue, { color: colors.text, fontFamily: fonts.medium }]}>
+            <Text style={[styles.summaryItemValue, { color: colors.text, fontWeight: '500' }]}>
               {data.length}
             </Text>
           </View>
@@ -489,15 +489,15 @@ export default function RoutineProgressModal({
               <StatusIndicator status={exercise.status} repBonus={exercise.repBonus} />
               {opts.showRoutineLabel ? (
                 <View>
-                  <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
+                  <Text style={[styles.exerciseName, { color: colors.text, fontWeight: '500' }]}>
                     {exercise.name}
                   </Text>
-                  <Text style={[styles.routineLabel, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+                  <Text style={[styles.routineLabel, { color: colors.text + '50', fontWeight: '400' }]}>
                     {exercise.routineName}
                   </Text>
                 </View>
               ) : (
-                <Text style={[styles.exerciseName, { color: colors.text, fontFamily: fonts.medium }]}>
+                <Text style={[styles.exerciseName, { color: colors.text, fontWeight: '500' }]}>
                   {exercise.name}
                 </Text>
               )}
@@ -505,7 +505,7 @@ export default function RoutineProgressModal({
 
             {exercise.status !== 'new' && (
               <View style={styles.exerciseDetail}>
-                <Text style={[styles.weightText, { color: colors.text + '70', fontFamily: fonts.regular }]}>
+                <Text style={[styles.weightText, { color: colors.text + '70', fontWeight: '400' }]}>
                   {exercise.currentWeight} {weightUnit}
                   {weightGain > 0 && (
                     <Text style={{ color: '#22c55e' }}> (+{weightGain})</Text>
@@ -516,7 +516,7 @@ export default function RoutineProgressModal({
                   // (e.g. "Consider deload" in red), no manual button.
                   <Text style={[
                     styles.statusLabel,
-                    { color: exercise.status === 'declining' ? '#ef4444' : colors.primary, fontFamily: fonts.medium },
+                    { color: exercise.status === 'declining' ? '#ef4444' : colors.primary, fontWeight: '500' },
                   ]}>
                     {statusLabel}
                   </Text>
@@ -525,7 +525,7 @@ export default function RoutineProgressModal({
             )}
 
             {opts.showNoData && exercise.status === 'new' && (
-              <Text style={[styles.noDataText, { color: colors.text + '40', fontFamily: fonts.regular }]}>
+              <Text style={[styles.noDataText, { color: colors.text + '40', fontWeight: '400' }]}>
                 No data yet
               </Text>
             )}
@@ -595,7 +595,7 @@ export default function RoutineProgressModal({
               y={ly + 3}
               fill={colors.text + '99'}
               fontSize={11}
-              fontFamily={fonts.medium}
+              fontWeight="500"
               textAnchor="middle"
             >
               {a.label}
@@ -619,7 +619,7 @@ export default function RoutineProgressModal({
         {/* Header */}
         <View style={styles.header}>
           <View style={{ width: 36 }} />
-          <Text style={[styles.headerTitle, { color: colors.text, fontFamily: fonts.semiBold }]}>
+          <Text style={[styles.headerTitle, { color: colors.text, fontWeight: '600' }]}>
             Progress
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.backButton}>
@@ -632,10 +632,10 @@ export default function RoutineProgressModal({
             <View style={[styles.emptyIcon, { backgroundColor: colors.surface }]}>
               <Ionicons name="barbell-outline" size={32} color={colors.primary} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.text, fontFamily: fonts.semiBold }]}>
+            <Text style={[styles.emptyTitle, { color: colors.text, fontWeight: '600' }]}>
               No Progress Yet
             </Text>
-            <Text style={[styles.emptySubtext, { color: colors.text + '60', fontFamily: fonts.regular }]}>
+            <Text style={[styles.emptySubtext, { color: colors.text + '60', fontWeight: '400' }]}>
               Complete workouts to track your gains
             </Text>
           </View>
@@ -648,10 +648,10 @@ export default function RoutineProgressModal({
             {/* Muscle balance radar */}
             {muscleBalance.total > 0 && (
               <View style={[styles.radarCard, { borderColor: colors.text + '1A' }]}>
-                <Text style={[styles.radarTitle, { color: colors.text, fontFamily: fonts.semiBold }]}>
+                <Text style={[styles.radarTitle, { color: colors.text, fontWeight: '600' }]}>
                   Muscle Balance
                 </Text>
-                <Text style={[styles.radarCaption, { color: colors.text + '55', fontFamily: fonts.regular }]}>
+                <Text style={[styles.radarCaption, { color: colors.text + '55', fontWeight: '400' }]}>
                   Working sets by muscle group · all time
                 </Text>
                 <View style={styles.radarWrap}>
@@ -663,10 +663,10 @@ export default function RoutineProgressModal({
             {/* Summary Cards - Tappable filters */}
             <View style={styles.summaryRow}>
               <View style={[styles.summaryCard, { borderColor: colors.text + '1A' }]}>
-                <Text style={[styles.summaryValue, { color: colors.text, fontFamily: fonts.semiBold }]}>
+                <Text style={[styles.summaryValue, { color: colors.text, fontWeight: '600' }]}>
                   {overallStats.totalSessions}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontFamily: fonts.regular }]}>
+                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
                   sessions
                 </Text>
               </View>
@@ -682,10 +682,10 @@ export default function RoutineProgressModal({
                 onPress={() => toggleFilter('improving')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: '#22c55e', fontFamily: fonts.semiBold }]}>
+                <Text style={[styles.summaryValue, { color: '#22c55e', fontWeight: '600' }]}>
                   {overallStats.totalImproving}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontFamily: fonts.regular }]}>
+                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
                   improving
                 </Text>
               </TouchableOpacity>
@@ -701,10 +701,10 @@ export default function RoutineProgressModal({
                 onPress={() => toggleFilter('stable')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: colors.text + '70', fontFamily: fonts.semiBold }]}>
+                <Text style={[styles.summaryValue, { color: colors.text + '70', fontWeight: '600' }]}>
                   {overallStats.totalStable}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontFamily: fonts.regular }]}>
+                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
                   stable
                 </Text>
               </TouchableOpacity>
@@ -720,10 +720,10 @@ export default function RoutineProgressModal({
                 onPress={() => toggleFilter('declining')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.summaryValue, { color: '#ef4444', fontFamily: fonts.semiBold }]}>
+                <Text style={[styles.summaryValue, { color: '#ef4444', fontWeight: '600' }]}>
                   {overallStats.totalDeclining}
                 </Text>
-                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontFamily: fonts.regular }]}>
+                <Text style={[styles.summaryLabel, { color: colors.text + '60', fontWeight: '400' }]}>
                   declining
                 </Text>
               </TouchableOpacity>
@@ -735,7 +735,7 @@ export default function RoutineProgressModal({
               {/* Clear-filter bar — explicit way back to the full view, since the
                   summary cards only deselect on an exact re-tap. */}
               <View style={styles.filterBar}>
-                <Text style={[styles.filterBarLabel, { color: colors.text + '99', fontFamily: fonts.medium }]}>
+                <Text style={[styles.filterBarLabel, { color: colors.text + '99', fontWeight: '500' }]}>
                   Showing {statusFilter}
                 </Text>
                 <TouchableOpacity
@@ -744,7 +744,7 @@ export default function RoutineProgressModal({
                   activeOpacity={0.6}
                 >
                   <Ionicons name="close" size={13} color={colors.text + 'CC'} />
-                  <Text style={[styles.clearChipText, { color: colors.text + 'CC', fontFamily: fonts.medium }]}>Show all</Text>
+                  <Text style={[styles.clearChipText, { color: colors.text + 'CC', fontWeight: '500' }]}>Show all</Text>
                 </TouchableOpacity>
               </View>
               <View style={[styles.exerciseList, { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.text + '1A', marginBottom: 12 }]}>
@@ -774,20 +774,20 @@ export default function RoutineProgressModal({
                     activeOpacity={0.7}
                   >
                     <View style={styles.routineHeaderTop}>
-                      <Text style={[styles.routineName, { color: colors.text, fontFamily: fonts.semiBold }]}>
+                      <Text style={[styles.routineName, { color: colors.text, fontWeight: '600' }]}>
                         {routine.name}
                       </Text>
                       <View style={styles.headerBadges}>
                         {routine.improving > 0 && (
                           <View style={[styles.miniBadge, { backgroundColor: '#22c55e20' }]}>
-                            <Text style={[styles.miniBadgeText, { color: '#22c55e', fontFamily: fonts.medium }]}>
+                            <Text style={[styles.miniBadgeText, { color: '#22c55e', fontWeight: '500' }]}>
                               {routine.improving} improving
                             </Text>
                           </View>
                         )}
                         {routine.declining > 0 && (
                           <View style={[styles.miniBadge, { backgroundColor: '#ef444420' }]}>
-                            <Text style={[styles.miniBadgeText, { color: '#ef4444', fontFamily: fonts.medium }]}>
+                            <Text style={[styles.miniBadgeText, { color: '#ef4444', fontWeight: '500' }]}>
                               {routine.declining} declining
                             </Text>
                           </View>
@@ -801,7 +801,7 @@ export default function RoutineProgressModal({
                     </View>
 
                     <View style={styles.routineMeta}>
-                      <Text style={[styles.metaText, { color: colors.text + '50', fontFamily: fonts.regular }]}>
+                      <Text style={[styles.metaText, { color: colors.text + '50', fontWeight: '400' }]}>
                         {routine.completions} sessions · Last: {formatLastWorkout(routine.daysSinceLastWorkout)}
                       </Text>
                     </View>

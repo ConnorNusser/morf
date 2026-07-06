@@ -5,6 +5,7 @@ import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import LiftDisplayFilter from "@/components/LiftDisplayFilter";
 import OverallStatsCard from "@/components/OverallStatsCard";
+import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -18,6 +19,9 @@ import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
+import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
+import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
+import { PPL_COLORS } from "@/lib/data/pplCategories";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
@@ -29,7 +33,12 @@ import {
 import { gap, layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import { LiftDisplayFilters, RemoteUser, UserProgress } from "@/types";
+import {
+  GeneratedWorkout,
+  LiftDisplayFilters,
+  RemoteUser,
+  UserProgress,
+} from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -66,6 +75,7 @@ export default function HomeScreen() {
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
 
   const filteredProgress = useMemo(
     () =>
@@ -84,6 +94,36 @@ export default function HomeScreen() {
       improvementTrend: "improving" as const,
     };
   }, [filteredProgress]);
+
+  // Powerlifting "big 3" total — combined best e1RM of squat + bench + deadlift,
+  // computed in lb (the 1,000 lb club is an absolute lb milestone). Reuses the
+  // same PR + feat math the Career screen does; no new tracking.
+  const powerliftingTotal = useMemo(() => {
+    if (!workoutHistory.length) return null;
+    const prsLbs = computeMainLiftPRs(workoutHistory, "lbs");
+    const feats = computeStrengthFeats(prsLbs);
+    const total = feats[0]?.current ?? 0;
+    if (total <= 0) return null;
+    const next = feats.find((f) => !f.unlocked) ?? feats[feats.length - 1];
+    const e1 = (id: string) =>
+      Math.round(prsLbs.find((p) => p.exerciseId === id)?.estimatedOneRM ?? 0);
+    const lifts = [
+      { label: "Squat", value: e1("squat-barbell"), color: PPL_COLORS.legs },
+      { label: "Bench", value: e1("bench-press-barbell"), color: PPL_COLORS.push },
+      { label: "Deadlift", value: e1("deadlift-barbell"), color: PPL_COLORS.pull },
+    ];
+    const clubs = feats.map((f) => ({ value: f.target, achieved: f.unlocked }));
+    const allUnlocked = feats.every((f) => f.unlocked);
+    return {
+      total,
+      lifts,
+      clubs,
+      nextTarget: allUnlocked ? 0 : next.target,
+      remaining: Math.max(0, next.target - total),
+      achievedCount: feats.filter((f) => f.unlocked).length,
+      allUnlocked,
+    };
+  }, [workoutHistory]);
 
   // Load saved view mode on mount
   useEffect(() => {
@@ -110,6 +150,7 @@ export default function HomeScreen() {
 
       setUserProgress(userProgressData);
       setLiftFilters(savedFilters);
+      setWorkoutHistory(history);
 
       const unit = profile?.weightUnitPreference || "lbs";
 
@@ -289,19 +330,11 @@ export default function HomeScreen() {
             onTierPress={() => setShowCareer(true)}
           />
 
-          <TodayCard />
           <WeeklyGoalCard />
-
-          <OverallStatsCard stats={overallStats} />
+          <TodayCard />
 
           <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
+            style={styles.actionButton}
             onPress={() => setShowLeaderboard(true)}
             activeOpacity={0.7}
           >
@@ -310,7 +343,7 @@ export default function HomeScreen() {
                 styles.actionButtonText,
                 {
                   color: currentTheme.colors.text,
-                  fontFamily: currentTheme.fonts.medium,
+                  fontWeight: '500',
                 },
               ]}
             >
@@ -323,25 +356,32 @@ export default function HomeScreen() {
             />
           </TouchableOpacity>
 
+          {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
+              grouped as one block, split by a hairline divider. */}
+          <View>
+            <OverallStatsCard stats={overallStats} />
+            {powerliftingTotal && (
+              <>
+                <View
+                  style={[styles.strengthDivider, { backgroundColor: currentTheme.colors.text + "12" }]}
+                />
+                <PowerliftingTotal data={powerliftingTotal} />
+              </>
+            )}
+          </View>
+
           {userProgress.length > 0 && (
             <>
-              <View>
-                <Text
-                  style={[
-                    styles.sectionTitle,
-                    {
-                      color: currentTheme.colors.text,
-                      marginBottom: 0,
-                    },
-                  ]}
-                >
-                  Your Lifts
-                </Text>
-                <LiftDisplayFilter
-                  availableLifts={userProgress}
-                  onFiltersChanged={setLiftFilters}
-                />
-              </View>
+              <Text
+                style={[styles.sectionTitle, { color: currentTheme.colors.text, marginBottom: 0 }]}
+              >
+                Your Lifts
+              </Text>
+
+              <LiftDisplayFilter
+                availableLifts={userProgress}
+                onFiltersChanged={setLiftFilters}
+              />
 
               <View style={gap.gap20}>
                 {filteredProgress.map((progress) => (
@@ -397,7 +437,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   content: {
     padding: 20,
-    gap: 20,
+    gap: 14,
   },
   feedHeader: {
     paddingHorizontal: 20,
@@ -407,14 +447,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
   },
+  strengthDivider: {
+    height: 1,
+    marginTop: 6,
+    marginBottom: 12,
+  },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 12,
   },
   actionButtonText: {
     fontSize: 15,

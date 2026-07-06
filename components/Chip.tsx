@@ -49,7 +49,7 @@ function Chip({
           textSizeStyles,
           {
             color: selected ? currentTheme.colors.background : currentTheme.colors.text,
-            fontFamily: currentTheme.fonts.medium,
+            fontWeight: '500',
           },
           textStyle,
         ]}

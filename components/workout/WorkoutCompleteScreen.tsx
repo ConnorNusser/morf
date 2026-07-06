@@ -58,8 +58,6 @@ interface WorkoutCompleteScreenProps {
   userLifts: UserProgress[];
   userProfile: UserProfile | null;
   weightUnit: WeightUnit;
-  templateSaved: boolean;
-  onSaveAsTemplate: () => void;
   onDone: () => void;
   isSmallScreen?: boolean;
   rewards?: SessionRewards | null;
@@ -83,10 +81,10 @@ function AchievementRewardRow({
         size={34}
       />
       <View style={styles.achTextWrap}>
-        <Text style={[styles.achTitle, { color: '#fff', fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.achTitle, { color: '#fff', fontWeight: '600' }]} numberOfLines={1}>
           {achievement.title}
         </Text>
-        <Text style={[styles.achSub, { color: accent, fontFamily: currentTheme.fonts.medium }]}>
+        <Text style={[styles.achSub, { color: accent, fontWeight: '500' }]}>
           {RARITY_META[achievement.rarity].label} · unlocked
         </Text>
       </View>
@@ -97,10 +95,10 @@ function AchievementRewardRow({
   const back = (
     <View style={[styles.achRowFace, styles.achRowBack, { backgroundColor: accent + '1F', borderColor: accent }]}>
       <View style={styles.achTextWrap}>
-        <Text style={[styles.achSub, { color: accent, fontFamily: currentTheme.fonts.semiBold }]} numberOfLines={1}>
+        <Text style={[styles.achSub, { color: accent, fontWeight: '600' }]} numberOfLines={1}>
           {achievement.title}
         </Text>
-        <Text style={[styles.achBackDesc, { color: '#fff', fontFamily: currentTheme.fonts.regular }]} numberOfLines={2}>
+        <Text style={[styles.achBackDesc, { color: '#fff', fontWeight: '400' }]} numberOfLines={2}>
           {achievement.description}
         </Text>
       </View>
@@ -125,7 +123,7 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
             <AchievementRewardRow key={a.id} achievement={a} />
           ))}
           {newAchievements.length > shownAch.length && (
-            <Text style={[styles.achMore, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+            <Text style={[styles.achMore, { color: 'rgba(255,255,255,0.5)', fontWeight: '400' }]}>
               +{newAchievements.length - shownAch.length} more unlocked
             </Text>
           )}
@@ -197,7 +195,7 @@ const PulsingBadge = ({ text, color }: { text: string; color: string }) => {
 
   return (
     <Animated.View style={[styles.prBadge, { backgroundColor: color, borderColor: color }, animatedStyle]}>
-      <Text style={[styles.prBadgeText, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}>
+      <Text style={[styles.prBadgeText, { color: '#fff', fontWeight: '700' }]}>
         {text}
       </Text>
     </Animated.View>
@@ -285,20 +283,20 @@ const StatCard = ({
           delay={delay}
           style={[
             styles.statCardValue,
-            { color: '#fff', fontFamily: currentTheme.fonts.bold },
+            { color: '#fff', fontWeight: '700' },
             isSmallScreen && styles.statCardValueSmall,
           ]}
         />
       ) : (
         <Text style={[
           styles.statCardValue,
-          { color: '#fff', fontFamily: currentTheme.fonts.bold },
+          { color: '#fff', fontWeight: '700' },
           isSmallScreen && styles.statCardValueSmall,
         ]}>
           {value}
         </Text>
       )}
-      <Text style={[styles.statCardLabel, { color: 'rgba(255,255,255,0.6)', fontFamily: currentTheme.fonts.regular }]}>
+      <Text style={[styles.statCardLabel, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}>
         {label}
       </Text>
     </Animated.View>
@@ -326,8 +324,6 @@ export default function WorkoutCompleteScreen({
   userLifts,
   userProfile,
   weightUnit,
-  templateSaved,
-  onSaveAsTemplate,
   onDone,
   isSmallScreen = false,
   rewards,
@@ -470,20 +466,20 @@ export default function WorkoutCompleteScreen({
               style={styles.headerLogo}
               resizeMode="contain"
             />
-            <Text style={[styles.logoText, { color: 'rgba(255,255,255,0.4)', fontFamily: currentTheme.fonts.medium }]}>
+            <Text style={[styles.logoText, { color: 'rgba(255,255,255,0.4)', fontWeight: '500' }]}>
               morf
             </Text>
           </Animated.View>
 
           <Animated.Text
             entering={FadeIn.delay(200)}
-            style={[styles.title, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}
+            style={[styles.title, { color: '#fff', fontWeight: '700' }]}
           >
             Workout Complete!
           </Animated.Text>
           <Animated.Text
             entering={FadeIn.delay(300)}
-            style={[styles.subtitle, { color: 'rgba(255,255,255,0.6)', fontFamily: currentTheme.fonts.regular }]}
+            style={[styles.subtitle, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}
           >
             Great job crushing it today
           </Animated.Text>
@@ -512,7 +508,7 @@ export default function WorkoutCompleteScreen({
                     style={styles.prRow}
                   >
                     <View style={[styles.prCardContent, { backgroundColor: 'transparent' }]}>
-                      <Text style={[styles.prExerciseName, { color: 'rgba(255,255,255,0.7)', fontFamily: currentTheme.fonts.regular }]}>
+                      <Text style={[styles.prExerciseName, { color: 'rgba(255,255,255,0.7)', fontWeight: '400' }]}>
                         {pr.exerciseName}
                       </Text>
                       <View style={[styles.prValueRow, { backgroundColor: 'transparent' }]}>
@@ -520,13 +516,13 @@ export default function WorkoutCompleteScreen({
                           value={pr.newPR}
                           delay={650 + index * 100}
                           duration={1200}
-                          style={[styles.prValue, { color: '#fff', fontFamily: currentTheme.fonts.bold }]}
+                          style={[styles.prValue, { color: '#fff', fontWeight: '700' }]}
                         />
-                        <Text style={[styles.prUnit, { color: 'rgba(255,255,255,0.5)', fontFamily: currentTheme.fonts.regular }]}>
+                        <Text style={[styles.prUnit, { color: 'rgba(255,255,255,0.5)', fontWeight: '400' }]}>
                           {weightUnit}
                         </Text>
                         {pr.improvement > 0 && (
-                          <Text style={[styles.improvementText, { color: '#4ADE80', fontFamily: currentTheme.fonts.semiBold }]}>
+                          <Text style={[styles.improvementText, { color: '#4ADE80', fontWeight: '600' }]}>
                             ↑{pr.improvement}
                           </Text>
                         )}
@@ -555,7 +551,7 @@ export default function WorkoutCompleteScreen({
               activeOpacity={0.8}
             >
               <Ionicons name="trophy-outline" size={16} color="#fff" />
-              <Text style={[styles.viewAllText, { color: '#fff', fontFamily: currentTheme.fonts.medium }]}>
+              <Text style={[styles.viewAllText, { color: '#fff', fontWeight: '500' }]}>
                 View all achievements
               </Text>
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
@@ -595,7 +591,7 @@ export default function WorkoutCompleteScreen({
           {/* Exercise Details (expandable) */}
           {showExerciseDetails && (
             <Animated.View entering={FadeIn} style={styles.exerciseDetailsContainer}>
-              <Text style={[styles.exerciseDetailsTitle, { color: 'rgba(255,255,255,0.8)', fontFamily: currentTheme.fonts.semiBold }]}>
+              <Text style={[styles.exerciseDetailsTitle, { color: 'rgba(255,255,255,0.8)', fontWeight: '600' }]}>
                 Exercises
               </Text>
               {exercises.map((exercise, index) => {
@@ -609,10 +605,10 @@ export default function WorkoutCompleteScreen({
                     key={index}
                     style={[styles.exerciseDetailRow, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]}
                   >
-                    <Text style={[styles.exerciseDetailName, { color: '#fff', fontFamily: currentTheme.fonts.medium }]}>
+                    <Text style={[styles.exerciseDetailName, { color: '#fff', fontWeight: '500' }]}>
                       {exerciseInfo?.name || exercise.name}
                     </Text>
-                    <Text style={[styles.exerciseDetailSets, { color: 'rgba(255,255,255,0.6)', fontFamily: currentTheme.fonts.regular }]}>
+                    <Text style={[styles.exerciseDetailSets, { color: 'rgba(255,255,255,0.6)', fontWeight: '400' }]}>
                       {setCount} {setCount === 1 ? 'set' : 'sets'}
                     </Text>
                   </View>
@@ -629,45 +625,13 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}
       >
-        {/* Save as Template button */}
-        <TouchableOpacity
-          style={[
-            styles.saveTemplateButton,
-            {
-              backgroundColor: templateSaved
-                ? currentTheme.colors.accent + '20'
-                : 'rgba(255,255,255,0.15)',
-              borderColor: templateSaved
-                ? currentTheme.colors.accent
-                : 'rgba(255,255,255,0.3)',
-            }
-          ]}
-          onPress={onSaveAsTemplate}
-          activeOpacity={0.8}
-          disabled={templateSaved}
-        >
-          <Ionicons
-            name={templateSaved ? "checkmark-circle" : "bookmark-outline"}
-            size={20}
-            color={templateSaved ? currentTheme.colors.accent : '#fff'}
-          />
-          <Text style={[
-            styles.saveTemplateButtonText,
-            {
-              color: templateSaved ? currentTheme.colors.accent : '#fff',
-            }
-          ]}>
-            {templateSaved ? 'Saved to Templates' : 'Save as Template'}
-          </Text>
-        </TouchableOpacity>
-
         {/* Done button */}
         <TouchableOpacity
           style={[styles.doneButton, { backgroundColor: currentTheme.colors.primary }]}
           onPress={onDone}
           activeOpacity={0.8}
         >
-          <Text style={[styles.doneButtonText, { fontFamily: currentTheme.fonts.semiBold }]}>
+          <Text style={[styles.doneButtonText, { fontWeight: '600' }]}>
             Done
           </Text>
         </TouchableOpacity>
@@ -899,19 +863,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 16,
     gap: 12,
-  },
-  saveTemplateButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 8,
-  },
-  saveTemplateButtonText: {
-    fontSize: 16,
   },
   doneButton: {
     paddingVertical: 16,
