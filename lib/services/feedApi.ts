@@ -289,13 +289,16 @@ class FeedApi {
       exercises: WorkoutExerciseSummary[];
     },
     username: string,
-    profilePictureUrl?: string
+    profilePictureUrl?: string,
+    // Gamification snapshot for the card (tier / PR count / earned achievement
+    // ids) — merged over the base likes/comments so the feed can render it.
+    feedData?: object
   ): Promise<boolean> {
     const { error } = await this.request<{ id: string }>('POST', '/api/workouts', userId, {
       ...workout,
       username,
       profile_picture_url: profilePictureUrl,
-      feed_data: { likes: [], comments: [] },
+      feed_data: { likes: [], comments: [], ...(feedData ?? {}) },
     });
     return !error;
   }

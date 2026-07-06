@@ -21,6 +21,7 @@ import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
+import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import { Ionicons } from '@expo/vector-icons';
@@ -168,6 +169,7 @@ function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
 // ---- Celebration shown at the top when achievements were just earned ----
 function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismiss: () => void }) {
   const { currentTheme } = useTheme();
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
   const accent = currentTheme.colors.primary;
   const title =
     items.length === 1 ? 'Achievement unlocked' : `${items.length} achievements unlocked`;
@@ -183,19 +185,28 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
         </TouchableOpacity>
       </View>
       {shown.map(a => (
-        <View key={a.id} style={styles.celebrateRow}>
+        <TouchableOpacity
+          key={a.id}
+          style={styles.celebrateRow}
+          activeOpacity={0.7}
+          onPress={() => setSpotlight(toSpotlight(a))}
+          accessibilityRole="button"
+          accessibilityLabel={a.title}
+        >
           <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={38} />
           <View style={styles.celebrateText}>
             <Text style={[styles.celebrateName, { color: currentTheme.colors.text }]}>{a.title}</Text>
             <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text }]}>{a.description}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       ))}
       {overflow > 0 && (
         <Text style={[styles.celebrateDesc, { color: currentTheme.colors.text, marginLeft: 42 }]}>
           + {overflow} more
         </Text>
       )}
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }
@@ -605,10 +616,31 @@ const ACH_FILTERS: { key: 'all' | AchievementCategory; label: string }[] = [
 // "almost there" once it crosses this bar — which gets a visible highlight.
 const ALMOST_THRESHOLD = 0.6;
 
+// One achievement mapped to the full-screen spotlight — the same modal the
+// History sessions feed opens, so badges behave identically everywhere.
+function toSpotlight(a: Achievement): AchievementModalItem {
+  const display = achievementDisplay(a);
+  const pct = Math.round(a.progress * 100);
+  return {
+    id: a.id,
+    title: display.title,
+    description: display.description,
+    icon: display.icon,
+    rarity: a.rarity,
+    unlocked: a.unlocked,
+    masked: display.masked,
+    progressLabel:
+      a.unlocked || display.masked
+        ? undefined
+        : `${formatCompact(a.current)} / ${formatCompact(a.target)} · ${pct}%`,
+  };
+}
+
 function AchievementGridView({ achievements, newIds }: { achievements: Achievement[]; newIds: Set<string> }) {
   const { currentTheme } = useTheme();
   const [filter, setFilter] = useState<'all' | AchievementCategory>('all');
   const [rarityFilter, setRarityFilter] = useState<Rarity | null>(null);
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
   // Category narrows first; the rarity (tier) chips narrow within it.
   const byCategory = achievements.filter(a => filter === 'all' || a.category === filter);
   const breakdown = rarityBreakdown(byCategory);
@@ -671,7 +703,7 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
         })}
       </View>
       <Text style={[styles.achHint, { color: currentTheme.colors.text }]}>
-        Tap a tier to filter · tap a badge to flip
+        Tap a tier to filter · tap a badge for details
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achTabs}>
         {ACH_FILTERS.map(f => {
@@ -705,19 +737,26 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
             </View>
             <View style={styles.grid}>
               {g.items.map(a => (
-                <AchievementTile key={a.id} achievement={a} isNew={newIds.has(a.id)} />
+                <AchievementTile
+                  key={a.id}
+                  achievement={a}
+                  isNew={newIds.has(a.id)}
+                  onPress={() => setSpotlight(toSpotlight(a))}
+                />
               ))}
             </View>
           </View>
         ),
       )}
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }
 
 const ACH_TILE_HEIGHT = 150;
 
-function AchievementTile({ achievement, isNew }: { achievement: Achievement; isNew: boolean }) {
+function AchievementTile({ achievement, isNew, onPress }: { achievement: Achievement; isNew: boolean; onPress: () => void }) {
   const { currentTheme } = useTheme();
   // Rarity is the one organizing color — the tile frame, wash and progress all
   // match the badge so the grid reads as a coherent rarity-coded collection.
@@ -732,7 +771,7 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
       ? { backgroundColor: r + '0A', borderColor: r + '66', borderWidth: 1 }
       : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 };
 
-  // ---- FRONT: badge, title, and an unmistakable status (check / % / lock) ----
+  // The tile face: badge, title, and an unmistakable status (check / % / lock).
   const front = (
     <View style={[styles.achFace, styles.achTile, frameStyle]}>
       <View style={styles.achTileTop}>
@@ -784,44 +823,21 @@ function AchievementTile({ achievement, isNew }: { achievement: Achievement; isN
           <View style={[styles.achFill, { backgroundColor: r, width: `${pct}%` }]} />
         </View>
       )}
-      <View style={styles.achFlipHint}>
-        <Ionicons name="sync-outline" size={11} color={currentTheme.colors.text + '40'} />
-      </View>
     </View>
   );
 
-  // ---- BACK: the full story — what it is and exactly where you stand ----
-  const back = (
-    <View style={[styles.achFace, styles.achTile, styles.achTileBack, frameStyle]}>
-      <Text style={[styles.achBackRarity, { color: r }]}>
-        {display.masked ? 'SECRET' : RARITY_META[achievement.rarity].label.toUpperCase()}
-      </Text>
-      <Text style={[styles.achBackTitle, { color: currentTheme.colors.text }]} numberOfLines={1}>
-        {display.title}
-      </Text>
-      <Text style={[styles.achBackDesc, { color: currentTheme.colors.text }]} numberOfLines={3}>
-        {display.description}
-      </Text>
-      <View style={styles.achBackFooter}>
-        {achievement.unlocked ? (
-          <View style={styles.achBackStatusRow}>
-            <Ionicons name="checkmark-circle" size={14} color={r} />
-            <Text style={[styles.achBackStatus, { color: r }]}>Completed</Text>
-          </View>
-        ) : display.masked ? (
-          <Text style={[styles.achBackStatus, { color: currentTheme.colors.text + '80' }]}>
-            Keep training to reveal
-          </Text>
-        ) : (
-          <Text style={[styles.achBackStatus, { color: currentTheme.colors.text }]}>
-            {formatCompact(achievement.current)} / {formatCompact(achievement.target)} · {pct}%
-          </Text>
-        )}
-      </View>
-    </View>
+  // Tap opens the full-screen spotlight — the same modal History's feed uses.
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={display.title}
+      style={[styles.achTileWrap, { height: ACH_TILE_HEIGHT }]}
+    >
+      {front}
+    </TouchableOpacity>
   );
-
-  return <FlipCard front={front} back={back} height={ACH_TILE_HEIGHT} style={styles.achTileWrap} />;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {

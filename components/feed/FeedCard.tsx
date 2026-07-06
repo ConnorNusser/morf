@@ -1,6 +1,10 @@
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
+import { achievementMeta } from '@/lib/gamification/achievementMeta';
 import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
@@ -9,7 +13,7 @@ import { WorkoutSummary } from '@/lib/services/feedService';
 import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
@@ -34,6 +38,13 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
+  // Achievements this workout earned — synced as ids, resolved to bundled
+  // art/copy on-device. Unknown ids (older app versions) drop out silently.
+  const earned = useMemo(
+    () => (feedData?.achievement_ids ?? []).map(achievementMeta).filter(m => m != null),
+    [feedData?.achievement_ids],
+  );
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
   // Smooth animation for like button using reanimated
   const likeScale = useSharedValue(1);
@@ -119,6 +130,29 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
               {feedData.pr_count === 1 ? 'New PR' : `${feedData.pr_count} PRs`}
             </Text>
           </View>
+        </View>
+      )}
+
+      {/* achievements this workout earned — badge art + title, tap for the
+          full-screen spotlight (same grammar as the History log). */}
+      {earned.length > 0 && (
+        <View style={styles.achRow}>
+          {earned.slice(0, 3).map(m => (
+            <TouchableOpacity
+              key={m.id}
+              style={styles.achItem}
+              activeOpacity={0.7}
+              hitSlop={6}
+              onPress={() => setSpotlight({ ...m, earnedLabel: `@${workout.username}` })}
+              accessibilityRole="button"
+              accessibilityLabel={m.title}
+            >
+              <AchievementBadge icon={m.icon} emblem={emblemFor(m.id)} rarity={m.rarity} size={26} />
+              <Text style={[styles.achTitle, { color: currentTheme.colors.text + 'CC' }]} numberOfLines={1}>
+                {m.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       )}
 
@@ -223,6 +257,8 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
           </TouchableOpacity>
         </View>
       </View>
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
     </TouchableOpacity>
   );
 }
@@ -292,6 +328,23 @@ const styles = StyleSheet.create({
   prChipText: {
     fontSize: 13,
     color: '#FFFFFF',
+  },
+  // Earned achievements: badge art + title, tappable (History-log grammar).
+  achRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+    backgroundColor: 'transparent',
+  },
+  achItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  achTitle: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   stats: {
     fontSize: 14,

@@ -16,7 +16,7 @@ import {
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { getExercise } from '@/lib/workout/workouts';
-import { Gender, GeneratedWorkout, StrengthStandard, WeightUnit, convertWeight } from '@/types';
+import { Gender, GeneratedWorkout, StrengthStandard, WeightUnit, convertWeight, isMainLift } from '@/types';
 
 export interface LiftProgressPoint {
   weight: number; // in the preferred unit; 0 for a bodyweight set
@@ -261,10 +261,12 @@ export function buildLiftProgressions(
     });
   }
 
-  // Rank first (tier proximity × movement), recency only breaks ties — the board
-  // leads with the lifts worth leveling next, not just whatever was trained last.
+  // Main lifts first (squat/bench/deadlift/OHP are the lifts the board is FOR),
+  // then rank (tier proximity × movement), recency only breaking ties — so
+  // within each group the board still leads with the lifts worth leveling next.
   out.sort(
     (a, b) =>
+      Number(isMainLift(b.id)) - Number(isMainLift(a.id)) ||
       b.rankScore - a.rankScore ||
       (b.points[b.points.length - 1]?.date.getTime() ?? 0) - (a.points[a.points.length - 1]?.date.getTime() ?? 0),
   );

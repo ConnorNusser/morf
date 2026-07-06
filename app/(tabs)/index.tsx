@@ -113,8 +113,27 @@ export default function HomeScreen() {
       { label: "Bench", value: e1("bench-press-barbell"), color: PPL_COLORS.push },
       { label: "Deadlift", value: e1("deadlift-barbell"), color: PPL_COLORS.pull },
     ];
-    const clubs = feats.map((f) => ({ value: f.target, achieved: f.unlocked }));
+    // The ladder shows a rolling window — up to two clubs behind you plus the
+    // one you're chasing — so the scale stays readable now that the club list
+    // runs to 2,000 lb. Conquered clubs still count via achievedCount.
+    const nextIdx = feats.findIndex((f) => !f.unlocked);
+    const hiIdx = nextIdx === -1 ? feats.length - 1 : nextIdx;
+    const clubs = feats
+      .slice(Math.max(0, hiIdx - 2), hiIdx + 1)
+      .map((f) => ({ value: f.target, achieved: f.unlocked }));
     const allUnlocked = feats.every((f) => f.unlocked);
+    // The biggest claimed club, as the REAL achievement — the widget shows its
+    // badge art and opens the shared achievement spotlight on tap.
+    const claimed = [...feats].reverse().find((f) => f.unlocked);
+    const currentClub = claimed
+      ? {
+          id: claimed.id,
+          title: claimed.title,
+          description: claimed.description,
+          icon: claimed.icon,
+          rarity: claimed.rarity,
+        }
+      : null;
     return {
       total,
       lifts,
@@ -123,6 +142,7 @@ export default function HomeScreen() {
       remaining: Math.max(0, next.target - total),
       achievedCount: feats.filter((f) => f.unlocked).length,
       allUnlocked,
+      currentClub,
     };
   }, [workoutHistory]);
 

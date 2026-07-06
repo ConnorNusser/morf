@@ -3,6 +3,7 @@ import ExerciseCard from '@/components/history/ExerciseCard';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import SessionsFeed from '@/components/history/SessionsFeed';
+import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import LiftProgressWidget from '@/components/history/LiftProgressWidget';
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import { buildLiftProgressions } from '@/lib/history/liftProgress';
@@ -119,6 +120,14 @@ export default function HistoryScreen() {
     }
   }, [weightUnit, customExercises]);
 
+  // Pin achievements on the session that earned them — replayed from history
+  // itself (see lib/history/achievementAttribution), so it's deterministic and
+  // works retroactively with no unlock timestamps.
+  const achievementsByWorkout = useMemo(
+    () => attributeAchievements(workouts, weightUnit),
+    [workouts, weightUnit],
+  );
+
   useEffect(() => {
     loadHistory();
     loadExerciseStats();
@@ -168,7 +177,7 @@ export default function HistoryScreen() {
         workouts,
         exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
         weightUnit,
-        4,
+        6,
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ),
     [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]
@@ -324,6 +333,7 @@ export default function HistoryScreen() {
                   totalCount={sessionRecaps.length}
                   onPressSession={setSelectedWorkout}
                   onToggleShowAll={sessionRecaps.length > 3 ? () => setShowAllWorkouts(v => !v) : undefined}
+                  achievementsByWorkout={achievementsByWorkout}
                 />
               </Card>
             )}

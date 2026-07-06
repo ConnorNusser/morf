@@ -34,7 +34,9 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
               style={[
                 styles.title,
                 {
-                  fontSize: type.meta,
+                  // A notch above the shared micro-label size — this is the
+                  // home strength block's headline, not a section eyebrow.
+                  fontSize: type.body,
                   color: currentTheme.colors.text,
                 },
               ]}

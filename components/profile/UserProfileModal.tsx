@@ -1,3 +1,8 @@
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
+import { achievementMeta } from '@/lib/gamification/achievementMeta';
+import { RARITY_META } from '@/lib/gamification/rarity';
 import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import { formatRelativeTime, formatDuration } from '@/lib/ui/formatters';
@@ -53,6 +58,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   usePauseVideosWhileOpen(visible);
   const [lifts, setLifts] = useState<UserLiftData[]>([]);
   const [userData, setUserData] = useState<RemoteUserData | null>(null);
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSummary[]>([]);
   const [workoutCount, setWorkoutCount] = useState<number>(0);
@@ -454,6 +460,32 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       {getCountryName(user.country_code)}
                     </Text>
                   )}
+                  {/* Featured achievement — the badge this user chose to wear. */}
+                  {(() => {
+                    const featured = userData?.featured_achievement_id
+                      ? achievementMeta(userData.featured_achievement_id)
+                      : undefined;
+                    if (!featured) return null;
+                    return (
+                      <TouchableOpacity
+                        style={styles.featuredRow}
+                        activeOpacity={0.7}
+                        onPress={() => setSpotlight({ ...featured, earnedLabel: `@${user.username}` })}
+                        accessibilityRole="button"
+                        accessibilityLabel={featured.title}
+                      >
+                        <AchievementBadge
+                          icon={featured.icon}
+                          emblem={emblemFor(featured.id)}
+                          rarity={featured.rarity}
+                          size={24}
+                        />
+                        <Text style={[styles.featuredTitle, { color: RARITY_META[featured.rarity].accent }]}>
+                          {featured.title}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                   {/* Last workout & Member since */}
                   <View style={styles.metaRow}>
                     {recentWorkouts.length > 0 && (
@@ -977,6 +1009,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           </TouchableOpacity>
         </Modal>
       )}
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
     </Modal>
   );
 }
@@ -996,6 +1030,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     gap: 16,
+  },
+  // The badge this user chose to wear on their profile.
+  featuredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  featuredTitle: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   userHeader: {
     flexDirection: 'row',

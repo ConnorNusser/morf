@@ -1,7 +1,24 @@
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { TIER_COLORS } from '@/lib/data/strengthStandards';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
+import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
+import { TOTAL_CLUB_TIERS } from '@/lib/gamification/strengthFeats';
 import { type as typeScale } from '@/lib/ui/typography';
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+// A club's color is its strength-tier color (600 = E grey ... 2000 = S gold).
+const clubColor = (target: number): string => TIER_COLORS[TOTAL_CLUB_TIERS[target] ?? 'S'];
+
+export interface ClubAchievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  rarity: Rarity;
+}
 
 export interface TotalLift {
   label: string; // "Squat" / "Bench" / "Deadlift"
@@ -22,6 +39,7 @@ export interface PowerliftingTotalData {
   remaining: number; // lb left to reach nextTarget (0 once reached)
   achievedCount: number; // clubs unlocked
   allUnlocked: boolean;
+  currentClub?: ClubAchievement | null; // the real achievement for the biggest claimed club
 }
 
 const STEP = 100; // lb per ladder cell
@@ -63,12 +81,35 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
     Array.from({ length: cellCount }, (_, i) => bandOf(i)).filter(x => x === b).length,
   );
 
+  // The lifter's current title: the real club achievement, tappable into the
+  // same full-screen spotlight every other badge in the app opens.
+  const club = data.currentClub;
+  const clubAccent = club ? RARITY_META[club.rarity].accent : TIER_COLORS.S;
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
+
   return (
     <View style={styles.container}>
+      {/* Identity row: what this number IS, and the club title it has earned. */}
+      <View style={styles.titleRow}>
+        <Text style={[styles.microLabel, { color: colors.text }]}>MAIN LIFT TOTAL</Text>
+        {club && (
+          <TouchableOpacity
+            style={[styles.clubChip, { backgroundColor: clubAccent + '1A', borderColor: clubAccent + '55' }]}
+            activeOpacity={0.7}
+            onPress={() => setSpotlight({ ...club })}
+            accessibilityRole="button"
+            accessibilityLabel={club.title}
+          >
+            <AchievementBadge icon={club.icon} emblem={emblemFor(club.id)} rarity={club.rarity} size={20} />
+            <Text style={[styles.clubChipText, { color: clubAccent }]}>{club.title.toUpperCase()}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       <View style={styles.header}>
         {/* Total on the left. */}
         <Text style={styles.headerTotal}>
-          <Text style={[styles.headerNum, { color: colors.text + '99' }]}>{data.total.toLocaleString()}</Text>
+          <Text style={[styles.headerNum, { color: colors.text }]}>{data.total.toLocaleString()}</Text>
           <Text style={[styles.headerUnit, { color: colors.text + '70' }]}> lb</Text>
         </Text>
 
@@ -124,12 +165,45 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
           </Text>
         ))}
       </View>
+
+      {/* The chase — Career's NEXT grammar pointed at the next pound club,
+          colored by the tier that club sits on (E grey up to S gold). */}
+      <Text style={[styles.nextLine, { color: colors.text + '99' }]}>
+        {data.allUnlocked ? (
+          <Text style={{ color: TIER_COLORS.S, fontWeight: '600' }}>Every club conquered</Text>
+        ) : (
+          <>
+            <Text style={{ color: colors.text, fontWeight: '700' }}>{data.remaining.toLocaleString()} lb</Text>
+            {' to the '}
+            <Text style={{ color: clubColor(data.nextTarget), fontWeight: '600' }}>
+              {data.nextTarget.toLocaleString()} lb Club
+            </Text>
+          </>
+        )}
+      </Text>
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { paddingVertical: 4 },
+  // The shared uppercase micro-label grammar + the earned club title.
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
+  clubChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 4,
+    paddingRight: 9,
+    paddingVertical: 3,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  clubChipText: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.4 },
+  nextLine: { fontSize: typeScale.meta, marginTop: 12 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerTotal: {},
   headerNum: { fontSize: typeScale.hero, fontWeight: '500', letterSpacing: -1 },
