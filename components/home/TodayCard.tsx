@@ -3,14 +3,13 @@ import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import IconButton from "@/components/IconButton";
 import { Text, useInk } from "@/components/Themed";
-import NavRow from "@/components/ui/NavRow";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { space } from "@/lib/ui/tokens";
+import { radius, space } from "@/lib/ui/tokens";
 import {
   getUpNextCandidates,
   getUpNextRoutine,
@@ -182,12 +181,20 @@ export default function TodayCard() {
           onPress={startFreestyle}
           style={styles.primaryButton}
         />
-        {/* Quiet secondary path — same grammar as View Leaderboards below. */}
-        <NavRow
-          label="Build a routine"
+        {/* Secondary path: bordered pill, quiet by contrast with the solid
+            Start pill — one card, two contained choices. */}
+        <TouchableOpacity
+          style={[
+            styles.secondaryButton,
+            { borderColor: currentTheme.colors.border },
+          ]}
           onPress={() => router.push("/notes")}
-          style={styles.buildRoutineRow}
-        />
+          activeOpacity={0.85}
+        >
+          <Text variant="title" tone="primary" weight="semiBold">
+            Build a routine
+          </Text>
+        </TouchableOpacity>
       </Card>
     );
   }
@@ -375,8 +382,12 @@ const styles = StyleSheet.create({
   primaryButton: {
     marginTop: space.lg,
   },
-  buildRoutineRow: {
-    marginTop: space.xs,
-    paddingBottom: 0,
+  secondaryButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: space.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    marginTop: space.md,
   },
 });
