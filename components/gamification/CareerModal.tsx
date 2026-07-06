@@ -1,3 +1,4 @@
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
@@ -840,11 +841,6 @@ function AchievementTile({ achievement, isNew, onPress }: { achievement: Achieve
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  const { currentTheme } = useTheme();
-  return <Text style={[styles.sectionLabel, { color: currentTheme.colors.text }]}>{children}</Text>;
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
@@ -907,7 +903,6 @@ const styles = StyleSheet.create({
 
   section: { marginTop: 28 },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  sectionLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1, opacity: 0.45, textTransform: 'uppercase', marginBottom: 12 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
   tile: { width: '31.5%', borderRadius: 12, borderWidth: 1, paddingVertical: 14, paddingHorizontal: 10, alignItems: 'center' },

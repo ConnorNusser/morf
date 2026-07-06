@@ -1,4 +1,5 @@
 import { AuroraSurface } from '@/components/history/AuroraSurface';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
@@ -345,10 +346,6 @@ export default function WeeklyOverviewModal({
     </View>
   );
 
-  const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-    <Text style={[styles.sectionLabel, { color: c.text }]}>{children}</Text>
-  );
-
   const Empty = ({ title, subtitle }: { title: string; subtitle: string }) => (
     <View style={styles.empty}>
       <Ionicons name="barbell-outline" size={34} color={c.text + '55'} />
@@ -530,7 +527,7 @@ export default function WeeklyOverviewModal({
       return (
         <View style={styles.content}>
           <Empty title="No workouts this week" subtitle="Complete a workout and it’ll show up here" />
-          <SectionLabel>Weekly Goal</SectionLabel>
+          <SectionLabel style={styles.sectionLabel}>Weekly Goal</SectionLabel>
           {renderGoalCard()}
         </View>
       );
@@ -549,12 +546,12 @@ export default function WeeklyOverviewModal({
 
         {weeklyPRs.length > 0 && (
           <>
-            <SectionLabel>Personal Records</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Personal Records</SectionLabel>
             {renderPRs()}
           </>
         )}
 
-        <SectionLabel>Workouts</SectionLabel>
+        <SectionLabel style={styles.sectionLabel}>Workouts</SectionLabel>
         {a.workoutSummaries.map(w => (
           <View key={w.id} style={[styles.workoutRow, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.dayCol, { borderRightColor: c.border }]}>
@@ -578,19 +575,19 @@ export default function WeeklyOverviewModal({
 
         {(a.pplBreakdown.push.sets + a.pplBreakdown.pull.sets + a.pplBreakdown.legs.sets) > 0 && (
           <>
-            <SectionLabel>Training Split</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Training Split</SectionLabel>
             {renderPPLSplit()}
           </>
         )}
 
         {a.topExercises.length > 0 && (
           <>
-            <SectionLabel>Top Exercises</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Top Exercises</SectionLabel>
             {renderExerciseList(5)}
           </>
         )}
 
-        <SectionLabel>Weekly Goal</SectionLabel>
+        <SectionLabel style={styles.sectionLabel}>Weekly Goal</SectionLabel>
         {renderGoalCard()}
       </View>
     );
@@ -616,7 +613,7 @@ export default function WeeklyOverviewModal({
           {renderCardioStrip()}
         </View>
 
-        <SectionLabel>Sessions</SectionLabel>
+        <SectionLabel style={styles.sectionLabel}>Sessions</SectionLabel>
         {workouts.map((workout, index) => (
           <View key={index} style={[cardStyle]}>
             <View style={styles.workoutTitleRow}>
@@ -672,14 +669,14 @@ export default function WeeklyOverviewModal({
 
         {Object.keys(a.categoryBreakdown).length > 0 && (
           <>
-            <SectionLabel>Volume by Type</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Volume by Type</SectionLabel>
             {renderCategoryBars('volume')}
           </>
         )}
 
         {a.topExercises.length > 0 && (
           <>
-            <SectionLabel>Highest Volume</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Highest Volume</SectionLabel>
             {renderExerciseList(8)}
           </>
         )}
@@ -711,14 +708,14 @@ export default function WeeklyOverviewModal({
 
         {Object.keys(a.categoryBreakdown).length > 0 && (
           <>
-            <SectionLabel>Time by Type</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Time by Type</SectionLabel>
             {renderCategoryBars('time')}
           </>
         )}
 
         {dailyEntries.length > 0 && (
           <>
-            <SectionLabel>Daily Breakdown</SectionLabel>
+            <SectionLabel style={styles.sectionLabel}>Daily Breakdown</SectionLabel>
             <View style={cardStyle}>
               {dailyEntries.map(([day, d]) => (
                 <View key={day} style={styles.dailyRow}>
@@ -825,11 +822,7 @@ const styles = StyleSheet.create({
   secondaryText: { fontSize: typeScale.meta, opacity: 0.7 },
 
   sectionLabel: {
-    fontSize: typeScale.meta,
-    fontWeight: '600',
-    opacity: 0.4,
     marginTop: 22,
-    marginBottom: 10,
     marginLeft: 2,
   },
 

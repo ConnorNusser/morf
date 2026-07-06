@@ -1,11 +1,13 @@
+import { Text, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
-import { type as typeScale } from '@/lib/ui/typography';
 import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -15,7 +17,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -77,6 +78,7 @@ export default function MonthlyTrendsModal({
   workoutHistory,
 }: MonthlyTrendsModalProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { customExercises } = useCustomExercises();
   const { userProfile } = useUser();
   const { play: playTap } = useSound('tapVariant1');
@@ -212,7 +214,7 @@ export default function MonthlyTrendsModal({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color={currentTheme.colors.text} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="title" tone="primary" weight="semiBold">
             Monthly Trends
           </Text>
           <View style={styles.closeButton} />
@@ -233,11 +235,11 @@ export default function MonthlyTrendsModal({
               <Ionicons
                 name="chevron-back"
                 size={24}
-                color={canGoBack ? currentTheme.colors.text : currentTheme.colors.text + '20'}
+                color={canGoBack ? ink.primary : ink.ghost}
               />
             </TouchableOpacity>
 
-            <Text style={[styles.dateRangeLabel, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="title" tone="primary" weight="semiBold">
               {dateRangeLabel}
             </Text>
 
@@ -249,7 +251,7 @@ export default function MonthlyTrendsModal({
               <Ionicons
                 name="chevron-forward"
                 size={24}
-                color={canGoForward ? currentTheme.colors.text : currentTheme.colors.text + '20'}
+                color={canGoForward ? ink.primary : ink.ghost}
               />
             </TouchableOpacity>
           </Animated.View>
@@ -257,15 +259,13 @@ export default function MonthlyTrendsModal({
           {/* PPL Stacked Chart */}
           <Animated.View entering={FadeInDown.delay(150)} style={styles.chartSection}>
             <View style={styles.chartHeader}>
-              <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-                Training Focus
-              </Text>
+              <SectionLabel style={styles.sectionTitle}>Training Focus</SectionLabel>
               {/* Legend */}
               <View style={styles.legend}>
                 {(['push', 'pull', 'legs'] as PPLCategory[]).map(category => (
                   <View key={category} style={styles.legendItem}>
                     <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.legendText, { color: currentTheme.colors.text + '80', fontWeight: '500' }]}>
+                    <Text variant="meta" tone="secondary" weight="medium">
                       {PPL_LABELS[category]}
                     </Text>
                   </View>
@@ -286,10 +286,7 @@ export default function MonthlyTrendsModal({
 
                 return (
                   <View key={index} style={styles.barColumn}>
-                    <Text style={[
-                      styles.barValue,
-                      { color: currentTheme.colors.text + '80', fontWeight: '600' }
-                    ]}>
+                    <Text variant="meta" tone="secondary" weight="semiBold" style={styles.barValue}>
                       {total || '-'}
                     </Text>
                     <View style={styles.barWrapper}>
@@ -309,13 +306,12 @@ export default function MonthlyTrendsModal({
                         )}
                       </View>
                     </View>
-                    <Text style={[
-                      styles.barLabel,
-                      {
-                        color: isCurrentMonth ? currentTheme.colors.primary : currentTheme.colors.text + '60',
-                        fontWeight: isCurrentMonth ? '600' : '500',
-                      }
-                    ]}>
+                    <Text
+                      variant="meta"
+                      tone={isCurrentMonth ? undefined : 'muted'}
+                      weight={isCurrentMonth ? 'semiBold' : 'medium'}
+                      style={styles.barLabel}
+                    >
                       {month.shortMonth}
                     </Text>
                   </View>
@@ -326,9 +322,7 @@ export default function MonthlyTrendsModal({
 
           {/* Monthly Cards */}
           <Animated.View entering={FadeInDown.delay(250)} style={styles.cardsSection}>
-            <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-              Details
-            </Text>
+            <SectionLabel style={styles.sectionTitle}>Details</SectionLabel>
 
             {currentMonthlyData.slice().reverse().map((month, index) => {
               const pplTotal = month.pplCounts.push + month.pplCounts.pull + month.pplCounts.legs;
@@ -341,18 +335,18 @@ export default function MonthlyTrendsModal({
                   {/* Month Header */}
                   <View style={styles.monthHeader}>
                     <View>
-                      <Text style={[styles.monthName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                      <Text variant="title" tone="primary" weight="semiBold">
                         {month.month}
                       </Text>
-                      <Text style={[styles.monthYear, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="muted" style={styles.monthYear}>
                         {month.year}
                       </Text>
                     </View>
-                    <View style={[styles.workoutsBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                      <Text style={[styles.workoutsCount, { color: currentTheme.colors.primary, fontWeight: '700' }]}>
+                    <View style={[styles.workoutsBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                      <Text variant="title" weight="bold">
                         {month.workoutCount}
                       </Text>
-                      <Text style={[styles.workoutsLabel, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+                      <Text variant="meta" weight="medium" style={styles.workoutsLabel}>
                         workouts
                       </Text>
                     </View>
@@ -362,20 +356,20 @@ export default function MonthlyTrendsModal({
                   {month.workoutCount > 0 && (
                     <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border }]}>
                       <View style={styles.statItem}>
-                        <Ionicons name="fitness-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                        <Ionicons name="fitness-outline" size={16} color={ink.muted} />
+                        <Text variant="meta" tone="primary" weight="medium">
                           {month.totalExercises} exercises
                         </Text>
                       </View>
                       <View style={styles.statItem}>
-                        <Ionicons name="barbell-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                        <Ionicons name="barbell-outline" size={16} color={ink.muted} />
+                        <Text variant="meta" tone="primary" weight="medium">
                           {formatVolume(month.totalVolume)} {weightUnit}
                         </Text>
                       </View>
                       <View style={styles.statItem}>
-                        <Ionicons name="time-outline" size={16} color={currentTheme.colors.text + '60'} />
-                        <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                        <Ionicons name="time-outline" size={16} color={ink.muted} />
+                        <Text variant="meta" tone="primary" weight="medium">
                           {formatTime(month.totalTime)}
                         </Text>
                       </View>
@@ -384,19 +378,19 @@ export default function MonthlyTrendsModal({
 
                   {/* Cardio Stats Row */}
                   {month.hasCardio && (month.totalDistanceMeters > 0 || month.totalCardioDurationSeconds > 0) && (
-                    <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border, marginTop: 0, paddingTop: 12 }]}>
+                    <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border, marginTop: 0, paddingTop: space.md }]}>
                       {month.totalDistanceMeters > 0 && (
                         <View style={styles.statItem}>
-                          <Ionicons name="navigate-outline" size={16} color={currentTheme.colors.text + '60'} />
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                          <Ionicons name="navigate-outline" size={16} color={ink.muted} />
+                          <Text variant="meta" tone="primary" weight="medium">
                             {formatDistance(month.totalDistanceMeters)}
                           </Text>
                         </View>
                       )}
                       {month.totalCardioDurationSeconds > 0 && (
                         <View style={styles.statItem}>
-                          <Ionicons name="heart-outline" size={16} color={currentTheme.colors.text + '60'} />
-                          <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                          <Ionicons name="heart-outline" size={16} color={ink.muted} />
+                          <Text variant="meta" tone="primary" weight="medium">
                             {formatDuration(month.totalCardioDurationSeconds)} cardio
                           </Text>
                         </View>
@@ -412,13 +406,13 @@ export default function MonthlyTrendsModal({
                           month.pplCounts[category] > 0 && (
                             <View
                               key={category}
-                              style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
+                              style={[styles.pplChip, { backgroundColor: tint(PPL_COLORS[category]) }]}
                             >
                               <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                              <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                              <Text variant="meta" tone="primary" weight="medium">
                                 {PPL_LABELS[category]}
                               </Text>
-                              <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontWeight: '700' }]}>
+                              <Text variant="meta" weight="bold" style={{ color: PPL_COLORS[category] }}>
                                 {month.pplCounts[category]}
                               </Text>
                             </View>
@@ -431,7 +425,7 @@ export default function MonthlyTrendsModal({
                   {/* Empty State */}
                   {month.workoutCount === 0 && (
                     <View style={styles.emptyMonth}>
-                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="faint" style={styles.emptyText}>
                         No workouts recorded
                       </Text>
                     </View>
@@ -454,8 +448,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   closeButton: {
@@ -464,30 +458,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: typeScale.title,
-  },
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 20,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.xl,
     paddingBottom: 40,
   },
   paginationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: space.section,
   },
   pageButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dateRangeLabel: {
-    fontSize: typeScale.title,
   },
   chartSection: {
     marginBottom: 32,
@@ -496,30 +485,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: space.lg,
   },
+  // Spacing after the label comes from chartHeader/cardsSection, not the label itself.
   sectionTitle: {
-    fontSize: typeScale.body,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    opacity: 0.7,
+    marginBottom: 0,
   },
   legend: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space.md,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: space.xs,
   },
   legendDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-  },
-  legendText: {
-    fontSize: typeScale.meta,
   },
   barChart: {
     flexDirection: 'row',
@@ -532,8 +516,7 @@ const styles = StyleSheet.create({
     width: BAR_WIDTH,
   },
   barValue: {
-    fontSize: typeScale.meta,
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   barWrapper: {
     height: 80,
@@ -549,89 +532,70 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   barLabel: {
-    fontSize: typeScale.meta,
-    marginTop: 8,
+    marginTop: space.sm,
   },
   cardsSection: {
-    gap: 12,
+    gap: space.md,
   },
   monthCard: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: radius.card,
+    padding: space.lg,
+    marginBottom: space.md,
   },
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
-  monthName: {
-    fontSize: typeScale.title,
-  },
   monthYear: {
-    fontSize: typeScale.meta,
     marginTop: 2,
   },
   workoutsBadge: {
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  workoutsCount: {
-    fontSize: typeScale.title,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.card,
   },
   workoutsLabel: {
-    fontSize: typeScale.meta,
     marginTop: 2,
   },
   statsRow: {
     flexDirection: 'row',
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: space.lg,
+    paddingTop: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 16,
+    gap: space.lg,
   },
   statItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  statValue: {
-    fontSize: typeScale.meta,
+    gap: space.sm,
   },
   pplSection: {
-    marginTop: 16,
+    marginTop: space.lg,
   },
   pplChips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   pplChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    gap: space.sm,
   },
   pplDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  pplChipText: {
-    fontSize: typeScale.meta,
-  },
-  pplChipCount: {
-    fontSize: typeScale.meta,
-  },
   emptyMonth: {
-    paddingVertical: 12,
+    paddingVertical: space.md,
   },
   emptyText: {
-    fontSize: typeScale.meta,
     textAlign: 'center',
   },
 });

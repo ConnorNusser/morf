@@ -1,8 +1,8 @@
 import { useAlert } from '@/components/CustomAlert';
-import { Text } from '@/components/Themed';
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { type as typeScale } from '@/lib/ui/typography';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
@@ -42,6 +42,7 @@ export default function WorkoutDetailModal({
   onDelete,
 }: WorkoutDetailModalProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const [copied, setCopied] = useState(false);
 
@@ -186,7 +187,7 @@ export default function WorkoutDetailModal({
         <View style={styles.header}>
           <TouchableOpacity
             onPress={handleCopy}
-            style={[styles.headerButton, { backgroundColor: copied ? currentTheme.colors.primary + '20' : currentTheme.colors.surface }]}
+            style={[styles.headerButton, { backgroundColor: copied ? tint(currentTheme.colors.primary) : currentTheme.colors.surface }]}
           >
             <Ionicons
               name={copied ? "checkmark" : "copy-outline"}
@@ -194,7 +195,7 @@ export default function WorkoutDetailModal({
               color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
             />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="title" tone="primary" weight="semiBold" style={styles.headerTitle}>
             Workout
           </Text>
           <TouchableOpacity
@@ -214,10 +215,10 @@ export default function WorkoutDetailModal({
             >
               {/* Hero section with title */}
               <View style={styles.hero}>
-                <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>
                   {workout.title}
                 </Text>
-                <Text style={[styles.date, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                <Text variant="body" tone="secondary" style={styles.date}>
                   {formatFullDate(workout.createdAt)}
                 </Text>
               </View>
@@ -228,13 +229,13 @@ export default function WorkoutDetailModal({
                   <View style={styles.prChipsRow}>
                     {prs.map(pr => (
                       <View key={pr.id} style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-                        <Text style={[styles.prChipText, { fontWeight: '600' }]}>
+                        <Text variant="meta" weight="semiBold" style={styles.prChipText}>
                           {pr.name}
                         </Text>
                       </View>
                     ))}
                   </View>
-                  <Text style={[styles.prLabel, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.prLabel}>
                     Personal Records
                   </Text>
                 </View>
@@ -242,7 +243,7 @@ export default function WorkoutDetailModal({
 
               {/* Summary stats - horizontal inline */}
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryText, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                <Text variant="body" tone="secondary" style={styles.summaryText}>
                   {workout.estimatedDuration > 0 ? `${formatMinutes(workout.estimatedDuration)} · ` : ''}{statsLine}
                 </Text>
               </View>
@@ -261,19 +262,19 @@ export default function WorkoutDetailModal({
                     <View key={idx} style={[styles.exerciseRow, { borderBottomColor: currentTheme.colors.border }]}>
                       <View style={styles.exerciseHeader}>
                         <View style={styles.exerciseNameRow}>
-                          <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                          <Text variant="body" tone="primary" weight="semiBold" style={styles.exerciseName}>
                             {name}
                           </Text>
                           {isPR && (
-                            <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                              <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
+                            <View style={[styles.prBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                              <Text variant="meta" weight="semiBold">
                                 PR
                               </Text>
                             </View>
                           )}
                         </View>
                         {bestE1RM && (
-                          <Text style={[styles.exerciseBest, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
+                          <Text variant="meta" tone="secondary" style={styles.exerciseBest}>
                             e1RM: {bestE1RM.e1rm} {weightUnit}
                           </Text>
                         )}
@@ -285,8 +286,8 @@ export default function WorkoutDetailModal({
                           const displayWeight = Math.round(convertWeight(set.weight, setUnit, weightUnit));
 
                           return (
-                            <View key={setIdx} style={styles.setPill}>
-                              <Text style={[styles.setPillText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                            <View key={setIdx} style={[styles.setPill, { backgroundColor: ink.ghost }]}>
+                              <Text variant="body" tone="primary" weight="medium" style={styles.setPillText}>
                                 {formatSet(
                                   { weight: displayWeight, reps: set.reps, unit: weightUnit, duration: set.duration, distance: set.distance },
                                   { trackingType, compact: true }
@@ -308,7 +309,7 @@ export default function WorkoutDetailModal({
                 onPress={handleDelete}
                 style={styles.deleteButton}
               >
-                <Text style={[styles.deleteButtonText, { fontWeight: '600' }]}>
+                <Text variant="title" weight="semiBold" style={styles.deleteButtonText}>
                   Delete Workout
                 </Text>
               </TouchableOpacity>
@@ -328,17 +329,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
   },
   headerTitle: {
-    fontSize: typeScale.title,
     lineHeight: 24,
   },
   headerButton: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -346,114 +346,101 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.xl,
   },
   hero: {
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   title: {
-    fontSize: typeScale.screenTitle,
     lineHeight: 34,
     letterSpacing: -0.5,
   },
   date: {
-    fontSize: typeScale.body,
     lineHeight: 22,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   prSection: {
-    marginBottom: 24,
+    marginBottom: space.section,
   },
   prChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: space.sm,
+    marginBottom: space.sm,
   },
   prChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
   },
   prChipText: {
-    fontSize: typeScale.meta,
     color: '#FFFFFF',
   },
   prLabel: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
   },
   summaryRow: {
     marginBottom: 32,
   },
   summaryText: {
-    fontSize: typeScale.body,
     lineHeight: 22,
   },
   exerciseList: {
     gap: 0,
   },
   exerciseRow: {
-    paddingVertical: 16,
+    paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   exerciseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: space.md,
   },
   exerciseNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
     flex: 1,
   },
   exerciseName: {
-    fontSize: typeScale.body,
     lineHeight: 22,
   },
   prBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 4,
-  },
-  prBadgeText: {
-    fontSize: typeScale.meta,
+    borderRadius: radius.badge,
   },
   exerciseBest: {
-    fontSize: typeScale.meta,
     lineHeight: 19,
   },
   setsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   setPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: 'rgba(128, 128, 128, 0.1)',
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.badge,
   },
   setPillText: {
-    fontSize: typeScale.body,
     lineHeight: 22,
   },
   footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.lg,
   },
   deleteButton: {
     backgroundColor: '#FF3B30',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: space.lg,
+    borderRadius: radius.card,
   },
   deleteButtonText: {
-    fontSize: typeScale.title,
     color: '#FFFFFF',
   },
 });
