@@ -45,7 +45,7 @@ function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={() => onPress(recap.workout)} style={styles.entry}>
       {/* entry header — identity left (split-colored dot: the Career activity
-          grid's Push/Pull/Legs language), volume + vs-last-same-split right */}
+          grid's Push/Pull/Legs language), session volume right */}
       <RNView style={styles.entryHead}>
         <RNView style={styles.entryIdentity}>
           <RNView style={styles.titleLine}>
@@ -60,25 +60,9 @@ function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
             {formatRelativeDate(recap.workout.createdAt)} · {recap.sets} sets · {recap.durationMin}m
           </Text>
         </RNView>
-        <RNView style={styles.entryRight}>
-          <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
-            {formatCompact(recap.volumeDisplay)} {weightUnit}
-          </Text>
-          {recap.comparison && Math.round(recap.comparison.deltaVolumePct) !== 0 && (
-            <Text
-              style={[
-                styles.entryDelta,
-                // Up is the earned green; down reads muted, not alarmed — a
-                // lighter session isn't a failure.
-                { color: recap.comparison.deltaVolumePct > 0 ? POS : colors.text + '99' },
-              ]}
-              numberOfLines={1}
-            >
-              {recap.comparison.deltaVolumePct > 0 ? '+' : ''}
-              {Math.round(recap.comparison.deltaVolumePct)}% vs {recap.comparison.refLabel}
-            </Text>
-          )}
-        </RNView>
+        <Text style={[styles.entryVolume, { color: colors.text }]} numberOfLines={1}>
+          {formatCompact(recap.volumeDisplay)} {weightUnit}
+        </Text>
       </RNView>
 
       {note && (
@@ -182,9 +166,7 @@ const styles = StyleSheet.create({
   splitDot: { width: 8, height: 8, borderRadius: 4 },
   entryTitle: { fontSize: typeScale.title, fontWeight: '600', letterSpacing: -0.2, flexShrink: 1 },
   entryMeta: { fontSize: typeScale.meta, opacity: 0.5 },
-  entryRight: { alignItems: 'flex-end', gap: 2 },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
-  entryDelta: { fontSize: typeScale.meta, fontWeight: '500' },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
   // The per-exercise table.
   exList: { marginTop: 10, gap: 8 },
