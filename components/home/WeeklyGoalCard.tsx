@@ -139,6 +139,7 @@ export default function WeeklyGoalCard() {
             <Text
               variant="emphasis"
               tone="secondary"
+              weight="semiBold"
               style={metGoal ? { color: accent } : undefined}
             >
               {daysTrained}/{goal}
@@ -231,7 +232,7 @@ export default function WeeklyGoalCard() {
             ]}
           >
             <View style={styles.sheetHeader}>
-              <Text variant="heading" tone="primary" weight="bold">
+              <Text variant="title" tone="primary" weight="semiBold">
                 Weekly goal
               </Text>
               <TouchableOpacity onPress={() => setPicking(false)} hitSlop={12}>

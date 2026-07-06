@@ -1,6 +1,7 @@
 import SessionVolumeBars from '@/components/history/SessionVolumeBars';
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
+import StatStrip from '@/components/ui/StatStrip';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { space } from '@/lib/ui/tokens';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
@@ -164,17 +165,19 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
           </Text>
         </View>
 
-        {/* Stats */}
+        {/* Stats — StatStrip's value-over-label grammar, but each stat keeps
+            its own tap target into the drill-down modal, which the plain
+            StatStrip primitive can't express. */}
         <View style={[styles.statsContainer, { borderTopColor: ink.hairline }]}>
           <TouchableOpacity
             style={styles.statItem}
             onPress={handleWeekPress}
             activeOpacity={0.6}
           >
-            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
+            <Text variant="emphasis" tone="primary" weight="bold" numberOfLines={1}>
               {weekStats.totalWorkouts}
             </Text>
-            <Text variant="meta" tone="secondary" style={styles.statLabel}>
+            <Text variant="meta" tone="faint" style={styles.statLabel} numberOfLines={1}>
               Workouts
             </Text>
           </TouchableOpacity>
@@ -184,10 +187,10 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
             onPress={handleTimePress}
             activeOpacity={0.6}
           >
-            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
+            <Text variant="emphasis" tone="primary" weight="bold" numberOfLines={1}>
               {weekStats.totalTime}
             </Text>
-            <Text variant="meta" tone="secondary" style={styles.statLabel}>
+            <Text variant="meta" tone="faint" style={styles.statLabel} numberOfLines={1}>
               Time
             </Text>
           </TouchableOpacity>
@@ -197,10 +200,10 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
             onPress={handleVolumePress}
             activeOpacity={0.6}
           >
-            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
+            <Text variant="emphasis" tone="primary" weight="bold" numberOfLines={1}>
               {weekStats.totalVolume}
             </Text>
-            <Text variant="meta" tone="secondary" style={styles.statLabel}>
+            <Text variant="meta" tone="faint" style={styles.statLabel} numberOfLines={1}>
               Volume
             </Text>
           </TouchableOpacity>
@@ -208,28 +211,17 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
 
         {/* Cardio Stats - only show if week has cardio exercises */}
         {weekStats.hasCardio && (weekStats.totalDistanceMeters > 0 || weekStats.totalCardioDurationSeconds > 0) && (
-          <View style={[styles.statsContainer, styles.cardioStatsContainer]}>
-            {weekStats.totalDistanceMeters > 0 && (
-              <View style={styles.statItem}>
-                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
-                  {formatDistance(weekStats.totalDistanceMeters)}
-                </Text>
-                <Text variant="meta" tone="secondary" style={styles.statLabel}>
-                  Distance
-                </Text>
-              </View>
-            )}
-            {weekStats.totalCardioDurationSeconds > 0 && (
-              <View style={styles.statItem}>
-                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.statValue}>
-                  {formatDuration(weekStats.totalCardioDurationSeconds)}
-                </Text>
-                <Text variant="meta" tone="secondary" style={styles.statLabel}>
-                  Cardio
-                </Text>
-              </View>
-            )}
-          </View>
+          <StatStrip
+            style={styles.cardioStrip}
+            items={[
+              ...(weekStats.totalDistanceMeters > 0
+                ? [{ value: formatDistance(weekStats.totalDistanceMeters), label: 'Distance' }]
+                : []),
+              ...(weekStats.totalCardioDurationSeconds > 0
+                ? [{ value: formatDuration(weekStats.totalCardioDurationSeconds), label: 'Cardio' }]
+                : []),
+            ]}
+          />
         )}
 
         {/* Volume per session — one PPL-colored bar per workout (oldest → newest,
@@ -239,7 +231,7 @@ export default function WeeklyOverview({ workoutHistory, sessionRecaps }: Weekly
           <View style={[styles.trendSection, { borderTopColor: ink.hairline }]}>
             <SessionVolumeBars recaps={sessionRecaps} />
             <View style={styles.trendCaption}>
-              <Text variant="meta" tone="secondary" style={styles.trendLabel}>
+              <Text variant="meta" tone="secondary">
                 Volume · per session
               </Text>
             </View>
@@ -273,7 +265,6 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   dateRange: {
-    lineHeight: 19,
     letterSpacing: 0.2,
   },
   statsContainer: {
@@ -282,20 +273,18 @@ const styles = StyleSheet.create({
     paddingTop: space.lg,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  cardioStatsContainer: {
-    borderTopWidth: 0,
-    paddingTop: space.md,
+  // Inside the flat card the strip is a row, not its own surface.
+  cardioStrip: {
+    backgroundColor: 'transparent',
+    paddingVertical: 0,
+    marginTop: space.md,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
-  statValue: {
-    lineHeight: 20,
-  },
   statLabel: {
-    lineHeight: 19,
-    marginTop: 2,
+    marginTop: space.xs,
   },
   trendSection: {
     marginTop: space.lg,
@@ -307,8 +296,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: space.sm,
-  },
-  trendLabel: {
-    lineHeight: 19,
   },
 });

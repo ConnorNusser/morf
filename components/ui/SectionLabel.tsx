@@ -1,5 +1,5 @@
 import { Text } from "@/components/Themed";
-import { space } from "@/lib/ui/tokens";
+import { space, track } from "@/lib/ui/tokens";
 import React from "react";
 import { StyleSheet, StyleProp, TextStyle } from "react-native";
 
@@ -30,7 +30,7 @@ export default React.memo(SectionLabel);
 
 const styles = StyleSheet.create({
   label: {
-    letterSpacing: 1,
+    letterSpacing: track.caps,
     textTransform: "uppercase",
     marginBottom: space.sm,
   },

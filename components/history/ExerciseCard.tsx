@@ -60,7 +60,7 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
           <Text variant="emphasis" tone="primary" weight="bold">
             {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
           </Text>
-          <Text variant="meta" tone="faint">
+          <Text variant="meta" tone="muted">
             {isBodyweight ? ' reps' : ' est. 1RM'}
           </Text>
           {trend.deltaDisplay > 0 && (

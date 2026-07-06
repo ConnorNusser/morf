@@ -2,7 +2,7 @@ import TierRing from "@/components/gamification/TierRing";
 import { Text, useInk } from "@/components/Themed";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
-import { radius, space, tint } from "@/lib/ui/tokens";
+import { radius, space, tint, track } from "@/lib/ui/tokens";
 import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
   },
   appName: {
-    letterSpacing: -1,
+    letterSpacing: track.display,
   },
   viewSelector: {
     flexDirection: "row",

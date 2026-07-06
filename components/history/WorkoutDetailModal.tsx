@@ -3,6 +3,7 @@ import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { lineHeightFor, type } from '@/lib/ui/typography';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
@@ -195,7 +196,7 @@ export default function WorkoutDetailModal({
               color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
             />
           </TouchableOpacity>
-          <Text variant="title" tone="primary" weight="semiBold" style={styles.headerTitle}>
+          <Text variant="title" tone="primary" weight="semiBold">
             Workout
           </Text>
           <TouchableOpacity
@@ -235,7 +236,7 @@ export default function WorkoutDetailModal({
                       </View>
                     ))}
                   </View>
-                  <Text variant="meta" tone="secondary" style={styles.prLabel}>
+                  <Text variant="meta" tone="secondary">
                     Personal Records
                   </Text>
                 </View>
@@ -274,7 +275,7 @@ export default function WorkoutDetailModal({
                           )}
                         </View>
                         {bestE1RM && (
-                          <Text variant="meta" tone="secondary" style={styles.exerciseBest}>
+                          <Text variant="meta" tone="secondary">
                             e1RM: {bestE1RM.e1rm} {weightUnit}
                           </Text>
                         )}
@@ -287,7 +288,7 @@ export default function WorkoutDetailModal({
 
                           return (
                             <View key={setIdx} style={[styles.setPill, { backgroundColor: ink.ghost }]}>
-                              <Text variant="body" tone="primary" weight="medium" style={styles.setPillText}>
+                              <Text variant="body" tone="primary" weight="medium">
                                 {formatSet(
                                   { weight: displayWeight, reps: set.reps, unit: weightUnit, duration: set.duration, distance: set.distance },
                                   { trackingType, compact: true }
@@ -332,9 +333,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
   },
-  headerTitle: {
-    lineHeight: 24,
-  },
   headerButton: {
     width: 40,
     height: 40,
@@ -353,11 +351,10 @@ const styles = StyleSheet.create({
     marginBottom: space.sm,
   },
   title: {
-    lineHeight: 34,
+    lineHeight: lineHeightFor(type.screenTitle),
     letterSpacing: -0.5,
   },
   date: {
-    lineHeight: 22,
     marginTop: space.xs,
   },
   prSection: {
@@ -377,14 +374,11 @@ const styles = StyleSheet.create({
   prChipText: {
     color: '#FFFFFF',
   },
-  prLabel: {
-    lineHeight: 19,
-  },
   summaryRow: {
     marginBottom: 32,
   },
   summaryText: {
-    lineHeight: 22,
+    lineHeight: lineHeightFor(type.body),
   },
   exerciseList: {
     gap: 0,
@@ -406,15 +400,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   exerciseName: {
-    lineHeight: 22,
+    lineHeight: lineHeightFor(type.body),
   },
   prBadge: {
     paddingHorizontal: space.sm,
     paddingVertical: 2,
     borderRadius: radius.badge,
-  },
-  exerciseBest: {
-    lineHeight: 19,
   },
   setsGrid: {
     flexDirection: 'row',
@@ -425,9 +416,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
     borderRadius: radius.badge,
-  },
-  setPillText: {
-    lineHeight: 22,
   },
   footer: {
     paddingHorizontal: screenGutter,

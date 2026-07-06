@@ -35,7 +35,7 @@ import { buildSessionRecaps } from "@/lib/history/sessionRecap";
 import { userService } from "@/lib/services/userService";
 import { storageService } from "@/lib/storage/storage";
 import { layout } from "@/lib/ui/styles";
-import { radius, screenGutter, space, tint } from "@/lib/ui/tokens";
+import { radius, screenGutter, space, tint, track } from "@/lib/ui/tokens";
 import { type as typeScale } from "@/lib/ui/typography";
 import {
   convertWeight,
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
   },
   recordValue: {
-    letterSpacing: -0.5,
+    letterSpacing: track.display,
   },
   recordTierBadge: {
     alignSelf: "flex-start",

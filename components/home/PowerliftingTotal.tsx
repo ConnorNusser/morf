@@ -9,7 +9,7 @@ import { TIER_COLORS } from "@/lib/data/strengthStandards";
 import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity, RARITY_META } from "@/lib/gamification/rarity";
 import { TOTAL_CLUB_TIERS } from "@/lib/gamification/strengthFeats";
-import { radius, space, tint, withAlpha } from "@/lib/ui/tokens";
+import { radius, space, tint, track, withAlpha } from "@/lib/ui/tokens";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -144,12 +144,12 @@ export default function PowerliftingTotal({
           <Text
             variant="hero"
             tone="primary"
-            weight="medium"
+            weight="bold"
             style={styles.headerNum}
           >
             {data.total.toLocaleString()}
           </Text>
-          <Text variant="emphasis" tone="muted" weight="medium">
+          <Text variant="meta" tone="muted">
             {" "}
             lb
           </Text>
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: space.lg,
   },
-  headerNum: { letterSpacing: -1 },
+  headerNum: { letterSpacing: track.display },
 
   liftStack: { alignItems: "flex-end", gap: space.xs },
   liftRow: {

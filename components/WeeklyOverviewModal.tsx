@@ -1,10 +1,12 @@
 import { AuroraSurface } from '@/components/history/AuroraSurface';
+import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
+import { radius } from '@/lib/ui/tokens';
 import { type as typeScale } from '@/lib/ui/typography';
 import {
   calculateWorkoutStats,
@@ -25,7 +27,7 @@ import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface WeeklyOverviewModalProps {
@@ -76,6 +78,7 @@ export default function WeeklyOverviewModal({
   const { currentTheme } = useTheme();
   const { customExercises } = useCustomExercises();
   const insets = useSafeAreaInsets();
+  const ink = useInk();
   const c = currentTheme.colors;
 
   const [goal, setGoal] = useState<number>(DEFAULT_WEEKLY_GOAL);
@@ -333,10 +336,15 @@ export default function WeeklyOverviewModal({
 
   const Stat = ({ value, label, color }: { value: string | number; label: string; color?: string }) => (
     <View style={styles.stat}>
-      <Text style={[styles.statValue, { color: color ?? c.text }]} numberOfLines={1}>
+      <Text
+        tone="primary"
+        weight="bold"
+        style={[styles.statValue, color ? { color } : null]}
+        numberOfLines={1}
+      >
         {value}
       </Text>
-      <Text style={[styles.statLabel, { color: c.text }]}>{label}</Text>
+      <Text tone="faint" style={styles.statLabel}>{label}</Text>
     </View>
   );
 
@@ -348,9 +356,9 @@ export default function WeeklyOverviewModal({
 
   const Empty = ({ title, subtitle }: { title: string; subtitle: string }) => (
     <View style={styles.empty}>
-      <Ionicons name="barbell-outline" size={34} color={c.text + '55'} />
-      <Text style={[styles.emptyText, { color: c.text }]}>{title}</Text>
-      <Text style={[styles.emptySub, { color: c.text }]}>{subtitle}</Text>
+      <Ionicons name="barbell-outline" size={34} color={ink.muted} />
+      <Text tone="secondary" weight="semiBold" style={styles.emptyText}>{title}</Text>
+      <Text tone="muted" style={styles.emptySub}>{subtitle}</Text>
     </View>
   );
 
@@ -370,9 +378,9 @@ export default function WeeklyOverviewModal({
           .map(([cat, d]) => (
             <View key={cat} style={styles.barRow}>
               <View style={[styles.legendDot, { backgroundColor: categoryColor(cat) }]} />
-              <Text style={[styles.barLabel, { color: c.text }]}>{cap(cat)}</Text>
+              <Text tone="primary" style={styles.barLabel}>{cap(cat)}</Text>
               <Bar pct={(d[metric] / max) * 100} color={categoryColor(cat)} />
-              <Text style={[styles.barValue, { color: c.text }]}>{fmt(d[metric])}</Text>
+              <Text tone="primary" weight="semiBold" style={styles.barValue}>{fmt(d[metric])}</Text>
             </View>
           ))}
       </View>
@@ -387,16 +395,16 @@ export default function WeeklyOverviewModal({
       <View style={cardStyle}>
         {list.map((ex, i) => (
           <View key={ex.name} style={styles.exRow}>
-            <Text style={[styles.exRank, { color: c.text }]}>{i + 1}</Text>
+            <Text tone="faint" weight="bold" style={styles.exRank}>{i + 1}</Text>
             <View style={styles.exMain}>
-              <Text style={[styles.exName, { color: c.text }]} numberOfLines={1}>
+              <Text tone="primary" weight="medium" style={styles.exName} numberOfLines={1}>
                 {cleanName(ex.name)}
               </Text>
               <Bar pct={(ex.totalVolume / max) * 100} color={exerciseColor(ex.name)} />
             </View>
             <View style={styles.exMeta}>
-              <Text style={[styles.exVal, { color: c.text }]}>{fmtVol(ex.totalVolume)}</Text>
-              <Text style={[styles.exSub, { color: c.text }]}>
+              <Text tone="primary" weight="semiBold" style={styles.exVal}>{fmtVol(ex.totalVolume)}</Text>
+              <Text tone="muted" style={styles.exSub}>
                 {ex.totalSets} sets · {ex.sessions}×
               </Text>
             </View>
@@ -419,9 +427,9 @@ export default function WeeklyOverviewModal({
         {entries.map(e => (
           <View key={e.k} style={styles.barRow}>
             <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[e.k] }]} />
-            <Text style={[styles.barLabel, { color: c.text }]}>{PPL_LABELS[e.k]}</Text>
+            <Text tone="primary" style={styles.barLabel}>{PPL_LABELS[e.k]}</Text>
             <Bar pct={(e.sets / max) * 100} color={PPL_COLORS[e.k]} />
-            <Text style={[styles.barValue, { color: c.text }]}>{e.sets} sets</Text>
+            <Text tone="primary" weight="semiBold" style={styles.barValue}>{e.sets} sets</Text>
           </View>
         ))}
       </View>
@@ -442,16 +450,16 @@ export default function WeeklyOverviewModal({
           >
             <View style={[styles.prAccent, { backgroundColor: pr.ppl ? PPL_COLORS[pr.ppl] : c.accent }]} />
             <View style={styles.prMain}>
-              <Text style={[styles.prName, { color: c.text }]} numberOfLines={1}>
+              <Text tone="primary" weight="semiBold" style={styles.prName} numberOfLines={1}>
                 {pr.name}
               </Text>
-              <Text style={[styles.prContext, { color: c.text }]}>
+              <Text tone="faint" style={styles.prContext}>
                 {pr.weight} lbs × {pr.reps}
               </Text>
             </View>
             <View style={styles.prMeta}>
-              <Text style={[styles.prVal, { color: c.text }]}>{pr.e1rm} lbs</Text>
-              <Text style={[styles.prContext, { color: c.text }]}>est. 1RM · +{pr.improvement}</Text>
+              <Text tone="primary" weight="semiBold" style={styles.prVal}>{pr.e1rm} lbs</Text>
+              <Text tone="faint" style={styles.prContext}>est. 1RM · +{pr.improvement}</Text>
             </View>
           </View>
         ))}
@@ -464,12 +472,12 @@ export default function WeeklyOverviewModal({
     return (
       <View style={[styles.secondaryRow, { borderTopColor: c.border }]}>
         {a.totalDistanceMeters > 0 && (
-          <Text style={[styles.secondaryText, { color: c.text }]}>
+          <Text tone="secondary" style={styles.secondaryText}>
             {formatDistance(a.totalDistanceMeters)} distance
           </Text>
         )}
         {a.totalCardioDurationSeconds > 0 && (
-          <Text style={[styles.secondaryText, { color: c.text }]}>
+          <Text tone="secondary" style={styles.secondaryText}>
             {formatDuration(a.totalCardioDurationSeconds)} cardio
           </Text>
         )}
@@ -486,16 +494,16 @@ export default function WeeklyOverviewModal({
     return (
       <View style={[cardStyle, { marginTop: 4 }]}>
         <View style={styles.goalHeader}>
-          <Text style={[styles.goalTitle, { color: c.text }]}>Weekly Goal</Text>
+          <Text tone="primary" weight="bold" style={styles.goalTitle}>Weekly Goal</Text>
           <View style={styles.goalCount}>
             {met && <Ionicons name="checkmark-circle" size={16} color={accent} />}
-            <Text style={[styles.goalCountText, { color: accent }]}>
+            <Text weight="semiBold" style={[styles.goalCountText, { color: accent }]}>
               {a.daysTrained}/{goal} days
             </Text>
           </View>
         </View>
         <Bar pct={pct} color={accent} />
-        <Text style={[styles.goalPrompt, { color: c.text }]}>Days you want to train each week</Text>
+        <Text tone="muted" style={styles.goalPrompt}>Days you want to train each week</Text>
         <View style={styles.pillRow}>
           {GOAL_OPTIONS.map(v => {
             const selected = v === goal;
@@ -511,7 +519,13 @@ export default function WeeklyOverviewModal({
                     : { backgroundColor: 'transparent', borderColor: c.border },
                 ]}
               >
-                <Text style={[styles.pillText, { color: selected ? c.surface : c.text }]}>{v}</Text>
+                <Text
+                  weight="semiBold"
+                  tone={selected ? undefined : 'primary'}
+                  style={[styles.pillText, selected && { color: c.surface }]}
+                >
+                  {v}
+                </Text>
               </TouchableOpacity>
             );
           })}
@@ -555,17 +569,17 @@ export default function WeeklyOverviewModal({
         {a.workoutSummaries.map(w => (
           <View key={w.id} style={[styles.workoutRow, { backgroundColor: c.surface, borderColor: c.border }]}>
             <View style={[styles.dayCol, { borderRightColor: c.border }]}>
-              <Text style={[styles.weekday, { color: c.text }]}>{w.weekday}</Text>
-              <Text style={[styles.dayNum, { color: c.accent }]}>{w.dayNum}</Text>
+              <Text tone="muted" style={styles.weekday}>{w.weekday}</Text>
+              <Text weight="bold" style={[styles.dayNum, { color: c.accent }]}>{w.dayNum}</Text>
             </View>
             <View style={styles.workoutInfo}>
               <View style={styles.workoutTitleRow}>
                 <View style={[styles.legendDot, { backgroundColor: categoryColor(w.category) }]} />
-                <Text style={[styles.workoutTitle, { color: c.text }]} numberOfLines={1}>
+                <Text tone="primary" weight="semiBold" style={styles.workoutTitle} numberOfLines={1}>
                   {w.title}
                 </Text>
               </View>
-              <Text style={[styles.workoutMeta, { color: c.text }]}>
+              <Text tone="secondary" style={styles.workoutMeta}>
                 {formatTime(w.duration)} · {w.exercises} ex · {w.sets} sets
                 {w.volume > 0 ? ` · ${fmtVol(w.volume)}` : ''}
               </Text>
@@ -618,9 +632,9 @@ export default function WeeklyOverviewModal({
           <View key={index} style={[cardStyle]}>
             <View style={styles.workoutTitleRow}>
               <View style={[styles.legendDot, { backgroundColor: categoryColor(getWorkoutCategory(workout)) }]} />
-              <Text style={[styles.workoutTitle, { color: c.text }]}>{workout.title}</Text>
+              <Text tone="primary" weight="semiBold" style={styles.workoutTitle}>{workout.title}</Text>
             </View>
-            <Text style={[styles.workoutMeta, { color: c.text, marginBottom: 8 }]}>
+            <Text tone="secondary" style={[styles.workoutMeta, { marginBottom: 8 }]}>
               {formatTime(workout.estimatedDuration)} · {workout.exercises.length} exercises ·{' '}
               {workout.exercises.reduce((s, ex) => s + ex.completedSets.length, 0)} sets
             </Text>
@@ -628,17 +642,17 @@ export default function WeeklyOverviewModal({
               const vol = exercise.completedSets.reduce((s, set) => s + set.weight * set.reps, 0);
               return (
                 <View key={exIndex} style={styles.exerciseLine}>
-                  <Text style={[styles.exerciseLineName, { color: c.text }]} numberOfLines={1}>
+                  <Text tone="primary" style={styles.exerciseLineName} numberOfLines={1}>
                     {cleanName(exercise.id)}
                   </Text>
-                  <Text style={[styles.exerciseLineVal, { color: c.text }]}>
+                  <Text tone="secondary" style={styles.exerciseLineVal}>
                     {exercise.completedSets.length} sets{vol > 0 ? ` · ${fmtVol(vol)}` : ''}
                   </Text>
                 </View>
               );
             })}
             {workout.exercises.length > 4 && (
-              <Text style={[styles.moreText, { color: c.text }]}>
+              <Text tone="muted" style={styles.moreText}>
                 +{workout.exercises.length - 4} more
               </Text>
             )}
@@ -719,8 +733,8 @@ export default function WeeklyOverviewModal({
             <View style={cardStyle}>
               {dailyEntries.map(([day, d]) => (
                 <View key={day} style={styles.dailyRow}>
-                  <Text style={[styles.dailyDay, { color: c.text }]}>{day}</Text>
-                  <Text style={[styles.dailyVal, { color: c.text }]}>
+                  <Text tone="primary" style={styles.dailyDay}>{day}</Text>
+                  <Text tone="secondary" style={styles.dailyVal}>
                     {formatTime(d.time)} · {d.workouts} session{d.workouts !== 1 ? 's' : ''}
                   </Text>
                 </View>
@@ -752,15 +766,15 @@ export default function WeeklyOverviewModal({
       <View style={[styles.container, { backgroundColor: c.background }]}>
         <View style={[styles.header, { borderBottomColor: c.border, paddingTop: insets.top + 14 }]}>
           <View style={styles.headerTitleWrap}>
-            <Text style={[styles.title, { color: c.text }]} numberOfLines={1}>
+            <Text variant="title" tone="primary" weight="semiBold" numberOfLines={1}>
               {headerTitle}
             </Text>
             {headerSubtitle && (
-              <Text style={[styles.headerSubtitle, { color: c.text }]}>{headerSubtitle}</Text>
+              <Text tone="muted" style={styles.headerSubtitle}>{headerSubtitle}</Text>
             )}
           </View>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
-            <Text style={[styles.closeText, { color: c.accent }]}>Done</Text>
+            <Text weight="semiBold" style={[styles.closeText, { color: c.accent }]}>Done</Text>
           </TouchableOpacity>
         </View>
 
@@ -786,16 +800,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitleWrap: { flex: 1, marginRight: 12 },
-  title: { fontSize: typeScale.title, fontWeight: 'bold' },
-  headerSubtitle: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 2 },
+  headerSubtitle: { fontSize: typeScale.meta, marginTop: 2 },
   closeButton: { paddingVertical: 4, paddingHorizontal: 4 },
-  closeText: { fontSize: typeScale.body, fontWeight: '600' },
+  closeText: { fontSize: typeScale.body },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   content: { paddingHorizontal: 16, paddingTop: 14 },
 
   card: {
-    borderRadius: 16,
+    borderRadius: radius.card,
     padding: 16,
     marginBottom: 8,
   },
@@ -805,10 +818,9 @@ const styles = StyleSheet.create({
   // stat strip
   statStrip: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
-  statValue: { fontSize: typeScale.statHero, fontWeight: '700', letterSpacing: -0.3 },
+  statValue: { fontSize: typeScale.statHero, letterSpacing: -0.3 },
   statLabel: {
     fontSize: typeScale.meta,
-    opacity: 0.45,
     marginTop: 4,
   },
   secondaryRow: {
@@ -819,7 +831,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  secondaryText: { fontSize: typeScale.meta, opacity: 0.7 },
+  secondaryText: { fontSize: typeScale.meta },
 
   sectionLabel: {
     marginTop: 22,
@@ -830,7 +842,7 @@ const styles = StyleSheet.create({
   workoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: radius.card,
     padding: 14,
     marginBottom: 8,
   },
@@ -842,29 +854,29 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderRightWidth: StyleSheet.hairlineWidth,
   },
-  weekday: { fontSize: typeScale.meta, textTransform: 'uppercase', opacity: 0.55 },
-  dayNum: { fontSize: typeScale.emphasis, fontWeight: 'bold' },
+  weekday: { fontSize: typeScale.meta, textTransform: 'uppercase' },
+  dayNum: { fontSize: typeScale.emphasis },
   workoutInfo: { flex: 1 },
   workoutTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
   legendDot: { width: 9, height: 9, borderRadius: 4.5, marginRight: 7 },
-  workoutTitle: { fontSize: typeScale.body, fontWeight: '600', flex: 1 },
-  workoutMeta: { fontSize: typeScale.meta, opacity: 0.65 },
+  workoutTitle: { fontSize: typeScale.body, flex: 1 },
+  workoutMeta: { fontSize: typeScale.meta },
 
   // inline bars
   barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
   barLabel: { width: 58, fontSize: typeScale.meta },
   barTrack: { flex: 1, height: 8, borderRadius: 4, marginHorizontal: 8, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
-  barValue: { width: 78, textAlign: 'right', fontSize: typeScale.meta, fontWeight: '600' },
+  barValue: { width: 78, textAlign: 'right', fontSize: typeScale.meta },
 
   // exercise list
   exRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
-  exRank: { width: 21, fontSize: typeScale.meta, fontWeight: '700', opacity: 0.45 },
+  exRank: { width: 21, fontSize: typeScale.meta },
   exMain: { flex: 1, marginRight: 10 },
-  exName: { fontSize: typeScale.body, fontWeight: '500', marginBottom: 5 },
+  exName: { fontSize: typeScale.body, marginBottom: 5 },
   exMeta: { alignItems: 'flex-end' },
-  exVal: { fontSize: typeScale.meta, fontWeight: '600' },
-  exSub: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 1 },
+  exVal: { fontSize: typeScale.meta },
+  exSub: { fontSize: typeScale.meta, marginTop: 1 },
 
   // day sessions
   exerciseLine: {
@@ -874,8 +886,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   exerciseLineName: { fontSize: typeScale.body, flex: 1, marginRight: 10 },
-  exerciseLineVal: { fontSize: typeScale.meta, opacity: 0.7 },
-  moreText: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 4 },
+  exerciseLineVal: { fontSize: typeScale.meta },
+  moreText: { fontSize: typeScale.meta, marginTop: 4 },
 
   // daily breakdown (time)
   dailyRow: {
@@ -885,7 +897,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   dailyDay: { fontSize: typeScale.body },
-  dailyVal: { fontSize: typeScale.meta, opacity: 0.7 },
+  dailyVal: { fontSize: typeScale.meta },
 
   // goal editor
   goalHeader: {
@@ -894,10 +906,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  goalTitle: { fontSize: typeScale.body, fontWeight: '700' },
+  goalTitle: { fontSize: typeScale.body },
   goalCount: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  goalCountText: { fontSize: typeScale.meta, fontWeight: '600' },
-  goalPrompt: { fontSize: typeScale.meta, opacity: 0.6, marginTop: 12, marginBottom: 10 },
+  goalCountText: { fontSize: typeScale.meta },
+  goalPrompt: { fontSize: typeScale.meta, marginTop: 12, marginBottom: 10 },
   pillRow: { flexDirection: 'row', justifyContent: 'space-between' },
   pill: {
     width: 38,
@@ -907,19 +919,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillText: { fontSize: typeScale.body, fontWeight: '600' },
+  pillText: { fontSize: typeScale.body },
 
   // personal records
   prRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
   prAccent: { width: 3, height: 30, borderRadius: 1.5, marginRight: 13 },
   prMain: { flex: 1, marginRight: 10 },
-  prName: { fontSize: typeScale.body, fontWeight: '600' },
-  prContext: { fontSize: typeScale.meta, opacity: 0.45, marginTop: 2 },
+  prName: { fontSize: typeScale.body },
+  prContext: { fontSize: typeScale.meta, marginTop: 2 },
   prMeta: { alignItems: 'flex-end' },
-  prVal: { fontSize: typeScale.emphasis, fontWeight: '600' },
+  prVal: { fontSize: typeScale.emphasis },
 
   // empty
   empty: { alignItems: 'center', paddingVertical: 44 },
-  emptyText: { fontSize: typeScale.body, fontWeight: '600', opacity: 0.75, marginTop: 12 },
-  emptySub: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6, textAlign: 'center' },
+  emptyText: { fontSize: typeScale.body, marginTop: 12 },
+  emptySub: { fontSize: typeScale.meta, marginTop: 6, textAlign: 'center' },
 });

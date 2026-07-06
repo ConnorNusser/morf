@@ -233,7 +233,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     flex: 1,
-    lineHeight: 24,
     textAlign: 'center',
     marginHorizontal: space.sm,
   },

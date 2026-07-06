@@ -28,7 +28,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
         <View style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text variant="heading" tone="primary" weight="bold">
+              <Text variant="title" tone="primary" weight="semiBold">
                 {routine.name}
               </Text>
               <Text variant="meta" tone="secondary" style={styles.subtitle}>

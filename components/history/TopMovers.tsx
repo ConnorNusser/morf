@@ -83,7 +83,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
                 <Text variant="emphasis" tone="primary" weight="bold">
                   {m.value}
                 </Text>
-                <Text variant="meta" tone="faint">
+                <Text variant="meta" tone="muted">
                   {m.isBodyweight ? ' reps' : ' est. 1RM'}
                 </Text>
                 <View style={[styles.deltaPill, { backgroundColor: tint(color) }]}>

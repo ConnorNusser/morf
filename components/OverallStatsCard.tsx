@@ -1,4 +1,5 @@
 import { Text } from "@/components/Themed";
+import SectionLabel from "@/components/ui/SectionLabel";
 import { getTierColor, StrengthTier } from "@/lib/data/strengthStandards";
 import { OverallStats } from "@/lib/storage/userProfile";
 import { space } from "@/lib/ui/tokens";
@@ -28,16 +29,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
       >
         <Card variant="elevated" style={styles.container}>
           <View style={styles.header}>
-            {/* A notch above the shared micro-label size — this is the
-                home strength block's headline, not a section eyebrow. */}
-            <Text
-              variant="body"
-              tone="muted"
-              weight="bold"
-              style={styles.title}
-            >
-              OVERALL STRENGTH
-            </Text>
+            <SectionLabel style={styles.title}>OVERALL STRENGTH</SectionLabel>
           </View>
 
           <View style={styles.statsContainer}>
@@ -99,9 +91,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: space.md,
   },
-  // The shared uppercase micro-label section grammar (History / Career).
+  // The header row already spaces the section; SectionLabel's own margin off.
   title: {
-    letterSpacing: 1,
+    marginBottom: 0,
   },
   statsContainer: {
     flexDirection: "row",

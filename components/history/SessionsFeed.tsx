@@ -124,7 +124,7 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onP
           const isPRRow = prName != null && l.name === prName;
           return (
             <RNView key={`${l.name}-${i}`} style={styles.exRow}>
-              <Text variant="emphasis" tone="primary" weight="medium" style={styles.exName} numberOfLines={1}>
+              <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.exName} numberOfLines={1}>
                 {l.name}
                 <Text variant="meta" tone="muted">  {l.sets}×</Text>
               </Text>

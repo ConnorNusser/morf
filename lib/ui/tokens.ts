@@ -82,3 +82,30 @@ export const radius = {
 
 /** The horizontal gutter every tab screen shares. */
 export const screenGutter = 20;
+
+/** Bottom over-scroll under the floating tab bar, shared by tab ScrollViews. */
+export const scrollBottom = 120;
+
+/**
+ * Interior padding for the few deliberate "hero panel" surfaces (History hub,
+ * Career section). Everything else uses space.lg — this is the one named
+ * exception, not an invitation.
+ */
+export const panelPad = 18;
+
+/** Letter-spacing roles. Everything else is default tracking. */
+export const track = {
+  /** Uppercase micro-labels (SectionLabel grammar). */
+  caps: 1,
+  /** Large display numbers (statHero and up). */
+  display: -0.5,
+} as const;
+
+/** Semantic accents shared across tabs (theme-independent by design). */
+export const trend = {
+  up: "#00C85C",
+  down: "#FF6B6B",
+} as const;
+
+/** Destructive actions (delete, discard). */
+export const danger = "#FF3B30";
