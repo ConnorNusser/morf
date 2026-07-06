@@ -8,7 +8,7 @@ import TopMovers from "@/components/history/TopMovers";
 import WorkoutDetailModal from "@/components/history/WorkoutDetailModal";
 import MonthlyTrendsModal from "@/components/MonthlyTrendsModal";
 import MuscleBalanceCard from "@/components/MuscleBalanceCard";
-import { Text, View } from "@/components/Themed";
+import { Text, useInk, View } from "@/components/Themed";
 import WeeklyOverview from "@/components/WeeklyOverview";
 import { useCustomExercises } from "@/contexts/CustomExercisesContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -28,6 +28,7 @@ import { buildSessionRecaps } from "@/lib/history/sessionRecap";
 import { userService } from "@/lib/services/userService";
 import { storageService } from "@/lib/storage/storage";
 import { layout } from "@/lib/ui/styles";
+import { radius, screenGutter, space, tint } from "@/lib/ui/tokens";
 import { type as typeScale } from "@/lib/ui/typography";
 import {
   convertWeight,
@@ -50,6 +51,11 @@ import {
 type TabType = "workouts" | "exercises";
 type ExerciseSort = "1rm" | "recent" | "name" | "improved";
 
+const TABS: { key: TabType; label: string }[] = [
+  { key: "workouts", label: "Workouts" },
+  { key: "exercises", label: "Exercises" },
+];
+
 const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
   { key: "1rm", label: "Top 1RM" },
   { key: "recent", label: "Recent" },
@@ -67,6 +73,7 @@ function getImprovement(history: ExerciseWithMax["history"]): number {
 
 export default function HistoryScreen() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const router = useRouter();
   const { customExercises } = useCustomExercises();
@@ -308,68 +315,39 @@ export default function HistoryScreen() {
       ]}
     >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: "transparent" }]}>
+      <View style={styles.header}>
         <Text
-          style={[
-            styles.headerTitle,
-            { color: currentTheme.colors.text, fontWeight: "700" },
-          ]}
+          variant="screenTitle"
+          tone="primary"
+          weight="bold"
+          style={styles.headerTitle}
         >
           History
         </Text>
 
         {/* Tabs */}
-        <View style={[styles.tabContainer, { backgroundColor: "transparent" }]}>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === "workouts" && styles.activeTab,
-              activeTab === "workouts" && {
-                borderBottomColor: currentTheme.colors.primary,
-              },
-            ]}
-            onPress={() => setActiveTab("workouts")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === "workouts"
-                      ? currentTheme.colors.text
-                      : currentTheme.colors.text + "50",
-                },
-                { fontWeight: activeTab === "workouts" ? "600" : "400" },
-              ]}
-            >
-              Workouts
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.tab,
-              activeTab === "exercises" && styles.activeTab,
-              activeTab === "exercises" && {
-                borderBottomColor: currentTheme.colors.primary,
-              },
-            ]}
-            onPress={() => setActiveTab("exercises")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                {
-                  color:
-                    activeTab === "exercises"
-                      ? currentTheme.colors.text
-                      : currentTheme.colors.text + "50",
-                },
-                { fontWeight: activeTab === "exercises" ? "600" : "400" },
-              ]}
-            >
-              Exercises
-            </Text>
-          </TouchableOpacity>
+        <View style={styles.tabContainer}>
+          {TABS.map(({ key, label }) => {
+            const active = activeTab === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                style={[
+                  styles.tab,
+                  active && { borderBottomColor: currentTheme.colors.primary },
+                ]}
+                onPress={() => setActiveTab(key)}
+              >
+                <Text
+                  variant="body"
+                  tone={active ? "primary" : "faint"}
+                  weight={active ? "semiBold" : "regular"}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -396,7 +374,7 @@ export default function HistoryScreen() {
                   <View
                     style={[
                       styles.panelDivider,
-                      { backgroundColor: currentTheme.colors.text + "10" },
+                      { backgroundColor: ink.hairline },
                     ]}
                   />
                 )}
@@ -422,19 +400,14 @@ export default function HistoryScreen() {
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
                 <Text
-                  style={[
-                    styles.sectionHeading,
-                    { color: currentTheme.colors.text },
-                  ]}
+                  variant="meta"
+                  tone="muted"
+                  weight="bold"
+                  style={styles.sectionHeading}
                 >
                   RECORDS
                 </Text>
-                <View
-                  style={[
-                    styles.recordsStrip,
-                    { backgroundColor: "transparent" },
-                  ]}
-                >
+                <View style={styles.recordsStrip}>
                   {topRecords.map(({ ex, pct }) => {
                     const tierColor =
                       pct != null
@@ -454,44 +427,24 @@ export default function HistoryScreen() {
                         activeOpacity={0.7}
                       >
                         <Text
-                          style={[
-                            styles.recordName,
-                            {
-                              color: currentTheme.colors.text + "99",
-                              fontWeight: "500",
-                            },
-                          ]}
+                          variant="meta"
+                          tone="secondary"
+                          weight="medium"
                           numberOfLines={1}
                         >
                           {ex.name.replace(/\s*\([^)]*\)\s*$/, "").trim()}
                         </Text>
-                        <View
-                          style={[
-                            styles.recordValueRow,
-                            { backgroundColor: "transparent" },
-                          ]}
-                        >
+                        <View style={styles.recordValueRow}>
                           <Text
-                            style={[
-                              styles.recordValue,
-                              {
-                                color: currentTheme.colors.text,
-                                fontWeight: "700",
-                              },
-                            ]}
+                            variant="title"
+                            tone="primary"
+                            weight="bold"
+                            style={styles.recordValue}
                             numberOfLines={1}
                           >
                             {ex.estimated1RM}
                           </Text>
-                          <Text
-                            style={[
-                              styles.recordUnit,
-                              {
-                                color: currentTheme.colors.text + "70",
-                                fontWeight: "400",
-                              },
-                            ]}
-                          >
+                          <Text variant="meta" tone="muted">
                             {weightUnit}
                           </Text>
                         </View>
@@ -499,13 +452,15 @@ export default function HistoryScreen() {
                           <View
                             style={[
                               styles.recordTierBadge,
-                              { backgroundColor: tierColor + "1F" },
+                              { backgroundColor: tint(tierColor) },
                             ]}
                           >
                             <Text
+                              variant="meta"
+                              weight="semiBold"
                               style={[
                                 styles.recordTierText,
-                                { color: tierColor, fontWeight: "600" },
+                                { color: tierColor },
                               ]}
                             >
                               {getStrengthTier(pct)}
@@ -572,51 +527,27 @@ export default function HistoryScreen() {
                     size={18}
                     color={currentTheme.colors.primary}
                   />
-                  <Text
-                    style={[
-                      styles.monthlyTrendsText,
-                      { color: currentTheme.colors.text, fontWeight: "500" },
-                    ]}
-                  >
+                  <Text variant="body" tone="primary" weight="medium">
                     View Monthly Trends
                   </Text>
                 </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={currentTheme.colors.text + "60"}
-                />
+                <Ionicons name="chevron-forward" size={18} color={ink.muted} />
               </TouchableOpacity>
             )}
 
             {/* Empty State */}
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons
-                  name="barbell-outline"
-                  size={48}
-                  color={currentTheme.colors.text + "20"}
-                />
+                <Ionicons name="barbell-outline" size={48} color={ink.ghost} />
                 <Text
-                  style={[
-                    styles.emptyText,
-                    {
-                      color: currentTheme.colors.text + "50",
-                      fontWeight: "500",
-                    },
-                  ]}
+                  variant="heading"
+                  tone="faint"
+                  weight="medium"
+                  style={styles.emptyText}
                 >
                   No workouts yet
                 </Text>
-                <Text
-                  style={[
-                    styles.emptySubtext,
-                    {
-                      color: currentTheme.colors.text + "30",
-                      fontWeight: "400",
-                    },
-                  ]}
-                >
+                <Text variant="body" tone="ghost" style={styles.emptySubtext}>
                   Start logging to track your progress
                 </Text>
                 <TouchableOpacity
@@ -628,7 +559,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontWeight: "600" }]}>
+                  <Text variant="title" weight="semiBold" style={styles.emptyCtaText}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -647,29 +578,11 @@ export default function HistoryScreen() {
                     { backgroundColor: currentTheme.colors.surface },
                   ]}
                 >
-                  <View
-                    style={[
-                      styles.summaryItem,
-                      { backgroundColor: "transparent" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        { color: currentTheme.colors.text, fontWeight: "700" },
-                      ]}
-                    >
+                  <View style={styles.summaryItem}>
+                    <Text variant="emphasis" tone="primary" weight="bold">
                       {exerciseSummary.count}
                     </Text>
-                    <Text
-                      style={[
-                        styles.summaryLabel,
-                        {
-                          color: currentTheme.colors.text + "50",
-                          fontWeight: "400",
-                        },
-                      ]}
-                    >
+                    <Text variant="meta" tone="faint" style={styles.summaryLabel}>
                       Exercises
                     </Text>
                   </View>
@@ -679,29 +592,11 @@ export default function HistoryScreen() {
                       { backgroundColor: currentTheme.colors.border },
                     ]}
                   />
-                  <View
-                    style={[
-                      styles.summaryItem,
-                      { backgroundColor: "transparent" },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.summaryValue,
-                        { color: currentTheme.colors.text, fontWeight: "700" },
-                      ]}
-                    >
+                  <View style={styles.summaryItem}>
+                    <Text variant="emphasis" tone="primary" weight="bold">
                       {exerciseSummary.totalSets.toLocaleString()}
                     </Text>
-                    <Text
-                      style={[
-                        styles.summaryLabel,
-                        {
-                          color: currentTheme.colors.text + "50",
-                          fontWeight: "400",
-                        },
-                      ]}
-                    >
+                    <Text variant="meta" tone="faint" style={styles.summaryLabel}>
                       Sets logged
                     </Text>
                   </View>
@@ -713,32 +608,18 @@ export default function HistoryScreen() {
                           { backgroundColor: currentTheme.colors.border },
                         ]}
                       />
-                      <View
-                        style={[
-                          styles.summaryItem,
-                          { backgroundColor: "transparent" },
-                        ]}
-                      >
+                      <View style={styles.summaryItem}>
                         <Text
-                          style={[
-                            styles.summaryValue,
-                            {
-                              color: currentTheme.colors.primary,
-                              fontWeight: "700",
-                            },
-                          ]}
+                          variant="emphasis"
+                          weight="bold"
                           numberOfLines={1}
                         >
                           {exerciseSummary.topLift.estimated1RM}
                         </Text>
                         <Text
-                          style={[
-                            styles.summaryLabel,
-                            {
-                              color: currentTheme.colors.text + "50",
-                              fontWeight: "400",
-                            },
-                          ]}
+                          variant="meta"
+                          tone="faint"
+                          style={styles.summaryLabel}
                           numberOfLines={1}
                         >
                           Top 1RM
@@ -758,18 +639,11 @@ export default function HistoryScreen() {
                     },
                   ]}
                 >
-                  <Ionicons
-                    name="search"
-                    size={18}
-                    color={currentTheme.colors.text + "60"}
-                  />
+                  <Ionicons name="search" size={18} color={ink.muted} />
                   <TextInput
-                    style={[
-                      styles.searchInput,
-                      { color: currentTheme.colors.text, fontWeight: "400" },
-                    ]}
+                    style={[styles.searchInput, { color: ink.primary }]}
                     placeholder="Search exercises..."
-                    placeholderTextColor={currentTheme.colors.text + "40"}
+                    placeholderTextColor={ink.faint}
                     value={exerciseSearch}
                     onChangeText={setExerciseSearch}
                     autoCapitalize="none"
@@ -784,7 +658,7 @@ export default function HistoryScreen() {
                       <Ionicons
                         name="close-circle"
                         size={18}
-                        color={currentTheme.colors.text + "60"}
+                        color={ink.muted}
                       />
                     </TouchableOpacity>
                   )}
@@ -817,15 +691,10 @@ export default function HistoryScreen() {
                         ]}
                       >
                         <Text
-                          style={[
-                            styles.sortChipText,
-                            {
-                              color: active
-                                ? "#fff"
-                                : currentTheme.colors.text + "99",
-                              fontWeight: active ? "600" : "500",
-                            },
-                          ]}
+                          variant="meta"
+                          tone={active ? undefined : "secondary"}
+                          weight={active ? "semiBold" : "medium"}
+                          style={active && { color: "#fff" }}
                         >
                           {label}
                         </Text>
@@ -836,15 +705,7 @@ export default function HistoryScreen() {
 
                 {liftsWithData.length > 0 ? (
                   <View style={styles.section}>
-                    <Text
-                      style={[
-                        styles.resultCount,
-                        {
-                          color: currentTheme.colors.text + "50",
-                          fontWeight: "400",
-                        },
-                      ]}
-                    >
+                    <Text variant="meta" tone="faint" style={styles.resultCount}>
                       {liftsWithData.length} exercise
                       {liftsWithData.length !== 1 ? "s" : ""}
                     </Text>
@@ -862,16 +723,13 @@ export default function HistoryScreen() {
                     <Ionicons
                       name="search-outline"
                       size={40}
-                      color={currentTheme.colors.text + "20"}
+                      color={ink.ghost}
                     />
                     <Text
-                      style={[
-                        styles.emptyText,
-                        {
-                          color: currentTheme.colors.text + "50",
-                          fontWeight: "500",
-                        },
-                      ]}
+                      variant="heading"
+                      tone="faint"
+                      weight="medium"
+                      style={styles.emptyText}
                     >
                       No matches for &quot;{exerciseSearch.trim()}&quot;
                     </Text>
@@ -880,31 +738,16 @@ export default function HistoryScreen() {
               </>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons
-                  name="fitness-outline"
-                  size={48}
-                  color={currentTheme.colors.text + "20"}
-                />
+                <Ionicons name="fitness-outline" size={48} color={ink.ghost} />
                 <Text
-                  style={[
-                    styles.emptyText,
-                    {
-                      color: currentTheme.colors.text + "50",
-                      fontWeight: "500",
-                    },
-                  ]}
+                  variant="heading"
+                  tone="faint"
+                  weight="medium"
+                  style={styles.emptyText}
                 >
                   No exercises tracked
                 </Text>
-                <Text
-                  style={[
-                    styles.emptySubtext,
-                    {
-                      color: currentTheme.colors.text + "30",
-                      fontWeight: "400",
-                    },
-                  ]}
-                >
+                <Text variant="body" tone="ghost" style={styles.emptySubtext}>
                   Complete workouts to build your exercise history
                 </Text>
                 <TouchableOpacity
@@ -916,7 +759,7 @@ export default function HistoryScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontWeight: "600" }]}>
+                  <Text variant="title" weight="semiBold" style={styles.emptyCtaText}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -959,160 +802,121 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 0,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.md,
   },
   headerTitle: {
-    fontSize: typeScale.screenTitle,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   // Tab styles
   tabContainer: {
     flexDirection: "row",
-    gap: 24,
+    gap: space.section,
   },
   tab: {
-    paddingBottom: 12,
+    paddingBottom: space.md,
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  activeTab: {
-    borderBottomWidth: 2,
-  },
-  tabText: {
-    fontSize: typeScale.body,
-  },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.lg,
     paddingBottom: 120,
   },
   // Exercises tab: overview + search + sort
   exerciseSummary: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 12,
-    paddingVertical: 14,
-    marginTop: 4,
-    marginBottom: 12,
+    borderRadius: radius.card,
+    paddingVertical: space.lg,
+    marginTop: space.xs,
+    marginBottom: space.md,
   },
   summaryItem: {
     flex: 1,
     alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  summaryValue: {
-    fontSize: typeScale.emphasis,
+    paddingHorizontal: space.xs,
   },
   summaryLabel: {
-    fontSize: typeScale.meta,
-    marginTop: 3,
+    marginTop: space.xs,
   },
   summaryDivider: {
     width: StyleSheet.hairlineWidth,
     alignSelf: "stretch",
-    marginVertical: 4,
+    marginVertical: space.xs,
   },
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     borderWidth: 1,
-    gap: 8,
-    marginTop: 4,
+    gap: space.sm,
+    marginTop: space.xs,
   },
   searchInput: {
     flex: 1,
     fontSize: typeScale.body,
     padding: 0,
   },
-  workoutSearchBar: {
-    marginBottom: 12,
-  },
   sortRow: {
     flexDirection: "row",
-    gap: 8,
-    paddingTop: 12,
+    gap: space.sm,
+    paddingTop: space.md,
     paddingBottom: 2,
   },
   sortChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 16,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
   },
-  sortChipText: {
-    fontSize: typeScale.meta,
-  },
   resultCount: {
-    fontSize: typeScale.meta,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   // Hairline sub-block divider inside the top instrument panel — the same
   // divider grammar CareerSection uses between its hero / stats / NEXT blocks.
   panelDivider: {
     height: StyleSheet.hairlineWidth,
-    opacity: 0.7,
   },
   // Section styles
   section: {
-    marginTop: 24,
+    marginTop: space.section,
   },
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
     letterSpacing: 1,
-    opacity: 0.45,
-    marginBottom: 10,
-  },
-  viewAllButton: {
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  viewAllText: {
-    fontSize: typeScale.meta,
+    marginBottom: space.sm,
   },
   // Records strip
   recordsStrip: {
     flexDirection: "row",
-    gap: 12,
+    gap: space.md,
   },
   recordCard: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: radius.card,
     borderWidth: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-  },
-  recordName: {
-    fontSize: typeScale.meta,
+    padding: space.lg,
   },
   recordValueRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 3,
-    marginTop: 8,
+    gap: space.xs,
+    marginTop: space.sm,
   },
   recordValue: {
-    fontSize: typeScale.title,
     letterSpacing: -0.5,
-  },
-  recordUnit: {
-    fontSize: typeScale.meta,
   },
   recordTierBadge: {
     alignSelf: "flex-start",
-    marginTop: 8,
-    paddingHorizontal: 7,
+    marginTop: space.sm,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 5,
+    borderRadius: radius.badge,
   },
   recordTierText: {
-    fontSize: typeScale.meta,
     letterSpacing: 0.3,
   },
   // Monthly trends button
@@ -1120,68 +924,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    borderRadius: radius.card,
     borderWidth: 1,
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: space.md,
+    marginBottom: space.sm,
   },
   monthlyTrendsContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-  },
-  monthlyTrendsText: {
-    fontSize: typeScale.body,
-  },
-  // Lift card styles - minimal
-  liftCard: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  liftNameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  liftName: {
-    fontSize: typeScale.body,
-  },
-  customBadge: {
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 3,
-  },
-  customBadgeText: {
-    fontSize: typeScale.meta,
-  },
-  liftStats: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  liftValue: {
-    fontSize: typeScale.emphasis,
-  },
-  liftLabel: {
-    fontSize: typeScale.meta,
-  },
-  deltaContainer: {
-    marginLeft: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  deltaText: {
-    fontSize: typeScale.meta,
-  },
-  liftRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+    gap: space.sm,
   },
   // Empty state
   emptyState: {
@@ -1190,25 +943,22 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyText: {
-    fontSize: typeScale.heading,
-    marginTop: 16,
+    marginTop: space.lg,
   },
   emptySubtext: {
-    fontSize: typeScale.body,
-    marginTop: 8,
+    marginTop: space.sm,
     textAlign: "center",
   },
   emptyCta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginTop: 24,
+    gap: space.xs,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
+    borderRadius: radius.pill,
+    marginTop: space.section,
   },
   emptyCtaText: {
     color: "#fff",
-    fontSize: typeScale.title,
   },
 });

@@ -1,25 +1,43 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { Ink, InkTone, inkColor, inkRamp } from '@/lib/ui/tokens';
+import { type as typeScale } from '@/lib/ui/typography';
 import React, { useMemo } from 'react';
 import { Text as DefaultText, View as DefaultView } from 'react-native';
 
 export type TextWeight = 'regular' | 'medium' | 'semiBold' | 'bold';
 const WEIGHTS = { regular: '400', medium: '500', semiBold: '600', bold: '700' } as const;
-export type TextProps = DefaultText['props'] & { weight?: TextWeight };
+export type TextVariant = keyof typeof typeScale;
+export type TextProps = DefaultText['props'] & {
+  weight?: TextWeight;
+  /** Type-scale role (lib/ui/typography) — sets fontSize. Named `variant`
+   * because React Native already claims `role` for accessibility. */
+  variant?: TextVariant;
+  /** Ink emphasis (lib/ui/tokens) — sets color from the theme text ramp. */
+  tone?: InkTone;
+};
 export type ViewProps = DefaultView['props'];
 
+/** The theme's text-emphasis ramp, for styling icons/borders outside <Text>. */
+export function useInk(): Ink {
+  const { currentTheme } = useTheme();
+  return useMemo(() => inkRamp(currentTheme), [currentTheme]);
+}
+
 export const Text = React.memo(function Text(props: TextProps) {
-  const { style, weight, ...otherProps } = props;
+  const { style, weight, variant, tone, ...otherProps } = props;
   const { currentTheme } = useTheme();
 
-  // Apply the theme color and (when a weight is given) the matching system-font
-  // weight, so callers don't repeat fontWeight on every label. Anything in `style`
-  // still wins, keeping this backward-compatible.
+  // Apply the theme color plus any variant/tone/weight tokens, so callers don't
+  // repeat fontSize/color/fontWeight on every label. Anything in `style` still
+  // wins, keeping this backward-compatible. Without a tone the color stays the
+  // legacy primary default.
   const themedStyle = useMemo(
     () => ({
-      color: currentTheme.colors.primary,
+      color: tone ? inkColor(currentTheme, tone) : currentTheme.colors.primary,
+      ...(variant ? { fontSize: typeScale[variant] } : null),
       ...(weight ? { fontWeight: WEIGHTS[weight] } : null),
     }),
-    [currentTheme.colors.primary, weight]
+    [currentTheme, weight, variant, tone]
   );
 
   return (

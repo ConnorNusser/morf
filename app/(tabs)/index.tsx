@@ -11,7 +11,7 @@ import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import Spacer from "@/components/Spacer";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
-import { Text, View } from "@/components/Themed";
+import { Text, useInk, View } from "@/components/Themed";
 import UnlockNotificationModal, {
   NotificationType,
 } from "@/components/UnlockNotificationModal";
@@ -34,7 +34,7 @@ import {
 } from "@/lib/storage/storage";
 import { gap, layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
-import { type as typeScale } from "@/lib/ui/typography";
+import { screenGutter, space } from "@/lib/ui/tokens";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
@@ -62,6 +62,7 @@ export default function HomeScreen() {
   // hardcoded 60px, which left a big gap above the Today card on most devices.
   const contentTopPadding = insets.top - 2;
   const { currentTheme, setThemeLevel } = useTheme();
+  const ink = useInk();
   const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [pendingProgress, setPendingProgress] =
@@ -285,7 +286,7 @@ export default function HomeScreen() {
         <View
           style={[
             styles.content,
-            { paddingTop: contentTopPadding, backgroundColor: "transparent" },
+            { paddingTop: contentTopPadding },
           ]}
         >
           <DashboardHeader />
@@ -313,7 +314,7 @@ export default function HomeScreen() {
           <View
             style={[
               styles.feedHeader,
-              { paddingTop: contentTopPadding, backgroundColor: "transparent" },
+              { paddingTop: contentTopPadding },
             ]}
           >
             <DashboardHeader
@@ -354,7 +355,7 @@ export default function HomeScreen() {
         <View
           style={[
             styles.content,
-            { paddingTop: contentTopPadding, backgroundColor: "transparent" },
+            { paddingTop: contentTopPadding },
           ]}
         >
           <DashboardHeader
@@ -372,22 +373,10 @@ export default function HomeScreen() {
             onPress={() => setShowLeaderboard(true)}
             activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.actionButtonText,
-                {
-                  color: currentTheme.colors.text,
-                  fontWeight: "500",
-                },
-              ]}
-            >
+            <Text variant="body" tone="primary" weight="medium">
               View Leaderboards
             </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={currentTheme.colors.text + "60"}
-            />
+            <Ionicons name="chevron-forward" size={18} color={ink.muted} />
           </TouchableOpacity>
 
           {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
@@ -399,7 +388,7 @@ export default function HomeScreen() {
                 <View
                   style={[
                     styles.strengthDivider,
-                    { backgroundColor: currentTheme.colors.text + "12" },
+                    { backgroundColor: ink.hairline },
                   ]}
                 />
                 <PowerliftingTotal data={powerliftingTotal} />
@@ -410,10 +399,10 @@ export default function HomeScreen() {
           {userProgress.length > 0 && (
             <>
               <Text
-                style={[
-                  styles.sectionTitle,
-                  { color: currentTheme.colors.text, marginBottom: 0 },
-                ]}
+                variant="meta"
+                tone="muted"
+                weight="bold"
+                style={styles.sectionTitle}
               >
                 YOUR LIFTS
               </Text>
@@ -472,37 +461,28 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // 24 between blocks — the same section rhythm as History's section marginTop,
-  // so the two tabs breathe identically.
   content: {
-    padding: 20,
-    gap: 12,
+    padding: screenGutter,
+    gap: space.md,
   },
   feedHeader: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.sm,
   },
   // Same uppercase micro-label grammar as History's LIFTS / SESSIONS and the
   // Career card, so every tab introduces sections the same way.
   sectionTitle: {
-    fontSize: typeScale.meta,
-    fontWeight: "700",
     letterSpacing: 1,
-    opacity: 0.45,
   },
   strengthDivider: {
-    height: 1,
-    marginTop: 6,
-    marginBottom: 12,
+    height: StyleSheet.hairlineWidth,
+    marginTop: space.xs,
+    marginBottom: space.md,
   },
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 0,
-    paddingVertical: 12,
-  },
-  actionButtonText: {
-    fontSize: typeScale.body,
+    paddingVertical: space.md,
   },
 });
