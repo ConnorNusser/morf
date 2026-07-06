@@ -1,11 +1,11 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
+import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import LiftDisplayFilter from "@/components/LiftDisplayFilter";
 import OverallStatsCard from "@/components/OverallStatsCard";
-import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -18,22 +18,25 @@ import UnlockNotificationModal, {
 import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
-import { getStrengthLevelName, getStrengthTier } from "@/lib/data/strengthStandards";
+import { PPL_COLORS } from "@/lib/data/pplCategories";
+import {
+  getStrengthLevelName,
+  getStrengthTier,
+} from "@/lib/data/strengthStandards";
 import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
 import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
-import { PPL_COLORS } from "@/lib/data/pplCategories";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
-import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
   HomeViewMode,
   PendingStrengthProgress,
   storageService,
 } from "@/lib/storage/storage";
 import { gap, layout } from "@/lib/ui/styles";
-import { type as typeScale } from "@/lib/ui/typography";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
+import { type as typeScale } from "@/lib/ui/typography";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
+import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
   GeneratedWorkout,
   LiftDisplayFilters,
@@ -110,8 +113,16 @@ export default function HomeScreen() {
       Math.round(prsLbs.find((p) => p.exerciseId === id)?.estimatedOneRM ?? 0);
     const lifts = [
       { label: "Squat", value: e1("squat-barbell"), color: PPL_COLORS.legs },
-      { label: "Bench", value: e1("bench-press-barbell"), color: PPL_COLORS.push },
-      { label: "Deadlift", value: e1("deadlift-barbell"), color: PPL_COLORS.pull },
+      {
+        label: "Bench",
+        value: e1("bench-press-barbell"),
+        color: PPL_COLORS.push,
+      },
+      {
+        label: "Deadlift",
+        value: e1("deadlift-barbell"),
+        color: PPL_COLORS.pull,
+      },
     ];
     // The ladder shows a rolling window — up to two clubs behind you plus the
     // one you're chasing — so the scale stays readable now that the club list
@@ -180,7 +191,9 @@ export default function HomeScreen() {
         (p) => !savedFilters.hiddenLiftIds.includes(p.workoutId),
       );
       const overall = visibleLifts.length
-        ? calculateOverallPercentile(visibleLifts.map((p) => p.percentileRanking))
+        ? calculateOverallPercentile(
+            visibleLifts.map((p) => p.percentileRanking),
+          )
         : 0;
 
       setLifetimeStats({
@@ -364,7 +377,7 @@ export default function HomeScreen() {
                 styles.actionButtonText,
                 {
                   color: currentTheme.colors.text,
-                  fontWeight: '500',
+                  fontWeight: "500",
                 },
               ]}
             >
@@ -384,7 +397,10 @@ export default function HomeScreen() {
             {powerliftingTotal && (
               <>
                 <View
-                  style={[styles.strengthDivider, { backgroundColor: currentTheme.colors.text + "12" }]}
+                  style={[
+                    styles.strengthDivider,
+                    { backgroundColor: currentTheme.colors.text + "12" },
+                  ]}
                 />
                 <PowerliftingTotal data={powerliftingTotal} />
               </>
@@ -394,7 +410,10 @@ export default function HomeScreen() {
           {userProgress.length > 0 && (
             <>
               <Text
-                style={[styles.sectionTitle, { color: currentTheme.colors.text, marginBottom: 0 }]}
+                style={[
+                  styles.sectionTitle,
+                  { color: currentTheme.colors.text, marginBottom: 0 },
+                ]}
               >
                 YOUR LIFTS
               </Text>
@@ -406,10 +425,7 @@ export default function HomeScreen() {
 
               <View style={gap.gap20}>
                 {filteredProgress.map((progress) => (
-                  <WorkoutStatsCard
-                    key={progress.workoutId}
-                    stats={progress}
-                  />
+                  <WorkoutStatsCard key={progress.workoutId} stats={progress} />
                 ))}
               </View>
             </>
@@ -460,7 +476,7 @@ const styles = StyleSheet.create({
   // so the two tabs breathe identically.
   content: {
     padding: 20,
-    gap: 24,
+    gap: 12,
   },
   feedHeader: {
     paddingHorizontal: 20,

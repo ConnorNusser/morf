@@ -27,6 +27,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Spacer from "../Spacer";
 
 // After dismissing the "build a routine" nudge, re-surface it once this much
 // time has passed (5 days).
@@ -369,7 +370,7 @@ export default function TodayCard() {
               );
             })}
           </View>
-
+          <Spacer height={12} />
           <StartButton
             label={trainedToday ? "Train again" : "Start workout"}
             variant={trainedToday ? "outlined" : "solid"}
@@ -413,12 +414,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: -2,
+    marginTop: -12,
+    marginBottom: 16,
   },
   navRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 16,
   },
   subRow: {
     flexDirection: "row",
@@ -453,8 +455,8 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   exerciseList: {
-    marginTop: 10,
-    gap: 10,
+    marginTop: 14,
+    gap: 14,
   },
   exerciseRow: {
     flexDirection: "row",

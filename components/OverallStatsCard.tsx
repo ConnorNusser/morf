@@ -102,7 +102,7 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {},
+  container: { gap: 12 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -125,16 +125,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statValue: {
-    fontSize: type.hero,
+    fontSize: type.header,
     fontWeight: "bold",
-    lineHeight: 33,
   },
   statLabel: {
     fontSize: type.meta,
     opacity: 0.7,
   },
   progressContainer: {
-    marginTop: 4,
+    marginTop: 12,
   },
   progressBar: {
     marginBottom: 4,

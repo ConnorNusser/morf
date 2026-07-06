@@ -21,6 +21,7 @@ export const type = {
   screenTitle: 30,
   /** The one headline number on a screen (Career percentile). */
   hero: 30,
+  header: 38,
 } as const;
 
 /** Comfortable line height for a given role size (multi-line text). */
