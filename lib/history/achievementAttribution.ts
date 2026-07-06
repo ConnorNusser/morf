@@ -20,6 +20,7 @@ import { GeneratedWorkout, WeightUnit } from '@/types';
 export interface EarnedAchievement {
   id: string;
   title: string;
+  description: string;
   icon: string;
   rarity: Rarity;
 }
@@ -41,7 +42,13 @@ export function attributeAchievements(
     for (const a of computeAchievements(stats, 0)) {
       if (!a.unlocked || earned.has(a.id)) continue;
       earned.add(a.id);
-      (out[chrono[i].id] ??= []).push({ id: a.id, title: a.title, icon: a.icon, rarity: a.rarity });
+      (out[chrono[i].id] ??= []).push({
+        id: a.id,
+        title: a.title,
+        description: a.description,
+        icon: a.icon,
+        rarity: a.rarity,
+      });
     }
   }
   return out;

@@ -2,23 +2,26 @@
 // entries (header + a per-exercise table), newest first. Reads like a training
 // log, not a social feed. (The volume-per-session bars live on the This Week
 // card, which owns the volume story.)
+import AchievementBadge from '@/components/gamification/AchievementBadge';
+import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
-import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
+import { Rarity } from '@/lib/gamification/rarity';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { type as typeScale } from '@/lib/ui/typography';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
 
-// An achievement earned by a specific session — shown as a rarity-tinted pill
-// on that session's entry.
+// An achievement earned by a specific session — shown as its real badge art
+// on that session's entry; tap for the full-screen spotlight.
 export interface SessionAchievement {
   id: string;
   title: string;
+  description: string;
   icon: string;
   rarity: Rarity;
 }
@@ -41,12 +44,13 @@ const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/,
 // time, the split word carrying its Push/Pull/Legs color; volume right), an
 // optional narrative note, then the full per-exercise table — every exercise
 // with its set count and top set, PRs marked on their row.
-function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress }: {
+function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress, onPressAchievement }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
   celebrate: boolean;
   achievements?: SessionAchievement[];
   onPress: (w: GeneratedWorkout) => void;
+  onPressAchievement: (a: SessionAchievement, recap: SessionRecap) => void;
 }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
@@ -89,24 +93,27 @@ function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress }: {
         </Text>
       )}
 
-      {/* achievements this session earned — rarity-tinted pills between the
-          header and the log, so a milestone day wears its medals. */}
+      {/* achievements this session earned — the app's real badge art with the
+          title beside it, between the header and the log; tap one for its
+          full-screen spotlight. */}
       {achievements && achievements.length > 0 && (
         <RNView style={styles.achRow}>
-          {achievements.slice(0, 3).map(a => {
-            const accent = RARITY_META[a.rarity].accent;
-            return (
-              <RNView
-                key={a.id}
-                style={[styles.achPill, { backgroundColor: accent + '14', borderColor: accent + '45' }]}
-              >
-                <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={12} color={accent} />
-                <Text style={[styles.achText, { color: accent }]} numberOfLines={1}>
-                  {a.title}
-                </Text>
-              </RNView>
-            );
-          })}
+          {achievements.slice(0, 5).map(a => (
+            <TouchableOpacity
+              key={a.id}
+              style={styles.achItem}
+              onPress={() => onPressAchievement(a, recap)}
+              activeOpacity={0.7}
+              hitSlop={6}
+              accessibilityLabel={a.title}
+              accessibilityRole="button"
+            >
+              <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={30} />
+              <Text style={[styles.achTitle, { color: colors.text + 'CC' }]} numberOfLines={1}>
+                {a.title}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </RNView>
       )}
 
@@ -162,7 +169,13 @@ interface SessionsFeedProps {
 export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount, achievementsByWorkout }: SessionsFeedProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
   if (recaps.length === 0) return null;
+
+  const openSpotlight = (a: SessionAchievement, recap: SessionRecap) => {
+    const where = cleanTitle(recap.title) ?? (recap.split ? `${PPL_LABELS[recap.split]} session` : 'Workout');
+    setSpotlight({ ...a, earnedLabel: `${where} · ${formatRelativeDate(recap.workout.createdAt)}` });
+  };
 
   const entries = recaps.slice(0, Math.max(1, visibleCount));
   const hasMore = totalCount > visibleCount;
@@ -185,6 +198,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
             celebrate={i === 0}
             achievements={achievementsByWorkout?.[r.workout.id]}
             onPress={onPressSession}
+            onPressAchievement={openSpotlight}
           />
         </RNView>
       ))}
@@ -196,6 +210,8 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
           </Text>
         </TouchableOpacity>
       )}
+
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} />
     </RNView>
   );
 }
@@ -213,18 +229,10 @@ const styles = StyleSheet.create({
   entryMeta: { fontSize: typeScale.meta },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
-  // Earned-this-session achievement pills.
-  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  achPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  achText: { fontSize: typeScale.meta, fontWeight: '600' },
+  // Earned-this-session achievements: badge art + title, tappable.
+  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
+  achItem: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  achTitle: { fontSize: typeScale.meta, fontWeight: '600' },
   // The per-exercise table.
   exList: { marginTop: 10, gap: 8 },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
