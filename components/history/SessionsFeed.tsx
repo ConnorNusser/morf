@@ -4,13 +4,24 @@
 // card, which owns the volume story.)
 import { useTheme } from '@/contexts/ThemeContext';
 import { PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
+import { Rarity, RARITY_META } from '@/lib/gamification/rarity';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { type as typeScale } from '@/lib/ui/typography';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View as RNView } from 'react-native';
+
+// An achievement earned by a specific session — shown as a rarity-tinted pill
+// on that session's entry.
+export interface SessionAchievement {
+  id: string;
+  title: string;
+  icon: string;
+  rarity: Rarity;
+}
 
 // One green accent per screen: the newest entry's PR row. Rare and earned — older
 // entries mark their PRs quietly, so celebration never becomes wallpaper.
@@ -30,10 +41,11 @@ const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/,
 // time, the split word carrying its Push/Pull/Legs color; volume right), an
 // optional narrative note, then the full per-exercise table — every exercise
 // with its set count and top set, PRs marked on their row.
-function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
+function SessionEntry({ recap, weightUnit, celebrate, achievements, onPress }: {
   recap: SessionRecap;
   weightUnit: WeightUnit;
   celebrate: boolean;
+  achievements?: SessionAchievement[];
   onPress: (w: GeneratedWorkout) => void;
 }) {
   const { currentTheme } = useTheme();
@@ -75,6 +87,27 @@ function SessionEntry({ recap, weightUnit, celebrate, onPress }: {
         <Text style={[styles.entryNote, { color: colors.text }]} numberOfLines={1}>
           {note}
         </Text>
+      )}
+
+      {/* achievements this session earned — rarity-tinted pills between the
+          header and the log, so a milestone day wears its medals. */}
+      {achievements && achievements.length > 0 && (
+        <RNView style={styles.achRow}>
+          {achievements.slice(0, 3).map(a => {
+            const accent = RARITY_META[a.rarity].accent;
+            return (
+              <RNView
+                key={a.id}
+                style={[styles.achPill, { backgroundColor: accent + '14', borderColor: accent + '45' }]}
+              >
+                <Ionicons name={a.icon as keyof typeof Ionicons.glyphMap} size={12} color={accent} />
+                <Text style={[styles.achText, { color: accent }]} numberOfLines={1}>
+                  {a.title}
+                </Text>
+              </RNView>
+            );
+          })}
+        </RNView>
       )}
 
       {/* the log proper — one aligned row per exercise: name + set count left,
@@ -122,9 +155,11 @@ interface SessionsFeedProps {
   onPressSession: (w: GeneratedWorkout) => void;
   onToggleShowAll?: () => void;
   totalCount: number;
+  /** Achievements earned per workout id — pills on that session's entry. */
+  achievementsByWorkout?: Record<string, SessionAchievement[]>;
 }
 
-export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount }: SessionsFeedProps) {
+export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPressSession, onToggleShowAll, totalCount, achievementsByWorkout }: SessionsFeedProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   if (recaps.length === 0) return null;
@@ -144,7 +179,13 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
           key={r.workout.id}
           style={[styles.entryWrap, { borderTopColor: colors.border }]}
         >
-          <SessionEntry recap={r} weightUnit={weightUnit} celebrate={i === 0} onPress={onPressSession} />
+          <SessionEntry
+            recap={r}
+            weightUnit={weightUnit}
+            celebrate={i === 0}
+            achievements={achievementsByWorkout?.[r.workout.id]}
+            onPress={onPressSession}
+          />
         </RNView>
       ))}
 
@@ -172,6 +213,18 @@ const styles = StyleSheet.create({
   entryMeta: { fontSize: typeScale.meta },
   entryVolume: { fontSize: typeScale.emphasis, fontWeight: '700', letterSpacing: -0.2 },
   entryNote: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 6 },
+  // Earned-this-session achievement pills.
+  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  achPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  achText: { fontSize: typeScale.meta, fontWeight: '600' },
   // The per-exercise table.
   exList: { marginTop: 10, gap: 8 },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
