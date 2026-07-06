@@ -1,9 +1,8 @@
-// The Sessions feed — a workout HISTORY: a volume-by-session bar chart for the
-// section's at-a-glance rhythm, then the last few sessions as detailed log
+// The Sessions feed — a workout HISTORY: the last few sessions as detailed log
 // entries (header + a per-exercise table), newest first. Reads like a training
-// log, not a social feed.
+// log, not a social feed. (The volume-per-session bars live on the This Week
+// card, which owns the volume story.)
 import { useTheme } from '@/contexts/ThemeContext';
-import { PPL_COLORS } from '@/lib/data/pplCategories';
 import { formatRelativeDate } from '@/lib/ui/formatters';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
@@ -24,41 +23,6 @@ const cleanTitle = (t: string): string | null => {
 
 // Drop the trailing "(Equipment)" — matches the shortening the lineup/headlines use.
 const shortHeroName = (name: string): string => name.replace(/\s*\([^)]*\)\s*$/, '').trim();
-
-// ── the section's glance: volume per session as BARS (one bar = one workout,
-// oldest → newest, wearing the session's split color; the newest bar is full
-// strength, older ones fade). Bars, deliberately not a line: sessions are discrete
-// efforts, and the This Week card below already owns the weekly-trend view.
-const CHART_SESSIONS = 10;
-const BAR_MAX_H = 34;
-const BAR_MIN_H = 6;
-
-function VolumeBars({ recaps }: { recaps: SessionRecap[] }) {
-  const { currentTheme } = useTheme();
-  const { colors } = currentTheme;
-  const bars = recaps.slice(0, CHART_SESSIONS).reverse(); // oldest → newest
-  if (bars.length < 3) return null;
-  const max = Math.max(...bars.map(r => r.volumeDisplay), 1);
-
-  return (
-    <RNView style={styles.chart}>
-      {bars.map((r, i) => {
-        const latest = i === bars.length - 1;
-        const h = BAR_MIN_H + (r.volumeDisplay / max) * (BAR_MAX_H - BAR_MIN_H);
-        const color = r.split ? PPL_COLORS[r.split] : colors.primary;
-        return (
-          <RNView
-            key={r.workout.id}
-            style={[
-              styles.chartBar,
-              { height: h, backgroundColor: color, opacity: latest ? 1 : 0.35 + (i / bars.length) * 0.4 },
-            ]}
-          />
-        );
-      })}
-    </RNView>
-  );
-}
 
 // ── one session as a detailed log entry: header (title, date · sets · time,
 // volume right), an optional narrative note, then the per-exercise table —
@@ -159,10 +123,7 @@ export default function SessionsFeed({ recaps, weightUnit, visibleCount, onPress
       {/* SESSIONS — the same micro-label header grammar as every section on the tab. */}
       <RNView style={styles.feedHead}>
         <Text style={[styles.microLabel, { color: colors.text }]}>SESSIONS</Text>
-        <Text style={[styles.headMeta, { color: colors.text }]}>volume per session</Text>
       </RNView>
-
-      <VolumeBars recaps={recaps} />
 
       {entries.map((r, i) => (
         <RNView
@@ -188,10 +149,6 @@ const styles = StyleSheet.create({
   // Career-grammar shared bits: 10/bold/tracked micro-label at ~45% + quiet 11pt meta.
   feedHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingTop: 10, paddingBottom: 10 },
   microLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  headMeta: { fontSize: 11, opacity: 0.5 },
-  // The bar chart: bottom-aligned bars, evenly spread.
-  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, height: BAR_MAX_H, marginBottom: 4 },
-  chartBar: { flex: 1, borderRadius: 2.5 },
   // Log entries, separated by hairlines like every list on the tab.
   entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 10 },
   entry: { paddingTop: 12, paddingBottom: 4 },
