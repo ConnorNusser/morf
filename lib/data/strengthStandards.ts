@@ -948,13 +948,16 @@ export class OneRMCalculator {
 
   // Average of multiple formulas for better accuracy
   static estimate(weight: number, reps: number): number {
-    if (reps === 1) return weight;
-    if (reps > 15) return weight; // Formulas not reliable for high reps
-    
-    const epley = this.epley(weight, reps);
-    const brzycki = this.brzycki(weight, reps);
-    const lombardi = this.lombardi(weight, reps);
-    
+    if (reps <= 1) return weight;
+    // Rep-max formulas lose accuracy past ~15 reps, but refusing to estimate
+    // reported a 21-rep set's 1RM as the bar weight itself. Clamp the reps
+    // instead: a high-rep set credits at least the 15-rep estimate.
+    const r = Math.min(reps, 15);
+
+    const epley = this.epley(weight, r);
+    const brzycki = this.brzycki(weight, r);
+    const lombardi = this.lombardi(weight, r);
+
     return Math.round((epley + brzycki + lombardi) / 3);
   }
 
