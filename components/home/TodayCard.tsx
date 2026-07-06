@@ -15,10 +15,15 @@ import {
   getUpNextRoutine,
 } from "@/lib/workout/activeRoutine";
 import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
-import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
+import {
+  setPendingRepeatWorkout,
+  setPendingRoutine,
+} from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
-import { CalculatedRoutine } from "@/types";
+import { getExercise } from "@/lib/workout/workouts";
+import { CalculatedRoutine, GeneratedWorkout } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -68,7 +73,7 @@ export default function TodayCard() {
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
   const [adviceDismissed, setAdviceDismissed] = useState(false);
-  const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
+  const [recent, setRecent] = useState<GeneratedWorkout[]>([]);
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
 
@@ -93,11 +98,15 @@ export default function TodayCard() {
           Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
       );
 
-      const latest = history.reduce<Date | null>((max, w) => {
-        const d = new Date(w.createdAt);
-        return !max || d > max ? d : max;
-      }, null);
-      setLastWorkoutAt(latest);
+      // Newest first; the card lists the last few for one-tap repeats.
+      setRecent(
+        [...history]
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          )
+          .slice(0, 3),
+      );
 
       const records = await loadExerciseRecords(history);
       const candidates = getUpNextCandidates(routines, programs);
@@ -166,6 +175,24 @@ export default function TodayCard() {
     });
   }, [launch, router]);
 
+  // Repeat a past session: hand it to the Workout tab, which prefills its
+  // draft on focus (same hand-off pattern as routines).
+  const repeatWorkout = useCallback(
+    (w: GeneratedWorkout) => {
+      launch({
+        routineName: w.title || "Repeat Workout",
+        exercises: (w.exercises || []).map((e) =>
+          cleanName(getExercise(e.id)?.name || e.id),
+        ),
+        onArrive: () => {
+          setPendingRepeatWorkout(w);
+          router.push("/workout");
+        },
+      });
+    },
+    [launch, router],
+  );
+
   if (loading) {
     return (
       <Card style={styles.loadingCard}>
@@ -174,13 +201,9 @@ export default function TodayCard() {
     );
   }
 
-  // No active routine — content-sized: headline, context, two pills, dismiss.
+  // No active routine — headline, two pills, dismiss, then the last few
+  // sessions for one-tap repeats (real content where filler copy was).
   if (!calculated) {
-    const freestyleSubtitle = trainedToday
-      ? "You've trained today — back for more?"
-      : lastWorkoutAt
-        ? `Last workout ${formatRelativeTime(lastWorkoutAt)}.`
-        : "Jump straight in — log sets as you go.";
     return (
       <Card style={styles.card}>
         <View>
@@ -193,13 +216,14 @@ export default function TodayCard() {
           >
             Ready to train?
           </Text>
-          <Text variant="meta" tone="secondary">
-            {freestyleSubtitle}
-          </Text>
         </View>
 
         <View>
-          <StartButton label="Start a workout" onPress={startFreestyle} />
+          <StartButton
+            label="Start a workout"
+            onPress={startFreestyle}
+            style={styles.primaryButton}
+          />
           {!adviceDismissed && (
             <>
               {/* Secondary path: bordered pill, quiet by contrast with the
@@ -229,6 +253,51 @@ export default function TodayCard() {
             </>
           )}
         </View>
+
+        {recent.length > 0 && (
+          <View style={styles.recentBlock}>
+            <SectionLabel>Recent</SectionLabel>
+            {recent.map((w, i) => (
+              <TouchableOpacity
+                key={w.id}
+                style={[
+                  styles.recentRow,
+                  i > 0 && {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: ink.hairline,
+                  },
+                ]}
+                activeOpacity={0.6}
+                onPress={() => repeatWorkout(w)}
+              >
+                <View style={styles.recentText}>
+                  <Text
+                    variant="body"
+                    tone="primary"
+                    weight="medium"
+                    numberOfLines={1}
+                  >
+                    {w.title || "Workout"}
+                  </Text>
+                  <Text variant="meta" tone="secondary" numberOfLines={1}>
+                    {formatRelativeTime(new Date(w.createdAt))} ·{" "}
+                    {(w.exercises || []).length} exercises
+                  </Text>
+                </View>
+                <View style={styles.recentAction}>
+                  <Text variant="meta" tone="secondary" weight="semiBold">
+                    Repeat
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={ink.muted}
+                  />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </Card>
     );
   }
@@ -418,6 +487,24 @@ const styles = StyleSheet.create({
   dismissText: {
     textAlign: "center",
     marginTop: space.md,
+  },
+  recentBlock: {
+    marginTop: space.section,
+  },
+  recentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md,
+    paddingVertical: space.md,
+  },
+  recentText: {
+    flex: 1,
+    gap: 2,
+  },
+  recentAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
   },
   secondaryButton: {
     alignItems: "center",

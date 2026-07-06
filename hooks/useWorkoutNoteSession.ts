@@ -29,7 +29,7 @@ import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateExerciseRecords } from '@/lib/workout/progression';
 import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
-import { getPendingRoutine } from '@/lib/workout/pendingRoutine';
+import { getPendingRepeatWorkout, getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
@@ -761,6 +761,15 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setStartedRoutineId(null);
     if (!workoutStartTime) setWorkoutStartTime(new Date());
   }, [workoutStartTime, loadDraftFromText]);
+
+  // A repeat handed off from another screen (Home's recent list) — same
+  // pattern as getPendingRoutine above, placed after prefillWorkout exists.
+  useFocusEffect(
+    useCallback(() => {
+      const repeat = getPendingRepeatWorkout();
+      if (repeat) prefillWorkout(repeat);
+    }, [prefillWorkout])
+  );
 
   // Recent sessions, newest first (for the empty-state list; the view scrolls).
   const recentWorkouts = useMemo(
