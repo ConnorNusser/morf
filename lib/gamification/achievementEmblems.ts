@@ -109,11 +109,12 @@ export const ACHIEVEMENT_EMBLEMS: Record<string, ImageSourcePropType> = {
 
   // Absolute-strength "clubs" (powerlifting total): barbell → winged trophy →
   // cape, then the rarified-air totals.
-  'total-600': src.barbell,      // Rising Total
+  'total-600': src.barbell,      // 600 lb Club
+  'total-800': src.bronzetrophy, // 800 lb Club
   'total-1000': src.ornatetrophy,// Thousand-Pound Club
   'total-1200': src.cape,        // Twelve Hundred
-  'total-1500': src.ironbar,     // Fifteen Hundred
-  'total-2000': src.planet,      // Two Thousand — moving-the-earth territory
+  'total-1300': src.ironbar,     // Thirteen Hundred
+  'total-1500': src.partyhat,    // Fifteen Hundred — the S-tier summit
 
   // Niche / Strava-style badges — quirky one-offs, each matched to a fitting emblem.
   'early-bird': src.candle,          // pre-dawn candle

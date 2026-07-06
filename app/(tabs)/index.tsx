@@ -122,6 +122,18 @@ export default function HomeScreen() {
       .slice(Math.max(0, hiIdx - 2), hiIdx + 1)
       .map((f) => ({ value: f.target, achieved: f.unlocked }));
     const allUnlocked = feats.every((f) => f.unlocked);
+    // The biggest claimed club, as the REAL achievement — the widget shows its
+    // badge art and opens the shared achievement spotlight on tap.
+    const claimed = [...feats].reverse().find((f) => f.unlocked);
+    const currentClub = claimed
+      ? {
+          id: claimed.id,
+          title: claimed.title,
+          description: claimed.description,
+          icon: claimed.icon,
+          rarity: claimed.rarity,
+        }
+      : null;
     return {
       total,
       lifts,
@@ -130,6 +142,7 @@ export default function HomeScreen() {
       remaining: Math.max(0, next.target - total),
       achievedCount: feats.filter((f) => f.unlocked).length,
       allUnlocked,
+      currentClub,
     };
   }, [workoutHistory]);
 
