@@ -1,38 +1,43 @@
-import Card from '@/components/Card';
-import ExerciseCard from '@/components/history/ExerciseCard';
-import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
-import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
-import SessionsFeed from '@/components/history/SessionsFeed';
-import { attributeAchievements } from '@/lib/history/achievementAttribution';
-import LiftProgressWidget from '@/components/history/LiftProgressWidget';
-import { buildSessionRecaps } from '@/lib/history/sessionRecap';
-import { buildLiftProgressions } from '@/lib/history/liftProgress';
-import TopMovers from '@/components/history/TopMovers';
-import { buildPRDays } from '@/components/history/prSessions';
-import WorkoutDetailModal from '@/components/history/WorkoutDetailModal';
-import MonthlyTrendsModal from '@/components/MonthlyTrendsModal';
-import { Text, View } from '@/components/Themed';
-import MuscleBalanceCard from '@/components/MuscleBalanceCard';
-import WeeklyOverview from '@/components/WeeklyOverview';
-import { useCustomExercises } from '@/contexts/CustomExercisesContext';
-import { useTheme } from '@/contexts/ThemeContext';
-import { useUser } from '@/contexts/UserContext';
-import { buildExerciseStats } from '@/lib/history/exerciseStats';
+import Card from "@/components/Card";
+import ExerciseCard from "@/components/history/ExerciseCard";
+import ExerciseHistoryModal from "@/components/history/ExerciseHistoryModal";
+import LiftProgressWidget from "@/components/history/LiftProgressWidget";
+import { buildPRDays } from "@/components/history/prSessions";
+import SessionsFeed from "@/components/history/SessionsFeed";
+import TopMovers from "@/components/history/TopMovers";
+import WorkoutDetailModal from "@/components/history/WorkoutDetailModal";
+import MonthlyTrendsModal from "@/components/MonthlyTrendsModal";
+import MuscleBalanceCard from "@/components/MuscleBalanceCard";
+import { Text, View } from "@/components/Themed";
+import WeeklyOverview from "@/components/WeeklyOverview";
+import { useCustomExercises } from "@/contexts/CustomExercisesContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useUser } from "@/contexts/UserContext";
 import {
   calculateStrengthPercentile,
   FEMALE_STANDARDS,
   getPercentileColor,
   getStrengthTier,
   MALE_STANDARDS,
-} from '@/lib/data/strengthStandards';
-import { storageService } from '@/lib/storage/storage';
-import { layout } from '@/lib/ui/styles';
-import { type as typeScale } from '@/lib/ui/typography';
-import { userService } from '@/lib/services/userService';
-import { convertWeight, ExerciseWithMax, GeneratedWorkout, WeightUnit } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+} from "@/lib/data/strengthStandards";
+import { attributeAchievements } from "@/lib/history/achievementAttribution";
+import { buildExerciseStats } from "@/lib/history/exerciseStats";
+import { computeExerciseTrend } from "@/lib/history/exerciseTrend";
+import { buildLiftProgressions } from "@/lib/history/liftProgress";
+import { buildSessionRecaps } from "@/lib/history/sessionRecap";
+import { userService } from "@/lib/services/userService";
+import { storageService } from "@/lib/storage/storage";
+import { layout } from "@/lib/ui/styles";
+import { type as typeScale } from "@/lib/ui/typography";
+import {
+  convertWeight,
+  ExerciseWithMax,
+  GeneratedWorkout,
+  WeightUnit,
+} from "@/types";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
   SafeAreaView,
@@ -40,23 +45,23 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-} from 'react-native';
+} from "react-native";
 
-type TabType = 'workouts' | 'exercises';
-type ExerciseSort = '1rm' | 'recent' | 'name' | 'improved';
+type TabType = "workouts" | "exercises";
+type ExerciseSort = "1rm" | "recent" | "name" | "improved";
 
 const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
-  { key: '1rm', label: 'Top 1RM' },
-  { key: 'recent', label: 'Recent' },
-  { key: 'improved', label: 'Improved' },
-  { key: 'name', label: 'A–Z' },
+  { key: "1rm", label: "Top 1RM" },
+  { key: "recent", label: "Recent" },
+  { key: "improved", label: "Improved" },
+  { key: "name", label: "A–Z" },
 ];
 
 // Improvement drives the "Improved" sort. Reuse the single shared trend definition
 // (e1RM variant) so the sort agrees with the per-card delta instead of being a third,
 // divergent calc. Signed gain: latest day-bucket best e1RM minus the earliest.
-function getImprovement(history: ExerciseWithMax['history']): number {
-  const trend = computeExerciseTrend(history, 'lbs', 'e1rm');
+function getImprovement(history: ExerciseWithMax["history"]): number {
+  const trend = computeExerciseTrend(history, "lbs", "e1rm");
   return trend.isPositive ? trend.deltaDisplay : -trend.deltaDisplay;
 }
 
@@ -66,7 +71,7 @@ export default function HistoryScreen() {
   const router = useRouter();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('workouts');
+  const [activeTab, setActiveTab] = useState<TabType>("workouts");
 
   // History state
   const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
@@ -75,25 +80,33 @@ export default function HistoryScreen() {
   const [exerciseStats, setExerciseStats] = useState<ExerciseWithMax[]>([]);
 
   // Modal states
-  const [selectedWorkout, setSelectedWorkout] = useState<GeneratedWorkout | null>(null);
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseWithMax | null>(null);
+  const [selectedWorkout, setSelectedWorkout] =
+    useState<GeneratedWorkout | null>(null);
+  const [selectedExercise, setSelectedExercise] =
+    useState<ExerciseWithMax | null>(null);
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
 
   // Search controls
-  const [exerciseSearch, setExerciseSearch] = useState('');
-  const [exerciseSort, setExerciseSort] = useState<ExerciseSort>('1rm');
+  const [exerciseSearch, setExerciseSearch] = useState("");
+  const [exerciseSort, setExerciseSort] = useState<ExerciseSort>("1rm");
 
   // Get user's weight unit preference
-  const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
+  const weightUnit: WeightUnit = userProfile?.weightUnitPreference || "lbs";
 
   // Bodyweight (lbs) powers the aggregate Strength Index percentile in the hero.
   const bodyweightLbs = useMemo(
     () =>
       userProfile?.weight
-        ? Math.round(convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs'))
+        ? Math.round(
+            convertWeight(
+              userProfile.weight.value,
+              userProfile.weight.unit,
+              "lbs",
+            ),
+          )
         : undefined,
-    [userProfile?.weight]
+    [userProfile?.weight],
   );
 
   // Load data
@@ -101,11 +114,12 @@ export default function HistoryScreen() {
     try {
       const history = await storageService.getWorkoutHistory();
       const sorted = history.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       setWorkouts(sorted);
     } catch (error) {
-      console.error('Error loading workout history:', error);
+      console.error("Error loading workout history:", error);
     }
   }, []);
 
@@ -114,9 +128,11 @@ export default function HistoryScreen() {
       const workoutHistory = await storageService.getWorkoutHistory();
       // Pure, node-tested ingestion (lib/history/exerciseStats). Keeps bodyweight
       // (weight-0) lifts, scoring them on reps instead of dropping them silently.
-      setExerciseStats(buildExerciseStats(workoutHistory, customExercises, weightUnit));
+      setExerciseStats(
+        buildExerciseStats(workoutHistory, customExercises, weightUnit),
+      );
     } catch (error) {
-      console.error('Error loading exercise stats:', error);
+      console.error("Error loading exercise stats:", error);
     }
   }, [weightUnit, customExercises]);
 
@@ -138,7 +154,7 @@ export default function HistoryScreen() {
     useCallback(() => {
       loadHistory();
       loadExerciseStats();
-    }, [loadHistory, loadExerciseStats])
+    }, [loadHistory, loadExerciseStats]),
   );
 
   const handleRefresh = async () => {
@@ -162,7 +178,7 @@ export default function HistoryScreen() {
         weightUnit,
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ),
-    [workouts, customExercises, weightUnit, bodyweightLbs, gender, age]
+    [workouts, customExercises, weightUnit, bodyweightLbs, gender, age],
   );
 
   // Per-lift progression widget: best set per month for the lifts you've trained,
@@ -175,19 +191,24 @@ export default function HistoryScreen() {
     () =>
       buildLiftProgressions(
         workouts,
-        exerciseStats.filter(e => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0).map(e => e.id),
+        exerciseStats
+          .filter((e) => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0)
+          .map((e) => e.id),
         weightUnit,
         6,
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ),
-    [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age]
+    [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age],
   );
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
-  const trackedExercises = useMemo(() =>
-    exerciseStats.filter(ex => ex.estimated1RM > 0 || (ex.bestReps ?? 0) > 0),
-    [exerciseStats]
+  const trackedExercises = useMemo(
+    () =>
+      exerciseStats.filter(
+        (ex) => ex.estimated1RM > 0 || (ex.bestReps ?? 0) > 0,
+      ),
+    [exerciseStats],
   );
 
   // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
@@ -201,30 +222,47 @@ export default function HistoryScreen() {
   // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
   // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
   const topRecords = useMemo(() => {
-    const stdMap = gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
+    const stdMap = gender === "female" ? FEMALE_STANDARDS : MALE_STANDARDS;
     const rows = trackedExercises
-      .filter(ex => ex.metric === 'weight' && ex.estimated1RM > 0 && !!stdMap[ex.id])
-      .map(ex => {
+      .filter(
+        (ex) =>
+          ex.metric === "weight" && ex.estimated1RM > 0 && !!stdMap[ex.id],
+      )
+      .map((ex) => {
         const oneRmLbs =
-          weightUnit === 'kg' ? convertWeight(ex.estimated1RM, 'kg', 'lbs') : ex.estimated1RM;
+          weightUnit === "kg"
+            ? convertWeight(ex.estimated1RM, "kg", "lbs")
+            : ex.estimated1RM;
         const pct =
           bodyweightLbs && gender
             ? Math.round(
-                calculateStrengthPercentile(oneRmLbs, bodyweightLbs, gender, ex.id, userProfile?.age)
+                calculateStrengthPercentile(
+                  oneRmLbs,
+                  bodyweightLbs,
+                  gender,
+                  ex.id,
+                  userProfile?.age,
+                ),
               )
             : null;
         return { ex, pct };
       });
-    rows.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1) || b.ex.estimated1RM - a.ex.estimated1RM);
+    rows.sort(
+      (a, b) =>
+        (b.pct ?? -1) - (a.pct ?? -1) || b.ex.estimated1RM - a.ex.estimated1RM,
+    );
     return rows.slice(0, 3);
   }, [trackedExercises, bodyweightLbs, gender, userProfile?.age, weightUnit]);
 
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
-    const totalSets = trackedExercises.reduce((sum, ex) => sum + ex.history.length, 0);
+    const totalSets = trackedExercises.reduce(
+      (sum, ex) => sum + ex.history.length,
+      0,
+    );
     const topLift = trackedExercises.reduce<ExerciseWithMax | null>(
       (best, ex) => (!best || ex.estimated1RM > best.estimated1RM ? ex : best),
-      null
+      null,
     );
     return { count: trackedExercises.length, totalSets, topLift };
   }, [trackedExercises]);
@@ -233,70 +271,105 @@ export default function HistoryScreen() {
   const liftsWithData = useMemo(() => {
     const query = exerciseSearch.trim().toLowerCase();
     const filtered = query
-      ? trackedExercises.filter(ex => ex.name.toLowerCase().includes(query))
+      ? trackedExercises.filter((ex) => ex.name.toLowerCase().includes(query))
       : trackedExercises;
 
     const sorted = [...filtered];
     switch (exerciseSort) {
-      case 'recent':
-        sorted.sort((a, b) => (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0));
+      case "recent":
+        sorted.sort(
+          (a, b) => (b.lastUsed?.getTime() || 0) - (a.lastUsed?.getTime() || 0),
+        );
         break;
-      case 'name':
+      case "name":
         sorted.sort((a, b) => a.name.localeCompare(b.name));
         break;
-      case 'improved':
-        sorted.sort((a, b) => getImprovement(b.history) - getImprovement(a.history));
+      case "improved":
+        sorted.sort(
+          (a, b) => getImprovement(b.history) - getImprovement(a.history),
+        );
         break;
-      case '1rm':
+      case "1rm":
       default:
-        sorted.sort((a, b) => b.estimated1RM - a.estimated1RM || a.name.localeCompare(b.name));
+        sorted.sort(
+          (a, b) =>
+            b.estimated1RM - a.estimated1RM || a.name.localeCompare(b.name),
+        );
         break;
     }
     return sorted;
   }, [trackedExercises, exerciseSearch, exerciseSort]);
 
   return (
-    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+    <SafeAreaView
+      style={[
+        layout.flex1,
+        { backgroundColor: currentTheme.colors.background },
+      ]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: 'transparent' }]}>
-        <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+      <View style={[styles.header, { backgroundColor: "transparent" }]}>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: currentTheme.colors.text, fontWeight: "700" },
+          ]}
+        >
           History
         </Text>
 
         {/* Tabs */}
-        <View style={[styles.tabContainer, { backgroundColor: 'transparent' }]}>
-            <TouchableOpacity
+        <View style={[styles.tabContainer, { backgroundColor: "transparent" }]}>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === "workouts" && styles.activeTab,
+              activeTab === "workouts" && {
+                borderBottomColor: currentTheme.colors.primary,
+              },
+            ]}
+            onPress={() => setActiveTab("workouts")}
+          >
+            <Text
               style={[
-                styles.tab,
-                activeTab === 'workouts' && styles.activeTab,
-                activeTab === 'workouts' && { borderBottomColor: currentTheme.colors.primary }
-              ]}
-              onPress={() => setActiveTab('workouts')}
-            >
-              <Text style={[
                 styles.tabText,
-                { color: activeTab === 'workouts' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontWeight: activeTab === 'workouts' ? '600' : '400' }
-              ]}>
-                Workouts
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+                {
+                  color:
+                    activeTab === "workouts"
+                      ? currentTheme.colors.text
+                      : currentTheme.colors.text + "50",
+                },
+                { fontWeight: activeTab === "workouts" ? "600" : "400" },
+              ]}
+            >
+              Workouts
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tab,
+              activeTab === "exercises" && styles.activeTab,
+              activeTab === "exercises" && {
+                borderBottomColor: currentTheme.colors.primary,
+              },
+            ]}
+            onPress={() => setActiveTab("exercises")}
+          >
+            <Text
               style={[
-                styles.tab,
-                activeTab === 'exercises' && styles.activeTab,
-                activeTab === 'exercises' && { borderBottomColor: currentTheme.colors.primary }
-              ]}
-              onPress={() => setActiveTab('exercises')}
-            >
-              <Text style={[
                 styles.tabText,
-                { color: activeTab === 'exercises' ? currentTheme.colors.text : currentTheme.colors.text + '50' },
-                { fontWeight: activeTab === 'exercises' ? '600' : '400' }
-              ]}>
-                Exercises
-              </Text>
-            </TouchableOpacity>
+                {
+                  color:
+                    activeTab === "exercises"
+                      ? currentTheme.colors.text
+                      : currentTheme.colors.text + "50",
+                },
+                { fontWeight: activeTab === "exercises" ? "600" : "400" },
+              ]}
+            >
+              Exercises
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -304,27 +377,28 @@ export default function HistoryScreen() {
       <ScrollView
         style={layout.flex1}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={currentTheme.colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={currentTheme.colors.primary}
+          />
+        }
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="interactive"
       >
-        {activeTab === 'workouts' ? (
+        {activeTab === "workouts" ? (
           <>
-            {/* The top region is ONE instrument panel — the LIFTS board and the
-                SESSIONS feed live on a single shared Card (the exact Card grammar
-                CareerSection sits on: variant="elevated", padding 18), with a
-                hairline divider fusing the sub-blocks instead of two unframed
-                sections floating on the page.
-                - LiftProgressWidget: a short RANKED board (top rows only, expander
-                  for the rest); tier detail on each row's flip side.
-                - SessionsFeed: a workout history — volume-per-session bars, then
-                  the last 3 sessions as detailed log entries (per-exercise table);
-                  the newest PR row is the page's one celebrated accent. */}
             {workouts.length > 0 && (
               <Card variant="elevated" padding={18}>
                 <LiftProgressWidget lifts={liftProgress} />
                 {liftProgress.length > 0 && sessionRecaps.length > 0 && (
-                  <View style={[styles.panelDivider, { backgroundColor: currentTheme.colors.text + '10' }]} />
+                  <View
+                    style={[
+                      styles.panelDivider,
+                      { backgroundColor: currentTheme.colors.text + "10" },
+                    ]}
+                  />
                 )}
                 <SessionsFeed
                   recaps={sessionRecaps}
@@ -332,7 +406,11 @@ export default function HistoryScreen() {
                   visibleCount={showAllWorkouts ? sessionRecaps.length : 3}
                   totalCount={sessionRecaps.length}
                   onPressSession={setSelectedWorkout}
-                  onToggleShowAll={sessionRecaps.length > 3 ? () => setShowAllWorkouts(v => !v) : undefined}
+                  onToggleShowAll={
+                    sessionRecaps.length > 3
+                      ? () => setShowAllWorkouts((v) => !v)
+                      : undefined
+                  }
                   achievementsByWorkout={achievementsByWorkout}
                 />
               </Card>
@@ -343,34 +421,93 @@ export default function HistoryScreen() {
                 tappable straight into that lift's history. */}
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
-                <Text style={[styles.sectionHeading, { color: currentTheme.colors.text }]}>RECORDS</Text>
-                <View style={[styles.recordsStrip, { backgroundColor: 'transparent' }]}>
+                <Text
+                  style={[
+                    styles.sectionHeading,
+                    { color: currentTheme.colors.text },
+                  ]}
+                >
+                  RECORDS
+                </Text>
+                <View
+                  style={[
+                    styles.recordsStrip,
+                    { backgroundColor: "transparent" },
+                  ]}
+                >
                   {topRecords.map(({ ex, pct }) => {
-                    const tierColor = pct != null ? getPercentileColor(pct) : currentTheme.colors.primary;
+                    const tierColor =
+                      pct != null
+                        ? getPercentileColor(pct)
+                        : currentTheme.colors.primary;
                     return (
                       <TouchableOpacity
                         key={ex.id}
-                        style={[styles.recordCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                        style={[
+                          styles.recordCard,
+                          {
+                            backgroundColor: currentTheme.colors.surface,
+                            borderColor: currentTheme.colors.border,
+                          },
+                        ]}
                         onPress={() => setSelectedExercise(ex)}
                         activeOpacity={0.7}
                       >
                         <Text
-                          style={[styles.recordName, { color: currentTheme.colors.text + '99', fontWeight: '500' }]}
+                          style={[
+                            styles.recordName,
+                            {
+                              color: currentTheme.colors.text + "99",
+                              fontWeight: "500",
+                            },
+                          ]}
                           numberOfLines={1}
                         >
-                          {ex.name.replace(/\s*\([^)]*\)\s*$/, '').trim()}
+                          {ex.name.replace(/\s*\([^)]*\)\s*$/, "").trim()}
                         </Text>
-                        <View style={[styles.recordValueRow, { backgroundColor: 'transparent' }]}>
-                          <Text style={[styles.recordValue, { color: currentTheme.colors.text, fontWeight: '700' }]} numberOfLines={1}>
+                        <View
+                          style={[
+                            styles.recordValueRow,
+                            { backgroundColor: "transparent" },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.recordValue,
+                              {
+                                color: currentTheme.colors.text,
+                                fontWeight: "700",
+                              },
+                            ]}
+                            numberOfLines={1}
+                          >
                             {ex.estimated1RM}
                           </Text>
-                          <Text style={[styles.recordUnit, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
+                          <Text
+                            style={[
+                              styles.recordUnit,
+                              {
+                                color: currentTheme.colors.text + "70",
+                                fontWeight: "400",
+                              },
+                            ]}
+                          >
                             {weightUnit}
                           </Text>
                         </View>
                         {pct != null && (
-                          <View style={[styles.recordTierBadge, { backgroundColor: tierColor + '1F' }]}>
-                            <Text style={[styles.recordTierText, { color: tierColor, fontWeight: '600' }]}>
+                          <View
+                            style={[
+                              styles.recordTierBadge,
+                              { backgroundColor: tierColor + "1F" },
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.recordTierText,
+                                { color: tierColor, fontWeight: "600" },
+                              ]}
+                            >
                               {getStrengthTier(pct)}
                             </Text>
                           </View>
@@ -381,19 +518,12 @@ export default function HistoryScreen() {
                 </View>
               </View>
             )}
-
-            {/* Your Movers — the per-lift trajectory answer ("how is THIS lift progressing?")
-                placed directly under the Strength Index hero, so the hub reads portfolio-value
-                (hero) -> your movers (per-lift) -> volume (This Week) -> recent sessions,
-                mirroring Robinhood's holdings-under-hero layout. Renders nothing until a lift
-                is actually moving, so the summary-first density is preserved. Tapping a row
-                opens that lift's history; "See all" jumps to the full Exercises list. */}
             {workouts.length > 0 && (
               <TopMovers
                 exercises={trackedExercises}
                 weightUnit={weightUnit}
                 onSelect={setSelectedExercise}
-                onSeeAll={() => setActiveTab('exercises')}
+                onSeeAll={() => setActiveTab("exercises")}
               />
             )}
 
@@ -404,7 +534,10 @@ export default function HistoryScreen() {
                 block wears exactly one label. */}
             {workouts.length > 0 && (
               <View style={styles.section}>
-                <WeeklyOverview workoutHistory={workouts} sessionRecaps={sessionRecaps} />
+                <WeeklyOverview
+                  workoutHistory={workouts}
+                  sessionRecaps={sessionRecaps}
+                />
               </View>
             )}
 
@@ -423,37 +556,79 @@ export default function HistoryScreen() {
             {/* Secondary drill-downs — deeper analysis, below the primary content. */}
             {workouts.length > 0 && (
               <TouchableOpacity
-                style={[styles.monthlyTrendsButton, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                style={[
+                  styles.monthlyTrendsButton,
+                  {
+                    backgroundColor: currentTheme.colors.surface,
+                    borderColor: currentTheme.colors.border,
+                  },
+                ]}
                 onPress={() => setShowMonthlyTrends(true)}
                 activeOpacity={0.7}
               >
                 <View style={styles.monthlyTrendsContent}>
-                  <Ionicons name="stats-chart" size={18} color={currentTheme.colors.primary} />
-                  <Text style={[styles.monthlyTrendsText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                  <Ionicons
+                    name="stats-chart"
+                    size={18}
+                    color={currentTheme.colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.monthlyTrendsText,
+                      { color: currentTheme.colors.text, fontWeight: "500" },
+                    ]}
+                  >
                     View Monthly Trends
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={18}
+                  color={currentTheme.colors.text + "60"}
+                />
               </TouchableOpacity>
             )}
 
             {/* Empty State */}
             {workouts.length === 0 && (
               <View style={styles.emptyState}>
-                <Ionicons name="barbell-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
+                <Ionicons
+                  name="barbell-outline"
+                  size={48}
+                  color={currentTheme.colors.text + "20"}
+                />
+                <Text
+                  style={[
+                    styles.emptyText,
+                    {
+                      color: currentTheme.colors.text + "50",
+                      fontWeight: "500",
+                    },
+                  ]}
+                >
                   No workouts yet
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
+                <Text
+                  style={[
+                    styles.emptySubtext,
+                    {
+                      color: currentTheme.colors.text + "30",
+                      fontWeight: "400",
+                    },
+                  ]}
+                >
                   Start logging to track your progress
                 </Text>
                 <TouchableOpacity
-                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
-                  onPress={() => router.push('/workout')}
+                  style={[
+                    styles.emptyCta,
+                    { backgroundColor: currentTheme.colors.primary },
+                  ]}
+                  onPress={() => router.push("/workout")}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: "600" }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -466,36 +641,104 @@ export default function HistoryScreen() {
             {trackedExercises.length > 0 ? (
               <>
                 {/* All-time overview */}
-                <View style={[styles.exerciseSummary, { backgroundColor: currentTheme.colors.surface }]}>
-                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                <View
+                  style={[
+                    styles.exerciseSummary,
+                    { backgroundColor: currentTheme.colors.surface },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.summaryItem,
+                      { backgroundColor: "transparent" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        { color: currentTheme.colors.text, fontWeight: "700" },
+                      ]}
+                    >
                       {exerciseSummary.count}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+                    <Text
+                      style={[
+                        styles.summaryLabel,
+                        {
+                          color: currentTheme.colors.text + "50",
+                          fontWeight: "400",
+                        },
+                      ]}
+                    >
                       Exercises
                     </Text>
                   </View>
-                  <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
-                  <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.summaryValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
+                  <View
+                    style={[
+                      styles.summaryDivider,
+                      { backgroundColor: currentTheme.colors.border },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.summaryItem,
+                      { backgroundColor: "transparent" },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.summaryValue,
+                        { color: currentTheme.colors.text, fontWeight: "700" },
+                      ]}
+                    >
                       {exerciseSummary.totalSets.toLocaleString()}
                     </Text>
-                    <Text style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+                    <Text
+                      style={[
+                        styles.summaryLabel,
+                        {
+                          color: currentTheme.colors.text + "50",
+                          fontWeight: "400",
+                        },
+                      ]}
+                    >
                       Sets logged
                     </Text>
                   </View>
                   {exerciseSummary.topLift && (
                     <>
-                      <View style={[styles.summaryDivider, { backgroundColor: currentTheme.colors.border }]} />
-                      <View style={[styles.summaryItem, { backgroundColor: 'transparent' }]}>
+                      <View
+                        style={[
+                          styles.summaryDivider,
+                          { backgroundColor: currentTheme.colors.border },
+                        ]}
+                      />
+                      <View
+                        style={[
+                          styles.summaryItem,
+                          { backgroundColor: "transparent" },
+                        ]}
+                      >
                         <Text
-                          style={[styles.summaryValue, { color: currentTheme.colors.primary, fontWeight: '700' }]}
+                          style={[
+                            styles.summaryValue,
+                            {
+                              color: currentTheme.colors.primary,
+                              fontWeight: "700",
+                            },
+                          ]}
                           numberOfLines={1}
                         >
                           {exerciseSummary.topLift.estimated1RM}
                         </Text>
                         <Text
-                          style={[styles.summaryLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}
+                          style={[
+                            styles.summaryLabel,
+                            {
+                              color: currentTheme.colors.text + "50",
+                              fontWeight: "400",
+                            },
+                          ]}
                           numberOfLines={1}
                         >
                           Top 1RM
@@ -506,12 +749,27 @@ export default function HistoryScreen() {
                 </View>
 
                 {/* Search */}
-                <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                <View
+                  style={[
+                    styles.searchBar,
+                    {
+                      backgroundColor: currentTheme.colors.surface,
+                      borderColor: currentTheme.colors.border,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name="search"
+                    size={18}
+                    color={currentTheme.colors.text + "60"}
+                  />
                   <TextInput
-                    style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
+                    style={[
+                      styles.searchInput,
+                      { color: currentTheme.colors.text, fontWeight: "400" },
+                    ]}
                     placeholder="Search exercises..."
-                    placeholderTextColor={currentTheme.colors.text + '40'}
+                    placeholderTextColor={currentTheme.colors.text + "40"}
                     value={exerciseSearch}
                     onChangeText={setExerciseSearch}
                     autoCapitalize="none"
@@ -519,8 +777,15 @@ export default function HistoryScreen() {
                     returnKeyType="search"
                   />
                   {exerciseSearch.length > 0 && (
-                    <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={8}>
-                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                    <TouchableOpacity
+                      onPress={() => setExerciseSearch("")}
+                      hitSlop={8}
+                    >
+                      <Ionicons
+                        name="close-circle"
+                        size={18}
+                        color={currentTheme.colors.text + "60"}
+                      />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -542,18 +807,26 @@ export default function HistoryScreen() {
                         style={[
                           styles.sortChip,
                           {
-                            backgroundColor: active ? currentTheme.colors.primary : currentTheme.colors.surface,
-                            borderColor: active ? currentTheme.colors.primary : currentTheme.colors.border,
+                            backgroundColor: active
+                              ? currentTheme.colors.primary
+                              : currentTheme.colors.surface,
+                            borderColor: active
+                              ? currentTheme.colors.primary
+                              : currentTheme.colors.border,
                           },
                         ]}
                       >
-                        <Text style={[
-                          styles.sortChipText,
-                          {
-                            color: active ? '#fff' : currentTheme.colors.text + '99',
-                            fontWeight: active ? '600' : '500',
-                          },
-                        ]}>
+                        <Text
+                          style={[
+                            styles.sortChipText,
+                            {
+                              color: active
+                                ? "#fff"
+                                : currentTheme.colors.text + "99",
+                              fontWeight: active ? "600" : "500",
+                            },
+                          ]}
+                        >
                           {label}
                         </Text>
                       </TouchableOpacity>
@@ -563,8 +836,17 @@ export default function HistoryScreen() {
 
                 {liftsWithData.length > 0 ? (
                   <View style={styles.section}>
-                    <Text style={[styles.resultCount, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
-                      {liftsWithData.length} exercise{liftsWithData.length !== 1 ? 's' : ''}
+                    <Text
+                      style={[
+                        styles.resultCount,
+                        {
+                          color: currentTheme.colors.text + "50",
+                          fontWeight: "400",
+                        },
+                      ]}
+                    >
+                      {liftsWithData.length} exercise
+                      {liftsWithData.length !== 1 ? "s" : ""}
                     </Text>
                     {liftsWithData.map((exercise) => (
                       <ExerciseCard
@@ -577,8 +859,20 @@ export default function HistoryScreen() {
                   </View>
                 ) : (
                   <View style={styles.emptyState}>
-                    <Ionicons name="search-outline" size={40} color={currentTheme.colors.text + '20'} />
-                    <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
+                    <Ionicons
+                      name="search-outline"
+                      size={40}
+                      color={currentTheme.colors.text + "20"}
+                    />
+                    <Text
+                      style={[
+                        styles.emptyText,
+                        {
+                          color: currentTheme.colors.text + "50",
+                          fontWeight: "500",
+                        },
+                      ]}
+                    >
                       No matches for &quot;{exerciseSearch.trim()}&quot;
                     </Text>
                   </View>
@@ -586,20 +880,43 @@ export default function HistoryScreen() {
               </>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="fitness-outline" size={48} color={currentTheme.colors.text + '20'} />
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
+                <Ionicons
+                  name="fitness-outline"
+                  size={48}
+                  color={currentTheme.colors.text + "20"}
+                />
+                <Text
+                  style={[
+                    styles.emptyText,
+                    {
+                      color: currentTheme.colors.text + "50",
+                      fontWeight: "500",
+                    },
+                  ]}
+                >
                   No exercises tracked
                 </Text>
-                <Text style={[styles.emptySubtext, { color: currentTheme.colors.text + '30', fontWeight: '400' }]}>
+                <Text
+                  style={[
+                    styles.emptySubtext,
+                    {
+                      color: currentTheme.colors.text + "30",
+                      fontWeight: "400",
+                    },
+                  ]}
+                >
                   Complete workouts to build your exercise history
                 </Text>
                 <TouchableOpacity
-                  style={[styles.emptyCta, { backgroundColor: currentTheme.colors.primary }]}
-                  onPress={() => router.push('/workout')}
+                  style={[
+                    styles.emptyCta,
+                    { backgroundColor: currentTheme.colors.primary },
+                  ]}
+                  onPress={() => router.push("/workout")}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={18} color="#fff" />
-                  <Text style={[styles.emptyCtaText, { fontWeight: '600' }]}>
+                  <Text style={[styles.emptyCtaText, { fontWeight: "600" }]}>
                     Start a workout
                   </Text>
                 </TouchableOpacity>
@@ -652,13 +969,13 @@ const styles = StyleSheet.create({
   },
   // Tab styles
   tabContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 24,
   },
   tab: {
     paddingBottom: 12,
     borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderBottomColor: "transparent",
   },
   activeTab: {
     borderBottomWidth: 2,
@@ -673,8 +990,8 @@ const styles = StyleSheet.create({
   },
   // Exercises tab: overview + search + sort
   exerciseSummary: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 4,
@@ -682,7 +999,7 @@ const styles = StyleSheet.create({
   },
   summaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
     paddingHorizontal: 4,
   },
   summaryValue: {
@@ -694,12 +1011,12 @@ const styles = StyleSheet.create({
   },
   summaryDivider: {
     width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
+    alignSelf: "stretch",
     marginVertical: 4,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
@@ -716,7 +1033,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sortRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     paddingTop: 12,
     paddingBottom: 2,
@@ -747,21 +1064,21 @@ const styles = StyleSheet.create({
   // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
   sectionHeading: {
     fontSize: typeScale.meta,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
     opacity: 0.45,
     marginBottom: 10,
   },
   viewAllButton: {
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   viewAllText: {
     fontSize: typeScale.meta,
   },
   // Records strip
   recordsStrip: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   recordCard: {
@@ -775,8 +1092,8 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   recordValueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    flexDirection: "row",
+    alignItems: "baseline",
     gap: 3,
     marginTop: 8,
   },
@@ -788,7 +1105,7 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   recordTierBadge: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 8,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -800,9 +1117,9 @@ const styles = StyleSheet.create({
   },
   // Monthly trends button
   monthlyTrendsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
@@ -811,8 +1128,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   monthlyTrendsContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   monthlyTrendsText: {
@@ -822,12 +1139,12 @@ const styles = StyleSheet.create({
   liftCard: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   liftNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
@@ -843,8 +1160,8 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   liftStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   liftValue: {
     fontSize: typeScale.emphasis,
@@ -862,14 +1179,14 @@ const styles = StyleSheet.create({
     fontSize: typeScale.meta,
   },
   liftRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
   // Empty state
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyText: {
@@ -879,11 +1196,11 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: typeScale.body,
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptyCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -891,7 +1208,7 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   emptyCtaText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: typeScale.title,
   },
 });
