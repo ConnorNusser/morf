@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
   valueUnit: { fontSize: typeScale.meta, letterSpacing: 0 },
   // Index-mode focal score: the biggest, first-read numeral on the screen.
   scoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 2 },
-  scoreValue: { fontSize: typeScale.hero, letterSpacing: -1.2, lineHeight: 40 },
+  scoreValue: { fontSize: typeScale.hero, letterSpacing: -1.2, lineHeight: 48 },
   scoreUnit: { fontSize: typeScale.emphasis, letterSpacing: 0 },
   deltaRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
   deltaBig: { fontSize: typeScale.emphasis, letterSpacing: 0.1 },
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   tfBtnText: { fontSize: typeScale.meta, letterSpacing: 0.2 },
   caption: { fontSize: typeScale.meta, letterSpacing: 0.2, marginTop: 10 },
   empty: { paddingVertical: 22, alignItems: 'center' },
-  emptyText: { fontSize: typeScale.body, textAlign: 'center', lineHeight: 20, paddingHorizontal: 12 },
+  emptyText: { fontSize: typeScale.body, textAlign: 'center', lineHeight: 24, paddingHorizontal: 12 },
   emptyLift: { fontSize: typeScale.title, letterSpacing: -0.2, marginBottom: 3 },
   pips: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   pip: { width: 22, height: 5, borderRadius: 2.5 },

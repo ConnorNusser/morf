@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: typeScale.meta,
     textAlign: 'center',
-    lineHeight: 19,
+    lineHeight: 23,
     marginBottom: 6,
   },
   header: {

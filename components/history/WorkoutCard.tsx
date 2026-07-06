@@ -150,22 +150,22 @@ const styles = StyleSheet.create({
   workoutTitle: {
     flex: 1,
     fontSize: typeScale.title,
-    lineHeight: 23,
+    lineHeight: 28,
     letterSpacing: -0.2,
   },
   workoutMeta: {
     fontSize: typeScale.meta,
-    lineHeight: 18,
+    lineHeight: 22,
     marginTop: 3,
   },
   topLiftLine: {
     fontSize: typeScale.meta,
-    lineHeight: 18,
+    lineHeight: 22,
     marginTop: 4,
   },
   prLine: {
     fontSize: typeScale.meta,
-    lineHeight: 18,
+    lineHeight: 22,
     marginTop: 4,
   },
   prChip: {

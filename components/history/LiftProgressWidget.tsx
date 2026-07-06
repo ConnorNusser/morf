@@ -43,14 +43,19 @@ const metricOf = (p: { weight: number; reps: number }): number => (p.weight > 0 
 
 // The month-chip strip — shared by graded fronts and ungraded plain rows.
 // `accent` tints the latest "you are here" capsule (tier color when graded).
+// At the app's type scale three chips is the most that fits beside a lift name
+// on a small phone, so the strip shows the latest three months.
+const MAX_POINTS = 3;
+
 function ChipStrip({ lift, accent }: { lift: LiftProgress; accent: string }) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
+  const points = lift.points.slice(-MAX_POINTS);
   return (
     <RNView style={styles.points}>
-      {lift.points.map((p, i) => {
-        const latest = i === lift.points.length - 1;
-        const prev = i > 0 ? lift.points[i - 1] : null;
+      {points.map((p, i) => {
+        const latest = i === points.length - 1;
+        const prev = i > 0 ? points[i - 1] : null;
         const trendColor = prev
           ? metricOf(p) > metricOf(prev)
             ? UP

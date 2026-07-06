@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     flex: 1,
     fontSize: typeScale.title,
-    lineHeight: 23,
+    lineHeight: 28,
     textAlign: 'center',
     marginHorizontal: 8,
   },

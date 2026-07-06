@@ -223,8 +223,8 @@ const styles = StyleSheet.create({
   brief: { marginTop: 34 },
   badge: { marginBottom: 18 },
   tag: { fontSize: typeScale.meta, fontWeight: '800', letterSpacing: 2, marginBottom: 12 },
-  cue: { fontSize: 26, fontWeight: '700', lineHeight: 35, letterSpacing: -0.3 },
-  achDesc: { fontSize: typeScale.body, fontWeight: '500', lineHeight: 20, marginTop: 12 },
+  cue: { fontSize: 31, fontWeight: '700', lineHeight: 42, letterSpacing: -0.3 },
+  achDesc: { fontSize: typeScale.body, fontWeight: '500', lineHeight: 24, marginTop: 12 },
   achDate: { fontSize: typeScale.meta, fontWeight: '600', marginTop: 8 },
 
   hint: { fontSize: typeScale.meta, fontWeight: '600', textAlign: 'center', marginBottom: 22 },
