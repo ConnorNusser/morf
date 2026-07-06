@@ -1,11 +1,12 @@
 // Empty-state list of the last few workouts — tap one to load it into the draft
 // and repeat/edit it. Replaces the single "repeat last workout" button.
 import StartButton from '@/components/home/StartButton';
+import RecentWorkoutRow from '@/components/workout/RecentWorkoutRow';
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
-import { radius, screenGutter, space, track } from '@/lib/ui/tokens';
+import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getExercise } from '@/lib/workout/workouts';
@@ -22,11 +23,6 @@ interface RecentWorkoutsProps {
   onImport: () => void;
   // Collapse the composer when the list is scrolled (mirrors EditableWorkout).
   onScrollBeginDrag?: () => void;
-}
-
-function dateLabel(value: Date | string): string {
-  const d = new Date(value);
-  return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 function exerciseNames(w: GeneratedWorkout): string[] {
@@ -93,36 +89,22 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
       />
 
       <SectionLabel style={styles.title}>Recent workouts</SectionLabel>
-      {/* Flat list, rows split by faint hairlines (no card fill/border). */}
+      {/* Flat list on the shared repeat-row grammar (same as Home's card). */}
       <RNView>
         {workouts.map((w, i) => (
-          <TouchableOpacity
+          <RecentWorkoutRow
             key={w.id}
-            style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: ink.hairline }]}
-            activeOpacity={0.6}
+            workout={w}
+            separator={i > 0}
             onPress={() => {
               playHapticFeedback('medium', false);
               launch({
-                routineName: 'Repeat Workout',
+                routineName: w.title || 'Repeat Workout',
                 exercises: exerciseNames(w),
                 onArrive: () => onPick(w),
               });
             }}
-          >
-            <RNView style={styles.rowText}>
-              <Text variant="meta" tone="secondary" style={styles.date}>{dateLabel(w.createdAt)}</Text>
-              {exerciseNames(w).map((name, j) => (
-                <Text key={j} variant="body" tone="primary" numberOfLines={1}>{name}</Text>
-              ))}
-              {exerciseNames(w).length === 0 && (
-                <Text variant="body" tone="primary">Workout</Text>
-              )}
-            </RNView>
-            <RNView style={styles.rowAction}>
-              <Text variant="meta" tone="secondary" weight="semiBold">Repeat</Text>
-              <Ionicons name="chevron-forward" size={16} color={ink.muted} />
-            </RNView>
-          </TouchableOpacity>
+          />
         ))}
       </RNView>
     </ScrollView>
@@ -166,14 +148,4 @@ const styles = StyleSheet.create({
   },
   quickStart: { marginBottom: space.sm },
   title: { paddingTop: space.sm, marginBottom: 0 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: space.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.lg,
-  },
-  rowText: { flex: 1, gap: space.xs },
-  date: { textTransform: 'uppercase', letterSpacing: track.caps, marginBottom: space.xs },
-  rowAction: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

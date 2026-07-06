@@ -30,3 +30,17 @@ export function getPendingRepeatWorkout(): GeneratedWorkout | null {
   pendingRepeatWorkout = null; // Clear after reading
   return workout;
 }
+
+// Quick-start intent from another screen (Home's Start a workout): the
+// Workout tab starts an empty session and opens the composer on focus.
+let pendingQuickStart = false;
+
+export function setPendingQuickStart() {
+  pendingQuickStart = true;
+}
+
+export function getPendingQuickStart(): boolean {
+  const v = pendingQuickStart;
+  pendingQuickStart = false; // Clear after reading
+  return v;
+}

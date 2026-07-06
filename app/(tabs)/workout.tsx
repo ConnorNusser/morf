@@ -18,6 +18,8 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { layout } from '@/lib/ui/styles';
 import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
 import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
+import { getPendingQuickStart } from '@/lib/workout/pendingRoutine';
+import { useFocusEffect } from 'expo-router';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import {
@@ -246,6 +248,14 @@ export default function WorkoutScreen() {
     startEmptyWorkout();
     openComposer();
   }, [startEmptyWorkout, openComposer]);
+
+  // Quick start handed off from Home's Start a workout — same hand-off
+  // pattern as pending routines/repeats.
+  useFocusEffect(
+    useCallback(() => {
+      if (getPendingQuickStart()) handleQuickStart();
+    }, [handleQuickStart]),
+  );
 
   // Checking a set off (becoming done) auto-starts the rest countdown. When it was
   // the last remaining set, append a copy so you can keep going past the plan —

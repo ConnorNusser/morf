@@ -2,13 +2,13 @@ import Card from "@/components/Card";
 import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import IconButton from "@/components/IconButton";
+import RecentWorkoutRow from "@/components/workout/RecentWorkoutRow";
 import { Text, useInk } from "@/components/Themed";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { storageService } from "@/lib/storage/storage";
-import { formatRelativeTime } from "@/lib/ui/formatters";
 import { radius, space } from "@/lib/ui/tokens";
 import {
   getUpNextCandidates,
@@ -16,6 +16,7 @@ import {
 } from "@/lib/workout/activeRoutine";
 import { loadExerciseRecords } from "@/lib/workout/exerciseRecordsStore";
 import {
+  setPendingQuickStart,
   setPendingRepeatWorkout,
   setPendingRoutine,
 } from "@/lib/workout/pendingRoutine";
@@ -23,7 +24,6 @@ import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import { getExercise } from "@/lib/workout/workouts";
 import { CalculatedRoutine, GeneratedWorkout } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -171,7 +171,12 @@ export default function TodayCard() {
     launch({
       routineName: "Empty Workout",
       subtitle: "Freestyle — log as you go",
-      onArrive: () => router.push("/workout"),
+      onArrive: () => {
+        // Actually start the session on arrival (not just navigate): the
+        // workout tab consumes this on focus and opens the composer.
+        setPendingQuickStart();
+        router.push("/workout");
+      },
     });
   }, [launch, router]);
 
@@ -258,43 +263,13 @@ export default function TodayCard() {
           <View style={styles.recentBlock}>
             <SectionLabel>Recent</SectionLabel>
             {recent.map((w, i) => (
-              <TouchableOpacity
+              <RecentWorkoutRow
                 key={w.id}
-                style={[
-                  styles.recentRow,
-                  i > 0 && {
-                    borderTopWidth: StyleSheet.hairlineWidth,
-                    borderTopColor: ink.hairline,
-                  },
-                ]}
-                activeOpacity={0.6}
+                workout={w}
+                separator={i > 0}
+                maxExercises={3}
                 onPress={() => repeatWorkout(w)}
-              >
-                <View style={styles.recentText}>
-                  <Text
-                    variant="body"
-                    tone="primary"
-                    weight="medium"
-                    numberOfLines={1}
-                  >
-                    {w.title || "Workout"}
-                  </Text>
-                  <Text variant="meta" tone="secondary" numberOfLines={1}>
-                    {formatRelativeTime(new Date(w.createdAt))} ·{" "}
-                    {(w.exercises || []).length} exercises
-                  </Text>
-                </View>
-                <View style={styles.recentAction}>
-                  <Text variant="meta" tone="secondary" weight="semiBold">
-                    Repeat
-                  </Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={ink.muted}
-                  />
-                </View>
-              </TouchableOpacity>
+              />
             ))}
           </View>
         )}
@@ -490,21 +465,6 @@ const styles = StyleSheet.create({
   },
   recentBlock: {
     marginTop: space.section,
-  },
-  recentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.md,
-    paddingVertical: space.md,
-  },
-  recentText: {
-    flex: 1,
-    gap: 2,
-  },
-  recentAction: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.xs,
   },
   secondaryButton: {
     alignItems: "center",
