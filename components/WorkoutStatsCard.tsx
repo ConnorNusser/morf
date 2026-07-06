@@ -42,7 +42,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   return (
     <>
       <TouchableOpacity onPress={handleCardPress} activeOpacity={isFeaturedLift(workoutId) ? 0.7 : 1}>
-        <Card variant="elevated" style={styles.container}>
+        <Card variant="elevated">
           <View style={styles.header}>
             <Text
               variant="emphasis"
@@ -93,9 +93,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: space.lg,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

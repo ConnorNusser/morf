@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   cta: {
     flexDirection: "row",
     alignItems: "center",
-    gap: space.xs,
+    gap: space.sm,
     paddingHorizontal: screenGutter,
     paddingVertical: space.md,
     borderRadius: radius.pill,

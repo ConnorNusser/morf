@@ -221,14 +221,14 @@ const styles = StyleSheet.create({
   microLabel: { marginBottom: 0 },
   // Log entries, separated by hairlines like every list on the tab.
   entryWrap: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: space.md },
-  entry: { paddingTop: space.lg, paddingBottom: space.md },
+  entry: { paddingVertical: space.lg },
   entryHead: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   entryIdentity: { flex: 1, gap: 2 },
   entryTitle: { letterSpacing: -0.2 },
   entryVolume: { letterSpacing: -0.2 },
   entryNote: { marginTop: space.sm },
   // Earned-this-session achievements: badge art + title, tappable.
-  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginTop: space.md },
+  achRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, marginTop: space.md },
   achItem: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   // The per-exercise table.
   exList: { marginTop: space.md, gap: space.sm },

@@ -11,7 +11,8 @@ import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryName } from '@/lib/services/geoService';
-import { gap, layout } from '@/lib/ui/styles';
+import { layout } from '@/lib/ui/styles';
+import { space } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { WorkoutSummary } from '@/lib/services/feedService';
@@ -442,7 +443,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
         <ScrollView style={layout.flex1} contentContainerStyle={styles.scrollContent}>
           {isLoading ? (
-            <View style={gap.gap16}>
+            <View style={styles.loadingStack}>
               <SkeletonCard variant="profile-header" />
               <SkeletonCard variant="stats" />
               <SkeletonCard variant="stats" />
@@ -1001,7 +1002,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               <IconButton
                 icon="close"
                 onPress={() => setShowFullScreenPicture(false)}
-                variant="surface"
                 style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
                 iconColor="#FFFFFF"
               />
@@ -1030,6 +1030,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     gap: 16,
+  },
+  loadingStack: {
+    gap: space.lg,
   },
   // The badge this user chose to wear on their profile.
   featuredRow: {

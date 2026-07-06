@@ -5,7 +5,8 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { analyticsService } from '@/lib/services/analytics';
-import { gap, layout } from '@/lib/ui/styles';
+import { layout } from '@/lib/ui/styles';
+import { space } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { Friend, RemoteUser } from '@/types';
@@ -494,7 +495,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
             ListHeaderComponent={
               <View style={styles.content}>
                 {/* Profile Picture Section */}
-                <View style={gap.gap12}>
+                <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Profile Picture
                   </Text>
@@ -532,13 +533,13 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Username Section */}
-                <View style={gap.gap12}>
+                <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Your Username
                   </Text>
 
                   {isEditingUsername ? (
-                    <View style={gap.gap12}>
+                    <View style={styles.section}>
                       <View style={[styles.usernameInputContainer, { backgroundColor: currentTheme.colors.surface }]}>
                         <Text style={[styles.atSymbol, { color: currentTheme.colors.primary }]}>@</Text>
                         <TextInput
@@ -608,7 +609,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Social Links Section */}
-                <View style={gap.gap12}>
+                <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Social Links
                   </Text>
@@ -720,7 +721,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Search Friends Section */}
-                <View style={gap.gap12}>
+                <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Add Friends
                   </Text>
@@ -742,7 +743,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
                   {/* Search Results */}
                   {searchResults.length > 0 && (
-                    <View style={gap.gap8}>
+                    <View style={styles.list}>
                       {searchResults.map(user => (
                         <View key={user.id}>
                           {renderSearchResult({ item: user })}
@@ -759,7 +760,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 {/* Friends List Section */}
-                <View style={gap.gap12}>
+                <View style={styles.section}>
                   <View style={[styles.sectionHeader, { backgroundColor: 'transparent' }]}>
                     <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                       Your Friends
@@ -787,7 +788,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       </Text>
                     </View>
                   ) : (
-                    <View style={gap.gap8}>
+                    <View style={styles.list}>
                       {friends.map(friend => (
                         <View key={friend.id}>
                           {renderFriend({ item: friend })}
@@ -831,6 +832,12 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 24,
+  },
+  section: {
+    gap: space.md,
+  },
+  list: {
+    gap: space.sm,
   },
   sectionHeader: {
     flexDirection: 'row',

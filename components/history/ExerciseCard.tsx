@@ -87,7 +87,7 @@ export default React.memo(ExerciseCard);
 const styles = StyleSheet.create({
   liftCard: {
     paddingVertical: space.lg,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     alignItems: 'center',
   },

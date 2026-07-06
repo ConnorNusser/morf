@@ -246,7 +246,7 @@ export default function TodayCard() {
         activeOpacity={0.9}
         onPress={() => setShowOverview(true)}
       >
-        <Card variant="elevated" padding={8}>
+        <Card variant="elevated" padding={0} style={styles.pagerCard}>
           <View style={styles.headerRow}>
             <Text
               numberOfLines={1}
@@ -373,11 +373,15 @@ const styles = StyleSheet.create({
   routineName: {
     flex: 1,
   },
+  // The pager card owns its vertical padding (Card's default is zeroed out):
+  // the heading sits flush at the top, with a small breath below the button.
+  pagerCard: {
+    paddingBottom: space.sm,
+  },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
-    marginTop: -12,
     marginBottom: space.lg,
   },
   navRow: {

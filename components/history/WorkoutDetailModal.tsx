@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: space.lg,
+    paddingHorizontal: screenGutter,
     paddingVertical: space.md,
   },
   headerButton: {

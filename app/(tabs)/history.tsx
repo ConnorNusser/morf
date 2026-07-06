@@ -35,7 +35,15 @@ import { buildSessionRecaps } from "@/lib/history/sessionRecap";
 import { userService } from "@/lib/services/userService";
 import { storageService } from "@/lib/storage/storage";
 import { layout } from "@/lib/ui/styles";
-import { radius, screenGutter, space, tint, track } from "@/lib/ui/tokens";
+import {
+  panelPad,
+  radius,
+  screenGutter,
+  scrollBottom,
+  space,
+  tint,
+  track,
+} from "@/lib/ui/tokens";
 import { type as typeScale } from "@/lib/ui/typography";
 import {
   convertWeight,
@@ -353,7 +361,7 @@ export default function HistoryScreen() {
         {activeTab === "workouts" ? (
           <>
             {workouts.length > 0 && (
-              <Card variant="elevated" padding={18}>
+              <Card variant="elevated" padding={panelPad}>
                 <LiftProgressWidget lifts={liftProgress} />
                 {liftProgress.length > 0 && sessionRecaps.length > 0 && (
                   <Divider />
@@ -664,7 +672,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: screenGutter,
     paddingTop: space.lg,
-    paddingBottom: 120,
+    paddingBottom: scrollBottom,
   },
   // Exercises tab: overview + search + sort
   exerciseSummary: {

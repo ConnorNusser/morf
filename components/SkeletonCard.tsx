@@ -1,6 +1,5 @@
 import { useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
-import { gap } from '@/lib/ui/styles';
 import { radius, space } from '@/lib/ui/tokens';
 import React, { useEffect, useRef } from 'react';
 import { Animated, DimensionValue, StyleSheet, View, ViewStyle } from 'react-native';
@@ -111,7 +110,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         <View style={styles.feedHeader}>
           <View style={styles.feedUserInfo}>
             <SkeletonLine width={44} height={44} style={{ borderRadius: 22 }} />
-            <View style={gap.gap6}>
+            <View style={styles.feedUserText}>
               <SkeletonLine width={90} height={14} />
               <SkeletonLine width={50} height={12} />
             </View>
@@ -291,6 +290,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
+  },
+  feedUserText: {
+    gap: space.sm,
   },
   feedChips: {
     flexDirection: 'row',

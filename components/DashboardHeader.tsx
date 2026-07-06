@@ -206,6 +206,8 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: space.xs,
     paddingBottom: 0,
+    // Deliberate optical inset: the round logo needs +4 beyond the screen
+    // gutter to read as aligned with the square cards below.
     paddingHorizontal: space.xs,
     zIndex: 1000,
   },
@@ -218,7 +220,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
-    gap: space.md,
+    gap: space.sm,
   },
   levelButton: {
     flexShrink: 0,

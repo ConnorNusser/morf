@@ -236,7 +236,7 @@ export default function MuscleBalanceCard({ workoutHistory }: MuscleBalanceCardP
 
   return (
     <>
-      <Card variant="elevated" style={styles.container}>
+      <Card variant="elevated">
         {/* Header — one label, matching the This Week card's single-title restraint. */}
         <View style={styles.header}>
           <SectionLabel style={styles.title}>MUSCLE BALANCE</SectionLabel>
@@ -392,9 +392,6 @@ function BalanceBar({ row, scaleMax, color, onPress }: BalanceBarProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginBottom: space.sm,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

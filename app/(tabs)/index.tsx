@@ -9,7 +9,6 @@ import OverallStatsCard from "@/components/OverallStatsCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
-import Spacer from "@/components/Spacer";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { View } from "@/components/Themed";
 import Divider from "@/components/ui/Divider";
@@ -35,9 +34,9 @@ import {
   PendingStrengthProgress,
   storageService,
 } from "@/lib/storage/storage";
-import { gap, layout } from "@/lib/ui/styles";
+import { layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
-import { screenGutter, space } from "@/lib/ui/tokens";
+import { screenGutter, scrollBottom, space } from "@/lib/ui/tokens";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
 import { getLifetimeTotals } from "@/lib/workout/recapStats";
 import {
@@ -55,9 +54,8 @@ type ViewMode = HomeViewMode;
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  // Tighten the top: clear the status bar/notch via real insets instead of a
-  // hardcoded 60px, which left a big gap above the Today card on most devices.
-  const contentTopPadding = insets.top - 2;
+  // Clear the status bar/notch via real insets; content scrolls under it.
+  const contentTopPadding = insets.top;
   const { currentTheme, setThemeLevel } = useTheme();
   const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
@@ -278,6 +276,7 @@ export default function HomeScreen() {
           layout.flex1,
           { backgroundColor: currentTheme.colors.background },
         ]}
+        contentContainerStyle={styles.scrollContent}
       >
         <View
           style={[
@@ -292,7 +291,6 @@ export default function HomeScreen() {
           <SkeletonCard variant="stats" />
           <SkeletonCard variant="stats" />
         </View>
-        <Spacer height={100} />
       </ScrollView>
     );
   }
@@ -340,6 +338,7 @@ export default function HomeScreen() {
           layout.flex1,
           { backgroundColor: currentTheme.colors.background },
         ]}
+        contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -392,7 +391,7 @@ export default function HomeScreen() {
                 onFiltersChanged={setLiftFilters}
               />
 
-              <View style={gap.gap20}>
+              <View style={styles.liftsList}>
                 {filteredProgress.map((progress) => (
                   <WorkoutStatsCard key={progress.workoutId} stats={progress} />
                 ))}
@@ -400,7 +399,6 @@ export default function HomeScreen() {
             </>
           )}
         </View>
-        <Spacer height={100} />
       </ScrollView>
 
       <LeaderboardModal
@@ -441,9 +439,15 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: scrollBottom,
+  },
   content: {
     padding: screenGutter,
     gap: space.md,
+  },
+  liftsList: {
+    gap: space.xl,
   },
   feedHeader: {
     paddingHorizontal: screenGutter,
