@@ -9,7 +9,7 @@ import { useUser } from "@/contexts/UserContext";
 import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
 import { storageService } from "@/lib/storage/storage";
 import { formatRelativeTime } from "@/lib/ui/formatters";
-import { radius, space } from "@/lib/ui/tokens";
+import { space } from "@/lib/ui/tokens";
 import {
   getUpNextCandidates,
   getUpNextRoutine,
@@ -30,9 +30,9 @@ import {
 } from "react-native";
 import Spacer from "../Spacer";
 
-// After dismissing the "build a routine" nudge, re-surface it once this much
-// time has passed (5 days).
-const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
+// The card's floor across loading / freestyle / routine states, so the page
+// doesn't jump as it resolves or its content changes.
+const CARD_MIN_HEIGHT = 200;
 
 // Human-readable label for the routine's split type.
 function splitLabel(splitType?: string): string | null {
@@ -61,7 +61,6 @@ export default function TodayCard() {
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
-  const [adviceDismissed, setAdviceDismissed] = useState(false);
   const [lastWorkoutAt, setLastWorkoutAt] = useState<Date | null>(null);
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
@@ -71,21 +70,13 @@ export default function TodayCard() {
   // context only loads once at startup, which is why it went stale before.)
   const load = useCallback(async () => {
     try {
-      const [history, dismissedAt, routines, programs, pointerId] =
-        await Promise.all([
-          storageService.getWorkoutHistory(),
-          storageService.getRoutineAdviceDismissedAt(),
-          storageService.getRoutines(),
-          storageService.getPrograms(),
-          storageService.getUpNextPointerId(),
-        ]);
+      const [history, routines, programs, pointerId] = await Promise.all([
+        storageService.getWorkoutHistory(),
+        storageService.getRoutines(),
+        storageService.getPrograms(),
+        storageService.getUpNextPointerId(),
+      ]);
       setTrainedToday(getStreakState(history).trainedToday);
-
-      // Advice stays hidden only until the cooldown elapses, then re-surfaces.
-      setAdviceDismissed(
-        dismissedAt !== null &&
-          Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
-      );
 
       const latest = history.reduce<Date | null>((max, w) => {
         const d = new Date(w.createdAt);
@@ -108,11 +99,6 @@ export default function TodayCard() {
       setLoading(false);
     }
   }, [weightUnit]);
-
-  const dismissAdvice = useCallback(() => {
-    setAdviceDismissed(true);
-    storageService.setRoutineAdviceDismissedAt(Date.now());
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -168,15 +154,15 @@ export default function TodayCard() {
     );
   }
 
-  // No active routine — offer to start freestyle (and optionally build a routine).
+  // No active routine — one job: start a freestyle workout.
   if (!calculated) {
     const freestyleSubtitle = trainedToday
       ? "You've trained today — back for more?"
       : lastWorkoutAt
         ? `Last workout ${formatRelativeTime(lastWorkoutAt)}.`
-        : null;
+        : "Jump straight in — log sets as you go.";
     return (
-      <Card>
+      <Card style={styles.card}>
         <SectionLabel style={styles.eyebrow}>TODAY</SectionLabel>
         <Text
           variant="heading"
@@ -186,50 +172,15 @@ export default function TodayCard() {
         >
           Ready to train?
         </Text>
-        {!adviceDismissed ? (
-          <Text variant="meta" tone="secondary">
-            Jump straight in — or build a routine for guided sessions and
-            progress tracking.
-          </Text>
-        ) : freestyleSubtitle ? (
-          <Text variant="meta" tone="secondary">
-            {freestyleSubtitle}
-          </Text>
-        ) : null}
+        <Text variant="meta" tone="secondary">
+          {freestyleSubtitle}
+        </Text>
 
         <StartButton
           label="Start a workout"
           onPress={startFreestyle}
           style={styles.primaryButton}
         />
-
-        {!adviceDismissed && (
-          <>
-            <TouchableOpacity
-              style={[
-                styles.secondaryButton,
-                { borderColor: currentTheme.colors.border },
-              ]}
-              onPress={() => router.push("/notes")}
-              activeOpacity={0.85}
-            >
-              <Text variant="title" tone="primary" weight="semiBold">
-                Build a routine
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={dismissAdvice}
-              // Single line of meta text (~19pt); hitSlop keeps the target ≥44pt.
-              hitSlop={16}
-              activeOpacity={0.6}
-            >
-              <Text variant="meta" tone="muted" style={styles.dismissText}>
-                Don&apos;t suggest routines
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
       </Card>
     );
   }
@@ -351,10 +302,13 @@ export default function TodayCard() {
 }
 
 const styles = StyleSheet.create({
+  card: {
+    minHeight: CARD_MIN_HEIGHT,
+  },
   loadingCard: {
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 120,
+    minHeight: CARD_MIN_HEIGHT,
   },
   eyebrow: {
     marginBottom: 0,
@@ -366,6 +320,7 @@ const styles = StyleSheet.create({
   // the heading sits flush at the top, with a small breath below the button.
   pagerCard: {
     paddingBottom: space.sm,
+    minHeight: CARD_MIN_HEIGHT,
   },
   headerRow: {
     flexDirection: "row",
@@ -409,18 +364,6 @@ const styles = StyleSheet.create({
   exerciseName: {
     flex: 1,
     marginRight: space.md,
-  },
-  secondaryButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: space.md,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    marginTop: space.md,
-  },
-  dismissText: {
-    textAlign: "center",
-    marginTop: space.md,
   },
   primaryButton: {
     marginTop: space.lg,
