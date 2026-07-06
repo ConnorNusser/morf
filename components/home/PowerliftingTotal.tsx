@@ -187,10 +187,13 @@ export default function PowerliftingTotal({ data }: { data: PowerliftingTotalDat
   );
 }
 
+// Roomy spacing throughout: like OverallStatsCard, this widget anchors the
+// home strength page — the breathing room lives between its rows, not as raw
+// empty bands around the block.
 const styles = StyleSheet.create({
-  container: { paddingVertical: 4 },
+  container: { paddingVertical: 8 },
   // The shared uppercase micro-label grammar + the earned club title.
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   microLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
   clubChip: {
     flexDirection: 'row',
@@ -203,19 +206,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   clubChipText: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 0.4 },
-  nextLine: { fontSize: typeScale.meta, marginTop: 12 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  nextLine: { fontSize: typeScale.meta, marginTop: 20 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 },
   headerTotal: {},
   headerNum: { fontSize: typeScale.hero, fontWeight: '500', letterSpacing: -1 },
   headerUnit: { fontSize: typeScale.emphasis, fontWeight: '500' },
 
-  liftStack: { alignItems: 'flex-end', gap: 3 },
+  liftStack: { alignItems: 'flex-end', gap: 8 },
   liftRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   liftVal: { fontSize: typeScale.emphasis, fontWeight: '600', letterSpacing: -0.3 },
   liftLabel: { fontSize: typeScale.meta, fontWeight: '400', width: 58 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 14, borderRadius: 2 },
-  ladderLabels: { flexDirection: 'row', marginTop: 7 },
+  ladderLabels: { flexDirection: 'row', marginTop: 10 },
   ladderBaseLabel: { fontSize: typeScale.meta, textAlign: 'right' },
 });

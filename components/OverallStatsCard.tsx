@@ -101,13 +101,16 @@ export default function OverallStatsCard({ stats }: OverallStatsCardProps) {
   );
 }
 
+// Roomy spacing throughout: this card anchors the home strength page, which is
+// sized to most of a viewport — the padding lives inside the card so the page
+// wrapper isn't left distributing raw empty bands.
 const styles = StyleSheet.create({
   container: {},
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 24,
   },
   // The shared uppercase micro-label section grammar (History / Career).
   title: {
@@ -119,10 +122,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 28,
+    paddingVertical: 8,
   },
   statBlock: {
     alignItems: "center",
+    gap: 6,
   },
   statValue: {
     fontSize: type.hero,
@@ -134,10 +139,10 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   progressContainer: {
-    marginTop: 4,
+    marginTop: 8,
   },
   progressBar: {
-    marginBottom: 4,
+    marginBottom: 8,
   },
   progressLabel: {
     fontSize: type.meta,

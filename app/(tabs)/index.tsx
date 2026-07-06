@@ -392,9 +392,10 @@ export default function HomeScreen() {
           </View>
 
           {/* Page 2 — strength summary: relative (percentile/tier) + absolute
-              (Big-3 total) as one block, aired out across its own viewport
-              with a hairline divider between the halves. */}
-          <View style={[styles.strengthPage, { minHeight: pageMinHeight }]}>
+              (Big-3 total) as one block. Capped at ~80% of a viewport — the
+              cards carry generous internal padding, so the wrapper only mops
+              up a little slack instead of leaving raw empty bands. */}
+          <View style={[styles.strengthPage, { minHeight: Math.round(pageMinHeight * 0.8) }]}>
             <OverallStatsCard stats={overallStats} />
             {powerliftingTotal && (
               <>
