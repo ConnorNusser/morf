@@ -4,11 +4,12 @@
 // no storage/clock side effects (caller passes `now`).
 import { buildSessionPRs, SessionPR } from '@/components/history/prSessions';
 import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
+import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { gradeE1rm, LiftGrading, TierGrade } from '@/lib/history/liftProgress';
 import { calculateWorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
+import { convertWeight, CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 
 export interface StandoutSet {
   name: string;   // exercise display name
@@ -47,6 +48,10 @@ export interface SessionRecap {
   sets: number;
   durationMin: number;
   muscles: string[];            // primary muscles worked, most-hit first
+  // The session's dominant Push/Pull/Legs split (from its most-hit muscle) — the
+  // match's "team color" in the feed, matching the lift board's per-row split so
+  // PPL hue means SPLIT everywhere on the History page. Null when unmapped.
+  split: PPLCategory | null;
   lineup: LineupItem[];         // every exercise performed, workout order, top set each
   comparison: SessionComparison | null;
 }
@@ -58,8 +63,8 @@ const COMEBACK_MIN_DAYS = 7;
 const DAY_MS = 86400000;
 
 /** Primary muscles worked in a session, ordered by how many sets hit them. */
-function sessionMuscles(workout: GeneratedWorkout): string[] {
-  const counts = new Map<string, number>();
+function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
+  const counts = new Map<MuscleGroup, number>();
   for (const ex of workout.exercises) {
     const done = (ex.completedSets || []).filter(s => s.completed).length;
     if (done === 0) continue;
@@ -191,6 +196,7 @@ export function buildSessionRecaps(
     const pr = sessionPRs.get(dayKeyOf(workout.createdAt)) ?? null;
     const standout = standoutSet(workout, weightUnit, grading, pr?.name);
     const wStats = calculateWorkoutStats(workout.exercises, getTrackingType);
+    const muscles = sessionMuscles(workout);
 
     // Gap since the previous session of any kind (drives the comeback beat).
     const prevDate = prior.length ? new Date(prior[prior.length - 1].createdAt) : null;
@@ -224,7 +230,8 @@ export function buildSessionRecaps(
       volumeDisplay: Math.round(convertWeight(myVol, 'lbs', weightUnit)),
       sets: wStats.totalSets,
       durationMin: workout.estimatedDuration || 0,
-      muscles: sessionMuscles(workout),
+      muscles,
+      split: muscles.length > 0 ? (MUSCLE_TO_PPL[muscles[0]] ?? null) : null,
       lineup: sessionLineup(workout, weightUnit),
       comparison,
     };
