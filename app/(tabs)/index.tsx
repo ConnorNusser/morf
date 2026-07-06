@@ -11,7 +11,10 @@ import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import Spacer from "@/components/Spacer";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
-import { Text, useInk, View } from "@/components/Themed";
+import { View } from "@/components/Themed";
+import Divider from "@/components/ui/Divider";
+import NavRow from "@/components/ui/NavRow";
+import SectionLabel from "@/components/ui/SectionLabel";
 import UnlockNotificationModal, {
   NotificationType,
 } from "@/components/UnlockNotificationModal";
@@ -43,15 +46,9 @@ import {
   RemoteUser,
   UserProgress,
 } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ViewMode = HomeViewMode;
@@ -62,7 +59,6 @@ export default function HomeScreen() {
   // hardcoded 60px, which left a big gap above the Today card on most devices.
   const contentTopPadding = insets.top - 2;
   const { currentTheme, setThemeLevel } = useTheme();
-  const ink = useInk();
   const { userProfile } = useUser();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [pendingProgress, setPendingProgress] =
@@ -368,16 +364,10 @@ export default function HomeScreen() {
           <WeeklyGoalCard />
           <TodayCard />
 
-          <TouchableOpacity
-            style={styles.actionButton}
+          <NavRow
+            label="View Leaderboards"
             onPress={() => setShowLeaderboard(true)}
-            activeOpacity={0.7}
-          >
-            <Text variant="body" tone="primary" weight="medium">
-              View Leaderboards
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color={ink.muted} />
-          </TouchableOpacity>
+          />
 
           {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
               grouped as one block, split by a hairline divider. */}
@@ -385,12 +375,7 @@ export default function HomeScreen() {
             <OverallStatsCard stats={overallStats} />
             {powerliftingTotal && (
               <>
-                <View
-                  style={[
-                    styles.strengthDivider,
-                    { backgroundColor: ink.hairline },
-                  ]}
-                />
+                <Divider style={styles.strengthDivider} />
                 <PowerliftingTotal data={powerliftingTotal} />
               </>
             )}
@@ -398,14 +383,9 @@ export default function HomeScreen() {
 
           {userProgress.length > 0 && (
             <>
-              <Text
-                variant="meta"
-                tone="muted"
-                weight="bold"
-                style={styles.sectionTitle}
-              >
-                YOUR LIFTS
-              </Text>
+              <SectionLabel style={styles.sectionTitle}>
+                Your lifts
+              </SectionLabel>
 
               <LiftDisplayFilter
                 availableLifts={userProgress}
@@ -469,20 +449,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
     paddingBottom: space.sm,
   },
-  // Same uppercase micro-label grammar as History's LIFTS / SESSIONS and the
-  // Career card, so every tab introduces sections the same way.
   sectionTitle: {
-    letterSpacing: 1,
+    marginBottom: 0,
   },
   strengthDivider: {
-    height: StyleSheet.hairlineWidth,
     marginTop: space.xs,
     marginBottom: space.md,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: space.md,
   },
 });

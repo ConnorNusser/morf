@@ -9,6 +9,13 @@ import WorkoutDetailModal from "@/components/history/WorkoutDetailModal";
 import MonthlyTrendsModal from "@/components/MonthlyTrendsModal";
 import MuscleBalanceCard from "@/components/MuscleBalanceCard";
 import { Text, useInk, View } from "@/components/Themed";
+import Chip from "@/components/Chip";
+import Divider from "@/components/ui/Divider";
+import EmptyState from "@/components/ui/EmptyState";
+import NavRow from "@/components/ui/NavRow";
+import SectionLabel from "@/components/ui/SectionLabel";
+import SegmentedTabs from "@/components/ui/SegmentedTabs";
+import StatStrip from "@/components/ui/StatStrip";
 import WeeklyOverview from "@/components/WeeklyOverview";
 import { useCustomExercises } from "@/contexts/CustomExercisesContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -326,29 +333,7 @@ export default function HistoryScreen() {
         </Text>
 
         {/* Tabs */}
-        <View style={styles.tabContainer}>
-          {TABS.map(({ key, label }) => {
-            const active = activeTab === key;
-            return (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.tab,
-                  active && { borderBottomColor: currentTheme.colors.primary },
-                ]}
-                onPress={() => setActiveTab(key)}
-              >
-                <Text
-                  variant="body"
-                  tone={active ? "primary" : "faint"}
-                  weight={active ? "semiBold" : "regular"}
-                >
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <SegmentedTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </View>
 
       {/* Content */}
@@ -371,12 +356,7 @@ export default function HistoryScreen() {
               <Card variant="elevated" padding={18}>
                 <LiftProgressWidget lifts={liftProgress} />
                 {liftProgress.length > 0 && sessionRecaps.length > 0 && (
-                  <View
-                    style={[
-                      styles.panelDivider,
-                      { backgroundColor: ink.hairline },
-                    ]}
-                  />
+                  <Divider />
                 )}
                 <SessionsFeed
                   recaps={sessionRecaps}
@@ -399,14 +379,7 @@ export default function HistoryScreen() {
                 tappable straight into that lift's history. */}
             {workouts.length > 0 && topRecords.length > 0 && (
               <View style={styles.section}>
-                <Text
-                  variant="meta"
-                  tone="muted"
-                  weight="bold"
-                  style={styles.sectionHeading}
-                >
-                  RECORDS
-                </Text>
+                <SectionLabel>Records</SectionLabel>
                 <View style={styles.recordsStrip}>
                   {topRecords.map(({ ex, pct }) => {
                     const tierColor =
@@ -510,60 +483,27 @@ export default function HistoryScreen() {
 
             {/* Secondary drill-downs — deeper analysis, below the primary content. */}
             {workouts.length > 0 && (
-              <TouchableOpacity
-                style={[
-                  styles.monthlyTrendsButton,
-                  {
-                    backgroundColor: currentTheme.colors.surface,
-                    borderColor: currentTheme.colors.border,
-                  },
-                ]}
+              <NavRow
+                label="View Monthly Trends"
+                icon="stats-chart"
+                variant="card"
                 onPress={() => setShowMonthlyTrends(true)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.monthlyTrendsContent}>
-                  <Ionicons
-                    name="stats-chart"
-                    size={18}
-                    color={currentTheme.colors.primary}
-                  />
-                  <Text variant="body" tone="primary" weight="medium">
-                    View Monthly Trends
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={ink.muted} />
-              </TouchableOpacity>
+                style={styles.monthlyTrendsButton}
+              />
             )}
 
             {/* Empty State */}
             {workouts.length === 0 && (
-              <View style={styles.emptyState}>
-                <Ionicons name="barbell-outline" size={48} color={ink.ghost} />
-                <Text
-                  variant="heading"
-                  tone="faint"
-                  weight="medium"
-                  style={styles.emptyText}
-                >
-                  No workouts yet
-                </Text>
-                <Text variant="body" tone="ghost" style={styles.emptySubtext}>
-                  Start logging to track your progress
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.emptyCta,
-                    { backgroundColor: currentTheme.colors.primary },
-                  ]}
-                  onPress={() => router.push("/workout")}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text variant="title" weight="semiBold" style={styles.emptyCtaText}>
-                    Start a workout
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="barbell-outline"
+                title="No workouts yet"
+                subtitle="Start logging to track your progress"
+                cta={{
+                  label: "Start a workout",
+                  icon: "add",
+                  onPress: () => router.push("/workout"),
+                }}
+              />
             )}
           </>
         ) : (
@@ -572,62 +512,25 @@ export default function HistoryScreen() {
             {trackedExercises.length > 0 ? (
               <>
                 {/* All-time overview */}
-                <View
-                  style={[
-                    styles.exerciseSummary,
-                    { backgroundColor: currentTheme.colors.surface },
+                <StatStrip
+                  style={styles.exerciseSummary}
+                  items={[
+                    { value: exerciseSummary.count, label: "Exercises" },
+                    {
+                      value: exerciseSummary.totalSets.toLocaleString(),
+                      label: "Sets logged",
+                    },
+                    ...(exerciseSummary.topLift
+                      ? [
+                          {
+                            value: exerciseSummary.topLift.estimated1RM,
+                            label: "Top 1RM",
+                            accent: true,
+                          },
+                        ]
+                      : []),
                   ]}
-                >
-                  <View style={styles.summaryItem}>
-                    <Text variant="emphasis" tone="primary" weight="bold">
-                      {exerciseSummary.count}
-                    </Text>
-                    <Text variant="meta" tone="faint" style={styles.summaryLabel}>
-                      Exercises
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.summaryDivider,
-                      { backgroundColor: currentTheme.colors.border },
-                    ]}
-                  />
-                  <View style={styles.summaryItem}>
-                    <Text variant="emphasis" tone="primary" weight="bold">
-                      {exerciseSummary.totalSets.toLocaleString()}
-                    </Text>
-                    <Text variant="meta" tone="faint" style={styles.summaryLabel}>
-                      Sets logged
-                    </Text>
-                  </View>
-                  {exerciseSummary.topLift && (
-                    <>
-                      <View
-                        style={[
-                          styles.summaryDivider,
-                          { backgroundColor: currentTheme.colors.border },
-                        ]}
-                      />
-                      <View style={styles.summaryItem}>
-                        <Text
-                          variant="emphasis"
-                          weight="bold"
-                          numberOfLines={1}
-                        >
-                          {exerciseSummary.topLift.estimated1RM}
-                        </Text>
-                        <Text
-                          variant="meta"
-                          tone="faint"
-                          style={styles.summaryLabel}
-                          numberOfLines={1}
-                        >
-                          Top 1RM
-                        </Text>
-                      </View>
-                    </>
-                  )}
-                </View>
+                />
 
                 {/* Search */}
                 <View
@@ -671,36 +574,14 @@ export default function HistoryScreen() {
                   contentContainerStyle={styles.sortRow}
                   keyboardShouldPersistTaps="handled"
                 >
-                  {EXERCISE_SORTS.map(({ key, label }) => {
-                    const active = exerciseSort === key;
-                    return (
-                      <TouchableOpacity
-                        key={key}
-                        onPress={() => setExerciseSort(key)}
-                        activeOpacity={0.7}
-                        style={[
-                          styles.sortChip,
-                          {
-                            backgroundColor: active
-                              ? currentTheme.colors.primary
-                              : currentTheme.colors.surface,
-                            borderColor: active
-                              ? currentTheme.colors.primary
-                              : currentTheme.colors.border,
-                          },
-                        ]}
-                      >
-                        <Text
-                          variant="meta"
-                          tone={active ? undefined : "secondary"}
-                          weight={active ? "semiBold" : "medium"}
-                          style={active && { color: "#fff" }}
-                        >
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                  {EXERCISE_SORTS.map(({ key, label }) => (
+                    <Chip
+                      key={key}
+                      label={label}
+                      selected={exerciseSort === key}
+                      onPress={() => setExerciseSort(key)}
+                    />
+                  ))}
                 </ScrollView>
 
                 {liftsWithData.length > 0 ? (
@@ -719,51 +600,23 @@ export default function HistoryScreen() {
                     ))}
                   </View>
                 ) : (
-                  <View style={styles.emptyState}>
-                    <Ionicons
-                      name="search-outline"
-                      size={40}
-                      color={ink.ghost}
-                    />
-                    <Text
-                      variant="heading"
-                      tone="faint"
-                      weight="medium"
-                      style={styles.emptyText}
-                    >
-                      No matches for &quot;{exerciseSearch.trim()}&quot;
-                    </Text>
-                  </View>
+                  <EmptyState
+                    icon="search-outline"
+                    title={`No matches for "${exerciseSearch.trim()}"`}
+                  />
                 )}
               </>
             ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="fitness-outline" size={48} color={ink.ghost} />
-                <Text
-                  variant="heading"
-                  tone="faint"
-                  weight="medium"
-                  style={styles.emptyText}
-                >
-                  No exercises tracked
-                </Text>
-                <Text variant="body" tone="ghost" style={styles.emptySubtext}>
-                  Complete workouts to build your exercise history
-                </Text>
-                <TouchableOpacity
-                  style={[
-                    styles.emptyCta,
-                    { backgroundColor: currentTheme.colors.primary },
-                  ]}
-                  onPress={() => router.push("/workout")}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="add" size={18} color="#fff" />
-                  <Text variant="title" weight="semiBold" style={styles.emptyCtaText}>
-                    Start a workout
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <EmptyState
+                icon="fitness-outline"
+                title="No exercises tracked"
+                subtitle="Complete workouts to build your exercise history"
+                cta={{
+                  label: "Start a workout",
+                  icon: "add",
+                  onPress: () => router.push("/workout"),
+                }}
+              />
             )}
           </>
         )}
@@ -808,16 +661,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     marginBottom: space.md,
   },
-  // Tab styles
-  tabContainer: {
-    flexDirection: "row",
-    gap: space.section,
-  },
-  tab: {
-    paddingBottom: space.md,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
   scrollContent: {
     paddingHorizontal: screenGutter,
     paddingTop: space.lg,
@@ -825,25 +668,8 @@ const styles = StyleSheet.create({
   },
   // Exercises tab: overview + search + sort
   exerciseSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: radius.card,
-    paddingVertical: space.lg,
     marginTop: space.xs,
     marginBottom: space.md,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: space.xs,
-  },
-  summaryLabel: {
-    marginTop: space.xs,
-  },
-  summaryDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-    marginVertical: space.xs,
   },
   searchBar: {
     flexDirection: "row",
@@ -866,28 +692,12 @@ const styles = StyleSheet.create({
     paddingTop: space.md,
     paddingBottom: 2,
   },
-  sortChip: {
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-  },
   resultCount: {
     marginBottom: space.xs,
-  },
-  // Hairline sub-block divider inside the top instrument panel — the same
-  // divider grammar CareerSection uses between its hero / stats / NEXT blocks.
-  panelDivider: {
-    height: StyleSheet.hairlineWidth,
   },
   // Section styles
   section: {
     marginTop: space.section,
-  },
-  // Same micro-label grammar as LIFTS / SESSIONS / the Career card.
-  sectionHeading: {
-    letterSpacing: 1,
-    marginBottom: space.sm,
   },
   // Records strip
   recordsStrip: {
@@ -921,44 +731,7 @@ const styles = StyleSheet.create({
   },
   // Monthly trends button
   monthlyTrendsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: space.lg,
-    paddingVertical: space.lg,
-    borderRadius: radius.card,
-    borderWidth: 1,
     marginTop: space.md,
     marginBottom: space.sm,
-  },
-  monthlyTrendsContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.sm,
-  },
-  // Empty state
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-  },
-  emptyText: {
-    marginTop: space.lg,
-  },
-  emptySubtext: {
-    marginTop: space.sm,
-    textAlign: "center",
-  },
-  emptyCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.xs,
-    paddingHorizontal: screenGutter,
-    paddingVertical: space.md,
-    borderRadius: radius.pill,
-    marginTop: space.section,
-  },
-  emptyCtaText: {
-    color: "#fff",
   },
 });

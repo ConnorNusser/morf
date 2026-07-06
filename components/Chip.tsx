@@ -1,7 +1,8 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity, ViewStyle, TextStyle } from 'react-native';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, space } from '@/lib/ui/tokens';
+import React from 'react';
+import { StyleSheet, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
 
 interface ChipProps {
   label: string;
@@ -13,6 +14,10 @@ interface ChipProps {
   textStyle?: TextStyle;
 }
 
+/**
+ * The one pill-shaped filter/sort chip: primary fill when selected,
+ * bordered surface otherwise.
+ */
 function Chip({
   label,
   selected = false,
@@ -24,14 +29,11 @@ function Chip({
 }: ChipProps) {
   const { currentTheme } = useTheme();
 
-  const sizeStyles = size === 'small' ? styles.small : styles.medium;
-  const textSizeStyles = size === 'small' ? styles.textSmall : styles.textMedium;
-
   return (
     <TouchableOpacity
       style={[
         styles.chip,
-        sizeStyles,
+        size === 'small' ? styles.small : styles.medium,
         {
           backgroundColor: selected ? currentTheme.colors.primary : currentTheme.colors.surface,
           borderColor: selected ? currentTheme.colors.primary : currentTheme.colors.border,
@@ -44,15 +46,10 @@ function Chip({
       disabled={disabled || !onPress}
     >
       <Text
-        style={[
-          styles.text,
-          textSizeStyles,
-          {
-            color: selected ? currentTheme.colors.background : currentTheme.colors.text,
-            fontWeight: '500',
-          },
-          textStyle,
-        ]}
+        variant="meta"
+        tone={selected ? undefined : 'secondary'}
+        weight={selected ? 'semiBold' : 'medium'}
+        style={[selected && { color: currentTheme.colors.background }, textStyle]}
       >
         {label}
       </Text>
@@ -64,25 +61,18 @@ export default React.memo(Chip);
 
 const styles = StyleSheet.create({
   chip: {
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.pill,
+    borderWidth: 1,
   },
   small: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
   },
   medium: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
   },
   disabled: {
     opacity: 0.5,
-  },
-  text: {},
-  textSmall: {
-    fontSize: 12,
-  },
-  textMedium: {
-    fontSize: 13,
   },
 });
