@@ -1,6 +1,7 @@
 import Card from "@/components/Card";
 import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
+import IconButton from "@/components/IconButton";
 import { Text, useInk } from "@/components/Themed";
 import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -18,7 +19,6 @@ import { setPendingRoutine } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
 import { CalculatedRoutine } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -220,7 +220,8 @@ export default function TodayCard() {
 
             <TouchableOpacity
               onPress={dismissAdvice}
-              hitSlop={8}
+              // Single line of meta text (~19pt); hitSlop keeps the target ≥44pt.
+              hitSlop={16}
               activeOpacity={0.6}
             >
               <Text variant="meta" tone="muted" style={styles.dismissText}>
@@ -259,30 +260,18 @@ export default function TodayCard() {
             </Text>
             {days.length > 1 && (
               <View style={styles.navRow}>
-                <TouchableOpacity
+                {/* Hairline background override keeps the pager quieter than the
+                    default surface square. */}
+                <IconButton
+                  icon="chevron-back"
                   onPress={() => flip(-1)}
-                  hitSlop={8}
-                  style={[styles.pagerBtn, { backgroundColor: ink.hairline }]}
-                  activeOpacity={0.5}
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={24}
-                    color={currentTheme.colors.text}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
+                  style={{ backgroundColor: ink.hairline }}
+                />
+                <IconButton
+                  icon="chevron-forward"
                   onPress={() => flip(1)}
-                  hitSlop={8}
-                  style={[styles.pagerBtn, { backgroundColor: ink.hairline }]}
-                  activeOpacity={0.5}
-                >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={24}
-                    color={currentTheme.colors.text}
-                  />
-                </TouchableOpacity>
+                  style={{ backgroundColor: ink.hairline }}
+                />
               </View>
             )}
           </View>
@@ -394,13 +383,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: space.xs,
-  },
-  pagerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.control,
-    alignItems: "center",
-    justifyContent: "center",
   },
   dots: {
     flexDirection: "row",

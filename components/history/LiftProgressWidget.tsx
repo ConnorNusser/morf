@@ -22,15 +22,15 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import { useTheme } from "@/contexts/ThemeContext";
 import { getTierColor } from "@/lib/data/strengthStandards";
 import { LiftProgress, LiftTier } from "@/lib/history/liftProgress";
-import { space } from "@/lib/ui/tokens";
+import { space, trend } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
-// Semantic gain/loss colors, matched to ExerciseCard / TopMovers so the same green
-// means the same thing across every tab.
-const UP = "#00C85C";
-const DOWN = "#FF6B6B";
+// Semantic gain/loss colors — the shared trend tokens, so the same green means
+// the same thing across every tab.
+const UP = trend.up;
+const DOWN = trend.down;
 
 // Fixed row height — FlipCard stacks its faces absolutely, so both faces are built
 // to this height and plain (ungraded) rows match it for an even rhythm.

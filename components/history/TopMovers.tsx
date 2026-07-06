@@ -3,16 +3,16 @@ import { Text, View, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { computeTopMovers } from '@/lib/history/topMovers';
-import { radius, space, tint } from '@/lib/ui/tokens';
+import { radius, space, tint, trend } from '@/lib/ui/tokens';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
-// Semantic gain/loss colors, matched to the Exercises-tab ExerciseCard so the same green
-// means the same thing across both tabs.
-const UP = '#00C85C';
-const DOWN = '#FF6B6B';
+// Semantic gain/loss colors — the shared trend tokens, so the same green means
+// the same thing across both tabs.
+const UP = trend.up;
+const DOWN = trend.down;
 
 interface TopMoversProps {
   exercises: ExerciseWithMax[];
@@ -48,7 +48,7 @@ function TopMovers({ exercises, weightUnit, onSelect, onSeeAll }: TopMoversProps
       {/* Same micro-label header grammar as LIFTS / SESSIONS / the Career card. */}
       <View style={styles.headerRow}>
         <SectionLabel style={styles.heading}>YOUR MOVERS</SectionLabel>
-        <TouchableOpacity onPress={onSeeAll} hitSlop={8} activeOpacity={0.7}>
+        <TouchableOpacity onPress={onSeeAll} hitSlop={12} activeOpacity={0.7}>
           <Text variant="meta" weight="semiBold">
             See all
           </Text>

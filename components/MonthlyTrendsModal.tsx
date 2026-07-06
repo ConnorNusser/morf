@@ -1,3 +1,4 @@
+import IconButton from '@/components/IconButton';
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
@@ -17,7 +18,6 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -211,13 +211,12 @@ export default function MonthlyTrendsModal({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={handleClose} />
           <Text variant="title" tone="primary" weight="semiBold">
             Monthly Trends
           </Text>
-          <View style={styles.closeButton} />
+          {/* Spacer mirrors the close button so the title stays centered. */}
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView
@@ -227,33 +226,23 @@ export default function MonthlyTrendsModal({
         >
           {/* Pagination */}
           <Animated.View entering={FadeIn.delay(100)} style={styles.paginationHeader}>
-            <TouchableOpacity
+            <IconButton
+              icon="chevron-back"
               onPress={() => handlePageChange('back')}
               disabled={!canGoBack}
-              style={styles.pageButton}
-            >
-              <Ionicons
-                name="chevron-back"
-                size={24}
-                color={canGoBack ? ink.primary : ink.ghost}
-              />
-            </TouchableOpacity>
+              iconColor={canGoBack ? ink.primary : ink.ghost}
+            />
 
             <Text variant="title" tone="primary" weight="semiBold">
               {dateRangeLabel}
             </Text>
 
-            <TouchableOpacity
+            <IconButton
+              icon="chevron-forward"
               onPress={() => handlePageChange('forward')}
               disabled={!canGoForward}
-              style={styles.pageButton}
-            >
-              <Ionicons
-                name="chevron-forward"
-                size={24}
-                color={canGoForward ? ink.primary : ink.ghost}
-              />
-            </TouchableOpacity>
+              iconColor={canGoForward ? ink.primary : ink.ghost}
+            />
           </Animated.View>
 
           {/* PPL Stacked Chart */}
@@ -452,11 +441,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  closeButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerSpacer: {
+    width: 40,
+    height: 40,
   },
   content: {
     flex: 1,
@@ -471,12 +458,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: space.section,
-  },
-  pageButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   chartSection: {
     marginBottom: 32,

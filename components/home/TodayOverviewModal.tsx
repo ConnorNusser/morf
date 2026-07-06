@@ -135,9 +135,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: space.xs,
   },
+  // Primary CTA: pill shape (C1).
   startButton: {
     paddingVertical: space.lg,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
     alignItems: 'center',
     marginTop: space.lg,
   },

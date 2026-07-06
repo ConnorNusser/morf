@@ -28,6 +28,7 @@ function SegmentedTabs<K extends string>({
         return (
           <TouchableOpacity
             key={key}
+            hitSlop={{ top: 8, bottom: 4, left: 8, right: 8 }}
             style={[
               styles.tab,
               isActive && { borderBottomColor: currentTheme.colors.primary },

@@ -3,15 +3,15 @@ import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { ExerciseWithMax, WeightUnit } from '@/types';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
-import { radius, space, tint } from '@/lib/ui/tokens';
+import { radius, space, tint, trend as trendColor } from '@/lib/ui/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
-// Semantic gain/loss colors, matched to TopMovers so the same green means the same
-// thing across both tabs.
-const UP = '#00C85C';
-const DOWN = '#FF6B6B';
+// Semantic gain/loss colors — the shared trend tokens, so the same green means
+// the same thing across both tabs.
+const UP = trendColor.up;
+const DOWN = trendColor.down;
 
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;

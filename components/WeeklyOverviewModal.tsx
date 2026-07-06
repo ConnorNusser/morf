@@ -1,4 +1,5 @@
 import { AuroraSurface } from '@/components/history/AuroraSurface';
+import IconButton from '@/components/IconButton';
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
@@ -773,9 +774,8 @@ export default function WeeklyOverviewModal({
               <Text tone="muted" style={styles.headerSubtitle}>{headerSubtitle}</Text>
             )}
           </View>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton} hitSlop={8}>
-            <Text weight="semiBold" style={[styles.closeText, { color: c.accent }]}>Done</Text>
-          </TouchableOpacity>
+          {/* The app's one modal-close grammar: an ✕ IconButton top-right. */}
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView
@@ -801,8 +801,6 @@ const styles = StyleSheet.create({
   },
   headerTitleWrap: { flex: 1, marginRight: 12 },
   headerSubtitle: { fontSize: typeScale.meta, marginTop: 2 },
-  closeButton: { paddingVertical: 4, paddingHorizontal: 4 },
-  closeText: { fontSize: typeScale.body },
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: 32 },
   content: { paddingHorizontal: 16, paddingTop: 14 },

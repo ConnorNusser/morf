@@ -8,7 +8,7 @@ import {
   PPLCategory,
 } from "@/lib/data/pplCategories";
 import { storageService } from "@/lib/storage/storage";
-import { space } from "@/lib/ui/tokens";
+import { space, trend } from "@/lib/ui/tokens";
 import { formatVolume } from "@/lib/utils/utils";
 import {
   DEFAULT_WEEKLY_GOAL,
@@ -47,9 +47,9 @@ function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
 // badge, so hitting a goal reads as the same kind of win across both surfaces.
 const GOAL_MET_COLOR = "#F59E0B";
 
-// Week-over-week volume trend colors (green up / red down).
-const TREND_UP = "#22C55E";
-const TREND_DOWN = "#EF4444";
+// Week-over-week volume trend colors — the shared trend tokens (green up / red down).
+const TREND_UP = trend.up;
+const TREND_DOWN = trend.down;
 
 // Selectable goal values (1..7).
 const GOAL_OPTIONS = Array.from(
@@ -132,7 +132,8 @@ export default function WeeklyGoalCard() {
           <TouchableOpacity
             style={styles.goalButton}
             activeOpacity={0.7}
-            hitSlop={10}
+            // The row is only ~17pt tall; hitSlop brings the effective target ≥44pt.
+            hitSlop={14}
             onPress={() => setPicking(true)}
           >
             {metGoal && <Ionicons name="checkmark" size={15} color={accent} />}

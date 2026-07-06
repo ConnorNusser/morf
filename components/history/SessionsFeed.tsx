@@ -11,7 +11,7 @@ import { PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { Rarity } from '@/lib/gamification/rarity';
 import { formatRelativeDate } from '@/lib/ui/formatters';
-import { space } from '@/lib/ui/tokens';
+import { space, trend } from '@/lib/ui/tokens';
 import { formatCompact } from '@/lib/utils/utils';
 import { SessionRecap } from '@/lib/history/sessionRecap';
 import { GeneratedWorkout, WeightUnit } from '@/types';
@@ -30,7 +30,7 @@ export interface SessionAchievement {
 
 // One green accent per screen: the newest entry's PR row. Rare and earned — older
 // entries mark their PRs quietly, so celebration never becomes wallpaper.
-const POS = '#34C759';
+const POS = trend.up;
 
 // Suppress the auto-generated default title ("Workout - 7/3/2026") so the entry
 // header reads as just the day; keep real titles like "Leg Day".

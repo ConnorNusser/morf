@@ -1,15 +1,15 @@
 import { useAlert } from '@/components/CustomAlert';
+import IconButton from '@/components/IconButton';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { danger, radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { calculateWorkoutStats, formatMinutes, formatSet, formatWorkoutStatsLine } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { prExerciseIdsForWorkout } from '@/components/history/prSessions';
 import { getExercise } from '@/lib/workout/workouts';
 import { convertWeight, GeneratedWorkout, TrackingType, WeightUnit } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -186,25 +186,16 @@ export default function WorkoutDetailModal({
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
+          <IconButton
+            icon={copied ? 'checkmark' : 'copy-outline'}
             onPress={handleCopy}
-            style={[styles.headerButton, { backgroundColor: copied ? tint(currentTheme.colors.primary) : currentTheme.colors.surface }]}
-          >
-            <Ionicons
-              name={copied ? "checkmark" : "copy-outline"}
-              size={20}
-              color={copied ? currentTheme.colors.primary : currentTheme.colors.text}
-            />
-          </TouchableOpacity>
+            style={copied ? { backgroundColor: tint(currentTheme.colors.primary) } : undefined}
+            iconColor={copied ? currentTheme.colors.primary : undefined}
+          />
           <Text variant="title" tone="primary" weight="semiBold">
             Workout
           </Text>
-          <TouchableOpacity
-            onPress={onClose}
-            style={[styles.headerButton, { backgroundColor: currentTheme.colors.surface }]}
-          >
-            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         {workout && (
@@ -333,13 +324,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
     paddingVertical: space.md,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.control,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scrollView: {
     flex: 1,
   },
@@ -421,12 +405,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
     paddingVertical: space.lg,
   },
+  // Destructive CTA: pill shape (C1) on the shared danger token.
   deleteButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: danger,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: space.lg,
-    borderRadius: radius.card,
+    borderRadius: radius.pill,
   },
   deleteButtonText: {
     color: '#FFFFFF',

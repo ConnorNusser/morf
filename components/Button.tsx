@@ -1,14 +1,17 @@
+import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius } from '@/lib/ui/tokens';
 import playHapticFeedback, { type HapticType } from '@/lib/utils/haptic';
 import { getSound, type SoundName } from '@/lib/utils/sounds';
 import { useAudioPlayer } from 'expo-audio';
 import React from 'react';
-import { Text, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
+import { TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'subtle';
+  /** primary = pill CTA (C1); secondary = bordered surface (C2). */
+  variant?: 'primary' | 'secondary';
   size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   style?: ViewStyle;
@@ -17,6 +20,10 @@ interface ButtonProps {
   soundName?: SoundName;
 }
 
+/**
+ * The canonical button. Primary is the pill CTA grammar (StartButton is its
+ * animated hero sibling); secondary is the bordered surface button.
+ */
 function Button({
   title,
   onPress,
@@ -29,7 +36,7 @@ function Button({
   soundName,
 }: ButtonProps) {
   const { currentTheme } = useTheme();
-  
+
   const soundFile = soundName ? getSound(soundName) : null;
   const audioPlayer = useAudioPlayer(soundFile);
 
@@ -57,7 +64,6 @@ function Button({
 
   const getButtonStyle = () => {
     const baseStyle = {
-      borderRadius: currentTheme.borderRadius,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
       opacity: disabled ? 0.6 : 1,
@@ -72,48 +78,20 @@ function Button({
     const variantStyles = {
       primary: {
         backgroundColor: currentTheme.colors.primary,
+        borderRadius: radius.pill,
       },
       secondary: {
         backgroundColor: currentTheme.colors.surface,
         borderWidth: 1,
         borderColor: currentTheme.colors.border,
-      },
-      ghost: {
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        borderColor: currentTheme.colors.primary,
-      },
-      subtle: {
-        backgroundColor: currentTheme.colors.surface + '40',
-        borderWidth: 1,
-        borderColor: currentTheme.colors.border + '30',
+        borderRadius: radius.card,
       },
     };
 
     return [baseStyle, sizeStyles[size], variantStyles[variant]];
   };
 
-  const getTextStyle = () => {
-    const baseTextStyle = {
-      fontWeight: '600' as const,
-      textAlign: 'center' as const,
-    };
-
-    const sizeTextStyles = {
-      small: { fontSize: 14 },
-      medium: { fontSize: 16 },
-      large: { fontSize: 18 },
-    };
-
-    const variantTextStyles = {
-      primary: { color: currentTheme.colors.background },
-      secondary: { color: currentTheme.colors.text },
-      ghost: { color: currentTheme.colors.primary },
-      subtle: { color: currentTheme.colors.text, opacity: 0.7 },
-    };
-
-    return [baseTextStyle, sizeTextStyles[size], variantTextStyles[variant]];
-  };
+  const labelVariant = { small: 'meta', medium: 'body', large: 'emphasis' } as const;
 
   return (
     <TouchableOpacity
@@ -122,11 +100,24 @@ function Button({
       disabled={disabled}
       activeOpacity={0.8}
     >
-      <Text style={[getTextStyle(), textStyle]}>
+      <Text
+        variant={labelVariant[size]}
+        weight="semiBold"
+        style={[
+          {
+            textAlign: 'center',
+            color:
+              variant === 'primary'
+                ? currentTheme.colors.background
+                : currentTheme.colors.text,
+          },
+          textStyle,
+        ]}
+      >
         {title}
       </Text>
     </TouchableOpacity>
   );
 }
 
-export default React.memo(Button); 
+export default React.memo(Button);

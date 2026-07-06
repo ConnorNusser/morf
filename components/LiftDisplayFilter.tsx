@@ -1,10 +1,10 @@
+import Chip from '@/components/Chip';
 import { Text, useInk } from '@/components/Themed';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useExpandToggle } from '@/hooks/useExpandToggle';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
-import { radius, space, tint } from '@/lib/ui/tokens';
+import { space } from '@/lib/ui/tokens';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,6 @@ interface LiftDisplayFilterProps {
 }
 
 export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: LiftDisplayFilterProps) {
-  const { currentTheme } = useTheme();
   const ink = useInk();
   const { play: playSound } = useSound('pop');
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -80,6 +79,8 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
         style={styles.header}
         onPress={toggleExpanded}
         activeOpacity={0.7}
+        // The row itself is only ~23pt tall; hitSlop brings the effective target ≥44pt.
+        hitSlop={12}
       >
         <View style={styles.headerContent}>
           <Ionicons
@@ -111,34 +112,12 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
             const isHidden = filters.hiddenLiftIds.includes(lift.workoutId);
 
             return (
-              <TouchableOpacity
+              <Chip
                 key={lift.workoutId}
-                style={[
-                  styles.filterChip,
-                  {
-                    backgroundColor: isHidden
-                      ? currentTheme.colors.background
-                      : tint(currentTheme.colors.primary),
-                    borderColor: isHidden
-                      ? currentTheme.colors.border
-                      : currentTheme.colors.primary,
-                  }
-                ]}
+                label={workout?.name || lift.workoutId}
+                selected={!isHidden}
                 onPress={() => toggleLiftVisibility(lift.workoutId)}
-                activeOpacity={0.7}
-              >
-                <Text variant="body" tone={isHidden ? 'muted' : undefined}>
-                  {workout?.name || lift.workoutId}
-                </Text>
-                {isHidden && (
-                  <Ionicons
-                    name="eye-off-outline"
-                    size={14}
-                    color={ink.muted}
-                    style={styles.chipIcon}
-                  />
-                )}
-              </TouchableOpacity>
+              />
             );
           })}
         </ScrollView>
@@ -168,16 +147,5 @@ const styles = StyleSheet.create({
   filterListContent: {
     paddingHorizontal: space.md,
     gap: space.sm,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-  },
-  chipIcon: {
-    marginLeft: space.xs,
   },
 });

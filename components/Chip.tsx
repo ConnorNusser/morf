@@ -31,6 +31,7 @@ function Chip({
 
   return (
     <TouchableOpacity
+      hitSlop={8}
       style={[
         styles.chip,
         size === 'small' ? styles.small : styles.medium,
@@ -64,13 +65,18 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     borderWidth: 1,
   },
+  // minHeights + hitSlop keep the effective tap target ≥44pt.
   small: {
     paddingHorizontal: space.md,
     paddingVertical: space.xs,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   medium: {
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
+    minHeight: 36,
+    justifyContent: 'center',
   },
   disabled: {
     opacity: 0.5,

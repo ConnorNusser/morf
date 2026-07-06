@@ -1,14 +1,15 @@
+import IconButton from '@/components/IconButton';
 import { Text, View, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import StatStrip from '@/components/ui/StatStrip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { layout } from '@/lib/ui/styles';
-import { radius, screenGutter, space, tint, withAlpha } from '@/lib/ui/tokens';
+import { radius, screenGutter, space, tint, trend as trendColor, withAlpha } from '@/lib/ui/tokens';
 import { convertWeight, ExerciseWithMax, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
-import { Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { Modal, SafeAreaView, ScrollView, StyleSheet } from 'react-native';
 
 interface ExerciseHistoryModalProps {
   exercise: ExerciseWithMax | null;
@@ -118,13 +119,12 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
     <Modal visible={!!exercise} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-          <TouchableOpacity onPress={onClose} hitSlop={8}>
-            <Ionicons name="close" size={28} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
           <Text variant="title" tone="primary" weight="semiBold" style={styles.modalTitle} numberOfLines={1}>
             {exercise.name}
           </Text>
-          <View style={{ width: 28 }} />
+          {/* Spacer mirrors the close button so the title stays centered. */}
+          <View style={{ width: 40 }} />
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
@@ -144,7 +144,7 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
               <Ionicons
                 name={trend.change > 0 ? 'trending-up' : trend.change < 0 ? 'trending-down' : 'remove'}
                 size={16}
-                color={trend.change > 0 ? '#00C85C' : trend.change < 0 ? '#FF6B6B' : ink.muted}
+                color={trend.change > 0 ? trendColor.up : trend.change < 0 ? trendColor.down : ink.muted}
               />
               <Text variant="meta" tone="secondary" weight="medium">
                 {trend.change === 0

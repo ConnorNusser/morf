@@ -319,7 +319,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
             {''}
           </Text>
-          <IconButton icon="close" onPress={handleCancel} variant="surface" />
+          <IconButton icon="close" onPress={handleCancel} />
         </View>
 
         {/* Content */}
