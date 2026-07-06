@@ -5,6 +5,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
+import { type as typeScale } from '@/lib/ui/typography';
 import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: typeScale.title,
   },
   content: {
     flex: 1,
@@ -486,7 +487,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dateRangeLabel: {
-    fontSize: 17,
+    fontSize: typeScale.title,
   },
   chartSection: {
     marginBottom: 32,
@@ -498,7 +499,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: typeScale.body,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     opacity: 0.7,
@@ -518,7 +519,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendText: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
   },
   barChart: {
     flexDirection: 'row',
@@ -531,7 +532,7 @@ const styles = StyleSheet.create({
     width: BAR_WIDTH,
   },
   barValue: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     marginBottom: 6,
   },
   barWrapper: {
@@ -548,7 +549,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   barLabel: {
-    fontSize: 12,
+    fontSize: typeScale.meta,
     marginTop: 8,
   },
   cardsSection: {
@@ -565,10 +566,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   monthName: {
-    fontSize: 18,
+    fontSize: typeScale.title,
   },
   monthYear: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
     marginTop: 2,
   },
   workoutsBadge: {
@@ -578,10 +579,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   workoutsCount: {
-    fontSize: 20,
+    fontSize: typeScale.title,
   },
   workoutsLabel: {
-    fontSize: 11,
+    fontSize: typeScale.meta,
     marginTop: 2,
   },
   statsRow: {
@@ -597,7 +598,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statValue: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   pplSection: {
     marginTop: 16,
@@ -621,16 +622,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   pplChipText: {
-    fontSize: 13,
+    fontSize: typeScale.meta,
   },
   pplChipCount: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
   },
   emptyMonth: {
     paddingVertical: 12,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: typeScale.meta,
     textAlign: 'center',
   },
 });
