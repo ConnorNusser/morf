@@ -2,9 +2,9 @@ import Card from "@/components/Card";
 import StartButton from "@/components/home/StartButton";
 import TodayOverviewModal from "@/components/home/TodayOverviewModal";
 import IconButton from "@/components/IconButton";
-import RecentWorkoutRow from "@/components/workout/RecentWorkoutRow";
 import { Text, useInk } from "@/components/Themed";
 import SectionLabel from "@/components/ui/SectionLabel";
+import RecentWorkoutRow from "@/components/workout/RecentWorkoutRow";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { useWorkoutLaunch } from "@/contexts/WorkoutLaunchContext";
@@ -29,6 +29,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -44,6 +45,15 @@ const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
 // Small floor so the page doesn't jump while the card resolves. The card is
 // otherwise content-sized: reserved emptiness has no mass to hold it.
 const CARD_MIN_HEIGHT = 200;
+
+// The exercise list shows up to this many rows before it starts scrolling;
+// below that, the list keeps this height and leaves the extra space empty.
+const VISIBLE_EXERCISE_ROWS = 7;
+const EXERCISE_ROW_HEIGHT = 24;
+const EXERCISE_ROW_GAP = space.lg;
+const EXERCISE_LIST_HEIGHT =
+  VISIBLE_EXERCISE_ROWS * EXERCISE_ROW_HEIGHT +
+  (VISIBLE_EXERCISE_ROWS - 1) * EXERCISE_ROW_GAP;
 
 // Human-readable label for the routine's split type.
 function splitLabel(splitType?: string): string | null {
@@ -342,7 +352,12 @@ export default function TodayCard() {
             )}
           </View>
 
-          <View style={styles.exerciseList}>
+          <ScrollView
+            style={styles.exerciseList}
+            contentContainerStyle={styles.exerciseListContent}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
             {exercises.map((ex, i) => {
               const workingSets = ex.sets.filter((s) => !s.isWarmup);
               const setCount = workingSets.length || ex.sets.length;
@@ -368,7 +383,7 @@ export default function TodayCard() {
                 </View>
               );
             })}
-          </View>
+          </ScrollView>
           <Spacer height={12} />
           <StartButton
             label={trainedToday ? "Train again" : "Start workout"}
@@ -445,12 +460,16 @@ const styles = StyleSheet.create({
   },
   exerciseList: {
     marginTop: space.lg,
-    gap: space.lg,
+    height: EXERCISE_LIST_HEIGHT,
+  },
+  exerciseListContent: {
+    gap: EXERCISE_ROW_GAP,
   },
   exerciseRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    height: EXERCISE_ROW_HEIGHT,
   },
   exerciseName: {
     flex: 1,

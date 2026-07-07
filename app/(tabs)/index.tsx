@@ -1,32 +1,20 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
-import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
-import LiftDisplayFilter from "@/components/LiftDisplayFilter";
-import OverallStatsCard from "@/components/OverallStatsCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { View } from "@/components/Themed";
-import Divider from "@/components/ui/Divider";
 import NavRow from "@/components/ui/NavRow";
-import SectionLabel from "@/components/ui/SectionLabel";
 import UnlockNotificationModal, {
   NotificationType,
 } from "@/components/UnlockNotificationModal";
-import WorkoutStatsCard from "@/components/WorkoutStatsCard";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
-import { PPL_COLORS } from "@/lib/data/pplCategories";
-import {
-  getStrengthLevelName,
-  getStrengthTier,
-} from "@/lib/data/strengthStandards";
-import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
-import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
+import { getStrengthTier } from "@/lib/data/strengthStandards";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import {
@@ -38,15 +26,10 @@ import { layout } from "@/lib/ui/styles";
 import { isSeasonalThemeAvailable } from "@/lib/ui/theme";
 import { screenGutter, scrollBottom, space } from "@/lib/ui/tokens";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
-import {
-  GeneratedWorkout,
-  LiftDisplayFilters,
-  RemoteUser,
-  UserProgress,
-} from "@/types";
+import { RemoteUser } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ViewMode = HomeViewMode;
@@ -62,94 +45,12 @@ export default function HomeScreen() {
     useState<PendingStrengthProgress | null>(null);
   const [unlockNotification, setUnlockNotification] =
     useState<NotificationType | null>(null);
-  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
-  const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({
-    hiddenLiftIds: [],
-  });
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [feedRefreshTrigger, setFeedRefreshTrigger] = useState(0);
+  const [feedRefreshTrigger] = useState(0);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
-
-  const filteredProgress = useMemo(
-    () =>
-      userProgress.filter(
-        (p) => !liftFilters.hiddenLiftIds.includes(p.workoutId),
-      ),
-    [userProgress, liftFilters],
-  );
-
-  const overallStats = useMemo(() => {
-    const pcts = filteredProgress.map((p) => p.percentileRanking);
-    const pct = pcts.length ? calculateOverallPercentile(pcts) : 0;
-    return {
-      overallPercentile: pct,
-      strengthLevel: pct > 0 ? getStrengthLevelName(pct) : "E-",
-      improvementTrend: "improving" as const,
-    };
-  }, [filteredProgress]);
-
-  // Powerlifting "big 3" total — combined best e1RM of squat + bench + deadlift,
-  // computed in lb (the 1,000 lb club is an absolute lb milestone). Reuses the
-  // same PR + feat math the Career screen does; no new tracking.
-  const powerliftingTotal = useMemo(() => {
-    if (!workoutHistory.length) return null;
-    const prsLbs = computeMainLiftPRs(workoutHistory, "lbs");
-    const feats = computeStrengthFeats(prsLbs);
-    const total = feats[0]?.current ?? 0;
-    if (total <= 0) return null;
-    const next = feats.find((f) => !f.unlocked) ?? feats[feats.length - 1];
-    const e1 = (id: string) =>
-      Math.round(prsLbs.find((p) => p.exerciseId === id)?.estimatedOneRM ?? 0);
-    const lifts = [
-      { label: "Squat", value: e1("squat-barbell"), color: PPL_COLORS.legs },
-      {
-        label: "Bench",
-        value: e1("bench-press-barbell"),
-        color: PPL_COLORS.push,
-      },
-      {
-        label: "Deadlift",
-        value: e1("deadlift-barbell"),
-        color: PPL_COLORS.pull,
-      },
-    ];
-    // The ladder shows a rolling window — up to two clubs behind you plus the
-    // one you're chasing — so the scale stays readable now that the club list
-    // runs to 2,000 lb. Conquered clubs still count via achievedCount.
-    const nextIdx = feats.findIndex((f) => !f.unlocked);
-    const hiIdx = nextIdx === -1 ? feats.length - 1 : nextIdx;
-    const clubs = feats
-      .slice(Math.max(0, hiIdx - 2), hiIdx + 1)
-      .map((f) => ({ value: f.target, achieved: f.unlocked }));
-    const allUnlocked = feats.every((f) => f.unlocked);
-    // The biggest claimed club, as the REAL achievement — the widget shows its
-    // badge art and opens the shared achievement spotlight on tap.
-    const claimed = [...feats].reverse().find((f) => f.unlocked);
-    const currentClub = claimed
-      ? {
-          id: claimed.id,
-          title: claimed.title,
-          description: claimed.description,
-          icon: claimed.icon,
-          rarity: claimed.rarity,
-        }
-      : null;
-    return {
-      total,
-      lifts,
-      clubs,
-      nextTarget: allUnlocked ? 0 : next.target,
-      remaining: Math.max(0, next.target - total),
-      achievedCount: feats.filter((f) => f.unlocked).length,
-      allUnlocked,
-      currentClub,
-    };
-  }, [workoutHistory]);
 
   // Load saved view mode on mount
   useEffect(() => {
@@ -169,15 +70,10 @@ export default function HomeScreen() {
       // Ensure a profile exists before reading user-scoped data.
       await userService.getUserProfileOrDefault();
 
-      const [userProgressData, savedFilters, history] = await Promise.all([
+      const [userProgressData, savedFilters] = await Promise.all([
         userService.getAllFeaturedLifts(),
         storageService.getLiftDisplayFilters(),
-        storageService.getWorkoutHistory(),
       ]);
-
-      setUserProgress(userProgressData);
-      setLiftFilters(savedFilters);
-      setWorkoutHistory(history);
 
       // Surface the strength tier on the header (gamification).
       const visibleLifts = userProgressData.filter(
@@ -204,16 +100,6 @@ export default function HomeScreen() {
   const handleViewModeChange = async (mode: ViewMode) => {
     setViewMode(mode);
     await storageService.saveHomeViewMode(mode);
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    if (viewMode === "feed") {
-      setFeedRefreshTrigger((prev) => prev + 1);
-    } else {
-      await loadUserData();
-    }
-    setIsRefreshing(false);
   };
 
   // Check for pending strength progress on focus
@@ -329,19 +215,11 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ScrollView
+      <View
         style={[
           layout.flex1,
           { backgroundColor: currentTheme.colors.background },
         ]}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            tintColor={currentTheme.colors.primary}
-          />
-        }
       >
         <View
           style={[
@@ -362,40 +240,10 @@ export default function HomeScreen() {
           <NavRow
             label="View Leaderboards"
             onPress={() => setShowLeaderboard(true)}
+            style={styles.leaderboardRow}
           />
-
-          {/* Strength summary: relative (percentile/tier) + absolute (Big-3 total)
-              grouped as one block, split by a hairline divider. */}
-          <View>
-            <OverallStatsCard stats={overallStats} />
-            {powerliftingTotal && (
-              <>
-                <Divider style={styles.strengthDivider} />
-                <PowerliftingTotal data={powerliftingTotal} />
-              </>
-            )}
-          </View>
-
-          {userProgress.length > 0 && (
-            <>
-              <SectionLabel style={styles.sectionTitle}>
-                Your lifts
-              </SectionLabel>
-
-              <LiftDisplayFilter
-                availableLifts={userProgress}
-                onFiltersChanged={setLiftFilters}
-              />
-
-              <View style={styles.liftsList}>
-                {filteredProgress.map((progress) => (
-                  <WorkoutStatsCard key={progress.workoutId} stats={progress} />
-                ))}
-              </View>
-            </>
-          )}
         </View>
-      </ScrollView>
+      </View>
 
       <LeaderboardModal
         visible={showLeaderboard}
@@ -442,18 +290,13 @@ const styles = StyleSheet.create({
     padding: screenGutter,
     gap: space.md,
   },
-  liftsList: {
-    gap: space.xl,
-  },
   feedHeader: {
     paddingHorizontal: screenGutter,
     paddingBottom: space.sm,
   },
-  sectionTitle: {
-    marginBottom: 0,
-  },
-  strengthDivider: {
-    marginTop: space.xs,
-    marginBottom: space.md,
+  // Pull the row up toward the Today card's Start button — the uniform content
+  // gap plus the card's own bottom padding left too much air between them.
+  leaderboardRow: {
+    marginTop: -space.sm,
   },
 });

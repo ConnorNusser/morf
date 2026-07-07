@@ -1,4 +1,5 @@
 import Card from "@/components/Card";
+import Chip from "@/components/Chip";
 import ExerciseCard from "@/components/history/ExerciseCard";
 import ExerciseHistoryModal from "@/components/history/ExerciseHistoryModal";
 import LiftProgressWidget from "@/components/history/LiftProgressWidget";
@@ -6,27 +7,23 @@ import { buildPRDays } from "@/components/history/prSessions";
 import SessionsFeed from "@/components/history/SessionsFeed";
 import TopMovers from "@/components/history/TopMovers";
 import WorkoutDetailModal from "@/components/history/WorkoutDetailModal";
+import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import MonthlyTrendsModal from "@/components/MonthlyTrendsModal";
-import MuscleBalanceCard from "@/components/MuscleBalanceCard";
+import OverallStatsCard from "@/components/OverallStatsCard";
 import { Text, useInk, View } from "@/components/Themed";
-import Chip from "@/components/Chip";
 import Divider from "@/components/ui/Divider";
 import EmptyState from "@/components/ui/EmptyState";
 import NavRow from "@/components/ui/NavRow";
-import SectionLabel from "@/components/ui/SectionLabel";
 import SegmentedTabs from "@/components/ui/SegmentedTabs";
 import StatStrip from "@/components/ui/StatStrip";
 import WeeklyOverview from "@/components/WeeklyOverview";
 import { useCustomExercises } from "@/contexts/CustomExercisesContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
-import {
-  calculateStrengthPercentile,
-  FEMALE_STANDARDS,
-  getPercentileColor,
-  getStrengthTier,
-  MALE_STANDARDS,
-} from "@/lib/data/strengthStandards";
+import { PPL_COLORS } from "@/lib/data/pplCategories";
+import { getStrengthLevelName } from "@/lib/data/strengthStandards";
+import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
+import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
 import { attributeAchievements } from "@/lib/history/achievementAttribution";
 import { buildExerciseStats } from "@/lib/history/exerciseStats";
 import { computeExerciseTrend } from "@/lib/history/exerciseTrend";
@@ -41,14 +38,14 @@ import {
   screenGutter,
   scrollBottom,
   space,
-  tint,
-  track,
 } from "@/lib/ui/tokens";
 import { type as typeScale } from "@/lib/ui/typography";
+import { calculateOverallPercentile } from "@/lib/utils/utils";
 import {
   convertWeight,
   ExerciseWithMax,
   GeneratedWorkout,
+  UserProgress,
   WeightUnit,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -63,11 +60,12 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-type TabType = "workouts" | "exercises";
+type TabType = "overview" | "sessions" | "exercises";
 type ExerciseSort = "1rm" | "recent" | "name" | "improved";
 
 const TABS: { key: TabType; label: string }[] = [
-  { key: "workouts", label: "Workouts" },
+  { key: "overview", label: "Overview" },
+  { key: "sessions", label: "Sessions" },
   { key: "exercises", label: "Exercises" },
 ];
 
@@ -93,13 +91,16 @@ export default function HistoryScreen() {
   const router = useRouter();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>("workouts");
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   // History state
   const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
 
   // Exercise stats state
   const [exerciseStats, setExerciseStats] = useState<ExerciseWithMax[]>([]);
+
+  // Featured lifts → the strength summary's overall percentile.
+  const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
 
   // Modal states
   const [selectedWorkout, setSelectedWorkout] =
@@ -158,6 +159,15 @@ export default function HistoryScreen() {
     }
   }, [weightUnit, customExercises]);
 
+  // Featured lifts power the strength summary's overall percentile.
+  const loadStrength = useCallback(async () => {
+    try {
+      setUserProgress(await userService.getAllFeaturedLifts());
+    } catch (error) {
+      console.error("Error loading strength stats:", error);
+    }
+  }, []);
+
   // Pin achievements on the session that earned them — replayed from history
   // itself (see lib/history/achievementAttribution), so it's deterministic and
   // works retroactively with no unlock timestamps.
@@ -169,19 +179,21 @@ export default function HistoryScreen() {
   useEffect(() => {
     loadHistory();
     loadExerciseStats();
-  }, [loadHistory, loadExerciseStats]);
+    loadStrength();
+  }, [loadHistory, loadExerciseStats, loadStrength]);
 
   // Refresh data when screen comes into focus (e.g., after completing a workout)
   useFocusEffect(
     useCallback(() => {
       loadHistory();
       loadExerciseStats();
-    }, [loadHistory, loadExerciseStats]),
+      loadStrength();
+    }, [loadHistory, loadExerciseStats, loadStrength]),
   );
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadHistory(), loadExerciseStats()]);
+    await Promise.all([loadHistory(), loadExerciseStats(), loadStrength()]);
     setRefreshing(false);
   };
 
@@ -203,12 +215,8 @@ export default function HistoryScreen() {
     [workouts, customExercises, weightUnit, bodyweightLbs, gender, age],
   );
 
-  // Per-lift progression widget: best set per month for the lifts you've trained,
-  // RANKED by tier proximity × recent movement (the widget shows the top few and
-  // holds the rest behind an "All N lifts" expander). When the profile can support
-  // honest grading (bodyweight + gender), each standard lift also carries its
-  // CURRENT strength tier + progress-to-next-tier — the same percentile model Records
-  // below and the Career card already use.
+  // Per-lift monthly progression — best set per month per lift, ranked, for the
+  // "arrows" timeline below This Week. Graded lifts flip to their tier stake.
   const liftProgress = useMemo(
     () =>
       buildLiftProgressions(
@@ -222,6 +230,69 @@ export default function HistoryScreen() {
       ),
     [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age],
   );
+
+  // Strength summary — the aggregate percentile/tier the featured lifts roll up to.
+  const overallStats = useMemo(() => {
+    const pcts = userProgress.map((p) => p.percentileRanking);
+    const pct = pcts.length ? calculateOverallPercentile(pcts) : 0;
+    return {
+      overallPercentile: pct,
+      strengthLevel: pct > 0 ? getStrengthLevelName(pct) : "E-",
+      improvementTrend: "improving" as const,
+    };
+  }, [userProgress]);
+
+  // Powerlifting "big 3" total — combined best e1RM of squat + bench + deadlift,
+  // in lb. Reuses the same PR + feat math the Career screen does; no new tracking.
+  const powerliftingTotal = useMemo(() => {
+    if (!workouts.length) return null;
+    const prsLbs = computeMainLiftPRs(workouts, "lbs");
+    const feats = computeStrengthFeats(prsLbs);
+    const total = feats[0]?.current ?? 0;
+    if (total <= 0) return null;
+    const next = feats.find((f) => !f.unlocked) ?? feats[feats.length - 1];
+    const e1 = (id: string) =>
+      Math.round(prsLbs.find((p) => p.exerciseId === id)?.estimatedOneRM ?? 0);
+    const lifts = [
+      { label: "Squat", value: e1("squat-barbell"), color: PPL_COLORS.legs },
+      {
+        label: "Bench",
+        value: e1("bench-press-barbell"),
+        color: PPL_COLORS.push,
+      },
+      {
+        label: "Deadlift",
+        value: e1("deadlift-barbell"),
+        color: PPL_COLORS.pull,
+      },
+    ];
+    const nextIdx = feats.findIndex((f) => !f.unlocked);
+    const hiIdx = nextIdx === -1 ? feats.length - 1 : nextIdx;
+    const clubs = feats
+      .slice(Math.max(0, hiIdx - 2), hiIdx + 1)
+      .map((f) => ({ value: f.target, achieved: f.unlocked }));
+    const allUnlocked = feats.every((f) => f.unlocked);
+    const claimed = [...feats].reverse().find((f) => f.unlocked);
+    const currentClub = claimed
+      ? {
+          id: claimed.id,
+          title: claimed.title,
+          description: claimed.description,
+          icon: claimed.icon,
+          rarity: claimed.rarity,
+        }
+      : null;
+    return {
+      total,
+      lifts,
+      clubs,
+      nextTarget: allUnlocked ? 0 : next.target,
+      remaining: Math.max(0, next.target - total),
+      achievedCount: feats.filter((f) => f.unlocked).length,
+      allUnlocked,
+      currentClub,
+    };
+  }, [workouts]);
 
   // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
   // (calisthenics lifts have no 1RM but are still real, tracked exercises).
@@ -237,44 +308,15 @@ export default function HistoryScreen() {
   // PR chips so the whole ascending progression is surfaced, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
 
-  // Records strip — the "what ARE my records?" half of Q3, answered on the hub without a
-  // tab-hop. The top standard lifts by bodyweight percentile (not raw heaviest, so a
-  // huge leg-press doesn't crowd out a strong bench), each shown with its actual all-time
-  // est-1RM AND its normalized strength tier. The tier is the honest, comparative signal
-  // — it reuses the app's own percentile model, so it can go DOWN if bodyweight outpaces
-  // the bar, unlike a vanity total. Falls back to 1RM ordering when bodyweight is unknown.
-  const topRecords = useMemo(() => {
-    const stdMap = gender === "female" ? FEMALE_STANDARDS : MALE_STANDARDS;
-    const rows = trackedExercises
-      .filter(
-        (ex) =>
-          ex.metric === "weight" && ex.estimated1RM > 0 && !!stdMap[ex.id],
-      )
-      .map((ex) => {
-        const oneRmLbs =
-          weightUnit === "kg"
-            ? convertWeight(ex.estimated1RM, "kg", "lbs")
-            : ex.estimated1RM;
-        const pct =
-          bodyweightLbs && gender
-            ? Math.round(
-                calculateStrengthPercentile(
-                  oneRmLbs,
-                  bodyweightLbs,
-                  gender,
-                  ex.id,
-                  userProfile?.age,
-                ),
-              )
-            : null;
-        return { ex, pct };
-      });
-    rows.sort(
-      (a, b) =>
-        (b.pct ?? -1) - (a.pct ?? -1) || b.ex.estimated1RM - a.ex.estimated1RM,
-    );
-    return rows.slice(0, 3);
-  }, [trackedExercises, bodyweightLbs, gender, userProfile?.age, weightUnit]);
+  // Grading profile for the Exercises tab's per-lift tier/percentile — the same
+  // bodyweight + gender inputs the Career card and lift board use.
+  const grading = useMemo(
+    () =>
+      bodyweightLbs && gender
+        ? { bodyweightLbs, gender, age: userProfile?.age }
+        : null,
+    [bodyweightLbs, gender, userProfile?.age],
+  );
 
   // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
@@ -358,109 +400,32 @@ export default function HistoryScreen() {
         showsVerticalScrollIndicator={false}
         keyboardDismissMode="interactive"
       >
-        {activeTab === "workouts" ? (
+        {activeTab === "overview" ? (
           <>
+            {/* Strength summary — overall percentile/tier + Big-3 total, at the top. */}
             {workouts.length > 0 && (
-              <Card padding={panelPad}>
-                <LiftProgressWidget lifts={liftProgress} />
-                {liftProgress.length > 0 && sessionRecaps.length > 0 && (
-                  <Divider />
+              <View>
+                <OverallStatsCard stats={overallStats} />
+                {powerliftingTotal && (
+                  <>
+                    <Divider style={styles.strengthDivider} />
+                    <PowerliftingTotal data={powerliftingTotal} />
+                  </>
                 )}
-                <SessionsFeed
-                  recaps={sessionRecaps}
-                  weightUnit={weightUnit}
-                  visibleCount={showAllWorkouts ? sessionRecaps.length : 3}
-                  totalCount={sessionRecaps.length}
-                  onPressSession={setSelectedWorkout}
-                  onToggleShowAll={
-                    sessionRecaps.length > 3
-                      ? () => setShowAllWorkouts((v) => !v)
-                      : undefined
-                  }
-                  achievementsByWorkout={achievementsByWorkout}
-                />
-              </Card>
-            )}
-
-            {/* Records — the "what are my records?" half of Q3, on the hub. Up to three
-                headline lifts, each with its actual all-time est-1RM and normalized tier,
-                tappable straight into that lift's history. */}
-            {workouts.length > 0 && topRecords.length > 0 && (
-              <View style={styles.section}>
-                <SectionLabel>Records</SectionLabel>
-                <View style={styles.recordsStrip}>
-                  {topRecords.map(({ ex, pct }) => {
-                    const tierColor =
-                      pct != null
-                        ? getPercentileColor(pct)
-                        : currentTheme.colors.primary;
-                    return (
-                      <TouchableOpacity
-                        key={ex.id}
-                        style={[
-                          styles.recordCard,
-                          {
-                            backgroundColor: currentTheme.colors.surface,
-                            borderColor: currentTheme.colors.border,
-                          },
-                        ]}
-                        onPress={() => setSelectedExercise(ex)}
-                        activeOpacity={0.7}
-                      >
-                        <Text
-                          variant="meta"
-                          tone="secondary"
-                          weight="medium"
-                          numberOfLines={1}
-                        >
-                          {ex.name.replace(/\s*\([^)]*\)\s*$/, "").trim()}
-                        </Text>
-                        <View style={styles.recordValueRow}>
-                          <Text
-                            variant="title"
-                            tone="primary"
-                            weight="bold"
-                            style={styles.recordValue}
-                            numberOfLines={1}
-                          >
-                            {ex.estimated1RM}
-                          </Text>
-                          <Text variant="meta" tone="muted">
-                            {weightUnit}
-                          </Text>
-                        </View>
-                        {pct != null && (
-                          <View
-                            style={[
-                              styles.recordTierBadge,
-                              { backgroundColor: tint(tierColor) },
-                            ]}
-                          >
-                            <Text
-                              variant="meta"
-                              weight="semiBold"
-                              style={[
-                                styles.recordTierText,
-                                { color: tierColor },
-                              ]}
-                            >
-                              {getStrengthTier(pct)}
-                            </Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
               </View>
             )}
+
+            {/* Top Movers — the lifts trending up, as a quick highlight; tap through
+                to the Exercises tab for the full graded list. */}
             {workouts.length > 0 && (
-              <TopMovers
-                exercises={trackedExercises}
-                weightUnit={weightUnit}
-                onSelect={setSelectedExercise}
-                onSeeAll={() => setActiveTab("exercises")}
-              />
+              <View style={styles.section}>
+                <TopMovers
+                  exercises={trackedExercises}
+                  weightUnit={weightUnit}
+                  onSelect={setSelectedExercise}
+                  onSeeAll={() => setActiveTab("exercises")}
+                />
+              </View>
             )}
 
             {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
@@ -477,16 +442,13 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Muscle Balance — the cross-group "am I training in balance, or neglecting a
-                group?" answer (Q6), lifted OUT of the This Week volume card into its own
-                block. Driven by a trailing multi-week average of completed sets per muscle
-                (not one in-progress week), so a light Monday can't fire a false "neglect"
-                alarm and the verdict reflects a real trend that can still fall when a group
-                is dropped. */}
-            {workouts.length > 0 && (
-              <View style={styles.section}>
-                <MuscleBalanceCard workoutHistory={workouts} />
-              </View>
+            {/* Lift progression — best set per month per lift with arrows between,
+                so you can read "120 → 140 → 155" at a glance; graded rows flip to
+                the tier stake. */}
+            {workouts.length > 0 && liftProgress.length > 0 && (
+              <Card padding={panelPad} style={styles.section}>
+                <LiftProgressWidget lifts={liftProgress} />
+              </Card>
             )}
 
             {/* Secondary drill-downs — deeper analysis, below the primary content. */}
@@ -506,6 +468,38 @@ export default function HistoryScreen() {
                 icon="barbell-outline"
                 title="No workouts yet"
                 subtitle="Start logging to track your progress"
+                cta={{
+                  label: "Start a workout",
+                  icon: "add",
+                  onPress: () => router.push("/workout"),
+                }}
+              />
+            )}
+          </>
+        ) : activeTab === "sessions" ? (
+          <>
+            {/* Sessions Tab — the workout log, its own tab now. */}
+            {sessionRecaps.length > 0 ? (
+              <Card padding={panelPad}>
+                <SessionsFeed
+                  recaps={sessionRecaps}
+                  weightUnit={weightUnit}
+                  visibleCount={showAllWorkouts ? sessionRecaps.length : 5}
+                  totalCount={sessionRecaps.length}
+                  onPressSession={setSelectedWorkout}
+                  onToggleShowAll={
+                    sessionRecaps.length > 5
+                      ? () => setShowAllWorkouts((v) => !v)
+                      : undefined
+                  }
+                  achievementsByWorkout={achievementsByWorkout}
+                />
+              </Card>
+            ) : (
+              <EmptyState
+                icon="barbell-outline"
+                title="No sessions yet"
+                subtitle="Your workout log will show here"
                 cta={{
                   label: "Start a workout",
                   icon: "add",
@@ -594,7 +588,11 @@ export default function HistoryScreen() {
 
                 {liftsWithData.length > 0 ? (
                   <View style={styles.section}>
-                    <Text variant="meta" tone="faint" style={styles.resultCount}>
+                    <Text
+                      variant="meta"
+                      tone="faint"
+                      style={styles.resultCount}
+                    >
                       {liftsWithData.length} exercise
                       {liftsWithData.length !== 1 ? "s" : ""}
                     </Text>
@@ -603,6 +601,7 @@ export default function HistoryScreen() {
                         key={exercise.id}
                         exercise={exercise}
                         weightUnit={weightUnit}
+                        grading={grading}
                         onPress={setSelectedExercise}
                       />
                     ))}
@@ -664,14 +663,14 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   header: {
     paddingHorizontal: screenGutter,
-    paddingTop: space.md,
+    paddingTop: space.xs,
   },
   headerTitle: {
-    marginBottom: space.md,
+    marginBottom: space.sm,
   },
   scrollContent: {
     paddingHorizontal: screenGutter,
-    paddingTop: space.lg,
+    paddingTop: space.sm,
     paddingBottom: scrollBottom,
   },
   // Exercises tab: overview + search + sort
@@ -707,35 +706,10 @@ const styles = StyleSheet.create({
   section: {
     marginTop: space.section,
   },
-  // Records strip
-  recordsStrip: {
-    flexDirection: "row",
-    gap: space.md,
-  },
-  recordCard: {
-    flex: 1,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: space.lg,
-  },
-  recordValueRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: space.xs,
-    marginTop: space.sm,
-  },
-  recordValue: {
-    letterSpacing: track.display,
-  },
-  recordTierBadge: {
-    alignSelf: "flex-start",
-    marginTop: space.sm,
-    paddingHorizontal: space.sm,
-    paddingVertical: 2,
-    borderRadius: radius.badge,
-  },
-  recordTierText: {
-    letterSpacing: 0.3,
+  // Strength summary: hairline between overall-tier and the Big-3 total.
+  strengthDivider: {
+    marginTop: space.xs,
+    marginBottom: space.md,
   },
   // Monthly trends button
   monthlyTrendsButton: {

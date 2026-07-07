@@ -333,7 +333,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: space.xs,
     paddingTop: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   trendChip: {
     flexDirection: "row",

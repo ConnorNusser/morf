@@ -1,9 +1,18 @@
+import AnimatedBar from '@/components/AnimatedBar';
 import MiniSparkline from '@/components/MiniSparkline';
 import { Text, View, useInk } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { ExerciseWithMax, WeightUnit } from '@/types';
+import {
+  calculateStrengthPercentile,
+  FEMALE_STANDARDS,
+  getPercentileColor,
+  getStrengthTier,
+  MALE_STANDARDS,
+} from '@/lib/data/strengthStandards';
 import { computeExerciseTrend } from '@/lib/history/exerciseTrend';
 import { radius, space, tint, trend as trendColor } from '@/lib/ui/tokens';
+import { convertWeight, ExerciseWithMax, Gender, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -13,13 +22,21 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 const UP = trendColor.up;
 const DOWN = trendColor.down;
 
+// Enough profile to grade a lift against the published standards.
+export interface ExerciseGrading {
+  bodyweightLbs: number;
+  gender: Gender;
+  age?: number;
+}
+
 interface ExerciseCardProps {
   exercise: ExerciseWithMax;
   weightUnit: WeightUnit;
+  grading?: ExerciseGrading | null;
   onPress: (exercise: ExerciseWithMax) => void;
 }
 
-function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
+function ExerciseCard({ exercise, weightUnit, grading, onPress }: ExerciseCardProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
 
@@ -37,47 +54,83 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
     [exercise.history, weightUnit, isBodyweight]
   );
 
+  // Strength tier + percentile for standard weighted lifts, when the profile can
+  // support honest grading (bodyweight + gender). Same percentile model the Career
+  // card and the old Records strip use. Null for bodyweight/unranked lifts.
+  const grade = useMemo(() => {
+    if (isBodyweight || !grading || exercise.estimated1RM <= 0) return null;
+    const stdMap = grading.gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
+    if (!stdMap[exercise.id]) return null;
+    const oneRmLbs =
+      weightUnit === 'kg' ? convertWeight(exercise.estimated1RM, 'kg', 'lbs') : exercise.estimated1RM;
+    const pct = Math.round(
+      calculateStrengthPercentile(oneRmLbs, grading.bodyweightLbs, grading.gender, exercise.id, grading.age)
+    );
+    return { pct, tier: getStrengthTier(pct), color: getPercentileColor(pct) };
+  }, [exercise.id, exercise.estimated1RM, isBodyweight, grading, weightUnit]);
+
   return (
     <TouchableOpacity
-      style={[styles.liftCard, { borderColor: currentTheme.colors.border }]}
+      style={[styles.card, { borderColor: currentTheme.colors.border }]}
       onPress={() => onPress(exercise)}
       activeOpacity={0.7}
     >
-      <View style={styles.liftMain}>
-        <View style={styles.liftNameRow}>
-          <Text variant="body" tone="primary" weight="semiBold">
-            {exercise.name}
-          </Text>
-          {exercise.isCustom && (
-            <View style={[styles.customBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
-              <Text variant="meta" weight="medium">
-                Custom
-              </Text>
-            </View>
-          )}
+      <View style={styles.topRow}>
+        <View style={styles.main}>
+          <View style={styles.nameRow}>
+            <Text variant="title" tone="primary" weight="semiBold" numberOfLines={1} style={styles.name}>
+              {exercise.name}
+            </Text>
+            {exercise.isCustom && (
+              <View style={[styles.customBadge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                <Text variant="meta" weight="medium">
+                  Custom
+                </Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.statsRow}>
+            <Text variant="statHero" tone="primary" weight="bold">
+              {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
+            </Text>
+            <Text variant="meta" tone="muted" style={styles.statUnit}>
+              {isBodyweight ? 'reps' : `${weightUnit} · est. 1RM`}
+            </Text>
+            {trend.deltaDisplay > 0 && (
+              <View style={[styles.delta, { backgroundColor: tint(trend.isPositive ? UP : DOWN) }]}>
+                <Ionicons
+                  name={trend.isPositive ? 'arrow-up' : 'arrow-down'}
+                  size={11}
+                  color={trend.isPositive ? UP : DOWN}
+                />
+                <Text variant="meta" weight="semiBold" style={{ color: trend.isPositive ? UP : DOWN }}>
+                  {trend.deltaDisplay}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-        <View style={styles.liftStats}>
-          <Text variant="emphasis" tone="primary" weight="bold">
-            {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
-          </Text>
-          <Text variant="meta" tone="muted">
-            {isBodyweight ? ' reps' : ' est. 1RM'}
-          </Text>
-          {trend.deltaDisplay > 0 && (
-            <View style={[styles.deltaContainer, { backgroundColor: tint(trend.isPositive ? UP : DOWN) }]}>
-              <Text variant="meta" weight="semiBold" style={{ color: trend.isPositive ? UP : DOWN }}>
-                {trend.isPositive ? '+' : '-'}{trend.deltaDisplay}
-              </Text>
-            </View>
-          )}
+        <View style={styles.right}>
+          {grade && <TierBadge tier={grade.tier} size="small" showTooltip={false} />}
+          {trend.sparkline.length >= 2 && <MiniSparkline data={trend.sparkline} />}
         </View>
       </View>
-      <View style={styles.liftRight}>
-        {trend.sparkline.length >= 2 && (
-          <MiniSparkline data={trend.sparkline} />
-        )}
-        <Ionicons name="chevron-forward" size={16} color={ink.ghost} />
-      </View>
+
+      {/* Strength standing — the percentile bar, only for graded standard lifts. */}
+      {grade && (
+        <View style={styles.gradeRow}>
+          <AnimatedBar
+            progress={grade.pct / 100}
+            color={grade.color}
+            trackColor={ink.hairline}
+            height={6}
+            style={styles.gradeBar}
+          />
+          <Text variant="meta" tone="muted" weight="medium" style={styles.gradePct}>
+            {grade.pct}th pct
+          </Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -85,39 +138,35 @@ function ExerciseCard({ exercise, weightUnit, onPress }: ExerciseCardProps) {
 export default React.memo(ExerciseCard);
 
 const styles = StyleSheet.create({
-  liftCard: {
+  // Bigger, richer rows: a two-line main block + an optional percentile bar.
+  card: {
     paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: space.md,
   },
-  liftMain: {
-    flex: 1,
-  },
-  liftNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    marginBottom: space.xs,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center' },
+  main: { flex: 1, gap: space.xs },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  name: { flexShrink: 1 },
   customBadge: {
     paddingHorizontal: space.xs,
     paddingVertical: 1,
     borderRadius: radius.badge,
   },
-  liftStats: {
+  statsRow: { flexDirection: 'row', alignItems: 'baseline' },
+  statUnit: { marginLeft: space.xs },
+  delta: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  deltaContainer: {
+    gap: 1,
     marginLeft: space.md,
     paddingHorizontal: space.sm,
     paddingVertical: 2,
     borderRadius: radius.badge,
+    alignSelf: 'center',
   },
-  liftRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-  },
+  right: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  gradeRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  gradeBar: { flex: 1 },
+  gradePct: { minWidth: 54, textAlign: 'right' },
 });

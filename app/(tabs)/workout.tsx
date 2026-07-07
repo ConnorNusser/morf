@@ -576,7 +576,7 @@ export default function WorkoutScreen() {
             />
           )}
           {hasWorkoutStarted && draft.length === 0 && (
-            <RNView style={styles.empty}>
+            <RNView style={styles.empty} pointerEvents="none">
               <Ionicons name="barbell-outline" size={56} color={ink.ghost} />
               <Text variant="heading" weight="semiBold" tone="primary" style={styles.emptyTitle}>
                 Empty workout
