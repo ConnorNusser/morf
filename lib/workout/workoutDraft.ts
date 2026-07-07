@@ -5,7 +5,7 @@
 // finish/save/persistence pipeline keeps working unchanged.
 import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { WeightUnit } from '@/types';
+import { RoutineExercise, WeightUnit } from '@/types';
 
 export interface DraftSet {
   weight: number;
@@ -113,13 +113,20 @@ export function totalSets(draft: WorkoutDraft): number {
  *  The draft already is the structured workout, so finishing is deterministic. */
 export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
   const exercises: ParsedExercise[] = draft
-    .filter(ex => ex.sets.length > 0)
     .map(ex => ({
       name: ex.name,
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
-      sets: ex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: !!s.done })),
-    }));
+      // Only log sets the user actually performed. Sets explicitly left un-done
+      // (routine prescriptions/added rows never checked off) are dropped so they
+      // don't land in history. `done === undefined` (freeform text/voice, which
+      // arrive already-performed) counts as done.
+      sets: ex.sets
+        .filter(s => s.done !== false)
+        .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true })),
+    }))
+    // Drop exercises with nothing performed.
+    .filter(ex => ex.sets.length > 0);
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
 }
 
@@ -234,4 +241,57 @@ export function removeSet(draft: WorkoutDraft, key: string, index: number): Work
 
 export function removeExercise(draft: WorkoutDraft, key: string): WorkoutDraft {
   return draft.filter(ex => ex.key !== key);
+}
+
+/** Move an exercise one slot up (dir -1) or down (dir +1); no-op at the ends. */
+export function moveExercise(draft: WorkoutDraft, key: string, dir: -1 | 1): WorkoutDraft {
+  const from = draft.findIndex(ex => ex.key === key);
+  if (from < 0) return draft;
+  const to = from + dir;
+  if (to < 0 || to >= draft.length) return draft;
+  const next = [...draft];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
+// ---- routine sync: fold a finished draft back into its routine prescription ----
+
+/** Build a routine's exercise list from the current draft — captures the draft's
+ *  order, per-exercise set count, and reps. Routines store no weights (they're
+ *  computed from your records), so only structure carries over. Only exercises
+ *  with a resolved id can live in a routine; freeform/unrecognized ones are
+ *  dropped. Warmup flags and notes are preserved from the previous routine by
+ *  matching exerciseId. */
+export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExercise[]): RoutineExercise[] {
+  return draft
+    .filter(ex => ex.exerciseId && ex.sets.length > 0)
+    .map(ex => {
+      const existing = prev.find(p => p.exerciseId === ex.exerciseId);
+      return {
+        exerciseId: ex.exerciseId as string,
+        exerciseName: ex.name,
+        sets: ex.sets.map((s, i) => ({ reps: s.reps, isWarmup: existing?.sets[i]?.isWarmup })),
+        intensityModifier: existing?.intensityModifier,
+        notes: existing?.notes,
+      };
+    });
+}
+
+/** True when folding the draft into the routine would actually change it —
+ *  exercise set (added/removed), order, set counts, or reps all count. Drives the
+ *  pre-finish "update your routine?" prompt so it only appears when there's a diff. */
+export function routineDiffersFromDraft(draft: WorkoutDraft, prev: RoutineExercise[]): boolean {
+  const next = draftToRoutineExercises(draft, prev);
+  if (next.length !== prev.length) return true;
+  for (let i = 0; i < next.length; i++) {
+    const a = next[i];
+    const b = prev[i];
+    if (a.exerciseId !== b.exerciseId) return true;
+    if (a.sets.length !== b.sets.length) return true;
+    for (let j = 0; j < a.sets.length; j++) {
+      if (a.sets[j].reps !== b.sets[j].reps) return true;
+    }
+  }
+  return false;
 }

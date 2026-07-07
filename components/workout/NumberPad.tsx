@@ -9,8 +9,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space, track } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import Animated, { SlideInDown } from 'react-native-reanimated';
 
 interface NumberPadProps {
   visible: boolean;
@@ -37,8 +38,17 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   const ink = useInk();
   const [buffer, setBuffer] = useState(fmt(value));
 
-  // Reseed whenever the target field changes (new set / weight↔reps).
-  useEffect(() => { setBuffer(fmt(value)); }, [seedKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reseed only when the target field actually *changes* (weight↔reps within an
+  // open pad) — NOT on mount. The useState initializer already seeds the buffer;
+  // a mount-time reseed could land after the first keystroke and wipe it, which
+  // is what made the first digit press appear to do nothing.
+  const lastSeed = useRef(seedKey);
+  useEffect(() => {
+    if (lastSeed.current !== seedKey) {
+      lastSeed.current = seedKey;
+      setBuffer(fmt(value));
+    }
+  }, [seedKey, value]);
 
   // The committed value is pushed on move-on (Next/Done/dismiss); `onLiveChange`
   // additionally reports every keystroke so the workout behind the pad can mirror
@@ -75,9 +85,13 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={dismiss}>
+    // animationType="none": the native slide presentation eats the first touch
+    // while it runs (~300ms), so the first digit tap was being dropped. We slide
+    // the sheet ourselves with Reanimated (entering runs on the UI thread and
+    // doesn't block the JS touch handler), keeping the polish without the swallow.
+    <Modal visible={visible} transparent animationType="none" onRequestClose={dismiss}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={dismiss} />
-      <RNView style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+      <Animated.View entering={SlideInDown.duration(220)} style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
         <RNView style={styles.readout}>
           <Text variant="meta" tone="muted" weight="bold" style={styles.label}>{label}</Text>
           <Text tone="primary" style={styles.value}>
@@ -115,7 +129,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
           onPress={() => { flush(); if (hasNext) onNext(); else onDone(); }}
           style={styles.done}
         />
-      </RNView>
+      </Animated.View>
     </Modal>
   );
 }

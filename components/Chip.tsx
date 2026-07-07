@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { readableInkOn } from '@/lib/ui/contrast';
 import { radius, space } from '@/lib/ui/tokens';
 import React from 'react';
 import { StyleSheet, TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
@@ -49,8 +50,11 @@ function Chip({
       <Text
         variant="meta"
         tone={selected ? undefined : 'secondary'}
-        weight={selected ? 'semiBold' : 'medium'}
-        style={[selected && { color: currentTheme.colors.background }, textStyle]}
+        // Weight is held constant across states: the fill + ink already carry the
+        // selected emphasis, and flipping medium→semiBold changed the label's
+        // glyph width, resizing the pill and reflowing its neighbors on select.
+        weight="medium"
+        style={[selected && { color: readableInkOn(currentTheme.colors.primary) }, textStyle]}
       >
         {label}
       </Text>

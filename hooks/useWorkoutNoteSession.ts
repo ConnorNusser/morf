@@ -18,10 +18,13 @@ import {
   addSet as addSetToDraft,
   buildDraft,
   draftToNoteText,
+  draftToRoutineExercises,
   mergeParsed,
+  moveExercise as moveExerciseInDraft,
   previewSetEdit as previewSetEditInDraft,
   removeExercise as removeExerciseFromDraft,
   removeSet as removeSetFromDraft,
+  routineDiffersFromDraft,
   toggleSetDone as toggleSetDoneInDraft,
   updateSet as updateSetInDraft,
 } from '@/lib/workout/workoutDraft';
@@ -59,7 +62,12 @@ export interface UseWorkoutNoteSessionReturn {
   removeSetFrom: (key: string, index: number) => void;
   toggleSetDone: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
+  moveExercise: (key: string, dir: -1 | 1) => void;
   dismissAutofill: (key: string) => void;
+  getPreviousSets: (exerciseId?: string) => DraftSet[] | null;
+  // Routine sync (pre-finish confirmation): detect a diff, then fold it back.
+  getStartedRoutineChange: () => Promise<{ name: string } | null>;
+  syncStartedRoutine: () => Promise<void>;
 
   // Derived note text (serialized draft) — feeds the finish/save pipeline.
   noteText: string;
@@ -136,6 +144,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
   const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
+  // Reorder an exercise up/down. When the session came from a routine, the new
+  // order can be folded back into the routine at finish (see confirmRoutineSync).
+  const moveExercise = useCallback((key: string, dir: -1 | 1) => setDraft(d => moveExerciseInDraft(d, key, dir)), []);
   // Dismiss = start filling manually (a blank set).
   const dismissAutofill = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
 
@@ -214,6 +225,45 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setDraft(buildDraft(parsed, { asTarget: true }));
     setStartedRoutineId(routine.id);
   }, [customExercises]);
+
+  // Previous-session reference for an exercise (its last completed sets), in the
+  // preferred unit — surfaced as a muted "prev" hint on each set row of the log.
+  const getPreviousSets = useCallback(
+    (exerciseId?: string): DraftSet[] | null =>
+      exerciseId ? getLastSetsFor(exerciseId, history, weightUnit) : null,
+    [history, weightUnit],
+  );
+
+  // For the pre-finish "update your routine?" prompt: whether folding the current
+  // draft back into its source routine would actually change it (returns the
+  // routine name when so, else null — including when this wasn't a routine run).
+  const getStartedRoutineChange = useCallback(async (): Promise<{ name: string } | null> => {
+    if (!startedRoutineId) return null;
+    try {
+      const routine = (await storageService.getRoutines()).find(r => r.id === startedRoutineId);
+      if (!routine) return null;
+      return routineDiffersFromDraft(draft, routine.exercises) ? { name: routine.name } : null;
+    } catch (e) {
+      console.error('Error diffing routine against workout:', e);
+      return null;
+    }
+  }, [startedRoutineId, draft]);
+
+  // Fold the finished draft's structure (exercise set, order, set counts, reps)
+  // back into its source routine. Called only when the user confirms the prompt.
+  const syncStartedRoutine = useCallback(async () => {
+    if (!startedRoutineId) return;
+    try {
+      const routine = (await storageService.getRoutines()).find(r => r.id === startedRoutineId);
+      if (!routine) return;
+      await storageService.saveRoutine({
+        ...routine,
+        exercises: draftToRoutineExercises(draft, routine.exercises),
+      });
+    } catch (e) {
+      console.error('Error updating routine from workout:', e);
+    }
+  }, [startedRoutineId, draft]);
 
   // Parse some text and merge it into the draft. Local parse first (free /
   // instant); fall back to the AI parser when local can't *reasonably* read it —
@@ -795,7 +845,11 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,
+    moveExercise,
     dismissAutofill,
+    getPreviousSets,
+    getStartedRoutineChange,
+    syncStartedRoutine,
     noteText,
 
     // Timer state
