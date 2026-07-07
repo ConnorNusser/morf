@@ -484,11 +484,12 @@ export default function HistoryScreen() {
                 <SessionsFeed
                   recaps={sessionRecaps}
                   weightUnit={weightUnit}
-                  visibleCount={showAllWorkouts ? sessionRecaps.length : 5}
+                  prDays={prDays}
+                  visibleCount={showAllWorkouts ? sessionRecaps.length : 3}
                   totalCount={sessionRecaps.length}
                   onPressSession={setSelectedWorkout}
                   onToggleShowAll={
-                    sessionRecaps.length > 5
+                    sessionRecaps.length > 3
                       ? () => setShowAllWorkouts((v) => !v)
                       : undefined
                   }
