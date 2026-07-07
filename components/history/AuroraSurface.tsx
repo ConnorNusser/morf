@@ -81,7 +81,7 @@ interface AuroraSurfaceProps {
  * A rounded card whose background is a living aurora: drifting gradient blobs
  * (theme primary/accent) smeared by a blur layer, a legibility scrim, and an
  * optional shimmer sweep. Measures itself so blob placement scales to any
- * height — shared by HistoryHero and WeeklyOverview.
+ * height — used by HistoryHero.
  */
 export function AuroraSurface({ children, style, contentStyle }: AuroraSurfaceProps) {
   const { currentTheme } = useTheme();

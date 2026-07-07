@@ -19,7 +19,7 @@ import { layout } from '@/lib/ui/styles';
 import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
 import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
 import { getPendingQuickStart } from '@/lib/workout/pendingRoutine';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useRestTimer } from '@/hooks/useRestTimer';
 import { useWorkoutNoteSession } from '@/hooks/useWorkoutNoteSession';
 import {
@@ -97,6 +97,17 @@ export default function WorkoutScreen() {
     prefillWorkout,
     startEmptyWorkout,
   } = useWorkoutNoteSession();
+  const router = useRouter();
+
+  // After the finish celebration is dismissed, land the user where the reward is:
+  // a strength win (PR / achievement / percentile move) → History, where the bars
+  // sweep up from the pre-workout values. Otherwise → the feed (Home in feed mode),
+  // where their just-posted workout sits at the top, primed for kudos — always
+  // non-flat, unlike a History screen that didn't move.
+  const handleFinishAndCelebrate = useCallback((strengthWin: boolean) => {
+    handleFinishComplete();
+    router.replace(strengthWin ? '/(tabs)/history?celebrate=1' : '/(tabs)?feed=1');
+  }, [handleFinishComplete, router]);
   const { showAlert } = useAlert();
   // Always-current draft, so imperative handlers (number pad) can read the latest
   // sets without stale-closure surprises.
@@ -683,7 +694,7 @@ export default function WorkoutScreen() {
         weightUnit={weightUnit}
         onSave={handleSaveWorkout}
         onCancel={handleFinishCancel}
-        onComplete={handleFinishComplete}
+        onComplete={handleFinishAndCelebrate}
       />
 
       {/* Plan Builder Modal */}

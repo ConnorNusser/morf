@@ -28,6 +28,7 @@ import { screenGutter, scrollBottom, space } from "@/lib/ui/tokens";
 import { calculateOverallPercentile } from "@/lib/utils/utils";
 import { RemoteUser } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,6 +41,8 @@ export default function HomeScreen() {
   const contentTopPadding = insets.top;
   const { currentTheme, setThemeLevel } = useTheme();
   const { userProfile } = useUser();
+  const router = useRouter();
+  const { feed: feedParam } = useLocalSearchParams<{ feed?: string }>();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [pendingProgress, setPendingProgress] =
     useState<PendingStrengthProgress | null>(null);
@@ -149,6 +152,18 @@ export default function HomeScreen() {
       checkPendingProgress();
       checkUnlockNotifications();
     }, [checkPendingProgress, checkUnlockNotifications]),
+  );
+
+  // Post-workout (no strength win) lands here with ?feed=1 — drop straight into the
+  // feed so the just-posted workout is the first thing seen. Transient: we flip the
+  // view without persisting the preference, then clear the param so a later visit
+  // respects the saved default.
+  useFocusEffect(
+    useCallback(() => {
+      if (!feedParam) return;
+      setViewMode("feed");
+      router.setParams({ feed: "" });
+    }, [feedParam, router]),
   );
 
   if (isLoading) {

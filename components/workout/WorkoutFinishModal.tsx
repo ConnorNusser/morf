@@ -45,7 +45,10 @@ interface WorkoutFinishModalProps {
   weightUnit?: WeightUnit;
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
   onCancel?: () => void;
-  onComplete?: () => void;
+  // strengthWin = this session moved the needle (a PR, a new achievement, or the
+  // overall percentile). The caller uses it to route: a win → History (bar sweep),
+  // otherwise → the feed (the posted workout + kudos).
+  onComplete?: (strengthWin: boolean) => void;
 }
 
 // Static Morph logo
@@ -84,6 +87,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
+  // Whether this session earned a strength win (PR / achievement / percentile move).
+  const [strengthWin, setStrengthWin] = useState(false);
 
   // Parse workout when modal opens
   useEffect(() => {
@@ -92,6 +97,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setParsedWorkout(null);
       setError(null);
       setSessionRewards(null);
+      setStrengthWin(false);
 
       const parseWorkout = async () => {
         try {
@@ -154,6 +160,9 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
+        // A strength win = a PR/achievement this session, or the overall percentile
+        // actually moved. Drives the post-celebration destination (History vs feed).
+        setStrengthWin(rewards.hasRewards || overallAfter !== overallBefore);
 
         // This is the primary celebration moment — acknowledge the unlocks here
         // so the Profile badge doesn't re-celebrate them.
@@ -183,8 +192,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const handleDone = useCallback(() => {
     playTap();
     playHapticFeedback('light', false);
-    onComplete?.();
-  }, [onComplete, playTap]);
+    onComplete?.(strengthWin);
+  }, [onComplete, playTap, strengthWin]);
 
   // Get the exercises to display
   const displayExercises = useMemo(() => {
