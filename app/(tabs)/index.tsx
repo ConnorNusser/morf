@@ -230,37 +230,33 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ScrollView
+      <View
         style={[
+          styles.content,
           layout.flex1,
-          { backgroundColor: currentTheme.colors.background },
+          {
+            backgroundColor: currentTheme.colors.background,
+            paddingTop: contentTopPadding,
+          },
         ]}
-        contentContainerStyle={styles.scrollContent}
       >
-        <View
-          style={[
-            styles.content,
-            { paddingTop: contentTopPadding },
-          ]}
-        >
-          <DashboardHeader
-            viewMode={viewMode}
-            onViewModeChange={handleViewModeChange}
-            stats={lifetimeStats ?? undefined}
-            onTierPress={() => setShowCareer(true)}
-          />
+        <DashboardHeader
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          stats={lifetimeStats ?? undefined}
+          onTierPress={() => setShowCareer(true)}
+        />
 
-          <WeeklyGoalCard />
-          <TodayCard />
+        <WeeklyGoalCard />
+        <TodayCard />
 
-          <NavRow
-            label="View Leaderboards"
-            icon="trophy-outline"
-            variant="card"
-            onPress={() => setShowLeaderboard(true)}
-          />
-        </View>
-      </ScrollView>
+        <NavRow
+          label="View Leaderboards"
+          icon="trophy-outline"
+          variant="card"
+          onPress={() => setShowLeaderboard(true)}
+        />
+      </View>
 
       <LeaderboardModal
         visible={showLeaderboard}
@@ -305,7 +301,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: screenGutter,
-    gap: space.md,
+    gap: space.sm,
   },
   feedHeader: {
     paddingHorizontal: screenGutter,

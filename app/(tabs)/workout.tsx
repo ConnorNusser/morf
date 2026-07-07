@@ -168,13 +168,23 @@ export default function WorkoutScreen() {
 
   // Collapse the tab-bar clearance under the composer while the keyboard is up.
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  // Measured keyboard height so the floating dock can pad itself above the
+  // keyboard directly — KeyboardAvoidingView's padding doesn't reliably move an
+  // absolutely-positioned child, which left the active input stuck behind it.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   useEffect(() => {
     const showEvt =
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvt =
       Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const show = Keyboard.addListener(showEvt, () => setKeyboardVisible(true));
-    const hide = Keyboard.addListener(hideEvt, () => setKeyboardVisible(false));
+    const show = Keyboard.addListener(showEvt, (e) => {
+      setKeyboardVisible(true);
+      setKeyboardHeight(e.endCoordinates?.height ?? 0);
+    });
+    const hide = Keyboard.addListener(hideEvt, () => {
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+    });
     return () => {
       show.remove();
       hide.remove();
@@ -183,6 +193,9 @@ export default function WorkoutScreen() {
 
   // Discard the current workout (from the Cancel button), with a confirm.
   const handleDiscard = useCallback(() => {
+    // Dismiss the composer keyboard before the confirmation alert.
+    noteInputRef.current?.blur();
+    Keyboard.dismiss();
     showAlert({
       title: "Discard workout?",
       message:
@@ -586,7 +599,10 @@ export default function WorkoutScreen() {
     >
       <KeyboardAvoidingView
         style={layout.flex1}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        // No behavior: the only keyboard-avoided surface is the floating dock,
+        // which lifts itself via measured keyboardHeight (below). Padding here
+        // would push the top content and double-offset the dock.
+        behavior={undefined}
         keyboardVerticalOffset={0}
       >
         {/* Header — overflow (utilities) · timer/title · Finish */}
@@ -818,8 +834,18 @@ export default function WorkoutScreen() {
 
         {/* Floating composer dock — overlays the list bottom so the workout uses the
             full height and scrolls behind it. box-none lets taps fall through the
-            transparent area to the list; only the pill/mic/send capture touches. */}
-        <RNView style={styles.composerDock} pointerEvents="box-none">
+            transparent area to the list; only the pill/mic/send capture touches.
+            iOS: pad by keyboardHeight to lift the bar above the keyboard (dock is
+            anchored to bottom:0). Android already lifts it via adjustResize
+            (windowSoftInputMode=resize), so padding there would double-offset. */}
+        <RNView
+          style={[
+            styles.composerDock,
+            Platform.OS === "ios" &&
+              keyboardVisible && { paddingBottom: keyboardHeight },
+          ]}
+          pointerEvents="box-none"
+        >
           {composerOpen ? (
             <>
               {/* Predictive card — previews the paused composer text, tap to commit */}
