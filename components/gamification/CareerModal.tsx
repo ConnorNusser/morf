@@ -338,12 +338,11 @@ function RecentAchievementsView({
           Log a workout to start earning achievements — your latest will show up here.
         </Text>
       ) : (
-        <View style={styles.grid}>
+        <View style={styles.recentGrid}>
           {recent.map(a => (
-            <AchievementTile
+            <RecentAchievementTile
               key={a.id}
               achievement={a}
-              isNew={false}
               onPress={() => setSpotlight(toSpotlight(a))}
             />
           ))}
@@ -778,6 +777,32 @@ function AchievementGridView({ achievements, newIds }: { achievements: Achieveme
 
 const ACH_TILE_HEIGHT = 150;
 
+// Compact unlocked-only tile for the Recent achievements strip — 3 per row, badge + title, barely taller than a stat row.
+function RecentAchievementTile({ achievement, onPress }: { achievement: Achievement; onPress: () => void }) {
+  const r = RARITY_META[achievement.rarity].accent;
+  const display = achievementDisplay(achievement);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={display.title}
+      style={[styles.recentTile, { backgroundColor: withAlpha(r, 'hairline'), borderColor: withAlpha(r, 'faint') }]}
+    >
+      <AchievementBadge
+        icon={display.icon}
+        emblem={emblemFor(achievement.id)}
+        rarity={achievement.rarity}
+        unlocked
+        size={30}
+      />
+      <Text variant="meta" tone="primary" weight="semiBold" style={styles.recentTitle} numberOfLines={2}>
+        {display.title}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 function AchievementTile({ achievement, isNew, onPress }: { achievement: Achievement; isNew: boolean; onPress: () => void }) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -935,6 +960,17 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space.md },
+  recentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  recentTile: {
+    width: '31.5%',
+    borderRadius: radius.card,
+    borderWidth: 1,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.xs,
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  recentTitle: { textAlign: 'center' },
   comparison: { textAlign: 'center', marginTop: space.md, fontStyle: 'italic' },
 
   bestsRow: { flexDirection: 'row', gap: space.md },
