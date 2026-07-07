@@ -120,8 +120,11 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   const { newAchievements } = rewards;
   const shownAch = newAchievements.slice(0, 3);
 
+  // No artificial delay: rewards are computed asynchronously and this section only
+  // mounts once they land (often already past a fixed 450ms window), so a delay
+  // just made it lag. Fade in as soon as it appears.
   return (
-    <Animated.View entering={FadeIn.delay(450)} style={styles.rewardsSection}>
+    <Animated.View entering={FadeIn.duration(400)} style={styles.rewardsSection}>
       {shownAch.length > 0 && (
         <View style={styles.achList}>
           {shownAch.map(a => (
@@ -154,9 +157,12 @@ const Particle = ({ delay, startX, color }: { delay: number; startX: number; col
     );
     const drift = (Math.random() - 0.5) * 100;
     translateX.value = withDelay(delay, withTiming(startX + drift, { duration: 3000 }));
+    // Spin only while falling, then stop. This used to be an infinite withRepeat,
+    // so all 30 particles kept spinning on the UI thread for as long as the screen
+    // stayed mounted (well after they'd faded out) — a needless, janky drain.
     rotate.value = withDelay(
       delay,
-      withRepeat(withTiming(360, { duration: 1000 }), -1, false)
+      withTiming(360 * 3, { duration: 3000, easing: Easing.linear })
     );
     opacity.value = withDelay(delay + 2000, withTiming(0, { duration: 1000 }));
   // eslint-disable-next-line react-hooks/exhaustive-deps -- Animation runs once on mount
@@ -224,10 +230,24 @@ const AnimatedCounter = ({
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(() => setDisplayValue(value), delay + duration);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value]);
+    // Actually count up from 0 → value over `duration` (after `delay`), instead of
+    // sitting on 0 and hard-jumping to the final number once the timeout fires
+    // (which also left the value blank if the screen was dismissed early).
+    let raf = 0;
+    let start: number | null = null;
+    const begin = setTimeout(() => {
+      const tick = (now: number) => {
+        if (start === null) start = now;
+        const p = duration > 0 ? Math.min(1, (now - start) / duration) : 1;
+        // easeOutCubic for a snappy settle
+        const eased = 1 - Math.pow(1 - p, 3);
+        setDisplayValue(Math.round(value * eased));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, delay);
+    return () => { clearTimeout(begin); if (raf) cancelAnimationFrame(raf); };
+  }, [value, delay, duration]);
 
   return (
     <Text style={style}>

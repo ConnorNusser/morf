@@ -239,8 +239,9 @@ export default function HomeScreen() {
 
           <NavRow
             label="View Leaderboards"
+            icon="trophy-outline"
+            variant="card"
             onPress={() => setShowLeaderboard(true)}
-            style={styles.leaderboardRow}
           />
         </View>
       </View>
@@ -293,10 +294,5 @@ const styles = StyleSheet.create({
   feedHeader: {
     paddingHorizontal: screenGutter,
     paddingBottom: space.sm,
-  },
-  // Pull the row up toward the Today card's Start button — the uniform content
-  // gap plus the card's own bottom padding left too much air between them.
-  leaderboardRow: {
-    marginTop: -space.sm,
   },
 });

@@ -1,5 +1,6 @@
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { readableInkOn } from '@/lib/ui/contrast';
 import { radius } from '@/lib/ui/tokens';
 import playHapticFeedback, { type HapticType } from '@/lib/utils/haptic';
 import { getSound, type SoundName } from '@/lib/utils/sounds';
@@ -110,7 +111,7 @@ function Button({
             textAlign: 'center',
             color:
               variant === 'primary'
-                ? currentTheme.colors.background
+                ? readableInkOn(currentTheme.colors.primary)
                 : currentTheme.colors.text,
           },
           textStyle,

@@ -117,14 +117,28 @@ describe('smart prefill', () => {
 });
 
 describe('draftToParsedWorkout', () => {
-  it('carries each set\'s done state into completed', () => {
-    let d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' });
-    d = toggleSetDone(d, d[0].key, 0); // mark only the first set done
+  it('drops sets left explicitly un-done, keeping only performed ones', () => {
+    // Routine/target sets start done:false; only the ones checked off should log.
+    let d = buildDraft({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' }, { asTarget: true });
+    d = toggleSetDone(d, d[0].key, 0); // check off only the first set
     const parsed = draftToParsedWorkout(d);
+    expect(parsed.exercises[0].sets).toHaveLength(1);
     expect(parsed.exercises[0].sets[0].completed).toBe(true);
-    expect(parsed.exercises[0].sets[1].completed).toBe(false);
   });
 
+  it('treats freeform sets (done undefined) as performed', () => {
+    // Composer/voice sets arrive already-done (done undefined) and must be kept.
+    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' });
+    const parsed = draftToParsedWorkout(d);
+    expect(parsed.exercises[0].sets).toHaveLength(2);
+    expect(parsed.exercises[0].sets.every(s => s.completed)).toBe(true);
+  });
+
+  it('drops an exercise with no performed sets entirely', () => {
+    const d = buildDraft({ exercises: [ex('Bench', [[135, 8]])], confidence: 1, rawText: '' }, { asTarget: true });
+    // never checked off → nothing performed
+    expect(draftToParsedWorkout(d).exercises).toHaveLength(0);
+  });
 });
 
 describe('totalVolume', () => {

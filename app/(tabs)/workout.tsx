@@ -55,11 +55,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 // sits clear of it (the bar overlays content). Collapsed when the keyboard is up.
 const TAB_BAR_CLEARANCE = 85;
 
-// True when (key,index) is the only set still not done across the whole workout —
-// i.e. completing it empties the queue. Used to spawn a "keep going" bonus set.
-const isLastRemainingSet = (draft: DraftExercise[], key: string, index: number): boolean =>
-  draft.every(e => e.sets.every((s, i) => s.done || (e.key === key && i === index)));
-
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -80,6 +75,10 @@ export default function WorkoutScreen() {
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,
+    moveExercise,
+    getPreviousSets,
+    getStartedRoutineChange,
+    syncStartedRoutine,
 
     noteText,
     elapsedTime,
@@ -257,9 +256,9 @@ export default function WorkoutScreen() {
     }, [handleQuickStart]),
   );
 
-  // Checking a set off (becoming done) auto-starts the rest countdown. When it was
-  // the last remaining set, append a copy so you can keep going past the plan —
-  // the Live Activity then resumes onto that bonus set instead of disappearing.
+  // Checking a set off (becoming done) auto-starts the rest countdown and surfaces
+  // the full rest screen. Sets are never auto-appended — add more with the explicit
+  // "Add set" button — so incomplete phantom sets can't pile up in history.
   const handleToggleDone = useCallback((key: string, index: number) => {
     const ex = draft.find(e => e.key === key);
     const set = ex?.sets[index];
@@ -267,9 +266,9 @@ export default function WorkoutScreen() {
     toggleSetDone(key, index);
     if (becomingDone) {
       startRestTimer(120, { exerciseName: ex?.name });
-      if (isLastRemainingSet(draft, key, index)) addSetTo(key);
+      setIsTimerExpanded(true);
     }
-  }, [draft, toggleSetDone, startRestTimer, addSetTo]);
+  }, [draft, toggleSetDone, startRestTimer]);
 
   // Commit the composer text into the structured workout.
   const handleComposerSend = useCallback(() => {
@@ -298,6 +297,11 @@ export default function WorkoutScreen() {
 
   // UI state (modals, expanded timer)
   const [isTimerExpanded, setIsTimerExpanded] = useState(false);
+  // When a rest ends (countdown hits zero, skipped, or added-time expires), fold
+  // the expanded rest screen back down — the panel only makes sense while resting.
+  useEffect(() => {
+    if (!isResting) setIsTimerExpanded(false);
+  }, [isResting]);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   // Which set field the custom number pad is editing.
@@ -366,11 +370,11 @@ export default function WorkoutScreen() {
     if (set && !set.done) {
       editSet(editing.key, editing.index, { done: true });
       startRestTimer(120, { exerciseName: ex?.name });
-      if (isLastRemainingSet(draft, editing.key, editing.index)) addSetTo(editing.key);
+      setIsTimerExpanded(true);
     }
     editOrigin.current = null;
     setEditing(null);
-  }, [editing, draft, editSet, startRestTimer, addSetTo, mirrorRepsToWeight]);
+  }, [editing, draft, editSet, startRestTimer, mirrorRepsToWeight]);
 
   // Handle plan completion from modal
   const handlePlanComplete = useCallback((planText: string) => {
@@ -414,11 +418,25 @@ export default function WorkoutScreen() {
     addRestTime(seconds);
   }, [addRestTime]);
 
-  // Handle finish button press
-  const handleFinishPress = useCallback(() => {
+  // Handle finish button press. If this workout came from a routine and its shape
+  // changed (exercises added/removed/reordered, set counts or reps edited), offer
+  // to fold those changes back into the routine before opening the finish flow.
+  const handleFinishPress = useCallback(async () => {
     playHapticFeedback('medium', false);
-    handleFinishWorkout();
-  }, [handleFinishWorkout]);
+    const change = await getStartedRoutineChange();
+    if (!change) {
+      handleFinishWorkout();
+      return;
+    }
+    showAlert({
+      title: 'Update your routine?',
+      message: `You changed things up from “${change.name}”. Save these changes to the routine for next time?`,
+      buttons: [
+        { text: 'Update routine', onPress: async () => { await syncStartedRoutine(); handleFinishWorkout(); } },
+        { text: 'Keep routine as-is', style: 'cancel', onPress: () => handleFinishWorkout() },
+      ],
+    });
+  }, [getStartedRoutineChange, syncStartedRoutine, handleFinishWorkout, showAlert]);
 
   return (
     <SafeAreaView edges={['top']} style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
@@ -561,6 +579,8 @@ export default function WorkoutScreen() {
             onRemoveSet={removeSetFrom}
             onToggleDone={handleToggleDone}
             onRemoveExercise={removeExerciseFrom}
+            onMoveExercise={moveExercise}
+            getPreviousSets={getPreviousSets}
             onScrollBeginDrag={closeComposer}
           />
           {!hasWorkoutStarted && (
@@ -598,7 +618,10 @@ export default function WorkoutScreen() {
                 collapses it (the typed text stays cached for next time). */}
             <RNView style={{ ...styles.composerBar, paddingBottom: keyboardVisible ? 0 : TAB_BAR_CLEARANCE + space.lg }}>
               <RNView style={styles.composerRow}>
-                <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
+                {/* Opaque fill (= screen bg) so tall input occludes the list behind
+                    it, but no border/surface — the field floats over the content
+                    instead of sitting in a visible boxed background. */}
+                <RNView style={[styles.composerInput, { backgroundColor: currentTheme.colors.background }]}>
                   <WorkoutNoteInput
                     ref={noteInputRef}
                     value={composerText}
@@ -744,11 +767,11 @@ const styles = StyleSheet.create({
   composerInput: {
     flex: 1,
     // Hug the input's measured height (WorkoutNoteInput drives it). overflow
-    // hidden clips the text to the rounded border so glyphs can't spill out
-    // past the corners as it grows or scrolls at max height. The 20pt radius is
-    // deliberate geometry: radius.pill would balloon as the field grows tall.
+    // hidden clips the text to the rounded corners so glyphs can't spill out
+    // as it grows or scrolls at max height. The 20pt radius is deliberate
+    // geometry: radius.pill would balloon as the field grows tall. No border —
+    // the field floats over the workout rather than sitting in a boxed surface.
     borderRadius: 20,
-    borderWidth: 1,
     overflow: 'hidden',
   },
   circleBtn: {
