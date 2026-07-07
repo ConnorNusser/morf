@@ -4,7 +4,9 @@ import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { calculateAllPredictions, predictionModels } from '@/lib/data/predictionModels';
 import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { buildLiftProgressions, LiftProgressPoint } from '@/lib/history/liftProgress';
 import { userService } from '@/lib/services/userService';
+import { storageService } from '@/lib/storage/storage';
 import { convertWeightForPreference, formatSet } from '@/lib/utils/utils';
 import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +29,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'kg'>('lbs');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [topLift, setTopLift] = useState<UserProgress | null>(null);
+  const [monthlyPoints, setMonthlyPoints] = useState<LiftProgressPoint[]>([]);
 
   useEffect(() => {
     if (visible) {
@@ -38,21 +41,32 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   const loadLiftData = async () => {
     try {
       setIsLoading(true);
-      const [data, rawData, profile, allFeaturedLifts] = await Promise.all([
+      const [data, rawData, profile, allFeaturedLifts, history] = await Promise.all([
         userService.getAllLiftsForFeaturedExercise(liftId),
         userService.getRawLiftsForFeaturedExercise(liftId),
         userService.getUserProfileOrDefault(),
-        userService.getAllFeaturedLifts()
+        userService.getAllFeaturedLifts(),
+        storageService.getWorkoutHistory(),
       ]);
-      
+
       // Use the same data source as the home screen for consistency
       const topLift = allFeaturedLifts.find(lift => lift.workoutId === liftId) || null;
-      
+      const unit = profile.weightUnitPreference || 'lbs';
+
       setLiftData(data || []);
       setOriginalLiftData(rawData || []);
-      setWeightUnit(profile.weightUnitPreference || 'lbs');
+      setWeightUnit(unit);
       setUserProfile(profile);
       setTopLift(topLift);
+
+      // Best set per month for this lift — the same board logic the LIFTS list used,
+      // now inline so the modal shows month-over-month progress for the one lift.
+      const bodyweightLbs = convertWeightForPreference(profile.weight.value, profile.weight.unit, 'lbs');
+      const grading = bodyweightLbs && profile.gender
+        ? { bodyweightLbs, gender: profile.gender, age: profile.age }
+        : null;
+      const progression = buildLiftProgressions(history || [], [liftId], unit, 6, grading);
+      setMonthlyPoints(progression[0]?.points ?? []);
       
       if (data && data.length > 0) {
         runPredictions(data);
@@ -167,26 +181,80 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           </View>
         </View>
 
-        {/* 3-month prediction - left aligned */}
-        {avg3MonthPrediction > 0 && (
-          <View style={styles.staggeredStatLeft}>
+        {/* 3-month prediction + Sessions on one line */}
+        <View style={styles.bottomStatsRow}>
+          {avg3MonthPrediction > 0 ? (
+            <View>
+              <Text style={[styles.bottomStatLabel, { color: currentTheme.colors.text + '70' }]}>
+                3-month prediction
+              </Text>
+              <Text style={[styles.bottomStatValue, { color: currentTheme.colors.text }]}>
+                {Math.round(convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit) * 100) / 100} {weightUnit}
+              </Text>
+            </View>
+          ) : (
+            <View />
+          )}
+
+          <View style={styles.bottomStatRight}>
             <Text style={[styles.bottomStatLabel, { color: currentTheme.colors.text + '70' }]}>
-              3-month prediction
+              Sessions
             </Text>
             <Text style={[styles.bottomStatValue, { color: currentTheme.colors.text }]}>
-              {Math.round(convertWeightForPreference(avg3MonthPrediction, 'lbs', weightUnit) * 100) / 100} {weightUnit}
+              {liftData.length}
             </Text>
           </View>
-        )}
+        </View>
+      </View>
+    );
+  };
 
-        {/* Sessions - right aligned */}
-        <View style={styles.staggeredStatRight}>
-          <Text style={[styles.bottomStatLabel, { color: currentTheme.colors.text + '70' }]}>
-            Sessions
-          </Text>
-          <Text style={[styles.bottomStatValue, { color: currentTheme.colors.text }]}>
-            {liftData.length}
-          </Text>
+  // Best set each month for this lift, oldest → newest — the LIFTS board logic
+  // (buildLiftProgressions) inline, so the modal shows progress over the months.
+  const renderMonthlyProgression = () => {
+    if (monthlyPoints.length === 0) return null;
+
+    const latestIdx = monthlyPoints.length - 1;
+    const metric = (p: LiftProgressPoint) => (p.weight > 0 ? p.weight : p.reps);
+    const delta = monthlyPoints.length > 1 ? metric(monthlyPoints[latestIdx]) - metric(monthlyPoints[latestIdx - 1]) : 0;
+    const latestColor = delta > 0 ? '#10B981' : delta < 0 ? '#EF4444' : currentTheme.colors.text;
+    const setLabel = (w: number, r: number) => (w > 0 ? `${w}×${r}` : `×${r}`);
+
+    return (
+      <View style={styles.monthlyContainer}>
+        <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>
+          Monthly Progression
+        </Text>
+        <Text style={[styles.sectionDescription, { color: currentTheme.colors.text + '70' }]}>
+          Best set each month
+        </Text>
+
+        <View style={[styles.monthlyCard, { backgroundColor: currentTheme.colors.surface }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthlyRow}>
+            {monthlyPoints.map((p, i) => {
+              const isLatest = i === latestIdx;
+              return (
+                <React.Fragment key={i}>
+                  {i > 0 && (
+                    <Ionicons
+                      name="arrow-forward"
+                      size={12}
+                      color={currentTheme.colors.text + '40'}
+                      style={styles.monthlyArrow}
+                    />
+                  )}
+                  <View style={styles.monthlyCol}>
+                    <Text style={[styles.monthlyValue, { color: isLatest ? latestColor : currentTheme.colors.text + '99' }]}>
+                      {setLabel(p.weight, p.reps)}
+                    </Text>
+                    <Text style={[styles.monthlyMonth, { color: currentTheme.colors.text + '60' }]}>
+                      {p.monthLabel.toUpperCase()}
+                    </Text>
+                  </View>
+                </React.Fragment>
+              );
+            })}
+          </ScrollView>
         </View>
       </View>
     );
@@ -337,7 +405,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
             <>
               {/* Current Stats */}
               {renderCurrentStats()}
-              
+
+              {/* Monthly progression — best set per month for this lift */}
+              {renderMonthlyProgression()}
+
               {/* Interactive Chart */}
               <InteractiveProgressChart
                 data={liftData}
@@ -475,13 +546,14 @@ const styles = StyleSheet.create({
   changeLabel: {
     fontSize: 16,
   },
-  staggeredStatLeft: {
-    alignItems: 'flex-start',
+  bottomStatsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
     marginTop: 16,
   },
-  staggeredStatRight: {
+  bottomStatRight: {
     alignItems: 'flex-end',
-    marginTop: 12,
   },
   bottomStatLabel: {
     fontSize: 12,
@@ -558,6 +630,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 40,
+  },
+  monthlyContainer: {
+    paddingVertical: 16,
+  },
+  monthlyCard: {
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  monthlyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  monthlyCol: {
+    alignItems: 'center',
+    minWidth: 56,
+  },
+  monthlyArrow: {
+    marginHorizontal: 4,
+  },
+  monthlyValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  monthlyMonth: {
+    fontSize: 10,
+    letterSpacing: 1,
   },
   historyContainer: {
     paddingVertical: 16,

@@ -9,6 +9,7 @@ interface ProgressBarProps {
   style?: ViewStyle;
   showTicks?: boolean;
   color?: string; // Custom color for the progress bar fill
+  from?: number; // start value for the fill animation (default 0) — e.g. the pre-workout percentile so the bar sweeps the earned delta
 }
 
 export default function ProgressBar({
@@ -18,9 +19,10 @@ export default function ProgressBar({
   style,
   showTicks = false,
   color,
+  from = 0,
 }: ProgressBarProps) {
   const { currentTheme } = useTheme();
-  const animatedProgress = useRef(new Animated.Value(0)).current;
+  const animatedProgress = useRef(new Animated.Value(Math.max(0, Math.min(100, from)))).current;
 
   // Strength tier percentiles
   const strengthTicks = [

@@ -2,10 +2,9 @@ import Card from "@/components/Card";
 import Chip from "@/components/Chip";
 import ExerciseCard from "@/components/history/ExerciseCard";
 import ExerciseHistoryModal from "@/components/history/ExerciseHistoryModal";
-import LiftProgressWidget from "@/components/history/LiftProgressWidget";
+import YourLifts from "@/components/history/YourLifts";
 import { buildPRDays } from "@/components/history/prSessions";
 import SessionsFeed from "@/components/history/SessionsFeed";
-import TopMovers from "@/components/history/TopMovers";
 import WorkoutDetailModal from "@/components/history/WorkoutDetailModal";
 import PowerliftingTotal from "@/components/home/PowerliftingTotal";
 import MonthlyTrendsModal from "@/components/MonthlyTrendsModal";
@@ -16,7 +15,6 @@ import EmptyState from "@/components/ui/EmptyState";
 import NavRow from "@/components/ui/NavRow";
 import SegmentedTabs from "@/components/ui/SegmentedTabs";
 import StatStrip from "@/components/ui/StatStrip";
-import WeeklyOverview from "@/components/WeeklyOverview";
 import { useCustomExercises } from "@/contexts/CustomExercisesContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
@@ -27,7 +25,6 @@ import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
 import { attributeAchievements } from "@/lib/history/achievementAttribution";
 import { buildExerciseStats } from "@/lib/history/exerciseStats";
 import { computeExerciseTrend } from "@/lib/history/exerciseTrend";
-import { buildLiftProgressions } from "@/lib/history/liftProgress";
 import { buildSessionRecaps } from "@/lib/history/sessionRecap";
 import { userService } from "@/lib/services/userService";
 import { storageService } from "@/lib/storage/storage";
@@ -49,7 +46,8 @@ import {
   WeightUnit,
 } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import playHapticFeedback from "@/lib/utils/haptic";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   RefreshControl,
@@ -89,9 +87,16 @@ export default function HistoryScreen() {
   const ink = useInk();
   const { userProfile } = useUser();
   const router = useRouter();
+  const { celebrate } = useLocalSearchParams<{ celebrate?: string }>();
   const { customExercises } = useCustomExercises();
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+
+  // Post-workout replay: bumping replayKey remounts the strength summary so its
+  // bars sweep up on arrival; replayFrom is the pre-workout percentile the overall
+  // bar/number animate up from (undefined = no earned delta, just a fresh fill).
+  const [replayKey, setReplayKey] = useState(0);
+  const [replayFrom, setReplayFrom] = useState<number | undefined>(undefined);
 
   // History state
   const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
@@ -191,6 +196,30 @@ export default function HistoryScreen() {
     }, [loadHistory, loadExerciseStats, loadStrength]),
   );
 
+  // Post-workout arrival: the workout tab routes here with ?celebrate=1. Reload
+  // strength first so the cards hold the NEW numbers, then remount them to sweep
+  // the bars up (from the pre-workout percentile when it moved) with a haptic.
+  // Consume-once: the pending progress and the param are both cleared.
+  useFocusEffect(
+    useCallback(() => {
+      if (!celebrate) return;
+      let cancelled = false;
+      (async () => {
+        await Promise.all([loadHistory(), loadStrength(), loadExerciseStats()]);
+        if (cancelled) return;
+        const progress = await storageService.getPendingStrengthProgress();
+        setReplayFrom(progress?.previousPercentile);
+        setReplayKey((k) => k + 1);
+        playHapticFeedback("success", false);
+        await storageService.clearPendingStrengthProgress();
+        router.setParams({ celebrate: "" });
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [celebrate, router, loadHistory, loadStrength, loadExerciseStats]),
+  );
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await Promise.all([loadHistory(), loadExerciseStats(), loadStrength()]);
@@ -213,22 +242,6 @@ export default function HistoryScreen() {
         bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
       ),
     [workouts, customExercises, weightUnit, bodyweightLbs, gender, age],
-  );
-
-  // Per-lift monthly progression — best set per month per lift, ranked, for the
-  // "arrows" timeline below This Week. Graded lifts flip to their tier stake.
-  const liftProgress = useMemo(
-    () =>
-      buildLiftProgressions(
-        workouts,
-        exerciseStats
-          .filter((e) => e.estimated1RM > 0 || (e.bestReps ?? 0) > 0)
-          .map((e) => e.id),
-        weightUnit,
-        6,
-        bodyweightLbs && gender ? { bodyweightLbs, gender, age } : null,
-      ),
-    [workouts, exerciseStats, weightUnit, bodyweightLbs, gender, age],
   );
 
   // Strength summary — the aggregate percentile/tier the featured lifts roll up to.
@@ -402,10 +415,12 @@ export default function HistoryScreen() {
       >
         {activeTab === "overview" ? (
           <>
-            {/* Strength summary — overall percentile/tier + Big-3 total, at the top. */}
+            {/* Strength summary — overall percentile/tier + Big-3 total, at the top.
+                Keyed on replayKey so a post-workout arrival remounts it and the bars
+                sweep up from the pre-workout percentile. */}
             {workouts.length > 0 && (
-              <View>
-                <OverallStatsCard stats={overallStats} />
+              <View key={`strength-${replayKey}`}>
+                <OverallStatsCard stats={overallStats} animateFrom={replayFrom} />
                 {powerliftingTotal && (
                   <>
                     <Divider style={styles.strengthDivider} />
@@ -415,40 +430,13 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Top Movers — the lifts trending up, as a quick highlight; tap through
-                to the Exercises tab for the full graded list. */}
-            {workouts.length > 0 && (
-              <View style={styles.section}>
-                <TopMovers
-                  exercises={trackedExercises}
-                  weightUnit={weightUnit}
-                  onSelect={setSelectedExercise}
-                  onSeeAll={() => setActiveTab("exercises")}
-                />
+            {/* Your Lifts — each featured lift as a tier-coloured strength card
+                (same bar language as the Big-3 total), tappable into its progression
+                modal, with a filter to show/hide lifts. Keyed to replay the fill too. */}
+            {workouts.length > 0 && userProgress.length > 0 && (
+              <View style={styles.section} key={`lifts-${replayKey}`}>
+                <YourLifts lifts={userProgress} />
               </View>
-            )}
-
-            {/* This Week — the macro summary (Q4/Q5/Q6), promoted directly under the
-                Strength Index hero so the screen reads summary-first instead of burying it
-                below the session log. WeeklyOverview owns its own "This Week · <range>"
-                header, so no section heading is stacked on top of the card title — the
-                block wears exactly one label. */}
-            {workouts.length > 0 && (
-              <View style={styles.section}>
-                <WeeklyOverview
-                  workoutHistory={workouts}
-                  sessionRecaps={sessionRecaps}
-                />
-              </View>
-            )}
-
-            {/* Lift progression — best set per month per lift with arrows between,
-                so you can read "120 → 140 → 155" at a glance; graded rows flip to
-                the tier stake. */}
-            {workouts.length > 0 && liftProgress.length > 0 && (
-              <Card padding={panelPad} style={styles.section}>
-                <LiftProgressWidget lifts={liftProgress} />
-              </Card>
             )}
 
             {/* Secondary drill-downs — deeper analysis, below the primary content. */}

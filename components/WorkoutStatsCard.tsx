@@ -10,8 +10,8 @@ import { space } from '@/lib/ui/tokens';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
-import React, { useState } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface WorkoutStatsCardProps {
   stats: UserProgress;
@@ -30,6 +30,22 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 
   const workout = getWorkoutById(workoutId);
   const accentColor = getPercentileColor(percentileRanking);
+
+  // Sweep the fill up from 0 on mount — so on a post-workout arrival (the section
+  // remounts) the lift bars visibly fill instead of snapping to width.
+  const fill = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(fill, {
+      toValue: Math.max(3, Math.min(100, percentileRanking)),
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
+  }, [percentileRanking, fill]);
+  const fillWidth = fill.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+    extrapolate: 'clamp',
+  });
 
   const handleCardPress = () => {
     playHapticFeedback('medium', false);
@@ -67,13 +83,10 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 
           {/* Tier-coloured strength bar — matches the Big-3 total's bar language */}
           <View style={[styles.track, { backgroundColor: ink.hairline }]}>
-            <View
+            <Animated.View
               style={[
                 styles.trackFill,
-                {
-                  width: `${Math.max(3, Math.min(100, percentileRanking))}%`,
-                  backgroundColor: accentColor,
-                },
+                { width: fillWidth, backgroundColor: accentColor },
               ]}
             />
           </View>
