@@ -5,7 +5,7 @@ import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
-import { Achievement, newlyUnlocked } from './achievements';
+import { Achievement, newlyUnlocked, unlockedIds } from './achievements';
 import { CareerStats } from './careerStats';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
 import { iconUnlockContext, resolveProfileIconId } from './profileIcons';
@@ -22,6 +22,7 @@ export interface CareerData {
   timeline: TierMilestone[];
   achievements: Achievement[];
   newIds: Set<string>; // achievements unlocked since last acknowledged
+  achievementUnlockedAt: Record<string, string>; // achievement id → ISO first-unlocked date
   prs: LiftPR[];
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
@@ -61,6 +62,15 @@ export async function loadCareerData(): Promise<CareerData> {
     visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
   );
 
+  // Stamp/read the first-unlocked date per achievement (backfills already-earned
+  // ones with an old date on the first ever call, so only genuinely new wins read
+  // as "recent"). Single source of truth for both the launch interstitial and the
+  // Career screen's "Recent achievements" ordering.
+  const achievementUnlockedAt = await storageService.reconcileAchievementUnlocks(
+    unlockedIds(achievements),
+    new Date().toISOString(),
+  );
+
   return {
     stats,
     overall,
@@ -68,6 +78,7 @@ export async function loadCareerData(): Promise<CareerData> {
     ladder: getTierLadder(overall),
     timeline,
     achievements,
+    achievementUnlockedAt,
     newIds: new Set(newlyUnlocked(achievements, seen).map(a => a.id)),
     prs,
     muscleMastery: computeMuscleMastery(visibleLifts),

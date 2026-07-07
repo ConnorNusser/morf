@@ -120,7 +120,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             <NextGoal achievements={data.achievements} />
             {/* Recent achievements — the six you unlocked most recently. (The
                 lifetime stats that used to live here moved up into the hero card.) */}
-            <RecentAchievementsView achievements={data.achievements} />
+            <RecentAchievementsView achievements={data.achievements} unlockedAt={data.achievementUnlockedAt} />
             <ConsistencyView heatmap={data.heatmap} unit={data.stats.unit} />
             {/* Strength */}
             <BestsView stats={data.stats} />
@@ -303,21 +303,33 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
 }
 
 // ---- Recent achievements: the six you unlocked most recently ----
-// There's no stored unlock timestamp, so recency is approximated by how narrowly
-// each unlocked achievement cleared its target (current/target closest to 1).
-// For the monotonic metrics these badges track (volume, reps, workouts, sets,
-// days, streaks) that orders them by when they were crossed — the one you just
-// squeaked past ranks ahead of one you blew past long ago.
-function recentAchievements(achievements: Achievement[]): Achievement[] {
+// Ordered by the real first-unlocked timestamp (storageService stamps each badge
+// when it's first seen unlocked). Badges without a stored date, or that tie on the
+// same day (e.g. the initial backfill), fall back to how narrowly they cleared
+// their target (current/target closest to 1) — a decent "just crossed" proxy.
+function recentAchievements(
+  achievements: Achievement[],
+  unlockedAt: Record<string, string>,
+): Achievement[] {
+  const at = (a: Achievement) => {
+    const d = unlockedAt[a.id];
+    return d ? Date.parse(d) : 0;
+  };
   return achievements
     .filter(a => a.unlocked)
-    .sort((a, b) => a.current / a.target - b.current / b.target)
+    .sort((a, b) => at(b) - at(a) || a.current / a.target - b.current / b.target)
     .slice(0, 6);
 }
 
-function RecentAchievementsView({ achievements }: { achievements: Achievement[] }) {
+function RecentAchievementsView({
+  achievements,
+  unlockedAt,
+}: {
+  achievements: Achievement[];
+  unlockedAt: Record<string, string>;
+}) {
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
-  const recent = recentAchievements(achievements);
+  const recent = recentAchievements(achievements, unlockedAt);
   return (
     <View style={styles.section}>
       <SectionLabel>Recent achievements</SectionLabel>
