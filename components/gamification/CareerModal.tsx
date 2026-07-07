@@ -118,8 +118,9 @@ export default function CareerModal({ visible, onClose }: Props) {
               </View>
             </ViewShot>
             <NextGoal achievements={data.achievements} />
-            {/* Lifetime overview */}
-            <StatGrid stats={data.stats} />
+            {/* Recent achievements — the six you unlocked most recently. (The
+                lifetime stats that used to live here moved up into the hero card.) */}
+            <RecentAchievementsView achievements={data.achievements} unlockedAt={data.achievementUnlockedAt} />
             <ConsistencyView heatmap={data.heatmap} unit={data.stats.unit} />
             {/* Strength */}
             <BestsView stats={data.stats} />
@@ -216,21 +217,32 @@ function UnlockCelebration({ items, onDismiss }: { items: Achievement[]; onDismi
   );
 }
 
-// ---- Compact stat strip shown inside the shareable card ----
+// ---- Lifetime stat grid shown in the hero/share card ----
+// All six lifetime datapoints live here alongside the percentile (they used to
+// be split: three here, all six again in a separate "Lifetime" section below).
 function ShareStatStrip({ stats }: { stats: CareerStats }) {
   const items = [
     { v: `${formatCompact(stats.totalVolume)} ${stats.unit}`, l: 'lifted' },
     { v: formatCompact(stats.totalWorkouts), l: 'workouts' },
+    { v: formatCompact(stats.daysActive), l: 'days active' },
     { v: `${stats.longestStreak}w`, l: 'best streak' },
+    { v: formatCompact(stats.totalSets), l: 'sets' },
+    { v: formatCompact(stats.totalReps), l: 'reps' },
   ];
+  const comparison = volumeComparison(stats.totalVolume, stats.unit);
   return (
-    <View style={styles.shareStrip}>
-      {items.map((it, i) => (
-        <View key={i} style={styles.shareStat}>
-          <Text variant="body" tone="primary" weight="bold">{it.v}</Text>
-          <Text variant="meta" tone="muted" style={styles.shareStatLabel}>{it.l}</Text>
-        </View>
-      ))}
+    <View>
+      <View style={styles.shareStrip}>
+        {items.map((it, i) => (
+          <View key={i} style={styles.shareStat}>
+            <Text variant="body" tone="primary" weight="bold" numberOfLines={1}>{it.v}</Text>
+            <Text variant="meta" tone="muted" style={styles.shareStatLabel}>{it.l}</Text>
+          </View>
+        ))}
+      </View>
+      {comparison && (
+        <Text variant="meta" tone="faint" style={styles.comparison}>{comparison}</Text>
+      )}
     </View>
   );
 }
@@ -290,40 +302,54 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
   );
 }
 
-// ---- Lifetime stat grid ----
-function StatGrid({ stats }: { stats: CareerStats }) {
-  const comparison = volumeComparison(stats.totalVolume, stats.unit);
-  const tiles: { label: string; value: string }[] = [
-    { label: 'Total lifted', value: `${formatCompact(stats.totalVolume)} ${stats.unit}` },
-    { label: 'Workouts', value: formatCompact(stats.totalWorkouts) },
-    { label: 'Days active', value: formatCompact(stats.daysActive) },
-    { label: 'Longest streak', value: `${stats.longestStreak}w` },
-    { label: 'Total sets', value: formatCompact(stats.totalSets) },
-    { label: 'Total reps', value: formatCompact(stats.totalReps) },
-  ];
-  return (
-    <View style={styles.section}>
-      <SectionLabel>Lifetime</SectionLabel>
-      <View style={styles.grid}>
-        {tiles.map(t => (
-          <StatTile key={t.label} label={t.label} value={t.value} />
-        ))}
-      </View>
-      {comparison && (
-        <Text variant="meta" tone="faint" style={styles.comparison}>{comparison}</Text>
-      )}
-    </View>
-  );
+// ---- Recent achievements: the six you unlocked most recently ----
+// Ordered by the real first-unlocked timestamp (storageService stamps each badge
+// when it's first seen unlocked). Badges without a stored date, or that tie on the
+// same day (e.g. the initial backfill), fall back to how narrowly they cleared
+// their target (current/target closest to 1) — a decent "just crossed" proxy.
+function recentAchievements(
+  achievements: Achievement[],
+  unlockedAt: Record<string, string>,
+): Achievement[] {
+  const at = (a: Achievement) => {
+    const d = unlockedAt[a.id];
+    return d ? Date.parse(d) : 0;
+  };
+  return achievements
+    .filter(a => a.unlocked)
+    .sort((a, b) => at(b) - at(a) || a.current / a.target - b.current / b.target)
+    .slice(0, 6);
 }
 
-function StatTile({ label, value }: { label: string; value: string }) {
-  const { currentTheme } = useTheme();
+function RecentAchievementsView({
+  achievements,
+  unlockedAt,
+}: {
+  achievements: Achievement[];
+  unlockedAt: Record<string, string>;
+}) {
+  const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
+  const recent = recentAchievements(achievements, unlockedAt);
   return (
-    <View style={[styles.tile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-      <Text variant="emphasis" tone="primary" weight="bold" numberOfLines={1}>
-        {value}
-      </Text>
-      <Text variant="meta" tone="muted" style={styles.tileLabel}>{label}</Text>
+    <View style={styles.section}>
+      <SectionLabel>Recent achievements</SectionLabel>
+      {recent.length === 0 ? (
+        <Text variant="meta" tone="muted" style={styles.empty}>
+          Log a workout to start earning achievements — your latest will show up here.
+        </Text>
+      ) : (
+        <View style={styles.grid}>
+          {recent.map(a => (
+            <AchievementTile
+              key={a.id}
+              achievement={a}
+              isNew={false}
+              onPress={() => setSpotlight(toSpotlight(a))}
+            />
+          ))}
+        </View>
+      )}
+      <AchievementModal item={spotlight} onClose={() => setSpotlight(null)} featurable />
     </View>
   );
 }
@@ -869,8 +895,9 @@ const styles = StyleSheet.create({
   celebrateOverflow: { marginLeft: 42 },
 
   shareCard: { borderRadius: radius.card, paddingBottom: panelPad },
-  shareStrip: { flexDirection: 'row', justifyContent: 'space-around', marginTop: space.xs },
-  shareStat: { alignItems: 'center' },
+  // Six lifetime datapoints in a 3-col, 2-row grid under the percentile.
+  shareStrip: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space.lg, marginTop: space.md },
+  shareStat: { width: '33.33%', alignItems: 'center' },
   shareStatLabel: { marginTop: space.xs },
 
   hero: { alignItems: 'center', paddingVertical: space.section },
@@ -908,15 +935,6 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space.md },
-  tile: {
-    width: '31.5%',
-    borderRadius: radius.card,
-    borderWidth: 1,
-    paddingVertical: space.lg,
-    paddingHorizontal: space.md,
-    alignItems: 'center',
-  },
-  tileLabel: { marginTop: space.xs, textAlign: 'center' },
   comparison: { textAlign: 'center', marginTop: space.md, fontStyle: 'italic' },
 
   bestsRow: { flexDirection: 'row', gap: space.md },

@@ -1,7 +1,6 @@
 import WorkoutLaunch from '@/components/home/WorkoutLaunch';
 import { loadCareerData } from '@/lib/gamification/careerData';
 import { Rarity } from '@/lib/gamification/rarity';
-import { storageService } from '@/lib/storage/storage';
 import { WeightUnit } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
@@ -49,12 +48,9 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
     try {
       const d = await loadCareerData();
       const unlocked = d.achievements.filter(a => a.unlocked);
-      const now = new Date();
-      const dates = await storageService.reconcileAchievementUnlocks(
-        unlocked.map(a => a.id),
-        now.toISOString(),
-      );
-      const twoWeeksAgo = now.getTime() - 14 * 24 * 60 * 60 * 1000;
+      // loadCareerData already stamped/read first-unlocked dates — reuse that map.
+      const dates = d.achievementUnlockedAt;
+      const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
       // Only surface wins from the last two weeks, most recent first.
       const achievements = unlocked
         .filter(a => dates[a.id] && new Date(dates[a.id]).getTime() >= twoWeeksAgo)
