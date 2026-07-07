@@ -126,12 +126,19 @@ describe('draftToParsedWorkout', () => {
     expect(parsed.exercises[0].sets[0].completed).toBe(true);
   });
 
-  it('treats freeform sets (done undefined) as performed', () => {
-    // Composer/voice sets arrive already-done (done undefined) and must be kept.
-    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' });
+  it('keeps composer/voice sets (checked off with done:true)', () => {
+    // The composer/voice path merges sets already checked off (done:true); they log.
+    const d = mergeParsed([], [ex('Bench', [[135, 8], [135, 8]])], { done: true });
     const parsed = draftToParsedWorkout(d);
     expect(parsed.exercises[0].sets).toHaveLength(2);
     expect(parsed.exercises[0].sets.every(s => s.completed)).toBe(true);
+  });
+
+  it('drops sets that were never checked off (done undefined)', () => {
+    // Prefill/restore sets arrive un-checked (done undefined) and must NOT log as
+    // completed — they render un-done, so saving them would be the "phantom set" bug.
+    const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [135, 8]])], confidence: 1, rawText: '' });
+    expect(draftToParsedWorkout(d).exercises).toHaveLength(0);
   });
 
   it('drops an exercise with no performed sets entirely', () => {

@@ -93,7 +93,14 @@ export const useRestTimer = () => {
         duration,
       };
 
-      await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(timerData));
+      // Flip into rest and push the Lock Screen card *synchronously*, before the
+      // awaited storage write. A set is checked off in the same tick the draft
+      // advances to the next set; if `isResting` only flipped after this await,
+      // the set-mode Live Activity effect would fire on that tick (isResting still
+      // false) and publish a "next set" card that the rest card then overwrites —
+      // the visible flicker. Setting state here batches it with the draft toggle,
+      // so the committed render already reads isResting=true and the set effect
+      // stands down. The rest push is also the last native write, so it wins.
       setIsResting(true);
       setRemainingTime(duration);
 
@@ -110,6 +117,8 @@ export const useRestTimer = () => {
           nextLabel: context?.nextLabel,
         },
       });
+
+      await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(timerData));
     } catch (error) {
       console.error('Error starting rest timer:', error);
     }

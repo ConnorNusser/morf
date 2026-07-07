@@ -32,6 +32,9 @@ interface EditableWorkoutProps {
   getPreviousSets?: (exerciseId?: string) => DraftSet[] | null;
   // Fired when the user starts dragging the list — used to collapse the composer.
   onScrollBeginDrag?: () => void;
+  // Extra bottom padding so the last row can scroll clear of the floating composer
+  // dock that overlays the list bottom.
+  bottomInset?: number;
 }
 
 // Compact set value like "135×8" (or just reps for bodyweight) for the prev hint.
@@ -170,14 +173,14 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, getPreviousSets, onScrollBeginDrag }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
   if (draft.length === 0) return null;
 
   const sets = totalSets(draft);
   const volume = totalVolume(draft);
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={onScrollBeginDrag} showsVerticalScrollIndicator>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, bottomInset != null && { paddingBottom: bottomInset }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={onScrollBeginDrag} showsVerticalScrollIndicator>
       <SectionLabel style={styles.summary}>
         {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
         {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}

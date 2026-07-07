@@ -23,13 +23,15 @@ interface RecentWorkoutsProps {
   onImport: () => void;
   // Collapse the composer when the list is scrolled (mirrors EditableWorkout).
   onScrollBeginDrag?: () => void;
+  // Extra bottom padding so the last row clears the floating composer dock.
+  bottomInset?: number;
 }
 
 function exerciseNames(w: GeneratedWorkout): string[] {
   return (w.exercises || []).map(e => getExercise(e.id)?.name || e.id);
 }
 
-export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag }: RecentWorkoutsProps) {
+export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag, bottomInset }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
   const ink = useInk();
@@ -79,7 +81,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
   }
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
+    <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, bottomInset != null && { paddingBottom: bottomInset }]} keyboardShouldPersistTaps="always" showsVerticalScrollIndicator onScrollBeginDrag={onScrollBeginDrag}>
       {actionRow}
 
       <StartButton

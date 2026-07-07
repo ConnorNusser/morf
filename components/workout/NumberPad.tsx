@@ -33,6 +33,27 @@ function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
 }
 
+// Hoisted to module scope on purpose: defining this inside NumberPad would give
+// it a fresh component identity on every render, so each keystroke (which changes
+// the `value` prop via onLiveChange) would UNMOUNT and remount all twelve keys —
+// dropping the touch that's mid-flight and making digits take several taps to
+// land. A stable type just re-renders in place, so taps register on the first hit.
+const Key = React.memo(function Key({
+  label,
+  onPress,
+  hairline,
+}: {
+  label: React.ReactNode;
+  onPress: () => void;
+  hairline: string;
+}) {
+  return (
+    <TouchableOpacity style={[styles.key, { backgroundColor: hairline }]} onPress={onPress} activeOpacity={0.6}>
+      {typeof label === 'string' ? <Text variant="heading" tone="primary">{label}</Text> : label}
+    </TouchableOpacity>
+  );
+});
+
 export default function NumberPad({ visible, seedKey, label, unit, value, allowDecimal, increments, hasNext, onChange, onLiveChange, onNext, onDone, onClose }: NumberPadProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -78,11 +99,6 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   // Digit keys are a named exception (keyboard geometry) — only their ink
   // colors come from the ramp.
   const keyColor = currentTheme.colors.text;
-  const Btn = ({ label: l, onPress, flex = 1 }: { label: React.ReactNode; onPress: () => void; flex?: number }) => (
-    <TouchableOpacity style={[styles.key, { flex, backgroundColor: ink.hairline }]} onPress={onPress} activeOpacity={0.6}>
-      {typeof l === 'string' ? <Text variant="heading" tone="primary">{l}</Text> : l}
-    </TouchableOpacity>
-  );
 
   return (
     // animationType="none": the native slide presentation eats the first touch
@@ -113,13 +129,13 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
 
         {[['1', '2', '3'], ['4', '5', '6'], ['7', '8', '9']].map((row, r) => (
           <RNView key={r} style={styles.keyRow}>
-            {row.map(d => <Btn key={d} label={d} onPress={() => press(d)} />)}
+            {row.map(d => <Key key={d} label={d} onPress={() => press(d)} hairline={ink.hairline} />)}
           </RNView>
         ))}
         <RNView style={styles.keyRow}>
-          <Btn label={allowDecimal ? '.' : ''} onPress={dot} />
-          <Btn label="0" onPress={() => press('0')} />
-          <Btn label={<Ionicons name="backspace-outline" size={22} color={keyColor} />} onPress={back} />
+          <Key label={allowDecimal ? '.' : ''} onPress={dot} hairline={ink.hairline} />
+          <Key label="0" onPress={() => press('0')} hairline={ink.hairline} />
+          <Key label={<Ionicons name="backspace-outline" size={22} color={keyColor} />} onPress={back} hairline={ink.hairline} />
         </RNView>
 
         <Button
@@ -157,6 +173,6 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', gap: space.sm, paddingBottom: space.xs },
   chip: { flex: 1, alignItems: 'center' },
   keyRow: { flexDirection: 'row', gap: space.sm },
-  key: { height: 52, borderRadius: radius.card, alignItems: 'center', justifyContent: 'center' },
+  key: { flex: 1, height: 52, borderRadius: radius.card, alignItems: 'center', justifyContent: 'center' },
   done: { marginTop: space.sm, height: 50 },
 });

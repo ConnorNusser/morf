@@ -117,12 +117,14 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       name: ex.name,
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
-      // Only log sets the user actually performed. Sets explicitly left un-done
-      // (routine prescriptions/added rows never checked off) are dropped so they
-      // don't land in history. `done === undefined` (freeform text/voice, which
-      // arrive already-performed) counts as done.
+      // Only log sets the user actually checked off (green row). This mirrors the
+      // one render signal in EditableWorkout — a set is "done" iff `done === true`.
+      // Sets never checked off (routine prescriptions, prefill/restore rows, added
+      // rows) render un-done and are dropped here so they don't land in history as
+      // completed. The composer/voice path sets `done: true` explicitly, so live-
+      // logged sets still save.
       sets: ex.sets
-        .filter(s => s.done !== false)
+        .filter(s => s.done === true)
         .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true })),
     }))
     // Drop exercises with nothing performed.

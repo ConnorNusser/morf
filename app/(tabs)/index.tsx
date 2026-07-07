@@ -230,11 +230,12 @@ export default function HomeScreen() {
 
   return (
     <>
-      <View
+      <ScrollView
         style={[
           layout.flex1,
           { backgroundColor: currentTheme.colors.background },
         ]}
+        contentContainerStyle={styles.scrollContent}
       >
         <View
           style={[
@@ -259,7 +260,7 @@ export default function HomeScreen() {
             onPress={() => setShowLeaderboard(true)}
           />
         </View>
-      </View>
+      </ScrollView>
 
       <LeaderboardModal
         visible={showLeaderboard}

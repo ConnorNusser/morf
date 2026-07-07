@@ -1,8 +1,8 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { radius } from '@/lib/ui/tokens';
-import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { useTheme } from "@/contexts/ThemeContext";
+import { radius } from "@/lib/ui/tokens";
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { StyleSheet, TouchableOpacity, ViewStyle } from "react-native";
 
 type IoniconsName = keyof typeof Ionicons.glyphMap;
 
@@ -18,7 +18,13 @@ interface IconButtonProps {
  * The one icon-only button: 40pt surface square on radius.control, with
  * built-in hitSlop so the effective target is ≥44pt everywhere.
  */
-function IconButton({ icon, onPress, disabled = false, style, iconColor }: IconButtonProps) {
+function IconButton({
+  icon,
+  onPress,
+  disabled = false,
+  style,
+  iconColor,
+}: IconButtonProps) {
   const { currentTheme } = useTheme();
 
   return (
@@ -50,8 +56,8 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.control,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   disabled: {
     opacity: 0.5,
