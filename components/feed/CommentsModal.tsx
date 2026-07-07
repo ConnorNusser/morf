@@ -62,7 +62,6 @@ function CommentItem({
   const likeCount = likes.length;
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
-  // Like animation
   const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleLike = () => {
@@ -124,7 +123,6 @@ function CommentItem({
           {comment.text}
         </Text>
       </View>
-      {/* Like button on right */}
       <TouchableOpacity
         style={styles.commentLikeButton}
         onPress={handleLike}
@@ -152,7 +150,6 @@ function CommentItem({
     </View>
   );
 
-  // Only wrap in Swipeable if user is the author
   if (isAuthor) {
     return (
       <Swipeable
@@ -186,7 +183,6 @@ export default function CommentsModal({
   const scrollViewRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
 
-  // Listen for keyboard show/hide events
   useEffect(() => {
     const showSub = Keyboard.addListener('keyboardWillShow', () => {
       setIsKeyboardVisible(true);
@@ -201,10 +197,8 @@ export default function CommentsModal({
     };
   }, []);
 
-  // Cleanup keyboard state when modal closes
   useEffect(() => {
     if (!visible) {
-      // Dismiss keyboard and blur input when modal closes
       Keyboard.dismiss();
       inputRef.current?.blur();
       setIsKeyboardVisible(false);
@@ -226,7 +220,6 @@ export default function CommentsModal({
     setIsSubmitting(false);
 
     if (newComment) {
-      // Send push notification if not commenting on own post
       if (post.user_id !== currentUserId && currentUserId && currentUsername) {
         notificationService.notifyPostComment(
           post.user_id,
@@ -316,16 +309,13 @@ export default function CommentsModal({
       onRequestClose={handleClose}
     >
       <RNView style={styles.modalWrapper}>
-        {/* Backdrop - tap to close */}
         <Pressable style={styles.backdrop} onPress={handleClose} />
 
-        {/* Container - expands when keyboard open */}
         <View style={[
           styles.container,
           { backgroundColor: currentTheme.colors.background },
           isKeyboardVisible && styles.containerExpanded
         ]}>
-          {/* Header */}
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <View style={styles.handle} />
             <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -367,7 +357,6 @@ export default function CommentsModal({
             )}
           </ScrollView>
 
-          {/* Tap to focus placeholder - shown when keyboard closed */}
           {!isKeyboardVisible && (
             <TouchableOpacity
               style={[styles.inputPlaceholder, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}
@@ -395,7 +384,6 @@ export default function CommentsModal({
           />
         </View>
 
-        {/* InputAccessoryView - appears above keyboard */}
         {(
           <InputAccessoryView nativeID={COMMENTS_INPUT_ACCESSORY_ID}>
             <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border }]}>

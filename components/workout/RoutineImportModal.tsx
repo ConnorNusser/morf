@@ -44,7 +44,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
 
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
 
-  // Load data when modal opens
   useEffect(() => {
     if (visible) {
       loadData();
@@ -57,7 +56,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
         storageService.getRoutines(),
         storageService.getWorkoutHistory(),
       ]);
-      // Sort by most recently used
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
           return b.lastUsed.getTime() - a.lastUsed.getTime();
@@ -73,12 +71,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
     }
   };
 
-  // Calculate routines with progressive overload
   const calculatedRoutines = useMemo(() => {
     return calculateAllRoutines(routines, exerciseRecords, weightUnit);
   }, [routines, exerciseRecords, weightUnit]);
 
-  // Filter routines
   const filteredRoutines = useMemo(() => {
     if (!searchQuery.trim()) return calculatedRoutines;
     const query = searchQuery.toLowerCase();
@@ -89,13 +85,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   }, [calculatedRoutines, searchQuery]);
 
   const handleImport = useCallback((routine: CalculatedRoutine) => {
-    // Don't stamp lastUsed here — that's set when the workout is finished with
-    // real work (recordDayTrained), which is also what drives the up-next pointer
-    // and the day checkmark. Stamping at start would mark the day done before any
-    // set was logged.
-    // Pass the STRUCTURED routine (with its resolved exerciseIds), not serialized
-    // text — re-parsing text was silently re-resolving exercise names to the wrong
-    // equipment variant (e.g. Overhead Press Machine → Barbell).
+    // Don't stamp lastUsed here — recordDayTrained does it on finish; stamping at
+    // start would mark the day done before any set was logged.
+    // Pass the STRUCTURED routine, not serialized text — re-parsing text re-resolved
+    // exercise names to the wrong equipment variant (e.g. OHP Machine → Barbell).
     onImport(routine);
     onClose();
   }, [onImport, onClose]);
@@ -116,7 +109,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <RNView style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
           <Text variant="title" weight="semiBold" tone="primary">
@@ -125,7 +117,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
           <RNView style={styles.headerSpacer} />
         </RNView>
 
-        {/* Search */}
         {routines.length > 0 && (
           <RNView style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
             <Ionicons name="search" size={18} color={ink.faint} />
@@ -146,7 +137,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
           </RNView>
         )}
 
-        {/* Routine List */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {filteredRoutines.length > 0 ? (
             filteredRoutines.map((routine) => {
@@ -171,12 +161,10 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                     />
                   </TouchableOpacity>
 
-                  {/* Exercise Summary */}
                   <Text variant="meta" tone="faint" style={styles.exerciseSummary}>
                     {routine.exercises?.length || 0} exercise{(routine.exercises?.length || 0) !== 1 ? 's' : ''}
                   </Text>
 
-                  {/* Expanded Exercise List */}
                   {isExpanded && routine.exercises?.length > 0 && (
                     <RNView style={styles.exerciseList}>
                       {routine.exercises.map((exercise, index) => (
@@ -218,7 +206,6 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
                     </RNView>
                   )}
 
-                  {/* Start Button */}
                   <TouchableOpacity
                     style={[styles.importButton, { backgroundColor: currentTheme.colors.primary }]}
                     onPress={() => handleImport(routine)}

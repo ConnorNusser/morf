@@ -65,13 +65,13 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
 
   const canProceedFromStep = () => {
     switch (currentStep) {
-      case 0: return true; // Welcome step
-      case 1: return height.value > 0; // Height step
-      case 2: return weight.value > 0; // Weight step
-      case 3: return true; // Gender step - always valid since we have default
-      case 4: return age > 0 && age < 120; // Age step
-      case 5: return availableEquipment.length > 0; // Equipment step
-      case 6: return true; // Weight unit step
+      case 0: return true;
+      case 1: return height.value > 0;
+      case 2: return weight.value > 0;
+      case 3: return true;
+      case 4: return age > 0 && age < 120;
+      case 5: return availableEquipment.length > 0;
+      case 6: return true;
       default: return false;
     }
   };
@@ -82,7 +82,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
     playUnlock();
 
     try {
-      // Create user profile
       await userService.createUserProfile({
         height,
         weight,
@@ -95,14 +94,13 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         },
       });
 
-      // Sync profile data to Supabase (fire and forget)
+      // Sync to Supabase, fire and forget.
       userSyncService.syncProfileData({
         height,
         weight,
         gender,
       }).catch(err => console.error('Error syncing profile to Supabase:', err));
 
-      // Log successful onboarding
       analyticsService.logInfo('auth', 'onboarding_completed', 'User completed onboarding', {
         heightUnit: height.unit,
         weightUnit: weight.unit,

@@ -74,9 +74,7 @@ const EXERCISE_SORTS: { key: ExerciseSort; label: string }[] = [
   { key: "name", label: "A–Z" },
 ];
 
-// Improvement drives the "Improved" sort. Reuse the single shared trend definition
-// (e1RM variant) so the sort agrees with the per-card delta instead of being a third,
-// divergent calc. Signed gain: latest day-bucket best e1RM minus the earliest.
+// Signed e1RM gain (shared trend def) so "Improved" sort agrees with the per-card delta.
 function getImprovement(history: ExerciseWithMax["history"]): number {
   const trend = computeExerciseTrend(history, "lbs", "e1rm");
   return trend.isPositive ? trend.deltaDisplay : -trend.deltaDisplay;
@@ -92,22 +90,15 @@ export default function HistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
 
-  // Post-workout replay: bumping replayKey remounts the strength summary so its
-  // bars sweep up on arrival; replayFrom is the pre-workout percentile the overall
-  // bar/number animate up from (undefined = no earned delta, just a fresh fill).
+  // Post-workout replay: bumping replayKey remounts the strength summary so bars
+  // sweep up; replayFrom = pre-workout percentile to animate from (undefined = fresh fill).
   const [replayKey, setReplayKey] = useState(0);
   const [replayFrom, setReplayFrom] = useState<number | undefined>(undefined);
 
-  // History state
   const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
-
-  // Exercise stats state
   const [exerciseStats, setExerciseStats] = useState<ExerciseWithMax[]>([]);
-
-  // Featured lifts → the strength summary's overall percentile.
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
 
-  // Modal states
   const [selectedWorkout, setSelectedWorkout] =
     useState<GeneratedWorkout | null>(null);
   const [selectedExercise, setSelectedExercise] =
@@ -115,11 +106,9 @@ export default function HistoryScreen() {
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);
   const [showAllWorkouts, setShowAllWorkouts] = useState(false);
 
-  // Search controls
   const [exerciseSearch, setExerciseSearch] = useState("");
   const [exerciseSort, setExerciseSort] = useState<ExerciseSort>("1rm");
 
-  // Get user's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || "lbs";
 
   // Bodyweight (lbs) powers the aggregate Strength Index percentile in the hero.
@@ -137,7 +126,6 @@ export default function HistoryScreen() {
     [userProfile?.weight],
   );
 
-  // Load data
   const loadHistory = useCallback(async () => {
     try {
       const history = await storageService.getWorkoutHistory();
@@ -154,8 +142,7 @@ export default function HistoryScreen() {
   const loadExerciseStats = useCallback(async () => {
     try {
       const workoutHistory = await storageService.getWorkoutHistory();
-      // Pure, node-tested ingestion (lib/history/exerciseStats). Keeps bodyweight
-      // (weight-0) lifts, scoring them on reps instead of dropping them silently.
+      // Keeps bodyweight (weight-0) lifts, scoring them on reps instead of dropping them.
       setExerciseStats(
         buildExerciseStats(workoutHistory, customExercises, weightUnit),
       );
@@ -164,7 +151,6 @@ export default function HistoryScreen() {
     }
   }, [weightUnit, customExercises]);
 
-  // Featured lifts power the strength summary's overall percentile.
   const loadStrength = useCallback(async () => {
     try {
       setUserProgress(await userService.getAllFeaturedLifts());
@@ -173,9 +159,8 @@ export default function HistoryScreen() {
     }
   }, []);
 
-  // Pin achievements on the session that earned them — replayed from history
-  // itself (see lib/history/achievementAttribution), so it's deterministic and
-  // works retroactively with no unlock timestamps.
+  // Pin achievements on the session that earned them — replayed deterministically
+  // from history, so it works retroactively with no unlock timestamps.
   const achievementsByWorkout = useMemo(
     () => attributeAchievements(workouts, weightUnit),
     [workouts, weightUnit],
@@ -187,7 +172,6 @@ export default function HistoryScreen() {
     loadStrength();
   }, [loadHistory, loadExerciseStats, loadStrength]);
 
-  // Refresh data when screen comes into focus (e.g., after completing a workout)
   useFocusEffect(
     useCallback(() => {
       loadHistory();
@@ -196,10 +180,8 @@ export default function HistoryScreen() {
     }, [loadHistory, loadExerciseStats, loadStrength]),
   );
 
-  // Post-workout arrival: the workout tab routes here with ?celebrate=1. Reload
-  // strength first so the cards hold the NEW numbers, then remount them to sweep
-  // the bars up (from the pre-workout percentile when it moved) with a haptic.
-  // Consume-once: the pending progress and the param are both cleared.
+  // Post-workout arrival (?celebrate=1): reload strength so cards hold new numbers,
+  // then remount to sweep bars up from the pre-workout percentile. Consume-once.
   useFocusEffect(
     useCallback(() => {
       if (!celebrate) return;
@@ -226,11 +208,8 @@ export default function HistoryScreen() {
     setRefreshing(false);
   };
 
-  // The reflective session feed: each workout enriched with its standout set, the
-  // day's record, a narrative headline, muscles worked, and how its volume stacks up
-  // against the last session of the same kind. Newest first. When the profile can
-  // support honest grading (bodyweight + gender), the standout set also carries its
-  // strength tier + gap-to-next-tier — the same gradeE1rm path the lift board uses.
+  // Reflective session feed, newest first. When the profile supports grading
+  // (bodyweight + gender), the standout set also carries its strength tier.
   const gender = userProfile?.gender;
   const age = userProfile?.age;
   const sessionRecaps = useMemo(
@@ -244,7 +223,6 @@ export default function HistoryScreen() {
     [workouts, customExercises, weightUnit, bodyweightLbs, gender, age],
   );
 
-  // Strength summary — the aggregate percentile/tier the featured lifts roll up to.
   const overallStats = useMemo(() => {
     const pcts = userProgress.map((p) => p.percentileRanking);
     const pct = pcts.length ? calculateOverallPercentile(pcts) : 0;
@@ -255,8 +233,7 @@ export default function HistoryScreen() {
     };
   }, [userProgress]);
 
-  // Powerlifting "big 3" total — combined best e1RM of squat + bench + deadlift,
-  // in lb. Reuses the same PR + feat math the Career screen does; no new tracking.
+  // Powerlifting "big 3" total (lb): combined best e1RM of squat + bench + deadlift.
   const powerliftingTotal = useMemo(() => {
     if (!workouts.length) return null;
     const prsLbs = computeMainLiftPRs(workouts, "lbs");
@@ -307,8 +284,7 @@ export default function HistoryScreen() {
     };
   }, [workouts]);
 
-  // Exercises with a usable signal: a weighted 1RM, OR a bodyweight rep count
-  // (calisthenics lifts have no 1RM but are still real, tracked exercises).
+  // Usable signal = a weighted 1RM OR a bodyweight rep count (calisthenics has no 1RM).
   const trackedExercises = useMemo(
     () =>
       exerciseStats.filter(
@@ -317,12 +293,10 @@ export default function HistoryScreen() {
     [exerciseStats],
   );
 
-  // Per-exercise set of day-keys that set a new all-time best. Drives the WorkoutCard
-  // PR chips so the whole ascending progression is surfaced, not just the record holder.
+  // Per-exercise day-keys that set a new all-time best — drives WorkoutCard PR chips
+  // so the whole ascending progression shows, not just the record holder.
   const prDays = useMemo(() => buildPRDays(exerciseStats), [exerciseStats]);
 
-  // Grading profile for the Exercises tab's per-lift tier/percentile — the same
-  // bodyweight + gender inputs the Career card and lift board use.
   const grading = useMemo(
     () =>
       bodyweightLbs && gender
@@ -331,7 +305,6 @@ export default function HistoryScreen() {
     [bodyweightLbs, gender, userProfile?.age],
   );
 
-  // All-time roll-up for the Exercises tab overview strip.
   const exerciseSummary = useMemo(() => {
     const totalSets = trackedExercises.reduce(
       (sum, ex) => sum + ex.history.length,
@@ -344,7 +317,6 @@ export default function HistoryScreen() {
     return { count: trackedExercises.length, totalSets, topLift };
   }, [trackedExercises]);
 
-  // Apply search + sort to the full tracked-exercise list (no arbitrary cap).
   const liftsWithData = useMemo(() => {
     const query = exerciseSearch.trim().toLowerCase();
     const filtered = query
@@ -384,7 +356,6 @@ export default function HistoryScreen() {
         { backgroundColor: currentTheme.colors.background },
       ]}
     >
-      {/* Header */}
       <View style={styles.header}>
         <Text
           variant="screenTitle"
@@ -395,11 +366,9 @@ export default function HistoryScreen() {
           History
         </Text>
 
-        {/* Tabs */}
         <SegmentedTabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
       </View>
 
-      {/* Content */}
       <ScrollView
         style={layout.flex1}
         contentContainerStyle={styles.scrollContent}
@@ -415,9 +384,7 @@ export default function HistoryScreen() {
       >
         {activeTab === "overview" ? (
           <>
-            {/* Strength summary — overall percentile/tier + Big-3 total, at the top.
-                Keyed on replayKey so a post-workout arrival remounts it and the bars
-                sweep up from the pre-workout percentile. */}
+            {/* Keyed on replayKey so a post-workout arrival remounts and sweeps bars up. */}
             {workouts.length > 0 && (
               <View key={`strength-${replayKey}`}>
                 <OverallStatsCard stats={overallStats} animateFrom={replayFrom} />
@@ -430,16 +397,13 @@ export default function HistoryScreen() {
               </View>
             )}
 
-            {/* Your Lifts — each featured lift as a tier-coloured strength card
-                (same bar language as the Big-3 total), tappable into its progression
-                modal, with a filter to show/hide lifts. Keyed to replay the fill too. */}
+            {/* Keyed to replay the fill on post-workout arrival. */}
             {workouts.length > 0 && userProgress.length > 0 && (
               <View style={styles.section} key={`lifts-${replayKey}`}>
                 <YourLifts lifts={userProgress} />
               </View>
             )}
 
-            {/* Secondary drill-downs — deeper analysis, below the primary content. */}
             {workouts.length > 0 && (
               <NavRow
                 label="View Monthly Trends"
@@ -450,7 +414,6 @@ export default function HistoryScreen() {
               />
             )}
 
-            {/* Empty State */}
             {workouts.length === 0 && (
               <EmptyState
                 icon="barbell-outline"
@@ -466,7 +429,6 @@ export default function HistoryScreen() {
           </>
         ) : activeTab === "sessions" ? (
           <>
-            {/* Sessions Tab — the workout log, its own tab now. */}
             {sessionRecaps.length > 0 ? (
               <Card padding={panelPad}>
                 <SessionsFeed
@@ -499,10 +461,8 @@ export default function HistoryScreen() {
           </>
         ) : (
           <>
-            {/* Exercises Tab */}
             {trackedExercises.length > 0 ? (
               <>
-                {/* All-time overview */}
                 <StatStrip
                   style={styles.exerciseSummary}
                   items={[
@@ -523,7 +483,6 @@ export default function HistoryScreen() {
                   ]}
                 />
 
-                {/* Search */}
                 <View
                   style={[
                     styles.searchBar,
@@ -558,7 +517,6 @@ export default function HistoryScreen() {
                   )}
                 </View>
 
-                {/* Sort chips */}
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -618,7 +576,6 @@ export default function HistoryScreen() {
         )}
       </ScrollView>
 
-      {/* Workout Detail Modal */}
       <WorkoutDetailModal
         workout={selectedWorkout}
         weightUnit={weightUnit}
@@ -632,14 +589,12 @@ export default function HistoryScreen() {
         }}
       />
 
-      {/* Monthly Trends Modal */}
       <MonthlyTrendsModal
         visible={showMonthlyTrends}
         onClose={() => setShowMonthlyTrends(false)}
         workoutHistory={workouts}
       />
 
-      {/* Exercise History Modal */}
       <ExerciseHistoryModal
         exercise={selectedExercise}
         weightUnit={weightUnit}
@@ -662,7 +617,6 @@ const styles = StyleSheet.create({
     paddingTop: space.sm,
     paddingBottom: scrollBottom,
   },
-  // Exercises tab: overview + search + sort
   exerciseSummary: {
     marginTop: space.xs,
     marginBottom: space.md,
@@ -691,16 +645,13 @@ const styles = StyleSheet.create({
   resultCount: {
     marginBottom: space.xs,
   },
-  // Section styles
   section: {
     marginTop: space.section,
   },
-  // Strength summary: hairline between overall-tier and the Big-3 total.
   strengthDivider: {
     marginTop: space.xs,
     marginBottom: space.md,
   },
-  // Monthly trends button
   monthlyTrendsButton: {
     marginTop: space.md,
     marginBottom: space.sm,

@@ -8,15 +8,13 @@ import { storageService } from '@/lib/storage/storage';
 import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
 import { getAvailableWorkouts, getWorkoutById, setCustomExerciseCache } from './workouts';
 
-// Types for parsed workout data
 export interface ParsedSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
   completed?: boolean; // per-set check-off (draft); undefined = treat as done
-  // For timed/cardio exercises
-  duration?: number;  // Duration in seconds
-  distance?: number;  // Distance in meters
+  duration?: number;  // seconds
+  distance?: number;  // meters
 }
 
 export interface ParsedExercise {
@@ -24,7 +22,7 @@ export interface ParsedExercise {
   matchedExerciseId?: string;
   isCustom: boolean;
   trackingType?: 'reps' | 'timed' | 'cardio';
-  sets: ParsedSet[]; // Actual working sets performed
+  sets: ParsedSet[];
 }
 
 export interface ParsedWorkout {
@@ -36,13 +34,12 @@ export interface ParsedWorkout {
 export interface ParsedExerciseSummary {
   name: string;
   setCount: number;
-  sets: ParsedSet[]; // Actual working sets
-  matchedExerciseId?: string; // ID of the matched exercise from database
-  isCustom?: boolean; // Whether this is a custom exercise
+  sets: ParsedSet[];
+  matchedExerciseId?: string;
+  isCustom?: boolean;
   trackingType?: 'reps' | 'timed' | 'cardio';
 }
 
-// AI response structure
 interface AIParseResponse {
   exercises: {
     name: string;
@@ -51,8 +48,8 @@ interface AIParseResponse {
       weight: number;
       reps: number;
       unit: 'lbs' | 'kg';
-      duration?: number;  // seconds
-      distance?: number;  // meters
+      duration?: number;
+      distance?: number;
     }[];
   }[];
   confidence: number;
@@ -70,25 +67,18 @@ class WorkoutNoteParser {
     this.buildExerciseIdCache();
   }
 
-  /**
-   * Build cache of valid exercise IDs from database
-   * Since we use algorithmic ID generation, we just need to know what IDs exist
-   */
+  // IDs are generated algorithmically, so we only need the set of IDs that exist.
   private buildExerciseIdCache() {
     const allExercises = getAvailableWorkouts(100);
     this.dbExerciseIds = new Set(allExercises.map(e => e.id));
   }
 
-  /**
-   * Load custom exercise IDs into cache
-   */
   async loadCustomExercisesIntoCache(): Promise<void> {
     try {
       const customExercises = await storageService.getCustomExercises();
       this.customExerciseIds = new Set(customExercises.map(e => e.id));
       // Keep the sync display registry (getExercise) in step, so a custom exercise
-      // auto-created on finish resolves immediately without waiting for the context
-      // to reload.
+      // auto-created on finish resolves immediately without waiting for the context to reload.
       setCustomExerciseCache(customExercises);
       this.cacheInitialized = true;
     } catch (error) {
@@ -96,52 +86,36 @@ class WorkoutNoteParser {
     }
   }
 
-  /**
-   * Refresh the cache (call after creating new custom exercises)
-   */
+  // Call after creating new custom exercises.
   async refreshCache(): Promise<void> {
     this.buildExerciseIdCache();
     await this.loadCustomExercisesIntoCache();
   }
 
-  /**
-   * Match exercise name to ID using algorithmic approach
-   *
-   * The AI returns exercise names in format "Exercise Name (Equipment)"
-   * We convert this to ID format "exercise-name-equipment" and check if it exists
-   */
+  // AI returns names as "Exercise Name (Equipment)"; convert to id "exercise-name-equipment" and look it up.
   private matchExercise(name: string): { id: string; isCustom: boolean } | null {
-    // Generate expected ID from name
     const expectedId = exerciseNameToId(name);
 
-    // Check database exercises first
     if (this.dbExerciseIds.has(expectedId)) {
       return { id: expectedId, isCustom: false };
     }
 
-    // Check custom exercises
     if (this.customExerciseIds.has(expectedId)) {
       return { id: expectedId, isCustom: true };
     }
 
-    // No match - will need to create custom exercise
     return null;
   }
 
-  /**
-   * Parse workout notes using AI
-   */
   async parseWorkoutNote(text: string, defaultUnit: WeightUnit = 'lbs'): Promise<ParsedWorkout> {
     if (!text.trim()) {
       return { exercises: [], confidence: 0, rawText: text };
     }
 
-    // Ensure custom exercises are loaded
     if (!this.cacheInitialized) {
       await this.loadCustomExercisesIntoCache();
     }
 
-    // If no API key, use fallback parser
     if (!this.GEMINI_API_KEY) {
       return this.fallbackParse(text, defaultUnit);
     }
@@ -150,7 +124,6 @@ class WorkoutNoteParser {
       const prompt = this.buildParsePrompt(text, defaultUnit);
       const response = await this.callAI(prompt, text);
 
-      // Match exercises using algorithmic approach
       const exercises: ParsedExercise[] = [];
 
       const mapSet = (s: { weight: number; reps: number; unit: string; duration?: number; distance?: number }) => ({
@@ -162,7 +135,6 @@ class WorkoutNoteParser {
       });
 
       for (const ex of response.exercises) {
-        // Try to match the exercise name to an existing ID
         const match = this.matchExercise(ex.name);
 
         exercises.push({
@@ -185,28 +157,17 @@ class WorkoutNoteParser {
     }
   }
 
-  /**
-   * Synchronous, offline regex parse. Fast and cost-free, so it can run on
-   * every keystroke to power the live preview chips — where the Gemini round
-   * trip would be far too slow and would burn API calls. Lower fidelity than
-   * parseWorkoutNote (no AI disambiguation); the full AI parse still runs at
-   * finish, so this is only ever a best-effort preview.
-   */
+  // Synchronous offline regex parse — cheap enough to run per-keystroke for live preview chips
+  // (a Gemini round trip would be too slow / costly). Lower fidelity; the full AI parse runs at finish.
   parseLocal(text: string, defaultUnit: WeightUnit = 'lbs'): ParsedWorkout {
     if (!text.trim()) return { exercises: [], confidence: 0, rawText: text };
     return this.fallbackParse(text, defaultUnit);
   }
 
-  /**
-   * Build the AI prompt for parsing
-   */
   private buildParsePrompt(text: string, defaultUnit: WeightUnit): string {
     return buildWorkoutNoteParsingPrompt({ text, defaultUnit });
   }
 
-  /**
-   * Call the AI API (Gemini 2.5 Flash)
-   */
   private async callAI(prompt: string, inputText: string): Promise<AIParseResponse> {
     const model = this.genAI.getGenerativeModel({
       model: 'gemini-3.1-flash-lite',
@@ -225,7 +186,7 @@ class WorkoutNoteParser {
       throw new Error('No content received from AI');
     }
 
-    // Clean the response (remove any markdown if present)
+    // Strip markdown fences if present.
     let cleanedContent = content.trim();
     if (cleanedContent.startsWith('```')) {
       cleanedContent = cleanedContent.replace(/```json?\n?/g, '').replace(/```\n?$/g, '');
@@ -233,7 +194,6 @@ class WorkoutNoteParser {
 
     const parsed = JSON.parse(cleanedContent);
 
-    // Track AI usage analytics
     analyticsService.trackAIUsage({
       requestType: 'note_parse',
       inputText,
@@ -244,11 +204,7 @@ class WorkoutNoteParser {
     return parsed;
   }
 
-  /**
-   * Fallback / offline parser. Delegates to the forgiving local tokenizer, then
-   * augments any unmatched exercise with custom-exercise id matching (the
-   * tokenizer only knows the built-in catalog).
-   */
+  // Offline parser: local tokenizer (built-in catalog only) plus custom-exercise id matching for unmatched names.
   private fallbackParse(text: string, defaultUnit: WeightUnit): ParsedWorkout {
     const local = parseWorkoutTextLocal(text, defaultUnit);
     for (const ex of local.exercises) {
@@ -263,9 +219,6 @@ class WorkoutNoteParser {
     return local;
   }
 
-  /**
-   * Convert parsed workout to summary format for toast
-   */
   toSummary(parsed: ParsedWorkout): ParsedExerciseSummary[] {
     const consolidatedMap = new Map<string, ParsedExerciseSummary>();
 
@@ -295,24 +248,18 @@ class WorkoutNoteParser {
     return Array.from(consolidatedMap.values());
   }
 
-  /**
-   * Convert parsed workout to GeneratedWorkout format for saving
-   * Auto-creates custom exercises for unmatched exercise names
-   */
+  // Auto-creates custom exercises for unmatched exercise names.
   async toGeneratedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number, routineId?: string): Promise<GeneratedWorkout> {
     let newCustomExercisesCreated = false;
 
-    // First pass: identify exercises that need custom creation (in parallel)
     const exercisesNeedingCreation: { ex: ParsedExercise; index: number }[] = [];
     const exerciseIdMap = new Map<number, string>(); // index -> exerciseId
 
-    // Check which exercises need custom creation
     await Promise.all(
       parsed.exercises.map(async (ex, index) => {
         if (ex.matchedExerciseId) {
           exerciseIdMap.set(index, ex.matchedExerciseId);
         } else {
-          // Check if custom exercise already exists
           const existingCustom = await storageService.getCustomExerciseByName(ex.name);
           if (existingCustom) {
             exerciseIdMap.set(index, existingCustom.id);
@@ -323,7 +270,6 @@ class WorkoutNoteParser {
       })
     );
 
-    // Create all needed custom exercises in parallel
     if (exercisesNeedingCreation.length > 0) {
       newCustomExercisesCreated = true;
       const createdExercises = await Promise.all(
@@ -333,13 +279,11 @@ class WorkoutNoteParser {
           return { index, id: customExercise.id };
         })
       );
-      // Map the created IDs
       for (const { index, id } of createdExercises) {
         exerciseIdMap.set(index, id);
       }
     }
 
-    // Build exercises array in original order
     const exercises: WorkoutExerciseSession[] = parsed.exercises.map((ex, index) => {
       const completedSets: WorkoutSetCompletion[] = ex.sets.map((set, setIndex) => ({
         setNumber: setIndex + 1,
@@ -352,7 +296,6 @@ class WorkoutNoteParser {
         distance: set.distance,
       }));
 
-      // Use mapped ID or generate from name as final fallback
       const finalId = exerciseIdMap.get(index) || exerciseNameToId(ex.name);
 
       return {
@@ -366,17 +309,15 @@ class WorkoutNoteParser {
       };
     });
 
-    // Refresh cache if new custom exercises were created
     if (newCustomExercisesCreated) {
       await this.refreshCache();
     }
 
-    // Calculate total volume
     const totalVolume = parsed.exercises.reduce((total, ex) => {
       return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
     }, 0);
 
-    // Extract title from raw text if it starts with # (e.g., "# Push Day")
+    // Use a leading "# ..." line as the title (e.g. "# Push Day").
     let title = `Workout - ${new Date().toLocaleDateString()}`;
     const firstLine = parsed.rawText?.trim().split('\n')[0];
     if (firstLine?.startsWith('#')) {

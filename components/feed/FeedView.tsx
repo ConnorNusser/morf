@@ -21,7 +21,6 @@ import WorkoutThreadModal from './WorkoutThreadModal';
 
 const PAGE_SIZE = 15;
 
-// Combined feed item type
 type FeedItem =
   | { type: 'workout'; data: FeedWorkout }
   | { type: 'post'; data: FeedPost };
@@ -52,7 +51,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [currentUsername, setCurrentUsername] = useState<string>('');
 
-  // Viewability config for auto-playing videos
   const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 80,
   }), []);
@@ -62,15 +60,13 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     setVisibleItems(visibleKeys);
   }, []);
 
-  // Make tab bar background transparent on feed, opaque elsewhere
-  // Pause videos when leaving tab
   useFocusEffect(
     useCallback(() => {
       setTabBarBackgroundVisible(false);
       return () => {
         setTabBarBackgroundVisible(true);
         pauseVideos();
-        setVisibleItems(new Set()); // Clear visibility so videos don't auto-play on return
+        setVisibleItems(new Set()); // Clear so videos don't auto-play on return
       };
     }, [setTabBarBackgroundVisible, pauseVideos])
   );
@@ -91,7 +87,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         userService.getUserProfileOrDefault(),
       ]);
 
-      // Combine and sort by date
       const combined: FeedItem[] = [
         ...workouts.map(w => ({ type: 'workout' as const, data: w })),
         ...posts.map(p => ({ type: 'post' as const, data: p })),
@@ -210,7 +205,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const handlePostLike = async (postId: string, post: FeedPost) => {
     const result = await feedService.togglePostLike(postId);
     if (result.success) {
-      // Send push notification if it was a like (not unlike) and not liking own post
       if (result.liked && post.user_id !== currentUserId && currentUserId && currentUsername) {
         notificationService.notifyPostLike(
           post.user_id,
@@ -244,9 +238,8 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     loadFeed(true);
   };
 
-  // Keep latest handlers in a ref so the per-row callbacks below stay
-  // referentially stable (lets the memoized rows bail out of re-renders)
-  // while still always invoking the freshest state-aware handler.
+  // Ref keeps per-row callbacks referentially stable (so memoized rows can
+  // bail out of re-renders) while still invoking the freshest handler.
   const handlersRef = useRef({
     handleWorkoutPress,
     handleUserPress,
@@ -370,7 +363,6 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Floating Action Button */}
       <View style={styles.fabContainer}>
         <TouchableOpacity
           style={[styles.fab, { backgroundColor: currentTheme.colors.primary }]}

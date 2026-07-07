@@ -1,18 +1,4 @@
-// Offline workout-note tokenizer — the free, instant parse behind the live
-// synthesized log. It's deliberately forgiving about how lifters actually write
-// sets, so the synthesized cards read cleanly from the first keystroke and the
-// AI parser is reserved for genuinely ambiguous lines.
-//
-// Handles, per line:
-//   name extraction that survives hyphens / apostrophes / digits in names
-//     ("Push-up", "Farmer's Walk", "Romanian Deadlift")
-//   set formats: 135x8 · 135 x 8 · 135x8x3 (weight×reps×sets) · 185x5, 5, 5
-//     (weight carry-forward) · 225 for 5 · 225 5 · bodyweight x10, 8, 6 · x10
-//   units: 60kg / 135lb / 135# override the default
-//   noise: trailing "@8" / "RPE 8" intensity markers are stripped
-//
-// Exercise matching is name-based (not exact-id), with an equipment default, so
-// "bench press" resolves to the barbell variant without the user qualifying it.
+// Offline, forgiving workout-note tokenizer; the AI parser is reserved for ambiguous lines. Matching is name-based with an equipment default.
 import type { ParsedExercise, ParsedSet, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
 import { getAvailableWorkouts } from '@/lib/workout/workouts';
 import { WeightUnit } from '@/types';
@@ -20,15 +6,13 @@ import { WeightUnit } from '@/types';
 function normalize(s: string): string {
   return s
     .toLowerCase()
-    .replace(/\(.*?\)/g, ' ') // drop "(Barbell)" etc.
-    .replace(/[^a-z0-9 ]/g, ' ') // hyphens/apostrophes -> space
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/[^a-z0-9 ]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-// Like normalize but KEEPS the parenthetical equipment ("Overhead Press (Machine)"
-// -> "overhead press machine"), so an equipment qualifier the catalog spells in
-// parens is still searchable as words (e.g. matching "smith" against it).
+// Like normalize but KEEPS parenthetical equipment ("Overhead Press (Machine)" -> "overhead press machine") so a paren'd qualifier stays searchable as words.
 function normalizeKeepEquip(s: string): string {
   return s
     .toLowerCase()
@@ -40,10 +24,10 @@ function normalizeKeepEquip(s: string): string {
 interface IndexedExercise {
   id: string;
   name: string;
-  base: string; // normalized, equipment stripped
-  fullNorm: string; // normalized, equipment kept
-  aliasBases: string[]; // normalized, equipment-stripped alternate names
-  equipment: string[]; // catalog equipment tags (e.g. ['machine'])
+  base: string; // equipment stripped
+  fullNorm: string; // equipment kept
+  aliasBases: string[]; // equipment-stripped alternate names
+  equipment: string[];
   isBarbell: boolean;
 }
 
@@ -63,7 +47,6 @@ function getIndex(): IndexedExercise[] {
   return exerciseIndex;
 }
 
-// Does this exercise's canonical base or any of its aliases equal the query?
 function baseHits(e: IndexedExercise, q: string): boolean {
   return e.base === q || e.aliasBases.includes(q);
 }
@@ -74,17 +57,14 @@ export function _resetIndex(): void {
 }
 
 function prefer(matches: IndexedExercise[]): IndexedExercise {
-  // Prefer the barbell variant, then the plainest form: shortest base, and among
-  // equal bases the one with the fewest extra qualifier words (so "(Machine)"
-  // beats "(Smith Machine)" when the user only said "machine").
+  // Prefer barbell, then plainest form (shortest base, fewest qualifier words) so "(Machine)" beats "(Smith Machine)" for a bare "machine".
   return (
     matches.find(m => m.isBarbell) ??
     [...matches].sort((a, b) => a.base.length - b.base.length || a.fullNorm.length - b.fullNorm.length)[0]
   );
 }
 
-// Equipment words a lifter might type → the catalog tag (or, for smith, a token
-// we look for in the variant's name since smith machines are tagged 'machine').
+// Equipment words → catalog tag. 'smith' isn't a tag (smith machines are tagged 'machine'); we match it against the variant's name instead.
 const EQUIPMENT_SYNONYMS: Record<string, string> = {
   machine: 'machine',
   dumbbell: 'dumbbell', dumbbells: 'dumbbell', db: 'dumbbell',
@@ -95,33 +75,28 @@ const EQUIPMENT_SYNONYMS: Record<string, string> = {
   smith: 'smith',
 };
 
-// The equipment the user asked for, if any. Smith wins over a bare "machine"
-// when both appear ("squat smith machine"), as it's the more specific request.
+// Requested equipment, if any. Smith wins over a bare "machine" when both appear (more specific).
 function detectEquipment(t: string): string | null {
   const tags = t.split(' ').map(tok => EQUIPMENT_SYNONYMS[tok]).filter(Boolean);
   if (!tags.length) return null;
   return tags.includes('smith') ? 'smith' : tags[0];
 }
 
-// Drop equipment words so the core lift name is left ("db bench press" and
-// "bench press machine" both reduce to "bench press").
 function stripEquipment(t: string): string {
   return t.split(' ').filter(tok => !EQUIPMENT_SYNONYMS[tok]).join(' ').trim();
 }
 
-// Does this variant satisfy the requested equipment? Checks the catalog tag and
-// the name words (so 'smith', which isn't a tag, still resolves via the name).
+// Checks the catalog tag and the name words, so 'smith' (not a tag) still resolves via the name.
 function hasEquipment(e: IndexedExercise, equip: string): boolean {
   return e.equipment.includes(equip) || e.fullNorm.split(' ').includes(equip);
 }
 
-// Base/plural/prefix match for a query against the index. Empty query matches
-// nothing (an empty prefix would otherwise match everything).
+// Base/plural/prefix match. Empty query matches nothing (an empty prefix would match everything).
 function matchByBase(index: IndexedExercise[], q: string): IndexedExercise[] {
   if (!q) return [];
   let matches = index.filter(e => baseHits(e, q));
   if (!matches.length) {
-    const alt = q.endsWith('s') ? q.slice(0, -1) : `${q}s`; // simple plural tolerance
+    const alt = q.endsWith('s') ? q.slice(0, -1) : `${q}s`;
     matches = index.filter(e => baseHits(e, alt));
   }
   if (!matches.length) {
@@ -131,7 +106,7 @@ function matchByBase(index: IndexedExercise[], q: string): IndexedExercise[] {
   return matches;
 }
 
-// Levenshtein edit distance (two-row DP). Small catalog → cheap.
+// Levenshtein edit distance (two-row DP).
 function editDistance(a: string, b: string): number {
   if (a === b) return 0;
   if (!a.length) return b.length;
@@ -148,17 +123,12 @@ function editDistance(a: string, b: string): number {
   return prev[b.length];
 }
 
-// How many typos to tolerate for a query of this length: ~1 per 5 chars, but at
-// least 1 so short names still survive a single slip. Deliberately tight — fuzzy
-// is a last resort, and over-tolerance is what snaps a novel lift onto the wrong
-// catalog entry instead of letting it become a custom exercise.
+// Typo budget: ~1 per 5 chars, min 1. Deliberately tight — over-tolerance snaps a novel lift onto the wrong catalog entry instead of a custom exercise.
 function fuzzyBudget(len: number): number {
   return Math.max(1, Math.floor(len * 0.2));
 }
 
-// Closest catalog base to a typo'd query, or null when nothing is clearly close.
-// Bails on a tie between two distinct bases — guessing between two equally-near
-// lifts is exactly the wrong-match failure we're avoiding.
+// Closest catalog base to a typo'd query, or null. Bails on a tie between distinct bases — guessing between equally-near lifts is the wrong-match failure we avoid.
 function bestFuzzyBase(index: IndexedExercise[], q: string): string | null {
   if (q.length < 4) return null; // too short to fuzzy-match safely
   const bases = [...new Set(index.flatMap(e => [e.base, ...e.aliasBases]))];
@@ -171,8 +141,7 @@ function bestFuzzyBase(index: IndexedExercise[], q: string): string | null {
   return best.b;
 }
 
-// Common gym shorthand → a searchable canonical name, so "bp"/"ohp"/"rdl"
-// resolve instantly without an AI round-trip. Only whole-input matches apply.
+// Gym shorthand → canonical name. Whole-input matches only.
 const ABBREVIATIONS: Record<string, string> = {
   bp: 'bench press',
   ohp: 'overhead press',
@@ -193,22 +162,17 @@ const ABBREVIATIONS: Record<string, string> = {
 export function matchExerciseByName(name: string): string | null {
   let t = normalize(name);
   if (!t) return null;
-  if (ABBREVIATIONS[t]) t = normalize(ABBREVIATIONS[t]); // expand whole-input shorthand
+  if (ABBREVIATIONS[t]) t = normalize(ABBREVIATIONS[t]);
   const index = getIndex();
 
-  // An equipment qualifier ("machine", "db", "smith"…) shouldn't be matched as
-  // part of the lift name — match the core name, then use the qualifier to pick
-  // the right variant. Detect it from the paren-keeping form so a canonical
-  // "RDL (Dumbbells)" resolves the same as "rdl dumbbells" (normalize drops parens).
+  // Match the core lift name, then use the equipment qualifier to pick the variant. Detect from the paren-keeping form so "RDL (Dumbbells)" resolves like "rdl dumbbells".
   const wantEquip = detectEquipment(normalizeKeepEquip(name)) ?? detectEquipment(t);
   let core = stripEquipment(t);
-  if (ABBREVIATIONS[core]) core = normalize(ABBREVIATIONS[core]); // "ohp machine" → "overhead press"
+  if (ABBREVIATIONS[core]) core = normalize(ABBREVIATIONS[core]);
 
   let matches = matchByBase(index, core);
   if (!matches.length && core !== t) matches = matchByBase(index, t);
-  // Last resort: typo tolerance. Match the closest base, then fall through to the
-  // same equipment disambiguation. Tight + tie-averse so it never snaps a novel
-  // lift onto a near-spelled catalog entry (that should become a custom exercise).
+  // Last resort: typo tolerance, then the same equipment disambiguation.
   if (!matches.length) {
     const fuzzyBase = bestFuzzyBase(index, core) ?? (core !== t ? bestFuzzyBase(index, t) : null);
     if (fuzzyBase) matches = index.filter(e => baseHits(e, fuzzyBase));
@@ -218,10 +182,7 @@ export function matchExerciseByName(name: string): string | null {
   if (wantEquip) {
     const byEquip = matches.filter(e => hasEquipment(e, wantEquip));
     if (byEquip.length) return prefer(byEquip).id;
-    // The user named an equipment variant the catalog doesn't carry for this
-    // lift. With several variants to choose from, don't silently snap to the
-    // wrong equipment — let it be logged as a custom exercise instead. (A lone
-    // match whose own name contains the word still resolves via the fall-through.)
+    // Requested equipment variant the catalog lacks: with several variants, don't snap to the wrong one — log as custom. (A lone match resolves via the fall-through.)
     if (matches.length > 1) return null;
   }
   return prefer(matches).id;
@@ -232,8 +193,7 @@ function unitFrom(token: string | undefined, fallback: WeightUnit): WeightUnit {
   return /kg/i.test(token) ? 'kg' : 'lbs';
 }
 
-// One comma-separated chunk of the set region. `carry` is the last weight seen,
-// so "185x5, 5, 5" repeats 185, and "x8" reuses it too.
+// One comma-separated chunk of the set region. `carry` is the last weight seen, so "185x5, 5, 5" repeats 185.
 function parseSegment(
   seg: string,
   defaultUnit: WeightUnit,
@@ -243,8 +203,7 @@ function parseSegment(
   const s = seg.trim();
   if (!s) return [];
 
-  // weight (unit?) x reps (x sets?) — global, so space-separated sets in one
-  // segment ("135x8 135x8") and "135x8x3" both expand to multiple sets.
+  // weight (unit?) x reps (x sets?) — global, so "135x8 135x8" and "135x8x3" both expand to multiple sets.
   const xMatches = [...s.matchAll(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*[x×]\s*(\d+)(?:\s*[x×]\s*(\d+))?/gi)];
   if (xMatches.length > 0) {
     const out: ParsedSet[] = [];
@@ -260,7 +219,6 @@ function parseSegment(
     return out;
   }
 
-  // weight (unit?) for reps
   let m = s.match(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*for\s*(\d+)/i);
   if (m) {
     const weight = parseFloat(m[1]);
@@ -270,7 +228,7 @@ function parseSegment(
     return [{ weight, reps: parseInt(m[3], 10), unit }];
   }
 
-  // x reps  (rep-only, reuse carried weight / bodyweight)
+  // rep-only: reuse carried weight / bodyweight
   m = s.match(/^[x×]\s*(\d+)$/i);
   if (m) {
     const reps = parseInt(m[1], 10);
@@ -278,7 +236,7 @@ function parseSegment(
     return [{ weight, reps, unit: carry.unit }];
   }
 
-  // two bare numbers: "225 5" -> weight, reps
+  // "225 5" -> weight, reps
   m = s.match(/^(\d+(?:\.\d+)?)\s+(\d+)$/);
   if (m) {
     const weight = parseFloat(m[1]);
@@ -286,7 +244,7 @@ function parseSegment(
     return [{ weight, reps: parseInt(m[2], 10), unit: carry.unit }];
   }
 
-  // single bare number: a rep count if we have a carried weight or it's bodyweight
+  // bare number: a rep count if there's a carried weight or it's bodyweight
   m = s.match(/^(\d+)$/);
   if (m) {
     const reps = parseInt(m[1], 10);
@@ -300,14 +258,13 @@ function parseSegment(
 
 /** Parse a single note line into one exercise, or null if there's no exercise. */
 export function parseLine(line: string, defaultUnit: WeightUnit): ParsedExercise | null {
-  // Strip intensity noise so it doesn't get mistaken for set data.
+  // Strip intensity noise so it isn't mistaken for set data.
   let clean = line.replace(/@\s*\d+(?:\.\d+)?/g, ' ').replace(/\brpe\s*\d+(?:\.\d+)?/gi, ' ');
 
   const isBodyweight = /\b(bodyweight|body\s?weight|bw)\b/i.test(clean);
   clean = clean.replace(/\b(bodyweight|body\s?weight|bw)\b/gi, ' ');
 
-  // Name = everything before the first digit or "x<reps>" token. Keeps hyphens,
-  // apostrophes and internal spaces; only set data is numeric.
+  // Name = everything before the first digit or "x<reps>" token (only set data is numeric).
   const boundary = clean.search(/\d|[x×]\s*\d/i);
   const namePart = (boundary === -1 ? clean : clean.slice(0, boundary)).trim();
   const dataPart = boundary === -1 ? '' : clean.slice(boundary);
@@ -321,8 +278,7 @@ export function parseLine(line: string, defaultUnit: WeightUnit): ParsedExercise
     sets.push(...parseSegment(seg, defaultUnit, isBodyweight, carry));
   }
 
-  // No parseable sets: bodyweight exercise with no reps gets a sensible default;
-  // otherwise treat the line as not-an-exercise so it can be flagged/escalated.
+  // No parseable sets: bodyweight gets a default; otherwise treat the line as not-an-exercise.
   if (sets.length === 0) {
     if (isBodyweight) sets.push({ weight: 0, reps: 10, unit: defaultUnit });
     else return null;

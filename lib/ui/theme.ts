@@ -25,17 +25,17 @@ export interface Theme {
 }
 
 export const themes: Record<ThemeLevel, Theme> = {
-  // E Tier Light - Studio Ghibli, magical, nature-inspired
+  // E Tier Light
   beginner: {
     name: "beginner",
     colors: {
-      background: "#F7F3E9", // Warm cream background (like parchment)
-      text: "#2D3E2F", // Deep forest green text
-      primary: "#8B5A3C", // Warm brown (like tree bark)
-      secondary: "#E8DCC6", // Light beige for subtle elements
-      accent: "#7FB069", // Soft sage green (nature accent)
-      surface: "#FFFFFF", // Pure white for cards (clean contrast)
-      border: "#D4C4A8", // Soft tan borders
+      background: "#F7F3E9",
+      text: "#2D3E2F",
+      primary: "#8B5A3C",
+      secondary: "#E8DCC6",
+      accent: "#7FB069",
+      surface: "#FFFFFF",
+      border: "#D4C4A8",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -46,17 +46,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 16,
   },
 
-  // E Tier Dark - Steel blue accent on neutral dark
+  // E Tier Dark
   beginner_dark: {
     name: "beginner_dark",
     colors: {
-      background: "#121215", // Dark charcoal
-      text: "#E4E4E7", // Zinc 200
-      primary: "#1D9BF0", // Steel blue
-      secondary: "#18181B", // Zinc 900
-      accent: "#D4D4D8", // Zinc 300 (bright silver)
-      surface: "#1C1C1F", // Elevated dark
-      border: "#27272A", // Zinc 800
+      background: "#121215",
+      text: "#E4E4E7",
+      primary: "#1D9BF0",
+      secondary: "#18181B",
+      accent: "#D4D4D8",
+      surface: "#1C1C1F",
+      border: "#27272A",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -67,17 +67,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 12,
   },
 
-  // C Tier - Modern light theme (iOS/Discord inspired)
+  // C Tier
   intermediate: {
     name: "intermediate",
     colors: {
-      background: "#EFEEF3", // Cool light gray (more contrast)
-      text: "#1A1A1A", // Near black for readability
-      primary: "#5856D6", // iOS purple
-      secondary: "#E5E4E9", // Subtle gray
-      accent: "#34C759", // iOS green
-      surface: "#FFFFFF", // Pure white cards (contrast!)
-      border: "#D1D1D6", // iOS separator gray
+      background: "#EFEEF3",
+      text: "#1A1A1A",
+      primary: "#5856D6",
+      secondary: "#E5E4E9",
+      accent: "#34C759",
+      surface: "#FFFFFF",
+      border: "#D1D1D6",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -88,17 +88,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 10,
   },
 
-  // B Tier - Deep ocean dark theme
+  // B Tier
   advanced: {
     name: "advanced",
     colors: {
-      background: "#0F172A", // Slate 900
-      text: "#F1F5F9", // Slate 100
-      primary: "#3B82F6", // Blue 500
-      secondary: "#1E293B", // Slate 800
-      accent: "#22D3EE", // Cyan 400
-      surface: "#1E293B", // Slate 800
-      border: "#334155", // Slate 700
+      background: "#0F172A",
+      text: "#F1F5F9",
+      primary: "#3B82F6",
+      secondary: "#1E293B",
+      accent: "#22D3EE",
+      surface: "#1E293B",
+      border: "#334155",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -109,17 +109,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 12,
   },
 
-  // A Tier - Royal purple premium theme
+  // A Tier
   elite: {
     name: "elite",
     colors: {
-      background: "#13111C", // Deep purple black
-      text: "#EEEEF0", // Soft white
-      primary: "#A855F7", // Purple 500
-      secondary: "#1E1B2E", // Purple tinted dark
-      accent: "#F472B6", // Pink 400
-      surface: "#221F2E", // Elevated purple surface
-      border: "#2E2A3E", // Subtle purple border
+      background: "#13111C",
+      text: "#EEEEF0",
+      primary: "#A855F7",
+      secondary: "#1E1B2E",
+      accent: "#F472B6",
+      surface: "#221F2E",
+      border: "#2E2A3E",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -130,17 +130,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 10,
   },
 
-  // S Tier - Claude inspired dark theme
+  // S Tier
   god: {
     name: "god",
     colors: {
-      background: "#2C2724", // Warm dark gray (not black)
-      text: "#FAF6F1", // Claude warm cream
-      primary: "#C15F3C", // Claude rust orange
-      secondary: "#3D3632", // Slightly lighter warm gray
-      accent: "#E67D22", // Claude bright orange
-      surface: "#38322E", // Elevated warm gray
-      border: "#4A433E", // Warm medium border
+      background: "#2C2724",
+      text: "#FAF6F1",
+      primary: "#C15F3C",
+      secondary: "#3D3632",
+      accent: "#E67D22",
+      surface: "#38322E",
+      border: "#4A433E",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -151,17 +151,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 12,
   },
 
-  // Rose - Soft pastel dreamscape
+  // Rose
   share_warm: {
     name: "share_warm",
     colors: {
-      background: "#FDF4F5", // Soft rose white
-      text: "#6B4C5A", // Muted mauve text
-      primary: "#E879A9", // Soft pink
-      secondary: "#FCE8EC", // Light pink
-      accent: "#93C5FD", // Soft blue
-      surface: "#FFFFFF", // Pure white cards
-      border: "#F5D0DC", // Pink border
+      background: "#FDF4F5",
+      text: "#6B4C5A",
+      primary: "#E879A9",
+      secondary: "#FCE8EC",
+      accent: "#93C5FD",
+      surface: "#FFFFFF",
+      border: "#F5D0DC",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -172,17 +172,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 16,
   },
 
-  // Cyber - Cyberpunk anime aesthetics
+  // Cyber
   share_cool: {
     name: "share_cool",
     colors: {
-      background: "#0C0A1D", // Deep midnight
-      text: "#E2E8F0", // Soft white
-      primary: "#8B5CF6", // Violet 500
-      secondary: "#1A1633", // Dark violet
-      accent: "#FB923C", // Orange 400
-      surface: "#16132D", // Elevated violet
-      border: "#6D28D9", // Violet 700
+      background: "#0C0A1D",
+      text: "#E2E8F0",
+      primary: "#8B5CF6",
+      secondary: "#1A1633",
+      accent: "#FB923C",
+      surface: "#16132D",
+      border: "#6D28D9",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -193,17 +193,17 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 8,
   },
 
-  // Winter 2026 - Frost & Pine theme (Dec 1 - March 20)
+  // Winter 2026 seasonal (Dec 1 - March 20)
   winter_2026: {
     name: "winter_2026",
     colors: {
-      background: "#162825", // Deep pine
-      text: "#f1f5f9", // Snow white
-      primary: "#38bdf8", // Ice blue
-      secondary: "#4a7c6f", // Muted pine
-      accent: "#e2e8f0", // Frost silver
-      surface: "#1e3633", // Lighter pine
-      border: "#2d4a44", // Pine border
+      background: "#162825",
+      text: "#f1f5f9",
+      primary: "#38bdf8",
+      secondary: "#4a7c6f",
+      accent: "#e2e8f0",
+      surface: "#1e3633",
+      border: "#2d4a44",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -216,7 +216,7 @@ export const themes: Record<ThemeLevel, Theme> = {
 };
 
 export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
-  // Only progression themes are in order - beginner variants stay at same level
+  // Only progression themes are ordered; beginner variants stay at same level
   const themeOrder: ThemeLevel[] = [
     "beginner",
     "intermediate",
@@ -225,7 +225,6 @@ export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
     "god",
   ];
 
-  // Map beginner variants to beginner for progression purposes
   const normalizedTheme = currentTheme.startsWith("beginner")
     ? "beginner"
     : currentTheme;
@@ -233,7 +232,6 @@ export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
   return themeOrder[Math.min(currentIndex + 1, themeOrder.length - 1)];
 };
 
-// Check if a seasonal theme is currently available based on date
 export const isSeasonalThemeAvailable = (theme: ThemeLevel): boolean => {
   const now = new Date();
   const month = now.getMonth(); // 0-11
@@ -244,6 +242,5 @@ export const isSeasonalThemeAvailable = (theme: ThemeLevel): boolean => {
     return month === 11 || month === 0 || month === 1 || (month === 2 && day <= 20);
   }
 
-  // Non-seasonal themes are always available
   return true;
 };

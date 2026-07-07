@@ -1,13 +1,9 @@
 import { Gender, MainLiftType, StrengthStandard } from '@/types';
 
-// Strength standards based on body weight ratios
-// Data from real powerlifting competition analysis (809,986 entries)
-// Source: van den Hoek et al. 2024 - "Normative data for the squat, bench press and deadlift"
-// Aligned with app theme levels
+// Strength standards as body-weight multipliers, from drug-tested unequipped powerlifting data.
+// Source: van den Hoek et al. 2024, "Normative data for the squat, bench press and deadlift" (809,986 entries).
 export { StrengthStandard };
 
-// Realistic strength standards as multipliers of body weight
-// Based on drug-tested, unequipped powerlifting competition data
 export const MALE_STANDARDS: Record<string, StrengthStandard> = {
   'squat-barbell': {
     beginner: 0.75,      // 10th percentile
@@ -730,8 +726,7 @@ export const FEMALE_STANDARDS: Record<string, StrengthStandard> = {
   },
 };
 
-// Age adjustment factors (strength typically peaks in 20s-30s)
-// Based on research showing strength decline with age
+// Age adjustment factors — strength peaks in 20s-30s, declines after (research-based)
 export const AGE_ADJUSTMENT_FACTORS: Record<string, number> = {
   '18-25': 1.0,
   '26-35': 1.0,
@@ -757,30 +752,25 @@ export function calculateStrengthPercentile(
   exercise: MainLiftType | string,
   age?: number
 ): number {
-  // Safety check: if body weight is 0 or invalid, return 0 percentile
   if (!bodyWeight || bodyWeight <= 0 || !liftWeight || liftWeight <= 0) {
     return 0;
   }
 
-  // Get the appropriate standards based on gender
   const standards = gender === 'male' ? MALE_STANDARDS[exercise] : FEMALE_STANDARDS[exercise];
 
-  // If no standards exist for this exercise (e.g., secondary lifts), return a default percentile
   if (!standards) {
-    return 50; // Default to 50th percentile for exercises without standards
+    return 50; // exercises without standards (e.g. secondary lifts) default to 50th percentile
   }
 
-  // Calculate the ratio (lift weight / body weight)
   let ratio = liftWeight / bodyWeight;
-  
-  // Apply age adjustment if age is provided
+
   if (age) {
     const ageCategory = getAgeCategory(age);
     const ageFactor = AGE_ADJUSTMENT_FACTORS[ageCategory];
-    ratio = ratio / ageFactor; // Adjust for age decline
+    ratio = ratio / ageFactor;
   }
-  
-  // Determine percentile based on ratio using realistic distributions
+
+  // Piecewise percentile mapping from the ratio distribution
   if (ratio <= standards.beginner) {
     // Below 10th percentile - linear interpolation from 0 to 10
     return Math.max(0, (ratio / standards.beginner) * 10);
@@ -810,7 +800,7 @@ export function calculateStrengthPercentile(
 export type StrengthTierBase = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
 export type StrengthTier = 'S++' | 'S+' | 'S' | 'S-' | 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'D-' | 'E+' | 'E' | 'E-';
 
-// Tier colors - vibrant anime style (base colors for each tier)
+// Tier colors (base color per tier)
 export const TIER_COLORS: Record<StrengthTierBase, string> = {
   'S': '#FFD700', // Gold (Legendary)
   'A': '#9932CC', // Purple (Epic)
@@ -820,12 +810,11 @@ export const TIER_COLORS: Record<StrengthTierBase, string> = {
   'E': '#808080', // Gray (Common)
 };
 
-// Get the base tier (without +/-/++) for color lookup
 export function getBaseTier(tier: StrengthTier): StrengthTierBase {
   return tier.charAt(0) as StrengthTierBase;
 }
 
-// Helper function to get strength tier from percentile (with +/- modifiers)
+// Percentile → tier (with +/- modifiers)
 export function getStrengthTier(percentile: number): StrengthTier {
   // S tier: 85-100 (S++: 99-100, S+: 95-98, S: 90-94, S-: 85-89)
   if (percentile >= 99) return 'S++';
@@ -859,7 +848,6 @@ export function getStrengthTier(percentile: number): StrengthTier {
   return 'E-';
 }
 
-// Helper function to get tier color
 export function getTierColor(tier: StrengthTier): string {
   return TIER_COLORS[getBaseTier(tier)];
 }
@@ -869,12 +857,12 @@ export function getPercentileColor(percentile: number): string {
   return getTierColor(getStrengthTier(percentile));
 }
 
-// Helper function to get strength level name using theme levels (legacy, returns tier)
+// Legacy alias → returns tier
 export function getStrengthLevelName(percentile: number): string {
   return getStrengthTier(percentile);
 }
 
-// Simplified tier thresholds for radar chart visualization (base tiers only)
+// Radar-chart tier thresholds (base tiers only)
 export const RADAR_TIER_THRESHOLDS: { label: StrengthTierBase; threshold: number }[] = [
   { label: 'E', threshold: 0 },
   { label: 'D', threshold: 6 },
@@ -884,7 +872,7 @@ export const RADAR_TIER_THRESHOLDS: { label: StrengthTierBase; threshold: number
   { label: 'S', threshold: 85 },
 ];
 
-// Full tier thresholds for next tier calculations (exported for reuse)
+// Full tier thresholds (exported for reuse)
 export const TIER_THRESHOLDS: { label: StrengthTier; threshold: number }[] = [
   { label: 'E-', threshold: 0 },
   { label: 'E', threshold: 1 },
@@ -907,7 +895,6 @@ export const TIER_THRESHOLDS: { label: StrengthTier; threshold: number }[] = [
   { label: 'S++', threshold: 99 },
 ];
 
-// Get info about current tier and next tier progression
 export function getNextTierInfo(percentile: number): {
   current: StrengthTier;
   next: StrengthTier | null;
@@ -928,7 +915,7 @@ export function getNextTierInfo(percentile: number): {
 }
 
 
-// Mathematical calculations for 1RM estimation
+// 1RM estimation
 export class OneRMCalculator {
   // Epley formula: 1RM = weight × (1 + reps/30)
   static epley(weight: number, reps: number): number {
@@ -949,10 +936,8 @@ export class OneRMCalculator {
   // Average of multiple formulas for better accuracy
   static estimate(weight: number, reps: number): number {
     if (reps <= 1) return weight;
-    // Rep-max formulas lose accuracy past ~15 reps, but refusing to estimate
-    // reported a 21-rep set's 1RM as the bar weight itself. Past 15, each rep
-    // counts a quarter (capped at an effective 20), so grinding out high-rep
-    // sets keeps nudging the estimate up without the formulas running away.
+    // Rep-max formulas lose accuracy past ~15 reps; past 15 each rep counts a quarter
+    // (capped at effective 20) so high-rep sets keep nudging up without running away.
     const r = reps <= 15 ? reps : Math.min(20, 15 + (reps - 15) * 0.25);
 
     const epley = this.epley(weight, r);
@@ -962,7 +947,6 @@ export class OneRMCalculator {
     return Math.round((epley + brzycki + lombardi) / 3);
   }
 
-  // Calculate percentage of 1RM for given reps
   static getPercentageFor(reps: number): number {
     const percentages: Record<number, number> = {
       1: 100,
@@ -982,7 +966,6 @@ export class OneRMCalculator {
     return percentages[reps] || 70;
   }
 
-  // Calculate weight for given percentage of 1RM
   static getWeightForPercentage(oneRM: number, percentage: number): number {
     return Math.round((oneRM * percentage) / 100);
   }

@@ -12,17 +12,14 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Default to the dark theme for new users (until they pick one in settings).
+  // Default to dark for new users until they pick one in settings.
   const getDefaultTheme = (): ThemeLevel => 'beginner_dark';
 
-  // Initialize with system preference, will be updated from storage
   const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
 
-  // Load theme preference from storage on mount
   useEffect(() => {
     const loadThemePreference = async () => {
       const savedTheme = await storageService.getThemePreference();
-      // If no saved theme (null/undefined), fall back to the default (dark).
       if (savedTheme) {
         setCurrentThemeLevel(savedTheme);
       } else {
@@ -36,11 +33,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setThemeLevel = useCallback(async (level: ThemeLevel) => {
     setCurrentThemeLevel(level);
-    // Persist theme preference to storage
     await storageService.saveThemePreference(level);
   }, []);
 
-  // Ensure we always have a valid theme
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
   const value = useMemo(() => ({

@@ -18,14 +18,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Get ordinal suffix for a number (1st, 2nd, 3rd, 4th, etc.)
 function getOrdinalSuffix(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return s[(v - 20) % 10] || s[v] || s[0];
 }
 
-// Solo Leveling inspired - dramatic tier
 const ProgressiveTierWithGlow = ({
   from,
   to,
@@ -47,7 +45,6 @@ const ProgressiveTierWithGlow = ({
   const scale = useSharedValue(1);
 
   useEffect(() => {
-    // Initial anticipation pulse
     scale.value = withTiming(1.05, { duration: 300 });
     scale.value = withTiming(1, { duration: 300 });
 
@@ -59,21 +56,17 @@ const ProgressiveTierWithGlow = ({
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // Gentler ease-out (quadratic instead of quartic)
         const eased = 1 - Math.pow(1 - progress, 2);
         const currentValue = Math.round(from + (to - from) * eased);
         const tier = getStrengthTier(currentValue);
 
-        // Update tier if it changed
         if (tier !== lastTier) {
           setCurrentTier(tier);
           setCurrentColor(getTierColor(tier));
-          // Show RANK UP on first tier change
           if (!hasShownRankUp && tierChanged) {
             setShowRankUp(true);
             hasShownRankUp = true;
           }
-          // Dramatic pulse on tier change
           scale.value = 1.25;
           scale.value = withTiming(1, { duration: 500 });
           lastTier = tier;
@@ -84,7 +77,6 @@ const ProgressiveTierWithGlow = ({
           setCurrentTier(getStrengthTier(to));
           setCurrentColor(getTierColor(getStrengthTier(to)));
 
-          // If no tier change, just pulse to acknowledge
           if (!tierChanged) {
             scale.value = 1.15;
             scale.value = withTiming(1, { duration: 400 });
@@ -105,7 +97,6 @@ const ProgressiveTierWithGlow = ({
 
   return (
     <View style={tierStyles.container}>
-      {/* Header text - different for tier change vs no change */}
       {showRankUp ? (
         <Animated.Text
           entering={FadeIn.duration(300)}
@@ -119,12 +110,9 @@ const ProgressiveTierWithGlow = ({
         </Text>
       )}
 
-      {/* The tier itself */}
       <Animated.Text style={[style, { color: currentColor }, animatedStyle]}>
         {currentTier}
       </Animated.Text>
-
-      {/* No label below - cleaner */}
     </View>
   );
 };
@@ -155,7 +143,6 @@ interface StrengthProgressOverlayProps {
   onDismiss: () => void;
 }
 
-// Percentile journey display: "45 → 52 percentile"
 const PercentileJourney = ({
   from,
   to,
@@ -186,12 +173,11 @@ const PercentileJourney = ({
       const interval = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // Gentler ease-out (quadratic instead of quartic)
         const eased = 1 - Math.pow(1 - progress, 2);
         const currentValue = Math.round(from + (to - from) * eased);
         setValue(currentValue);
 
-        // Update color based on current value's tier (discrete, not interpolated)
+        // Discrete per-tier color, not interpolated
         setCurrentColor(getTierColor(getStrengthTier(currentValue)));
 
         if (progress >= 1) {
@@ -209,8 +195,7 @@ const PercentileJourney = ({
    
   }, [from, to, delay, duration]);
 
-  // During animation, show counting number
-  // After animation, show "from → to"
+  // Mid-animation: counting number. After: "from → to"
   if (!showFinal) {
     return (
       <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
@@ -241,14 +226,13 @@ export default function StrengthProgressOverlay({
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // Derive tiers from percentiles
   const previousTier = getStrengthTier(progress.previousPercentile);
   const newTier = getStrengthTier(progress.newPercentile);
 
   const tierChanged = previousTier !== newTier;
   const delta = progress.newPercentile - progress.previousPercentile;
 
-  // Animation timing - scale with delta size (min 2s, max 8s)
+  // Duration scales with delta size (clamped 2s–8s)
   const animationDelay = 400;
   const animationDuration = Math.max(2000, Math.min(8000, delta * 400));
 
@@ -269,7 +253,6 @@ export default function StrengthProgressOverlay({
           style={styles.overlay}
         >
           <View style={styles.content}>
-            {/* Solo Leveling inspired - RANK is everything */}
             <ProgressiveTierWithGlow
               from={progress.previousPercentile}
               to={progress.newPercentile}
@@ -279,7 +262,6 @@ export default function StrengthProgressOverlay({
               duration={animationDuration}
             />
 
-            {/* Percentile journey below */}
             <View style={styles.statsRow}>
               <PercentileJourney
                 from={progress.previousPercentile}
@@ -294,7 +276,6 @@ export default function StrengthProgressOverlay({
             </View>
           </View>
 
-          {/* Dismiss hint */}
           <Text style={[styles.hint, { fontWeight: '400', paddingBottom: insets.bottom + 20 }]}>
             tap anywhere to continue
           </Text>
@@ -314,14 +295,12 @@ const styles = StyleSheet.create({
   content: {
     alignItems: 'center',
   },
-  // The rank - massive and dominant
   rankText: {
     fontSize: 140,
     lineHeight: 150,
     letterSpacing: 2,
     textAlign: 'center',
   },
-  // Percentile journey at bottom
   statsRow: {
     flexDirection: 'row',
     alignItems: 'baseline',

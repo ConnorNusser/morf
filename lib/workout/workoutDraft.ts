@@ -1,8 +1,5 @@
-// The structured workout draft — the editable source of truth for a logging
-// session. Freeform text/voice at the composer is parsed and *merged* into this
-// draft (append model); the user then edits sets directly via traditional UI.
-// The draft serializes back to note syntax (draftToNoteText) so the existing
-// finish/save/persistence pipeline keeps working unchanged.
+// Editable source of truth for a logging session; serializes back to note syntax
+// (draftToNoteText) so the finish/save/persistence pipeline works unchanged.
 import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { RoutineExercise, WeightUnit } from '@/types';
@@ -11,13 +8,13 @@ export interface DraftSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
-  done?: boolean; // checked off during the session (green row)
+  done?: boolean; // checked off (green row)
 }
 
 export interface DraftExercise {
-  key: string; // stable UI key for the row
+  key: string;
   name: string;
-  exerciseId?: string; // matched catalog/custom id, if recognized
+  exerciseId?: string;
   recognized: boolean;
   sets: DraftSet[];
 }
@@ -40,8 +37,7 @@ function consolidationKey(exerciseId: string | undefined, name: string): string 
 }
 
 /** Append parsed exercises into a draft, merging sets into an existing match.
- *  `done` marks the added sets complete (composer/voice entries are sets you
- *  just did, so they land checked off). */
+ *  `done` marks the added sets complete (composer/voice entries land checked off). */
 export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts: { done?: boolean } = {}): WorkoutDraft {
   const next: WorkoutDraft = draft.map(e => ({ ...e, sets: [...e.sets] }));
   for (const pex of parsed) {
@@ -64,16 +60,12 @@ export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts:
   return next;
 }
 
-/** Build a fresh draft from a parsed workout (e.g. parsed text or prefill). */
 export function draftFromParsed(parsed: ParsedWorkout): WorkoutDraft {
   return mergeParsed([], parsed.exercises);
 }
 
-/**
- * Build a draft from a parsed workout. When `asTarget` (following a routine),
- * the parsed sets are the prescription: they pre-fill the working sets un-done
- * so there's nothing to tap — you just adjust and check off.
- */
+/** When `asTarget` (following a routine), parsed sets are the prescription:
+ *  pre-filled un-done so you just adjust and check off. */
 export function buildDraft(
   parsed: ParsedWorkout,
   opts: { asTarget?: boolean } = {},
@@ -91,7 +83,6 @@ export function buildDraft(
   });
 }
 
-/** Serialize a draft back to note syntax for the finish/save pipeline. */
 export function draftToNoteText(draft: WorkoutDraft): string {
   return draft
     .map(ex => {
@@ -109,25 +100,19 @@ export function totalSets(draft: WorkoutDraft): number {
   return draft.reduce((n, e) => n + e.sets.length, 0);
 }
 
-/** Convert the draft straight to a ParsedWorkout for saving — no AI/parse pass.
- *  The draft already is the structured workout, so finishing is deterministic. */
+/** Convert the draft straight to a ParsedWorkout for saving — no AI/parse pass. */
 export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
   const exercises: ParsedExercise[] = draft
     .map(ex => ({
       name: ex.name,
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
-      // Only log sets the user actually checked off (green row). This mirrors the
-      // one render signal in EditableWorkout — a set is "done" iff `done === true`.
-      // Sets never checked off (routine prescriptions, prefill/restore rows, added
-      // rows) render un-done and are dropped here so they don't land in history as
-      // completed. The composer/voice path sets `done: true` explicitly, so live-
-      // logged sets still save.
+      // Only log sets checked off (done === true); un-done rows (prescriptions,
+      // prefill/restore, added) are dropped so they don't land in history as completed.
       sets: ex.sets
         .filter(s => s.done === true)
         .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true })),
     }))
-    // Drop exercises with nothing performed.
     .filter(ex => ex.sets.length > 0);
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
 }
@@ -137,18 +122,14 @@ export function totalVolume(draft: WorkoutDraft): number {
   return draft.reduce((sum, e) => sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0);
 }
 
-/**
- * Add a recognized exercise the user named without any sets yet, pre-filling its
- * sets from the best reference (prescription, else last time). No-op if present.
- */
+/** Add a named exercise with no sets, pre-filling from the best reference
+ *  (prescription, else last time). No-op if present. */
 export function addNamedExercise(
   draft: WorkoutDraft,
   exercise: { name: string; exerciseId?: string; recognized: boolean; previous?: DraftSet[]; target?: DraftSet[] },
 ): WorkoutDraft {
   const ckey = consolidationKey(exercise.exerciseId, exercise.name);
   if (draft.some(e => consolidationKey(e.exerciseId, e.name) === ckey)) return draft;
-  // Auto-fill the working sets from the best reference we have (prescription, else
-  // last time) so naming an exercise drops in ready-to-adjust sets — no button.
   const ref = exercise.target?.length ? exercise.target : exercise.previous;
   return [
     ...draft,
@@ -162,8 +143,6 @@ export function addNamedExercise(
   ];
 }
 
-// ---- immutable edit helpers (traditional-UI editing of the cards) ----
-
 function mapExercise(draft: WorkoutDraft, key: string, fn: (ex: DraftExercise) => DraftExercise): WorkoutDraft {
   return draft.map(ex => (ex.key === key ? fn(ex) : ex));
 }
@@ -176,19 +155,12 @@ export function updateSet(draft: WorkoutDraft, key: string, index: number, patch
 }
 
 /**
- * Live downward "target" mirroring, computed from a snapshot of the exercise's
- * sets taken when editing began (`originalSets`). Set `index` is shown with the
- * in-progress `weight`×`reps`, and that value cascades onto the sets *below* it
- * that were still sitting at the original target — or are a blank 0×0 row —
- * stopping at the first set that carries its own numbers. Un-done sets only; a set
- * you've already logged is never rewritten.
+ * Live downward "target" mirroring: set `index` gets the in-progress weight×reps,
+ * cascading onto un-done sets below that still match the original target (or are
+ * blank 0×0), stopping at the first set with its own numbers.
  *
- * Recomputing from `originalSets` every keystroke (rather than from the mutated
- * draft) is what lets the targets keep tracking as you clear-and-retype: the rows
- * below always start from their original values, so the match doesn't get lost.
- *
- * 140×8 ×4 → retyping the first as 150×8 drags them all to 150×8; 140/140/170 →
- * the customized 170 stays put; one filled set over blank rows fills the blanks.
+ * Must recompute from `originalSets` (not the mutated draft) every keystroke — the
+ * rows below start from their original values so clear-and-retype keeps tracking.
  */
 export function previewSetEdit(
   draft: WorkoutDraft,
@@ -217,7 +189,6 @@ export function previewSetEdit(
   });
 }
 
-/** Toggle a set's done state (drives the green check-off row). */
 export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): WorkoutDraft {
   return mapExercise(draft, key, ex => ({
     ...ex,
@@ -228,7 +199,7 @@ export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): 
 export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const last = ex.sets[ex.sets.length - 1];
-    // A manually added set starts un-done — you check it off when you do it.
+    // A manually added set starts un-done.
     const added: DraftSet = last ? { ...last, done: false } : { weight: 0, reps: 0, unit: 'lbs', done: false };
     return { ...ex, sets: [...ex.sets, added] };
   });
@@ -245,7 +216,6 @@ export function removeExercise(draft: WorkoutDraft, key: string): WorkoutDraft {
   return draft.filter(ex => ex.key !== key);
 }
 
-/** Move an exercise one slot up (dir -1) or down (dir +1); no-op at the ends. */
 export function moveExercise(draft: WorkoutDraft, key: string, dir: -1 | 1): WorkoutDraft {
   const from = draft.findIndex(ex => ex.key === key);
   if (from < 0) return draft;
@@ -257,14 +227,10 @@ export function moveExercise(draft: WorkoutDraft, key: string, dir: -1 | 1): Wor
   return next;
 }
 
-// ---- routine sync: fold a finished draft back into its routine prescription ----
-
-/** Build a routine's exercise list from the current draft — captures the draft's
- *  order, per-exercise set count, and reps. Routines store no weights (they're
- *  computed from your records), so only structure carries over. Only exercises
- *  with a resolved id can live in a routine; freeform/unrecognized ones are
- *  dropped. Warmup flags and notes are preserved from the previous routine by
- *  matching exerciseId. */
+/** Build a routine's exercise list from the draft — captures order, set count, reps.
+ *  Routines store no weights (computed from records), so only structure carries over.
+ *  Only exercises with a resolved id survive; warmup flags and notes are preserved
+ *  from the previous routine by matching exerciseId. */
 export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExercise[]): RoutineExercise[] {
   return draft
     .filter(ex => ex.exerciseId && ex.sets.length > 0)
@@ -280,9 +246,8 @@ export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExerci
     });
 }
 
-/** True when folding the draft into the routine would actually change it —
- *  exercise set (added/removed), order, set counts, or reps all count. Drives the
- *  pre-finish "update your routine?" prompt so it only appears when there's a diff. */
+/** True when folding the draft into the routine would change it (exercises, order,
+ *  set counts, or reps). Drives the pre-finish "update your routine?" prompt. */
 export function routineDiffersFromDraft(draft: WorkoutDraft, prev: RoutineExercise[]): boolean {
   const next = draftToRoutineExercises(draft, prev);
   if (next.length !== prev.length) return true;

@@ -14,7 +14,6 @@ interface ProgressionIndicatorProps {
   weightUnit: 'lbs' | 'kg';
 }
 
-// Strength tier targets with tier-based theming
 const STRENGTH_TARGETS = [
   { key: 'advanced', name: 'B Tier', level: '~50th percentile', color: TIER_COLORS.B },
   { key: 'elite', name: 'A Tier', level: '~75th percentile', color: TIER_COLORS.A },
@@ -47,13 +46,10 @@ export default function ProgressionIndicator({
   const { currentTheme } = useTheme();
   const [slideAnim] = useState(new Animated.Value(0));
 
-  // Convert gender for strength calculations
   const strengthGender: 'male' | 'female' = gender === 'female' ? 'female' : 'male';
-  
-  // Get strength standards for this lift
+
   const standards = strengthGender === 'male' ? MALE_STANDARDS[liftId] : FEMALE_STANDARDS[liftId];
 
-  // Gentle entrance animation
   useEffect(() => {
     Animated.timing(slideAnim, {
       toValue: 1,
@@ -62,19 +58,16 @@ export default function ProgressionIndicator({
     }).start();
   }, [slideAnim]);
 
-  // Convert current 1RM to display units first
   const currentOneRMRounded = convertWeightForPreference(currentOneRM, 'lbs', weightUnit);
 
-  // Calculate targets based on actual strength standards
   const targets: ProgressTarget[] = STRENGTH_TARGETS.map(target => {
     const multiplier = standards[target.key];
     const targetWeightLbs = bodyWeight * multiplier;
-    
-    // Convert target to display units and round
+
     const targetInDisplayUnits = convertWeightForPreference(targetWeightLbs, 'lbs', weightUnit);
     const targetRounded = roundToIncrement(targetInDisplayUnits, weightUnit);
-    
-    // Calculate deficit based on rounded values (so math adds up)
+
+    // Deficit from rounded values so the math adds up.
     const isAchieved = currentOneRMRounded >= targetRounded;
     const deficit = Math.max(0, targetRounded - currentOneRMRounded);
     const progressPercent = isAchieved ? 100 : Math.min(95, (currentOneRMRounded / targetRounded) * 100);
@@ -106,7 +99,6 @@ export default function ProgressionIndicator({
         }
       ]}
     >
-      {/* Colorful header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: currentTheme.colors.text }]}>
           Strength Progression
@@ -114,7 +106,6 @@ export default function ProgressionIndicator({
         <View style={[styles.divider, { backgroundColor: currentTheme.colors.primary }]} />
       </View>
 
-      {/* Minimalist current status display */}
       <View style={styles.currentStatus}>
         <Text style={[styles.currentLabel, { color: currentTheme.colors.text + '70' }]}>
           Current 1RM
@@ -124,9 +115,7 @@ export default function ProgressionIndicator({
         </Text>
       </View>
 
-      {/* Colorful data grid */}
       <View style={styles.grid}>
-        {/* Header row */}
         <View style={styles.gridHeader}>
           <View style={styles.nameColumn}>
             <Text style={[styles.columnLabel, { color: currentTheme.colors.text + '70' }]}>
@@ -145,11 +134,9 @@ export default function ProgressionIndicator({
           </View>
         </View>
 
-        {/* Data rows with individual colors */}
         {targets.map((target, _index) => {
           return (
             <View key={target.name} style={styles.gridRow}>
-              {/* Level info */}
               <View style={styles.nameColumn}>
                 <Text style={[styles.levelName, { color: currentTheme.colors.text }]}>
                   {target.name}
@@ -159,7 +146,6 @@ export default function ProgressionIndicator({
                 </Text>
               </View>
 
-              {/* Target weight */}
               <View style={styles.targetColumn}>
                 <Text style={[styles.targetWeight, { color: currentTheme.colors.text }]}>
                   {target.targetWeight}
@@ -169,7 +155,6 @@ export default function ProgressionIndicator({
                 </Text>
               </View>
 
-              {/* Status with positive language */}
               <View style={styles.statusColumn}>
                 {target.isAchieved ? (
                   <View style={styles.achievedStatus}>
@@ -189,7 +174,6 @@ export default function ProgressionIndicator({
                 )}
               </View>
 
-              {/* Colorful progress indicator */}
               <View style={styles.progressContainer}>
                 <View style={[styles.progressTrack, { backgroundColor: target.color + '20' }]}>
                   <View 
@@ -208,7 +192,6 @@ export default function ProgressionIndicator({
         })}
       </View>
 
-      {/* Gentle footer */}
       <View style={styles.footer}>
         <Text style={[styles.footnote, { color: currentTheme.colors.text + '50' }]}>
           Based on strength standards from powerlifting competition data

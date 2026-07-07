@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 export default function BlurTabBarBackground() {
   const { currentTheme } = useTheme();
 
-  // Detect dark mode based on background luminance
+  // Dark-mode heuristic from background hex prefix
   const isDarkTheme = currentTheme.colors.background.toLowerCase().startsWith('#0') ||
                       currentTheme.colors.background.toLowerCase().startsWith('#1') ||
                       currentTheme.colors.background.toLowerCase().startsWith('#2');
@@ -13,8 +13,7 @@ export default function BlurTabBarBackground() {
   return (
     <View style={styles.container} pointerEvents="none">
       <BlurView
-        // System chrome material automatically adapts to the system's theme
-        // and matches the native tab bar appearance on iOS.
+        // systemChromeMaterial matches the native iOS tab bar appearance
         tint={isDarkTheme ? "dark" : "systemChromeMaterial"}
         intensity={isDarkTheme ? 60 : 95}
         style={styles.blurView}

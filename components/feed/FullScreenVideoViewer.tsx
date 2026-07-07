@@ -45,7 +45,6 @@ export default function FullScreenVideoViewer({
 
   const { isMuted, toggleMute, setIsMuted } = useMute(player);
 
-  // Auto-play when modal opens
   useEffect(() => {
     if (visible) {
       player.play();
@@ -54,7 +53,6 @@ export default function FullScreenVideoViewer({
     }
   }, [visible, player, setIsMuted]);
 
-  // Track progress
   useEffect(() => {
     const interval = setInterval(() => {
       if (player.playing) {
@@ -70,7 +68,6 @@ export default function FullScreenVideoViewer({
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
   const hasSocialFeatures = onLike !== undefined;
 
-  // Like animation
   const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleLike = () => {
@@ -112,7 +109,6 @@ export default function FullScreenVideoViewer({
     >
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={28} color="#fff" />
@@ -120,7 +116,6 @@ export default function FullScreenVideoViewer({
             <View style={{ width: 44 }} />
           </View>
 
-          {/* Video */}
           <TouchableOpacity
             style={styles.videoContainer}
             onPress={togglePlayPause}
@@ -132,7 +127,6 @@ export default function FullScreenVideoViewer({
               contentFit="contain"
             />
 
-            {/* Play/Pause overlay */}
             {!isPlaying && (
               <View style={styles.playOverlay}>
                 <View style={styles.playButton}>
@@ -142,9 +136,7 @@ export default function FullScreenVideoViewer({
             )}
           </TouchableOpacity>
 
-          {/* Controls bar */}
           <View style={styles.controlsBar}>
-            {/* Progress bar */}
             <View style={styles.progressContainer}>
               <View style={styles.progressTrack}>
                 <View
@@ -160,9 +152,7 @@ export default function FullScreenVideoViewer({
               </View>
             </View>
 
-            {/* Bottom controls */}
             <View style={styles.bottomControls}>
-              {/* Mute button */}
               <TouchableOpacity
                 style={styles.controlButton}
                 onPress={toggleMute}
@@ -175,7 +165,6 @@ export default function FullScreenVideoViewer({
                 />
               </TouchableOpacity>
 
-              {/* Like button */}
               {hasSocialFeatures && (
                 <TouchableOpacity
                   style={styles.controlButton}

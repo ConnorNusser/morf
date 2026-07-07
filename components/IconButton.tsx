@@ -14,10 +14,7 @@ interface IconButtonProps {
   iconColor?: string;
 }
 
-/**
- * The one icon-only button: 40pt surface square on radius.control, with
- * built-in hitSlop so the effective target is ≥44pt everywhere.
- */
+/** Icon-only button: 40pt surface square, hitSlop keeps the tap target ≥44pt. */
 function IconButton({
   icon,
   onPress,

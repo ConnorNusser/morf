@@ -8,8 +8,8 @@ interface ProgressBarProps {
   animated?: boolean;
   style?: ViewStyle;
   showTicks?: boolean;
-  color?: string; // Custom color for the progress bar fill
-  from?: number; // start value for the fill animation (default 0) — e.g. the pre-workout percentile so the bar sweeps the earned delta
+  color?: string;
+  from?: number; // fill-animation start (default 0) — e.g. pre-workout percentile so the bar sweeps the earned delta
 }
 
 export default function ProgressBar({
@@ -24,7 +24,6 @@ export default function ProgressBar({
   const { currentTheme } = useTheme();
   const animatedProgress = useRef(new Animated.Value(Math.max(0, Math.min(100, from)))).current;
 
-  // Strength tier percentiles
   const strengthTicks = [
     { label: 'E', percentile: 0 },
     { label: 'D', percentile: 6 },
@@ -60,7 +59,6 @@ export default function ProgressBar({
         style,
       ]}
     >
-      {/* Background */}
       <View
         style={[
           styles.background,
@@ -72,7 +70,6 @@ export default function ProgressBar({
         ]}
       />
 
-      {/* Progress Fill */}
       <Animated.View
         style={[
           styles.progress,
@@ -85,9 +82,8 @@ export default function ProgressBar({
         ]}
       />
 
-      {/* Tick marks */}
       {showTicks && strengthTicks.map((tick, index) => {
-        // First tick (E at 0%) should align left, last tick align right, others center
+        // First tick (E, 0%) aligns left, last aligns right, others center.
         const isFirst = index === 0;
         const isLast = index === strengthTicks.length - 1;
         const translateX = isFirst ? 0 : isLast ? -20 : -10;

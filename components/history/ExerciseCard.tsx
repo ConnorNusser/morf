@@ -17,12 +17,10 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
-// Semantic gain/loss colors — the shared trend tokens, so the same green means
-// the same thing across both tabs.
+// Shared trend tokens so the same green means the same thing across both tabs.
 const UP = trendColor.up;
 const DOWN = trendColor.down;
 
-// Enough profile to grade a lift against the published standards.
 export interface ExerciseGrading {
   bodyweightLbs: number;
   gender: Gender;
@@ -40,23 +38,17 @@ function ExerciseCard({ exercise, weightUnit, grading, onPress }: ExerciseCardPr
   const { currentTheme } = useTheme();
   const ink = useInk();
 
-  // A calisthenics lift (pull-ups, push-ups) has no meaningful 1RM, so it is scored on
-  // reps instead: the headline is its best set's rep count and the trend tracks rep
-  // progression rather than weight.
+  // Calisthenics lifts have no meaningful 1RM, so headline/trend use reps instead of weight.
   const isBodyweight = exercise.metric === 'bodyweight';
 
-  // One clock-independent trend derivation feeds both signals: best-per-day buckets
-  // across the FULL logged window (no fixed 3-month cutoff, no live-clock calendar
-  // windows), so even a sub-3-month or not-recently-logged history still reads a delta.
-  // Bodyweight rows read the 'reps' variant so the delta/sparkline reflect rep gains.
+  // Best-per-day buckets across the FULL logged window (no 3-month cutoff, no live-clock
+  // windows) so even a short/stale history reads a delta.
   const trend = useMemo(
     () => computeExerciseTrend(exercise.history, weightUnit, isBodyweight ? 'reps' : 'topWeight'),
     [exercise.history, weightUnit, isBodyweight]
   );
 
-  // Strength tier + percentile for standard weighted lifts, when the profile can
-  // support honest grading (bodyweight + gender). Same percentile model the Career
-  // card and the old Records strip use. Null for bodyweight/unranked lifts.
+  // Tier + percentile for standard weighted lifts; null for bodyweight/unranked lifts.
   const grade = useMemo(() => {
     if (isBodyweight || !grading || exercise.estimated1RM <= 0) return null;
     const stdMap = grading.gender === 'female' ? FEMALE_STANDARDS : MALE_STANDARDS;
@@ -116,7 +108,6 @@ function ExerciseCard({ exercise, weightUnit, grading, onPress }: ExerciseCardPr
         </View>
       </View>
 
-      {/* Strength standing — the percentile bar, only for graded standard lifts. */}
       {grade && (
         <View style={styles.gradeRow}>
           <AnimatedBar
@@ -138,7 +129,6 @@ function ExerciseCard({ exercise, weightUnit, grading, onPress }: ExerciseCardPr
 export default React.memo(ExerciseCard);
 
 const styles = StyleSheet.create({
-  // Bigger, richer rows: a two-line main block + an optional percentile bar.
   card: {
     paddingVertical: space.lg,
     borderBottomWidth: StyleSheet.hairlineWidth,

@@ -14,16 +14,12 @@ import { containsProfanity } from '@/lib/utils/moderation';
 class UserSyncService {
   private currentUserId: string | null = null;
 
-  /**
-   * Create or update a user in Supabase
-   */
   async syncUser(username: string): Promise<RemoteUser | null> {
     if (!supabase) return null;
 
     try {
       const deviceId = await analyticsService.getDeviceId();
 
-      // Check if user already exists by device_id
       const { data: existingUser, error: fetchError } = await supabase
         .from('users')
         .select('*')
@@ -38,7 +34,6 @@ class UserSyncService {
       }
 
       if (existingUser) {
-        // Update username if changed
         if (existingUser.username !== username) {
           const { data: updatedUser, error: updateError } = await supabase
             .from('users')
@@ -62,7 +57,7 @@ class UserSyncService {
         return existingUser as RemoteUser;
       }
 
-      // Create new user (upsert to handle race conditions)
+      // Upsert (not insert) to survive concurrent creation races.
       const { data: newUser, error: insertError } = await supabase
         .from('users')
         .upsert({ device_id: deviceId, username }, { onConflict: 'device_id' })
@@ -85,9 +80,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get the current user from Supabase by device ID
-   */
   async getCurrentUser(): Promise<RemoteUser | null> {
     if (!supabase) return null;
 
@@ -148,18 +140,13 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Sync user profile data (height, weight, gender) to Supabase. Merges into
-   * the existing user_data jsonb so fields other callers own (like the
-   * featured achievement) survive a profile save.
-   */
+  // Merges into the existing user_data jsonb so fields other callers own (e.g.
+  // the featured achievement) survive a profile save.
   async syncProfileData(profileData: RemoteUserData): Promise<boolean> {
     return this.mergeUserData(profileData);
   }
 
-  /**
-   * The achievement badge shown on this user's public profile (null clears it).
-   */
+  /** The achievement badge on this user's public profile (null clears it). */
   async syncFeaturedAchievement(achievementId: string | null): Promise<boolean> {
     return this.mergeUserData({ featured_achievement_id: achievementId ?? undefined });
   }
@@ -187,12 +174,8 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Validate username and return detailed error message
-   * Returns null if valid, or error message string if invalid
-   */
+  /** Returns null when valid, else an error message. */
   async validateUsername(username: string): Promise<string | null> {
-    // Check length
     if (username.length < 1) {
       return 'Username cannot be empty';
     }
@@ -200,17 +183,14 @@ class UserSyncService {
       return 'Username must be 20 characters or less';
     }
 
-    // Check format (alphanumeric, underscores, hyphens only)
     if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
       return 'Username can only contain letters, numbers, underscores, and hyphens';
     }
 
-    // Check for profanity
     if (containsProfanity(username)) {
       return 'Username contains inappropriate content';
     }
 
-    // Check uniqueness in database
     if (!supabase) return null;
 
     try {
@@ -223,13 +203,13 @@ class UserSyncService {
         .single();
 
       if (error) {
-        // PGRST116 means no user found, so username is available
+        // PGRST116 = no rows → name is free
         if (error.code === 'PGRST116') return null;
         console.error('Error checking username:', error);
         return 'Error checking username availability';
       }
 
-      // Username is available if it belongs to the current device
+      // Available if the row is the current device's own.
       if (data.device_id === deviceId) {
         return null;
       }
@@ -241,9 +221,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Search users by username (partial match)
-   */
   async searchUsers(query: string): Promise<RemoteUser[]> {
     if (!supabase || !query.trim()) return [];
 
@@ -269,9 +246,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Add a friend by their user ID
-   */
   async addFriend(friendId: string): Promise<boolean> {
     if (!supabase) return false;
 
@@ -279,8 +253,8 @@ class UserSyncService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      // Add bidirectional friendship - insert each direction separately
-      // to handle case where one direction already exists
+      // Bidirectional: insert each direction separately so one already existing
+      // doesn't abort the other.
       const insertions = [
         { user_id: user.id, friend_id: friendId },
         { user_id: friendId, friend_id: user.id },
@@ -304,9 +278,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Remove a friend
-   */
   async removeFriend(friendId: string): Promise<boolean> {
     if (!supabase) return false;
 
@@ -314,7 +285,7 @@ class UserSyncService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      // Remove both directions of friendship
+      // Remove both directions.
       const { error } = await supabase
         .from('friends')
         .delete()
@@ -332,9 +303,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get the current user's friends list
-   */
   async getFriends(): Promise<Friend[]> {
     if (!supabase) return [];
 
@@ -376,9 +344,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Check if a user is already a friend
-   */
   async isFriend(friendId: string): Promise<boolean> {
     if (!supabase) return false;
 
@@ -406,16 +371,10 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Sync user's country code to Supabase
-   */
   private async syncCountryCode(countryCode: string): Promise<boolean> {
     return this.updateUserField({ country_code: countryCode });
   }
 
-  /**
-   * Get and sync user's country from geo-location
-   */
   async syncUserCountry(): Promise<string | null> {
     try {
       const countryCode = await geoService.requestAndGetCountry();
@@ -429,17 +388,12 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Sync local lifts to Supabase for leaderboard
-   */
   async syncLifts(lifts: UserLift[]): Promise<void> {
     if (!supabase || lifts.length === 0) return;
 
     try {
-      // Get or create user
       let user = await this.getCurrentUser();
       if (!user) {
-        // Auto-create user with default username if they don't exist
         const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
         await analyticsService.setUsername(username);
         user = await this.syncUser(username);
@@ -450,18 +404,15 @@ class UserSyncService {
         }
       }
 
-      // Get user profile for tier calculation
       const userProfile = await userService.getUserProfileOrDefault();
       const bodyWeightLbs = convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit);
       const gender = userProfile.gender === 'male' || userProfile.gender === 'female' ? userProfile.gender : 'male';
       const age = userProfile.age;
 
-      // Convert lifts to the format Supabase expects
       const liftRecords = lifts.map((lift) => {
         const weightLbs = convertWeightToLbs(lift.weight, lift.unit);
         const estimated1rm = OneRMCalculator.estimate(weightLbs, lift.reps);
 
-        // Calculate strength tier for this lift
         let strengthTier: string | null = null;
         if (bodyWeightLbs > 0 && isFeaturedLift(lift.id)) {
           const percentile = calculateStrengthPercentile(
@@ -487,7 +438,6 @@ class UserSyncService {
         };
       });
 
-      // Upsert lifts (insert or update if already exists)
       const { error } = await supabase.from('user_lifts').insert(liftRecords);
 
       if (error) {
@@ -508,23 +458,18 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get leaderboard data for specified exercises
-   */
   async getLeaderboard(exerciseIds: string[]): Promise<LeaderboardEntry[]> {
     if (!supabase || exerciseIds.length === 0) return [];
 
     try {
       let user = await this.getCurrentUser();
       if (!user) {
-        // Auto-create user if they don't exist
         const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
         await analyticsService.setUsername(username);
         user = await this.syncUser(username);
         if (!user) return [];
       }
 
-      // Use the database function to get friend leaderboard
       const { data, error } = await supabase.rpc('get_friend_leaderboard', {
         p_user_id: user.id,
         p_exercise_ids: exerciseIds,
@@ -535,7 +480,6 @@ class UserSyncService {
         return [];
       }
 
-      // Map the data to LeaderboardEntry format
       return (data || []).map((row: {
         user_id: string;
         username: string;
@@ -547,14 +491,14 @@ class UserSyncService {
       }) => ({
         user: {
           id: row.user_id,
-          device_id: '', // Not returned by function
+          device_id: '', // not returned by the RPC
           username: row.username,
           profile_picture_url: row.profile_picture_url,
         },
         exercise_id: row.exercise_id,
         estimated_1rm: row.estimated_1rm,
-        weight: 0, // Not returned by function
-        reps: 0, // Not returned by function
+        weight: 0, // not returned by the RPC
+        reps: 0, // not returned by the RPC
         recorded_at: new Date(row.recorded_at),
         rank: row.rank,
       }));
@@ -564,9 +508,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Sync user's overall percentile data to Supabase
-   */
   private async syncPercentileData(
     overallPercentile: number,
     strengthLevel: string,
@@ -578,7 +519,6 @@ class UserSyncService {
     try {
       let user = await this.getCurrentUser();
       if (!user) {
-        // Auto-create user if they don't exist
         const username = await analyticsService.getUsername() || await analyticsService.generateDefaultUsername();
         await analyticsService.setUsername(username);
         user = await this.syncUser(username);
@@ -588,40 +528,35 @@ class UserSyncService {
         }
       }
 
-      // Fetch existing data to build history
       const { data: existing } = await supabase
         .from('user_percentiles')
         .select('overall_percentile, percentile_history')
         .eq('user_id', user.id)
         .single();
 
-      // Build updated history - only add new entry if percentile changed
       let percentileHistory: { percentile: number; date: string; muscleGroups?: MuscleGroupPercentiles }[] = existing?.percentile_history || [];
       const today = new Date().toISOString().split('T')[0];
 
-      // Check if we should add a new history entry:
-      // - Different percentile than current stored value, OR
-      // - No history exists yet (first entry)
+      // Add a history entry only when the percentile changed (or none exists yet).
       const shouldAddEntry = !existing ||
         Math.round(existing.overall_percentile) !== Math.round(overallPercentile) ||
         percentileHistory.length === 0;
 
       if (shouldAddEntry) {
-        // Remove any existing entry for today (update instead of duplicate)
+        // Drop today's existing entry so we update rather than duplicate.
         percentileHistory = percentileHistory.filter(h => h.date !== today);
         percentileHistory.push({
           percentile: Math.round(overallPercentile),
           date: today,
-          muscleGroups: muscleGroups, // Include muscle group breakdown
+          muscleGroups: muscleGroups,
         });
 
-        // Keep last 365 entries max (about a year of daily data)
+        // Cap at ~1 year of daily entries.
         if (percentileHistory.length > 365) {
           percentileHistory = percentileHistory.slice(-365);
         }
       }
 
-      // Upsert percentile data
       const { error } = await supabase
         .from('user_percentiles')
         .upsert({
@@ -660,24 +595,19 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Calculate and sync percentile data based on current user lifts
-   * Call this after recording new lifts
-   */
+  /** Call after recording new lifts. */
   async calculateAndSyncPercentiles(): Promise<boolean> {
     try {
-      // Get all featured lifts with percentiles
       const lifts = await userService.getAllFeaturedLifts();
       if (lifts.length === 0) {
-        // No lifts to sync - not an error, just early return
+        // Nothing to sync — not an error.
         analyticsService.logInfo('sync', 'percentile_sync_skipped', 'No lifts to sync');
         return false;
       }
 
-      // Calculate overall percentile
       const nonZeroPercentiles = lifts.map(l => l.percentileRanking).filter(p => p > 0);
       if (nonZeroPercentiles.length === 0) {
-        // Log this issue to Supabase for debugging - likely missing body weight
+        // All-zero usually means body weight is missing from the profile.
         analyticsService.logErr('sync', 'percentile_sync_zero', 'All percentiles are 0 - likely missing body weight in profile', {
           liftsCount: lifts.length,
           lifts: lifts.slice(0, 10).map(l => ({
@@ -692,7 +622,6 @@ class UserSyncService {
       const overallPercentile = calculateOverallPercentile(nonZeroPercentiles);
       const strengthLevel = getStrengthLevelName(overallPercentile);
 
-      // Build muscle group percentiles
       const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
       const liftToMuscles: Record<string, string[]> = {};
       ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
@@ -720,7 +649,6 @@ class UserSyncService {
         glutes: toAvg(groupToValues['glutes']),
       };
 
-      // Build top contributions
       const sortedLifts = [...lifts].sort((a, b) => b.percentileRanking - a.percentileRanking);
       const topContributions: TopContribution[] = sortedLifts
         .filter(l => l.percentileRanking > 0)
@@ -735,7 +663,6 @@ class UserSyncService {
           };
         });
 
-      // Sync to Supabase
       return this.syncPercentileData(overallPercentile, strengthLevel, muscleGroupPercentiles, topContributions);
     } catch (error) {
       console.error('Error calculating and syncing percentiles:', error);
@@ -743,9 +670,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get overall strength leaderboard (global)
-   */
   async getOverallLeaderboard(countryCode?: string | null): Promise<OverallLeaderboardEntry[]> {
     if (!supabase) return [];
 
@@ -797,9 +721,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get overall strength leaderboard for friends
-   */
   async getFriendsOverallLeaderboard(): Promise<OverallLeaderboardEntry[]> {
     if (!supabase) return [];
 
@@ -812,12 +733,10 @@ class UserSyncService {
         if (!user) return [];
       }
 
-      // Get user's friends
       const friends = await this.getFriends();
       const friendIds = friends.map(f => f.user.id);
 
-      // Include the user themselves
-      const userIds = [user.id, ...friendIds];
+      const userIds = [user.id, ...friendIds]; // include the user themselves
 
       const { data, error } = await supabase
         .from('overall_leaderboard')
@@ -830,7 +749,7 @@ class UserSyncService {
         return [];
       }
 
-      // Rerank based on friends only
+      // Rerank within friends only.
       return (data || []).map((row: {
         user_id: string;
         username: string;
@@ -860,9 +779,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get a specific user's percentile data
-   */
   async getUserPercentileData(userId: string): Promise<UserPercentileData | null> {
     if (!supabase) return null;
 
@@ -895,9 +811,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Sync a completed workout to Supabase for social viewing
-   */
   async syncWorkout(workout: GeneratedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {
     if (!supabase) return false;
 
@@ -908,29 +821,26 @@ class UserSyncService {
         return false;
       }
 
-      // Get user profile for percentile calculations
       const userProfile = await userService.getUserProfileOrDefault();
       const bodyWeightLbs = convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit);
       const gender = userProfile.gender || 'male';
 
-      // Build exercise summaries (async to support custom exercise lookup)
+      // Async to support custom-exercise lookup.
       const exercisesWithSets = workout.exercises.filter(ex => ex.completedSets.length > 0);
       const exerciseSummariesRaw = await Promise.all(
         exercisesWithSets.map(async ex => {
           const completedSets = ex.completedSets.filter(s => s.completed);
-          // Skip exercises with no completed sets
           if (completedSets.length === 0) {
             return null;
           }
 
-          // Use async lookup to support custom exercises (do this first to get trackingType)
+          // Look up first so trackingType is known below (supports custom exercises).
           const exerciseInfo = await getExerciseById(ex.id);
           const trackingType = exerciseInfo?.trackingType || 'reps';
 
-          // Find best set based on tracking type
           let bestSet = completedSets[0];
           if (trackingType === 'reps' && completedSets.length > 1) {
-            // Find best set by estimated 1RM (consistent with summary and history cards)
+            // Best by estimated 1RM (consistent with summary and history cards).
             bestSet = completedSets.reduce((best, current) => {
               const bestWeightLbs = best.unit === 'kg' ? best.weight * 2.205 : best.weight;
               const currentWeightLbs = current.unit === 'kg' ? current.weight * 2.205 : current.weight;
@@ -939,20 +849,20 @@ class UserSyncService {
               return current1RM > best1RM ? current : best;
             }, completedSets[0]);
           } else if (trackingType === 'cardio' && completedSets.length > 1) {
-            // For cardio, best is longest distance or duration
+            // Cardio: best = longest distance/duration.
             bestSet = completedSets.reduce((best, current) => {
               const bestScore = (best.distance || 0) + (best.duration || 0);
               const currentScore = (current.distance || 0) + (current.duration || 0);
               return currentScore > bestScore ? current : best;
             }, completedSets[0]);
           } else if (trackingType === 'timed' && completedSets.length > 1) {
-            // For timed, best is longest duration
+            // Timed: best = longest duration.
             bestSet = completedSets.reduce((best, current) => {
               return (current.duration || 0) > (best.duration || 0) ? current : best;
             }, completedSets[0]);
           }
 
-          // Calculate estimated 1RM and percentile for featured exercises (reps only)
+          // Percentile only for featured reps-based lifts.
           let percentile: number | undefined;
           if (trackingType === 'reps' && bestSet && isFeaturedLift(ex.id) && bodyWeightLbs > 0) {
             const weightLbs = bestSet.unit === 'kg' ? bestSet.weight * 2.205 : bestSet.weight;
@@ -961,7 +871,6 @@ class UserSyncService {
             if (percentile <= 0) percentile = undefined;
           }
 
-          // Build all sets data for detailed view (include duration/distance for cardio)
           const allSets = completedSets.map((set, index) => ({
             setNumber: index + 1,
             weight: set.weight,
@@ -969,7 +878,6 @@ class UserSyncService {
             unit: set.unit as 'lbs' | 'kg',
             duration: set.duration,
             distance: set.distance,
-            // Mark the best set as a potential PR indicator
             isPersonalRecord: bestSet && set === bestSet,
           }));
 
@@ -985,12 +893,10 @@ class UserSyncService {
         })
       );
 
-      // Filter out null results from exercises with no completed sets
       const exerciseSummaries = exerciseSummariesRaw.filter(
         (ex): ex is NonNullable<typeof ex> => ex !== null
       ) as WorkoutExerciseSummary[];
 
-      // Calculate totals
       const totalSets = workout.exercises.reduce(
         (sum, ex) => sum + ex.completedSets.filter(s => s.completed).length,
         0
@@ -1005,7 +911,7 @@ class UserSyncService {
           }, 0);
       }, 0);
 
-      // Calculate cardio totals - iterate through exercise summaries which have trackingType
+      // Cardio totals: read trackingType off the exercise summaries.
       let totalDistanceMeters = 0;
       let totalCardioSeconds = 0;
       workout.exercises.forEach((ex, index) => {
@@ -1018,11 +924,9 @@ class UserSyncService {
         }
       });
 
-      // Get user's current strength level for feed display
       const percentileData = await this.getUserPercentileData(user.id);
-      // Achievements THIS workout earned — the same history replay the History
-      // tab pins medals with, so the feed and the log always agree. Ids only:
-      // every client bundles the art/copy (see lib/gamification/achievementMeta).
+      // Achievements this workout earned, via the same history replay the History
+      // tab uses (so feed and log agree). Ids only — clients bundle art/copy.
       let achievementIds: string[] = [];
       try {
         const history = await storageService.getWorkoutHistory();
@@ -1038,7 +942,6 @@ class UserSyncService {
         achievement_ids: achievementIds.length > 0 ? achievementIds : undefined,
       };
 
-      // Upsert workout
       const { error } = await supabase
         .from('user_workouts')
         .upsert({
@@ -1077,8 +980,7 @@ class UserSyncService {
         prCount
       });
 
-      // Also sync to feed server for social feed — including the gamification
-      // snapshot (tier, PRs, earned achievements) the cards render from.
+      // Also push to the feed server with the gamification snapshot the cards render.
       feedService.saveWorkoutToFeed({
         title: workout.title,
         duration_seconds: durationSeconds,
@@ -1101,9 +1003,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get a user's recent workouts
-   */
   async getUserWorkouts(userId: string, limit: number = 10): Promise<WorkoutSummary[]> {
     if (!supabase) return [];
 
@@ -1136,10 +1035,7 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Get lift history for a specific user and exercise
-   * Returns historical lift data for progression charts
-   */
+  /** Historical lift data for progression charts. */
   async getUserLiftHistory(userId: string, exerciseId: string): Promise<{ estimated_1rm: number; recorded_at: Date }[]> {
     if (!supabase) return [];
 
@@ -1166,9 +1062,6 @@ class UserSyncService {
     }
   }
 
-  /**
-   * Delete a synced workout
-   */
   async deleteWorkout(workoutId: string): Promise<boolean> {
     if (!supabase) return false;
 

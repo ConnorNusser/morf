@@ -28,7 +28,6 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const setActiveVideo = useCallback((id: string | null) => {
-    // Pause all other videos when a new one becomes active
     playersRef.current.forEach((player, playerId) => {
       try {
         if (playerId !== id) {
@@ -43,7 +42,7 @@ export function VideoPlayerProvider({ children }: { children: React.ReactNode })
     activeVideoRef.current = id;
   }, []);
 
-  // Only clear active video if it matches the given id (prevents race conditions)
+  // Clear active only if it still matches the given id (prevents race conditions).
   const clearActiveIfMatches = useCallback((id: string) => {
     if (activeVideoRef.current === id) {
       const player = playersRef.current.get(id);
@@ -107,7 +106,6 @@ export function useVideoPlayerContext() {
   return context;
 }
 
-// Hook for components that need to pause/resume videos (modals, navigation, etc.)
 export function useVideoControl() {
   const context = useContext(VideoPlayerContext);
   return {
@@ -116,8 +114,7 @@ export function useVideoControl() {
   };
 }
 
-// Hook for modals - automatically pauses videos when modal mounts, resumes when it unmounts
-// Just add `usePauseVideosWhileOpen(visible)` to any modal
+// Pauses videos while a modal is open, resumes on close.
 export function usePauseVideosWhileOpen(visible: boolean) {
   const { pauseAll, resumeActive } = useVideoControl();
 

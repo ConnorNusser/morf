@@ -58,7 +58,6 @@ export default function CreatePostModal({
   const [isPickingMedia, setIsPickingMedia] = useState(false);
   const inputAccessoryViewID = 'createPostAccessory';
 
-  // Get first video for player (if any)
   const firstVideo = mediaItems.find(m => m.type === 'video');
   const player = useVideoPlayer(firstVideo?.uri || null, player => {
     player.loop = false;
@@ -161,13 +160,11 @@ export default function CreatePostModal({
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
 
-        // Check duration
         if (asset.duration && asset.duration > MAX_VIDEO_DURATION * 1000) {
           showAlert({ title: 'Video Too Long', message: `Please select a video under ${MAX_VIDEO_DURATION} seconds.`, type: 'warning' });
           return;
         }
 
-        // Check file size
         if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_BYTES) {
           const sizeMB = (asset.fileSize / (1024 * 1024)).toFixed(1);
           showAlert({ title: 'Video Too Large', message: `Your video is ${sizeMB}MB. Please select a video under ${MAX_VIDEO_SIZE_MB}MB.`, type: 'warning' });
@@ -198,7 +195,6 @@ export default function CreatePostModal({
 
     Keyboard.dismiss();
 
-    // Show immediate feedback and close
     playHapticFeedback('success', false);
     showAlert({ title: 'Uploaded!', message: 'Your post is being shared.', type: 'success' });
 
@@ -233,7 +229,6 @@ export default function CreatePostModal({
       onRequestClose={handleClose}
     >
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -266,7 +261,6 @@ export default function CreatePostModal({
             contentContainerStyle={styles.scrollContentContainer}
             keyboardShouldPersistTaps="handled"
           >
-            {/* Text Input */}
             <TextInput
               style={[
                 styles.textInput,
@@ -284,7 +278,6 @@ export default function CreatePostModal({
               inputAccessoryViewID={inputAccessoryViewID}
             />
 
-            {/* Media Preview Grid */}
             {mediaItems.length > 0 && (
               <View style={styles.mediaGrid}>
                 {mediaItems.map((item, index) => (
@@ -322,7 +315,6 @@ export default function CreatePostModal({
                   </View>
                 ))}
 
-                {/* Add more images button */}
                 {!hasVideo && imageCount < MAX_IMAGES && (
                   <TouchableOpacity
                     style={[styles.addMoreButton, { backgroundColor: currentTheme.colors.surface }]}
@@ -344,7 +336,6 @@ export default function CreatePostModal({
               </View>
             )}
 
-            {/* Media Picker Buttons */}
             {mediaItems.length === 0 && (
               <View style={styles.mediaButtons}>
                 <TouchableOpacity
@@ -384,8 +375,7 @@ export default function CreatePostModal({
             )}
           </ScrollView>
 
-          
-          {/* Keyboard accessory with Done button */}
+
           {Platform.OS === 'ios' && (
             <InputAccessoryView nativeID={inputAccessoryViewID}>
               <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>

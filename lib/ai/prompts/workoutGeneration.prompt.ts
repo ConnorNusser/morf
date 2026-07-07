@@ -1,7 +1,3 @@
-/**
- * Prompt for generating workout plans
- */
-
 export interface WorkoutGenerationParams {
   userRequest: string;
   gender: string;

@@ -1,11 +1,9 @@
-// Render a saved workout back into the freeform note syntax the parser reads,
-// so "repeat last workout" can pre-fill the note box with editable text. This
-// is the inverse of workoutNoteParser: GeneratedWorkout -> "Bench Press 135x8, 155x6".
+// Inverse of workoutNoteParser: render a workout back into freeform note syntax
+// ("Bench Press 135x8, 155x6") so "repeat last workout" can pre-fill the box.
 import { GeneratedWorkout, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import { getExercise } from '@/lib/workout/workouts';
 
-// Turn an exercise id into something human-readable, preferring the real name
-// but degrading to a title-cased id so a missing lookup never blanks the line.
+// Real name, or a title-cased id so a missing lookup never blanks the line.
 function resolveName(exerciseId: string): string {
   const match = getExercise(exerciseId);
   if (match) return match.name;
@@ -15,8 +13,7 @@ function resolveName(exerciseId: string): string {
     .join(' ');
 }
 
-// One completed set -> note token. Weighted: "135x8"; bodyweight: "x8";
-// timed/cardio fall back to their duration so the line still round-trips.
+// One set -> token: weighted "135x8", bodyweight "x8", timed/cardio "5min"/"30s".
 function formatSet(set: WorkoutSetCompletion): string | null {
   if (set.duration && set.duration > 0) {
     const mins = Math.round(set.duration / 60);
@@ -35,7 +32,6 @@ function formatExercise(exercise: WorkoutExerciseSession): string | null {
   return `${resolveName(exercise.id)} ${tokens.join(', ')}`;
 }
 
-/** Format a saved workout as editable note text, one exercise per line. */
 export function workoutToNoteText(workout: GeneratedWorkout): string {
   return (workout.exercises || [])
     .map(ex => formatExercise(ex))

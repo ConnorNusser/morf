@@ -23,7 +23,7 @@ export default function ThemeEvolutionSection() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
-  const [shareCount, setShareCount] = useState(0); // Track share count instead of boolean
+  const [shareCount, setShareCount] = useState(0);
   const { play: playSelectionComplete } = useSound('selectionComplete');
 
   useEffect(() => {
@@ -57,8 +57,7 @@ export default function ThemeEvolutionSection() {
     }
   };
 
-  // Compute the user's overall percentile once per data change instead of
-  // re-deriving it inside isThemeAvailable for every theme card (~6x/card).
+  // Compute overall percentile once per data change, not per theme card (~6x/card).
   const calculatedPercentile = useMemo(() => {
     const percentiles = userProgress
       .filter(p => !liftFilters.hiddenLiftIds.includes(p.workoutId))
@@ -79,8 +78,7 @@ export default function ThemeEvolutionSection() {
     [themes]
   );
 
-  // One tappable theme card — shared by the strength-unlock grid and the
-  // shareable/seasonal grid so the two never drift apart.
+  // One tappable theme card, shared by the strength-unlock and shareable/seasonal grids.
   const renderThemeCard = (themeKey: ThemeLevel, theme: typeof themes[ThemeLevel]) => (
     <TouchableOpacity
       key={themeKey}
@@ -93,9 +91,7 @@ export default function ThemeEvolutionSection() {
         padding={12}
         style={StyleSheet.flatten([
           styles.themeCard,
-          // Selectable cards need their own contrast back — the shared Card is flat
-          // now. Each option gets a subtle surface + hairline; the current one gets a
-          // primary ring + faint tint so the selection reads clearly.
+          // Selectable cards need their own contrast (shared Card is flat): surface + hairline, and a primary ring + tint when current.
           {
             paddingHorizontal: 14,
             borderRadius: 12,
@@ -193,8 +189,7 @@ export default function ThemeEvolutionSection() {
         message: 'Im sharing this app to get some free themes but also its a sick workout app! \n\nhttps://apps.apple.com/us/app/morf-your-ai-workout-tracker/id6747366819?platform=iphone 💪',
         title: 'Morf - Transform Your Strength',
       });
-      
-      // If user shared successfully, increment count
+
       if (result.action === Share.sharedAction) {
         const newCount = await storageService.incrementShareCount();
         setShareCount(newCount);
@@ -253,7 +248,6 @@ export default function ThemeEvolutionSection() {
       
       {isExpanded && (
         <View>
-          {/* Fitness Themes Section */}
           <View style={styles.sectionContainer}>
             <Text style={[
               styles.subsectionTitle,
@@ -279,9 +273,8 @@ export default function ThemeEvolutionSection() {
             </View>
           </View>
 
-          {/* Shareable Themes Section */}
           <View style={[
-            styles.sectionContainer, 
+            styles.sectionContainer,
             styles.shareableSection,
             { borderTopColor: currentTheme.colors.border }
           ]}>
@@ -320,7 +313,6 @@ export default function ThemeEvolutionSection() {
               </TouchableOpacity>
             </View>
 
-            {/* Shareable Theme Grid */}
             <View style={styles.themeGrid}>
               {themeEntries
                 .filter(([themeKey]) =>

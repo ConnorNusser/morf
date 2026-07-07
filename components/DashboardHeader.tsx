@@ -9,9 +9,8 @@ import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 type ViewMode = "home" | "feed";
 
-// Only what the header actually renders: the tier ring.
 export interface HeaderStats {
-  tier?: StrengthTier; // strength tier (gamification)
+  tier?: StrengthTier;
   tierProgress?: number; // 0..1 toward the next tier
 }
 
@@ -40,7 +39,6 @@ export default function DashboardHeader({
     onViewModeChange?.(mode);
   };
 
-  // If no view mode props, show original Morf text
   const showViewSelector =
     viewMode !== undefined && onViewModeChange !== undefined;
 
@@ -96,7 +94,6 @@ export default function DashboardHeader({
 
           {showDropdown && (
             <>
-              {/* Backdrop to close dropdown */}
               <TouchableOpacity
                 style={styles.backdrop}
                 onPress={() => setShowDropdown(false)}
@@ -203,8 +200,7 @@ const styles = StyleSheet.create({
   container: {
     paddingTop: space.xs,
     paddingBottom: 0,
-    // Deliberate optical inset: the round logo needs +4 beyond the screen
-    // gutter to read as aligned with the square cards below.
+    // Optical inset: round logo needs +4 beyond the gutter to align with the square cards.
     paddingHorizontal: space.xs,
     zIndex: 1000,
   },

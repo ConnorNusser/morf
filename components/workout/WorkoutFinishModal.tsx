@@ -45,14 +45,11 @@ interface WorkoutFinishModalProps {
   weightUnit?: WeightUnit;
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
   onCancel?: () => void;
-  // strengthWin = this session moved the needle (a PR, a new achievement, or the
-  // overall percentile). The caller uses it to route: a win → History (bar sweep),
-  // otherwise → the feed (the posted workout + kudos).
+  // strengthWin (PR / achievement / percentile move) routes the caller: win → History, else → feed.
   onComplete?: (strengthWin: boolean) => void;
 }
 
-// Static Morph logo
-const Logo = ({ size = 80 }: { size?: number }) => (
+const Logo =({ size = 80 }: { size?: number }) => (
   <Image
     source={require('@/assets/images/icon-original.png')}
     style={[styles.logoImage, { width: size, height: size }]}
@@ -75,7 +72,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const { width: screenWidth } = useWindowDimensions();
   const isSmallScreen = screenWidth < 380; // iPhone SE, iPhone 12/13 mini
 
-  // Sound effects
   const { play: playSuccess } = useSound('selectionComplete');
   const { play: playTap } = useSound('tapVariant1');
   const { play: playUnlock } = useSound('unlock');
@@ -87,10 +83,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
-  // Whether this session earned a strength win (PR / achievement / percentile move).
   const [strengthWin, setStrengthWin] = useState(false);
 
-  // Parse workout when modal opens
   useEffect(() => {
     if (visible && noteText.trim()) {
       setModalState('parsing');
@@ -101,8 +95,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
-          // The structured draft is already the workout — use it directly and
-          // skip the AI parse. Only fall back to parsing raw text if no draft.
+          // A structured draft is already the workout; only parse raw text when there's no draft.
           const [parsed, lifts, profile] = await Promise.all([
             prebuiltWorkout ?? workoutNoteParser.parseWorkoutNote(noteText),
             userService.getAllFeaturedLifts(),
@@ -122,7 +115,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     }
   }, [visible, noteText, prebuiltWorkout]);
 
-  // Handle save
   const handleSave = useCallback(async () => {
     if (!parsedWorkout || !onSave) return;
 
@@ -138,8 +130,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       playHapticFeedback('medium', false);
       setModalState('celebration');
 
-      // Compute session rewards (XP / level-up / achievements / weekly challenge).
-      // Best-effort — never let this block or fail the celebration.
+      // Compute session rewards, best-effort — never let this block or fail the celebration.
       try {
         const [afterHistory, afterLifts, profile] = await Promise.all([
           storageService.getWorkoutHistory(),
@@ -160,12 +151,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
-        // A strength win = a PR/achievement this session, or the overall percentile
-        // actually moved. Drives the post-celebration destination (History vs feed).
+        // Strength win = PR/achievement, or the overall percentile moved; drives History vs feed.
         setStrengthWin(rewards.hasRewards || overallAfter !== overallBefore);
 
-        // This is the primary celebration moment — acknowledge the unlocks here
-        // so the Profile badge doesn't re-celebrate them.
+        // Primary celebration moment — acknowledge unlocks so the Profile badge doesn't re-celebrate.
         if (rewards.hasRewards) {
           await storageService.setSeenAchievements(unlockedIds(after.achievements));
         }
@@ -181,30 +170,24 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     }
   }, [parsedWorkout, onSave, playUnlock, userLifts, weightUnit]);
 
-  // Handle cancel with haptic
   const handleCancel = useCallback(() => {
     playTap();
     playHapticFeedback('light', false);
     onCancel?.();
   }, [onCancel, playTap]);
 
-  // Handle done with haptic
   const handleDone = useCallback(() => {
     playTap();
     playHapticFeedback('light', false);
     onComplete?.(strengthWin);
   }, [onComplete, playTap, strengthWin]);
 
-  // Get the exercises to display
   const displayExercises = useMemo(() => {
     return parsedWorkout?.exercises || [];
   }, [parsedWorkout]);
 
-  // Calculate overall tier from exercises in this session.
-  // Use the SAME per-session percentile the exercise badges and the post-completion
-  // tiling screen show (getExerciseBadgeInfo: this workout's 1RM → percentile), rather
-  // than the user's all-time career percentileRanking. This keeps the headline "Overall
-  // Tier" consistent with the individual badges instead of averaging lifetime peaks.
+  // Uses the same per-session percentile as the exercise badges (this workout's 1RM),
+  // not the all-time career ranking, so the headline tier stays consistent with the badges.
   const overallTierInfo = useMemo(() => {
     if (displayExercises.length === 0) return null;
 
@@ -212,7 +195,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit)
       : undefined;
 
-    // Get this-session percentiles for exercises that produced a tier badge
     const sessionPercentiles: number[] = [];
     for (const exercise of displayExercises) {
       const badgeInfo = getExerciseBadgeInfo(
@@ -230,7 +212,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
     if (sessionPercentiles.length === 0) return null;
 
-    // Calculate average percentile for this session
     const avgPercentile = Math.round(
       sessionPercentiles.reduce((sum, p) => sum + p, 0) / sessionPercentiles.length
     );
@@ -239,11 +220,9 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     return { tier, tierColor, percentile: avgPercentile };
   }, [displayExercises, userLifts, userProfile]);
 
-  // Calculate stats using the universal utility
   const stats = useMemo(() => {
     const exerciseCount = displayExercises.length;
 
-    // Convert displayExercises to format expected by calculateWorkoutStats
     const exercisesForStats = displayExercises.map(ex => ({
       id: ex.matchedExerciseId || ex.name,
       trackingType: ex.trackingType,
@@ -253,10 +232,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         unit: set.unit,
         duration: set.duration,
         distance: set.distance,
-        // Honor the per-set check-off. Freeform-logged sets carry no completed flag
-        // (undefined) and count as done; a check-off set left unchecked is `false`
-        // and must NOT inflate the summary. Mirrors the persistence rule so the finish
-        // screen matches what actually gets saved.
+        // Freeform sets (no flag) count as done; an unchecked check-off set is `false` and must
+        // not inflate the summary. Mirrors the persistence rule so the finish screen matches saves.
         completed: set.completed ?? true,
       })),
     }));
@@ -272,14 +249,12 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       sets: workoutStats.totalSets,
       volume: workoutStats.totalVolumeLbs,
       durationStr,
-      // Cardio-specific stats
       hasCardio: workoutStats.hasCardioExercises,
       totalDistanceMeters: workoutStats.totalDistanceMeters,
       totalCardioDurationSeconds: workoutStats.totalCardioDurationSeconds,
     };
   }, [displayExercises, duration]);
 
-  // Render parsing state
   const renderParsing = () => (
     <View style={styles.centerContainer}>
       <Logo />
@@ -302,12 +277,10 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     </View>
   );
 
-  // Render confirmation/summary state
   const renderConfirmation = () => {
     return (
       <View style={[styles.confirmationContainer, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(space.lg, insets.top) }]}>
+        <View style={[styles.header,{ borderBottomColor: currentTheme.colors.border, paddingTop: Math.max(space.lg, insets.top) }]}>
           <View style={styles.headerLeft}>
             <Image
               source={require('@/assets/images/icon-original.png')}
@@ -324,10 +297,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
           <IconButton icon="close" onPress={handleCancel} />
         </View>
 
-        {/* Content */}
         <>
-            {/* Stats Section */}
-            <View style={[styles.statsContainer, { backgroundColor: currentTheme.colors.surface }]}>
+            <View style={[styles.statsContainer,{ backgroundColor: currentTheme.colors.surface }]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
@@ -372,8 +343,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                 </View>
               </View>
 
-              {/* Cardio stats row - only show if workout has cardio exercises */}
-              {stats.hasCardio && (stats.totalDistanceMeters > 0 || stats.totalCardioDurationSeconds > 0) && (
+              {stats.hasCardio &&(stats.totalDistanceMeters > 0 || stats.totalCardioDurationSeconds > 0) && (
                 <>
                   <View style={[styles.statsRowDivider, { backgroundColor: currentTheme.colors.border }]} />
                   <View style={styles.statsRow}>
@@ -407,8 +377,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
               )}
             </View>
 
-            {/* Exercises List */}
-            <ScrollView style={styles.exercisesList} contentContainerStyle={styles.exercisesContent} showsVerticalScrollIndicator={false}>
+            <ScrollView style={styles.exercisesList}contentContainerStyle={styles.exercisesContent} showsVerticalScrollIndicator={false}>
               {displayExercises.map((exercise, index) => {
                 const exerciseInfo = exercise.matchedExerciseId
                   ? getWorkoutById(exercise.matchedExerciseId)
@@ -472,7 +441,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
             </ScrollView>
 
-            {/* Action Buttons */}
             <View style={[
               styles.actionsContainer,
               { backgroundColor: currentTheme.colors.background, borderTopColor: currentTheme.colors.border, paddingBottom: Math.max(space.lg, insets.bottom) }
@@ -491,7 +459,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
     );
   };
 
-  // Render celebration state using the new WorkoutCompleteScreen component
   const renderCelebration = () => (
     <WorkoutCompleteScreen
       stats={stats}
@@ -507,10 +474,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   if (!visible) return null;
 
-  // Parsing and celebration have a dark background
   const showDarkBackground = modalState === 'parsing' || modalState === 'celebration';
 
-  // Determine what content to show
   const renderContent = () => {
     if (modalState === 'parsing') return renderParsing();
     if (modalState === 'celebration') return renderCelebration();
@@ -658,7 +623,6 @@ const styles = StyleSheet.create({
   confirmButton: {
     width: '100%',
   },
-  // Logo image style (used in parsing state)
   logoImage: {
     width: 80,
     height: 80,

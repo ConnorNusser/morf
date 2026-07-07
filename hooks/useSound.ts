@@ -1,21 +1,6 @@
 import { getSound, type SoundName } from '@/lib/utils/sounds';
 import { useAudioPlayer } from 'expo-audio';
 
-/**
- * Custom hook for playing sounds with a clean API
- * 
- * @param soundName - The name of the sound to load
- * @returns Object with play function and audio player controls
- * 
- * @example
- * ```tsx
- * const { play, player } = useSound('success');
- * 
- * const handleSuccess = () => {
- *   play(); // Plays the sound from the beginning
- * };
- * ```
- */
 export function useSound(soundName: SoundName) {
   const soundFile = getSound(soundName);
   const player = useAudioPlayer(soundFile);

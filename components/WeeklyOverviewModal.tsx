@@ -41,7 +41,6 @@ interface WeeklyOverviewModalProps {
   weekEndDate?: Date;
   /** Full workout history — enables this-week Personal Records detection. */
   allWorkouts?: GeneratedWorkout[];
-  /** Called when the weekly goal is changed from inside the modal, so parents can sync. */
   onWeeklyGoalChange?: (goal: number) => void;
 }
 
@@ -84,7 +83,6 @@ export default function WeeklyOverviewModal({
 
   const [goal, setGoal] = useState<number>(DEFAULT_WEEKLY_GOAL);
 
-  // Load the persisted weekly goal whenever the (week) modal opens.
   useEffect(() => {
     if (!visible || invocationType !== 'week') return;
     let active = true;
@@ -108,7 +106,6 @@ export default function WeeklyOverviewModal({
   const categoryColor = (category: string): string =>
     CATEGORY_COLORS[category] || c.accent;
 
-  // Push/Pull/Legs bucket for an exercise, via its primary muscle.
   const pplForExercise = (exerciseId: string): PPLCategory | null => {
     const muscle = getExercise(exerciseId)?.primaryMuscles?.[0];
     return muscle ? MUSCLE_TO_PPL[muscle] ?? null : null;
@@ -205,7 +202,6 @@ export default function WeeklyOverviewModal({
 
     const daysTrained = new Set(workouts.map(w => new Date(w.createdAt).toDateString())).size;
 
-    // Push/Pull/Legs split by set count, for the Training Split section.
     const pplBreakdown: Record<PPLCategory, { sets: number; volume: number }> = {
       push: { sets: 0, volume: 0 },
       pull: { sets: 0, volume: 0 },
@@ -246,9 +242,7 @@ export default function WeeklyOverviewModal({
   const a = analyticsData;
   const fmtVol = (v: number) => formatCompact(v, { suffix: ' lbs' });
 
-  // Personal Records set THIS week — an exercise whose best estimated 1RM this
-  // week beats its best from all prior history. Needs full history + a week
-  // boundary; silently yields none otherwise.
+  // PRs set THIS week: best estimated 1RM this week beats its best from all prior history.
   const weeklyPRs = useMemo(() => {
     if (invocationType !== 'week' || !allWorkouts?.length || !weekStartDate) return [];
     const startMs = weekStartDate.getTime();
@@ -333,8 +327,6 @@ export default function WeeklyOverviewModal({
 
   const headerSubtitle = invocationType === 'week' ? weekRange : undefined;
 
-  // ----- shared compact primitives -----
-
   const Stat = ({ value, label, color }: { value: string | number; label: string; color?: string }) => (
     <View style={styles.stat}>
       <Text
@@ -365,7 +357,6 @@ export default function WeeklyOverviewModal({
 
   const cardStyle = [styles.card, { backgroundColor: c.surface, borderColor: c.border }];
 
-  // Inline category bars for a given metric.
   const renderCategoryBars = (metric: 'count' | 'volume' | 'time') => {
     const entries = Object.entries(a.categoryBreakdown);
     if (!entries.length) return null;
@@ -415,7 +406,6 @@ export default function WeeklyOverviewModal({
     );
   };
 
-  // Push/Pull/Legs split by set count — uses the shared PPL palette + labels.
   const renderPPLSplit = () => {
     const entries = (['push', 'pull', 'legs'] as PPLCategory[])
       .map(k => ({ k, ...a.pplBreakdown[k] }))
@@ -486,8 +476,6 @@ export default function WeeklyOverviewModal({
     );
   };
 
-  // ----- weekly goal editor -----
-
   const renderGoalCard = () => {
     const pct = goal ? (a.daysTrained / goal) * 100 : 0;
     const met = a.daysTrained >= goal && goal > 0;
@@ -534,8 +522,6 @@ export default function WeeklyOverviewModal({
       </View>
     );
   };
-
-  // ----- views -----
 
   const renderWeek = () => {
     if (workouts.length === 0) {
@@ -813,7 +799,6 @@ const styles = StyleSheet.create({
   auroraSummary: { marginBottom: 8 },
   auroraSummaryContent: { padding: 16 },
 
-  // stat strip
   statStrip: { flexDirection: 'row', justifyContent: 'space-between' },
   stat: { flex: 1, alignItems: 'center', paddingHorizontal: 2 },
   statValue: { fontSize: typeScale.statHero, letterSpacing: -0.3 },
@@ -836,7 +821,6 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
 
-  // workout rows (week)
   workoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -860,14 +844,12 @@ const styles = StyleSheet.create({
   workoutTitle: { fontSize: typeScale.body, flex: 1 },
   workoutMeta: { fontSize: typeScale.meta },
 
-  // inline bars
   barRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
   barLabel: { width: 58, fontSize: typeScale.meta },
   barTrack: { flex: 1, height: 8, borderRadius: 4, marginHorizontal: 8, overflow: 'hidden' },
   barFill: { height: 8, borderRadius: 4 },
   barValue: { width: 78, textAlign: 'right', fontSize: typeScale.meta },
 
-  // exercise list
   exRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
   exRank: { width: 21, fontSize: typeScale.meta },
   exMain: { flex: 1, marginRight: 10 },
@@ -876,7 +858,6 @@ const styles = StyleSheet.create({
   exVal: { fontSize: typeScale.meta },
   exSub: { fontSize: typeScale.meta, marginTop: 1 },
 
-  // day sessions
   exerciseLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -887,7 +868,6 @@ const styles = StyleSheet.create({
   exerciseLineVal: { fontSize: typeScale.meta },
   moreText: { fontSize: typeScale.meta, marginTop: 4 },
 
-  // daily breakdown (time)
   dailyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -897,7 +877,6 @@ const styles = StyleSheet.create({
   dailyDay: { fontSize: typeScale.body },
   dailyVal: { fontSize: typeScale.meta },
 
-  // goal editor
   goalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -919,7 +898,6 @@ const styles = StyleSheet.create({
   },
   pillText: { fontSize: typeScale.body },
 
-  // personal records
   prRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 11 },
   prAccent: { width: 3, height: 30, borderRadius: 1.5, marginRight: 13 },
   prMain: { flex: 1, marginRight: 10 },
@@ -928,7 +906,6 @@ const styles = StyleSheet.create({
   prMeta: { alignItems: 'flex-end' },
   prVal: { fontSize: typeScale.emphasis },
 
-  // empty
   empty: { alignItems: 'center', paddingVertical: 44 },
   emptyText: { fontSize: typeScale.body, marginTop: 12 },
   emptySub: { fontSize: typeScale.meta, marginTop: 6, textAlign: 'center' },

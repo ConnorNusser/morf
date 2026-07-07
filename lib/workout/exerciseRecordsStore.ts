@@ -1,6 +1,5 @@
-// Loads the global per-exercise records, seeding them the first time from workout
-// history AND legacy profile.lifts, so existing users' routines anchor to real
-// past performance and their strength rank doesn't drop on upgrade.
+// Loads global per-exercise records, seeding first-run from workout history AND
+// legacy profile.lifts so existing users' rank doesn't drop on upgrade.
 import { storageService } from '@/lib/storage/storage';
 import { ExerciseRecord, GeneratedWorkout, UserLift, isFeaturedLift } from '@/types';
 import { updateExerciseRecords } from './progression';
@@ -13,7 +12,7 @@ export async function loadExerciseRecords(
   const existing = await storageService.getExerciseRecords();
   if (Object.keys(existing).length > 0) return existing; // already migrated
 
-  // Seed anchors + bests from workout history, oldest→newest.
+  // Seed anchors + bests from history, oldest→newest.
   const sorted = [...history].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -22,11 +21,9 @@ export async function loadExerciseRecords(
     records = updateExerciseRecords(records, w.exercises, new Date(w.createdAt));
   }
 
-  // Fold in any legacy profile.lifts bests not already captured (e.g. onboarding-
-  // entered lifts that never came from a logged workout). Best-only; the anchor
-  // stays whatever the latest real session set. Read straight off the stored
-  // profile (the `lifts` fields are removed from the type but the data persists),
-  // so existing users' rank carries over into the records.
+  // Fold in legacy profile.lifts bests (e.g. onboarding lifts, never logged as a
+  // workout). Best-only; the anchor stays the latest real session. The `lifts`
+  // fields are removed from the type but the data still persists on disk.
   const profile = await storageService.getUserProfile();
   const legacyProfile = profile as unknown as { lifts?: UserLift[]; secondaryLifts?: UserLift[] } | null;
   const legacy = [...(legacyProfile?.lifts ?? []), ...(legacyProfile?.secondaryLifts ?? [])];

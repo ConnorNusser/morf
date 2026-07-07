@@ -26,33 +26,30 @@ export interface ClubAchievement {
 }
 
 export interface TotalLift {
-  label: string; // "Squat" / "Bench" / "Deadlift"
-  value: number; // best e1RM, lb
-  color: string; // the lift's identity colour (PPL)
+  label: string;
+  value: number;
+  color: string;
 }
 
 export interface TotalClub {
-  value: number; // lb milestone (600 / 1000 / 1200)
-  achieved: boolean; // total has reached it
+  value: number;
+  achieved: boolean;
 }
 
 export interface PowerliftingTotalData {
-  total: number; // combined best e1RM of squat + bench + deadlift, lb
-  lifts: TotalLift[]; // the three contributions
-  clubs: TotalClub[]; // the milestone ladder
-  nextTarget: number; // the club currently being chased (0 once all done)
-  remaining: number; // lb left to reach nextTarget (0 once reached)
-  achievedCount: number; // clubs unlocked
+  total: number;
+  lifts: TotalLift[];
+  clubs: TotalClub[];
+  nextTarget: number;
+  remaining: number;
+  achievedCount: number;
   allUnlocked: boolean;
-  currentClub?: ClubAchievement | null; // the real achievement for the biggest claimed club
+  currentClub?: ClubAchievement | null;
 }
 
 const STEP = 100; // lb per ladder cell
 
-// Flat "Big 3 Total" widget — the Career Tier Ladder's segmented-cell language, but
-// the cells fill with the three lift colours (Squat purple, Bench red, Deadlift teal)
-// stacked by contribution, up to the total. The current cell is outlined; pound
-// clubs (600/1000/1200) label the scale instead of letter grades.
+// Flat "Big 3 Total" widget: ladder cells fill with the three lift colours stacked by contribution; pound clubs (600/1000/1200) label the scale.
 export default function PowerliftingTotal({
   data,
 }: {
@@ -66,7 +63,6 @@ export default function PowerliftingTotal({
   const cellCount = Math.max(1, Math.round(scaleMax / STEP));
   const currentCell = Math.min(cellCount - 1, Math.floor(data.total / STEP));
 
-  // Cumulative lift bands: each lift owns a lb range [lo, hi) of the total.
   let running = 0;
   const liftBands = data.lifts.map((l) => {
     const lo = running;
@@ -75,14 +71,13 @@ export default function PowerliftingTotal({
   });
   const colorForCell = (i: number) => {
     const lo = i * STEP;
-    if (lo >= data.total) return null; // unfilled
+    if (lo >= data.total) return null;
     return (
       liftBands.find((b) => lo >= b.lo && lo < b.hi)?.color ??
       liftBands[liftBands.length - 1]?.color
     );
   };
 
-  // Club label bands (for the scale under the ladder), like the grade letters.
   const bandOf = (cellIdx: number) => {
     const lower = cellIdx * STEP;
     const b = data.clubs.findIndex((c) => lower < c.value);
@@ -96,15 +91,12 @@ export default function PowerliftingTotal({
       ).length,
   );
 
-  // The lifter's current title: the real club achievement, tappable into the
-  // same full-screen spotlight every other badge in the app opens.
   const club = data.currentClub;
   const clubAccent = club ? RARITY_META[club.rarity].accent : TIER_COLORS.S;
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
   return (
     <View style={styles.container}>
-      {/* Identity row: what this number IS, and the club title it has earned. */}
       <View style={styles.titleRow}>
         <SectionLabel style={styles.microLabel}>MAIN LIFT TOTAL</SectionLabel>
         {club && (
@@ -139,7 +131,6 @@ export default function PowerliftingTotal({
       </View>
 
       <View style={styles.header}>
-        {/* Total on the left. */}
         <Text>
           <Text
             variant="hero"
@@ -155,7 +146,6 @@ export default function PowerliftingTotal({
           </Text>
         </Text>
 
-        {/* Lifts stacked on the right, colour-coded. */}
         <View style={styles.liftStack}>
           {data.lifts.map((l) => (
             <View key={l.label} style={styles.liftRow}>
@@ -175,7 +165,6 @@ export default function PowerliftingTotal({
         </View>
       </View>
 
-      {/* Ladder cells filled by lift composition. */}
       <View style={styles.ladderRow}>
         {Array.from({ length: cellCount }, (_, i) => {
           const fill = colorForCell(i);
@@ -210,8 +199,6 @@ export default function PowerliftingTotal({
         ))}
       </View>
 
-      {/* The chase — Career's NEXT grammar pointed at the next pound club,
-          colored by the tier that club sits on (E grey up to S gold). */}
       <Text variant="meta" tone="secondary" style={styles.nextLine}>
         {data.allUnlocked ? (
           <Text weight="semiBold" style={{ color: TIER_COLORS.S }}>
@@ -244,7 +231,6 @@ export default function PowerliftingTotal({
 
 const styles = StyleSheet.create({
   container: { paddingVertical: space.xs, gap: space.md },
-  // The shared uppercase micro-label grammar + the earned club title.
   titleRow: {
     flexDirection: "row",
     alignItems: "center",

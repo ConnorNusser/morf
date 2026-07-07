@@ -32,10 +32,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(async (profile: Omit<UserProfile, 'age'> & { age: number }) => {
     try {
       await userService.createUserProfile(profile);
-      // Set the profile directly instead of refreshing to avoid unnecessary re-renders
+      // Set directly rather than refreshing, to avoid an extra re-render.
       setUserProfile(profile as UserProfile);
 
-      // Sync profile data to Supabase (fire and forget)
+      // Fire-and-forget sync to Supabase.
       userSyncService.syncProfileData({
         height: profile.height,
         weight: profile.weight,
@@ -43,7 +43,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       }).catch(err => console.error('Error syncing profile to Supabase:', err));
     } catch (error) {
       console.error('Error updating user profile:', error);
-      // If update failed, refresh to ensure we have correct state
+      // On failure, refresh to restore correct state.
       await refreshProfile();
       throw error;
     }

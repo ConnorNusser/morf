@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 
-// Configure how notifications appear when app is in foreground
+// How notifications present while the app is foregrounded.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -20,9 +20,6 @@ class NotificationService {
   private currentUserId: string | null = null;
   private expoPushToken: string | null = null;
 
-  /**
-   * Get current user ID (cached)
-   */
   private async getCurrentUserId(): Promise<string | null> {
     if (this.currentUserId) return this.currentUserId;
 
@@ -44,22 +41,17 @@ class NotificationService {
     }
   }
 
-  /**
-   * Register for push notifications and get Expo push token
-   */
   async registerForPushNotifications(): Promise<string | null> {
-    // Push notifications only work on physical devices
+    // Push only works on physical devices.
     if (!Device.isDevice) {
       console.warn('Push notifications require a physical device');
       return null;
     }
 
     try {
-      // Check existing permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      // Request permission if not granted
       if (existingStatus !== 'granted') {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
@@ -70,7 +62,6 @@ class NotificationService {
         return null;
       }
 
-      // Get the Expo push token
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       if (!projectId) {
         console.error('No EAS project ID found');
@@ -83,7 +74,6 @@ class NotificationService {
 
       this.expoPushToken = tokenData.data;
 
-      // Configure Android notification channel
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
           name: 'default',
@@ -93,7 +83,6 @@ class NotificationService {
         });
       }
 
-      // Save token to database
       await this.savePushToken(this.expoPushToken);
 
       return this.expoPushToken;
@@ -103,9 +92,6 @@ class NotificationService {
     }
   }
 
-  /**
-   * Save push token to Supabase
-   */
   private async savePushToken(token: string): Promise<boolean> {
     if (!supabase) return false;
 
@@ -136,9 +122,6 @@ class NotificationService {
     }
   }
 
-  /**
-   * Get push tokens for a user's friends
-   */
   private async getFriendPushTokens(): Promise<string[]> {
     if (!supabase) return [];
 
@@ -146,7 +129,6 @@ class NotificationService {
       const userId = await this.getCurrentUserId();
       if (!userId) return [];
 
-      // Get friend IDs
       const { data: friends, error: friendsError } = await supabase
         .from('friends')
         .select('friend_id')
@@ -156,7 +138,6 @@ class NotificationService {
 
       const friendIds = friends.map(f => f.friend_id);
 
-      // Get push tokens for friends
       const { data: tokens, error: tokensError } = await supabase
         .from('push_tokens')
         .select('token')
@@ -171,9 +152,6 @@ class NotificationService {
     }
   }
 
-  /**
-   * Send push notifications to Expo's push service
-   */
   private async sendPushNotifications(
     tokens: string[],
     title: string,
@@ -191,7 +169,6 @@ class NotificationService {
         data: data || {},
       }));
 
-      // Send to Expo's push service
       const response = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: {
@@ -214,9 +191,7 @@ class NotificationService {
     }
   }
 
-  /**
-   * Notify friends when user hits a PR (stores in DB + sends push)
-   */
+  /** Notify friends of a PR: stores in DB + sends push. */
   async notifyFriendsOfPR(
     exerciseId: string,
     exerciseName: string,
@@ -229,7 +204,6 @@ class NotificationService {
       const userId = await this.getCurrentUserId();
       if (!userId) return false;
 
-      // Get current user's username for the notification
       const { data: userData } = await supabase
         .from('users')
         .select('username')
@@ -238,7 +212,6 @@ class NotificationService {
 
       const username = userData?.username || 'A friend';
 
-      // Store notification in database for all friends
       const { error } = await supabase.rpc('notify_friends_of_pr', {
         p_user_id: userId,
         p_exercise_id: exerciseId,
@@ -251,7 +224,6 @@ class NotificationService {
         console.error('Error creating PR notifications:', error);
       }
 
-      // Send push notifications to friends
       const friendTokens = await this.getFriendPushTokens();
       if (friendTokens.length > 0) {
         const improvement = previousPR > 0
@@ -280,9 +252,6 @@ class NotificationService {
     }
   }
 
-  /**
-   * Get push tokens for a specific user
-   */
   private async getUserPushTokens(userId: string): Promise<string[]> {
     if (!supabase) return [];
 
@@ -301,17 +270,14 @@ class NotificationService {
     }
   }
 
-  /**
-   * Notify post author when someone likes their post (push notification only)
-   */
+  /** Push-only: notify the post author when someone likes their post. */
   async notifyPostLike(
     authorId: string,
     fromUserId: string,
     fromUsername: string,
     postText: string
   ): Promise<boolean> {
-    // Don't notify if user liked their own post
-    if (authorId === fromUserId) return true;
+    if (authorId === fromUserId) return true; // don't notify self-likes
 
     try {
       const authorTokens = await this.getUserPushTokens(authorId);
@@ -338,17 +304,14 @@ class NotificationService {
     }
   }
 
-  /**
-   * Notify post author when someone comments on their post (push notification only)
-   */
+  /** Push-only: notify the post author when someone comments on their post. */
   async notifyPostComment(
     authorId: string,
     fromUserId: string,
     fromUsername: string,
     commentText: string
   ): Promise<boolean> {
-    // Don't notify if user commented on their own post
-    if (authorId === fromUserId) return true;
+    if (authorId === fromUserId) return true; // don't notify self-comments
 
     try {
       const authorTokens = await this.getUserPushTokens(authorId);
@@ -375,18 +338,14 @@ class NotificationService {
     }
   }
 
-  /**
-   * Add notification response listener (when user taps notification)
-   */
+  /** Fires when the user taps a notification. */
   addNotificationResponseListener(
     callback: (response: Notifications.NotificationResponse) => void
   ): Notifications.Subscription {
     return Notifications.addNotificationResponseReceivedListener(callback);
   }
 
-  /**
-   * Add notification received listener (when notification arrives)
-   */
+  /** Fires when a notification arrives. */
   addNotificationReceivedListener(
     callback: (notification: Notifications.Notification) => void
   ): Notifications.Subscription {

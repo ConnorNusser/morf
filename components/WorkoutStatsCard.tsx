@@ -31,8 +31,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
   const workout = getWorkoutById(workoutId);
   const accentColor = getPercentileColor(percentileRanking);
 
-  // Sweep the fill up from 0 on mount — so on a post-workout arrival (the section
-  // remounts) the lift bars visibly fill instead of snapping to width.
+  // Sweep the fill from 0 on mount so post-workout arrival (remount) animates instead of snapping.
   const fill = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(fill, {
@@ -81,7 +80,6 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
             </Text>
           </View>
 
-          {/* Tier-coloured strength bar — matches the Big-3 total's bar language */}
           <View style={[styles.track, { backgroundColor: ink.hairline }]}>
             <Animated.View
               style={[

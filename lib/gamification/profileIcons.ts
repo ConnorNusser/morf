@@ -1,7 +1,4 @@
-// Profile emblems — a custom icon the lifter picks to represent their career.
-// Every emblem is earned by an accomplishment (a streak, a strength tier, a
-// volume/workout milestone), so collecting them rewards diverse training. Pure:
-// unlock state is derived from the set of unlocked achievement ids.
+// Profile emblems the lifter picks; each is gated on an achievement. Unlock state is pure.
 import { Achievement } from './achievements';
 
 export interface ProfileIconDef {
@@ -12,7 +9,6 @@ export interface ProfileIconDef {
   hint: string; // human "how to unlock"
 }
 
-// Curated emblems, each gated on a specific achievement.
 export const PROFILE_ICONS: ProfileIconDef[] = [
   { id: 'barbell', icon: 'barbell', label: 'Barbell', achievementId: null, hint: 'Starter emblem' },
   { id: 'flash', icon: 'flash', label: 'Bolt', achievementId: 'workouts-10', hint: 'Log 10 workouts' },
@@ -32,7 +28,6 @@ export const PROFILE_ICONS: ProfileIconDef[] = [
 
 const DEFAULT_PROFILE_ICON_ID = 'barbell';
 
-// What's needed to evaluate unlocks — which achievements are unlocked.
 export interface IconUnlockContext {
   unlockedAchievementIds: Set<string>;
 }
@@ -50,9 +45,7 @@ export function isProfileIconUnlocked(id: string, ctx: IconUnlockContext): boole
   return def ? defUnlocked(def, ctx) : false;
 }
 
-// Resolve the id to actually display: the chosen one if still valid + unlocked,
-// otherwise the default (guards against a saved id the user no longer qualifies
-// for, or a removed icon).
+// Chosen id if still valid + unlocked, else default (guards stale/removed saved ids).
 export function resolveProfileIconId(chosenId: string | null, ctx: IconUnlockContext): string {
   if (chosenId && isProfileIconUnlocked(chosenId, ctx)) return chosenId;
   return DEFAULT_PROFILE_ICON_ID;

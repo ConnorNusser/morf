@@ -1,18 +1,7 @@
 /**
- * Deterministic Routine Builder
- * ------------------------------------------------------------------------------------
- * Builds a workout program from the attributed template library (no AI). Used for
- * standard equipment setups; limited/odd equipment is routed to the AI elsewhere.
- *
- * Pipeline per request:
- *   1. selectProgram(goal, days) — filter the library to suitable programs, RNG-pick one.
- *   2. For each day template: resolve slots → concrete exercises for the user's equipment,
- *      skipping ignored muscle groups, biasing accessories toward focus areas, and
- *      expanding from the 4 core anchors up to the requested exercise count.
- *   3. Assign sets/reps from the program's volume flavor.
- *
- * Returns the same GeneratedRoutineProgram shape the AI path produces, so preview /
- * refine / convert-to-routines all work unchanged.
+ * Builds a workout program from the template library (no AI). Standard equipment
+ * setups only; limited/odd equipment is routed to the AI elsewhere. Returns the same
+ * GeneratedRoutineProgram shape the AI path produces, so downstream works unchanged.
  */
 
 import { Equipment, MuscleGroup, TrainingAdvancement } from '@/types';
@@ -48,11 +37,9 @@ interface ResolvedExercise {
   isCompound: boolean;
 }
 
-// id -> workout lookup
 const WORKOUT_BY_ID = new Map(ALL_WORKOUTS.map(w => [w.id, w]));
 
-// Slots grouped by the muscle they target — used to backfill days that come up short
-// (e.g. after skipping a muscle group) with extra work from other areas.
+// Slots grouped by target muscle — used to backfill days that come up short.
 const SLOTS_BY_TARGET: Partial<Record<MuscleGroup, ExerciseSlot[]>> = (() => {
   const map: Partial<Record<MuscleGroup, ExerciseSlot[]>> = {};
   for (const key of Object.keys(SLOTS) as SlotKey[]) {
@@ -64,7 +51,7 @@ const SLOTS_BY_TARGET: Partial<Record<MuscleGroup, ExerciseSlot[]>> = (() => {
 
 const ALL_MUSCLES: MuscleGroup[] = ['chest', 'back', 'shoulders', 'legs', 'glutes', 'arms', 'core'];
 
-/** Day template oriented around each muscle — used to replace a skipped day with a focus day. */
+/** Day template per muscle — used to replace a skipped day with a focus day. */
 const FOCUS_DAY_TEMPLATE: Partial<Record<MuscleGroup, string>> = {
   chest: 'chest_day',
   back: 'back_day',
@@ -74,7 +61,7 @@ const FOCUS_DAY_TEMPLATE: Partial<Record<MuscleGroup, string>> = {
   glutes: 'leg_day',
 };
 
-/** General fallback day templates (in priority order) when there's no focus area to use. */
+/** Fallback day templates (priority order) when there's no focus area to use. */
 const SUBSTITUTE_DAYS = ['upper_gen', 'push', 'pull', 'upper_hyper', 'chest_arms', 'back_shoulders', 'lower_gen'];
 
 function pickRandom<T>(arr: T[]): T {
@@ -86,14 +73,11 @@ function suitsLevel(p: ProgramDef, experience?: TrainingAdvancement): boolean {
   return !experience || !p.bestFor || p.bestFor.includes(experience);
 }
 
-/**
- * Select a program suited to the goal + days (+ experience), RNG-picking among the
- * matches for variety. Relaxes constraints progressively if nothing matches exactly.
- */
+/** Select a program suited to goal + days (+ experience), RNG-picking among matches.
+ *  Relaxes constraints progressively if nothing matches exactly. */
 export function selectProgram(goal: TrainingGoal, days: number, experience?: TrainingAdvancement): ProgramDef {
   const byGoalDays = PROGRAMS.filter(p => p.days === days && p.goals.includes(goal));
 
-  // Prefer programs that also fit the lifter's experience level.
   const levelFit = byGoalDays.filter(p => suitsLevel(p, experience));
   if (levelFit.length) return pickRandom(levelFit);
   if (byGoalDays.length) return pickRandom(byGoalDays);
@@ -119,21 +103,17 @@ function resolveSlot(
     const w = WORKOUT_BY_ID.get(id);
     if (!w) continue;
     if (!w.equipment.every(eq => available.has(eq))) continue;
-    // Reject by the exercise's actual primary muscle, not just the slot's label — some
-    // movements live in a slot whose target differs from what they primarily hit
-    // (e.g. shrugs sit in a "back" slot but primarily work the shoulders/traps).
+    // Reject by the exercise's actual primary muscle, not the slot's label — some
+    // movements sit in a slot whose target differs from what they primarily hit.
     if (w.primaryMuscles[0] && ignored.has(w.primaryMuscles[0])) continue;
     return { id, name: w.name, isCompound: w.category === 'compound' };
   }
   return null;
 }
 
-/**
- * Choose a substitute day template when the original targets only skipped muscles.
- * Prefer a day built around one of the user's focus areas; otherwise fall back to a
- * general non-skipped day. `seed` rotates through focus areas so multiple replaced
- * days (e.g. both Legs days in a 6-day split) don't all become the same day.
- */
+/** Substitute day template when the original targets only skipped muscles. Prefers a
+ *  focus-area day, else a general non-skipped day. `seed` rotates through focus areas
+ *  so multiple replaced days don't all become the same day. */
 function substituteDay(ignored: Set<string>, focus: Set<string>, seed = 0): DayTemplate {
   const focusDays = [...focus]
     .filter(m => !ignored.has(m) && FOCUS_DAY_TEMPLATE[m as MuscleGroup])
@@ -169,8 +149,7 @@ function buildDay(
   }
 ): GeneratedRoutineDay {
   let template = DAY_TEMPLATES[dayKey];
-  // If the whole day targets only skipped muscles, replace it — preferring a day built
-  // around one of the user's focus areas, else a general non-skipped day.
+  // If the whole day targets only skipped muscles, replace it.
   if (template.targetMuscles.every(m => opts.ignored.has(m))) {
     template = substituteDay(opts.ignored, opts.focus, dayNumber);
   }
@@ -190,7 +169,7 @@ function buildDay(
   // 1. Anchor on the core slots.
   template.core.forEach(slot => tryAdd(slot, true));
 
-  // 2. Expand with accessories until we hit the target count, biasing toward focus areas.
+  // 2. Expand with accessories until the target count, biasing toward focus areas.
   const accessories = [...template.accessories].sort((a, b) => {
     const aF = opts.focus.has(a.target) ? 0 : 1;
     const bF = opts.focus.has(b.target) ? 0 : 1;
@@ -201,7 +180,7 @@ function buildDay(
     tryAdd(slot, false);
   }
 
-  // 3. Pull in any must-include exercises that fit this day and aren't placed yet.
+  // 3. Pull in must-include exercises that fit this day and aren't placed yet.
   for (let i = opts.pendingIncludes.length - 1; i >= 0; i--) {
     const inc = opts.pendingIncludes[i];
     if (used.has(inc.id)) { opts.pendingIncludes.splice(i, 1); continue; }
@@ -214,10 +193,9 @@ function buildDay(
     }
   }
 
-  // 3.5 Focus = frequency: make sure each focus muscle is trained on this day even if the
-  //     template doesn't normally hit it (e.g. add a chest move to a Lower day when chest is
-  //     a focus). Injected right after the core anchors so it's trained reasonably fresh.
-  //     Capped per day so multiple focuses don't bloat a single session.
+  // 3.5 Focus = frequency: ensure each focus muscle is trained on this day even if the
+  //     template doesn't normally hit it. Injected after the core anchors (trained fresh),
+  //     capped per day so multiple focuses don't bloat a session.
   const FOCUS_INJECT_CAP = 2;
   const present = new Set(
     resolved.map(r => WORKOUT_BY_ID.get(r.ex.id)?.primaryMuscles[0]).filter(Boolean) as MuscleGroup[]
@@ -242,9 +220,8 @@ function buildDay(
     }
   }
 
-  // 4. Backfill: if the day came up short (e.g. after skipping a muscle group, or a
-  //    template with few accessories), top it up with extra work from the focus areas
-  //    first, then the day's own theme, then any other non-skipped area.
+  // 4. Backfill a short day, in order: focus areas, then the day's theme, then any
+  //    other non-skipped area.
   if (resolved.length < opts.targetCount) {
     const fillOrder: MuscleGroup[] = [];
     const queue = (muscles: MuscleGroup[]) => {

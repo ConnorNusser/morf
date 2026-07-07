@@ -33,7 +33,7 @@ interface Props {
 interface Brief {
   tag: string;
   text: string;
-  achievement?: AchievementFact; // when set, render its emblem
+  achievement?: AchievementFact;
 }
 
 const HOLD_MS = 2800;
@@ -55,9 +55,6 @@ function volumeComparison(volumeLbs: number): string {
   return 'a solid warm-up';
 }
 
-// Build the rotating pool: personal fun facts interleaved with the user's
-// achievements (achievement-first, so they show often). Only include facts we
-// actually have data for.
 function buildPool(c: CareerSnapshot): Brief[] {
   const facts: Brief[] = [];
   const unit = c.unit || 'lbs';
@@ -87,9 +84,7 @@ function buildPool(c: CareerSnapshot): Brief[] {
   return pool.length ? pool : [{ tag: 'READY', text: 'Let’s move some weight.' }];
 }
 
-// A calm "session brief" — no bounce. Rotates a personal fun fact, a recent
-// achievement, or a research-backed cue each launch. Tier is the accent; tap
-// anywhere to skip straight in.
+// A calm "session brief": rotates a personal fun fact / recent achievement / cue each launch; tap anywhere to skip in.
 export default function WorkoutLaunch({ visible, routineName, subtitle, exercises = [], career, onLaunch, onClose }: Props) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;

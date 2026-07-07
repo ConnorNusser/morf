@@ -21,10 +21,7 @@ interface ButtonProps {
   soundName?: SoundName;
 }
 
-/**
- * The canonical button. Primary is the pill CTA grammar (StartButton is its
- * animated hero sibling); secondary is the bordered surface button.
- */
+/** Canonical button: primary pill CTA, secondary bordered surface. */
 function Button({
   title,
   onPress,
@@ -81,8 +78,7 @@ function Button({
         backgroundColor: currentTheme.colors.primary,
         borderRadius: radius.pill,
       },
-      // Labeled action buttons are pills across the app; radius.card is
-      // reserved for tappable cards/tiles/rows.
+      // Labeled action buttons are pills; radius.card is reserved for cards/tiles/rows.
       secondary: {
         backgroundColor: currentTheme.colors.surface,
         borderWidth: 1,

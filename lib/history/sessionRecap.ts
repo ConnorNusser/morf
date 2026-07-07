@@ -1,7 +1,4 @@
-// Turns raw workout history into "session recaps" — the data behind the Sessions
-// feed, which reframes History from a stats dashboard into a reflective, re-livable
-// record of each gym session. Pure: derives everything from the workouts + catalog,
-// no storage/clock side effects (caller passes `now`).
+// Turns raw workout history into the "session recaps" behind the Sessions feed. Pure.
 import { buildSessionPRs, SessionPR } from '@/components/history/prSessions';
 import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
@@ -12,58 +9,50 @@ import { getExercise } from '@/lib/workout/workouts';
 import { convertWeight, CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 
 export interface StandoutSet {
-  name: string;   // exercise display name
-  weight: number; // in the display unit
+  name: string;
+  weight: number; // display unit
   reps: number;
   unit: WeightUnit;
-  // The set graded against the published strength standards — the exact grading
-  // path the lift board uses (gradeE1rm), so the hero and the rows above it can
-  // never disagree about what tier a number is. Null when the lift has no real
-  // standard or the profile lacks bodyweight/gender: no fake 50th-percentile tiers.
+  // Null when no real standard or profile lacks bodyweight/gender: no fake 50th-pct tiers.
   tierInfo: TierGrade | null;
 }
 
 export interface SessionComparison {
   deltaVolumePct: number; // signed % vs the reference session
-  refLabel: string;       // e.g. "last Push Day"
+  refLabel: string;
 }
 
-// One entry per exercise actually performed — "what happened in the workout",
-// in workout order, each summarized by its top completed set.
 export interface LineupItem {
-  name: string;   // short display name (no equipment suffix)
-  weight: number; // top set weight in the display unit; 0 for a bodyweight movement
-  reps: number;   // reps of that top set
-  sets: number;   // completed sets of this exercise
+  name: string; // no equipment suffix
+  weight: number; // display unit; 0 for bodyweight
+  reps: number;
+  sets: number;
 }
 
 export interface SessionRecap {
   workout: GeneratedWorkout;
   title: string;
-  headline: string | null;      // narrative beat, or null (then the standout carries the card)
-  standout: StandoutSet | null; // the session's most impressive working set (the PR lift's if any, else highest e1RM)
-  pr: SessionPR | null;         // the day's single most significant record, if any
-  prGainDisplay: number;        // the PR's gain over the prior best, in the display unit (0 if no PR)
-  volumeLbs: number;            // in lbs (stable), format at the edge
-  volumeDisplay: number;        // in the display unit
+  headline: string | null;
+  standout: StandoutSet | null; // PR lift's set if any, else highest e1RM
+  pr: SessionPR | null;
+  prGainDisplay: number; // display unit, 0 if no PR
+  volumeLbs: number; // lbs
+  volumeDisplay: number;
   sets: number;
   durationMin: number;
-  muscles: string[];            // primary muscles worked, most-hit first
-  // The session's dominant Push/Pull/Legs split (from its most-hit muscle) — the
-  // match's "team color" in the feed, matching the lift board's per-row split so
-  // PPL hue means SPLIT everywhere on the History page. Null when unmapped.
+  muscles: string[]; // most-hit first
   split: PPLCategory | null;
-  lineup: LineupItem[];         // every exercise performed, workout order, top set each
+  lineup: LineupItem[];
   comparison: SessionComparison | null;
 }
 
-/** Drop the trailing "(Equipment)" for a punchier headline. */
+// Drop trailing "(Equipment)".
 const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
 const COMEBACK_MIN_DAYS = 7;
 const DAY_MS = 86400000;
 
-/** Primary muscles worked in a session, ordered by how many sets hit them. */
+// Primary muscles, ordered by sets hitting them.
 function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
   const counts = new Map<MuscleGroup, number>();
   for (const ex of workout.exercises) {
@@ -75,13 +64,7 @@ function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([m]) => m);
 }
 
-/**
- * The session's headline set. When the day set a record we show THAT lift's top set
- * (so the "Squat PR" headline and the big number agree); otherwise the single most
- * impressive working set by estimated 1RM. When the profile supports honest grading,
- * the winning set is graded through the same gradeE1rm path as the lift board, so
- * the hero can carry its earned tier ("e1RM 293 · 12 lbs to B+").
- */
+// PR lift's top set when the day set a record (headline and number agree), else highest e1RM.
 function standoutSet(
   workout: GeneratedWorkout,
   unit: WeightUnit,
@@ -113,8 +96,7 @@ function standoutSet(
   }
   const winner = preferred ?? best;
   if (!winner) return null;
-  // Grade THIS session's set (not the all-time record) so the hero stays honest —
-  // a lighter day really does read a lower e1RM / further from the next tier.
+  // Grade THIS session's set (not all-time) so a lighter day reads lower.
   const tierInfo = grading ? (gradeE1rm(winner.id, winner.e1rm, unit, grading) ?? null) : null;
   return { ...winner.set, tierInfo };
 }
@@ -123,10 +105,7 @@ function volumeLbs(workout: GeneratedWorkout, getTrackingType: (id: string) => T
   return calculateWorkoutStats(workout.exercises, getTrackingType).totalVolumeLbs;
 }
 
-/**
- * "What happened": every exercise with at least one completed set, in workout order,
- * summarized by its best completed set (highest e1RM; most reps for bodyweight work).
- */
+// Best set per exercise (e1RM; reps for bodyweight), workout order.
 function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[] {
   const out: LineupItem[] = [];
   for (const ex of workout.exercises) {
@@ -149,12 +128,7 @@ function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[
   return out;
 }
 
-/**
- * Build the recap list, newest first. Each recap gets a narrative headline chosen by
- * priority: major PR › comeback › biggest-of-its-kind › standard PR › none. Comparison
- * is volume vs the previous session of the same title (falls back to the previous
- * session overall).
- */
+// Newest first. Headline priority: major PR › comeback › biggest-of-its-kind › PR › none.
 export function buildSessionRecaps(
   workouts: GeneratedWorkout[],
   customExercises: CustomExercise[],
@@ -166,11 +140,10 @@ export function buildSessionRecaps(
   const getTrackingType = (id: string): TrackingType | undefined =>
     getExercise(id)?.trackingType;
 
-  // Records key off the same day-grouped exercise stats the rest of History uses.
   const stats = buildExerciseStats(workouts, customExercises, weightUnit);
   const sessionPRs = buildSessionPRs(stats);
 
-  // Oldest → newest so "biggest yet" / comeback can look back at what came before.
+  // Oldest→newest so "biggest yet" / comeback can look back.
   const chron = [...workouts].sort(
     (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
   );
@@ -182,7 +155,6 @@ export function buildSessionRecaps(
     const sameTitlePrior = prior.filter(w => w.title === workout.title);
     const myVol = vol.get(workout.id) || 0;
 
-    // Comparison: same-title previous session, else the immediately previous session.
     const ref = sameTitlePrior[sameTitlePrior.length - 1] ?? prior[prior.length - 1] ?? null;
     let comparison: SessionComparison | null = null;
     if (ref) {
@@ -200,13 +172,13 @@ export function buildSessionRecaps(
     const wStats = calculateWorkoutStats(workout.exercises, getTrackingType);
     const muscles = sessionMuscles(workout);
 
-    // Gap since the previous session of any kind (drives the comeback beat).
+    // Gap driving the comeback beat.
     const prevDate = prior.length ? new Date(prior[prior.length - 1].createdAt) : null;
     const gapDays = prevDate
       ? Math.round((new Date(workout.createdAt).getTime() - prevDate.getTime()) / DAY_MS)
       : 0;
 
-    // Biggest-of-its-kind: this session's volume beats every prior same-title session.
+    // Beats every prior same-title session.
     const isBiggestOfKind =
       sameTitlePrior.length > 0 && sameTitlePrior.every(w => (vol.get(w.id) || 0) < myVol);
 
@@ -239,5 +211,5 @@ export function buildSessionRecaps(
     };
   });
 
-  return recaps.reverse(); // newest first for the feed
+  return recaps.reverse(); // newest first
 }

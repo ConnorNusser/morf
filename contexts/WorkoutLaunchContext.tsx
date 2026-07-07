@@ -11,7 +11,7 @@ export interface AchievementFact {
   icon: string;
   rarity: Rarity;
   isNew: boolean;
-  unlockedAt: string; // ISO date it was first seen unlocked
+  unlockedAt: string;
 }
 
 export interface CareerSnapshot {
@@ -22,20 +22,19 @@ export interface CareerSnapshot {
   totalSets?: number;
   daysActive?: number;
   currentStreak?: number;
-  achievements?: AchievementFact[]; // unlocked, new ones first
+  achievements?: AchievementFact[];
 }
 
 interface LaunchConfig {
   routineName: string;
   subtitle?: string;
-  exercises?: string[]; // shown as a staggered "loadout" list
+  exercises?: string[];
   onArrive: () => void; // fired while the overlay still covers the screen
 }
 
 const WorkoutLaunchContext = createContext<(cfg: LaunchConfig) => void>(() => {});
 
-// Trigger the shared launch interstitial from anywhere (home routine, empty-state
-// start, Quick start, repeating a recent workout).
+// Trigger the shared launch interstitial from anywhere.
 export const useWorkoutLaunch = () => useContext(WorkoutLaunchContext);
 
 export function WorkoutLaunchProvider({ children }: { children: React.ReactNode }) {
@@ -51,7 +50,7 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
       // loadCareerData already stamped/read first-unlocked dates — reuse that map.
       const dates = d.achievementUnlockedAt;
       const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-      // Only surface wins from the last two weeks, most recent first.
+      // Only wins from the last two weeks, most recent first.
       const achievements = unlocked
         .filter(a => dates[a.id] && new Date(dates[a.id]).getTime() >= twoWeeksAgo)
         .map(a => ({

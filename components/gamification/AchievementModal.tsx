@@ -1,7 +1,4 @@
-// Full-screen spotlight for one earned achievement — the same calm presentation
-// grammar as the WorkoutLaunch interstitial: theme background, the badge art
-// large and centered, rarity as the accent, then title / description / where it
-// was earned. Tap anywhere (or the X) to dismiss.
+// Full-screen spotlight for one achievement; tap anywhere (or the X) to dismiss.
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';

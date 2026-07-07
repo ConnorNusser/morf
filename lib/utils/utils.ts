@@ -14,7 +14,6 @@ const convertWeightToKg = (weight: number, unit: WeightUnit): number => {
   return weight;
 };
 
-// Synchronous version when you already have the user preference
 export const convertWeightForPreference = (weight: number, fromUnit: 'lbs' | 'kg', userPreference: 'lbs' | 'kg'): number => {
   if (userPreference === 'kg') {
     return convertWeightToKg(weight, fromUnit);
@@ -37,7 +36,6 @@ export const getPercentileSuffix = (percentile: number): string => {
   }
 };
 
-// Calculate overall percentile from individual lift percentiles
 export const calculateOverallPercentile = (liftPercentiles: number[]): number => {
   if (liftPercentiles.length === 0) return 0;
   const filteredPercentiles = liftPercentiles.filter(percentile => percentile > 0);
@@ -46,21 +44,16 @@ export const calculateOverallPercentile = (liftPercentiles: number[]): number =>
   return Math.round(sum / filteredPercentiles.length);
 };
 
-// Format volume with unit conversion (volume is stored in lbs)
+// Volume is stored in lbs.
 export const formatVolume = (volumeLbs: number, unit: WeightUnit): string =>
   `${formatVolumeNumber(volumeLbs, unit)} ${unit}`;
 
-// Format volume number only (no unit suffix)
 export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string => {
   const volume = unit === 'kg' ? volumeLbs / 2.205 : volumeLbs;
   return volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
 };
 
-/**
- * Abbreviate a raw number as "1.2k" / "1.2M" with an optional suffix. Shared by the
- * overview/trends modals (each passes its own suffix / millions flag) so the k/M logic
- * isn't duplicated. Values below 1000 are returned verbatim (e.g. "850" or "850 lbs").
- */
+// Abbreviate as "1.2k" / "1.2M"; values below 1000 returned verbatim.
 export const formatCompact = (value: number, opts: { suffix?: string; millions?: boolean } = {}): string => {
   const suffix = opts.suffix ?? '';
   if (opts.millions && value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M${suffix}`;
@@ -73,8 +66,7 @@ export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Day-key strings (see dateKey) → ascending epoch-ms at local midnight. Shared by
-// the streak/comeback-gap walks that need trained days in chronological order.
+// Day-key strings → ascending epoch-ms at local midnight.
 export function sortedDayTimestamps(keys: Iterable<string>): number[] {
   return [...keys]
     .map(k => {
@@ -84,11 +76,8 @@ export function sortedDayTimestamps(keys: Iterable<string>): number[] {
     .sort((a, b) => a - b);
 }
 
-/**
- * Local Monday (00:00) of the week containing `date`. The common training-week
- * convention; index 0 = Monday … 6 = Sunday. Steps with setDate (not raw
- * millisecond math) so it stays correct across daylight-saving boundaries.
- */
+// Local Monday (00:00) of the week containing `date`. Uses setDate (not raw ms
+// math) so it stays correct across daylight-saving boundaries.
 export function weekStart(date: Date): Date {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -121,11 +110,7 @@ export function getProgressionColor(
 
 export { convertWeightToLbs };
 
-// ===== SET FORMATTING UTILITIES =====
-
-/**
- * Format duration in seconds to MM:SS or H:MM:SS format
- */
+// Format seconds to MM:SS or H:MM:SS.
 export const formatDuration = (seconds: number): string => {
   if (!seconds || seconds <= 0) return '0:00';
 
@@ -139,25 +124,20 @@ export const formatDuration = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-/**
- * Format a whole-minutes duration as "1h 30m" / "30m" (used by the overview/trends modals).
- */
+// Format whole minutes as "1h 30m" / "30m".
 export const formatMinutes = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 };
 
-// Compact hours-only form for tight stat strips (e.g. "14.7h", "2h", "0.5h").
-// Avoids the wider "Xh Ym" string ellipsizing in narrow columns.
+// Compact hours-only form (e.g. "14.7h") to avoid "Xh Ym" ellipsizing in narrow columns.
 export const formatHoursCompact = (minutes: number): string => {
   const rounded = Math.round((minutes / 60) * 10) / 10;
   return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}h`;
 };
 
-/**
- * Categorize a workout into a split bucket from its title (push/pull/legs/upper/full/other).
- */
+// Categorize a workout into a split bucket from its title.
 export const getWorkoutCategory = (workout: GeneratedWorkout): string => {
   const title = workout.title.toLowerCase();
 
@@ -176,23 +156,17 @@ export const getWorkoutCategory = (workout: GeneratedWorkout): string => {
   }
 };
 
-/**
- * Format distance in meters to km or m
- */
+// Format distance in meters to km or m.
 export const formatDistance = (meters: number): string => {
   if (!meters || meters <= 0) return '';
 
   if (meters >= 1000) {
     const km = meters / 1000;
-    // Use 1 decimal for clean numbers, 2 for others
     return km % 1 === 0 ? `${km}km` : `${km.toFixed(1)}km`;
   }
   return `${Math.round(meters)}m`;
 };
 
-/**
- * Set data for formatting
- */
 export interface SetFormatData {
   weight?: number;
   reps?: number;
@@ -201,24 +175,13 @@ export interface SetFormatData {
   distance?: number;  // meters
 }
 
-/**
- * Options for formatting a set
- */
 export interface FormatSetOptions {
   trackingType?: TrackingType;
-  showUnit?: boolean;  // Whether to show weight unit (default: true)
-  compact?: boolean;   // Use × instead of ' x ' (default: false)
+  showUnit?: boolean;  // default: true
+  compact?: boolean;   // × instead of ' x ', default: false
 }
 
-/**
- * Universal set formatter that handles all tracking types
- *
- * Examples:
- * - Reps: "135 lbs × 8" or "135×8" (compact)
- * - Bodyweight: "8 reps" (when weight is 0)
- * - Timed: "1:30"
- * - Cardio: "20:00 · 5.0km" or "20:00" (duration only)
- */
+// Universal set formatter across all tracking types.
 export const formatSet = (
   set: SetFormatData,
   options: FormatSetOptions = {}
@@ -229,7 +192,6 @@ export const formatSet = (
     compact = false
   } = options;
 
-  // Cardio: duration + optional distance
   if (trackingType === 'cardio') {
     const parts: string[] = [];
     if (set.duration && set.duration > 0) {
@@ -241,22 +203,18 @@ export const formatSet = (
     return parts.length > 0 ? parts.join(' · ') : '—';
   }
 
-  // Timed: duration only
   if (trackingType === 'timed') {
     return set.duration && set.duration > 0 ? formatDuration(set.duration) : '—';
   }
 
-  // Reps-based (default)
   const weight = set.weight ?? 0;
   const reps = set.reps ?? 0;
   const unit = set.unit ?? 'lbs';
 
-  // Bodyweight or zero weight: show reps only
   if (weight === 0) {
     return `${reps} reps`;
   }
 
-  // Standard weight × reps format
   if (compact) {
     return `${weight}×${reps}`;
   }
@@ -268,10 +226,7 @@ export const formatSet = (
   return `${weight} × ${reps}`;
 };
 
-/**
- * Format best set string for syncing to database/feed
- * Used by userSyncService when creating workout summaries
- */
+// Best-set string for syncing to database/feed (userSyncService).
 export const formatBestSet = (
   set: SetFormatData,
   trackingType: TrackingType = 'reps'
@@ -279,11 +234,6 @@ export const formatBestSet = (
   return formatSet(set, { trackingType, compact: true, showUnit: false });
 };
 
-// ===== WORKOUT STATS UTILITIES =====
-
-/**
- * Aggregated workout statistics including cardio data
- */
 export interface WorkoutStats {
   totalSets: number;
   totalVolumeLbs: number;
@@ -293,9 +243,6 @@ export interface WorkoutStats {
   hasCardioExercises: boolean;
 }
 
-/**
- * Exercise set data for stats calculation
- */
 export interface ExerciseSetForStats {
   weight?: number;
   reps?: number;
@@ -305,21 +252,12 @@ export interface ExerciseSetForStats {
   completed?: boolean;
 }
 
-/**
- * Exercise data for stats calculation
- */
 export interface ExerciseForStats {
   id: string;
   completedSets?: ExerciseSetForStats[];
   trackingType?: TrackingType;
 }
 
-/**
- * Calculate aggregated workout stats from exercises
- *
- * @param exercises - Array of exercises with completed sets
- * @param getTrackingType - Optional function to look up tracking type for an exercise ID
- */
 export const calculateWorkoutStats = (
   exercises: ExerciseForStats[],
   getTrackingType?: (exerciseId: string) => TrackingType | undefined
@@ -336,7 +274,6 @@ export const calculateWorkoutStats = (
     const trackingType = exercise.trackingType || getTrackingType?.(exercise.id) || 'reps';
 
     for (const set of sets) {
-      // Only count completed sets (or sets without completed flag)
       if (set.completed === false) continue;
 
       totalSets++;
@@ -346,15 +283,12 @@ export const calculateWorkoutStats = (
         totalCardioDurationSeconds += set.duration || 0;
         totalDistanceMeters += set.distance || 0;
       } else if (trackingType === 'timed') {
-        // Timed exercises don't contribute to volume but count as sets
-        // Optionally track timed duration separately in the future
+        // Timed exercises count as sets but don't contribute to volume.
       } else {
-        // Reps-based exercise
         const weight = set.weight || 0;
         const reps = set.reps || 0;
         if (weight > 0) {
           hasWeightedExercises = true;
-          // Convert to lbs if necessary
           const weightLbs = set.unit === 'kg' ? weight * 2.20462 : weight;
           totalVolumeLbs += weightLbs * reps;
         }
@@ -372,23 +306,12 @@ export const calculateWorkoutStats = (
   };
 };
 
-/**
- * Options for formatting workout stats line
- */
 export interface FormatStatsLineOptions {
   unit?: WeightUnit;
   showSetCount?: boolean;
-  includeExerciseCount?: number; // If provided, prefix with "N exercises · "
+  includeExerciseCount?: number; // if set, prefix with "N exercises · "
 }
 
-/**
- * Format workout stats into a single line for display
- *
- * Examples:
- * - Weights-only: "8 sets · 45.2k lbs"
- * - Cardio-only: "45:00 · 8.5km"
- * - Mixed: "8 sets · 45.2k lbs · 5km · 20:00 cardio"
- */
 export const formatWorkoutStatsLine = (
   stats: WorkoutStats,
   options: FormatStatsLineOptions = {}
@@ -396,12 +319,10 @@ export const formatWorkoutStatsLine = (
   const { unit = 'lbs', showSetCount = true, includeExerciseCount } = options;
   const parts: string[] = [];
 
-  // Optionally prefix with exercise count
   if (includeExerciseCount !== undefined && includeExerciseCount > 0) {
     parts.push(`${includeExerciseCount} exercises`);
   }
 
-  // Cardio-only workout
   if (stats.hasCardioExercises && !stats.hasWeightedExercises) {
     if (stats.totalCardioDurationSeconds > 0) {
       parts.push(formatDuration(stats.totalCardioDurationSeconds));
@@ -412,7 +333,6 @@ export const formatWorkoutStatsLine = (
     return parts.length > 0 ? parts.join(' · ') : '—';
   }
 
-  // Weights-only or mixed workout
   if (showSetCount && stats.totalSets > 0) {
     parts.push(`${stats.totalSets} sets`);
   }
@@ -421,7 +341,6 @@ export const formatWorkoutStatsLine = (
     parts.push(formatVolume(stats.totalVolumeLbs, unit));
   }
 
-  // Add cardio stats if mixed workout
   if (stats.hasCardioExercises) {
     if (stats.totalDistanceMeters > 0) {
       parts.push(formatDistance(stats.totalDistanceMeters));
@@ -434,9 +353,6 @@ export const formatWorkoutStatsLine = (
   return parts.length > 0 ? parts.join(' · ') : '—';
 };
 
-/**
- * Combine multiple WorkoutStats into aggregate totals
- */
 export const combineWorkoutStats = (statsList: WorkoutStats[]): WorkoutStats => {
   return statsList.reduce(
     (acc, stats) => ({

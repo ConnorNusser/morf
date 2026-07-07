@@ -26,8 +26,7 @@ import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]; // Monday-start
 
-// Dominant Push/Pull/Legs category for a day's workouts, by majority of each
-// exercise's primary muscle. Null when nothing categorizable was logged.
+// Dominant Push/Pull/Legs category for a day, by majority of each exercise's primary muscle.
 function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
   const counts: Record<PPLCategory, number> = { push: 0, pull: 0, legs: 0 };
   for (const workout of workouts) {
@@ -43,15 +42,12 @@ function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
   );
 }
 
-// Accent once the weekly goal is met — the same gold as a "legendary" Career
-// badge, so hitting a goal reads as the same kind of win across both surfaces.
+// The same gold as a "legendary" Career badge, so a met goal reads as the same kind of win.
 const GOAL_MET_COLOR = "#F59E0B";
 
-// Week-over-week volume trend colors — the shared trend tokens (green up / red down).
 const TREND_UP = trend.up;
 const TREND_DOWN = trend.down;
 
-// Selectable goal values (1..7).
 const GOAL_OPTIONS = Array.from(
   { length: WEEKLY_GOAL_MAX - WEEKLY_GOAL_MIN + 1 },
   (_, i) => WEEKLY_GOAL_MIN + i,
@@ -106,13 +102,10 @@ export default function WeeklyGoalCard() {
   const { daysTrained, metGoal, trainedDays, workoutsByDay, weekStart } =
     progress;
 
-  // Flattened list of this week's completed workouts, for the overview modal.
   const thisWeekWorkouts = workoutsByDay.flat();
 
-  // Celebrate once the goal is reached: the count takes the accent color.
   const accent = metGoal ? GOAL_MET_COLOR : currentTheme.colors.primary;
 
-  // Each trained dot is colored by that day's Push/Pull/Legs category.
   const dayColors = workoutsByDay.map((day) => {
     const category = dominantPPL(day);
     return category ? PPL_COLORS[category] : currentTheme.colors.primary;
@@ -126,7 +119,6 @@ export default function WeeklyGoalCard() {
         onPress={() => setOverviewOpen(true)}
       >
         <View style={styles.header}>
-          {/* The shared uppercase micro-label section grammar (History / Career). */}
           <SectionLabel style={styles.title}>THIS WEEK</SectionLabel>
 
           <TouchableOpacity
@@ -293,8 +285,7 @@ export default function WeeklyGoalCard() {
 }
 
 const styles = StyleSheet.create({
-  // Flat: no surface/border/radius — reads as inline content and saves the card's
-  // padding + chrome height.
+  // Flat: no surface/border/radius — reads as inline content.
   card: {
     paddingHorizontal: 0,
     paddingVertical: space.xs,

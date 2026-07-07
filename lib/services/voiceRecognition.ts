@@ -1,15 +1,10 @@
 // Crash-safe access to the optional native speech-recognition module.
-//
-// expo-speech-recognition's entrypoint resolves its native side at module-eval
-// time with requireNativeModule(), which THROWS if the dev client hasn't been
-// rebuilt to include the native module. In dev that throw escapes a plain
-// try/catch around require() (it surfaces as a render-time error), so instead
-// we first probe with requireOptionalNativeModule() — which returns null rather
-// than throwing — and only require the package when the native module is really
-// present. If voice isn't available, every call is a no-op and
-// isVoiceAvailable() returns false, so the UI simply hides the mic.
-//
-// Requires `npx expo prebuild` + a dev-client rebuild before voice works.
+// expo-speech-recognition's entrypoint calls requireNativeModule() at module-eval
+// time, which THROWS (as an uncatchable render-time error) when the dev client
+// hasn't been rebuilt with the native module. So we probe with
+// requireOptionalNativeModule() first — it returns null instead of throwing — and
+// only require the package when the module is really present; otherwise every call
+// is a no-op and the UI hides the mic. Needs prebuild + dev-client rebuild.
 import { requireOptionalNativeModule } from 'expo';
 
 type VoiceSubscription = { remove: () => void };

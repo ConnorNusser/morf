@@ -1,10 +1,5 @@
-/**
- * Formatting utilities for dates, durations, and display values
- */
+// Formatting utilities for dates, durations, and display values.
 
-/**
- * Format a date as relative time (e.g., "2m ago", "3h ago", "5d ago")
- */
 export const formatRelativeTime = (date: Date): string => {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -21,9 +16,6 @@ export const formatRelativeTime = (date: Date): string => {
   return date.toLocaleDateString();
 };
 
-/**
- * Format seconds as duration (e.g., "45min", "1h 15m")
- */
 export const formatDuration = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
@@ -31,9 +23,7 @@ export const formatDuration = (seconds: number): string => {
   return `${mins}min`;
 };
 
-/**
- * Relative date label: "Today" / "Yesterday" / weekday (<7d) / "Mon 5".
- */
+// "Today" / "Yesterday" / weekday (<7d) / "Mon 5".
 export const formatRelativeDate = (date: Date): string => {
   const now = new Date();
   const d = new Date(date);
@@ -45,16 +35,10 @@ export const formatRelativeDate = (date: Date): string => {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-/**
- * Short calendar date from a date string: "Mon 5".
- */
 export const formatShortDate = (dateStr: string): string => {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
-/**
- * Full calendar date: "Jan 5, 2025".
- */
 export const formatFullDate = (date: Date | string): string => {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };

@@ -1,7 +1,4 @@
-// Custom number pad for editing a set's weight or reps — replaces the OS
-// keyboard with big gym-friendly buttons and quick +/- increments. Controlled:
-// the parent owns which field is being edited; this just edits one number and
-// reports changes live. "Next" jumps weight → reps within the same set.
+// Controlled number pad for editing one set's weight or reps: big gym-friendly keys, quick +/- increments, "Next" jumps weight → reps.
 import Button from '@/components/Button';
 import Chip from '@/components/Chip';
 import { Text, useInk } from '@/components/Themed';
@@ -33,11 +30,7 @@ function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : String(parseFloat(n.toFixed(2)));
 }
 
-// Hoisted to module scope on purpose: defining this inside NumberPad would give
-// it a fresh component identity on every render, so each keystroke (which changes
-// the `value` prop via onLiveChange) would UNMOUNT and remount all twelve keys —
-// dropping the touch that's mid-flight and making digits take several taps to
-// land. A stable type just re-renders in place, so taps register on the first hit.
+// Hoisted to module scope: defined inside NumberPad it'd get a fresh identity each render, unmounting all keys per keystroke and dropping mid-flight touches (digits taking several taps to land).
 const Key = React.memo(function Key({
   label,
   onPress,
@@ -59,10 +52,7 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
   const ink = useInk();
   const [buffer, setBuffer] = useState(fmt(value));
 
-  // Reseed only when the target field actually *changes* (weight↔reps within an
-  // open pad) — NOT on mount. The useState initializer already seeds the buffer;
-  // a mount-time reseed could land after the first keystroke and wipe it, which
-  // is what made the first digit press appear to do nothing.
+  // Reseed only when the field changes (weight↔reps), NOT on mount: the useState initializer already seeds, and a mount-time reseed could land after the first keystroke and wipe it.
   const lastSeed = useRef(seedKey);
   useEffect(() => {
     if (lastSeed.current !== seedKey) {
@@ -71,12 +61,8 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
     }
   }, [seedKey, value]);
 
-  // The committed value is pushed on move-on (Next/Done/dismiss); `onLiveChange`
-  // additionally reports every keystroke so the workout behind the pad can mirror
-  // targets live as you type. Storage persistence is debounced upstream, so the
-  // per-keystroke updates stay cheap.
+  // onChange commits on move-on (Next/Done/dismiss); onLiveChange reports every keystroke so the workout behind the pad mirrors targets live (persistence is debounced upstream).
   const flush = () => onChange(parseFloat(buffer) || 0);
-  // Set the buffer and report the live value in one place.
   const commitBuffer = (next: string) => {
     setBuffer(next);
     onLiveChange?.(parseFloat(next) || 0);
@@ -93,18 +79,14 @@ export default function NumberPad({ visible, seedKey, label, unit, value, allowD
     commitBuffer(fmt(Math.max(0, (parseFloat(buffer) || 0) + delta)));
   };
 
-  // Dismissing (backdrop / hardware back) still keeps what was typed.
+  // Dismissing (backdrop / hardware back) keeps what was typed.
   const dismiss = () => { flush(); onClose(); };
 
-  // Digit keys are a named exception (keyboard geometry) — only their ink
-  // colors come from the ramp.
+  // Digit keys are a named exception (keyboard geometry) — only ink colors come from the ramp.
   const keyColor = currentTheme.colors.text;
 
   return (
-    // animationType="none": the native slide presentation eats the first touch
-    // while it runs (~300ms), so the first digit tap was being dropped. We slide
-    // the sheet ourselves with Reanimated (entering runs on the UI thread and
-    // doesn't block the JS touch handler), keeping the polish without the swallow.
+    // animationType="none": the native slide (~300ms) eats the first touch, dropping the first digit tap; we slide with Reanimated (UI thread, doesn't block the JS touch handler) instead.
     <Modal visible={visible} transparent animationType="none" onRequestClose={dismiss}>
       <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={dismiss} />
       <Animated.View entering={SlideInDown.duration(220)} style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>

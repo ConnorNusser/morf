@@ -1,20 +1,14 @@
-// Shared shape of the Live Activity content, mirrored 1:1 by the Swift
-// `MorfLiveActivityAttributes.ContentState`. Keep these in sync — the native
-// widget decodes exactly these fields.
+// Mirrored 1:1 by the Swift `MorfLiveActivityAttributes.ContentState` — keep in
+// sync; the native widget decodes exactly these fields.
 
 export type WeightUnit = 'lbs' | 'kg';
 
-// The activity is one of two modes at a time:
-//  - 'rest'  : a self-ticking countdown (the rest timer)
-//  - 'set'   : the current working set, editable from the Lock Screen
 export type LiveActivityMode = 'rest' | 'set';
 
 export interface RestContent {
   /** Epoch ms when the rest countdown ends — the widget self-ticks to this. */
   endTime: number;
-  /** What they just finished (e.g. "Bench Press"). */
   exerciseName: string;
-  /** Optional hint for what's next (e.g. "Next: Squat · Set 1"). */
   nextLabel?: string;
 }
 
@@ -37,8 +31,8 @@ export interface LiveActivityContent {
   set?: SetContent;
 }
 
-// The ordered working sets handed to the native side so a "complete set" tap on
-// the Lock Screen can advance to the next not-done set without the app running.
+// Ordered working sets handed to native so a Lock-Screen "complete set" tap can
+// advance to the next not-done set without the app running.
 export interface SnapshotSet {
   exerciseKey: string;
   exerciseName: string;
@@ -50,8 +44,8 @@ export interface SnapshotSet {
   done: boolean;
 }
 
-// One action the user took on the Lock Screen (via an App Intent), pulled back
-// into JS on resume so we can reconcile the workout draft.
+// A Lock-Screen action (via an App Intent), pulled back into JS on resume to
+// reconcile the workout draft.
 export type PendingAction =
   | { type: 'completeSet'; exerciseKey: string; setIndex: number; reps: number; weight: number }
   | { type: 'adjustReps'; exerciseKey: string; setIndex: number; reps: number }
@@ -59,6 +53,5 @@ export type PendingAction =
   | { type: 'addRest'; seconds: number }
   | { type: 'startRest'; endTime: number }
   | { type: 'skipRest' }
-  // Completing the final set on the Lock Screen spawned a "keep going" bonus set;
-  // mirror it into the draft by copying the exercise's last set.
+  // Final-set completion spawned a bonus set; mirror it by copying the last set.
   | { type: 'addBonusSet'; exerciseKey: string };

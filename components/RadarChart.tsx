@@ -4,7 +4,6 @@ import React, { useCallback, useMemo, useRef } from 'react';
 import { Dimensions, GestureResponderEvent, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
-// Get tier color for a percentile value
 const getTierColorForValue = (value: number): string => {
   const tier = getStrengthTier(value);
   const baseTier = getBaseTier(tier);
@@ -37,14 +36,12 @@ interface RadarChartProps {
 export default function RadarChart({ data, size, tiers = [], selectedIndex = -1, onPointPress, details = [], inlineTooltip = true }: RadarChartProps) {
   const { currentTheme } = useTheme();
 
-  // Chart size
   const chartSize = size || Math.min(Dimensions.get('window').width - 32, 320);
   const center = chartSize / 2;
   const radius = center - 45; // extra padding to avoid label clipping
 
   const angleStep = (Math.PI * 2) / Math.max(1, data.length);
 
-  // Deliberate tap handling refs
   const pressStartPosition = useRef<{ x: number; y: number; layoutX: number; layoutY: number } | null>(null);
   const tapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,7 +63,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       layoutY: locationY,
     };
 
-    // Start timeout for deliberate tap
     tapTimeoutRef.current = setTimeout(() => {
       if (pressStartPosition.current) {
         const { layoutX, layoutY } = pressStartPosition.current;
@@ -91,7 +87,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       const dx = Math.abs(event.nativeEvent.pageX - pressStartPosition.current.x);
       const dy = Math.abs(event.nativeEvent.pageY - pressStartPosition.current.y);
       if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
-        // User is scrolling, cancel tap
+        // Scrolling — cancel tap
         clearTapTimeout();
         pressStartPosition.current = null;
       }
@@ -124,7 +120,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
     });
   }, [data, center, radius, angleStep]);
 
-  // Generate polygon segments (triangular slices from center)
   const polygonSegments = useMemo(() => {
     if (valuePointCoords.length < 2) return [];
 
@@ -132,7 +127,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       const nextPoint = valuePointCoords[(i + 1) % valuePointCoords.length];
       const gradientId = `segment-gradient-${i}`;
 
-      // Create a triangular path from center to this point to next point
       const path = `M ${center} ${center} L ${point.x} ${point.y} L ${nextPoint.x} ${nextPoint.y} Z`;
 
       return {
@@ -157,7 +151,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       .filter(t => t.threshold >= 0)
       .sort((a, b) => a.threshold - b.threshold);
 
-    // Add outer boundary at 100% if not already present
     const withOuter = sorted[sorted.length - 1]?.threshold < 100
       ? [...sorted, { label: sorted[sorted.length - 1]?.label || 'S', threshold: 100 }]
       : sorted;
@@ -181,7 +174,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
     >
       <Svg width={chartSize} height={chartSize}>
         <Defs>
-          {/* Gradient definitions for each polygon segment */}
           {polygonSegments.map((seg) => (
             <LinearGradient
               key={seg.gradientId}
@@ -198,7 +190,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
           ))}
         </Defs>
         <G>
-          {/* Render tier ring strokes */}
           {ringRadii.map((ring, i) => (
             <G key={`ring-${i}`}>
               <Circle
@@ -217,7 +208,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
             <G key={`axis-${i}`}>
               <Line x1={center} y1={center} x2={p.x} y2={p.y} stroke={muted} strokeWidth={1} />
               {(() => {
-                const labelRadius = radius + 8; // Position labels outside the chart
+                const labelRadius = radius + 8;
                 const lx = center + Math.cos(p.angle) * labelRadius;
                 const ly = center + Math.sin(p.angle) * labelRadius;
                 const cos = Math.cos(p.angle);
@@ -240,7 +231,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
             </G>
           ))}
 
-          {/* Gradient-filled polygon segments */}
           {polygonSegments.map((seg, i) => (
             <Path
               key={`segment-${i}`}
@@ -248,7 +238,6 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
               fill={`url(#${seg.gradientId})`}
             />
           ))}
-          {/* Outline stroke for the polygon */}
           {valuePointCoords.length > 0 && (
             <Path
               d={`M ${valuePointCoords.map(p => `${p.x} ${p.y}`).join(' L ')} Z`}

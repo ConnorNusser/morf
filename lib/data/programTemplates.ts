@@ -1,21 +1,10 @@
 /**
- * Program Template Library
- * ------------------------------------------------------------------------------------
- * A deterministic, attributed library of workout programs used to build routines
- * without calling the AI (the AI is reserved for refinement + limited-equipment cases).
- *
- * Three composition levels keep the data DRY and every exercise ID valid:
- *   1. SLOTS         — a movement pattern with candidate exercise IDs in PRIORITY order.
- *                      Equipment substitution falls out of this ordering: e.g. a squat
- *                      resolves barbell → smith → hack → leg-press → goblet → bodyweight,
- *                      so "no rack" automatically becomes a smith/hack squat.
- *   2. DAY_TEMPLATES — a single training day: 4 `core` slots + extra `accessories`
- *                      used to expand toward the requested exercise count (up to ~8).
- *   3. PROGRAMS      — thin compositions: an ordered list of day-template keys plus the
- *                      goals/days they suit, a volume flavor, and a cited source.
- *
- * The selector filters PROGRAMS by the user's clickthrough choices (goal + days) and
- * RNG-picks among the matches for variety.
+ * Deterministic, attributed program library for building routines without the AI.
+ * Three levels: SLOTS (movement pattern → exercise IDs in PRIORITY order; equipment
+ * substitution falls out of the ordering, e.g. squat resolves barbell→smith→hack→
+ * leg-press→goblet→bodyweight) → DAY_TEMPLATES (4 core slots + accessories to reach the
+ * requested count) → PROGRAMS (ordered day-template keys + goals/days/volume/source).
+ * Selector filters PROGRAMS by goal+days and RNG-picks among matches for variety.
  */
 
 import type { MuscleGroup, TrainingAdvancement } from '@/types';
@@ -59,10 +48,7 @@ export interface ProgramDef {
   bestFor?: TrainingAdvancement[];
 }
 
-// ====================================================================================
-// 1. SLOTS — movement patterns (exercise IDs in priority order)
-// ====================================================================================
-
+// SLOTS — movement patterns (exercise IDs in priority order)
 export const SLOTS = {
   // --- Push ---
   horiz_press: { label: 'Horizontal Press', target: 'chest', options: ['bench-press-barbell', 'bench-press-dumbbells', 'bench-press-smith-machine', 'bench-press-machine', 'push-up-bodyweight'] },
@@ -98,10 +84,7 @@ export const SLOTS = {
 
 export type SlotKey = keyof typeof SLOTS;
 
-// ====================================================================================
-// 2. DAY_TEMPLATES — single training days built from slots
-// ====================================================================================
-
+// DAY_TEMPLATES — single training days built from slots
 const T = (
   name: string,
   focus: string,
@@ -152,105 +135,63 @@ export const DAY_TEMPLATES: Record<string, DayTemplate> = {
   chest_arms: T('Chest & Arms', 'Push + arms', ['chest', 'arms'], ['incline_press', 'chest_fly', 'triceps'], ['biceps', 'dips', 'hammer']),
 };
 
-// ====================================================================================
-// 3. PROGRAMS — thin, attributed compositions
-// ====================================================================================
-
+// PROGRAMS — thin, attributed compositions (attribution lives in each `source`)
 export const PROGRAMS: ProgramDef[] = [
-  // ---------- 3 day ----------
-  // StrongLifts 5x5 — https://stronglifts.com/5x5/
+  // 3 day
   { key: 'stronglifts_5x5', name: 'StrongLifts 5x5', style: 'full_body', goals: ['strength', 'general'], days: 3, volume: 'strength', dayPlan: ['fb_strength_a', 'fb_strength_b', 'fb_strength_c'], source: { program: 'StrongLifts 5x5', url: 'https://stronglifts.com/5x5/' }, bestFor: ['beginner', 'intermediate'] },
-  // Starting Strength — https://startingstrength.com/get-started/programs
   { key: 'starting_strength', name: 'Starting Strength', style: 'full_body', goals: ['strength'], days: 3, volume: 'strength', dayPlan: ['fb_strength_a', 'fb_strength_b', 'fb_strength_a'], source: { program: 'Starting Strength', url: 'https://startingstrength.com/get-started/programs' }, bestFor: ['beginner'] },
-  // Greyskull LP — https://www.reddit.com/r/Fitness/wiki/phraks-gslp
   { key: 'greyskull_lp', name: 'Greyskull LP', style: 'full_body', goals: ['strength', 'general'], days: 3, volume: 'power', dayPlan: ['fb_strength_a', 'fb_strength_b', 'fb_strength_c'], source: { program: 'Greyskull LP', url: 'https://www.reddit.com/r/Fitness/wiki/phraks-gslp' }, bestFor: ['beginner', 'intermediate'] },
-  // 3-Day Full Body Hypertrophy — https://www.muscleandstrength.com/workouts/3-day-full-body-workout-routine
   { key: 'full_body_hypertrophy_3', name: '3-Day Full Body Hypertrophy', style: 'full_body', goals: ['hypertrophy', 'general', 'recomp'], days: 3, volume: 'hypertrophy', dayPlan: ['fb_hyper_a', 'fb_hyper_b', 'fb_hyper_c'], source: { program: '3-Day Full Body', url: 'https://www.muscleandstrength.com/workouts/3-day-full-body-workout-routine' } },
-  // 3-Day PPL — https://www.muscleandstrength.com/workouts/3-day-push-pull-legs
   { key: 'ppl_3', name: '3-Day Push/Pull/Legs', style: 'ppl', goals: ['hypertrophy', 'general'], days: 3, volume: 'hypertrophy', dayPlan: ['push', 'pull', 'legs'], source: { program: 'Push/Pull/Legs', url: 'https://www.muscleandstrength.com/workouts/3-day-push-pull-legs' } },
-  // Athletic Full Body — https://www.muscleandstrength.com/workouts/athlean
   { key: 'athletic_full_body_3', name: 'Athletic Full Body', style: 'full_body', goals: ['athletic', 'general'], days: 3, volume: 'athletic', dayPlan: ['fb_athletic', 'fb_strength_b', 'fb_athletic'], source: { program: 'Athletic Full Body', url: 'https://www.muscleandstrength.com/workouts/total-package-athletic-build-workout' } },
-  // Recomp Full Body — https://www.muscleandstrength.com/workouts/body-recomposition
   { key: 'recomp_full_body_3', name: 'Recomp Full Body', style: 'full_body', goals: ['recomp', 'general'], days: 3, volume: 'endurance', dayPlan: ['fb_hyper_a', 'fb_hyper_b', 'fb_hyper_c'], source: { program: 'Body Recomposition', url: 'https://www.muscleandstrength.com/articles/body-recomposition' } },
 
-  // ---------- 4 day ----------
-  // PHUL — https://www.muscleandstrength.com/workouts/phul-workout
+  // 4 day
   { key: 'phul', name: 'PHUL', style: 'upper_lower', goals: ['powerbuilding', 'hypertrophy', 'strength'], days: 4, volume: 'powerbuilding', dayPlan: ['upper_power', 'lower_power', 'upper_hyper', 'lower_hyper'], source: { program: 'PHUL — Power Hypertrophy Upper Lower', url: 'https://www.muscleandstrength.com/workouts/phul-workout' } },
-  // 4-Day Upper/Lower Hypertrophy — https://www.muscleandstrength.com/workouts/4-day-upper-lower-split
   { key: 'upper_lower_hyper_4', name: '4-Day Upper/Lower', style: 'upper_lower', goals: ['hypertrophy', 'general'], days: 4, volume: 'hypertrophy', dayPlan: ['upper_hyper', 'lower_hyper', 'upper_gen', 'lower_gen'], source: { program: '4-Day Upper/Lower Split', url: 'https://www.muscleandstrength.com/workouts/4-day-upper-lower-split' } },
-  // 4-Day Upper/Lower Strength — https://www.muscleandstrength.com/workouts/4-day-upper-lower-strength
   { key: 'upper_lower_strength_4', name: '4-Day Upper/Lower Strength', style: 'upper_lower', goals: ['strength', 'powerbuilding'], days: 4, volume: 'strength', dayPlan: ['upper_power', 'lower_power', 'upper_power', 'lower_power'], source: { program: 'Upper/Lower Strength', url: 'https://www.muscleandstrength.com/workouts/4-day-upper-lower-split' } },
-  // Athletic Upper/Lower
   { key: 'athletic_upper_lower_4', name: 'Athletic Upper/Lower', style: 'upper_lower', goals: ['athletic', 'general'], days: 4, volume: 'athletic', dayPlan: ['upper_power', 'lower_power', 'upper_gen', 'lower_gen'], source: { program: 'Athletic Upper/Lower', url: 'https://www.muscleandstrength.com/workouts/total-package-athletic-build-workout' } },
-  // Recomp Upper/Lower
   { key: 'recomp_upper_lower_4', name: 'Recomp Upper/Lower', style: 'upper_lower', goals: ['recomp', 'general'], days: 4, volume: 'endurance', dayPlan: ['upper_hyper', 'lower_hyper', 'upper_gen', 'lower_gen'], source: { program: 'Recomp Upper/Lower', url: 'https://www.muscleandstrength.com/articles/body-recomposition' } },
-  // General 4-day
   { key: 'general_upper_lower_4', name: 'Balanced Upper/Lower', style: 'upper_lower', goals: ['general', 'recomp'], days: 4, volume: 'hypertrophy', dayPlan: ['upper_gen', 'lower_gen', 'upper_hyper', 'lower_hyper'], source: { program: '4-Day Upper/Lower Split', url: 'https://www.muscleandstrength.com/workouts/4-day-upper-lower-split' } },
 
-  // ---------- 5 day ----------
-  // PHAT — Layne Norton — https://www.muscleandstrength.com/workouts/layne-norton-phat-workout
+  // 5 day
   { key: 'phat', name: 'PHAT', style: 'powerbuilding', goals: ['powerbuilding', 'strength', 'hypertrophy'], days: 5, volume: 'powerbuilding', dayPlan: ['upper_power', 'lower_power', 'back_shoulders', 'lower_hyper', 'chest_arms'], source: { program: 'PHAT — Layne Norton', url: 'https://www.muscleandstrength.com/workouts/layne-norton-phat-workout' } },
-  // Classic Bro Split — https://www.muscleandstrength.com/workouts/5-day-bodybuilding-split
   { key: 'bro_split_5', name: '5-Day Body-Part Split', style: 'bro_split', goals: ['hypertrophy'], days: 5, volume: 'hypertrophy', dayPlan: ['chest_day', 'back_day', 'leg_day', 'shoulder_day', 'arm_day'], source: { program: '5-Day Bodybuilding Split', url: 'https://www.muscleandstrength.com/workouts/5-day-bodybuilding-split' } },
-  // Arnold Golden Six-ish 5-day — https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-blueprint
   { key: 'arnold_5', name: 'Arnold-Style 5-Day', style: 'bro_split', goals: ['hypertrophy', 'powerbuilding'], days: 5, volume: 'hypertrophy', dayPlan: ['chest_arms', 'back_shoulders', 'leg_day', 'chest_day', 'back_day'], source: { program: 'Arnold Blueprint', url: 'https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-blueprint' } },
-  // 5-day Powerbuilding (PPL + Upper/Lower)
   { key: 'powerbuilding_5', name: '5-Day Powerbuilding', style: 'powerbuilding', goals: ['powerbuilding', 'strength'], days: 5, volume: 'powerbuilding', dayPlan: ['upper_power', 'lower_power', 'push', 'pull', 'legs'], source: { program: '5-Day Powerbuilding', url: 'https://www.muscleandstrength.com/workouts/5-day-powerbuilding-split' } },
-  // Athletic 5-day
   { key: 'athletic_5', name: 'Athletic 5-Day', style: 'powerbuilding', goals: ['athletic', 'general'], days: 5, volume: 'athletic', dayPlan: ['upper_power', 'lower_power', 'fb_athletic', 'upper_gen', 'lower_gen'], source: { program: 'Athletic 5-Day', url: 'https://www.muscleandstrength.com/workouts/total-package-athletic-build-workout' } },
 
-  // ---------- 6 day ----------
-  // Reddit PPL (Metallicadpa) — https://www.reddit.com/r/Fitness/comments/2vlcnv/
+  // 6 day
   { key: 'ppl_6', name: '6-Day Push/Pull/Legs', style: 'ppl', goals: ['hypertrophy', 'general'], days: 6, volume: 'hypertrophy', dayPlan: ['push', 'pull', 'legs', 'push_b', 'pull_b', 'legs_b'], source: { program: 'r/Fitness PPL (Metallicadpa)', url: 'https://www.reddit.com/r/Fitness/comments/2vlcnv/a_linear_progression_based_ppl_program_for/' } },
-  // PPL Powerbuilding 6-day
   { key: 'ppl_powerbuilding_6', name: '6-Day PPL Powerbuilding', style: 'ppl', goals: ['powerbuilding', 'strength'], days: 6, volume: 'powerbuilding', dayPlan: ['push', 'pull', 'legs', 'push_b', 'pull_b', 'legs_b'], source: { program: '6-Day PPL Powerbuilding', url: 'https://www.muscleandstrength.com/workouts/6-day-powerbuilding-split' } },
-  // Arnold 6-day — https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-blueprint
   { key: 'arnold_6', name: 'Arnold 6-Day', style: 'bro_split', goals: ['hypertrophy'], days: 6, volume: 'hypertrophy', dayPlan: ['chest_arms', 'back_shoulders', 'leg_day', 'chest_day', 'back_day', 'shoulder_day'], source: { program: 'Arnold Blueprint', url: 'https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-blueprint' } },
-  // Athletic PPL 6-day
   { key: 'athletic_ppl_6', name: '6-Day Athletic PPL', style: 'ppl', goals: ['athletic', 'general'], days: 6, volume: 'athletic', dayPlan: ['push', 'pull', 'legs', 'push_b', 'pull_b', 'legs_b'], source: { program: 'Athletic PPL', url: 'https://www.muscleandstrength.com/workouts/6-day-pplppl-dumbbell-and-bodyweight-workout' } },
-  // Recomp PPL 6-day
   { key: 'recomp_ppl_6', name: '6-Day Recomp PPL', style: 'ppl', goals: ['recomp', 'general'], days: 6, volume: 'endurance', dayPlan: ['push', 'pull', 'legs', 'push_b', 'pull_b', 'legs_b'], source: { program: 'Recomp PPL', url: 'https://www.muscleandstrength.com/articles/body-recomposition' } },
 
-  // ---------- 3 day (extra variety) ----------
-  // Ice Cream Fitness 5x5 — https://www.muscleandstrength.com/workouts/jason-blaha-ice-cream-fitness-5x5-novice-workout
+  // 3 day (extra variety)
   { key: 'ice_cream_fitness', name: 'Ice Cream Fitness 5x5', style: 'full_body', goals: ['strength', 'hypertrophy'], days: 3, volume: 'strength', dayPlan: ['fb_strength_a', 'fb_strength_b', 'fb_strength_c'], source: { program: 'Ice Cream Fitness 5x5', url: 'https://www.muscleandstrength.com/workouts/jason-blaha-ice-cream-fitness-5x5-novice-workout' }, bestFor: ['beginner'] },
-  // Madcow 5x5 — https://stronglifts.com/madcow/
   { key: 'madcow_5x5', name: 'Madcow 5x5', style: 'strength', goals: ['strength', 'powerbuilding'], days: 3, volume: 'power', dayPlan: ['fb_strength_a', 'fb_strength_b', 'fb_strength_c'], source: { program: 'Madcow 5x5', url: 'https://stronglifts.com/madcow/' }, bestFor: ['intermediate'] },
-  // 3-Day Full Body Powerbuilding — https://www.muscleandstrength.com/workouts/3-day-powerbuilding-split
   { key: 'full_body_power_3', name: '3-Day Full Body Power', style: 'full_body', goals: ['powerbuilding', 'strength'], days: 3, volume: 'powerbuilding', dayPlan: ['fb_strength_a', 'fb_hyper_b', 'fb_strength_c'], source: { program: 'Full Body Powerbuilding', url: 'https://www.muscleandstrength.com/workouts/3-day-powerbuilding-split' } },
-  // 3-Day Minimalist Full Body
   { key: 'minimalist_full_body_3', name: 'Minimalist Full Body', style: 'full_body', goals: ['general', 'hypertrophy'], days: 3, volume: 'hypertrophy', dayPlan: ['fb_hyper_b', 'fb_hyper_c', 'fb_hyper_a'], source: { program: '3-Day Full Body', url: 'https://www.muscleandstrength.com/workouts/3-day-full-body-workout-routine' } },
 
-  // ---------- 4 day (extra variety) ----------
-  // nSuns 531 LP — https://www.reddit.com/r/Fitness/comments/4y0gni/
+  // 4 day (extra variety)
   { key: 'nsuns_4', name: 'nSuns 531 LP', style: 'upper_lower', goals: ['strength', 'powerbuilding'], days: 4, volume: 'power', dayPlan: ['upper_power', 'lower_power', 'upper_power', 'lower_power'], source: { program: 'nSuns 531 LP', url: 'https://www.reddit.com/r/Fitness/comments/4y0gni/nsuns_lp_spreadsheets_2/' }, bestFor: ['intermediate', 'advanced'] },
-  // 4-Day Power Hypertrophy
   { key: 'power_hypertrophy_4', name: '4-Day Power Hypertrophy', style: 'upper_lower', goals: ['powerbuilding', 'hypertrophy'], days: 4, volume: 'powerbuilding', dayPlan: ['upper_power', 'lower_power', 'upper_hyper', 'lower_hyper'], source: { program: 'Power Hypertrophy 4-Day', url: 'https://www.muscleandstrength.com/workouts/4-day-upper-lower-split' } },
-  // 4-Day Hypertrophy Upper/Lower
   { key: 'hypertrophy_ul_4b', name: 'Hypertrophy Upper/Lower', style: 'upper_lower', goals: ['hypertrophy', 'recomp'], days: 4, volume: 'hypertrophy', dayPlan: ['upper_hyper', 'lower_hyper', 'upper_hyper', 'lower_hyper'], source: { program: 'Hypertrophy Upper/Lower', url: 'https://www.muscleandstrength.com/workouts/4-day-upper-lower-split' } },
 
-  // ---------- 5 day (extra variety) ----------
-  // 5-Day Upper/Lower/Full
+  // 5 day (extra variety)
   { key: 'upper_lower_full_5', name: '5-Day Upper/Lower/Full', style: 'powerbuilding', goals: ['hypertrophy', 'powerbuilding'], days: 5, volume: 'hypertrophy', dayPlan: ['upper_power', 'lower_power', 'upper_hyper', 'lower_hyper', 'fb_hyper_c'], source: { program: '5-Day Upper/Lower/Full', url: 'https://www.muscleandstrength.com/workouts/5-day-workout-routines' } },
-  // 5-Day Classic Split
   { key: 'bro_split_5b', name: 'Classic 5-Day Split', style: 'bro_split', goals: ['hypertrophy', 'general'], days: 5, volume: 'hypertrophy', dayPlan: ['chest_day', 'back_day', 'shoulder_day', 'leg_day', 'arm_day'], source: { program: '5-Day Split', url: 'https://www.muscleandstrength.com/workouts/5-day-bodybuilding-split' } },
-  // 5-Day PPL + Upper/Lower
   { key: 'ppl_ul_5', name: 'PPL + Upper/Lower', style: 'ppl', goals: ['hypertrophy', 'athletic'], days: 5, volume: 'hypertrophy', dayPlan: ['push', 'pull', 'legs', 'upper_hyper', 'lower_hyper'], source: { program: 'PPL/UL Hybrid', url: 'https://www.muscleandstrength.com/workouts/5-day-push-pull-legs-and-upper-lower-split' } },
-  // 5-Day Recomp
   { key: 'recomp_5', name: '5-Day Recomp', style: 'powerbuilding', goals: ['recomp', 'general'], days: 5, volume: 'endurance', dayPlan: ['upper_hyper', 'lower_hyper', 'push', 'pull', 'legs'], source: { program: 'Recomp 5-Day', url: 'https://www.muscleandstrength.com/articles/body-recomposition' } },
 
-  // ---------- 6 day (extra variety) ----------
-  // 6-Day High-Volume PPL
+  // 6 day (extra variety)
   { key: 'ppl_6b', name: '6-Day High-Volume PPL', style: 'ppl', goals: ['hypertrophy'], days: 6, volume: 'hypertrophy', dayPlan: ['push_b', 'pull_b', 'legs_b', 'push', 'pull', 'legs'], source: { program: 'High-Volume PPL', url: 'https://www.muscleandstrength.com/workouts/6-day-push-pull-legs' } },
-  // 6-Day Arnold Volume
   { key: 'arnold_volume_6', name: 'Arnold Volume 6-Day', style: 'bro_split', goals: ['hypertrophy', 'powerbuilding'], days: 6, volume: 'powerbuilding', dayPlan: ['chest_arms', 'back_shoulders', 'leg_day', 'chest_day', 'back_day', 'leg_day'], source: { program: 'Arnold Blueprint', url: 'https://www.muscleandstrength.com/workouts/arnold-schwarzenegger-blueprint' } },
 ];
 
-/**
- * Rep schemes per volume flavor. Returned per (isCompound, isCore) so anchors stay
- * heavier and accessories higher-rep. `reps` is the base (low end of the range) — the
- * double-progression engine walks it up from there.
- */
+// Rep schemes per volume flavor, split by (isCompound, isCore) so anchors stay heavier.
+// `reps` is the base (low end of range); the double-progression engine walks it up.
 export const REP_SCHEMES: Record<VolumeFlavor, { coreCompound: { sets: number; reps: number }; coreIso: { sets: number; reps: number }; accessory: { sets: number; reps: number } }> = {
   strength: { coreCompound: { sets: 5, reps: 5 }, coreIso: { sets: 3, reps: 8 }, accessory: { sets: 3, reps: 10 } },
   power: { coreCompound: { sets: 4, reps: 5 }, coreIso: { sets: 3, reps: 8 }, accessory: { sets: 3, reps: 10 } },

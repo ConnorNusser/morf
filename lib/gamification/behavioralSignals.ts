@@ -1,8 +1,4 @@
-// Derived "behavioral" signals for the niche / Strava-style achievements:
-// time-of-day, holidays, weekend pairs, comebacks, variety, rep feats, seasons.
-// Everything is computed purely from raw workout history (timestamps already
-// carry the time-of-day), so no new tracking is required — same philosophy as
-// careerStats. Clock-injectable for tests.
+// Derived behavioral signals for niche achievements, computed purely from workout history.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
@@ -30,7 +26,6 @@ export interface BehavioralSignals {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-
 // Monday-start week key, so "weekend pair" groups Sat+Sun of the same week.
 function weekKey(d: Date): string {
   const s = new Date(d);
@@ -48,7 +43,7 @@ function seasonOf(month: number): 'winter' | 'spring' | 'summer' | 'fall' {
 }
 
 function isThanksgiving(d: Date): boolean {
-  // US Thanksgiving: the 4th Thursday of November → a Thursday dated 22–28.
+  // US Thanksgiving: 4th Thursday of November → a Thursday dated 22–28.
   return d.getMonth() === 10 && d.getDay() === 4 && d.getDate() >= 22 && d.getDate() <= 28;
 }
 
@@ -146,8 +141,7 @@ export function computeBehavioralSignals(workouts: GeneratedWorkout[]): Behavior
     if (dayCats.size) dayPPL.set(key, dayCats);
   }
 
-  // Largest gap the lifter came back from: max gap between consecutive trained
-  // days (a later day existing means they returned from it).
+  // Largest gap between consecutive trained days (the comeback the lifter returned from).
   const sortedDays = sortedDayTimestamps(perDayCount.keys());
   let longestComebackGap = 0;
   for (let i = 1; i < sortedDays.length; i++) {

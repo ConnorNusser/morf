@@ -1,13 +1,11 @@
-// A GitHub-style training consistency heatmap — the "don't break the chain"
-// visual. Pure + clock-injectable. Columns are Monday-start weeks; each cell is
-// a day, flagged trained with a relative-volume intensity (0..1).
+// GitHub-style training-consistency heatmap. Pure + clock-injectable. Columns are Monday-start
+// weeks; each cell is a day flagged trained with a relative-volume intensity (0..1).
 import { GeneratedWorkout } from '@/types';
 import { dateKey, weekStart } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/workouts';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 
-// A day's dominant split == the dashboard's Push/Pull/Legs categories, so the
-// heatmap colors (PPL_COLORS) and classification match the rest of the app.
+// A day's dominant split == the dashboard's Push/Pull/Legs categories, so colors match the app.
 export type TrainingSplit = PPLCategory;
 
 function classifyExercise(exerciseId: string): PPLCategory | null {
@@ -15,9 +13,8 @@ function classifyExercise(exerciseId: string): PPLCategory | null {
   return muscle ? MUSCLE_TO_PPL[muscle] : null;
 }
 
-// The category with the most exercises that day — mirrors WeeklyGoalCard's
-// dominantPPL (count-based, same push>pull>legs tie-break) so a given day reads
-// the same color on the dashboard and in the heatmap.
+// Category with the most exercises that day; mirrors WeeklyGoalCard's dominantPPL
+// (count-based, same push>pull>legs tie-break) so a day reads the same color everywhere.
 function dominantSplit(counts: Record<PPLCategory, number>): PPLCategory | null {
   if (counts.push + counts.pull + counts.legs === 0) return null;
   return (['push', 'pull', 'legs'] as PPLCategory[]).reduce((best, c) =>
@@ -39,11 +36,8 @@ export interface TrainingHeatmap {
   totalDays: number; // distinct trained days in range
 }
 
-// Discrete shade steps for a trained day, so the scale reads as legible buckets
-// (light → heavy volume) instead of a continuous mush. Shared by the card, the
-// modal grid and their legends so all three stay in lockstep. The floor is kept
-// high so even a light day still reads as its Push/Pull/Legs color (matching the
-// solid dots on the dashboard) rather than washing out toward the background.
+// Discrete shade steps for a trained day (light → heavy volume). Floor kept high (0.62) so even a
+// light day still reads as its Push/Pull/Legs color instead of washing out.
 export const HEAT_OPACITIES = [0.62, 0.75, 0.88, 1] as const;
 
 // Bucket a 0..1 volume intensity into an index into HEAT_OPACITIES.
@@ -59,8 +53,7 @@ export function computeTrainingHeatmap(
   weeks = 12,
   now: Date = new Date(),
 ): TrainingHeatmap {
-  // Total (un-converted) volume per day — only used for relative intensity —
-  // plus per-day volume split into Push/Pull/Legs so each day can be colored.
+  // Un-converted volume per day (relative intensity only) + per-day PPL split for coloring.
   const volumeByDay = new Map<string, number>();
   const splitByDay = new Map<string, Record<PPLCategory, number>>();
   for (const w of workouts) {

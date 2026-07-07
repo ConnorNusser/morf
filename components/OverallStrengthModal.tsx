@@ -172,7 +172,6 @@ export default function OverallStrengthModal({
     return lifts.sort((a, b) => b.percentileRanking - a.percentileRanking);
   }, [lifts]);
 
-  // Sync percentile data to Supabase when modal is visible and data is loaded
   useEffect(() => {
     if (!visible || lifts.length === 0) return;
 
@@ -270,7 +269,6 @@ export default function OverallStrengthModal({
           { backgroundColor: currentTheme.colors.background },
         ]}
       >
-        {/* Header */}
         <View
           style={[
             styles.modalHeader,
@@ -297,7 +295,6 @@ export default function OverallStrengthModal({
               onPress={() => setShowHistoryModal(true)}
               style={styles.chartHeader}
             >
-              {/* Header with Tier Badge and Percentile */}
               <View style={styles.tierHeaderRow}>
                 <TierBadge percentile={overallPercentile} size="large" />
                 <View style={styles.heroNumberBlock}>
@@ -340,7 +337,6 @@ export default function OverallStrengthModal({
             />
           </Card>
 
-          {/* Selected group insight card */}
           {selectedIdx >= 0 && chartData[selectedIdx] && (
             <Animated.View
               style={{
@@ -395,7 +391,6 @@ export default function OverallStrengthModal({
             </Animated.View>
           )}
 
-          {/* Target Weights Card (replaces quest) */}
           <Card style={styles.standardCard}>
             <View style={styles.questHeaderRow}>
               <Text variant="body" tone="primary" weight="bold">
@@ -500,7 +495,6 @@ export default function OverallStrengthModal({
           </Card>
         </ScrollView>
 
-        {/* Strength History Modal */}
         <StrengthHistoryModal
           visible={showHistoryModal}
           onClose={() => setShowHistoryModal(false)}

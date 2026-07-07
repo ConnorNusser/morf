@@ -13,7 +13,6 @@ interface AnimatedBarProps {
   /** Fill fraction 0..1. */
   progress: number;
   color: string;
-  /** Track background color. */
   trackColor: string;
   height?: number;
   delay?: number;
@@ -21,10 +20,7 @@ interface AnimatedBarProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * A horizontal progress bar whose fill grows from empty to `progress` on mount
- * (and re-tweens when it changes). Honors the OS "Reduce Motion" setting.
- */
+/** Progress bar; fill tweens to `progress` on mount, honors OS Reduce Motion. */
 export default function AnimatedBar({
   progress,
   color,

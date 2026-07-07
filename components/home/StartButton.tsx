@@ -21,10 +21,7 @@ interface StartButtonProps {
   style?: ViewStyle;
 }
 
-// The app's primary "go" button: label on the left, a rounded-square arrow chip on
-// the right, and a tactile press (the whole button springs to 0.96 and the arrow
-// nudges forward on press, flinging forward on release). Shared by the home
-// routine card and the Quick start button so they look and feel identical.
+// Primary "go" button (shared by routine card + Quick start): button springs to 0.96 and the arrow nudges/flings forward on press.
 export default function StartButton({
   label,
   onPress,

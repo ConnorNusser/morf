@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 interface MiniSparklineProps {
-  data: number[]; // Array of values (typically 6 periods)
+  data: number[];
   height?: number;
   width?: number;
   barWidth?: number;
@@ -24,7 +24,6 @@ export default function MiniSparkline({
   const minValue = Math.min(...data);
   const range = maxValue - minValue || 1;
 
-  // Determine trend: compare first half avg to second half avg
   const midpoint = Math.floor(data.length / 2);
   const firstHalfAvg = data.slice(0, midpoint).reduce((a, b) => a + b, 0) / midpoint;
   const secondHalfAvg = data.slice(midpoint).reduce((a, b) => a + b, 0) / (data.length - midpoint);
@@ -39,7 +38,6 @@ export default function MiniSparkline({
         const normalizedHeight = ((value - minValue) / range) * 0.85 + 0.15;
         const barHeight = Math.max(height * normalizedHeight, 3);
 
-        // Fade older bars slightly
         const opacity = 0.4 + (index / (data.length - 1)) * 0.6;
 
         return (

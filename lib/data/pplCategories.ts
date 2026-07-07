@@ -1,7 +1,6 @@
 import { MuscleGroup } from '@/types';
 import { ALL_WORKOUTS } from '@/lib/workout/workouts';
 
-// PPL category definitions
 export type PPLCategory = 'push' | 'pull' | 'legs';
 
 export const MUSCLE_TO_PPL: Record<MuscleGroup, PPLCategory> = {

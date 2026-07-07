@@ -1,8 +1,6 @@
-// Hands-free workout logging: dictate a set ("bench one thirty five for eight")
-// and the final transcript is handed back to the caller to append to the note.
-// This is freeform text's structural edge over Hevy's tap-grid — voice can't
-// drive a grid, but it can drive a text box. Backed by the crash-safe lazy
-// voiceRecognition service, so an un-rebuilt binary simply reports unavailable.
+// Hands-free set dictation; final transcript handed back to append to the note.
+// Backed by the crash-safe lazy voiceRecognition service, so an un-rebuilt
+// binary simply reports unavailable.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   addVoiceListener,
@@ -55,8 +53,7 @@ export function useVoiceDictation(onFinalTranscript: (text: string) => void): Us
       setError('Microphone permission needed for voice logging');
       return;
     }
-    // Single utterance: stop after the user finishes a phrase, append, repeat.
-    // interimResults off so we only append clean, final text.
+    // Single utterance; interimResults off so we only append clean, final text.
     startVoice({ lang: 'en-US', interimResults: false, continuous: false });
     setIsListening(true);
   }, []);

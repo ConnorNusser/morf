@@ -1,10 +1,5 @@
-// Static achievement metadata by id — title/description/icon/rarity are fixed
-// per achievement, so any client can render a badge (and its spotlight) from
-// just an id string. This is what lets feed posts and profiles share earned
-// achievements as tiny id lists: the art and copy are bundled with the app.
-//
-// Built by running the reward snapshot over an EMPTY history: every achievement
-// def comes back (locked, zeroed) carrying its static fields.
+// Static achievement metadata by id, so clients can render a badge from just an id.
+// Built by running the reward snapshot over an EMPTY history (every def returns locked/zeroed).
 import { Rarity } from './rarity';
 import { buildRewardSnapshot } from './sessionRewards';
 

@@ -1,27 +1,12 @@
-/**
- * Routine Generation Prompt Builder
- *
- * Builds a freeform prompt for AI routine generation. Rather than forcing the model
- * into a fixed split template with prescriptive per-muscle rules, we hand it the
- * lifter's actual choices and trust it to design a sound program as an expert coach.
- *
- * The only hard constraints are the ones the user explicitly set:
- *   - exact number of training days
- *   - must-include / never-include exercises
- *   - body areas to emphasize or skip
- *   - available equipment (the exercise list is pre-filtered to it)
- * Everything else (split structure, exercise selection, set/rep schemes, ordering)
- * is the model's call.
- *
- * The same builder also powers iterative refinement: when a current program + a
- * change instruction are supplied, it asks the model to revise that program in place.
- */
+// Builds a freeform routine-generation prompt: rather than a fixed split template,
+// we hand the model the lifter's explicit choices (training days, must/never-include
+// exercises, emphasized/skipped areas, equipment) as the only hard constraints and
+// let it design the rest. The same builder also powers in-place refinement when a
+// current program + change instruction are supplied.
 
 import { TrainingGoal, ExperienceLevel } from '../splitTemplates';
 
-/**
- * Program template types (kept for fallback program metadata + analytics labels)
- */
+// Kept for fallback program metadata + analytics labels.
 export type ProgramTemplate =
   | 'ppl'
   | 'upper_lower'
@@ -31,9 +16,6 @@ export type ProgramTemplate =
   | 'strength'
   | 'custom';
 
-/**
- * Parameters for routine generation
- */
 export interface RoutineGenerationParams {
   trainingGoal: TrainingGoal;
   userStrengthLevel: string;
@@ -46,7 +28,7 @@ export interface RoutineGenerationParams {
   allExerciseNames: string[];
   weeklyDays: number;
   focusMuscles?: string[];
-  ignoredMuscles?: string[];  // Body parts to completely skip
+  ignoredMuscles?: string[];  // body parts to completely skip
   trainingAdvancement?: {
     level: ExperienceLevel;
     allowHeavySquatAndDeadliftSameDay: boolean;
@@ -62,9 +44,7 @@ export interface RoutineGenerationParams {
   refineInstruction?: string;
 }
 
-/**
- * Build the routine generation prompt (freeform — also handles refinement).
- */
+/** Build the routine generation prompt (freeform — also handles refinement). */
 export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): string {
   const {
     trainingGoal,
@@ -91,7 +71,7 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
   const experience = trainingAdvancement?.level || 'intermediate';
   const isRefine = !!(currentProgramJson && refineInstruction);
 
-  // ---- The lifter's choices (these drive the design) ----
+  // The lifter's choices (these drive the design).
   const choices: string[] = [];
   choices.push(`- Primary goal: ${trainingGoal}`);
   choices.push(`- Training days per week: ${weeklyDays} (the program has exactly ${weeklyDays} distinct workout days)`);
@@ -123,7 +103,7 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
     choices.push(`- Never include these exercises: ${excludedExercises.join(', ')}`);
   }
 
-  // ---- Hard rules (the few non-negotiables) ----
+  // Hard rules (the few non-negotiables).
   const hardRules: string[] = [
     `1. Produce EXACTLY ${weeklyDays} workout days.`,
     `2. Use ONLY exercise names from the AVAILABLE EXERCISES list, copied verbatim (including any "(Equipment)" suffix). Never invent or substitute a name. The list is already limited to the lifter's available equipment.`,
@@ -139,7 +119,7 @@ export function buildRoutineGenerationPrompt(params: RoutineGenerationParams): s
     hardRules.push(`${ruleN++}. Include no direct work for the avoided areas (${ignoredMuscles.join(', ')}).`);
   }
 
-  // ---- Shared context blocks ----
+  // Shared context blocks.
   const aboutBlock = `================================================================================
 ABOUT THE LIFTER
 ================================================================================
@@ -192,7 +172,7 @@ THE LIFTER'S CHOICES (these drive the design)
 ================================================================================
 ${choices.join('\n')}`;
 
-  // ---- Refinement mode: revise an existing program in place ----
+  // Refinement mode: revise an existing program in place.
   if (isRefine) {
     return `You are an expert strength and conditioning coach revising a program you already wrote for one lifter.
 Apply the lifter's requested change below. Make the smallest set of edits that fully satisfies the request —
@@ -222,7 +202,7 @@ ${outputBlock}
 Return the FULL updated program (all ${weeklyDays} days), not just the parts you changed.`;
   }
 
-  // ---- Generation mode: design from scratch ----
+  // Generation mode: design from scratch.
   return `You are an expert strength and conditioning coach designing a program for one lifter.
 Use your own judgment to build the best program for them based on the choices below. You have full
 freedom over the split structure, exercise selection, set and rep schemes, exercise order, and how

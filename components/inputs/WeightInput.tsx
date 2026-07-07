@@ -20,11 +20,10 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
   const [inputValue, setInputValue] = useState(value.value.toString());
 
   const { play: playNotification } = useSound('notification');
-  // Keyboard state
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [tempValue, setTempValue] = useState('');
 
-  // Sync inputValue with external value changes
+  // Sync with external value changes
   useEffect(() => {
     setInputValue(value.value.toString());
   }, [value.value]);
@@ -77,7 +76,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
           Weight
         </Text>
         
-        {/* Unit Toggle */}
         <View style={styles.unitToggle}>
           <TouchableOpacity
             style={[
@@ -120,7 +118,6 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
           </TouchableOpacity>
         </View>
 
-        {/* Input Field */}
         <View style={styles.inputContainer}>
           <TouchableOpacity
             style={[

@@ -16,11 +16,7 @@ interface FlipCardProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * A tap-to-flip card built on a single rotateY value. Front and back are stacked
- * and hidden via backfaceVisibility, so exactly one shows at a time. Honors the
- * OS "Reduce Motion" setting (snaps instead of spinning).
- */
+// Tap-to-flip card on a single rotateY; faces hidden via backfaceVisibility. Honors Reduce Motion (snaps instead of spinning).
 export default function FlipCard({ front, back, height, style }: FlipCardProps) {
   const reduced = useReducedMotion();
   const [flipped, setFlipped] = useState(false);

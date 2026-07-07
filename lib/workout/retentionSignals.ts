@@ -1,9 +1,6 @@
-// Pure helpers behind the retention reminders — streak and training-day pattern.
-// `now` is injectable so the logic is testable without mocking the clock.
+// Pure helpers behind the retention reminders. `now` is injectable for tests.
 import { GeneratedWorkout } from '@/types';
 import { getWeekStreak } from '@/lib/workout/streak';
-
-// Local YYYY-MM-DD, matching recapStats.
 
 export interface StreakState {
   current: number; // consecutive trained *weeks* — see lib/workout/streak.ts
@@ -11,17 +8,12 @@ export interface StreakState {
   trainedToday: boolean;
 }
 
-// Thin wrapper over the shared week-streak so the reminder layer can reason
-// about an at-risk streak (multi-week run + nothing logged yet this week) and
-// still tell whether they've already trained today.
 export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Date()): StreakState {
   const { current, trainedThisWeek, trainedToday } = getWeekStreak(workouts, now);
   return { current, trainedThisWeek, trainedToday };
 }
 
-// Whole days since the most recent workout (0 = trained today), or null if the
-// user has never logged one. Drives the comeback nudge for lapsed users — the
-// churn-risk segment the streak/habit reminders miss (broken streak, faded habit).
+// Whole days since the most recent workout (0 = trained today), or null if never.
 export function getDaysSinceLastWorkout(workouts: GeneratedWorkout[], now: Date = new Date()): number | null {
   let latest = -Infinity;
   for (const w of workouts) {
@@ -31,7 +23,7 @@ export function getDaysSinceLastWorkout(workouts: GeneratedWorkout[], now: Date 
   if (latest === -Infinity) return null;
 
   // Count calendar days between local midnights so "yesterday evening → this
-  // morning" reads as 1 day, not 0, regardless of the clock times.
+  // morning" reads as 1 day, not 0.
   const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
   return Math.round((startOfDay(now.getTime()) - startOfDay(latest)) / 86_400_000);
 }
@@ -45,8 +37,7 @@ export interface HabitDay {
 const HABIT_MIN_COUNT = 3;
 const HABIT_WINDOW_DAYS = 28;
 
-// The weekday they train most — needs at least HABIT_MIN_COUNT sessions in the
-// window to count, otherwise null.
+// The weekday they train most; null unless ≥ HABIT_MIN_COUNT sessions in window.
 export function getHabitDay(workouts: GeneratedWorkout[], now: Date = new Date()): HabitDay | null {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - HABIT_WINDOW_DAYS);

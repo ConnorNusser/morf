@@ -204,9 +204,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                   style={[
                     styles.liftItem,
                     {
-                      // Shown = a faint primary tint; hidden = plain surface. Both keep a
-                      // full-alpha border so the rows read as distinct tappable items on
-                      // the flat page.
+                      // Shown = faint primary tint, hidden = plain surface; both keep a full-alpha border to read as tappable on the flat page.
                       backgroundColor: isHidden
                         ? currentTheme.colors.surface
                         : currentTheme.colors.primary + '18',

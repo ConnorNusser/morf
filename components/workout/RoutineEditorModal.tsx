@@ -27,8 +27,7 @@ import {
 interface RoutineEditorModalProps {
   visible: boolean;
   routine?: Routine | null;
-  // When set (and no `routine` is supplied), the editor creates a new day inside
-  // this program instead of a loose routine.
+  // When set (no `routine` supplied), creates a new day inside this program.
   programId?: string | null;
   onClose: () => void;
   onSave: () => void;
@@ -42,7 +41,6 @@ interface ExercisePickerProps {
   customExercises?: CustomExercise[];
 }
 
-// Exercise Picker Modal Component (Multi-select)
 const ExercisePicker: React.FC<ExercisePickerProps> = ({
   visible,
   onSelect,
@@ -55,7 +53,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Reset selection when modal opens
   useEffect(() => {
     if (visible) {
       setSelectedIds(new Set());
@@ -63,7 +60,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     }
   }, [visible]);
 
-  // Combine built-in and custom exercises, filter out already added
   const allExercises = useMemo(() => {
     const combined: Workout[] = [
       ...ALL_WORKOUTS,
@@ -75,7 +71,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
     return combined.filter(e => !excludeIds.includes(e.id));
   }, [excludeIds, customExercises]);
 
-  // Filter exercises based on search
   const filteredExercises = useMemo(() => {
     if (!searchQuery.trim()) return allExercises.slice(0, 50);
     const query = searchQuery.toLowerCase();
@@ -98,7 +93,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   }, []);
 
   const handleDone = useCallback(() => {
-    // Get selected exercises from both built-in and custom
     const selectedExercises = allExercises.filter(e => selectedIds.has(e.id));
     onSelect(selectedExercises);
     onClose();
@@ -185,7 +179,6 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   );
 };
 
-// Main Routine Editor Modal
 const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   visible,
   routine,
@@ -202,7 +195,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
 
-  // Reset state when modal opens
   useEffect(() => {
     if (visible) {
       if (routine) {
@@ -218,7 +210,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const handleAddExercises = useCallback((workouts: Workout[]) => {
     const newExercises: RoutineExercise[] = workouts.map(workout => ({
       exerciseId: workout.id,
-      exerciseName: workout.name,  // Store name for display
+      exerciseName: workout.name,
       sets: [
         { reps: 10, isWarmup: true },
         { reps: 10 },
@@ -284,9 +276,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
     try {
       const routineToSave: Routine = {
-        // Preserve every field on the original routine (programId, isActive,
-        // splitType, description, progressionState, …) so editing a program day
-        // doesn't detach it from its program or reset its progression.
+        // Preserve original fields so editing a program day keeps its program link + progression.
         ...(routine ?? {}),
         id: routine?.id || `routine_${Date.now()}`,
         name: name.trim(),
@@ -295,8 +285,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         lastUsed: routine?.lastUsed,
       };
 
-      // New routine + a target program → add it as a program day (stamps
-      // programId, order, active state, and bumps the program's day count).
+      // New routine + a target program → add it as a program day.
       if (!routine && programId) {
         await storageService.addProgramDay(programId, routineToSave);
       } else {
@@ -332,7 +321,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     }
   }, [name, exercises.length, onClose, showAlert]);
 
-  // Get exercise name - prefer stored name, fall back to lookup
   const getExerciseName = useCallback((exercise: RoutineExercise) => {
     if (exercise.exerciseName) return exercise.exerciseName;
     const workout = ALL_WORKOUTS.find(w => w.id === exercise.exerciseId);
@@ -348,7 +336,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
           style={styles.flex1}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Header */}
           <RNView style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
             <IconButton icon="close" onPress={handleClose} />
             <Text variant="title" weight="semiBold" tone="primary">
@@ -362,7 +349,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
           </RNView>
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-            {/* Name Input */}
             <SectionLabel>Routine Name</SectionLabel>
             <TextInput
               style={[styles.textInput, { backgroundColor: currentTheme.colors.surface, color: currentTheme.colors.text }]}
@@ -372,7 +358,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               placeholderTextColor={ink.faint}
             />
 
-            {/* Exercises */}
             <SectionLabel style={styles.exercisesLabel}>Exercises</SectionLabel>
 
             {exercises.map((exercise, exerciseIndex) => (
@@ -388,7 +373,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                   />
                 </RNView>
 
-                {/* Individual Sets */}
                 <RNView style={styles.setsContainer}>
                   {exercise.sets.map((set, setIndex) => (
                     <RNView
@@ -399,7 +383,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         setIndex === exercise.sets.length - 1 && { borderBottomWidth: 0 }
                       ]}
                     >
-                      {/* Set number and warmup badge */}
                       <RNView style={styles.setLabelContainer}>
                         <Text variant="meta" tone="muted" style={styles.setLabel}>
                           {setIndex + 1}
@@ -413,8 +396,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         )}
                       </RNView>
 
-                      {/* Warmup toggle — keeps its compact 32pt geometry in the
-                          dense set row; hitSlop restores the ≥44pt target. */}
+                      {/* Compact 32pt geometry in the dense set row; hitSlop restores ≥44pt target. */}
                       <TouchableOpacity
                         style={[
                           styles.warmupToggle,
@@ -430,8 +412,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         />
                       </TouchableOpacity>
 
-                      {/* Reps control — steppers keep 28pt geometry (dense row),
-                          hitSlop widens the effective target. */}
+                      {/* Steppers keep 28pt geometry (dense row); hitSlop widens the target. */}
                       <RNView style={styles.repsControl}>
                         <TouchableOpacity
                           style={[styles.smallButton, { backgroundColor: currentTheme.colors.background }]}
@@ -452,7 +433,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         </TouchableOpacity>
                       </RNView>
 
-                      {/* Remove set button */}
                       <TouchableOpacity
                         style={[styles.removeSetButton, { opacity: exercise.sets.length > 1 ? 1 : 0.3 }]}
                         onPress={() => handleRemoveSet(exerciseIndex, setIndex)}
@@ -465,7 +445,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                   ))}
                 </RNView>
 
-                {/* Add set buttons */}
                 <RNView style={styles.addSetRow}>
                   <TouchableOpacity
                     style={[styles.addSetButton, { backgroundColor: currentTheme.colors.background }]}
@@ -489,7 +468,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               </View>
             ))}
 
-            {/* Add Exercise Button — C1 primary CTA with icon+label, hand-pilled */}
+            {/* C1 primary CTA with icon+label, hand-pilled */}
             <TouchableOpacity
               style={[styles.addExerciseButton, { backgroundColor: currentTheme.colors.primary }]}
               onPress={() => setShowExercisePicker(true)}
@@ -506,7 +485,6 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         </KeyboardAvoidingView>
       </SafeAreaView>
 
-      {/* Exercise Picker Modal */}
       <ExercisePicker
         visible={showExercisePicker}
         onSelect={handleAddExercises}
@@ -587,8 +565,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Named exception: a micro-glyph inside a fixed 18pt badge — the 14pt floor
-  // physically doesn't fit.
+  // Named exception: micro-glyph in a fixed 18pt badge — the 14pt floor doesn't fit.
   warmupBadgeText: {
     fontSize: 10,
   },
@@ -648,7 +625,6 @@ const styles = StyleSheet.create({
   addExerciseText: {
     color: '#fff',
   },
-  // Exercise Picker styles
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -66,9 +66,7 @@ interface ExerciseEditFormProps {
   saving?: boolean;
 }
 
-// The custom-exercise name/equipment form with a live full-name + id preview.
-// Shared by the add and edit flows; `saving` drives the spinner and disables
-// both actions (used by the AI-metadata step when adding).
+// Custom-exercise name/equipment form with a live full-name + id preview; shared by add and edit flows.
 function ExerciseEditForm({
   editedName, setEditedName, selectedEquipment, setSelectedEquipment,
   onCancel, onSave, placeholder, saveLabel, hint, saving = false,

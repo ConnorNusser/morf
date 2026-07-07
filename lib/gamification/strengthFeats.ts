@@ -1,7 +1,4 @@
-// Absolute strength "clubs" keyed off the powerlifting total — the combined
-// best estimated 1RM of squat, bench and deadlift. The 1,000 lb club is the
-// iconic one; the ladder around it gives a believable rarity curve. Derived from
-// the same main-lift PRs the Career already computes — no new tracking.
+// Absolute strength "clubs" keyed off the powerlifting total (best e1RM of squat + bench + deadlift).
 import { StrengthTierBase } from '@/lib/data/strengthStandards';
 import { Achievement } from './achievements';
 import { LiftPR } from './personalRecords';
@@ -19,9 +16,7 @@ interface TotalTier {
   target: number; // lb total
 }
 
-// Each club maps onto the app's strength-tier ladder, so club color = tier
-// color everywhere: E grey at the bottom climbing to S gold at 1,500 — the
-// summit; totals beyond it are pro-lifter territory, not app-ladder territory.
+// Each club maps onto the app's strength-tier ladder so club color = tier color (E..S at 1,500).
 export const TOTAL_CLUB_TIERS: Record<number, StrengthTierBase> = {
   600: 'E',
   800: 'D',

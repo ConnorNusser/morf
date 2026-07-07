@@ -3,7 +3,6 @@ import { analyticsService } from './analytics';
 import { feedApi } from './feedApi';
 import { containsProfanity } from '@/lib/utils/moderation';
 
-// Feed types
 export interface FeedLike {
   user_id: string;
   username: string;
@@ -11,8 +10,7 @@ export interface FeedLike {
   created_at: string;
 }
 
-// Toggle a user's like in a likes array, returning a new array — removes the
-// user's like if present, otherwise appends one. No-op add when userId is unset.
+// Toggle the user's like in a new array; no-op add when userId is unset.
 export function toggleLikeFor(likes: FeedLike[] | undefined, userId: string | null | undefined): FeedLike[] {
   const next = [...(likes || [])];
   const i = next.findIndex(l => l.user_id === userId);
@@ -40,14 +38,12 @@ export interface WorkoutFeedData {
   comments?: FeedComment[];
 }
 
-// Individual set data for detailed workout viewing
 export interface WorkoutSetData {
   setNumber: number;
   weight: number;
   reps: number;
   unit: 'lbs' | 'kg';
   isPersonalRecord?: boolean;
-  // For timed/cardio exercises
   duration?: number;  // seconds
   distance?: number;  // meters
 }
@@ -57,9 +53,9 @@ export interface WorkoutExerciseSummary {
   sets: number;
   bestSet: string;
   isPR?: boolean;
-  exerciseId?: string; // For tier lookup on feed display
-  percentile?: number; // Calculated strength percentile for this exercise
-  allSets?: WorkoutSetData[]; // Full set breakdown for detailed view
+  exerciseId?: string; // for tier lookup on feed display
+  percentile?: number;
+  allSets?: WorkoutSetData[];
   trackingType?: 'reps' | 'timed' | 'cardio';
 }
 
@@ -71,10 +67,9 @@ export interface WorkoutSummary {
   exercise_count: number;
   set_count: number;
   total_volume: number;
-  volume_unit?: 'lbs' | 'kg'; // User's preferred unit for display
+  volume_unit?: 'lbs' | 'kg';
   exercises: WorkoutExerciseSummary[];
   feed_data?: WorkoutFeedData;
-  // Cardio stats
   total_distance_meters?: number;
   total_cardio_seconds?: number;
 }
@@ -93,7 +88,7 @@ export interface FeedPost {
   id: string;
   user_id: string;
   text: string;
-  media?: PostMedia[];  // Array of media items
+  media?: PostMedia[];
   created_at: Date;
   feed_data?: PostFeedData;
   username: string;
@@ -107,7 +102,7 @@ export interface MediaInput {
 
 export interface CreatePostInput {
   text: string;
-  media?: MediaInput[];  // Array of media to upload
+  media?: MediaInput[];
 }
 
 export type FeedWorkout = WorkoutSummary & {
@@ -117,9 +112,6 @@ export type FeedWorkout = WorkoutSummary & {
 };
 
 class FeedService {
-  /**
-   * Get current user from Supabase (user data stays on Supabase)
-   */
   private async getCurrentUser(): Promise<{ id: string; username: string; profile_picture_url?: string } | null> {
     if (!supabase) return null;
 
@@ -138,9 +130,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Get global workout feed (all users) with pagination
-   */
   async getGlobalWorkoutFeed(limit: number = 20, offset: number = 0): Promise<FeedWorkout[]> {
     try {
       const user = await this.getCurrentUser();
@@ -149,14 +138,10 @@ class FeedService {
       return await feedApi.getWorkouts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching global workout feed:', error);
-      // Re-throw to allow UI to display the error
-      throw error;
+      throw error; // re-throw so the UI can surface the error
     }
   }
 
-  /**
-   * Toggle like on a workout
-   */
   async toggleLike(workoutId: string): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
@@ -174,9 +159,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Add a comment to a workout
-   */
   async addComment(workoutId: string, text: string): Promise<FeedComment | null> {
     try {
       const user = await this.getCurrentUser();
@@ -200,9 +182,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Delete a comment from a workout
-   */
   async deleteComment(workoutId: string, commentId: string): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
@@ -215,9 +194,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Toggle like on a workout comment
-   */
   async toggleWorkoutCommentLike(workoutId: string, commentId: string): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
@@ -236,9 +212,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Save a workout to the feed
-   */
   async saveWorkoutToFeed(workout: {
     title: string;
     duration_seconds: number;
@@ -260,9 +233,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Create a new post with optional media
-   */
   async createPost(input: CreatePostInput): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
@@ -291,9 +261,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Get posts for the feed
-   */
   async getPosts(limit: number = 20, offset: number = 0): Promise<FeedPost[]> {
     try {
       const user = await this.getCurrentUser();
@@ -302,15 +269,11 @@ class FeedService {
       return await feedApi.getPosts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      // Re-throw to allow UI to display the error
-      throw error;
+      throw error; // re-throw so the UI can surface the error
     }
   }
 
-  /**
-   * Toggle like on a post
-   * Returns { success, liked } where liked indicates if it was a like (true) or unlike (false)
-   */
+  /** Returns { success, liked } where liked is true for a like, false for an unlike. */
   async togglePostLike(postId: string): Promise<{ success: boolean; liked: boolean }> {
     try {
       const user = await this.getCurrentUser();
@@ -328,9 +291,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Add comment to a post
-   */
   async addPostComment(postId: string, text: string): Promise<FeedComment | null> {
     try {
       const user = await this.getCurrentUser();
@@ -354,9 +314,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Delete comment from a post
-   */
   async deletePostComment(postId: string, commentId: string): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();
@@ -369,9 +326,6 @@ class FeedService {
     }
   }
 
-  /**
-   * Toggle like on a post comment
-   */
   async togglePostCommentLike(postId: string, commentId: string): Promise<boolean> {
     try {
       const user = await this.getCurrentUser();

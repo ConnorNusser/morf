@@ -122,7 +122,6 @@ function WorkoutCommentItem({
           {comment.text}
         </Text>
       </View>
-      {/* Like button on right */}
       <TouchableOpacity
         style={styles.commentLikeButton}
         onPress={handleLike}
@@ -197,7 +196,6 @@ export default function WorkoutThreadModal({
   const [selectedPplCategory, setSelectedPplCategory] = useState<PPLCategory | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Toggle exercise expansion to show all sets
   const toggleExerciseExpanded = (index: number) => {
     playHapticFeedback('light', false);
     setExpandedExercises(prev => {
@@ -211,16 +209,14 @@ export default function WorkoutThreadModal({
     });
   };
 
-  // Smooth animation for like button using reanimated
   const { likeAnimatedStyle, pop } = useLikePop();
 
-  // Calculate PPL breakdown from exercises (must be before early return)
+  // Must run before the early return below (Rules of Hooks).
   const pplBreakdown = useMemo(() => {
     if (!workout) return { counts: { push: 0, pull: 0, legs: 0 }, total: 0 };
     return calculatePPLBreakdown(workout.exercises);
   }, [workout]);
 
-  // Calculate exercises grouped by PPL category for the modal
   const pplExercises = useMemo((): Record<PPLCategory, { name: string; sets: number }[]> => {
     const result: Record<PPLCategory, { name: string; sets: number }[]> = {
       push: [],
@@ -267,7 +263,7 @@ export default function WorkoutThreadModal({
   };
 
   const handleUserTap = (userId: string, username: string, profilePictureUrl?: string) => {
-    onClose(); // Close modal first
+    onClose();
     onUserPress?.(userId, username, profilePictureUrl);
   };
 
@@ -275,7 +271,7 @@ export default function WorkoutThreadModal({
 
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
-  // Only show tier for workouts with tracked lifts (indicated by pr_count > 0)
+  // Only show tier for workouts with tracked lifts (pr_count > 0).
   const strengthLevel = hasPRs ? (feedData?.strength_level as StrengthTier | undefined) : undefined;
 
   const likes = feedData?.likes || [];
@@ -294,14 +290,12 @@ export default function WorkoutThreadModal({
 
     if (newComment) {
       setCommentText('');
-      // Update local state
       const updatedComments = [...comments, newComment];
       const updatedWorkout: FeedWorkout = {
         ...workout,
         feed_data: { ...feedData, comments: updatedComments },
       };
       onWorkoutUpdated?.(updatedWorkout);
-      // Scroll to bottom to show new comment
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -346,7 +340,6 @@ export default function WorkoutThreadModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        {/* Header with workout title */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
           <Text
@@ -369,7 +362,6 @@ export default function WorkoutThreadModal({
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-          {/* User info row */}
           <View style={styles.userRow}>
             <TouchableOpacity
               onPress={() => handleUserTap(workout.user_id, workout.username, workout.profile_picture_url)}
@@ -399,7 +391,6 @@ export default function WorkoutThreadModal({
             )}
           </View>
 
-          {/* Stats grid */}
           <View style={[styles.statsGrid, { backgroundColor: currentTheme.colors.surface }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
@@ -429,7 +420,6 @@ export default function WorkoutThreadModal({
             </View>
           </View>
 
-          {/* Tags row - PR chip + PPL chips */}
           {(hasPRs || pplBreakdown.total > 0) && (
             <View style={styles.tagsRow}>
               {hasPRs && (
@@ -460,7 +450,6 @@ export default function WorkoutThreadModal({
             </View>
           )}
 
-          {/* Exercise List */}
           <View style={styles.exerciseList}>
             {workout.exercises.map((ex, i) => {
               const isExpanded = expandedExercises.has(i);
@@ -504,7 +493,6 @@ export default function WorkoutThreadModal({
                     </View>
                   </TouchableOpacity>
 
-                  {/* Expanded sets view */}
                   {isExpanded && hasDetailedSets && (
                     <View style={[styles.setsExpanded, { backgroundColor: currentTheme.colors.surface + '50' }]}>
                       {ex.allSets!.map((set, setIndex) => (
@@ -535,7 +523,6 @@ export default function WorkoutThreadModal({
                     </View>
                   )}
 
-                  {/* Border after expanded section */}
                   {isExpanded && i < workout.exercises.length - 1 && (
                     <View style={{ borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }} />
                   )}
@@ -544,10 +531,8 @@ export default function WorkoutThreadModal({
             })}
           </View>
 
-          {/* Like and comment row */}
           <View style={[styles.actionsRow, { borderColor: currentTheme.colors.border }]}>
             <View style={styles.actionsLeft}>
-              {/* Like button */}
               <TouchableOpacity
                 style={[
                   styles.likeButton,
@@ -579,7 +564,6 @@ export default function WorkoutThreadModal({
             </View>
           </View>
 
-          {/* Comments Section */}
           <View style={styles.commentsSection}>
             <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
               Comments {comments.length > 0 && `(${comments.length})`}
@@ -607,7 +591,6 @@ export default function WorkoutThreadModal({
           </View>
           </ScrollView>
 
-          {/* Comment Input */}
           <View style={[styles.inputContainer, { backgroundColor: currentTheme.colors.background }]}>
             <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
               <TextInput
@@ -653,7 +636,6 @@ export default function WorkoutThreadModal({
         </KeyboardAvoidingView>
       </View>
 
-      {/* PPL Exercise Detail Modal */}
       <Modal
         visible={pplModalVisible}
         animationType="slide"
@@ -661,7 +643,6 @@ export default function WorkoutThreadModal({
         onRequestClose={handleClosePplModal}
       >
         <View style={[styles.pplModalContainer, { backgroundColor: currentTheme.colors.background }]}>
-          {/* Header */}
           <View style={[styles.pplModalHeader, { borderBottomColor: currentTheme.colors.border }]}>
             <TouchableOpacity onPress={handleClosePplModal} style={styles.pplModalCloseButton}>
               <Ionicons name="close" size={24} color={currentTheme.colors.text} />
@@ -679,7 +660,6 @@ export default function WorkoutThreadModal({
             <View style={styles.pplModalCloseButton} />
           </View>
 
-          {/* Content */}
           <ScrollView style={styles.pplModalContent} contentContainerStyle={styles.pplModalContentContainer}>
             {selectedPplCategory && (
               <>
@@ -1023,7 +1003,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // PPL Modal styles
   pplModalContainer: {
     flex: 1,
   },

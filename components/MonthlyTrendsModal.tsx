@@ -25,7 +25,6 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BAR_WIDTH = (SCREEN_WIDTH - 80) / 6;
 
-// Push/Pull/Legs category definitions
 type PPLCategory = 'push' | 'pull' | 'legs';
 
 const MUSCLE_TO_PPL: Record<MuscleGroup, PPLCategory> = {
@@ -35,14 +34,14 @@ const MUSCLE_TO_PPL: Record<MuscleGroup, PPLCategory> = {
   arms: 'pull', // biceps are pull-dominant
   legs: 'legs',
   glutes: 'legs',
-  core: 'push', // categorize with push for simplicity
-  'full-body': 'push', // default
+  core: 'push', // categorized with push for simplicity
+  'full-body': 'push',
 };
 
 const PPL_COLORS: Record<PPLCategory, string> = {
-  push: '#FF6B6B', // coral red
-  pull: '#4ECDC4', // teal
-  legs: '#9B59B6', // purple
+  push: '#FF6B6B',
+  pull: '#4ECDC4',
+  legs: '#9B59B6',
 };
 
 const PPL_LABELS: Record<PPLCategory, string> = {
@@ -66,7 +65,6 @@ interface MonthData {
   totalTime: number;
   pplCounts: Record<PPLCategory, number>;
   totalExercises: number;
-  // Cardio stats
   hasCardio: boolean;
   totalDistanceMeters: number;
   totalCardioDurationSeconds: number;
@@ -86,13 +84,11 @@ export default function MonthlyTrendsModal({
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
   const [pageOffset, setPageOffset] = useState(0);
 
-  // Helper to get tracking type for an exercise
   const getTrackingType = (exerciseId: string): TrackingType | undefined => {
     const exerciseInfo = getExercise(exerciseId);
     return exerciseInfo?.trackingType;
   };
 
-  // Calculate data for all available months (up to 24 months back)
   const allMonthlyData = useMemo(() => {
     const data: MonthData[] = [];
     const now = new Date();
@@ -121,7 +117,6 @@ export default function MonthlyTrendsModal({
           totalExercises++;
           const exerciseInfo = getExercise(exercise.id);
           if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {
-            // Count exercise once based on its first primary muscle's PPL category
             const primaryMuscle = exerciseInfo.primaryMuscles[0];
             const pplCategory = MUSCLE_TO_PPL[primaryMuscle];
             if (pplCategory) {
@@ -131,7 +126,6 @@ export default function MonthlyTrendsModal({
         });
       });
 
-      // Calculate combined stats using the utility for cardio support
       const workoutStatsList: WorkoutStats[] = monthWorkouts.map(workout =>
         calculateWorkoutStats(workout.exercises, getTrackingType)
       );
@@ -156,7 +150,6 @@ export default function MonthlyTrendsModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps -- getTrackingType is stable
   }, [workoutHistory, customExercises]);
 
-  // Get the current 6 months based on page offset
   const currentMonthlyData = useMemo(() => {
     const startIndex = allMonthlyData.length - 6 - (pageOffset * 6);
     const endIndex = allMonthlyData.length - (pageOffset * 6);
@@ -209,7 +202,6 @@ export default function MonthlyTrendsModal({
       onRequestClose={handleClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
           <Text variant="title" tone="primary" weight="semiBold">
@@ -224,7 +216,6 @@ export default function MonthlyTrendsModal({
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Pagination */}
           <Animated.View entering={FadeIn.delay(100)} style={styles.paginationHeader}>
             <IconButton
               icon="chevron-back"
@@ -245,11 +236,9 @@ export default function MonthlyTrendsModal({
             />
           </Animated.View>
 
-          {/* PPL Stacked Chart */}
           <Animated.View entering={FadeInDown.delay(150)} style={styles.chartSection}>
             <View style={styles.chartHeader}>
               <SectionLabel style={styles.sectionTitle}>Training Focus</SectionLabel>
-              {/* Legend */}
               <View style={styles.legend}>
                 {(['push', 'pull', 'legs'] as PPLCategory[]).map(category => (
                   <View key={category} style={styles.legendItem}>
@@ -268,7 +257,6 @@ export default function MonthlyTrendsModal({
                 const maxHeight = 80;
                 const isCurrentMonth = pageOffset === 0 && index === currentMonthlyData.length - 1;
 
-                // Calculate stacked heights
                 const pushHeight = (month.pplCounts.push / maxPPLTotal) * maxHeight;
                 const pullHeight = (month.pplCounts.pull / maxPPLTotal) * maxHeight;
                 const legsHeight = (month.pplCounts.legs / maxPPLTotal) * maxHeight;
@@ -279,7 +267,7 @@ export default function MonthlyTrendsModal({
                       {total || '-'}
                     </Text>
                     <View style={styles.barWrapper}>
-                      {/* Stacked bars - legs at bottom, pull middle, push top */}
+                      {/* legs bottom, pull middle, push top (column-reverse) */}
                       <View style={styles.stackedBar}>
                         {legsHeight > 0 && (
                           <View style={[styles.barSegment, { height: legsHeight, backgroundColor: PPL_COLORS.legs, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 }]} />
@@ -309,7 +297,6 @@ export default function MonthlyTrendsModal({
             </View>
           </Animated.View>
 
-          {/* Monthly Cards */}
           <Animated.View entering={FadeInDown.delay(250)} style={styles.cardsSection}>
             <SectionLabel style={styles.sectionTitle}>Details</SectionLabel>
 
@@ -321,7 +308,6 @@ export default function MonthlyTrendsModal({
                   key={index}
                   style={[styles.monthCard, { backgroundColor: currentTheme.colors.surface }]}
                 >
-                  {/* Month Header */}
                   <View style={styles.monthHeader}>
                     <View>
                       <Text variant="title" tone="primary" weight="semiBold">
@@ -341,7 +327,6 @@ export default function MonthlyTrendsModal({
                     </View>
                   </View>
 
-                  {/* Stats Row */}
                   {month.workoutCount > 0 && (
                     <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border }]}>
                       <View style={styles.statItem}>
@@ -365,7 +350,6 @@ export default function MonthlyTrendsModal({
                     </View>
                   )}
 
-                  {/* Cardio Stats Row */}
                   {month.hasCardio && (month.totalDistanceMeters > 0 || month.totalCardioDurationSeconds > 0) && (
                     <View style={[styles.statsRow, { borderTopColor: currentTheme.colors.border, marginTop: 0, paddingTop: space.md }]}>
                       {month.totalDistanceMeters > 0 && (
@@ -387,7 +371,6 @@ export default function MonthlyTrendsModal({
                     </View>
                   )}
 
-                  {/* PPL Focus */}
                   {pplTotal > 0 && (
                     <View style={styles.pplSection}>
                       <View style={styles.pplChips}>
@@ -411,7 +394,6 @@ export default function MonthlyTrendsModal({
                     </View>
                   )}
 
-                  {/* Empty State */}
                   {month.workoutCount === 0 && (
                     <View style={styles.emptyMonth}>
                       <Text variant="meta" tone="faint" style={styles.emptyText}>

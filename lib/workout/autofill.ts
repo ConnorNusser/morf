@@ -1,14 +1,9 @@
-// Algorithmic autofill: when a user adds an exercise, look up what they did the
-// last time they trained it so we can offer to pre-fill those sets. Pure + unit-
-// aware (converts stored sets into the user's preferred unit).
+// Autofill an added exercise from its last training session. Unit-aware.
 import type { DraftSet } from '@/lib/workout/workoutDraft';
 import { convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
 
-/**
- * The most recent completed sets logged for an exercise, in the preferred unit,
- * or null if it's never been trained. Used to offer "autofill last time".
- */
+// Most recent completed sets for an exercise in the preferred unit, or null if never trained.
 export function getLastSetsFor(
   exerciseId: string,
   history: GeneratedWorkout[],

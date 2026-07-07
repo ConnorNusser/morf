@@ -1,8 +1,6 @@
-// Pick a readable ink (near-white or near-black) to sit on top of a solid
-// fill color. Used for primary buttons: some themes have a light primary
-// (e.g. pine's ice blue) where white-on-primary is unreadable, while dark
-// themes' saturated primaries need white — so choose per perceived luminance
-// rather than hard-wiring to the theme background.
+// Pick a readable ink (near-white or near-black) to sit on a solid fill,
+// chosen per perceived luminance so light primaries (e.g. pine's ice blue)
+// get dark ink instead of unreadable white.
 export function readableInkOn(hex: string): string {
   const m = hex.replace('#', '');
   if (m.length < 6) return '#FFFFFF';

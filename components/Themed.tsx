@@ -9,8 +9,7 @@ const WEIGHTS = { regular: '400', medium: '500', semiBold: '600', bold: '700' } 
 export type TextVariant = keyof typeof typeScale;
 export type TextProps = DefaultText['props'] & {
   weight?: TextWeight;
-  /** Type-scale role (lib/ui/typography) — sets fontSize. Named `variant`
-   * because React Native already claims `role` for accessibility. */
+  /** Type-scale role → fontSize. Named `variant` because RN reserves `role` for accessibility. */
   variant?: TextVariant;
   /** Ink emphasis (lib/ui/tokens) — sets color from the theme text ramp. */
   tone?: InkTone;
@@ -27,10 +26,8 @@ export const Text = React.memo(function Text(props: TextProps) {
   const { style, weight, variant, tone, ...otherProps } = props;
   const { currentTheme } = useTheme();
 
-  // Apply the theme color plus any variant/tone/weight tokens, so callers don't
-  // repeat fontSize/color/fontWeight on every label. Anything in `style` still
-  // wins, keeping this backward-compatible. Without a tone the color stays the
-  // legacy primary default.
+  // Variant/tone/weight tokens + theme color so callers don't repeat them. `style` still
+  // wins (backward-compatible); without a tone the color stays the legacy primary default.
   const themedStyle = useMemo(
     () => ({
       color: tone ? inkColor(currentTheme, tone) : currentTheme.colors.primary,

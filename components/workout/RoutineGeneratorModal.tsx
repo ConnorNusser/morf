@@ -51,7 +51,6 @@ type FlowStep = 'goal' | 'focus' | 'experience' | 'days' | 'duration' | 'exercis
 
 const INPUT_STEPS: FlowStep[] = ['goal', 'focus', 'experience', 'days', 'duration', 'exercises'];
 
-// Workout duration options with exercise counts
 export type WorkoutDuration = 30 | 60 | 90 | 120;
 
 const DURATION_OPTIONS: { id: WorkoutDuration; label: string; exercises: string; min: number; max: number }[] = [
@@ -61,14 +60,12 @@ const DURATION_OPTIONS: { id: WorkoutDuration; label: string; exercises: string;
   { id: 120, label: '2 hours', exercises: '~8 exercises', min: 8, max: 8 },
 ];
 
-// Training experience options
 const EXPERIENCE_OPTIONS: { id: TrainingAdvancement; years: number; title: string; desc: string }[] = [
   { id: 'beginner', years: 0, title: 'Less than 1 year', desc: 'New to strength training or returning after a long break' },
   { id: 'intermediate', years: 2, title: '1-3 years', desc: 'Consistent training, comfortable with main lifts' },
   { id: 'advanced', years: 4, title: '3+ years', desc: 'Experienced lifter, pushing significant weight' },
 ];
 
-// Training goals - proper technical terminology with detailed descriptions
 const TRAINING_GOALS: { id: TrainingGoal; title: string; desc: string; icon: string }[] = [
   { id: 'hypertrophy', title: 'Hypertrophy', desc: 'Maximize muscle growth with optimal volume and intensity', icon: 'body-outline' },
   { id: 'strength', title: 'Strength', desc: 'Build maximal strength on compound lifts', icon: 'barbell-outline' },
@@ -78,10 +75,8 @@ const TRAINING_GOALS: { id: TrainingGoal; title: string; desc: string; icon: str
   { id: 'general', title: 'General Fitness', desc: 'Well-rounded program for overall health and conditioning', icon: 'heart-outline' },
 ];
 
-// Muscle group filter categories
 const MUSCLE_CATEGORIES = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes', 'core'];
 
-// Body part areas (for focus/ignore)
 const BODY_AREAS = [
   { id: 'chest', label: 'Chest' },
   { id: 'back', label: 'Back' },
@@ -91,8 +86,7 @@ const BODY_AREAS = [
   { id: 'core', label: 'Core' },
 ];
 
-// Suggested split based on goal and days. Handed to the AI as a starting hint — the
-// freeform prompt lets the model adapt the structure to the lifter's choices.
+// Starting-hint split for the AI; the freeform prompt lets the model adapt it.
 function selectProgramTemplate(goal: TrainingGoal, days: number): ProgramTemplate {
   if (goal === 'strength') {
     return days <= 3 ? 'full_body' : 'strength';
@@ -153,7 +147,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     return () => { active = false; };
   }, []);
 
-  // Available exercises for the exercise preferences step (filtered to the user's equipment)
   const availableExercises = useMemo(() => {
     const source = userEquipment.length > 0
       ? getWorkoutsByEquipment(userEquipment, 200)
@@ -182,8 +175,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Theme-based colors — this modal's own palette (named exception), with the
-  // text-emphasis steps drawn from the shared ink ramp.
+  // Named exception: this modal's own palette; text-emphasis steps use the shared ink ramp.
   const colors = useMemo(() => ({
     bg: currentTheme.colors.background,
     surface: currentTheme.colors.surface,
@@ -329,8 +321,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       setStep('preview');
     } catch (error) {
       console.error('Error generating routine:', error);
-      // generateRoutineProgram returns a fallback rather than throwing, so this is rare —
-      // bounce back to the exercises step if it ever happens.
+      // Rare: generateRoutineProgram returns a fallback rather than throwing.
       setStep('exercises');
     }
   };
@@ -497,7 +488,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         </Text>
       </View>
 
-      {/* Legend */}
       <View style={styles.bodyAreaLegend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.success }]} />
@@ -544,7 +534,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         })}
       </View>
 
-      {/* Summary */}
       {(selectedFocus.length > 0 || ignoredMuscles.length > 0) && (
         <View style={[styles.bodyAreaSummary, { backgroundColor: colors.surface }]}>
           {selectedFocus.length > 0 && (
@@ -703,7 +692,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     );
   };
 
-  // Cycling hint, rendered above the exercise list.
   const renderExercisesHeader = () => (
     <Text variant="meta" tone="faint" style={styles.exercisesHint}>
       Optionally pick exercises — tap to cycle: include → exclude → reset
@@ -712,7 +700,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
   const renderExercisesStep = () => (
     <View style={styles.exercisesContainer}>
-      {/* Compact header */}
       <View style={styles.exercisesHeader}>
         <View>
           <Text variant="meta" weight="semiBold" style={styles.stepLabel}>STEP 6</Text>
@@ -737,7 +724,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         )}
       </View>
 
-      {/* Search */}
       <View style={styles.searchFilterRow}>
         <View style={[styles.exerciseSearchContainer, { backgroundColor: colors.surface }]}>
           <Ionicons name="search" size={16} color={colors.textMuted} />
@@ -758,7 +744,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         </View>
       </View>
 
-      {/* Muscle group filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -780,7 +765,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         ))}
       </ScrollView>
 
-      {/* Exercise list */}
       <FlatList
         data={filteredExercises}
         renderItem={renderExerciseItem}
@@ -796,7 +780,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         windowSize={7}
       />
 
-      {/* Sticky bottom button */}
       <View style={[styles.exercisesBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <Button title="Generate Routine" onPress={handleExercisesContinue} />
       </View>
@@ -894,7 +877,6 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Refine + Save bar */}
       <View style={[styles.previewBottomBar, { backgroundColor: colors.bg, borderTopColor: colors.border }]}>
         <View style={[styles.refineRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <TextInput
@@ -907,8 +889,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
             returnKeyType="send"
             onSubmitEditing={handleRefine}
           />
-          {/* Circular send control stays hand-rolled: the dense input row can't
-              fit IconButton's 40pt square, so it keeps geometry + hitSlop. */}
+          {/* Hand-rolled: the dense input row can't fit IconButton's 40pt square. */}
           <TouchableOpacity
             onPress={handleRefine}
             disabled={isRefining || !refineInstruction.trim()}
@@ -1028,7 +1009,6 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
     lineHeight: lineHeightFor(type.body),
   },
-  // Goal step
   goalGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1054,7 +1034,6 @@ const styles = StyleSheet.create({
   goalDesc: {
     lineHeight: lineHeightFor(type.meta),
   },
-  // Focus step
   focusGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1104,7 +1083,6 @@ const styles = StyleSheet.create({
     paddingVertical: space.lg,
     borderRadius: radius.pill,
   },
-  // Experience step
   experienceList: {
     gap: space.md,
   },
@@ -1124,7 +1102,6 @@ const styles = StyleSheet.create({
   experienceDesc: {
     lineHeight: lineHeightFor(type.meta),
   },
-  // Days step
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1145,7 +1122,6 @@ const styles = StyleSheet.create({
   dayLabel: {
     marginTop: space.xs,
   },
-  // Loading
   loadingCircle: {
     width: 88,
     height: 88,
@@ -1159,7 +1135,6 @@ const styles = StyleSheet.create({
     letterSpacing: track.caps,
     marginBottom: space.sm,
   },
-  // Duration step
   durationGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1175,7 +1150,6 @@ const styles = StyleSheet.create({
   durationLabel: {
     marginBottom: space.xs,
   },
-  // Exercise preferences step
   exercisesContainer: {
     flex: 1,
     paddingHorizontal: screenGutter,
@@ -1263,7 +1237,6 @@ const styles = StyleSheet.create({
     paddingBottom: space.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  // Preview / refine step
   previewContainer: {
     flex: 1,
   },

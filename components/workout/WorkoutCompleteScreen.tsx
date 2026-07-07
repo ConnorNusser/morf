@@ -41,7 +41,6 @@ import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// PR info for celebration
 interface PRInfo {
   exerciseName: string;
   exerciseId?: string;
@@ -66,7 +65,6 @@ interface WorkoutCompleteScreenProps {
   rewards?: SessionRewards | null;
 }
 
-// A single earned achievement that flips to reveal what it took to unlock it.
 function AchievementRewardRow({
   achievement,
 }: {
@@ -108,21 +106,16 @@ function AchievementRewardRow({
     </View>
   );
 
-  // 76 (was 66): absorbs the 12→14pt type-floor snap without clipping the
-  // two-line back face.
+  // height 76 absorbs the 12→14pt type-floor snap without clipping the two-line back face.
   return <FlipCard front={front} back={back} height={76} style={styles.achRowWrap} />;
 }
 
-// Gamification rewards earned this session: new achievements. Sits below the PR
-// highlights in the celebration screen. Tap a row to flip it and see what it took.
 function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   const { currentTheme } = useTheme();
   const { newAchievements } = rewards;
   const shownAch = newAchievements.slice(0, 3);
 
-  // No artificial delay: rewards are computed asynchronously and this section only
-  // mounts once they land (often already past a fixed 450ms window), so a delay
-  // just made it lag. Fade in as soon as it appears.
+  // No artificial delay: this only mounts once async rewards land, so a delay just made it lag.
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.rewardsSection}>
       {shownAch.length > 0 && (
@@ -141,8 +134,7 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   );
 }
 
-// Confetti particle
-const Particle = ({ delay, startX, color }: { delay: number; startX: number; color: string }) => {
+const Particle =({ delay, startX, color }: { delay: number; startX: number; color: string }) => {
   const translateY = useSharedValue(-50);
   const translateX = useSharedValue(startX);
   const rotate = useSharedValue(0);
@@ -157,9 +149,7 @@ const Particle = ({ delay, startX, color }: { delay: number; startX: number; col
     );
     const drift = (Math.random() - 0.5) * 100;
     translateX.value = withDelay(delay, withTiming(startX + drift, { duration: 3000 }));
-    // Spin only while falling, then stop. This used to be an infinite withRepeat,
-    // so all 30 particles kept spinning on the UI thread for as long as the screen
-    // stayed mounted (well after they'd faded out) — a needless, janky drain.
+    // Spin only while falling, then stop (an infinite withRepeat kept all 30 draining the UI thread).
     rotate.value = withDelay(
       delay,
       withTiming(360 * 3, { duration: 3000, easing: Easing.linear })
@@ -183,8 +173,7 @@ const Particle = ({ delay, startX, color }: { delay: number; startX: number; col
   );
 };
 
-// Pulsing badge for PR header
-const PulsingBadge = ({ text, color }: { text: string; color: string }) => {
+const PulsingBadge =({ text, color }: { text: string; color: string }) => {
   const { currentTheme } = useTheme();
   const opacity = useSharedValue(0.7);
 
@@ -213,8 +202,7 @@ const PulsingBadge = ({ text, color }: { text: string; color: string }) => {
   );
 };
 
-// Animated counting number
-const AnimatedCounter = ({
+const AnimatedCounter =({
   value,
   suffix = '',
   duration = 1500,
@@ -230,16 +218,13 @@ const AnimatedCounter = ({
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    // Actually count up from 0 → value over `duration` (after `delay`), instead of
-    // sitting on 0 and hard-jumping to the final number once the timeout fires
-    // (which also left the value blank if the screen was dismissed early).
+    // Count up 0 → value via RAF rather than hard-jumping when the timeout fires.
     let raf = 0;
     let start: number | null = null;
     const begin = setTimeout(() => {
       const tick = (now: number) => {
         if (start === null) start = now;
         const p = duration > 0 ? Math.min(1, (now - start) / duration) : 1;
-        // easeOutCubic for a snappy settle
         const eased = 1 - Math.pow(1 - p, 3);
         setDisplayValue(Math.round(value * eased));
         if (p < 1) raf = requestAnimationFrame(tick);
@@ -256,8 +241,7 @@ const AnimatedCounter = ({
   );
 };
 
-// Interactive stat card
-const StatCard = ({
+const StatCard =({
   icon,
   value,
   label,
@@ -356,12 +340,9 @@ export default function WorkoutCompleteScreen({
   const [showExerciseDetails, setShowExerciseDetails] = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
 
-  // Simple scale animation for checkmark
   const checkScale = useSharedValue(0);
-  // Breathing gold glow around the PR card — makes a new PR feel earned.
   const prGlow = useSharedValue(0);
 
-  // Generate confetti particles
   const particles = useMemo(() => {
     const colors = [
       currentTheme.colors.primary,
@@ -379,7 +360,6 @@ export default function WorkoutCompleteScreen({
     }));
   }, [currentTheme]);
 
-  // Detect PRs from exercises
   const prs = useMemo((): PRInfo[] => {
     const detectedPRs: PRInfo[] = [];
     const bodyWeightLbs = userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined;
@@ -403,7 +383,6 @@ export default function WorkoutCompleteScreen({
         const exerciseInfo = getWorkoutById(exercise.matchedExerciseId);
         const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
 
-        // Calculate best 1RM from this workout
         const best1RM = Math.max(
           ...sets.map(set => {
             if (set.reps === 0) return 0;
@@ -429,10 +408,8 @@ export default function WorkoutCompleteScreen({
     return detectedPRs;
   }, [exercises, userLifts, userProfile]);
 
-  // Start celebration animation on mount
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    // Land the celebration with a haptic — a heavier "success" when a PR was set.
     playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
     if (prs.length > 0) {
       prGlow.value = withDelay(
@@ -447,7 +424,6 @@ export default function WorkoutCompleteScreen({
     transform: [{ scale: checkScale.value }],
   }));
 
-  // Pulsing border + soft halo on the PR card.
   const prGlowStyle = useAnimatedStyle(() => ({
     borderWidth: 1.5,
     borderColor: interpolateColor(
@@ -466,7 +442,6 @@ export default function WorkoutCompleteScreen({
 
   return (
     <Animated.View entering={FadeIn} style={styles.container}>
-      {/* Confetti particles */}
       {particles.map((particle) => (
         <Particle
           key={particle.id}
@@ -482,7 +457,6 @@ export default function WorkoutCompleteScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          {/* Logo */}
           <Animated.View style={[styles.logoHeader, checkAnimatedStyle]}>
             <Image
               source={require('@/assets/images/icon-original.png')}
@@ -507,7 +481,6 @@ export default function WorkoutCompleteScreen({
             Great job crushing it today
           </Animated.Text>
 
-          {/* PR Highlights Section */}
           {prs.length > 0 && (
             <View style={styles.prSection}>
               <PulsingBadge
@@ -560,10 +533,8 @@ export default function WorkoutCompleteScreen({
             </View>
           )}
 
-          {/* Gamification rewards: newly unlocked achievements */}
           {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
 
-          {/* Always-available entry to the full achievement collection */}
           <Animated.View entering={FadeIn.delay(550)} style={styles.viewAllWrap}>
             <TouchableOpacity
               style={[styles.viewAllButton, { borderColor: 'rgba(255,255,255,0.18)' }]}
@@ -581,7 +552,6 @@ export default function WorkoutCompleteScreen({
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Interactive Stats */}
           <Animated.View entering={FadeIn.delay(500)} style={[styles.statsContainer, isSmallScreen && styles.statsContainerSmall]}>
             <StatCard
               icon="time-outline"
@@ -611,7 +581,6 @@ export default function WorkoutCompleteScreen({
             />
           </Animated.View>
 
-          {/* Exercise Details (expandable) */}
           {showExerciseDetails && (
             <Animated.View entering={FadeIn} style={styles.exerciseDetailsContainer}>
               <Text variant="meta" weight="semiBold" style={styles.exerciseDetailsTitle}>
@@ -643,13 +612,11 @@ export default function WorkoutCompleteScreen({
         </View>
       </ScrollView>
 
-      {/* Action buttons - pinned to bottom */}
       <Animated.View
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
-        {/* Done button — C1 primary pill. White label kept: this screen is
-            always dark regardless of theme (named palette exception). */}
+        {/* White label kept: this screen is always dark regardless of theme (named palette exception). */}
         <Button
           title="Done"
           onPress={onDone}
@@ -659,16 +626,12 @@ export default function WorkoutCompleteScreen({
         />
       </Animated.View>
 
-      {/* Full achievement collection, opened from "View all achievements" */}
       <CareerModal visible={showAllAchievements} onClose={() => setShowAllAchievements(false)} />
     </Animated.View>
   );
 }
 
-// Dark celebration screen: the white-alpha palette below is a named exception
-// (the screen is always dark, independent of theme); type roles, spacing,
-// radii, and button shapes follow the shared tokens. The 28/32/36 vertical
-// rhythm is this screen's structural composition and stays as-is.
+// White-alpha palette is a named exception (screen is always dark); 28/32/36 rhythm is structural.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -714,7 +677,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 36,
   },
-  // PR Section
   prSection: {
     width: '100%',
     marginBottom: 32,
@@ -764,7 +726,6 @@ const styles = StyleSheet.create({
   improvementText: {
     color: trend.up,
   },
-  // Rewards (gamification)
   rewardsSection: {
     width: '100%',
     marginBottom: 32,
@@ -812,8 +773,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 28,
   },
-  // C2 secondary bordered button (white-alpha border is the dark-screen
-  // palette exception).
+  // White-alpha border is the dark-screen palette exception.
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -826,7 +786,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     color: '#fff',
   },
-  // Stats
   statsContainer: {
     flexDirection: 'row',
     gap: space.md,
@@ -862,7 +821,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     marginTop: space.xs,
   },
-  // Exercise Details
   exerciseDetailsContainer: {
     width: '100%',
     marginBottom: space.section,
@@ -889,7 +847,6 @@ const styles = StyleSheet.create({
   exerciseDetailSets: {
     color: 'rgba(255,255,255,0.6)',
   },
-  // Buttons
   buttonContainer: {
     paddingHorizontal: space.section,
     paddingTop: space.lg,
@@ -898,7 +855,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: '#fff',
   },
-  // Confetti
   particle: {
     position: 'absolute',
     width: 10,

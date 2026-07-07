@@ -11,7 +11,6 @@ import {
 
 const FEED_API_URL = 'https://feed.morf.fyi';
 
-// API response types
 interface ApiPostItem {
   id: string;
   user_id: string;
@@ -45,9 +44,7 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-/**
- * API client for the self-hosted feed server
- */
+// API client for the self-hosted feed server.
 class FeedApi {
   private baseUrl: string;
 
@@ -99,9 +96,6 @@ class FeedApi {
     }
   }
 
-  /**
-   * Get posts only
-   */
   async getPosts(userId: string, limit: number = 20, offset: number = 0): Promise<FeedPost[]> {
     const { data, error } = await this.request<ApiPostItem[]>(
       'GET',
@@ -112,7 +106,6 @@ class FeedApi {
     if (error || !data) return [];
 
     return data.map(p => {
-      // Map media array with full URLs
       const media: PostMedia[] = (p.media || []).map((m: { url: string; type: 'video' | 'image' }) => ({
         url: `${this.baseUrl}${m.url}`,
         type: m.type,
@@ -131,9 +124,6 @@ class FeedApi {
     });
   }
 
-  /**
-   * Create a new post with optional multiple media files
-   */
   async createPost(
     userId: string,
     username: string,
@@ -154,7 +144,7 @@ class FeedApi {
         const ext = item.type === 'video' ? 'mp4' : 'jpg';
         const mimeType = item.type === 'video' ? 'video/mp4' : 'image/jpeg';
 
-        // React Native FormData file format
+        // React Native's FormData file shape.
         formData.append('media', {
           uri: item.uri,
           type: mimeType,
@@ -170,10 +160,7 @@ class FeedApi {
     return !error;
   }
 
-  /**
-   * Toggle like on a post
-   * Returns { success, liked } where liked indicates if it was a like (true) or unlike (false)
-   */
+  /** Returns { success, liked } where liked is true for a like, false for an unlike. */
   async togglePostLike(
     postId: string,
     userId: string,
@@ -189,9 +176,6 @@ class FeedApi {
     return { success: !error && !!data?.success, liked: !!data?.liked };
   }
 
-  /**
-   * Add comment to a post
-   */
   async addPostComment(
     postId: string,
     userId: string,
@@ -208,9 +192,6 @@ class FeedApi {
     return error ? null : data || null;
   }
 
-  /**
-   * Delete comment from a post
-   */
   async deletePostComment(postId: string, commentId: string, userId: string): Promise<boolean> {
     const { data, error } = await this.request<{ success: boolean }>(
       'DELETE',
@@ -220,9 +201,6 @@ class FeedApi {
     return !error && !!data?.success;
   }
 
-  /**
-   * Toggle like on a post comment
-   */
   async togglePostCommentLike(
     postId: string,
     commentId: string,
@@ -239,9 +217,6 @@ class FeedApi {
     return !error && !!data?.success;
   }
 
-  /**
-   * Get workouts only
-   */
   async getWorkouts(
     userId: string,
     limit: number = 20,
@@ -273,9 +248,6 @@ class FeedApi {
     }));
   }
 
-  /**
-   * Save a workout to the feed
-   */
   async saveWorkout(
     userId: string,
     workout: {
@@ -290,8 +262,8 @@ class FeedApi {
     },
     username: string,
     profilePictureUrl?: string,
-    // Gamification snapshot for the card (tier / PR count / earned achievement
-    // ids) — merged over the base likes/comments so the feed can render it.
+    // Gamification snapshot (tier / PR count / earned achievement ids), merged
+    // over the base likes/comments.
     feedData?: object
   ): Promise<boolean> {
     const { error } = await this.request<{ id: string }>('POST', '/api/workouts', userId, {
@@ -303,9 +275,6 @@ class FeedApi {
     return !error;
   }
 
-  /**
-   * Toggle like on a workout
-   */
   async toggleWorkoutLike(
     workoutId: string,
     userId: string,
@@ -321,9 +290,6 @@ class FeedApi {
     return !error && !!data?.success;
   }
 
-  /**
-   * Add comment to a workout
-   */
   async addWorkoutComment(
     workoutId: string,
     userId: string,
@@ -340,9 +306,6 @@ class FeedApi {
     return error ? null : data || null;
   }
 
-  /**
-   * Delete comment from a workout
-   */
   async deleteWorkoutComment(
     workoutId: string,
     commentId: string,
@@ -356,9 +319,6 @@ class FeedApi {
     return !error && !!data?.success;
   }
 
-  /**
-   * Toggle like on a workout comment
-   */
   async toggleWorkoutCommentLike(
     workoutId: string,
     commentId: string,

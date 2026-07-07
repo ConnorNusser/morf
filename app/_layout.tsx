@@ -64,7 +64,6 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export {
-    // Catch any errors thrown by the Layout component.
     ErrorBoundary
 } from 'expo-router';
 
@@ -76,8 +75,7 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // expo-font's useFonts is the same hook each @expo-google-fonts package re-exports,
-  // so one call with the merged font map loads them all.
+  // One useFonts call with the merged font map loads every @expo-google-fonts package.
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -109,25 +107,21 @@ export default function RootLayout() {
     Rubik_700Bold,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync().catch(() => {
-        // Ignore errors - can happen with FullWindowOverlay creating new view controllers
+        // Ignore: can happen with FullWindowOverlay creating new view controllers
       });
     }
   }, [loaded]);
 
-  // Configure audio session to allow mixing with other apps
   useEffect(() => {
     const configureAudio = async () => {
       try {
         await AudioModule.setAudioModeAsync({
-          // Allow audio to mix with other apps (like Spotify)
+          // Mix with other apps (e.g. Spotify); silent-mode + background off for SFX
           interruptionMode: 'mixWithOthers',
-          // Don't play in silent mode for sound effects
           playsInSilentMode: false,
-          // Don't stay active in background for sound effects
           shouldPlayInBackground: false,
         });
       } catch (error) {
@@ -138,28 +132,22 @@ export default function RootLayout() {
     configureAudio();
   }, []);
 
-  // Register for push notifications
   const router = useRouter();
 
   useEffect(() => {
-    // Register for push notifications
     notificationService.registerForPushNotifications().catch(err => {
       console.warn('Push notification registration skipped:', err);
     });
 
-    // Listen for notifications received while app is foregrounded
     const notificationSub = notificationService.addNotificationReceivedListener(_notification => {
-      // Notification received while app is foregrounded
     });
 
-    // Listen for notification taps
     const responseSub = notificationService.addNotificationResponseListener(response => {
       const data = response.notification.request.content.data;
       // Retention reminders deep-link to the Notes tab ("Up Next" routine).
       if (data?.kind === 'retention') {
         router.push('/(tabs)/notes');
       } else if (data?.type === 'friend_pr' || data?.type === 'post_like' || data?.type === 'post_comment') {
-        // Navigate to feed tab for all notification types
         router.push('/(tabs)');
       }
     });
@@ -170,8 +158,7 @@ export default function RootLayout() {
     };
   }, [router]);
 
-  // (Re)schedule self-directed retention reminders on launch and whenever the
-  // app returns to the foreground, so the streak/habit state stays current.
+  // (Re)schedule retention reminders on launch and on foreground so state stays current.
   useEffect(() => {
     retentionNotificationService.refreshScheduledReminders();
     const sub = AppState.addEventListener('change', state => {
@@ -195,7 +182,7 @@ export default function RootLayout() {
   );
 }
 
-// Separate component that can access theme context
+// Separate component so it can read theme context.
 function ThemedApp() {
   const { currentTheme } = useTheme();
 
@@ -219,7 +206,6 @@ function ThemedApp() {
         </VideoPlayerProvider>
       </AlertProvider>
 
-      {/* Theme-specific overlay effects (snow, etc.) */}
       <ThemeOverlay />
     </View>
   );

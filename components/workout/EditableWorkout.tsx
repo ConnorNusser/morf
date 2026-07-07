@@ -1,8 +1,4 @@
-// The structured workout — the editable source of truth, styled like a flat
-// notes page (no boxed cards, just sections and hairline-separated rows).
-// Logging is check-off-first: tap the circle to mark a set done (the row goes
-// green) rather than deleting. Removal is available but de-emphasized via
-// long-press, so the common path stays frictionless.
+// Editable workout draft (source of truth); check-off-first logging, remove via long-press.
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -26,26 +22,19 @@ interface EditableWorkoutProps {
   onRemoveSet: (key: string, index: number) => void;
   onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
-  // Move an exercise up (-1) / down (+1); when set, reorder controls appear.
   onMoveExercise?: (key: string, dir: -1 | 1) => void;
-  // Last-session reference sets for an exercise, shown as a muted "prev" hint.
   getPreviousSets?: (exerciseId?: string) => DraftSet[] | null;
-  // Fired when the user starts dragging the list — used to collapse the composer.
   onScrollBeginDrag?: () => void;
-  // Extra bottom padding so the last row can scroll clear of the floating composer
-  // dock that overlays the list bottom.
+  // Bottom padding so the last row can scroll clear of the floating composer dock.
   bottomInset?: number;
 }
 
-// Compact set value like "135×8" (or just reps for bodyweight) for the prev hint.
 function fmtPrev(set: DraftSet): string {
   const w = Number.isInteger(set.weight) ? String(set.weight) : String(parseFloat(set.weight.toFixed(2)));
   return set.weight > 0 ? `${w}×${set.reps}` : `${set.reps}`;
 }
 
-// A flat, underlined value that opens the custom number pad on tap (no OS
-// keyboard). The unit/reps label lives in the column header, not per cell.
-// The cell geometry is a named exception (spreadsheet grid).
+// Opens the custom number pad on tap (no OS keyboard); cell geometry is a named exception (spreadsheet grid).
 function NumberField({ value, active, onPress, theme }: {
   value: number;
   active: boolean;
@@ -90,8 +79,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
           </Text>
         </TouchableOpacity>
 
-        {/* Reorder handles — moving an exercise here also reorders the routine
-            (offered on finish). Dimmed at the ends where the move is a no-op. */}
+        {/* Reordering here also reorders the routine (offered on finish). */}
         {onMoveExercise && (
           <RNView style={styles.reorderCluster}>
             <TouchableOpacity
@@ -112,7 +100,6 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
         )}
       </RNView>
 
-      {/* Column header: check spacer · lbs · reps · prev · remove spacer */}
       <RNView style={styles.colHeader}>
         <RNView style={styles.checkCol} />
         <Text variant="meta" tone="muted" style={styles.colLabelCol}>{weightUnit}</Text>
@@ -207,8 +194,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
   );
 }
 
-// Column geometry — fields + header labels share a width so they line up.
-// The grid's cell geometry is a named exception to the spacing tokens.
+// Grid cell geometry — a named exception to the spacing tokens.
 const FIELD_W = 60;
 const REMOVE_W = 28;
 const CHECK_W = 28;

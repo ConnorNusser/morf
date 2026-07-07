@@ -1,13 +1,4 @@
-/**
- * Training Advancement System
- *
- * Determines user's training level based on:
- * 1. Strength percentiles from workout history (high confidence)
- * 2. Self-reported training years (medium confidence)
- * 3. Default to beginner (low confidence - safest)
- *
- * This level then controls programming strictness for fatigue management.
- */
+// Determines training level (percentile > training years > beginner default), which controls programming strictness for fatigue management.
 
 import {
   GeneratedWorkout,
@@ -26,18 +17,12 @@ import { analyticsService } from '@/lib/services/analytics';
 import { bestCompletedSet, completedWorkingSets } from './setStats';
 import { getWorkoutById } from './workouts';
 
-// ===== TRAINING ADVANCEMENT DETERMINATION =====
-
-/**
- * Determine user's training advancement level
- * Uses percentile data when available, falls back to training years
- */
 export function determineTrainingAdvancement(
   workoutHistory: GeneratedWorkout[],
   userProfile: UserProfile | null
 ): TrainingAdvancementResult {
 
-  // 1. Try percentile-based assessment (HIGH confidence - actual performance data)
+  // Percentile-based assessment (high confidence: actual performance data)
   if (userProfile?.weight?.value && workoutHistory.length > 0) {
     const percentiles = calculatePercentiles(workoutHistory, userProfile);
 
@@ -53,7 +38,7 @@ export function determineTrainingAdvancement(
     }
   }
 
-  // 2. Fall back to training years (MEDIUM confidence - self-reported)
+  // Fall back to self-reported training years (medium confidence)
   if (userProfile?.trainingYears !== undefined) {
     return {
       level: yearsToAdvancement(userProfile.trainingYears),
@@ -63,7 +48,7 @@ export function determineTrainingAdvancement(
     };
   }
 
-  // 3. Default to beginner (LOW confidence - safest assumption)
+  // Default to beginner (low confidence, safest assumption)
   return {
     level: 'beginner',
     source: 'default',
@@ -71,9 +56,6 @@ export function determineTrainingAdvancement(
   };
 }
 
-/**
- * Calculate strength percentiles from workout history
- */
 function calculatePercentiles(
   workoutHistory: GeneratedWorkout[],
   userProfile: UserProfile
@@ -85,7 +67,6 @@ function calculatePercentiles(
   const standards = gender === 'male' ? MALE_STANDARDS : FEMALE_STANDARDS;
   const percentiles: number[] = [];
 
-  // Check last 20 workouts for exercises with standards
   for (const workout of workoutHistory.slice(-20)) {
     for (const ex of workout.exercises) {
       if (standards[ex.id]) {
@@ -110,42 +91,22 @@ function calculatePercentiles(
   return percentiles;
 }
 
-/**
- * Convert strength percentile to training advancement level
- *
- * Research basis:
- * - <40th percentile: Still building foundational strength (beginner)
- * - 40-70th percentile: Significant strength, needs structured programming (intermediate)
- * - >70th percentile: High absolute loads, recovery demands are real (advanced)
- */
+// Thresholds: <40th still building base; 40-70th needs structured programming; >70th high loads with real recovery demands.
 function percentileToAdvancement(percentile: number): TrainingAdvancement {
   if (percentile < 40) return 'beginner';
   if (percentile < 70) return 'intermediate';
   return 'advanced';
 }
 
-/**
- * Convert self-reported training years to advancement level
- *
- * General guidelines:
- * - <1 year: Still learning movement patterns, building base (beginner)
- * - 1-3 years: Past newbie gains, needs progressive programming (intermediate)
- * - 3+ years: Experienced, knows their body, can handle/needs varied intensity (advanced)
- */
 function yearsToAdvancement(years: number): TrainingAdvancement {
   if (years < 1) return 'beginner';
   if (years < 3) return 'intermediate';
   return 'advanced';
 }
 
-// ===== PROGRAMMING RULES BY ADVANCEMENT LEVEL =====
-
 export interface ProgrammingConfig {
-  // Fatigue management
   allowHeavySquatAndDeadliftSameDay: boolean;
   maxSetsPerMusclePerSession: number;
-
-  // Frequency recommendations
   suggestedFrequency: {
     squat: number;
     bench: number;
@@ -153,44 +114,30 @@ export interface ProgrammingConfig {
   };
 }
 
-/**
- * Programming rules based on training advancement
- *
- * Research basis:
- * - Beginners: Low absolute loads = fast recovery, can handle frequency
- * - Intermediate: Building significant strength, needs balance
- * - Advanced: High absolute loads, recovery is limiting factor
- *
- * Sources:
- * - Stronger By Science: Training Frequency
- * - RP Strength: Volume Landmarks
- * - Schoenfeld et al.: Dose-response meta-analyses
- */
+// Rules loosen for beginners (fast recovery) and tighten for advanced (recovery is limiting).
+// Sources: Stronger By Science (frequency), RP Strength (volume landmarks), Schoenfeld et al. (dose-response).
 export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> = {
   beginner: {
-    // Loose rules - low absolute loads, fast recovery
-    allowHeavySquatAndDeadliftSameDay: true,  // Fine at low weights
+    allowHeavySquatAndDeadliftSameDay: true,
     maxSetsPerMusclePerSession: 12,
     suggestedFrequency: {
-      squat: 3,    // More practice, technique acquisition
+      squat: 3,
       bench: 3,
       deadlift: 2,
     },
   },
 
   intermediate: {
-    // Moderate rules - flag concerns but don't block
-    allowHeavySquatAndDeadliftSameDay: false,  // Flag this combination
+    allowHeavySquatAndDeadliftSameDay: false,
     maxSetsPerMusclePerSession: 10,
     suggestedFrequency: {
       squat: 2,
-      bench: 3,    // Upper body recovers faster
+      bench: 3,
       deadlift: 1.5,
     },
   },
 
   advanced: {
-    // Strict rules - high absolute loads require more recovery
     allowHeavySquatAndDeadliftSameDay: false,
     maxSetsPerMusclePerSession: 8,
     suggestedFrequency: {
@@ -201,21 +148,10 @@ export const PROGRAMMING_RULES: Record<TrainingAdvancement, ProgrammingConfig> =
   },
 };
 
-// ===== ROUTINE VALIDATION =====
-//
-// Validates CONVERTED routines (real exercise IDs), not raw AI output. This fixes two
-// problems found in the output audit:
-//   1. Coverage: the old validator re-derived IDs from names via regex slugs, so any lift
-//      not in the hand-maintained movement map defaulted to 'isolation' and was invisible
-//      to fatigue checks (56-82% coverage). We now resolve muscles/patterns from the real
-//      exercise DB.
-//   2. False positives: the old check flagged ANY squat+hinge co-occurrence as a same-day
-//      conflict — but PHUL/PHAT intentionally pair heavy squat + heavy deadlift on a single
-//      dedicated lower/power day. We now only warn when that heavy pairing repeats across
-//      MORE THAN ONE day per week (genuinely insufficient recovery).
-//
-// Results are observability-only (logged, not enforced) — consistent with the decision not
-// to build a repair loop.
+// Validates CONVERTED routines (real exercise IDs), not raw AI output, so muscles/patterns
+// resolve from the real exercise DB rather than regex slugs (which left lifts uncovered by
+// fatigue checks). Only warns when heavy squat+hinge pairing repeats on MORE THAN ONE day/week
+// — a single dedicated lower/power day (PHUL/PHAT) is by design. Results are logged, not enforced.
 
 export interface ProgramValidationResult {
   isValid: boolean;
@@ -238,12 +174,8 @@ function isHeavyRoutineExercise(ex: ValidatableExercise): boolean {
   return reps <= 6;
 }
 
-/**
- * Classify a lift as a squat- or hinge-pattern movement for the same-day fatigue check.
- * Matches keywords against the exercise's display name, the catalog name, or the id itself
- * (separators may be spaces or hyphens, so it works whether given "Good Morning" or
- * "good-morning-barbell"). Returns null for anything that isn't a lower-body squat/hinge.
- */
+// Classify a lift as squat/hinge for the same-day fatigue check. Matches keywords against the
+// display name, catalog name, or id; separators may be spaces or hyphens. null = not a lower squat/hinge.
 function classifyLowerPattern(exerciseId: string, exerciseName?: string): 'squat' | 'hinge' | null {
   const name = (exerciseName || getWorkoutById(exerciseId)?.name || exerciseId).toLowerCase();
   if (/(romanian|rdl|deadlift|good[-\s]*morning|hip[-\s]*thrust|swing|back[-\s]*extension|hyperextension)/.test(name)) return 'hinge';
@@ -251,17 +183,9 @@ function classifyLowerPattern(exerciseId: string, exerciseName?: string): 'squat
   return null;
 }
 
-/**
- * Validate converted routines against programming rules. Logs results for monitoring AI
- * output quality; returns warnings for callers that want to surface them.
- *
- * NOTE: a per-session/per-week muscle-volume check was deliberately NOT included. The
- * exercise DB labels primary muscles with coarse regions ("legs", "back", "arms") that span
- * several sub-muscles, so summing sets per label flags every normal leg/back day (a 14-set
- * leg day is really ~5 quad / 5 ham / 4 glute). Re-scoring the audit programs showed such a
- * check firing on 12/16 by-design programs — noise, not signal. Meaningful volume validation
- * needs a finer muscle taxonomy than this DB provides (logged as future work).
- */
+// A per-muscle volume check is deliberately omitted: the DB's coarse muscle labels ("legs",
+// "back") span sub-muscles, so per-label set sums flag every normal day (fired on 12/16 by-design
+// audit programs). Meaningful volume validation needs a finer taxonomy than this DB provides.
 export function validateRoutines(
   routines: ValidatableRoutine[],
   advancementLevel: TrainingAdvancement
@@ -269,7 +193,7 @@ export function validateRoutines(
   const config = PROGRAMMING_RULES[advancementLevel];
   const warnings: string[] = [];
 
-  // Program-level: heavy squat + heavy deadlift is fine on ONE dedicated day; warn if repeated
+  // Heavy squat + heavy deadlift is fine on ONE dedicated day; warn only if repeated.
   if (!config.allowHeavySquatAndDeadliftSameDay) {
     let heavyLowerDays = 0;
     for (const day of routines) {

@@ -13,7 +13,7 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Module-level state to track snow timing across remounts
+// Persists snow timing across remounts (wall-clock based)
 let lastSnowEndTime: number | null = null;
 
 interface Snowflake {
@@ -73,7 +73,6 @@ const SnowflakeComponent = memo(function SnowflakeComponent({ snowflake }: { sno
       )
     );
 
-    // Cleanup animations on unmount
     return () => {
       cancelAnimation(translateY);
       cancelAnimation(translateX);
@@ -114,19 +113,15 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
   const [snowflakes, setSnowflakes] = useState<Snowflake[]>(() => {
     const now = Date.now();
 
-    // Check if we should be snowing based on wall-clock time
     if (lastSnowEndTime !== null) {
-      // Currently in a snow session that hasn't ended yet
       if (now < lastSnowEndTime) {
         return generateSnowflakes(SNOWFLAKE_COUNT);
       }
-      // Check if interval has passed since last snow ended
       if (now - lastSnowEndTime < intervalMs) {
-        return []; // Still waiting for next snow
+        return [];
       }
     }
 
-    // Start a new snow session
     const snowDuration = 15000 + Math.random() * 15000;
     lastSnowEndTime = now + snowDuration;
     return generateSnowflakes(SNOWFLAKE_COUNT);
@@ -134,7 +129,6 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
 
   useEffect(() => {
     if (snowflakes.length === 0) {
-      // Not currently snowing - schedule next snow based on wall-clock time
       const now = Date.now();
       const timeUntilNextSnow = lastSnowEndTime
         ? Math.max(0, (lastSnowEndTime + intervalMs) - now)
@@ -148,7 +142,6 @@ export default function SnowEffect({ intervalMs }: SnowEffectProps) {
 
       return () => clearTimeout(nextSnowTimeout);
     } else {
-      // Currently snowing - schedule stop based on remaining time
       const now = Date.now();
       const timeUntilStop = lastSnowEndTime ? Math.max(0, lastSnowEndTime - now) : 0;
 

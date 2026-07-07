@@ -21,11 +21,7 @@ interface AnimatedCountProps {
   numberOfLines?: number;
 }
 
-/**
- * A number that tweens from its previous value to `value` whenever it changes.
- * Renders a plain Text so it inherits normal text layout, and honors the OS
- * "Reduce Motion" setting by snapping straight to the value.
- */
+/** Text number that tweens to `value` on change; honors OS Reduce Motion by snapping. */
 export default function AnimatedCount({
   value,
   duration = 1000,
@@ -37,8 +33,7 @@ export default function AnimatedCount({
   numberOfLines,
 }: AnimatedCountProps) {
   const reduced = useReducedMotion();
-  // Start at 0 so the first mount actually counts up; later value changes tween
-  // from wherever the shared value currently is.
+  // Start at 0 so the first mount counts up from zero.
   const progress = useSharedValue(0);
   const [display, setDisplay] = useState(0);
 

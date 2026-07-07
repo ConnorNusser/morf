@@ -52,7 +52,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
   const scrollViewRef = useRef<ScrollView>(null);
   const inputAccessoryViewID = 'planBuilderAccessory';
 
-  // Reset state when modal opens
   useEffect(() => {
     if (visible) {
       setMessages([]);
@@ -63,7 +62,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
     }
   }, [visible, initialRequest]);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -76,7 +74,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
     const trimmed = message.trim();
     if (!trimmed || isLoading) return;
 
-    // Add user message
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
@@ -90,16 +87,13 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
 
     try {
       if (currentPlan) {
-        // Refine existing plan
         const chatHistory = messages.map(m => ({ role: m.role, content: m.content }));
         const result = await aiWorkoutGenerator.refinePlan(currentPlan, chatHistory, trimmed);
 
-        // Update plan if changed
         if (result.noteText !== currentPlan) {
           setCurrentPlan(result.noteText);
         }
 
-        // Add assistant response
         const assistantMessage: ChatMessage = {
           id: `assistant_${Date.now()}`,
           role: 'assistant',
@@ -107,16 +101,13 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         };
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Set follow-up questions
         if (result.followUpQuestions && result.followUpQuestions.length > 0) {
           setContextQuestions(result.followUpQuestions);
         }
       } else {
-        // Generate new plan
         const result = await aiWorkoutGenerator.generateWorkoutNote({ customRequest: trimmed });
         setCurrentPlan(result.noteText);
 
-        // Add assistant response
         const assistantMessage: ChatMessage = {
           id: `assistant_${Date.now()}`,
           role: 'assistant',
@@ -124,7 +115,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
         };
         setMessages(prev => [...prev, assistantMessage]);
 
-        // Set context questions
         if (result.contextQuestions && result.contextQuestions.length > 0) {
           setContextQuestions(result.contextQuestions);
         }
@@ -162,7 +152,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
       onRequestClose={onCancel}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onCancel} />
           <Text variant="title" weight="semiBold" tone="primary">
@@ -182,7 +171,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           keyboardVerticalOffset={0}
         >
-          {/* Chat Messages */}
           <ScrollView
             ref={scrollViewRef}
             style={styles.chatContainer}
@@ -191,7 +179,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-          {/* Welcome message */}
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
               <Ionicons name="sparkles" size={48} color={withAlpha(currentTheme.colors.primary, 'faint')} />
@@ -204,7 +191,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             </RNView>
           )}
 
-          {/* Messages */}
           {messages.map((message) => (
             <RNView
               key={message.id}
@@ -228,7 +214,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             </RNView>
           ))}
 
-          {/* Context Questions */}
           {contextQuestions.length > 0 && !isLoading && (
             <RNView style={styles.questionsContainer}>
               {contextQuestions.map((question, index) => (
@@ -241,7 +226,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             </RNView>
           )}
 
-          {/* Plan Preview Card */}
           {currentPlan && (
             <TouchableOpacity
               style={[styles.planCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
@@ -279,7 +263,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             </TouchableOpacity>
           )}
 
-          {/* Loading indicator */}
           {isLoading && (
             <RNView style={[styles.messageBubble, styles.assistantMessage, { backgroundColor: currentTheme.colors.surface }]}>
               <RNView style={styles.typingIndicator}>
@@ -291,7 +274,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           )}
           </ScrollView>
 
-          {/* Input Area */}
           <View style={[styles.inputContainer, { backgroundColor: currentTheme.colors.background }]}>
             <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
               <TextInput
@@ -326,7 +308,6 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
             </RNView>
           </View>
 
-          {/* Keyboard accessory with Done button */}
           {Platform.OS === 'ios' && (
             <InputAccessoryView nativeID={inputAccessoryViewID}>
               <RNView style={[styles.accessoryContainer, { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border }]}>
@@ -447,8 +428,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingVertical: space.sm,
   },
-  // Composer: the 24pt radius is structural — the multiline input grows past
-  // pill geometry.
+  // Composer: 24pt radius is structural — the multiline input grows past pill geometry.
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'flex-end',

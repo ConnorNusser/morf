@@ -15,37 +15,22 @@ interface LogEntry {
 }
 
 class AnalyticsService {
-  /**
-   * Get device ID from deviceService
-   */
   async getDeviceId(): Promise<string> {
     return deviceService.getDeviceId();
   }
 
-  /**
-   * Get username from deviceService
-   */
   async getUsername(): Promise<string | null> {
     return deviceService.getUsername();
   }
 
-  /**
-   * Set username via deviceService
-   */
   async setUsername(username: string): Promise<void> {
     return deviceService.setUsername(username);
   }
 
-  /**
-   * Generate a default username via deviceService
-   */
   async generateDefaultUsername(): Promise<string> {
     return deviceService.generateDefaultUsername();
   }
 
-  /**
-   * Track a completed workout
-   */
   async trackWorkoutCompleted(data: {
     workoutId: string;
     exerciseCount: number;
@@ -69,7 +54,6 @@ class AnalyticsService {
         console.error('Error tracking workout:', error);
         this.logErr('workout', 'workout_track_failed', error.message, { code: error.code });
       } else {
-        // Log successful workout completion
         this.logInfo('workout', 'workout_completed', 'Workout completed successfully', {
           exerciseCount: data.exerciseCount,
           totalSets: data.totalSets,
@@ -82,9 +66,6 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Track AI usage (note parsing, routine generation, etc.)
-   */
   async trackAIUsage(data: {
     requestType: 'note_parse' | 'routine_generate' | 'plan_builder';
     inputText: string;
@@ -124,10 +105,7 @@ class AnalyticsService {
     }
   }
 
-  /**
-   * Unified logging method for all app events
-   * Logs to self-hosted server instead of Supabase
-   */
+  /** Logs to the self-hosted server, not Supabase. */
   async log(entry: LogEntry): Promise<void> {
     try {
       const deviceId = await this.getDeviceId();
@@ -150,18 +128,15 @@ class AnalyticsService {
       });
 
       if (!response.ok) {
-        // Don't log this error to avoid infinite loop, just console
+        // console only — logging this via log() would recurse
         console.error('Error logging to server:', response.status);
       }
     } catch (err) {
-      // Don't log this error to avoid infinite loop, just console
+      // console only — logging this via log() would recurse
       console.error('Error logging to server:', err);
     }
   }
 
-  /**
-   * Convenience methods for different log levels
-   */
   async logInfo(category: LogCategory, event: string, message?: string, context?: Record<string, unknown>): Promise<void> {
     await this.log({ level: 'info', category, event, message, context });
   }

@@ -22,7 +22,7 @@ import FullScreenImageViewer from './FullScreenImageViewer';
 import FullScreenVideoViewer from './FullScreenVideoViewer';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const MEDIA_WIDTH = SCREEN_WIDTH - 32; // padding on each side
+const MEDIA_WIDTH = SCREEN_WIDTH - 32;
 
 interface FeedPostCardProps {
   post: FeedPost;
@@ -60,7 +60,6 @@ function FeedPostCard({
   const hasVideo = firstVideo && !videoFailed;
   const hasMedia = (imageUrls.length > 0 || hasVideo);
 
-  // Player for inline video
   const player = useVideoPlayer(hasVideo && firstVideo?.url ? firstVideo.url : null, player => {
     player.loop = true;
     player.muted = false;
@@ -68,7 +67,6 @@ function FeedPostCard({
 
   const { isMuted, toggleMute } = useMute(player);
 
-  // Register player with context
   useEffect(() => {
     if (player && hasVideo) {
       registerPlayer(videoId, player);
@@ -76,7 +74,7 @@ function FeedPostCard({
     }
   }, [player, hasVideo, videoId, registerPlayer, unregisterPlayer]);
 
-  // Listen for video errors to hide broken videos
+  // Hide the video if it fails to load.
   useEffect(() => {
     if (!player) return;
 
@@ -112,19 +110,17 @@ function FeedPostCard({
     }
   };
 
-  // Control playback based on visibility
   useEffect(() => {
     if (!player || !hasVideo) return;
 
     if (isVisible && !showFullScreenVideo) {
       setActiveVideo(videoId);
     } else {
-      // Clear active video only if this video was active (prevents race conditions)
+      // Clear only if this video was active (prevents race conditions).
       clearActiveIfMatches(videoId);
     }
   }, [isVisible, showFullScreenVideo, player, hasVideo, videoId, setActiveVideo, clearActiveIfMatches]);
 
-  // Smooth animation for like button
   const likeScale = useSharedValue(1);
   const likeAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: likeScale.value }],
@@ -153,7 +149,6 @@ function FeedPostCard({
       <View
         style={[styles.container, { borderBottomColor: currentTheme.colors.border }]}
       >
-        {/* Header with user info */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
             {post.profile_picture_url ? (
@@ -176,18 +171,15 @@ function FeedPostCard({
           </TouchableOpacity>
         </View>
 
-        {/* Post text */}
         {post.text && (
           <Text style={[styles.postText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
             {post.text}
           </Text>
         )}
 
-        {/* Media */}
         {hasMedia && (
           <View style={styles.mediaContainer}>
             {hasVideo ? (
-              // Video player - auto-plays, tap to open fullscreen, long press to pause
               <View style={styles.videoWrapper}>
                 <Pressable
                   onPress={() => setShowFullScreenVideo(true)}
@@ -203,7 +195,6 @@ function FeedPostCard({
                   />
                 </Pressable>
 
-                {/* Mute/unmute button */}
                 <TouchableOpacity
                   style={styles.muteButton}
                   onPress={toggleMute}
@@ -217,7 +208,6 @@ function FeedPostCard({
                 </TouchableOpacity>
               </View>
             ) : imageUrls.length === 1 ? (
-              // Single image - tap to fullscreen, edge-to-edge
               <View style={styles.imageWrapper}>
                 <TouchableOpacity onPress={() => handleImagePress(0)} activeOpacity={0.9}>
                   <Image
@@ -229,7 +219,6 @@ function FeedPostCard({
                 </TouchableOpacity>
               </View>
             ) : (
-              // Multiple images - carousel, edge-to-edge
               <View style={styles.imageWrapper}>
                 <ScrollView
                   horizontal
@@ -256,7 +245,6 @@ function FeedPostCard({
                   ))}
                 </ScrollView>
 
-                {/* Page indicators - overlaid on image */}
                 <View style={styles.paginationOverlay}>
                   {imageUrls.map((_, index) => (
                     <View
@@ -275,7 +263,6 @@ function FeedPostCard({
                   ))}
                 </View>
 
-                {/* Image counter badge */}
                 <View style={[styles.counterBadge, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
                   <Text style={styles.counterText}>
                     {currentImageIndex + 1}/{imageUrls.length}
@@ -286,10 +273,8 @@ function FeedPostCard({
           </View>
         )}
 
-        {/* Like and comment bar */}
         <View style={styles.actionBar}>
           <View style={styles.actionLeft}>
-            {/* Animated like button */}
             <TouchableOpacity
               style={[
                 styles.actionButton,
@@ -312,7 +297,6 @@ function FeedPostCard({
               )}
             </TouchableOpacity>
 
-            {/* Comment button */}
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => onComment?.(post)}
@@ -333,7 +317,6 @@ function FeedPostCard({
         </View>
       </View>
 
-      {/* Full screen image viewer */}
       <FullScreenImageViewer
         visible={showFullScreen}
         images={imageUrls}
@@ -344,7 +327,6 @@ function FeedPostCard({
         onLike={handleLike}
       />
 
-      {/* Full screen video viewer */}
       <FullScreenVideoViewer
         visible={showFullScreenVideo}
         videoUrl={firstVideo?.url || null}
@@ -411,7 +393,7 @@ const styles = StyleSheet.create({
   },
   videoMedia: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 1.1, // Taller video, almost square
+    height: SCREEN_WIDTH * 1.1,
   },
   muteButton: {
     position: 'absolute',
@@ -429,7 +411,7 @@ const styles = StyleSheet.create({
   },
   fullWidthImage: {
     width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 1.1, // Same height as video
+    height: SCREEN_WIDTH * 1.1,
   },
   paginationOverlay: {
     position: 'absolute',

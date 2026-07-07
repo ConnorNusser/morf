@@ -14,7 +14,6 @@ interface TierBadgeProps {
   showTooltip?: boolean;
 }
 
-// Tier descriptions for the tooltip
 const TIER_DESCRIPTIONS: Record<string, { title: string; description: string; percentileRange: string }> = {
   'S': {
     title: 'S Tier - Elite',
@@ -57,7 +56,6 @@ export default function TierBadge({
 }: TierBadgeProps) {
   const { showAlert } = useAlert();
 
-  // Calculate tier from percentile if not provided directly
   const displayTier = tier ?? (percentile !== undefined ? getStrengthTier(percentile) : 'C');
   const tierColor = getTierColor(displayTier);
   const baseTier = getBaseTier(displayTier);
@@ -78,7 +76,6 @@ export default function TierBadge({
     }
   };
 
-  // Text-only variant (minimal style)
   if (variant === 'text') {
     const textContent = (
       <Text style={[sizeStyles.text, { color: tierColor }]}>
@@ -97,7 +94,6 @@ export default function TierBadge({
     return textContent;
   }
 
-  // Badge variant (default)
   const badgeContent = (
     <View
       style={[

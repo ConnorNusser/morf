@@ -31,7 +31,7 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
 
   const toggleEquipment = (equipment: Equipment) => {
     if (value.includes(equipment)) {
-      // Don't allow deselecting all - keep at least one
+      // Keep at least one selected
       if (value.length > 1) {
         onChange(value.filter(e => e !== equipment));
       }
@@ -48,7 +48,6 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
 
   return (
     <View style={[styles.container, style]}>
-      {/* Select All button */}
       <TouchableOpacity
         style={[
           styles.selectAllButton,
@@ -75,7 +74,6 @@ export default function EquipmentFilterInput({ value, onChange, style }: Equipme
         </Text>
       </TouchableOpacity>
 
-      {/* Equipment grid */}
       <View style={styles.grid}>
         {EQUIPMENT_OPTIONS.map((equipment) => {
           const isSelected = value.includes(equipment.type);

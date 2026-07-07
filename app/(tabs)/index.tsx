@@ -55,7 +55,6 @@ export default function HomeScreen() {
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
 
-  // Load saved view mode on mount
   useEffect(() => {
     const loadViewMode = async () => {
       const savedMode = await storageService.getHomeViewMode();
@@ -78,7 +77,6 @@ export default function HomeScreen() {
         storageService.getLiftDisplayFilters(),
       ]);
 
-      // Surface the strength tier on the header (gamification).
       const visibleLifts = userProgressData.filter(
         (p) => !savedFilters.hiddenLiftIds.includes(p.workoutId),
       );
@@ -105,7 +103,6 @@ export default function HomeScreen() {
     await storageService.saveHomeViewMode(mode);
   };
 
-  // Check for pending strength progress on focus
   const checkPendingProgress = useCallback(async () => {
     const progress = await storageService.getPendingStrengthProgress();
     if (progress) {
@@ -118,11 +115,10 @@ export default function HomeScreen() {
     await storageService.clearPendingStrengthProgress();
   }, []);
 
-  // Check for unlock notifications (seasonal themes, etc.)
   const checkUnlockNotifications = useCallback(async () => {
     if (!userProfile) return;
 
-    // Check Winter theme (Dec 1 - Mar 20)
+    // Winter theme window: Dec 1 - Mar 20
     if (isSeasonalThemeAvailable("winter_2026")) {
       const shown =
         await storageService.hasNotificationBeenShown("winter_2026");
@@ -154,10 +150,8 @@ export default function HomeScreen() {
     }, [checkPendingProgress, checkUnlockNotifications]),
   );
 
-  // Post-workout (no strength win) lands here with ?feed=1 — drop straight into the
-  // feed so the just-posted workout is the first thing seen. Transient: we flip the
-  // view without persisting the preference, then clear the param so a later visit
-  // respects the saved default.
+  // Post-workout (no strength win) arrival (?feed=1): show feed without persisting
+  // the preference, then clear the param so a later visit respects the saved default.
   useFocusEffect(
     useCallback(() => {
       if (!feedParam) return;

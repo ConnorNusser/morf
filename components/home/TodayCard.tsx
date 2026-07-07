@@ -36,18 +36,10 @@ import {
 } from "react-native";
 import Spacer from "../Spacer";
 
-// After dismissing the "build a routine" nudge, re-surface it once this much
-// time has passed (5 days).
 const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
 
-// The card is the home hero: it claims ~70% of the viewport in every state
-// (loading / freestyle / routine), headline pinned top, CTAs pinned bottom.
-// Small floor so the page doesn't jump while the card resolves. The card is
-// otherwise content-sized: reserved emptiness has no mass to hold it.
 const CARD_MIN_HEIGHT = 200;
 
-// The exercise list shows up to this many rows before it starts scrolling;
-// below that, the list keeps this height and leaves the extra space empty.
 const VISIBLE_EXERCISE_ROWS = 7;
 const EXERCISE_ROW_HEIGHT = 24;
 const EXERCISE_ROW_GAP = space.lg;
@@ -55,7 +47,6 @@ const EXERCISE_LIST_HEIGHT =
   VISIBLE_EXERCISE_ROWS * EXERCISE_ROW_HEIGHT +
   (VISIBLE_EXERCISE_ROWS - 1) * EXERCISE_ROW_GAP;
 
-// Human-readable label for the routine's split type.
 function splitLabel(splitType?: string): string | null {
   if (!splitType || splitType === "custom") return null;
   return splitType
@@ -77,7 +68,6 @@ export default function TodayCard() {
   const launch = useWorkoutLaunch();
 
   const [calculated, setCalculated] = useState<CalculatedRoutine | null>(null);
-  // The active program's days in ring order, so the user can flip through them.
   const [days, setDays] = useState<CalculatedRoutine[]>([]);
   const [trainedToday, setTrainedToday] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,9 +77,7 @@ export default function TodayCard() {
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
 
-  // Read routines fresh from storage on every focus, so pausing or deleting a
-  // routine elsewhere is reflected without restarting the app. (The routine
-  // context only loads once at startup, which is why it went stale before.)
+  // Read routines fresh from storage on every focus: the routine context only loads once at startup, so pause/delete elsewhere would go stale.
   const load = useCallback(async () => {
     try {
       const [history, dismissedAt, routines, programs, pointerId] =
@@ -102,13 +90,11 @@ export default function TodayCard() {
         ]);
       setTrainedToday(getStreakState(history).trainedToday);
 
-      // Advice stays hidden only until the cooldown elapses, then re-surfaces.
       setAdviceDismissed(
         dismissedAt !== null &&
           Date.now() - dismissedAt < ROUTINE_ADVICE_COOLDOWN_MS,
       );
 
-      // Newest first; the card lists the last few for one-tap repeats.
       setRecent(
         [...history]
           .sort(
@@ -145,8 +131,6 @@ export default function TodayCard() {
     }, [load]),
   );
 
-  // Flip to the previous/next day in the program ring and remember the choice,
-  // so both this card and the Routines screen treat it as the new up-next.
   const flip = useCallback(
     (dir: -1 | 1) => {
       setCalculated((prev) => {
@@ -161,8 +145,6 @@ export default function TodayCard() {
     [days],
   );
 
-  // Tapping Start plays the shared launch interstitial; the navigation fires from
-  // inside the overlay once its animation lands.
   const handleStart = useCallback(() => {
     if (!calculated) return;
     const sets = calculated.exercises.reduce((n, ex) => n + ex.sets.length, 0);
@@ -182,16 +164,13 @@ export default function TodayCard() {
       routineName: "Empty Workout",
       subtitle: "Freestyle — log as you go",
       onArrive: () => {
-        // Actually start the session on arrival (not just navigate): the
-        // workout tab consumes this on focus and opens the composer.
+        // Start the session on arrival, not just navigate: the workout tab consumes this on focus and opens the composer.
         setPendingQuickStart();
         router.push("/workout");
       },
     });
   }, [launch, router]);
 
-  // Repeat a past session: hand it to the Workout tab, which prefills its
-  // draft on focus (same hand-off pattern as routines).
   const repeatWorkout = useCallback(
     (w: GeneratedWorkout) => {
       launch({
@@ -216,8 +195,6 @@ export default function TodayCard() {
     );
   }
 
-  // No active routine — headline, two pills, dismiss, then the last few
-  // sessions for one-tap repeats (real content where filler copy was).
   if (!calculated) {
     return (
       <Card style={styles.card}>
@@ -241,8 +218,6 @@ export default function TodayCard() {
           />
           {!adviceDismissed && (
             <>
-              {/* Secondary path: bordered pill, quiet by contrast with the
-                  solid Start pill — one card, two contained choices. */}
               <TouchableOpacity
                 style={[
                   styles.secondaryButton,
@@ -313,8 +288,7 @@ export default function TodayCard() {
             </Text>
             {days.length > 1 && (
               <View style={styles.navRow}>
-                {/* Hairline background override keeps the pager quieter than the
-                    default surface square. */}
+                {/* Hairline background keeps the pager quieter than the default surface square. */}
                 <IconButton
                   icon="chevron-back"
                   onPress={() => flip(-1)}
@@ -423,8 +397,7 @@ const styles = StyleSheet.create({
   routineName: {
     flex: 1,
   },
-  // The pager card owns its vertical padding (Card's default is zeroed out):
-  // the heading sits flush at the top, with a small breath below the button.
+  // Pager card owns its vertical padding (Card's default is zeroed out).
   pagerCard: {
     paddingBottom: space.sm,
   },

@@ -11,8 +11,7 @@ import TierBadge from "./TierBadge";
 
 interface OverallStatsCardProps {
   stats: OverallStats;
-  // When set (post-workout replay), the bar sweeps and the number counts up from
-  // this pre-workout percentile to the current one — the earned delta made visible.
+  // Post-workout replay: bar/number animate from this pre-workout percentile to current.
   animateFrom?: number;
 }
 
@@ -24,8 +23,7 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Count the headline number up from animateFrom → percentile on a post-workout
-  // replay; otherwise it just shows the current value.
+  // Count the headline up from animateFrom → percentile on replay, else show current.
   const [shownPercentile, setShownPercentile] = useState(
     animateFrom != null ? Math.round(animateFrom) : percentile,
   );

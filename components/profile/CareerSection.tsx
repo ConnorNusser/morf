@@ -19,9 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// A prominent, inline Career section for the Profile — the gamification
-// centerpiece. Shows the headline tier hero, lifetime stats, next goal and an
-// achievement preview; tapping anything opens the full Career modal.
+// Inline Career section for the Profile: tier hero, lifetime stats, next goal and achievement preview; tap opens the full Career modal.
 export default function CareerSection() {
   const { currentTheme } = useTheme();
   const [data, setData] = useState<CareerData | null>(null);
@@ -59,7 +57,6 @@ export default function CareerSection() {
   const rarity = rarityBreakdown(data.achievements);
   const achProgress = total > 0 ? unlockedCount / total : 0;
 
-  // Consistency strip: the last 8 weeks, with a count so it reads on its own.
   const recentWeeks = data.heatmap.weeks.slice(-8);
   const recentActive = recentWeeks.reduce((n, wk) => n + wk.filter(c => c.trained).length, 0);
 
@@ -67,7 +64,6 @@ export default function CareerSection() {
     <>
       <TouchableOpacity activeOpacity={0.9} onPress={open}>
         <Card style={styles.card} padding={18}>
-          {/* Header */}
           <View style={styles.headerRow}>
             <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
             <View style={styles.headerRight}>
@@ -83,8 +79,6 @@ export default function CareerSection() {
             </View>
           </View>
 
-          {/* Strength hero — percentile + tier side by side (like the dashboard's
-              Overall Strength card); the percentile counts up and the bar fills. */}
           <View style={styles.hero}>
             <View style={styles.heroStatsRow}>
               <View style={styles.heroStat}>
@@ -115,7 +109,6 @@ export default function CareerSection() {
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
 
-          {/* Stat row */}
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
             {statItems.map(s => (
               <View key={s.l} style={styles.stat}>
@@ -131,7 +124,6 @@ export default function CareerSection() {
             ))}
           </View>
 
-          {/* Activity — the last 8 weeks, labelled so it reads on its own */}
           <View style={styles.consistency}>
             <View style={styles.consistencyHead}>
               <Text style={[styles.consistencyLabel, { color: currentTheme.colors.text }]}>ACTIVITY</Text>
@@ -172,7 +164,6 @@ export default function CareerSection() {
 
           <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
 
-          {/* Next goal — tap to flip for what it takes */}
           {nextUp && (
             <FlipCard
               height={48}
@@ -207,8 +198,6 @@ export default function CareerSection() {
             />
           )}
 
-          {/* Achievements — a flippable bar: collection progress on the front,
-              rarity breakdown on the back. Full grid lives in the modal. */}
           <FlipCard
             height={60}
             style={styles.achWrap}

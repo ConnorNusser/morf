@@ -3,11 +3,9 @@ import { userService } from '@/lib/services/userService';
 import { CustomExercise, GeneratedWorkout, MuscleGroup, UserLift, WeightUnit, convertWeight } from '@/types';
 import { getExercise } from './workouts';
 
-// A weight value converted into the user's preferred unit (no-op when it matches).
 const toPreferred = (w: number, u: WeightUnit, preferred: WeightUnit): number =>
   u === preferred ? w : convertWeight(w, u, preferred);
 
-// Bucket lifts by their exercise id (each caller applies its own per-bucket sort).
 function groupLiftsByExercise(lifts: UserLift[]): Record<string, UserLift[]> {
   const byExercise: Record<string, UserLift[]> = {};
   for (const lift of lifts) {
@@ -16,8 +14,7 @@ function groupLiftsByExercise(lifts: UserLift[]): Record<string, UserLift[]> {
   return byExercise;
 }
 
-// Lifetime totals for the dashboard header: total volume (Σ weight×reps over all
-// completed sets, in the user's preferred unit) and total workouts logged.
+// Lifetime totals: Σ weight×reps over completed sets (preferred unit) + workout count.
 export interface LifetimeTotals {
   totalVolume: number;
   totalWorkouts: number;
@@ -39,8 +36,6 @@ export function getLifetimeTotals(
   }
   return { totalVolume: Math.round(totalVolume), totalWorkouts: workouts.length };
 }
-
-// ===== TYPES =====
 
 export type RecapPeriod = 'week' | 'month' | 'year';
 
@@ -112,8 +107,6 @@ export interface RecapStats {
   unit: WeightUnit;
 }
 
-// ===== HELPER FUNCTIONS =====
-
 function getDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -130,7 +123,7 @@ function getMonthName(monthIndex: number): string {
 
 function getWeekRange(date: Date): { start: Date; end: Date; label: string; subtitle: string } {
   const start = new Date(date);
-  start.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
+  start.setDate(date.getDate() - date.getDay()); // Sunday
   start.setHours(0, 0, 0, 0);
 
   const end = new Date(start);
@@ -182,8 +175,6 @@ function getYearRange(year: number): { start: Date; end: Date; label: string; su
   return { start, end, label, subtitle };
 }
 
-// ===== MAIN CALCULATION FUNCTION =====
-
 export async function calculateRecapStats(
   period: RecapPeriod,
   referenceDate: Date = new Date()
@@ -192,7 +183,6 @@ export async function calculateRecapStats(
   const preferredUnit = userProfile.weightUnitPreference || 'lbs';
   const allWorkouts = await storageService.getWorkoutHistory();
 
-  // Get period range
   let periodRange: { start: Date; end: Date; label: string; subtitle: string };
 
   switch (period) {
@@ -207,14 +197,12 @@ export async function calculateRecapStats(
       break;
   }
 
-  // Filter workouts for the period
   const periodWorkouts = allWorkouts.filter(w => {
     const workoutDate = new Date(w.createdAt);
     return workoutDate >= periodRange.start && workoutDate <= periodRange.end;
   });
 
-  // Lifts for the period: one best set per exercise per workout, derived from the
-  // period's workouts (records/history are the source — no separate lift store).
+  // One best set per exercise per workout, derived from the period's workouts.
   const epley = (w: number, r: number) => w * (1 + r / 30);
   const allLifts: UserLift[] = [];
   for (const workout of periodWorkouts) {
@@ -226,7 +214,6 @@ export async function calculateRecapStats(
     }
   }
 
-  // Calculate basic stats
   const totalWorkouts = periodWorkouts.length;
   let totalVolume = 0;
   let totalSets = 0;
@@ -276,11 +263,9 @@ export async function calculateRecapStats(
     }
   }
 
-  // Calculate streaks
   const longestStreak = calculateLongestStreak(periodWorkouts);
   const currentStreak = calculateCurrentStreak(allWorkouts);
 
-  // Top exercises
   const topExercises: TopExercise[] = Object.entries(exerciseCounts)
     .map(([id, data]) => {
       const exerciseInfo = getExercise(id);
@@ -295,7 +280,6 @@ export async function calculateRecapStats(
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  // Muscle distribution
   const totalMuscleHits = Object.values(muscleGroupCounts).reduce((a, b) => a + b, 0);
   const muscleGroupDistribution: MuscleDistribution[] = Object.entries(muscleGroupCounts)
     .map(([group, count]) => ({
@@ -305,13 +289,9 @@ export async function calculateRecapStats(
     }))
     .sort((a, b) => b.percentage - a.percentage);
 
-  // PRs
   const { prsAchieved, topPR } = calculatePRStats(allLifts, preferredUnit);
-
-  // Strength progress
   const strengthProgress = calculateStrengthProgressForPeriod(allLifts, preferredUnit);
 
-  // Best day
   let bestDay: BestDay | null = null;
   let maxVolume = 0;
   for (const [, stats] of Object.entries(dailyStats)) {
@@ -326,7 +306,6 @@ export async function calculateRecapStats(
     }
   }
 
-  // Calculate period-specific averages
   const totalDaysInPeriod = Math.ceil((periodRange.end.getTime() - periodRange.start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
   const daysActive = Object.keys(dailyStats).length;
 
@@ -336,10 +315,10 @@ export async function calculateRecapStats(
       averageWorkoutsPerPeriod = Math.round((totalWorkouts / 7) * 10) / 10;
       break;
     case 'month':
-      averageWorkoutsPerPeriod = Math.round((totalWorkouts / 4) * 10) / 10; // Per week
+      averageWorkoutsPerPeriod = Math.round((totalWorkouts / 4) * 10) / 10; // per week
       break;
     case 'year':
-      averageWorkoutsPerPeriod = Math.round((totalWorkouts / 52) * 10) / 10; // Per week
+      averageWorkoutsPerPeriod = Math.round((totalWorkouts / 52) * 10) / 10; // per week
       break;
   }
 
@@ -367,8 +346,6 @@ export async function calculateRecapStats(
     unit: preferredUnit,
   };
 }
-
-// ===== STREAK CALCULATIONS =====
 
 function calculateLongestStreak(workouts: GeneratedWorkout[]): StreakInfo {
   if (workouts.length === 0) {
@@ -413,7 +390,7 @@ function calculateCurrentStreak(workouts: GeneratedWorkout[]): number {
   if (workouts.length === 0) return 0;
 
   const uniqueDates = [...new Set(workouts.map(w => getDateKey(new Date(w.createdAt))))];
-  uniqueDates.sort((a, b) => b.localeCompare(a)); // Sort descending
+  uniqueDates.sort((a, b) => b.localeCompare(a));
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -423,7 +400,7 @@ function calculateCurrentStreak(workouts: GeneratedWorkout[]): number {
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayKey = getDateKey(yesterday);
 
-  // Must have worked out today or yesterday to have a current streak
+  // No current streak unless they trained today or yesterday.
   if (uniqueDates[0] !== todayKey && uniqueDates[0] !== yesterdayKey) {
     return 0;
   }
@@ -443,8 +420,6 @@ function calculateCurrentStreak(workouts: GeneratedWorkout[]): number {
 
   return streak;
 }
-
-// ===== PR CALCULATION =====
 
 function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit): { prsAchieved: number; topPR: TopPR | null } {
   if (lifts.length === 0) {
@@ -488,8 +463,6 @@ function calculatePRStats(lifts: UserLift[], preferredUnit: WeightUnit): { prsAc
 
   return { prsAchieved, topPR };
 }
-
-// ===== STRENGTH PROGRESS =====
 
 function calculateStrengthProgressForPeriod(lifts: UserLift[], preferredUnit: WeightUnit): StrengthProgress[] {
   const liftsByExercise = groupLiftsByExercise(lifts);

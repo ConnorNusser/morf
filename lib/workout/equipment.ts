@@ -1,7 +1,6 @@
 // Single source of truth for equipment options and their display labels.
 import { Equipment } from '@/types';
 
-/** Every selectable equipment type, in canonical display order. */
 export const ALL_EQUIPMENT: Equipment[] = [
   'barbell',
   'dumbbell',
@@ -12,7 +11,7 @@ export const ALL_EQUIPMENT: Equipment[] = [
   'bodyweight',
 ];
 
-/** Singular labels for chips / single-item display (e.g. "Dumbbell"). */
+// Singular labels (chips / single-item display).
 export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   barbell: 'Barbell',
   dumbbell: 'Dumbbell',
@@ -26,7 +25,7 @@ export const EQUIPMENT_LABELS: Record<Equipment, string> = {
 export const formatEquipmentLabel = (equipment: Equipment): string =>
   EQUIPMENT_LABELS[equipment] ?? equipment;
 
-/** Plural labels that read naturally in prose lists (e.g. AI prompts). */
+// Plural labels for prose lists (e.g. AI prompts).
 export const EQUIPMENT_DISPLAY_LABELS: Record<Equipment, string> = {
   barbell: 'Barbell',
   dumbbell: 'Dumbbells',
@@ -37,6 +36,5 @@ export const EQUIPMENT_DISPLAY_LABELS: Record<Equipment, string> = {
   bodyweight: 'Bodyweight',
 };
 
-/** Comma-joined plural labels, e.g. "Barbell, Dumbbells, Machines". */
 export const formatEquipmentList = (equipment: Equipment[]): string =>
   equipment.map(e => EQUIPMENT_DISPLAY_LABELS[e]).join(', ');

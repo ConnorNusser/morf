@@ -1,9 +1,6 @@
 import { useSharedValue, useAnimatedStyle, withSequence, withTiming, withSpring } from 'react-native-reanimated';
 
-/**
- * Like-button "pop" animation shared by the feed comment/thread modals.
- * Returns the animated style for the heart and a `pop()` to trigger the bounce.
- */
+// Like-button "pop" animation: returns the heart's animated style and pop().
 export function useLikePop() {
   const likeScale = useSharedValue(1);
   const likeAnimatedStyle = useAnimatedStyle(() => ({

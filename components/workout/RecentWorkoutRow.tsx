@@ -20,11 +20,7 @@ function dateLabel(value: Date | string): string {
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-/**
- * The one "repeat a past session" row — date eyebrow, exercise names, and the
- * Repeat arrow puck (StartButton's arrow, quieter). Shared by the Workout
- * tab's recent list and Home's Today card so the action wears one outfit.
- */
+// "Repeat a past session" row, shared by the Workout tab's recent list and Home's Today card.
 function RecentWorkoutRow({ workout, onPress, separator = false, maxExercises }: RecentWorkoutRowProps) {
   const ink = useInk();
   const names = (workout.exercises || []).map(e => getExercise(e.id)?.name || e.id);

@@ -39,7 +39,6 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
   const { currentTheme } = useTheme();
   const ink = useInk();
 
-  // Group the flat set history into per-day sessions with a best 1RM and volume.
   const sessions = useMemo<Session[]>(() => {
     if (!exercise) return [];
 
@@ -74,7 +73,6 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
 
     const list = Array.from(byDay.values());
 
-    // Compute the display 1RM and order sets best-first within each session.
     for (const s of list) {
       s.bestOneRMDisplay =
         weightUnit === 'kg'
@@ -83,14 +81,12 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
       s.sets.sort((a, b) => b.oneRMLbs - a.oneRMLbs);
     }
 
-    // Flag the single best session as the all-time PR.
     const prSession = list.reduce<Session | null>(
       (best, s) => (!best || s.bestOneRMLbs > best.bestOneRMLbs ? s : best),
       null
     );
     if (prSession) prSession.isPR = true;
 
-    // Most recent session first.
     list.sort((a, b) => b.date.getTime() - a.date.getTime());
     return list;
   }, [exercise, weightUnit]);
@@ -100,14 +96,11 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
     [sessions]
   );
 
-  // Estimated-1RM change from the first recorded session to the most recent,
-  // in the user's display unit. Null when there's nothing to compare.
+  // Est-1RM change from first to most recent session, in display unit; null when nothing to compare.
   const trend = useMemo(() => {
     if (sessions.length < 2) return null;
     const first = sessions[sessions.length - 1];
-    // Compare the best of the few most recent sessions against the first, so a single
-    // light/deload day (sessions[0] is the latest) can't flip the progress indicator
-    // negative right after a PR. Mirrors getImprovement()'s "max of last 3" approach.
+    // Best of the last 3 vs the first, so a single deload day can't flip the indicator negative after a PR.
     const recentBest = Math.max(...sessions.slice(0, 3).map(s => s.bestOneRMDisplay));
     const change = recentBest - first.bestOneRMDisplay;
     return { change, firstDate: first.date, sessionCount: sessions.length };
@@ -191,7 +184,6 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                     </Text>
                   </View>
 
-                  {/* Relative 1RM bar */}
                   <View style={[styles.barTrack, { backgroundColor: ink.hairline }]}>
                     <View style={[styles.barFill, { width: `${barPct * 100}%`, backgroundColor: session.isPR ? currentTheme.colors.primary : withAlpha(currentTheme.colors.primary, 'secondary') }]} />
                   </View>

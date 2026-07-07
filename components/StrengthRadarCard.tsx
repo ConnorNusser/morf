@@ -35,7 +35,6 @@ export default function StrengthRadarCard({
     }));
   }, [muscleGroups]);
 
-  // Get contributions filtered by muscle group (matches OverallStrengthModal logic)
   const getContributionsByMuscleGroup = useMemo(() => {
     const map: Record<string, TopContribution[]> = {};
 
@@ -43,7 +42,6 @@ export default function StrengthRadarCard({
       const workout = getWorkoutById(c.exercise_id);
       if (!workout) return;
 
-      // Add contribution to each matching primary muscle group (same as OverallStrengthModal)
       const groups = workout.primaryMuscles || [];
       groups.forEach((g: string) => {
         const key = g.toLowerCase();
@@ -52,7 +50,6 @@ export default function StrengthRadarCard({
       });
     });
 
-    // Sort each group by percentile descending
     Object.keys(map).forEach(k => map[k].sort((a, b) => b.percentile - a.percentile));
     return map;
   }, [topContributions]);
@@ -66,7 +63,6 @@ export default function StrengthRadarCard({
     });
   }, [chartData, getContributionsByMuscleGroup]);
 
-  // Filter contributions based on selected muscle group (using lowercase like OverallStrengthModal)
   const filteredContributions = useMemo(() => {
     if (selectedIdx < 0 || !chartData[selectedIdx]) {
       return topContributions;
@@ -77,15 +73,12 @@ export default function StrengthRadarCard({
 
   const nextTier = getNextTierInfo(overallPercentile);
 
-  // Get the current displayed percentile and its tier color
   const displayedPercentile = selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].value : overallPercentile;
   const displayedTierColor = getTierColor(getStrengthTier(displayedPercentile));
 
   return (
     <Card style={styles.card}>
-      {/* Header with Tier and Percentile - changes based on selection */}
       <View style={[styles.headerRow, { backgroundColor: 'transparent' }]}>
-        {/* Tier Badge - shows selected muscle group or overall */}
         <View style={[styles.tierSection, { backgroundColor: 'transparent' }]}>
           <TierBadge
             percentile={selectedIdx >= 0 && chartData[selectedIdx] ? chartData[selectedIdx].value : overallPercentile}
@@ -98,7 +91,6 @@ export default function StrengthRadarCard({
           )}
         </View>
 
-        {/* Percentile + Clear button */}
         <View style={[styles.percentileBlock, { backgroundColor: 'transparent' }]}>
           {selectedIdx >= 0 ? (
             <TouchableOpacity
@@ -118,7 +110,6 @@ export default function StrengthRadarCard({
         </View>
       </View>
 
-      {/* Progress Bar - changes based on selection with tier color */}
       <ProgressBar
         progress={displayedPercentile}
         height={8}
@@ -126,12 +117,10 @@ export default function StrengthRadarCard({
         color={displayedTierColor}
       />
 
-      {/* Next Tier Hint */}
       <Text style={[styles.nextTierHint, { color: currentTheme.colors.text + '70' }]}>
         {nextTier.next ? `+${nextTier.needed}% to ${nextTier.next} Tier` : 'Maximum Tier Reached!'}
       </Text>
 
-      {/* Radar Chart */}
       <RadarChart
         data={chartData}
         tiers={RADAR_TIER_THRESHOLDS}
@@ -142,7 +131,6 @@ export default function StrengthRadarCard({
       />
 
 
-      {/* Top Contributions */}
       {showContributions && filteredContributions.length > 0 && (
         <View style={[styles.contributionsSection, { backgroundColor: 'transparent' }]}>
           <Text style={[styles.contributionsTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>

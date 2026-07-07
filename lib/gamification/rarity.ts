@@ -1,20 +1,14 @@
-// Achievement rarity — the single biggest prestige driver in game/fitness
-// reward systems (PlayStation/Steam tag rarity on top of medals; research shows
-// rare unlocks account for most perceived "score"). Drives the metallic look of
-// each badge and a small rarity label in the UI. Pure data, no deps.
-
+// Achievement rarity — drives each badge's tint/border and rarity label. Pure data.
 export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 
 export const RARITY_ORDER: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 export interface RarityMeta {
   label: string;
-  // The badge tint + border color and the rarity text accent.
-  accent: string;
+  accent: string; // badge tint/border + rarity text accent
 }
 
-// Slate → Sapphire → Amethyst → Gold: an escalating-prestige ramp that stays
-// legible (as a tint + border) on both light and dark surfaces.
+// Slate → Sapphire → Amethyst → Gold, legible on light and dark surfaces.
 export const RARITY_META: Record<Rarity, RarityMeta> = {
   common: { label: 'Common', accent: '#6B7280' },
   rare: { label: 'Rare', accent: '#2563EB' },

@@ -1,6 +1,4 @@
-/**
- * Content moderation utilities for filtering inappropriate content
- */
+// Content moderation utilities.
 
 const BLOCKED_WORDS = [
   'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'chink', 'spic', 'kike', 'wetback', 'beaner', 'gook', 'tranny', 'coon',
@@ -10,14 +8,9 @@ const BLOCKED_WORDS = [
   'pedo', 'molest', 'incest',
 ];
 
-/**
- * Checks if text contains any blocked/profane words
- * Also checks for common leet speak substitutions
- */
 export function containsProfanity(text: string): boolean {
   const lower = text.toLowerCase();
 
-  // Check direct matches
   for (const word of BLOCKED_WORDS) {
     if (lower.includes(word)) {
       return true;

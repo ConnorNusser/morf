@@ -51,8 +51,7 @@ const SkeletonLine = ({ width, height = 16, style }: SkeletonLineProps) => {
         {
           width,
           height,
-          // A light overlay reads on the flat page; the old `border` fill was
-          // invisible once the framing card went flat.
+          // Light overlay reads on the flat page (old `border` fill was invisible once the card went flat).
           backgroundColor: ink.ghost,
         },
         { opacity },
@@ -76,14 +75,11 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
   if (variant === 'leaderboard-row') {
     return (
       <View style={[styles.leaderboardRow, style]}>
-        {/* Rank circle */}
         <SkeletonLine width={28} height={28} style={{ borderRadius: 14 }} />
-        {/* User info */}
         <View style={styles.leaderboardUserInfo}>
           <SkeletonLine width={100} height={15} />
           <SkeletonLine width={60} height={12} style={{ marginTop: space.xs }} />
         </View>
-        {/* Value */}
         <SkeletonLine width={50} height={16} />
       </View>
     );
@@ -92,9 +88,7 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
   if (variant === 'profile-header') {
     return (
       <View style={[styles.profileHeader, style]}>
-        {/* Avatar circle */}
         <SkeletonLine width={60} height={60} style={{ borderRadius: 30 }} />
-        {/* User info */}
         <View style={styles.profileInfo}>
           <SkeletonLine width={120} height={18} />
           <SkeletonLine width={80} height={14} style={{ marginTop: space.sm }} />
@@ -106,7 +100,6 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
   if (variant === 'feed') {
     return (
       <View style={[styles.feedCard, { borderBottomColor: currentTheme.colors.border }, style]}>
-        {/* Header with avatar, username, time, and tier badge */}
         <View style={styles.feedHeader}>
           <View style={styles.feedUserInfo}>
             <SkeletonLine width={44} height={44} style={{ borderRadius: 22 }} />
@@ -118,19 +111,15 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
           <SkeletonLine width={36} height={26} style={{ borderRadius: 10 }} />
         </View>
 
-        {/* Workout title */}
         <SkeletonLine width="75%" height={22} style={{ marginTop: space.md }} />
 
-        {/* Stats row */}
         <SkeletonLine width="60%" height={14} style={{ marginTop: space.md }} />
 
-        {/* PPL chips */}
         <View style={styles.feedChips}>
           <SkeletonLine width={70} height={28} style={{ borderRadius: 16 }} />
           <SkeletonLine width={60} height={28} style={{ borderRadius: 16 }} />
         </View>
 
-        {/* Exercise rows */}
         <View style={styles.feedExercises}>
           <View style={styles.feedExerciseRow}>
             <SkeletonLine width="50%" height={15} />
@@ -146,7 +135,6 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
           </View>
         </View>
 
-        {/* Action bar */}
         <View style={styles.feedActions}>
           <View style={styles.feedActionButtons}>
             <SkeletonLine width={50} height={32} style={{ borderRadius: 10 }} />
@@ -160,12 +148,10 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
   if (variant === 'overall') {
     return (
       <Card style={StyleSheet.flatten([styles.container, style])}>
-        {/* Title */}
         <View style={{ marginBottom: space.xl }}>
           <SkeletonLine width="60%" height={20} />
         </View>
 
-        {/* Stats row */}
         <View style={styles.statsRow}>
           <View style={styles.statBlock}>
             <View style={{ marginBottom: space.sm }}>
@@ -181,7 +167,6 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
           </View>
         </View>
 
-        {/* Progress bar */}
         <View style={{ marginTop: space.section }}>
           <SkeletonLine width="100%" height={12} style={{ borderRadius: 6 }} />
           <SkeletonLine width="40%" height={12} style={{ marginTop: space.md, alignSelf: 'center' }} />
@@ -190,10 +175,8 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
     );
   }
 
-  // Default: stats card
   return (
     <Card style={StyleSheet.flatten([styles.container, style])}>
-      {/* Header */}
       <View style={styles.header}>
         <SkeletonLine width="45%" height={18} />
         <View style={{ alignItems: 'flex-end' }}>
@@ -203,7 +186,6 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         </View>
       </View>
 
-      {/* Stats row */}
       <View style={styles.statsRow}>
         <View style={styles.statBlock}>
           <View style={{ marginBottom: space.sm }}>
@@ -219,7 +201,6 @@ export default function SkeletonCard({ style, variant = 'stats' }: SkeletonCardP
         </View>
       </View>
 
-      {/* Progress bar */}
       <View style={{ marginTop: space.lg }}>
         <SkeletonLine width="100%" height={8} style={{ borderRadius: 4 }} />
         <SkeletonLine width="50%" height={12} style={{ marginTop: space.sm, alignSelf: 'center' }} />
