@@ -7,7 +7,6 @@ import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 export interface StatStripItem {
   value: string | number;
   label: string;
-  /** Draw the value in the theme primary instead of text ink. */
   accent?: boolean;
 }
 
@@ -16,11 +15,6 @@ interface StatStripProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * A horizontal strip of headline stats on a surface — value over label,
- * separated by hairlines. The shared shape for summary rows like the
- * Exercises overview.
- */
 function StatStrip({ items, style }: StatStripProps) {
   const { currentTheme } = useTheme();
 

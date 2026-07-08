@@ -1,7 +1,4 @@
-// Pending-set preview shown below the composer. As you type it shows a quiet
-// "reading…" skeleton (so it's obvious the set is being picked up); when you
-// pause it resolves to a plain card of what will be added — styled like a normal
-// set, not an AI suggestion. Local parse only (no tokens while typing).
+// Pending-set preview below the composer: a "reading…" skeleton while typing, resolving to a plain card of what will be added. Local parse first (no tokens while typing).
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -29,8 +26,7 @@ interface PreviewLine {
 
 function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string; sets: ParsedSet[] }[] }, unit: WeightUnit): PreviewLine[] {
   return parsed.exercises
-    // A real set has reps. The AI sometimes guesses an exercise name from a
-    // fragment and returns a 0×0 set — drop those so they don't render as blanks.
+    // Drop 0×0 sets: the AI sometimes guesses a name from a fragment and returns one, which would render as a blank.
     .map(ex => ({ ...ex, sets: ex.sets.filter(s => s.reps > 0) }))
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
@@ -39,8 +35,7 @@ function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string
     }));
 }
 
-// The local parse is "good enough" only if it recognized the exercise and got
-// real sets; otherwise we let the AI interpret it (abbreviations like "DL").
+// Local parse is "good enough" only if it recognized the exercise with real sets; otherwise let the AI interpret it (e.g. abbreviations like "DL").
 function localIsReasonable(parsed: { exercises: { matchedExerciseId?: string; sets: ParsedSet[] }[] }): boolean {
   return parsed.exercises.length > 0 &&
     parsed.exercises.every(ex => !!ex.matchedExerciseId && ex.sets.length > 0 && ex.sets.every(s => s.reps > 0));
@@ -72,8 +67,7 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       const looksLikeSet = /\d/.test(text);
       const trimmed = text.trim();
 
-      // 1) Local read sets — show them now, and refine names via AI in the
-      //    background (never blanking what we already showed).
+      // 1) Local read sets — show now, refine names via AI in the background (never blanking what's shown).
       if (localLines.length > 0) {
         settle(localLines);
         if (!localIsReasonable(local)) {
@@ -82,17 +76,14 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
         return;
       }
 
-      // 2) Looks like a set we couldn't read (e.g. "DL 225x5", odd phrasing) —
-      //    let the AI interpret it once.
+      // 2) Looks like a set we couldn't read (e.g. "DL 225x5") — let the AI interpret it once.
       if (looksLikeSet) {
         try { settle(toLines(await workoutNoteParser.parseWorkoutNote(text, weightUnit), weightUnit)); }
         catch { settle([]); }
         return;
       }
 
-      // 3) Name only, no sets yet — recognize the exercise so it can be added
-      //    (its sets autofill from last time). Local abbreviations resolve free;
-      //    fall back to AI for names the matcher doesn't know.
+      // 3) Name only, no sets — recognize the exercise so it can be added (sets autofill from last time); local match first, AI fallback for unknown names.
       const localId = matchExerciseByName(trimmed);
       if (localId) { settle([{ name: getWorkoutById(localId)?.name || trimmed }]); return; }
       if (/[a-z]/i.test(trimmed) && trimmed.length >= 3) {

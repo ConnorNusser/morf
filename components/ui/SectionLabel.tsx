@@ -8,11 +8,6 @@ interface SectionLabelProps {
   style?: StyleProp<TextStyle>;
 }
 
-/**
- * The uppercase micro-label that introduces a section — one grammar for
- * YOUR LIFTS / RECORDS / the Career card, so every tab starts sections
- * the same way.
- */
 function SectionLabel({ children, style }: SectionLabelProps) {
   return (
     <Text

@@ -39,7 +39,6 @@ export function getExerciseBadgeInfo(
   bodyWeightLbs?: number,
   gender?: Gender
 ): BadgeInfo {
-  // For custom exercises, check if it's a PR based on weight
   if (isCustom || !matchedExerciseId) {
     const maxWeight = Math.max(...sets.map(s => s.weight), 0);
     if (maxWeight > 0) {
@@ -48,10 +47,8 @@ export function getExerciseBadgeInfo(
     return { type: 'custom', label: 'Custom', icon: 'create' };
   }
 
-  // For featured exercises, get the user's existing data for PR comparison
   const userLift = userLifts.find(l => l.workoutId === matchedExerciseId);
 
-  // Calculate the best 1RM from this workout's sets
   const best1RM = Math.max(
     ...sets.map(set => {
       if (set.reps === 0) return 0;
@@ -60,7 +57,7 @@ export function getExerciseBadgeInfo(
     0
   );
 
-  // Calculate percentile based on THIS workout's lift, not user's all-time best
+  // Percentile from THIS workout's lift, not the user's all-time best.
   if (best1RM > 0 && bodyWeightLbs && gender) {
     const workoutPercentile = calculateStrengthPercentile(
       best1RM,
@@ -72,13 +69,12 @@ export function getExerciseBadgeInfo(
     if (workoutPercentile > 0) {
       const tier = getStrengthTier(workoutPercentile);
       const tierColor = getTierColor(tier);
-      // Check if this is a PR compared to user's existing best
       const isPR = userLift ? best1RM > userLift.personalRecord : true;
       return { type: 'tier', tier, tierColor, isPR, percentile: workoutPercentile };
     }
   }
 
-  // Fallback: use user's existing percentile if we couldn't calculate from workout
+  // Fallback: user's existing percentile.
   if (userLift && userLift.percentileRanking > 0) {
     const tier = getStrengthTier(userLift.percentileRanking);
     const tierColor = getTierColor(tier);
@@ -86,7 +82,6 @@ export function getExerciseBadgeInfo(
     return { type: 'tier', tier, tierColor, isPR, percentile: userLift.percentileRanking };
   }
 
-  // No existing data - show as new lift
   if (best1RM > 0) {
     return { type: 'new', label: 'New', icon: 'sparkles' };
   }

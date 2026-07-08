@@ -10,10 +10,6 @@ interface SegmentedTabsProps<K extends string> {
   onChange: (key: K) => void;
 }
 
-/**
- * Underline tab switcher — active tab in full ink with a primary-colored
- * rule, inactive tabs faint. The header grammar for in-screen tab sets.
- */
 function SegmentedTabs<K extends string>({
   tabs,
   active,

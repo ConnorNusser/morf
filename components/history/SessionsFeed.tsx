@@ -1,7 +1,4 @@
-// The Sessions tab — every session rendered as a FULL analysis inline (header +
-// earned achievements + the SessionAnalysis dashboard), newest first, stacked and
-// hairline-separated. No compact rows, no tap-to-expand: each session is a full view
-// on the page. Tapping a session's header opens the focused view (copy / delete).
+// The Sessions tab — every session rendered as a full inline analysis, newest first. Tapping a header opens the focused view.
 import AchievementBadge from "@/components/gamification/AchievementBadge";
 import AchievementModal, {
   AchievementModalItem,
@@ -18,8 +15,6 @@ import { GeneratedWorkout, WeightUnit } from "@/types";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
-// An achievement earned by a specific session — its badge art rides the header; tap
-// for the full-screen spotlight.
 export interface SessionAchievement {
   id: string;
   title: string;
@@ -66,7 +61,6 @@ function SessionView({
         },
       ]}
     >
-      {/* Header — tap for the focused view (copy / delete). */}
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => onPress(recap.workout)}
@@ -92,7 +86,6 @@ function SessionView({
         </Text>
       </TouchableOpacity>
 
-      {/* Earned achievements */}
       {achievements && achievements.length > 0 && (
         <RNView style={styles.achRow}>
           {achievements.slice(0, 5).map((a) => (

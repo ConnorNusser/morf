@@ -1,15 +1,6 @@
-/**
- * Equipment classification
- * ------------------------------------------------------------------------------------
- * Decides whether the deterministic template library can build a good program for the
- * user's available equipment, or whether we should defer to the AI for an unusual /
- * limited setup (machines-only, cables-only, bodyweight-only, kettlebell-only).
- *
- * Standard setups (anything with a barbell or dumbbells) run the template library —
- * within it, missing gear substitutes automatically via each slot's priority order
- * (e.g. no barbell rack → smith → hack → leg press → goblet → bodyweight).
- */
-
+// Classifies equipment as 'standard' (template library can build it) or 'limited'
+// (defer to AI). Standard = has a barbell or dumbbells; within the template library
+// missing gear substitutes via each slot's priority order.
 import { Equipment } from '@/types';
 import { ALL_EQUIPMENT } from './equipment';
 
@@ -23,8 +14,8 @@ export function classifyEquipment(equipment?: Equipment[] | null): EquipmentProf
   const available = equipment && equipment.length > 0 ? equipment : [...ALL_EQUIPMENT];
   const set = new Set(available);
 
-  // The template library anchors on free-weight compounds. With neither a barbell nor
-  // dumbbells the deterministic build gets thin/repetitive, so we hand those cases to AI.
+  // The template library anchors on free-weight compounds; without barbell or
+  // dumbbells the build gets thin, so hand those cases to AI.
   const tier: EquipmentProfile['tier'] = set.has('barbell') || set.has('dumbbell') ? 'standard' : 'limited';
 
   return { available, tier };

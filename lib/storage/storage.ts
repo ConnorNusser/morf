@@ -4,7 +4,6 @@ import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
 import { getNextInCycle } from '@/lib/workout/activeRoutine';
 
-// Storage keys
 const STORAGE_KEYS = {
   USER_PROFILE: 'user_profile',
   WORKOUT_HISTORY: 'workout_history',
@@ -32,7 +31,6 @@ const STORAGE_KEYS = {
   EXERCISE_RECORDS: 'exercise_records',
 } as const;
 
-// Strength progress data for post-workout celebration
 export interface PendingStrengthProgress {
   previousPercentile: number;
   newPercentile: number;
@@ -41,7 +39,6 @@ export interface PendingStrengthProgress {
 
 export type HomeViewMode = 'home' | 'feed';
 
-// User-facing toggles for self-directed retention notifications.
 export interface NotificationPreferences {
   streakReminders: boolean;
   habitReminders: boolean;
@@ -58,7 +55,6 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   quietHoursEndMinute: 21 * 60 + 30,
 };
 
-// Internal bookkeeping for retention-notification anti-spam (not user-facing).
 export interface RetentionMeta {
   /** Date keys (YYYY-MM-DD) we've scheduled a retention reminder for. */
   scheduledDateKeys: string[];
@@ -66,7 +62,6 @@ export interface RetentionMeta {
 
 
 class StorageService {
-  // User Profile
   async saveUserProfile(profile: UserProfile): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(profile));
@@ -85,7 +80,6 @@ class StorageService {
     }
   }
 
-  // Workout History
   async saveWorkout(workout: GeneratedWorkout): Promise<void> {
     try {
       const history = await this.getWorkoutHistory();
@@ -103,7 +97,6 @@ class StorageService {
       if (!data) return [];
       
       const workouts = JSON.parse(data) as (Omit<GeneratedWorkout, 'createdAt'> & { createdAt: string })[];
-      // Convert date strings back to Date objects
       return workouts.map((w) => ({
         ...w,
         createdAt: new Date(w.createdAt),
@@ -132,7 +125,6 @@ class StorageService {
     }
   }
 
-  // Theme Preference
   async saveThemePreference(themeLevel: ThemeLevel): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.THEME_PREFERENCE, themeLevel);
@@ -157,7 +149,6 @@ class StorageService {
     }
   }
 
-  // Share count tracking for theme milestones
   async incrementShareCount(): Promise<number> {
     try {
       const currentCount = await this.getShareCount();
@@ -173,15 +164,13 @@ class StorageService {
   async getShareCount(): Promise<number> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.SHARE_COUNT);
-      // Default to 10 for testing, change to 0 for production
       return data ? JSON.parse(data) : 0;
     } catch (error) {
       console.error('Error loading share count:', error);
-      return 0; // Default for testing
+      return 0;
     }
   }
 
-  // Retention notification preferences
   async getNotificationPreferences(): Promise<NotificationPreferences> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATION_PREFERENCES);
@@ -202,7 +191,6 @@ class StorageService {
     }
   }
 
-  // Retention notification anti-spam bookkeeping
   async getRetentionMeta(): Promise<RetentionMeta> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.RETENTION_META);
@@ -221,7 +209,6 @@ class StorageService {
     }
   }
 
-  // Lift Display Filters
   async saveLiftDisplayFilters(filters: LiftDisplayFilters): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.LIFT_DISPLAY_FILTERS, JSON.stringify(filters));
@@ -244,7 +231,6 @@ class StorageService {
     }
   }
 
-  // Note-based workout session (for the freeform notes workout screen)
   async saveNoteSession(session: { noteText: string; startTime: Date; routineId?: string | null; draft?: unknown; manuallyStarted?: boolean }): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_NOTE_SESSION, JSON.stringify({
@@ -287,7 +273,6 @@ class StorageService {
     }
   }
 
-  // Utility functions
   async clearAllData(): Promise<void> {
     try {
       await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
@@ -296,7 +281,6 @@ class StorageService {
     }
   }
 
-  // Routines
   async getCurrentRoutine(): Promise<Routine | null> {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_ROUTINE);
     return data ? JSON.parse(data) : null;
@@ -312,7 +296,6 @@ class StorageService {
       if (!data) return [];
 
       const routines = JSON.parse(data) as (Omit<Routine, 'createdAt' | 'lastUsed'> & { createdAt: string; lastUsed?: string })[];
-      // Convert date strings back to Date objects
       return routines.map((r) => ({
         ...r,
         createdAt: new Date(r.createdAt),
@@ -328,17 +311,14 @@ class StorageService {
     try {
       const routines = await this.getRoutines();
 
-      // Check if routine with same ID already exists
       const existingIndex = routines.findIndex(r => r.id === routine.id);
 
       if (existingIndex >= 0) {
-        // Update existing routine, preserve createdAt
         routines[existingIndex] = {
           ...routine,
           createdAt: routines[existingIndex].createdAt,
         };
       } else {
-        // Add new routine with current timestamp
         routines.push({
           ...routine,
           createdAt: routine.createdAt || new Date(),
@@ -351,9 +331,7 @@ class StorageService {
     }
   }
 
-  // The day the up-next ring currently points at, or null to start from the
-  // top of the program. Flipping on the home dashboard sets this; finishing a
-  // workout advances it (see advanceUpNext).
+  // Day the up-next ring points at, or null to start from the top; finishing a workout advances it.
   async getUpNextPointerId(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(STORAGE_KEYS.UP_NEXT_POINTER);
@@ -371,11 +349,7 @@ class StorageService {
     }
   }
 
-  // Timestamp (ms) marking when the current pass through the rotation began. A
-  // day reads as "completed this cycle" when its lastUsed is at or after this
-  // (see isDayCompletedThisCycle) — so the checkmarks derive from a single
-  // source of truth (lastUsed) rather than a separate id list to keep in sync.
-  // 0 means no cycle has started yet.
+  // Timestamp (ms) the current rotation pass began; a day is "completed this cycle" when its lastUsed >= this. 0 = no cycle yet.
   async getCycleStartedAt(): Promise<number> {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.CYCLE_STARTED_AT);
@@ -391,13 +365,7 @@ class StorageService {
     await AsyncStorage.setItem(STORAGE_KEYS.CYCLE_STARTED_AT, String(timestamp));
   }
 
-  // Record that a day was actually trained. Stamps the day's lastUsed (the
-  // single signal completion derives from), advances the up-next pointer to the
-  // next day (wrapping at the end), and starts a fresh cycle when this training
-  // begins a new pass — either the very first training, or re-training a day
-  // already completed this cycle (which clears the other days' checkmarks).
-  // Only ever called when real work was logged (see the finish flow), so a
-  // routine started and abandoned never marks the day done.
+  // Stamp the day's lastUsed, advance the up-next pointer (wrapping), and start a fresh cycle on a new pass (first training or re-training an already-completed day). Only called when real work was logged.
   async recordDayTrained(trainedRoutineId: string): Promise<void> {
     try {
       const [routines, programs] = await Promise.all([this.getRoutines(), this.getPrograms()]);
@@ -423,10 +391,7 @@ class StorageService {
     }
   }
 
-  // Exercise records --------------------------------------------------------
-  // One global record per exercise ("where you're at" on a movement). Keyed by
-  // exerciseId so any routine anchors to the same record; see ExerciseRecord.
-
+  // One global record per exercise, keyed by exerciseId so any routine anchors to the same record.
   async getExerciseRecords(): Promise<Record<string, ExerciseRecord>> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.EXERCISE_RECORDS);
@@ -463,10 +428,7 @@ class StorageService {
   }
 
 
-  // Programs ---------------------------------------------------------------
-  // A program groups the day-routines created together. Exactly one program is
-  // 'active' at a time; its days are the user's active rotation.
-
+  // A program groups day-routines; exactly one is 'active' at a time (its days are the active rotation).
   async getPrograms(): Promise<Program[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.PROGRAMS);
@@ -498,11 +460,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Make one program active: pause every other non-archived program and sync each
-   * program's day-routines' isActive flag to whether their program is now active.
-   * Standalone routines (no programId) are left untouched.
-   */
+  // Make one program active: pause others and sync day-routines' isActive; standalone routines untouched.
   async setActiveProgram(programId: string): Promise<void> {
     try {
       const programs = await this.getPrograms();
@@ -512,15 +470,13 @@ class StorageService {
       }
       await this.savePrograms(programs);
       await this.syncRoutineActiveFlags(programs);
-      // A newly activated program starts a fresh rotation, so day checkmarks
-      // begin empty rather than inheriting stale completions from older training.
+      // Fresh rotation so day checkmarks start empty rather than inheriting stale completions.
       await this.setCycleStartedAt(Date.now());
     } catch (error) {
       console.error('Error setting active program:', error);
     }
   }
 
-  /** Set a program's status (paused/archived/active) and sync its routines. */
   async setProgramStatus(programId: string, status: Program['status']): Promise<void> {
     if (status === 'active') return this.setActiveProgram(programId);
     try {
@@ -535,7 +491,6 @@ class StorageService {
     }
   }
 
-  /** Delete a program and all of its day-routines. */
   async deleteProgram(programId: string): Promise<void> {
     try {
       const programs = (await this.getPrograms()).filter(p => p.id !== programId);
@@ -547,11 +502,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Add a new day-routine to an existing program: stamps it with the programId,
-   * places it at the end of the day order, matches the program's active state, and
-   * keeps the program's `days` count in sync with the actual number of days.
-   */
+  // Add a day-routine to a program: stamp programId, append to day order, match active state, keep days count in sync.
   async addProgramDay(programId: string, routine: Routine): Promise<void> {
     try {
       const programs = await this.getPrograms();
@@ -577,11 +528,7 @@ class StorageService {
     }
   }
 
-  /**
-   * Persist a user-chosen day order within a program. `orderedDayIds` is the
-   * program's day-routine ids in their new top-to-bottom order; each gets an
-   * `order` matching its index so day lists sort by it everywhere.
-   */
+  // Persist day order: each id in orderedDayIds gets an order matching its index.
   async reorderProgramDays(programId: string, orderedDayIds: string[]): Promise<void> {
     try {
       const routines = await this.getRoutines();
@@ -595,13 +542,12 @@ class StorageService {
     }
   }
 
-  /** Mirror each programmed routine's isActive flag onto whether its program is active. */
   private async syncRoutineActiveFlags(programs: Program[]): Promise<void> {
     const statusById = new Map(programs.map(p => [p.id, p.status]));
     const routines = await this.getRoutines();
     let changed = false;
     for (const r of routines) {
-      if (!r.programId) continue;  // leave standalone routines alone
+      if (!r.programId) continue;
       const active = statusById.get(r.programId) === 'active';
       if (r.isActive !== active) { r.isActive = active; changed = true; }
     }
@@ -609,7 +555,6 @@ class StorageService {
   }
 
 
-  // Custom Exercises
   async getCustomExercises(): Promise<CustomExercise[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOM_EXERCISES);
@@ -630,7 +575,6 @@ class StorageService {
     try {
       const exercises = await this.getCustomExercises();
 
-      // Check if exercise with same ID already exists
       const existingIndex = exercises.findIndex(e => e.id === exercise.id);
 
       if (existingIndex >= 0) {
@@ -668,18 +612,11 @@ class StorageService {
     return exercises.find(e => e.name.toLowerCase() === name.toLowerCase()) || null;
   }
 
-  /**
-   * Migrate all references from an old exercise ID to a new exercise ID.
-   * This updates:
-   * - Workout history (exercises in past workouts)
-   * - User profile lifts and secondaryLifts
-   * - Workout templates
-   */
+  // Migrate all references from an old exercise ID to a new one (currently workout history).
   async migrateExerciseId(oldId: string, newId: string): Promise<void> {
     if (oldId === newId) return;
 
     try {
-      // 1. Update workout history
       const history = await this.getWorkoutHistory();
       let historyChanged = false;
       for (const workout of history) {
@@ -703,7 +640,6 @@ class StorageService {
   }
 
 
-  // Home View Mode
   async saveHomeViewMode(mode: HomeViewMode): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.HOME_VIEW_MODE, mode);
@@ -718,14 +654,13 @@ class StorageService {
       if (data === 'home' || data === 'feed') {
         return data;
       }
-      return 'home'; // Default to home
+      return 'home';
     } catch (error) {
       console.error('Error loading home view mode:', error);
       return 'home';
     }
   }
 
-  // Weekly training-day goal (days/week target shown on the home dashboard).
   async getWeeklyGoal(): Promise<number> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WEEKLY_GOAL);
@@ -749,8 +684,7 @@ class StorageService {
     }
   }
 
-  // Timestamp (ms) the user last dismissed the "build a routine" home nudge, or
-  // null if never. The home card re-surfaces the nudge after a cooldown.
+  // Timestamp (ms) the user last dismissed the "build a routine" nudge, or null; re-surfaces after a cooldown.
   async getRoutineAdviceDismissedAt(): Promise<number | null> {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINE_ADVICE_DISMISSED);
@@ -770,8 +704,7 @@ class StorageService {
     }
   }
 
-  // Achievement IDs the user has already seen unlocked (so newly-earned ones can
-  // be highlighted on the Career card and cleared once viewed).
+  // Achievement IDs already seen unlocked, so newly-earned ones can be highlighted then cleared.
   async getSeenAchievements(): Promise<string[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.SEEN_ACHIEVEMENTS);
@@ -791,10 +724,7 @@ class StorageService {
     }
   }
 
-  // Stamp first-seen-unlocked dates so we can show "earned X ago" and only surface
-  // recent wins. On the first ever call we backfill already-unlocked achievements
-  // with an old date (they aren't "recent"); genuine future unlocks get `nowIso`.
-  // Returns the id→ISO-date map (excluding the internal init marker).
+  // Stamp first-seen-unlocked dates. First call backfills already-unlocked achievements with an old date (not "recent"); later unlocks get nowIso. Returns id→ISO-date map minus the init marker.
   async reconcileAchievementUnlocks(unlockedIds: string[], nowIso: string): Promise<Record<string, string>> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.ACHIEVEMENT_UNLOCK_DATES);
@@ -822,7 +752,6 @@ class StorageService {
   }
 
 
-  // The career emblem id the user picked (null if never chosen).
   async getProfileIconId(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_ICON);
@@ -832,7 +761,6 @@ class StorageService {
     }
   }
 
-  // The achievement the user features on their profile (null if none chosen).
   async getFeaturedAchievementId(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(STORAGE_KEYS.FEATURED_ACHIEVEMENT);
@@ -851,7 +779,6 @@ class StorageService {
     }
   }
 
-  // Pending Strength Progress (for post-workout celebration)
   async savePendingStrengthProgress(progress: PendingStrengthProgress): Promise<void> {
     try {
       await AsyncStorage.setItem(
@@ -868,11 +795,9 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_STRENGTH_PROGRESS);
       if (data) {
         const progress = JSON.parse(data) as PendingStrengthProgress;
-        // Only return if less than 24 hours old
         if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
           return progress;
         }
-        // Clear stale data
         await this.clearPendingStrengthProgress();
       }
       return null;
@@ -890,7 +815,6 @@ class StorageService {
     }
   }
 
-  // Shown Notifications (for one-time unlock notifications)
   async getShownNotifications(): Promise<string[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.SHOWN_NOTIFICATIONS);

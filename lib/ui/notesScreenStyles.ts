@@ -1,7 +1,6 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -27,7 +26,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   programChip: {
-    // Equal-width so Pause/Archive/Rename/Delete always share one row.
+    // Equal-width so Pause/Archive/Rename/Delete share one row.
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -51,13 +50,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  // Plain status label, right-aligned on the program name row (green = active).
+  // Status label on the program name row (green = active).
   statusText: {
     fontSize: 12,
     letterSpacing: 0.2,
   },
-  // Cycle progress — one segment per program day, with a small count to the
-  // right of the bar (no verbose caption; the timeline carries 'up next').
+  // Cycle progress — one segment per program day, count to the right.
   cycleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,7 +102,6 @@ export const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 0.5,
   },
-  // Reorder mode (compact day rows with up/down controls)
   reorderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -130,7 +127,6 @@ export const styles = StyleSheet.create({
   reorderBtnDisabled: {
     opacity: 0.25,
   },
-  // "Add day" affordance below a program's day list
   addDayButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -164,9 +160,8 @@ export const styles = StyleSheet.create({
     borderRadius: 7,
     borderWidth: 2,
   },
-  // Completed-day marker — sized/positioned to sit centered on the spine where
-  // the plain dot would be (dot is 13px at top:18/left:6; this 17px icon centers
-  // on the same point).
+  // Completed-day marker — 17px icon centered on the spine dot's point
+  // (dot is 13px at top:18/left:6).
   spineCheck: {
     position: 'absolute',
     top: 16,
@@ -234,15 +229,12 @@ export const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Generating banner
-  // Scroll content
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 4,
     paddingBottom: 120,
   },
 
-  // Progress Button
   progressButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -257,7 +249,6 @@ export const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  // Sections
   section: {
     marginBottom: 24,
   },
@@ -267,7 +258,6 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Routine card
   routineCard: {
     borderRadius: 12,
     padding: 16,
@@ -282,8 +272,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  // Program-level lift-momentum row above the day list: a segment per distinct
-  // exercise + a count, mirroring the cycle bar's layout.
+  // Lift-momentum row: a segment per distinct exercise + a count.
   programMomentum: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -347,7 +336,6 @@ export const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Expanded content
   expandedContent: {
     marginTop: 16,
   },
@@ -371,8 +359,7 @@ export const styles = StyleSheet.create({
   exerciseSets: {
     fontSize: 12,
   },
-  // Per-exercise adherence verdict (improving / on track / easing back),
-  // judged against the program's prescription, under the sets line.
+  // Per-exercise adherence verdict (improving / on track / easing back).
   adherenceText: {
     fontSize: 11.5,
     marginTop: 3,
@@ -423,7 +410,6 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // Action row
   actionRow: {
     flexDirection: 'row',
     borderTopWidth: StyleSheet.hairlineWidth,
@@ -442,7 +428,6 @@ export const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // Empty state
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',

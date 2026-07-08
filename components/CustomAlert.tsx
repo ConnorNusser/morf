@@ -37,7 +37,7 @@ interface AlertConfig {
   message?: string;
   type?: AlertType;
   buttons?: AlertButton[];
-  copyableText?: string; // Text that can be copied to clipboard
+  copyableText?: string;
 }
 
 interface AlertContextType {
@@ -112,12 +112,10 @@ function AlertContent({
         animatedStyle,
       ]}
     >
-      {/* Icon */}
       <View style={[styles.iconContainer, { backgroundColor: color + '15' }]}>
         <Ionicons name={icon} size={36} color={color} />
       </View>
 
-      {/* Title */}
       <Text
         style={[
           styles.title,
@@ -127,7 +125,6 @@ function AlertContent({
         {config.title}
       </Text>
 
-      {/* Message */}
       {config.message && (
         <Text
           style={[
@@ -139,7 +136,6 @@ function AlertContent({
         </Text>
       )}
 
-      {/* Copy button if copyableText is provided */}
       {config.copyableText && (
         <TouchableOpacity
           style={[styles.copyButton, { backgroundColor: currentTheme.colors.border + '30' }]}
@@ -157,7 +153,6 @@ function AlertContent({
         </TouchableOpacity>
       )}
 
-      {/* Buttons */}
       <View style={styles.buttonContainer}>
         {buttons.map((button, index) => {
           const isDestructive = button.style === 'destructive';
@@ -202,7 +197,6 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
   const [alertConfig, setAlertConfig] = useState<AlertConfig | null>(null);
 
   const showAlert = useCallback((config: AlertConfig) => {
-    // Determine haptic based on type
     const hapticType = config.type === 'error' ? 'error' :
                        config.type === 'success' ? 'success' :
                        config.type === 'warning' ? 'warning' : 'light';

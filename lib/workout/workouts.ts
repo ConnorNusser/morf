@@ -15,13 +15,10 @@ export {
   Equipment, MuscleGroup, UserProgress, Workout, WorkoutCategory
 };
 
-// Load all exercises from JSON
 export const ALL_WORKOUTS: Workout[] = exercisesData as Workout[];
 
-// Get main lifts from the exercise database
 export const MAIN_LIFTS: Workout[] = ALL_WORKOUTS.filter(workout => workout.isMainLift);
 
-// Helper function to filter workouts by user's theme level
 export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
   const getUserThemeLevel = (percentile: number): ThemeLevel => {
     if (percentile >= getThemeRequiredPercentile('god')) return 'god';
@@ -50,7 +47,6 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
   );
 };
 
-// Helper function to get workouts by equipment
 export const getWorkoutsByEquipment = (
   equipment: Equipment[],
   userPercentile: number
@@ -73,9 +69,8 @@ const pickInfo = (w: Workout | CustomExercise): ExerciseInfo => ({
   trackingType: w.trackingType,
 });
 
-// In-memory mirror of the user's custom exercises, kept in sync by
-// CustomExercisesContext (which owns the list). Lets every *sync* lookup resolve
-// custom exercises without the caller threading the list or awaiting storage.
+// In-memory mirror of custom exercises, kept in sync by CustomExercisesContext,
+// so sync lookups resolve custom exercises without threading the list or awaiting storage.
 let customById = new Map<string, CustomExercise>();
 export function setCustomExerciseCache(list: CustomExercise[]): void {
   customById = new Map(list.map(e => [e.id, e]));
@@ -83,16 +78,15 @@ export function setCustomExerciseCache(list: CustomExercise[]): void {
 
 // Catalog-only lookup. Also the canonical "is this a standard / rankable lift?"
 // predicate (leaderboards, strength radar, backend sync) — deliberately blind to
-// custom exercises. For an exercise's display info, prefer getExercise().
+// custom exercises. For display info, prefer getExercise().
 export const getWorkoutById = (exerciseId: string): ExerciseInfo | null => {
   if (!exerciseId) return null;
   const w = ALL_WORKOUTS.find(x => x.id === exerciseId);
   return w ? pickInfo(w) : null;
 };
 
-// Any exercise, catalog or custom (sync, via the mirrored cache). The default for
-// display / history / muscle lookups. Replaces the old getWorkoutByIdWithCustom —
-// no need to pass the custom list in.
+// Any exercise, catalog or custom (sync, via the mirrored cache). Default for
+// display / history / muscle lookups.
 export const getExercise = (exerciseId: string): ExerciseInfo | null => {
   if (!exerciseId) return null;
   const custom = customById.get(exerciseId);
@@ -100,7 +94,7 @@ export const getExercise = (exerciseId: string): ExerciseInfo | null => {
 };
 
 // Async catalog+custom lookup that reads storage directly — for background/service
-// code that runs outside React and can't rely on the mirrored cache being hydrated.
+// code outside React that can't rely on the mirrored cache being hydrated.
 export const getExerciseById = async (exerciseId: string): Promise<ExerciseInfo | null> => {
   const builtIn = getWorkoutById(exerciseId);
   if (builtIn) return builtIn;

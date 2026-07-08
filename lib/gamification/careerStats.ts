@@ -1,5 +1,4 @@
-// Lifetime "career" stats derived purely from workout history — the foundation
-// of the gamification layer. Pure + clock-injectable so it's unit-testable.
+// Lifetime "career" stats derived purely from workout history. Pure + clock-injectable.
 import { GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
 import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getWeekStreak } from '@/lib/workout/streak';
@@ -27,12 +26,9 @@ export interface CareerStats {
   unit: WeightUnit;
 }
 
-// Local YYYY-MM-DD, matching retentionSignals / recapStats.
-
 // Longest run of consecutive calendar days present in the set of trained days.
 function longestConsecutive(dayKeys: Set<string>): number {
   if (dayKeys.size === 0) return 0;
-  // Convert keys back to dates, sort ascending, walk for consecutive runs.
   const days = sortedDayTimestamps(dayKeys);
 
   const DAY_MS = 24 * 60 * 60 * 1000;
@@ -42,7 +38,6 @@ function longestConsecutive(dayKeys: Set<string>): number {
     const gap = Math.round((days[i] - days[i - 1]) / DAY_MS);
     if (gap === 1) run += 1;
     else if (gap > 1) run = 1;
-    // gap === 0 (same day) shouldn't happen with a Set of day keys
     if (run > longest) longest = run;
   }
   return longest;
@@ -85,8 +80,7 @@ export function computeCareerStats(
     if (sessionVolume > biggestSessionVolume) biggestSessionVolume = sessionVolume;
   }
 
-  // Headline streak is week-based (rest days shouldn't break it); the raw
-  // consecutive-day run is kept separately for the day-streak achievements.
+  // Headline streak is week-based; the raw consecutive-day run is kept separately for achievements.
   const week = getWeekStreak(workouts, now);
 
   const daysSinceStart = firstWorkoutAt
@@ -117,8 +111,7 @@ export function formatCompact(n: number): string {
   return String(Math.round(n));
 }
 
-// Relatable comparison for total volume — picks the heaviest object the user has
-// "lifted" the equivalent of. Returns null below the smallest object.
+// Total-volume comparison: heaviest object the user has "lifted" the equivalent of, else null.
 const HEAVY_OBJECTS: { single: string; plural: string; lbs: number }[] = [
   { single: 'blue whale', plural: 'blue whales', lbs: 300_000 },
   { single: 'school bus', plural: 'school buses', lbs: 24_000 },

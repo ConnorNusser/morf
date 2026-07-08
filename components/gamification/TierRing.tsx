@@ -21,11 +21,7 @@ interface Props {
   stroke?: number;
 }
 
-// Compact strength badge: the tier inside a circular progress-to-next-tier ring.
-// Self-contained and tappable (wrap in a touchable) — the lifter's headline rank.
-//
-// The ring sweeps up to its value (from wherever it was) so progress *visibly
-// advances* — e.g. when you return home after a PR — instead of just being there.
+// Tier glyph inside a progress-to-next-tier ring; the ring sweeps up to its value so progress visibly advances.
 export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Props) {
   const { currentTheme } = useTheme();
   const ring = getTierColor(tier);
@@ -37,8 +33,7 @@ export default function TierRing({ tier, progress, size = 42, stroke = 3 }: Prop
   const tierFont = tier.length >= 3 ? 13 : tier.length === 2 ? 15 : 17;
 
   const reduced = useReducedMotion();
-  // Starts empty and sweeps to the real value once it arrives (data loads async),
-  // and animates the delta whenever progress changes after that.
+  // Starts empty and sweeps to the real value once it arrives (data loads async).
   const fill = useSharedValue(0);
   useEffect(() => {
     if (reduced) {

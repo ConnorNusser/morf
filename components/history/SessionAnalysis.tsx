@@ -1,7 +1,4 @@
-// The per-session analysis block: KPI row, the standout lift, a muscle-focus
-// breakdown, and every exercise with its volume share + sets. Rendered inline for
-// each session on the Sessions tab (and inside the focused detail view), so a
-// session reads as a full dashboard without a tap.
+// Per-session analysis: KPI row, standout lift, muscle-focus breakdown, and every exercise's volume share + sets.
 import AnimatedBar from "@/components/AnimatedBar";
 import { prExerciseIdsForWorkout } from "@/components/history/prSessions";
 import { Text, useInk } from "@/components/Themed";

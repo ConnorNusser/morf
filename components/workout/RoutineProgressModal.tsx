@@ -1,7 +1,4 @@
-/**
- * Routine Progress Modal
- * Dashboard with actionable insights, timeline, and consistency stats
- */
+// Routine progress dashboard: insights, timeline, consistency stats.
 
 import Chip from '@/components/Chip';
 import IconButton from '@/components/IconButton';
@@ -49,7 +46,7 @@ interface ExerciseProgress {
   status: ExerciseStatus;
 }
 
-// Next-session guidance for an exercise row, or null when there's nothing to show.
+// Next-session guidance for a row, or null when there's nothing to show.
 function getStatusLabel(exercise: Pick<ExerciseProgress, 'status' | 'repBonus'>): string | null {
   if (exercise.status === 'improving' && exercise.repBonus >= 3) return 'Weight ↑ next session';
   if (exercise.status === 'improving' && exercise.repBonus > 0) {
@@ -116,7 +113,6 @@ export default function RoutineProgressModal({
     return calculateAllRoutines(routines, exerciseRecords, weightUnit);
   }, [routines, exerciseRecords, weightUnit]);
 
-  // Calculate progress for all routines
   const routineProgressList = useMemo((): RoutineProgress[] => {
     return calculatedRoutines.map(routine => {
       const exercises: ExerciseProgress[] = [];
@@ -124,7 +120,6 @@ export default function RoutineProgressModal({
       let stable = 0;
       let declining = 0;
 
-      // Get workouts for this routine, sorted by date
       const routineWorkouts = workoutHistory
         .filter(w => w.routineId === routine.id)
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
@@ -136,7 +131,6 @@ export default function RoutineProgressModal({
         : null;
 
       for (const exercise of routine.exercises) {
-        // Get weight history with dates for this exercise
         const weightHistory: WeightDataPoint[] = [];
         let sessionNum = 0;
         for (const workout of routineWorkouts) {
@@ -194,7 +188,6 @@ export default function RoutineProgressModal({
     });
   }, [calculatedRoutines, workoutHistory]);
 
-  // Overall stats
   const overallStats = useMemo(() => {
     const totalSessions = routineProgressList.reduce((sum, r) => sum + r.completions, 0);
     const totalImproving = routineProgressList.reduce((sum, r) => sum + r.improving, 0);
@@ -209,9 +202,7 @@ export default function RoutineProgressModal({
     };
   }, [routineProgressList]);
 
-  // Muscle balance — completed working sets per major muscle group across all
-  // history, for the radar. Glutes fold into Legs; full-body lifts are skipped
-  // (no single axis). Powers the "are you training in balance" view.
+  // Working sets per muscle group for the radar; glutes fold into Legs, full-body lifts skipped.
   const muscleBalance = useMemo(() => {
     const axes: { key: MuscleGroup; label: string }[] = [
       { key: 'chest', label: 'Chest' },
@@ -260,8 +251,7 @@ export default function RoutineProgressModal({
     return `${Math.floor(days / 7)}w ago`;
   };
 
-  // Progress dots component - shows rep bonus progress (0-3)
-  const ProgressDots = ({ filled, total = 3, color }: { filled: number, total?: number, color: string }) => (
+  const ProgressDots =({ filled, total = 3, color }: { filled: number, total?: number, color: string }) => (
     <View style={styles.progressDots}>
       {Array.from({ length: total }).map((_, i) => (
         <View
@@ -277,8 +267,7 @@ export default function RoutineProgressModal({
     </View>
   );
 
-  // Historical chart component
-  const HistoryChart = ({ data, unit }: { data: WeightDataPoint[], unit: string }) => {
+  const HistoryChart =({ data, unit }: { data: WeightDataPoint[], unit: string }) => {
     if (data.length < 1) return null;
 
     const weights = data.map(d => d.weight);
@@ -291,7 +280,6 @@ export default function RoutineProgressModal({
     const paddingTop = 16;
     const graphHeight = chartHeight - paddingBottom - paddingTop;
 
-    // Calculate points
     const points = data.map((d, i) => ({
       x: data.length === 1 ? chartWidth / 2 : (i / (data.length - 1)) * chartWidth,
       y: paddingTop + graphHeight - ((d.weight - min) / range) * graphHeight,
@@ -305,7 +293,6 @@ export default function RoutineProgressModal({
 
     return (
       <View style={[styles.chartContainer, { backgroundColor: colors.background }]}>
-        {/* Chart header */}
         <View style={styles.chartHeader}>
           <Text variant="meta" tone="muted">
             Weight History
@@ -321,9 +308,8 @@ export default function RoutineProgressModal({
           )}
         </View>
 
-        {/* Chart area */}
         <View style={{ width: chartWidth, height: chartHeight }}>
-          {/* Y-axis labels — fontSize stays chart geometry (fits the fixed 100pt plot) */}
+          {/* Y-axis fontSize is chart geometry (fits the fixed 100pt plot). */}
           <Text style={[styles.yLabel, { top: paddingTop - 6, color: ink.faint }]}>
             {max}
           </Text>
@@ -331,12 +317,10 @@ export default function RoutineProgressModal({
             {min}
           </Text>
 
-          {/* Grid lines */}
           <View style={[styles.gridLine, { top: paddingTop, backgroundColor: colors.border }]} />
           <View style={[styles.gridLine, { top: paddingTop + graphHeight / 2, backgroundColor: colors.border }]} />
           <View style={[styles.gridLine, { top: paddingTop + graphHeight, backgroundColor: colors.border }]} />
 
-          {/* Line segments */}
           {points.slice(1).map((point, i) => {
             const prev = points[i];
             const length = Math.sqrt(Math.pow(point.x - prev.x, 2) + Math.pow(point.y - prev.y, 2));
@@ -359,7 +343,6 @@ export default function RoutineProgressModal({
             );
           })}
 
-          {/* Data points */}
           {points.map((point, i) => (
             <View
               key={i}
@@ -375,7 +358,6 @@ export default function RoutineProgressModal({
             />
           ))}
 
-          {/* X-axis labels */}
           <View style={styles.xLabels}>
             {points.length <= 6 ? (
               points.map((point, i) => (
@@ -399,7 +381,6 @@ export default function RoutineProgressModal({
           </View>
         </View>
 
-        {/* Summary row */}
         <View style={styles.chartSummary}>
           <View style={styles.summaryItem}>
             <Text variant="meta" tone="faint" style={styles.summaryItemLabel}>
@@ -432,8 +413,7 @@ export default function RoutineProgressModal({
     );
   };
 
-  // Status indicator component
-  const StatusIndicator = ({ status, repBonus }: { status: ExerciseStatus, repBonus: number }) => {
+  const StatusIndicator =({ status, repBonus }: { status: ExerciseStatus, repBonus: number }) => {
     if (status === 'improving') {
       return (
         <View style={styles.statusIndicator}>
@@ -455,7 +435,6 @@ export default function RoutineProgressModal({
         </View>
       );
     }
-    // new - no data
     return (
       <View style={styles.statusIndicator}>
         <View style={[styles.statusDot, { backgroundColor: colors.border }]} />
@@ -463,10 +442,7 @@ export default function RoutineProgressModal({
     );
   };
 
-  // One exercise row — shared by the filtered (cross-routine) list and each
-  // routine's expanded list. showRoutineLabel adds the routine name under the
-  // exercise (filtered view); showNoData renders the "No data yet" line for new
-  // exercises (routine view).
+  // Shared by the filtered cross-routine list and each routine's expanded list.
   const renderExerciseRow = (
     exercise: ExerciseProgress & { routineName?: string },
     index: number,
@@ -514,8 +490,7 @@ export default function RoutineProgressModal({
                   )}
                 </Text>
                 {statusLabel && (
-                  // The engine deloads automatically now — this is just the label
-                  // (e.g. "Consider deload" in red), no manual button.
+                  // Engine deloads automatically now — this is just the label, no manual button.
                   <Text
                     variant="meta"
                     weight="medium"
@@ -573,20 +548,16 @@ export default function RoutineProgressModal({
 
     return (
       <Svg width={size} height={size}>
-        {/* concentric grid rings */}
         {ringFracs.map((f, idx) => (
           <Polygon key={`ring-${idx}`} points={ringPoly(f)} fill="none" stroke={grid} strokeWidth={1} />
         ))}
-        {/* spokes */}
         {axes.map((_, i) => {
           const p = at(i, 1);
           return <Line key={`spoke-${i}`} x1={cx} y1={cy} x2={p.x} y2={p.y} stroke={grid} strokeWidth={1} />;
         })}
-        {/* data polygon */}
         <Polygon points={dataPoly} fill={tint(green)} stroke={green} strokeWidth={2} />
-        {/* vertices */}
         {values.map((v, i) => { const p = at(i, max > 0 ? v / max : 0); return <Circle key={`v-${i}`} cx={p.x} cy={p.y} r={2.5} fill={green} />; })}
-        {/* axis labels — SVG fontSize is chart geometry (sized to the 230pt radar) */}
+        {/* SVG fontSize is chart geometry (sized to the 230pt radar). */}
         {axes.map((a, i) => {
           const lp = at(i, 1);
           const lx = cx + (lp.x - cx) * 1.18;
@@ -619,7 +590,6 @@ export default function RoutineProgressModal({
       onRequestClose={onClose}
     >
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerSpacer} />
           <Text variant="title" tone="primary" weight="semiBold">
@@ -642,7 +612,6 @@ export default function RoutineProgressModal({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            {/* Muscle balance radar */}
             {muscleBalance.total > 0 && (
               <View style={[styles.radarCard, { borderColor: ink.ghost }]}>
                 <Text variant="body" tone="primary" weight="semiBold">
@@ -657,7 +626,6 @@ export default function RoutineProgressModal({
               </View>
             )}
 
-            {/* Summary Cards - Tappable filters */}
             <View style={styles.summaryRow}>
               <View style={[styles.summaryCard, { borderColor: ink.ghost }]}>
                 <Text variant="title" tone="primary" weight="semiBold">
@@ -726,11 +694,9 @@ export default function RoutineProgressModal({
               </TouchableOpacity>
             </View>
 
-            {/* Filtered Exercise List - flat view when filter is active */}
             {statusFilter && (
               <>
-              {/* Clear-filter bar — explicit way back to the full view, since the
-                  summary cards only deselect on an exact re-tap. */}
+              {/* Explicit way back to the full view; summary cards only deselect on exact re-tap. */}
               <View style={styles.filterBar}>
                 <Text variant="meta" tone="secondary" weight="medium" style={styles.filterBarLabel}>
                   Showing {statusFilter}
@@ -755,13 +721,11 @@ export default function RoutineProgressModal({
               </>
             )}
 
-            {/* Routines - normal view when no filter */}
             {!statusFilter && routineProgressList.map((routine) => {
               const isExpanded = expandedRoutineId === routine.id;
 
               return (
                 <View key={routine.id} style={styles.routineSection}>
-                  {/* Routine Header */}
                   <TouchableOpacity
                     style={styles.routineHeader}
                     onPress={() => toggleRoutine(routine.id)}
@@ -800,8 +764,7 @@ export default function RoutineProgressModal({
                       </Text>
                     </View>
 
-                    {/* Per-exercise status strip — one segment per lift, colored
-                        by trend (matches the routines-screen momentum bar). */}
+                    {/* One segment per lift, colored by trend (matches the routines-screen momentum bar). */}
                     {routine.exercises.length > 0 && (
                       <View style={styles.distBar}>
                         {routine.exercises.map((ex, i) => {
@@ -815,7 +778,6 @@ export default function RoutineProgressModal({
                     )}
                   </TouchableOpacity>
 
-                  {/* Expanded Content */}
                   {isExpanded && (
                     <View style={[styles.exerciseList, { borderWidth: 1, borderColor: ink.ghost }]}>
                       {routine.exercises.map((exercise, index) =>
@@ -864,7 +826,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Summary
   summaryRow: {
     flexDirection: 'row',
     gap: space.md,
@@ -882,7 +843,6 @@ const styles = StyleSheet.create({
     marginTop: space.xs,
   },
 
-  // Radar
   radarCard: {
     borderWidth: 1,
     borderRadius: radius.card,
@@ -897,7 +857,6 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
   },
 
-  // Clear-filter bar above the filtered list
   filterBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -912,7 +871,6 @@ const styles = StyleSheet.create({
     marginBottom: space.md,
   },
 
-  // Per-exercise status strip (routine header)
   distBar: {
     flexDirection: 'row',
     gap: space.xs,
@@ -924,7 +882,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Progress dots
   progressDots: {
     flexDirection: 'row',
     gap: 3,
@@ -936,7 +893,6 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Status indicator
   statusIndicator: {
     width: 20,
     height: 20,
@@ -954,7 +910,6 @@ const styles = StyleSheet.create({
     borderRadius: 1,
   },
 
-  // Routine Section
   routineSection: {
     marginBottom: space.md,
   },
@@ -987,7 +942,6 @@ const styles = StyleSheet.create({
     marginTop: space.sm,
   },
 
-  // Exercise List
   exerciseList: {
     marginTop: space.xs,
     borderRadius: radius.card,
@@ -1023,7 +977,6 @@ const styles = StyleSheet.create({
     marginLeft: 28,
   },
 
-  // Chart
   chartWrapper: {
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
@@ -1038,8 +991,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: space.md,
   },
-  // Axis labels keep their 10pt size: they're chart geometry, positioned
-  // against the fixed 280×100 plot.
+  // Axis labels keep 10pt: chart geometry against the fixed 280×100 plot.
   yLabel: {
     position: 'absolute',
     left: -4,

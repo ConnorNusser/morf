@@ -21,7 +21,6 @@ interface UnlockNotificationModalProps {
   onActivate?: () => void;
 }
 
-// Content configuration for each notification type
 const NOTIFICATION_CONTENT: Record<NotificationType, {
   icon: string;
   title: string;
@@ -86,10 +85,8 @@ export default function UnlockNotificationModal({
                 },
               ]}
             >
-              {/* Icon */}
               <Text style={styles.icon}>{content.icon}</Text>
 
-              {/* Title */}
               <Text
                 style={[
                   styles.title,
@@ -102,7 +99,6 @@ export default function UnlockNotificationModal({
                 {content.title}
               </Text>
 
-              {/* Subtitle */}
               <Text
                 style={[
                   styles.subtitle,
@@ -115,7 +111,6 @@ export default function UnlockNotificationModal({
                 {content.subtitle}
               </Text>
 
-              {/* Theme preview */}
               {previewTheme && (
                 <View style={styles.previewContainer}>
                   <View style={styles.colorRow}>
@@ -152,7 +147,6 @@ export default function UnlockNotificationModal({
                 </View>
               )}
 
-              {/* Description */}
               <Text
                 style={[
                   styles.description,
@@ -166,7 +160,6 @@ export default function UnlockNotificationModal({
                 {content.description}
               </Text>
 
-              {/* Buttons */}
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[
@@ -220,7 +213,6 @@ export default function UnlockNotificationModal({
             </Animated.View>
           </TouchableWithoutFeedback>
 
-          {/* Dismiss hint */}
           <Text
             style={[
               styles.hint,

@@ -114,7 +114,6 @@ export default function AppInfoSection() {
       
       {isExpanded && (
         <View style={styles.appInfoContent}>
-          {/* Version Info Row */}
           {appVersion && (
             <View style={styles.infoRow}>
               <Text style={[
@@ -136,7 +135,6 @@ export default function AppInfoSection() {
             </View>
           )}
 
-          {/* Actions Row */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={styles.actionItem}

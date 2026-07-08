@@ -6,14 +6,11 @@ export interface PredictionModel {
   predict: (data: UserProgress[], days: number) => number;
 }
 
-/**
- * Asymptotic regression model - accounts for diminishing returns
- * as you approach genetic potential
- */
+// Asymptotic regression: diminishing returns approaching genetic potential
 const asymptoticRegression = (data: UserProgress[], targetDays: number): number => {
   if (data.length === 0) return 0;
   if (data.length < 3) {
-    // Use simple linear extrapolation for insufficient data
+    // linear extrapolation when too few points
     const currentValue = data[data.length - 1].personalRecord;
     if (data.length === 1) return currentValue;
     const firstValue = data[0].personalRecord;
@@ -26,42 +23,33 @@ const asymptoticRegression = (data: UserProgress[], targetDays: number): number 
   const lastValue = values[values.length - 1];
   const firstValue = values[0];
 
-  // Estimate asymptotic maximum (genetic potential estimate)
   const currentMax = Math.max(...values);
-  const asymptoticMax = currentMax * 1.15; // Assume 15% potential growth remaining
+  const asymptoticMax = currentMax * 1.15; // 15% potential growth remaining
 
-  // Calculate growth rate parameter
   const totalGrowth = lastValue - firstValue;
   const remainingPotential = asymptoticMax - lastValue;
-  const growthRate = totalGrowth / (data.length * 7); // Weekly growth rate
+  const growthRate = totalGrowth / (data.length * 7); // weekly growth rate
 
-  // Asymptotic prediction
   const predictedGrowth = remainingPotential * (1 - Math.exp(-growthRate * targetDays / 30));
   return Math.max(lastValue, lastValue + predictedGrowth);
 };
 
-/**
- * Exponential smoothing model - weighted recent performance with trend analysis
- */
+// Exponential smoothing: weighted recent performance with trend
 const exponentialSmoothing = (data: UserProgress[], targetDays: number): number => {
   if (data.length === 0) return 0;
   if (data.length === 1) return data[0].personalRecord;
 
-  const alpha = 0.3; // Smoothing factor
+  const alpha = 0.3; // smoothing factor
   let smoothedValue = data[0].personalRecord;
 
   for (let i = 1; i < data.length; i++) {
     smoothedValue = alpha * data[i].personalRecord + (1 - alpha) * smoothedValue;
   }
 
-  // Project forward with trend
   const trend = (data[data.length - 1].personalRecord - smoothedValue) / data.length;
   return Math.max(data[data.length - 1].personalRecord, smoothedValue + (trend * targetDays / 7));
 };
 
-/**
- * Pre-configured prediction models
- */
 export const predictionModels: PredictionModel[] = [
   {
     name: 'Asymptotic Regression',
@@ -75,9 +63,7 @@ export const predictionModels: PredictionModel[] = [
   }
 ];
 
-/**
- * Calculate average prediction from all models for a given timeframe
- */
+// Average prediction across all models for a timeframe
 export const calculateAveragePrediction = (data: UserProgress[], targetDays: number = 90): number | undefined => {
   if (data.length < 2) return undefined;
 
@@ -87,9 +73,7 @@ export const calculateAveragePrediction = (data: UserProgress[], targetDays: num
   return Math.round(average);
 };
 
-/**
- * Calculate predictions for multiple timeframes
- */
+// Predictions across multiple timeframes
 export const calculateAllPredictions = (data: UserProgress[]): Record<string, number> => {
   if (data.length === 0) return {};
 

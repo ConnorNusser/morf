@@ -46,7 +46,6 @@ export default function ProfileScreen() {
   }, []);
 
   const loadUserData = async () => {
-    // Trigger refresh of user progress data
     await userService.calculateRealUserProgress();
   };
 
@@ -56,7 +55,6 @@ export default function ProfileScreen() {
     }
   }, [userProfile]);
 
-  // Refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       refreshProfile();
@@ -65,7 +63,6 @@ export default function ProfileScreen() {
     }, [refreshProfile, loadSocialData])
   );
 
-  // Reset all workout stats
   const handleResetStats = () => {
     showAlert({
       title: 'Reset All Workout Data',
@@ -78,10 +75,9 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Clear workout history
               await storageService.clearWorkoutHistory();
 
-              // Clear lifts from user profile but keep other info
+              // Clear lifts but keep other profile info
               if (userProfile) {
                 const updatedProfile = {
                   ...userProfile,
@@ -91,10 +87,8 @@ export default function ProfileScreen() {
                 await storageService.saveUserProfile(updatedProfile);
               }
 
-              // Clear custom exercises
               await storageService.clearCustomExercises();
 
-              // Refresh profile
               await refreshProfile();
               await loadUserData();
 
@@ -109,7 +103,6 @@ export default function ProfileScreen() {
     });
   };
 
-  // Show loading or create profile if no user exists
   if (isLoading) {
     return (
       <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
@@ -124,13 +117,10 @@ export default function ProfileScreen() {
     <>
     <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
       <View style={[styles.content, { backgroundColor: 'transparent' }]}>
-        {/* Profile header */}
         <DashboardHeader title="Profile" />
 
-        {/* Career — gamification centerpiece */}
         <CareerSection />
 
-        {/* Social Button */}
         <TouchableOpacity
           style={styles.socialButton}
           onPress={() => setShowSocialModal(true)}
@@ -150,38 +140,28 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
         </TouchableOpacity>
 
-        {/* Personal Information Section */}
         <PersonalInformationSection
           userProfile={userProfile}
         />
 
-        {/* Theme Evolution Section */}
         <ThemeEvolutionSection />
 
-        {/* Lift Display Preferences Section */}
-        <LiftDisplayPreferencesSection 
+        <LiftDisplayPreferencesSection
           onPreferencesUpdate={loadUserData}
         />
 
-        {/* Weight Unit Preference Section */}
         <WeightUnitPreferenceSection />
 
-        {/* Notification Reminders Section */}
         <NotificationPreferencesSection />
 
-        {/* Equipment Filter Section */}
         <EquipmentFilterSection />
 
-        {/* Exercises Section */}
         <ExercisesSection />
 
-        {/* Custom Exercises Section */}
         <CustomExercisesSection />
 
-        {/* App Info Section */}
         <AppInfoSection />
 
-        {/* Reset Button */}
         <TouchableOpacity
           style={styles.resetButton}
           onPress={handleResetStats}
@@ -195,7 +175,6 @@ export default function ProfileScreen() {
       <View style={{ marginBottom: 100 }} />
     </ScrollView>
 
-    {/* Social Modal */}
     <SocialModal
       visible={showSocialModal}
       onClose={() => {

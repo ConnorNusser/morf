@@ -7,8 +7,7 @@ import { Animated, Dimensions, StyleSheet, Text, TouchableOpacity, TouchableWith
 
 const { width: screenWidth } = Dimensions.get('window');
 
-// Deduplicate: keep only the highest record per day (pure helper, hoisted so
-// it isn't recreated every render and can be memoized cleanly).
+// Keep only the highest record per day, sorted by date.
 function deduplicateByDay(records: UserProgress[]): UserProgress[] {
   const byDay = new Map<string, UserProgress>();
 
@@ -22,7 +21,6 @@ function deduplicateByDay(records: UserProgress[]): UserProgress[] {
     }
   }
 
-  // Return sorted by date
   return Array.from(byDay.values()).sort(
     (a, b) => new Date(a.lastUpdated).getTime() - new Date(b.lastUpdated).getTime()
   );
@@ -32,7 +30,7 @@ interface InteractiveProgressChartProps {
   data: UserProgress[];
   selectedMetric: 'oneRM' | 'volume';
   weightUnit: 'lbs' | 'kg';
-  predictionValue?: number; // If not provided, will be calculated internally
+  predictionValue?: number;
   title?: string;
   description?: string;
 }
@@ -61,8 +59,7 @@ function InteractiveProgressChart({
   const [blinkAnim] = useState(new Animated.Value(1));
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('ALL');
 
-  // Filter data based on time period (memoized — recompute only when the
-  // underlying data or selected period changes, not on every render/tap)
+  // Filter by time period.
   const dedupedData = useMemo(() => {
     let filtered = data;
     if (timePeriod !== 'ALL') {
@@ -87,12 +84,10 @@ function InteractiveProgressChart({
     return deduplicateByDay(filtered);
   }, [data, timePeriod]);
 
-  // Calculate prediction if not provided
   const effectivePrediction = useMemo(
     () => predictionValue ?? calculateAveragePrediction(dedupedData),
     [predictionValue, dedupedData]);
 
-  // Blinking animation for prediction point
   useEffect(() => {
     if (effectivePrediction) {
       const blinkAnimation = Animated.loop(
@@ -115,7 +110,6 @@ function InteractiveProgressChart({
     }
   }, [effectivePrediction, blinkAnim]);
 
-  // Clear selected point when time period changes
   useEffect(() => {
     setSelectedPoint(null);
   }, [timePeriod]);
@@ -144,7 +138,6 @@ function InteractiveProgressChart({
 
   if (data.length === 0) return null;
   if (dedupedData.length === 0) {
-    // Show message if no data in selected period
     return (
       <View style={styles.chartContainer}>
         <View style={styles.chartHeader}>
@@ -160,7 +153,6 @@ function InteractiveProgressChart({
     );
   }
 
-  // Convert and round values to nearest 5s (using deduplicated data)
   const values = selectedMetric === 'oneRM'
     ? dedupedData.map(d => Math.round(convertWeightForPreference(d.personalRecord, 'lbs', weightUnit) / 5) * 5)
     : dedupedData.map((d, i) => {
@@ -169,12 +161,11 @@ function InteractiveProgressChart({
       });
 
 
-  // Add prediction to values if available
   const extendedValues = effectivePrediction ? [...values, Math.round(convertWeightForPreference(effectivePrediction, 'lbs', weightUnit) / 5) * 5] : values;
   const extendedMaxValue = Math.max(...extendedValues);
   const extendedMinValue = Math.min(...extendedValues);
 
-  // Add 10% padding to the range so points don't sit on edges
+  // 10% padding so points don't sit on the edges.
   const rawRange = extendedMaxValue - extendedMinValue || 1;
   const padding = rawRange * 0.1;
   const paddedMin = extendedMinValue - padding;
@@ -183,13 +174,11 @@ function InteractiveProgressChart({
 
   const chartWidth = screenWidth - 80;
   const chartHeight = 200;
-  const chartAreaWidth = chartWidth - 40; // Area after y-axis
+  const chartAreaWidth = chartWidth - 40;
 
-  // Calculate time range for x-axis (from period start to today)
   const now = new Date();
   const getTimeRangeStart = (): Date => {
     if (timePeriod === 'ALL' && dedupedData.length > 0) {
-      // For ALL, start from first data point
       return new Date(dedupedData[0].lastUpdated);
     }
     const start = new Date();
@@ -216,14 +205,13 @@ function InteractiveProgressChart({
   const timeRangeEnd = now;
   const totalTimeMs = timeRangeEnd.getTime() - timeRangeStart.getTime();
 
-  // Calculate data points positioned within the full time range (using deduplicated data)
   const dataPoints: DataPoint[] = values.map((value, index) => {
     const pointDate = new Date(dedupedData[index].lastUpdated);
     const timeOffset = pointDate.getTime() - timeRangeStart.getTime();
     const x = totalTimeMs > 0 ? (timeOffset / totalTimeMs) * chartAreaWidth : 0;
     const y = chartHeight - ((value - paddedMin) / range) * chartHeight;
     return {
-      x: Math.max(0, Math.min(x, chartAreaWidth)), // Clamp to chart bounds
+      x: Math.max(0, Math.min(x, chartAreaWidth)),
       y,
       value,
       date: pointDate,
@@ -232,7 +220,6 @@ function InteractiveProgressChart({
     };
   });
 
-  // Add prediction point if available
   if (effectivePrediction) {
     const convertedPrediction = Math.round(convertWeightForPreference(effectivePrediction, 'lbs', weightUnit) / 5) * 5;
     const predictionX = chartAreaWidth;
@@ -261,12 +248,9 @@ function InteractiveProgressChart({
       ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
-  // Get x-axis labels - show multiple dates across the time range
   const getXAxisLabels = () => {
-    // Calculate time span in days for formatting
     const spanDays = Math.ceil(totalTimeMs / (1000 * 60 * 60 * 24));
 
-    // Determine number of labels based on time span (3-5 labels)
     const numLabels = spanDays <= 31 ? 3 : spanDays <= 180 ? 4 : 5;
     const labels = [];
 
@@ -301,11 +285,9 @@ function InteractiveProgressChart({
           </Text>
         </View>
 
-        {/* Time Period Selector */}
         {renderTimePeriodSelector()}
 
         <View style={[styles.chart, { width: chartWidth, height: chartHeight }]}>
-          {/* Y-axis labels */}
           <View style={styles.yAxisLabels}>
             <Text style={[styles.axisLabel, { color: currentTheme.colors.text + '60' }]}>
               {Math.round(extendedMaxValue / 5) * 5}
@@ -318,7 +300,6 @@ function InteractiveProgressChart({
             </Text>
           </View>
 
-          {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
             <View
               key={ratio}
@@ -334,9 +315,7 @@ function InteractiveProgressChart({
             />
           ))}
           
-          {/* Chart area */}
           <View style={[styles.chartLine, { left: 40 }]}>
-            {/* Connecting lines */}
             {dataPoints.map((point, index) => {
               if (index === 0) return null;
               
@@ -363,7 +342,6 @@ function InteractiveProgressChart({
               );
             })}
             
-            {/* Interactive data points */}
             {dataPoints.map((point, index) => (
               <TouchableOpacity
                 key={`point-${index}`}
@@ -392,7 +370,6 @@ function InteractiveProgressChart({
               </TouchableOpacity>
             ))}
 
-            {/* Value tooltip */}
             {selectedPoint && (
               <View
                 style={[
@@ -423,7 +400,6 @@ function InteractiveProgressChart({
           </View>
         </View>
 
-        {/* X-axis with actual dates */}
         <View style={styles.xAxisLabels}>
           {xAxisLabels.map((label, index) => (
             <View

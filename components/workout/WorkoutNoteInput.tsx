@@ -31,11 +31,7 @@ export interface WorkoutNoteInputRef {
 const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
 
-// Auto-grow bounds. Single line == AUTO_MIN_HEIGHT so the field matches the 34pt
-// composer buttons (32 content + 1pt border top/bottom). A multiline TextInput
-// grows itself with content; minHeight/maxHeight just bound it (then it scrolls
-// past the max). The parent pill clips with overflow:hidden so glyphs stay in the
-// rounded box.
+// Auto-grow bounds. AUTO_MIN_HEIGHT=32 makes a single line match the 34pt composer buttons (32 content + 1pt border each side); a multiline TextInput grows itself, these just bound it (scrolls past max).
 const AUTO_MIN_HEIGHT = 32;
 const AUTO_MAX_HEIGHT = 124;
 
@@ -45,12 +41,11 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     const ink = useInk();
     const inputRef = useRef<TextInput>(null);
 
-    // Track actual keyboard visibility via event listeners (not local state that can get corrupted)
+    // Track keyboard visibility via event listeners (source of truth, not corruptible local state).
     const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
     const pressStartPosition = useRef<{ x: number; y: number } | null>(null);
     const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Listen for actual keyboard show/hide events - this is the source of truth
     useEffect(() => {
       const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardVisible(true));
       const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardVisible(false));
@@ -67,7 +62,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
       }
     }, []);
 
-    // Reset touch state when app goes to background to prevent stale state
+    // Reset touch state on backgrounding to prevent stale state.
     useEffect(() => {
       const handleAppStateChange = (nextAppState: AppStateStatus) => {
         if (nextAppState !== 'active') {
@@ -90,7 +85,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
     }));
 
     const handleTouchStart = useCallback((event: GestureResponderEvent) => {
-      // If keyboard is already visible, let normal touch handling work
       if (isKeyboardVisible) return;
 
       pressStartPosition.current = {
@@ -98,7 +92,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
         y: event.nativeEvent.pageY,
       };
 
-      // Start timeout for deliberate tap (distinguishes from scroll)
+      // Timeout distinguishes a deliberate tap from a scroll.
       focusTimeoutRef.current = setTimeout(() => {
         if (pressStartPosition.current) {
           playHapticFeedback('light', false);
@@ -112,7 +106,6 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
         const dx = Math.abs(event.nativeEvent.pageX - pressStartPosition.current.x);
         const dy = Math.abs(event.nativeEvent.pageY - pressStartPosition.current.y);
         if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
-          // User is scrolling, cancel focus
           clearFocusTimeout();
           pressStartPosition.current = null;
         }
@@ -140,11 +133,7 @@ const WorkoutNoteInput = forwardRef<WorkoutNoteInputRef, WorkoutNoteInputProps>(
           placeholder={placeholder}
           placeholderTextColor={ink.faint}
           multiline
-          // Keep scroll enabled always: with it off, an iOS multiline TextInput
-          // won't report a contentSize taller than its current frame, so
-          // onContentSizeChange never sees the growth and the box stays stuck at
-          // its starting height. Below the max there's nothing to scroll anyway
-          // (the height hugs the content); past the max it scrolls.
+          // Always keep scroll enabled: with it off, an iOS multiline TextInput won't report a contentSize taller than its frame, so onContentSizeChange never sees growth and the box stays stuck.
           scrollEnabled
           textAlignVertical="top"
           autoCapitalize="sentences"
@@ -183,9 +172,7 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   inputAuto: {
-    // Let the multiline field grow itself between these bounds (then scroll).
-    // These override the base `input` minHeight (200) which would otherwise pin
-    // the box ~200pt tall.
+    // Overrides base `input` minHeight (200) so the field grows between these bounds instead of pinning ~200pt tall.
     flex: 0,
     minHeight: AUTO_MIN_HEIGHT,
     maxHeight: AUTO_MAX_HEIGHT,

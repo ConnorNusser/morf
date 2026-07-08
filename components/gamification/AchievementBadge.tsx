@@ -4,11 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, ImageSourcePropType, StyleSheet, View } from 'react-native';
 
-// A flat, on-brand achievement badge: a tinted disc with a 1px accent border. When
-// the achievement has a bespoke RuneScape-themed emblem it renders that full-colour
-// art; otherwise it falls back to a monoline Ionicon in the rarity accent. Rarity is
-// conveyed by the ring colour. Locked badges are muted (border only, desaturated
-// emblem); new ones get a 2px ring.
+// Tinted disc badge: bespoke emblem art if present, else a monoline Ionicon; rarity is the ring colour, locked is muted, new gets a 2px ring.
 interface Props {
   icon: string; // Ionicons name (fallback)
   emblem?: ImageSourcePropType; // bespoke art; takes precedence over the glyph

@@ -11,7 +11,6 @@ import { userSyncService } from '@/lib/services/userSyncService';
 import { MuscleGroupPercentiles, PercentileHistoryEntry, UserPercentileData } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 
-// Get color for a specific percentile value
 const getColorForPercentile = (percentile: number): string => {
   const tier = getStrengthTier(percentile);
   return getTierColor(tier);
@@ -44,7 +43,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
     loadData();
   }, [visible]);
 
-  // Reset selected category when modal closes
   useEffect(() => {
     if (!visible) {
       setSelectedCategory(null);
@@ -81,7 +79,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const getCategoryPercentileFromEntry = (entry: PercentileHistoryEntry, category: keyof typeof MUSCLE_CATEGORIES): number =>
     avgCategory(entry.muscleGroups, category);
 
-  // Chart dimensions
   const screenWidth = Dimensions.get('window').width;
   const chartWidth = screenWidth - 72;
   const chartHeight = 180;
@@ -94,7 +91,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
 
   const displayHistory = history.slice(-30);
 
-  // Get percentiles based on selected category or overall
   const getDisplayPercentiles = () => {
     if (selectedCategory) {
       return displayHistory.map(h => getCategoryPercentileFromEntry(h, selectedCategory));
@@ -130,7 +126,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const change = lastValue - firstValue;
   const changeColor = change > 0 ? '#22C55E' : change < 0 ? '#EF4444' : currentTheme.colors.text + '60';
 
-  // Overall change from first entry ever to current
   const overallFirstValue = displayHistory[0]?.percentile || 0;
   const overallLastValue = displayHistory[displayHistory.length - 1]?.percentile || 0;
   const overallChange = overallLastValue - overallFirstValue;
@@ -165,7 +160,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Current Stats */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: tierColor, fontWeight: '700' }]}>
@@ -195,7 +189,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
             </View>
           </View>
 
-          {/* View Toggle */}
           <View style={[styles.toggleContainer, { backgroundColor: currentTheme.colors.surface }]}>
             <TouchableOpacity
               style={[
@@ -239,11 +232,9 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
 
           {viewMode === 'chart' ? (
             <>
-              {/* Chart View */}
               <Card style={styles.chartCard}>
                 {displayHistory.length > 0 ? (
                   <Svg width={chartWidth} height={chartHeight}>
-                    {/* Horizontal grid lines */}
                     {[0, 0.5, 1].map((ratio, i) => (
                       <Line
                         key={i}
@@ -257,7 +248,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                       />
                     ))}
 
-                    {/* Y-axis labels */}
                     <SvgText x={paddingLeft - 8} y={paddingTop + 4} fontSize={11} fill={currentTheme.colors.text + '60'} textAnchor="end">
                       {Math.round(maxPercentile)}
                     </SvgText>
@@ -268,7 +258,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                       {Math.round(minPercentile)}
                     </SvgText>
 
-                    {/* Gradient definitions */}
                     <Defs>
                       <LinearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                         {points.map((point, i) => (
@@ -291,13 +280,10 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                       </LinearGradient>
                     </Defs>
 
-                    {/* Area fill with gradient */}
                     <Path d={areaPath} fill="url(#areaGradient)" />
 
-                    {/* Line with gradient */}
                     <Path d={pathData} fill="none" stroke="url(#lineGradient)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
-                    {/* Data points - each colored by its percentile */}
                     {points.map((point, i) => {
                       const pointColor = getColorForPercentile(point.percentile);
                       return (
@@ -311,7 +297,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                       );
                     })}
 
-                    {/* X-axis labels */}
                     {displayHistory.length >= 2 && (
                       <>
                         <SvgText x={paddingLeft} y={chartHeight - 8} fontSize={11} fill={currentTheme.colors.text + '60'} textAnchor="start">
@@ -337,7 +322,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                 )}
               </Card>
 
-              {/* Category Breakdown or Individual Muscles */}
               {selectedCategory ? (
                 <>
                   <View style={styles.sectionHeader}>
@@ -426,7 +410,6 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
             </>
           ) : (
             <>
-              {/* History List View */}
               <Card style={styles.historyCard}>
                 {[...displayHistory].reverse().map((entry, index) => {
                   const currentPct = selectedCategory

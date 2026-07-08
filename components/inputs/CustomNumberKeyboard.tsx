@@ -50,12 +50,11 @@ export default function CustomNumberKeyboard({
       return;
     }
 
-    // Don't allow multiple leading zeros
     if (key === '0' && value === '0') {
       return;
     }
 
-    // Replace leading zero with new number (unless it's a decimal point)
+    // Replace leading zero with typed digit, but keep it before a decimal point
     if (value === '0' && key !== '.') {
       onValueChange(key);
       playHapticFeedback('light', false);
@@ -107,12 +106,10 @@ export default function CustomNumberKeyboard({
       statusBarTranslucent={false}
     >
       <View style={styles.modalContainer}>
-        {/* Transparent area that allows interaction with content above */}
+        {/* box-none lets taps pass through to the content above the keyboard */}
         <View style={styles.transparentArea} pointerEvents="box-none" />
-        
-        {/* Keyboard container */}
+
         <View style={[styles.keyboardContainer, { backgroundColor: currentTheme.colors.surface }]} pointerEvents="auto">
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onCancel} style={styles.cancelButtonContainer}>
               <Text style={[styles.cancelButton, { color: currentTheme.colors.text, fontWeight: '500' }]}>
@@ -127,7 +124,6 @@ export default function CustomNumberKeyboard({
             <View style={styles.spacer} />
           </View>
 
-          {/* Display */}
           <View style={[styles.display, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
             <Text style={[
               styles.displayText, 
@@ -139,37 +135,31 @@ export default function CustomNumberKeyboard({
             </Text>
           </View>
 
-          {/* Keyboard */}
           <View style={styles.keyboard}>
-            {/* Row 1 */}
             <View style={styles.row}>
               {renderKey('1')}
               {renderKey('2')}
               {renderKey('3')}
             </View>
 
-            {/* Row 2 */}
             <View style={styles.row}>
               {renderKey('4')}
               {renderKey('5')}
               {renderKey('6')}
             </View>
 
-            {/* Row 3 */}
             <View style={styles.row}>
               {renderKey('7')}
               {renderKey('8')}
               {renderKey('9')}
             </View>
 
-            {/* Row 4 */}
             <View style={styles.row}>
               {allowDecimal ? renderKey('.') : <View style={styles.key} />}
               {renderKey('0')}
               {renderKey('backspace', true)}
             </View>
 
-            {/* Row 5 - Done button */}
             <View style={styles.row}>
               {renderKey('done', true)}
             </View>

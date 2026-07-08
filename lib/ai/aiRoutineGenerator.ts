@@ -1,7 +1,4 @@
-/**
- * AI-powered Routine Generator
- * Creates workout routines based on proven program methodologies
- */
+// AI routine generator — builds routines from proven program methodologies.
 
 import { CustomExercise, Equipment, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -57,13 +54,13 @@ export interface GenerateRoutineOptions {
   trainingGoal: TrainingGoal;
   weeklyDays: number;
   focusMuscles?: string[];
-  ignoredMuscles?: string[];  // Body parts to completely skip (e.g., "no legs")
-  trainingYears?: number;  // Override training years for advancement calculation
-  workoutDuration?: number;  // Duration in minutes (30, 60, 90, 120)
-  exercisesPerWorkout?: { min: number; max: number };  // Exercise count constraints
-  includedExercises?: string[];  // Exercises to definitely include
-  excludedExercises?: string[];  // Exercises to definitely exclude
-  experienceLevel?: TrainingAdvancement;  // Biases deterministic program selection
+  ignoredMuscles?: string[];  // body parts to completely skip (e.g., "no legs")
+  trainingYears?: number;  // override training years for advancement calculation
+  workoutDuration?: number;  // minutes (30, 60, 90, 120)
+  exercisesPerWorkout?: { min: number; max: number };
+  includedExercises?: string[];
+  excludedExercises?: string[];
+  experienceLevel?: TrainingAdvancement;  // biases deterministic program selection
 }
 
 class AIRoutineGeneratorService {
@@ -74,15 +71,12 @@ class AIRoutineGeneratorService {
     this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
   }
 
-  /**
-   * Generate a routine program based on proven methodologies
-   */
   async generateRoutineProgram(options: GenerateRoutineOptions): Promise<GeneratedRoutineProgram> {
     const userProfile = await userService.getRealUserProfile();
     const equipmentProfile = classifyEquipment(userProfile?.equipmentFilter?.includedEquipment);
 
-    // Standard equipment → build deterministically from the attributed template library
-    // (fast, consistent, no API call). Limited/odd setups fall through to the AI.
+    // Standard equipment → deterministic template library (fast, consistent, no
+    // API call). Limited/odd setups fall through to the AI.
     if (equipmentProfile.tier === 'standard') {
       try {
         return this.buildDeterministic(options, equipmentProfile.available);
@@ -91,8 +85,8 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // Limited/odd equipment (or a deterministic failure) → AI, with the template library
-    // as the final fallback when the AI is unavailable or errors.
+    // Limited/odd equipment (or a deterministic failure) → AI, with the template
+    // library as the final fallback when the AI errors or is unavailable.
     if (!this.GEMINI_API_KEY) {
       return this.buildDeterministic(options, equipmentProfile.available);
     }
@@ -123,13 +117,9 @@ class AIRoutineGeneratorService {
     });
   }
 
-  /**
-   * Refine an already-generated program in place based on a freeform instruction
-   * (e.g. "swap leg press for hack squat", "more chest volume", "shorten day 1").
-   * Reuses the same lifter context/constraints as generation and asks the AI to
-   * return the full revised program. Falls back to the unchanged program if the AI
-   * is unavailable or errors.
-   */
+  // Refine an already-generated program in place from a freeform instruction
+  // (e.g. "swap leg press for hack squat"). Reuses the generation context and
+  // asks for the full revised program; falls back to the unchanged program on error.
   async refineRoutineProgram(
     currentProgram: GeneratedRoutineProgram,
     instruction: string,
@@ -155,9 +145,7 @@ class AIRoutineGeneratorService {
     }
   }
 
-  /**
-   * Convert a generated program to actual Routine objects that can be saved
-   */
+  /** Convert a generated program to saveable Routine objects. */
   async convertToRoutines(
     program: GeneratedRoutineProgram,
     options?: { excludedExerciseIds?: string[]; programId?: string }
@@ -189,7 +177,7 @@ class AIRoutineGeneratorService {
         } else {
           byId.set(matched.id, {
             exerciseId: matched.id,
-            exerciseName: matched.name,  // Store name for display
+            exerciseName: matched.name,
             sets: newSets,
             intensityModifier: this.deriveIntensity(matched.id, reps),
             notes: ex.notes,
@@ -219,12 +207,9 @@ class AIRoutineGeneratorService {
     return routines;
   }
 
-  /**
-   * Parse a generated reps value into a single base rep count.
-   * Handles ranges ("8-12" -> 8), AMRAP markers ("5+" -> 5), and time-based
-   * prescriptions ("30-60 sec" -> 30). The low end of a range is the correct base:
-   * the double-progression engine walks reps UP from base toward the top of the range.
-   */
+  // Parse a generated reps value into a base rep count: ranges ("8-12" → 8),
+  // AMRAP ("5+" → 5), time ("30-60 sec" → 30). The low end is the base — the
+  // double-progression engine walks reps UP toward the top of the range.
   private parseReps(raw: number | string): number {
     if (typeof raw === 'number') return raw > 0 ? Math.round(raw) : 10;
     const match = String(raw).match(/\d+/);
@@ -232,11 +217,8 @@ class AIRoutineGeneratorService {
     return Number.isFinite(n) && n > 0 ? n : 10;
   }
 
-  /**
-   * Derive intensity from exercise type + rep target instead of a blanket 'heavy'.
-   * intensityModifier scales the working weight in progressiveOverload, so tagging
-   * isolation work 'heavy' over-loads it. Compounds at low reps stay heavy.
-   */
+  // intensityModifier scales working weight in progressiveOverload, so a blanket
+  // 'heavy' over-loads isolation work. Derive it from type + rep target instead.
   private deriveIntensity(exerciseId: string, baseReps: number): IntensityModifier {
     const exercise = getWorkoutById(exerciseId);
     const isCompound = exercise?.category === 'compound';
@@ -245,30 +227,26 @@ class AIRoutineGeneratorService {
     return 'moderate';                    // higher-rep compound work
   }
 
-  /**
-   * Find exercise by name in built-in database and custom exercises
-   */
+  // Match precedence: exact (built-in, then custom), partial contains, then
+  // ignoring any "(Equipment)" suffix.
   private findExerciseByName(
     name: string,
     customExercises: CustomExercise[]
   ): { id: string; name: string } | null {
     const cleanName = name.toLowerCase().trim();
 
-    // 1. Direct match in built-in exercises
     for (const exercise of ALL_WORKOUTS) {
       if (exercise.name.toLowerCase() === cleanName) {
         return { id: exercise.id, name: exercise.name };
       }
     }
 
-    // 2. Direct match in custom exercises
     for (const exercise of customExercises) {
       if (exercise.name.toLowerCase() === cleanName) {
         return { id: exercise.id, name: exercise.name };
       }
     }
 
-    // 3. Partial match in built-in exercises (contains)
     for (const exercise of ALL_WORKOUTS) {
       if (exercise.name.toLowerCase().includes(cleanName) ||
           cleanName.includes(exercise.name.toLowerCase())) {
@@ -276,7 +254,6 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // 4. Partial match in custom exercises (contains)
     for (const exercise of customExercises) {
       if (exercise.name.toLowerCase().includes(cleanName) ||
           cleanName.includes(exercise.name.toLowerCase())) {
@@ -284,7 +261,6 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // 5. Try matching without equipment suffix (built-in)
     const nameWithoutEquipment = cleanName.replace(/\s*\([^)]*\)\s*$/, '').trim();
     for (const exercise of ALL_WORKOUTS) {
       const exerciseWithoutEquipment = exercise.name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, '').trim();
@@ -293,7 +269,6 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // 6. Try matching without equipment suffix (custom)
     for (const exercise of customExercises) {
       const exerciseWithoutEquipment = exercise.name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, '').trim();
       if (exerciseWithoutEquipment === nameWithoutEquipment) {
@@ -316,10 +291,8 @@ class AIRoutineGeneratorService {
     const bodyWeight = userProfile?.weight?.value || 150;
     const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ALL_EQUIPMENT;
 
-    // Calculate user's strength level
     const strengthLevel = this.calculateStrengthLevel(workoutHistory, userProfile);
 
-    // Get available exercises
     const availableExercises = userEquipment.length > 0
       ? getWorkoutsByEquipment(userEquipment, 100)
       : getAvailableWorkouts(100);
@@ -329,31 +302,26 @@ class AIRoutineGeneratorService {
 
     const userEquipmentDisplay = formatEquipmentList(userEquipment);
 
-    // Build exercise history summary with names, PRs, and frequency
     const recentWorkouts = workoutHistory.slice(-20);
     const exerciseStats = new Map<string, {
       name: string;
       weight: number;
       reps: number;
-      frequency: number;  // How many workouts this exercise appeared in
+      frequency: number;  // # of workouts this exercise appeared in
     }>();
 
-    // Create ID to name lookup from ALL_WORKOUTS
     const idToName = new Map<string, string>();
     for (const workout of ALL_WORKOUTS) {
       idToName.set(workout.id, workout.name);
     }
-    // Also add custom exercises
     for (const custom of customExercises) {
       idToName.set(custom.id, custom.name);
     }
 
     for (const workout of recentWorkouts) {
-      // Track which exercises we've already counted in this workout
-      const countedInThisWorkout = new Set<string>();
+      const countedInThisWorkout = new Set<string>(); // count each exercise once per workout
 
       for (const ex of workout.exercises) {
-        // Skip if we've already counted this exercise in this workout
         if (countedInThisWorkout.has(ex.id)) continue;
         countedInThisWorkout.add(ex.id);
 
@@ -363,7 +331,6 @@ class AIRoutineGeneratorService {
 
         const current = exerciseStats.get(ex.id);
         if (!current) {
-          // First time seeing this exercise
           exerciseStats.set(ex.id, {
             name: exerciseName,
             weight: bestSet?.weight || 0,
@@ -371,9 +338,7 @@ class AIRoutineGeneratorService {
             frequency: 1
           });
         } else {
-          // Increment frequency
           current.frequency++;
-          // Update PR if higher
           if (bestSet && bestSet.weight > current.weight) {
             current.weight = bestSet.weight;
             current.reps = bestSet.reps;
@@ -382,7 +347,7 @@ class AIRoutineGeneratorService {
       }
     }
 
-    // Sort by frequency (most used first) and take top 15
+    // Most-used first, top 15.
     const sortedExercises = Array.from(exerciseStats.entries())
       .sort((a, b) => b[1].frequency - a[1].frequency)
       .slice(0, 15);
@@ -397,8 +362,7 @@ class AIRoutineGeneratorService {
       ? `Custom exercises: ${customExerciseNames.join(', ')}`
       : '';
 
-    // Determine training advancement for fatigue management
-    // Use options.trainingYears if provided (from UI), otherwise use profile
+    // Training advancement for fatigue management; UI-supplied trainingYears wins over profile.
     const profileWithTrainingYears = userProfile
       ? { ...userProfile, trainingYears: options.trainingYears ?? userProfile.trainingYears }
       : null;
@@ -407,12 +371,10 @@ class AIRoutineGeneratorService {
 
     console.log(`[RoutineGenerator] Training advancement: ${advancementResult.level} (source: ${advancementResult.source}, confidence: ${advancementResult.confidence})`);
 
-    // Filter out excluded exercises and map included exercise IDs to names
     let filteredExerciseNames = allExerciseNames;
     if (options.excludedExercises && options.excludedExercises.length > 0) {
       const excludedSet = new Set(options.excludedExercises);
       filteredExerciseNames = allExerciseNames.filter(name => {
-        // Match by checking if any excluded ID corresponds to this name
         const exercise = [...availableExercises, ...customExercises].find(e => e.name === name);
         return !exercise || !excludedSet.has(exercise.id);
       });
@@ -422,12 +384,11 @@ class AIRoutineGeneratorService {
       ids?.map(id => [...availableExercises, ...customExercises].find(e => e.id === id)?.name)
           .filter((name): name is string => !!name);
 
-    // Get names of included exercises
     const includedExerciseNames = namesForIds(options.includedExercises);
 
-    // Get names of excluded exercises. We already drop these from the available list, but
-    // the model can still recall an excluded lift from training, so we also render an explicit
-    // "MUST EXCLUDE" rule (and drop them again at the conversion seam as a backstop).
+    // These are already dropped from the available list, but the model can still
+    // recall an excluded lift from training, so we also render an explicit "MUST
+    // EXCLUDE" rule (and drop them again at the conversion seam as a backstop).
     const excludedExerciseNames = namesForIds(options.excludedExercises);
 
     const params: RoutineGenerationParams = {
@@ -473,7 +434,6 @@ class AIRoutineGeneratorService {
     const standards = gender === 'male' ? MALE_STANDARDS : FEMALE_STANDARDS;
     const percentiles: number[] = [];
 
-    // Check recent workouts for main lifts
     for (const workout of workoutHistory.slice(-20)) {
       for (const ex of workout.exercises) {
         if (standards[ex.id]) {
@@ -497,7 +457,6 @@ class AIRoutineGeneratorService {
 
     const avgPercentile = percentiles.reduce((a, b) => a + b, 0) / percentiles.length;
 
-    // Convert percentile to training level
     if (avgPercentile < 20) return 'Beginner';
     if (avgPercentile < 40) return 'Novice';
     if (avgPercentile < 60) return 'Intermediate';
@@ -538,7 +497,6 @@ Return only valid JSON.`;
 
     const parsed = parseGeminiJson(content);
 
-    // Track analytics
     analyticsService.trackAIUsage({
       requestType: 'routine_generate',
       inputText: programTemplate,

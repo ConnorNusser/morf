@@ -49,7 +49,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
         storageService.getWorkoutHistory(),
       ]);
 
-      // Use the same data source as the home screen for consistency
       const topLift = allFeaturedLifts.find(lift => lift.workoutId === liftId) || null;
       const unit = profile.weightUnitPreference || 'lbs';
 
@@ -59,8 +58,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
       setUserProfile(profile);
       setTopLift(topLift);
 
-      // Best set per month for this lift — the same board logic the LIFTS list used,
-      // now inline so the modal shows month-over-month progress for the one lift.
+      // Best set per month for this lift (buildLiftProgressions), inline for month-over-month view.
       const bodyweightLbs = convertWeightForPreference(profile.weight.value, profile.weight.unit, 'lbs');
       const grading = bodyweightLbs && profile.gender
         ? { bodyweightLbs, gender: profile.gender, age: profile.age }
@@ -78,7 +76,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     }
   };
 
-  // Calculate next rank target
   const getNextRankInfo = () => {
     if (!userProfile || !topLift) return null;
 
@@ -90,24 +87,20 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     // Use topLift (best lift) for percentile, not most recent
     const currentPercentile = topLift.percentileRanking;
 
-    // Convert body weight to lbs for calculation
     const bodyWeightLbs = convertWeightForPreference(userProfile.weight.value, userProfile.weight.unit, 'lbs');
     const currentOneRMInDisplayUnits = convertWeightForPreference(topLift?.personalRecord || 0, 'lbs', weightUnit);
 
-    // Define targets in order
     const targets = [
       { name: 'B Tier', multiplier: standards.advanced, threshold: 50 },
       { name: 'A Tier', multiplier: standards.elite, threshold: 75 },
       { name: 'S Tier', multiplier: standards.god, threshold: 90 },
     ];
 
-    // Find the next unachieved target
     for (const target of targets) {
       if (currentPercentile < target.threshold) {
         const targetWeightLbs = bodyWeightLbs * target.multiplier;
         const targetInDisplayUnits = convertWeightForPreference(targetWeightLbs, 'lbs', weightUnit);
-        
-        // Round to 2 decimal places for better display
+
         const roundedTarget = Math.round(targetInDisplayUnits * 100) / 100;
         const roundedCurrent = Math.round(currentOneRMInDisplayUnits * 100) / 100;
         
@@ -135,7 +128,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     Math.round(predictionModels.reduce((sum, model) =>
       sum + (predictions[`${model.name}_90`] || fallback), 0) / predictionModels.length);
 
-  // Calculate average prediction for chart
   const getAveragePrediction = () => {
     if (Object.keys(predictions).length === 0 || liftData.length === 0) return undefined;
     return avg90(liftData[liftData.length - 1].personalRecord);
@@ -146,14 +138,12 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
 
     const nextRank = getNextRankInfo();
 
-    // Calculate 3-month prediction average
     const avg3MonthPrediction = Object.keys(predictions).length > 0
       ? avg90(topLift?.personalRecord || 0)
       : 0;
 
     return (
       <View style={styles.statsContainer}>
-        {/* Current 1RM at top */}
         <View style={styles.mainStat}>
           <Text style={[styles.statLabel, { color: currentTheme.colors.text + '80' }]}>
             Current 1RM
@@ -168,7 +158,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           )}
         </View>
 
-        {/* Tier Badge and Percentile */}
         <View style={styles.tierHeader}>
           <TierBadge percentile={topLift.percentileRanking} size="large" />
           <View style={styles.percentileBlock}>
@@ -181,7 +170,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           </View>
         </View>
 
-        {/* 3-month prediction + Sessions on one line */}
         <View style={styles.bottomStatsRow}>
           {avg3MonthPrediction > 0 ? (
             <View>
@@ -209,8 +197,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     );
   };
 
-  // Best set each month for this lift, oldest → newest — the LIFTS board logic
-  // (buildLiftProgressions) inline, so the modal shows progress over the months.
+  // Best set each month, oldest → newest.
   const renderMonthlyProgression = () => {
     if (monthlyPoints.length === 0) return null;
 
@@ -390,7 +377,6 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
             {workoutName} Progression
@@ -403,13 +389,10 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {liftData.length > 0 ? (
             <>
-              {/* Current Stats */}
               {renderCurrentStats()}
 
-              {/* Monthly progression — best set per month for this lift */}
               {renderMonthlyProgression()}
 
-              {/* Interactive Chart */}
               <InteractiveProgressChart
                 data={liftData}
                 selectedMetric="oneRM"
@@ -419,10 +402,8 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                 description="Estimated from your workout sessions"
               />
 
-              {/* Predictions */}
               {renderPredictions()}
-              
-              {/* Progression Indicator */}
+
               {userProfile && liftData.length > 0 && (
                 <ProgressionIndicator
                   currentOneRM={topLift?.personalRecord || 0}
@@ -433,8 +414,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                   weightUnit={weightUnit}
                 />
               )}
-              
-              {/* Lift History */}
+
               {renderLiftHistory()}
             </>
           ) : (

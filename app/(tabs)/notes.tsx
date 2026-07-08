@@ -29,7 +29,6 @@ import {
   View as RNView,
 } from 'react-native';
 
-// Get muscle groups from routine exercises - simplified, no colors
 const getMuscleGroups = (routine: CalculatedRoutine): string[] => {
   const muscleCounts: Record<string, number> = {};
 
@@ -43,7 +42,6 @@ const getMuscleGroups = (routine: CalculatedRoutine): string[] => {
     }
   }
 
-  // Sort by count and return top 3 muscle names
   return Object.entries(muscleCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -57,7 +55,6 @@ export default function NotesScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Routines state
   const [routines, setRoutines] = useState<Routine[]>([]);
   // Global per-exercise records — the anchor every routine's prescription uses.
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
@@ -65,28 +62,22 @@ export default function NotesScreen() {
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
-  // Program a new day is being added to (null = editing a loose/standalone routine).
+  // Program a new day is being added to (null = editing a loose routine).
   const [addDayProgramId, setAddDayProgramId] = useState<string | null>(null);
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [expandedProgramId, setExpandedProgramId] = useState<string | null>(null);
   const [renamingProgram, setRenamingProgram] = useState<Program | null>(null);
   const [renameText, setRenameText] = useState('');
-  // Program whose days are being reordered (null = none). In this mode the
-  // up-next hoist is suspended so the manual order is what the user sees.
+  // While reordering, the up-next hoist is suspended so the manual order is what the user sees.
   const [reorderingProgramId, setReorderingProgramId] = useState<string | null>(null);
-  // Which day the up-next ring points at (set by flipping on the home dashboard
-  // or advanced on workout completion); resolves the highlighted up-next day.
+  // Which day the up-next ring points at (set on the home dashboard or advanced on completion).
   const [upNextPointerId, setUpNextPointerId] = useState<string | null>(null);
-  // When the current rotation began — a day's checkmark derives from whether it
-  // was trained at or after this (see isDayCompletedThisCycle). Flipping the
-  // pointer doesn't change it; only finishing a real workout does.
+  // When the current rotation began — a day's checkmark derives from being trained at/after this (see isDayCompletedThisCycle). Only finishing a workout changes it, not flipping the pointer.
   const [cycleStartedAt, setCycleStartedAt] = useState<number>(0);
 
-  // User's weight unit preference
   const weightUnit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
 
-  // Load routines and workout history
   const loadData = useCallback(async () => {
     try {
       const [loadedRoutines, history, loadedPrograms, pointerId, cycleStart] = await Promise.all([
@@ -99,7 +90,6 @@ export default function NotesScreen() {
       setPrograms(loadedPrograms);
       setUpNextPointerId(pointerId);
       setCycleStartedAt(cycleStart);
-      // Sort by most recently used, then by created date
       const sorted = loadedRoutines.sort((a, b) => {
         if (a.lastUsed && b.lastUsed) {
           return b.lastUsed.getTime() - a.lastUsed.getTime();
@@ -115,7 +105,6 @@ export default function NotesScreen() {
     }
   }, []);
 
-  // Load data on mount and focus
   useFocusEffect(
     useCallback(() => {
       loadData();
@@ -128,14 +117,11 @@ export default function NotesScreen() {
     setRefreshing(false);
   };
 
-  // Calculate routines with progressive overload
   const calculatedRoutines = useMemo(() => {
     return calculateAllRoutines(routines, exerciseRecords, weightUnit);
   }, [routines, exerciseRecords, weightUnit]);
 
-  // Precompute muscle groups per routine once, instead of recomputing
-  // getMuscleGroups (iterates exercises + getWorkoutById lookups) for every
-  // routine card on every render (e.g. each expand/collapse toggle).
+  // Precompute muscle groups once instead of recomputing getMuscleGroups per card on every render (e.g. each expand/collapse).
   const muscleGroupsByRoutine = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const routine of calculatedRoutines) {
@@ -156,8 +142,7 @@ export default function NotesScreen() {
         standalone.push(r);
       }
     }
-    // Days sort by the user-chosen order; routines without one fall back to
-    // creation order so legacy programs keep a stable sequence.
+    // Days sort by user-chosen order; those without one fall back to creation order so legacy programs stay stable.
     for (const arr of byProgram.values()) {
       arr.sort((a, b) =>
         (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER) ||
@@ -175,8 +160,7 @@ export default function NotesScreen() {
     return { programGroups: groups, standaloneRoutines: standalone };
   }, [calculatedRoutines, programs]);
 
-  // "Up Next" = the same routine the home dashboard surfaces, computed by the
-  // shared resolver so the two screens always agree.
+  // "Up Next" = the same routine the home dashboard surfaces, via the shared resolver so the two screens agree.
   const upNextRoutine = useMemo(
     () => getUpNextRoutine(calculatedRoutines, programs, upNextPointerId),
     [calculatedRoutines, programs, upNextPointerId]
@@ -212,7 +196,7 @@ export default function NotesScreen() {
     await loadData();
   }, [loadData]);
 
-  // Program-level controls. Starting a program auto-pauses whatever was active.
+  // Starting a program auto-pauses whatever was active.
   const handleStartProgram = useCallback(async (programId: string) => {
     await storageService.setActiveProgram(programId);
     await loadData();
@@ -247,7 +231,6 @@ export default function NotesScreen() {
     });
   }, [loadData, showAlert]);
 
-  // Move a day up/down within its program and persist the new order.
   const handleMoveDay = useCallback(async (programId: string, dayIds: string[], index: number, dir: -1 | 1) => {
     const target = index + dir;
     if (target < 0 || target >= dayIds.length) return;
@@ -287,7 +270,6 @@ export default function NotesScreen() {
     setShowRoutineEditor(true);
   }, []);
 
-  // Open the editor to create a brand-new day inside an existing program.
   const handleAddDay = useCallback((programId: string) => {
     setEditingRoutine(null);
     setAddDayProgramId(programId);
@@ -313,9 +295,6 @@ export default function NotesScreen() {
     setExpandedRoutineId(prev => prev === routineId ? null : routineId);
   }, []);
 
-  // Get progression color
-
-  // Get progression icon
   const getProgressionIcon = (progression: 'increase' | 'maintain' | 'decrease') => {
     switch (progression) {
       case 'increase': return 'caret-up';
@@ -337,7 +316,6 @@ export default function NotesScreen() {
   const renderRoutineCard = (routine: CalculatedRoutine, isUpNext = false) => {
     const isExpanded = expandedRoutineId === routine.id;
     const isActive = routine.isActive !== false;
-    // Only an active up-next day earns the highlighted treatment.
     const highlight = isUpNext && isActive;
     const muscleGroups = muscleGroupsByRoutine.get(routine.id) ?? getMuscleGroups(routine);
     const exerciseCount = routine.exercises?.length || 0;
@@ -347,8 +325,7 @@ export default function NotesScreen() {
         key={routine.id}
         style={[
           styles.routineCard,
-          // Transparent on the background with a hairline outline, matching the
-          // ghost control chips, so the cards read as outlined not filled.
+          // Transparent with a hairline outline (matching the ghost chips) so cards read as outlined not filled.
           { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' },
           highlight && {
             backgroundColor: currentTheme.colors.primary + '12',
@@ -358,9 +335,7 @@ export default function NotesScreen() {
         onPress={() => toggleRoutineExpanded(routine.id)}
         activeOpacity={0.7}
       >
-        {/* Card Content */}
         <RNView style={styles.cardContent}>
-          {/* Left: Info */}
           <RNView style={styles.cardInfo}>
             <RNView style={styles.routineNameRow}>
               <Text
@@ -397,8 +372,7 @@ export default function NotesScreen() {
 
           </RNView>
 
-          {/* Right: Start button — prominent on the up-next day, quiet elsewhere
-              so the day you should train stands out. */}
+          {/* Start button — prominent on the up-next day, quiet elsewhere. */}
           <TouchableOpacity
             style={[
               styles.startButton,
@@ -426,24 +400,18 @@ export default function NotesScreen() {
           </TouchableOpacity>
         </RNView>
 
-        {/* Expand affordance — a single quiet chevron, no repeated label. */}
         {!isExpanded && (
           <RNView style={styles.expandHint}>
             <Ionicons name="chevron-down" size={14} color={currentTheme.colors.text + '35'} />
           </RNView>
         )}
 
-        {/* Expanded Content */}
         {isExpanded && (
           <RNView style={styles.expandedContent}>
-            {/* Exercise List */}
             {routine.exercises?.length > 0 && (
               <RNView style={[styles.exerciseList, { borderTopColor: currentTheme.colors.border }]}>
                 {routine.exercises.map((exercise, index) => {
-                  // Improving/holding is judged against the program's own
-                  // prescription (rep bonuses, working weight), not est 1RM —
-                  // the routine rarely asks for a true max, so e1RM would
-                  // contradict a lifter who's hitting every prescribed mark.
+                  // Judged against the program's own prescription (rep bonuses, working weight), not est 1RM, which would contradict a lifter hitting every prescribed mark.
                   const adherence = adherenceMeta(getExerciseAdherenceStatus(exercise));
                   return (
                   <RNView
@@ -489,7 +457,6 @@ export default function NotesScreen() {
               </RNView>
             )}
 
-            {/* Action Row */}
             <RNView style={[styles.actionRow, { borderTopColor: currentTheme.colors.border }]}>
               <TouchableOpacity
                 style={styles.actionItem}
@@ -540,14 +507,11 @@ export default function NotesScreen() {
     );
   };
 
-  // Shared ghost treatment for the quiet program-utility chips (Pause/Archive/
-  // Rename) — a hairline outline on transparent so they read as secondary next
-  // to the filled primary actions.
+  // Ghost treatment for quiet program-utility chips (Pause/Archive/Rename) — hairline outline on transparent so they read as secondary.
   const ghostChip = { backgroundColor: 'transparent', borderColor: currentTheme.colors.text + '1A' };
 
   return (
     <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-      {/* Header */}
       <RNView style={styles.header}>
         <Text weight="bold" style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
           Routines
@@ -570,7 +534,6 @@ export default function NotesScreen() {
         </RNView>
       </RNView>
 
-      {/* Content */}
       <ScrollView
         style={layout.flex1}
         contentContainerStyle={styles.scrollContent}
@@ -580,7 +543,6 @@ export default function NotesScreen() {
       >
         {routines.length > 0 ? (
           <>
-            {/* View Progress Button */}
             <TouchableOpacity
               style={[styles.progressButton, { backgroundColor: 'transparent', borderWidth: 1, borderColor: currentTheme.colors.text + '1A' }]}
               onPress={() => setShowRoutineProgress(true)}
@@ -603,25 +565,16 @@ export default function NotesScreen() {
                 ? '#34C759'
                 : currentTheme.colors.text + (program.status === 'paused' ? '80' : '50');
               const statusLabel = isActiveProgram ? 'Active' : program.status === 'paused' ? 'Paused' : 'Archived';
-              // Always show days in their manual program order so Reorder is
-              // authoritative; the up-next day is flagged in place via the
-              // per-row isUpNext badge rather than hoisted to the top.
-              // Cycle progress reflects days actually trained this cycle (not
-              // merely flipped past). The up-next day itself stays "up next"
-              // even if trained earlier, so it's excluded from the done count.
+              // Cycle progress counts days actually trained this cycle (not merely flipped past); the up-next day is excluded from the done count even if trained earlier.
               const completedThisCycle = isActiveProgram
                 ? days.filter(d => d.id !== upNextRoutine?.id && isDayCompletedThisCycle(d, cycleStartedAt)).length
                 : 0;
-              // Program-level lift momentum: how each distinct exercise is
-              // tracking against the program's prescription (rep bonuses /
-              // working weight), summarized once above the day list. Adherence —
-              // not est 1RM — so the bar agrees with each exercise row.
+              // Program-level lift momentum, summarized once above the day list. Adherence (not est 1RM) so the bar agrees with each exercise row.
               const programExercises = new Map<string, typeof days[number]['exercises'][number]>();
               for (const d of days) {
                 for (const e of d.exercises ?? []) {
                   const existing = programExercises.get(e.exerciseId);
-                  // Keep the instance that has been logged, so a lift trained on
-                  // one day isn't shown as "new" because another day hasn't run.
+                  // Keep the logged instance so a lift trained on one day isn't shown as "new" because another day hasn't run.
                   if (!existing || (!existing.lastPerformed && e.lastPerformed)) {
                     programExercises.set(e.exerciseId, e);
                   }
@@ -668,16 +621,15 @@ export default function NotesScreen() {
                     )}
                   </TouchableOpacity>
 
-                  {/* Lift momentum — one adherence summary for the whole program,
-                      above the days (kept off the cards to avoid clutter). */}
+                  {/* Lift momentum — one adherence summary for the whole program, above the days. */}
                   {isExpanded && programHasTrend && (
                     <RNView style={styles.programMomentum}>
                       <RNView style={styles.momentumBar}>
                         {programStatuses.map((s, i) => {
                           const segColor = s === 'improving' ? '#34C759'
                             : s === 'easing' ? '#FF3B30'
-                            : s === 'holding' ? currentTheme.colors.text + '40'  // on track, no recent gain
-                            : currentTheme.colors.text + '15';                   // not started yet
+                            : s === 'holding' ? currentTheme.colors.text + '40'
+                            : currentTheme.colors.text + '15';
                           return <RNView key={i} style={[styles.momentumSeg, { backgroundColor: segColor }]} />;
                         })}
                       </RNView>
@@ -687,7 +639,6 @@ export default function NotesScreen() {
                     </RNView>
                   )}
 
-                  {/* Reorder mode — compact rows with up/down controls */}
                   {isExpanded && isReordering && (
                     <RNView style={styles.timeline}>
                       {days.map((routine, idx) => (
@@ -723,9 +674,7 @@ export default function NotesScreen() {
                     <RNView style={styles.timeline}>
                       {days.map((routine, idx) => {
                         const isUpNext = isActiveProgram && upNextRoutine?.id === routine.id;
-                        // Done only if actually trained this cycle (flipping the
-                        // pointer past a day never marks it done). The up-next day
-                        // keeps its highlight even if it was trained earlier.
+                        // Done only if actually trained this cycle; flipping the pointer past a day never marks it done.
                         const isCompleted = isActiveProgram && !isUpNext && isDayCompletedThisCycle(routine, cycleStartedAt);
                         const isFirst = idx === 0;
                         const isLast = idx === days.length - 1;
@@ -750,7 +699,6 @@ export default function NotesScreen() {
                     </RNView>
                   )}
 
-                  {/* Add a new day to the program */}
                   {isExpanded && !isReordering && (
                     <TouchableOpacity
                       style={[styles.addDayButton, { borderColor: currentTheme.colors.primary + '40' }]}
@@ -764,8 +712,7 @@ export default function NotesScreen() {
                     </TouchableOpacity>
                   )}
 
-                  {/* Program controls — below the day list so the days you train
-                      lead and program management reads as a footer. */}
+                  {/* Program controls — below the day list so the days lead and management reads as a footer. */}
                   <RNView style={styles.programActions}>
                     {isReordering ? (
                       <TouchableOpacity style={[styles.programChip, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.primary }]} onPress={() => setReorderingProgramId(null)} activeOpacity={0.85}>
@@ -802,14 +749,12 @@ export default function NotesScreen() {
                     )}
                   </RNView>
 
-                  {/* Bottom rule — closes the program block so the header, days
-                      and controls read as one grouped unit. */}
                   <RNView style={[styles.programDivider, { backgroundColor: currentTheme.colors.border }]} />
                 </RNView>
               );
             })}
 
-            {/* My Routines — loose routines not tied to a program */}
+            {/* Loose routines not tied to a program */}
             {standaloneRoutines.length > 0 && (
               <RNView style={styles.section}>
                 <Text weight="semiBold" style={[styles.sectionLabel, { color: currentTheme.colors.text + '50' }]}>
@@ -843,7 +788,6 @@ export default function NotesScreen() {
         )}
       </ScrollView>
 
-      {/* Routine Editor Modal */}
       <RoutineEditorModal
         visible={showRoutineEditor}
         routine={editingRoutine}
@@ -852,7 +796,6 @@ export default function NotesScreen() {
         onSave={handleRoutineEditorSave}
       />
 
-      {/* AI Routine Generator Modal */}
       <RoutineGeneratorModal
         visible={showRoutineGenerator}
         onClose={() => setShowRoutineGenerator(false)}
@@ -861,16 +804,14 @@ export default function NotesScreen() {
         }}
       />
 
-      {/* Routine Progress Modal */}
       <RoutineProgressModal
         visible={showRoutineProgress}
         onClose={() => {
           setShowRoutineProgress(false);
-          loadData(); // Refresh data in case changes were made
+          loadData();
         }}
       />
 
-      {/* Rename Program Modal */}
       <Modal visible={!!renamingProgram} transparent animationType="fade" onRequestClose={() => setRenamingProgram(null)}>
         <RNView style={styles.renameOverlay}>
           <RNView style={[styles.renameCard, { backgroundColor: currentTheme.colors.surface }]}>

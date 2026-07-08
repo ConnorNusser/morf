@@ -23,8 +23,7 @@ const WeightUnitPreferenceSection = () => {
       playSound();
       
       if (!userProfile) return;
-      
-      // Update profile using context which will trigger re-renders across the app
+
       await updateProfile({
         ...userProfile,
         age: userProfile.age || 28,

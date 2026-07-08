@@ -1,6 +1,5 @@
-// Weekly training-goal signal for the home dashboard. Pure + clock-injectable,
-// matching the style of retentionSignals.ts. Week starts Monday (the common
-// training-week convention); index 0 = Monday … 6 = Sunday.
+// Weekly training-goal signal for the home dashboard. Pure + clock-injectable.
+// Week starts Monday; index 0 = Monday … 6 = Sunday.
 import { GeneratedWorkout, convertWeight } from '@/types';
 import { dateKey, weekStart as mondayOf } from '@/lib/utils/utils';
 
@@ -24,7 +23,6 @@ export function getWeekProgress(
 ): WeekProgress {
   const weekStart = mondayOf(now);
 
-  // Bucket each workout into its day of this week (index 0 = Monday).
   const dayKeys: string[] = [];
   for (let i = 0; i < 7; i++) {
     const day = new Date(weekStart);
@@ -50,17 +48,14 @@ export function getWeekProgress(
   };
 }
 
-// Training-load summary for the home "This week" card: total volume and set
-// count for the current week, plus the change vs the previous week so the user
-// gets a sense of momentum instead of just a day count. Volume is in lbs (the
-// caller formats into the user's preferred unit).
+// Training-load summary for the home "This week" card. Volume in lbs (caller
+// formats into the user's preferred unit).
 export interface WeeklyLoad {
   volumeLbs: number; // Σ weight×reps over completed sets this week
   sets: number; // completed sets this week
   deltaPct: number | null; // % volume change vs last week; null if no prior data
 }
 
-// Completed-set volume (lbs) and set count for one workout.
 function workoutLoad(workout: GeneratedWorkout): { volumeLbs: number; sets: number } {
   let volumeLbs = 0;
   let sets = 0;

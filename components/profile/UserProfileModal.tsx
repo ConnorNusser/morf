@@ -50,10 +50,6 @@ interface UserProfileModalProps {
 
 const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
 
-// Format relative time (e.g., "2d ago", "1w ago")
-
-// Format duration (e.g., "45min", "1h 15min")
-
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();
   usePauseVideosWhileOpen(visible);
@@ -87,7 +83,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const loadLiftHistory = useCallback(async (exerciseId: string) => {
     if (!user) return;
 
-    // Toggle off if same lift selected
     if (selectedLiftId === exerciseId) {
       setSelectedLiftId(null);
       setLiftHistory([]);
@@ -100,13 +95,12 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     try {
       const history = await userSyncService.getUserLiftHistory(user.id, exerciseId);
 
-      // Convert to UserProgress format for InteractiveProgressChart
       const progressData: UserProgress[] = history.map(lift => ({
         workoutId: exerciseId,
         personalRecord: lift.estimated_1rm,
         lastUpdated: lift.recorded_at,
-        percentileRanking: 0, // Not needed for chart display
-        strengthLevel: '',    // Not needed for chart display
+        percentileRanking: 0,
+        strengthLevel: '',
       }));
 
       setLiftHistory(progressData);
@@ -141,11 +135,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
     setIsLoading(true);
     try {
-      // Get current user for comparison
       const currentUser = await userSyncService.getCurrentUser();
       setCurrentUserId(currentUser?.id || null);
 
-      // Get user data including profile info, percentile data, and workouts
       const [liftsResult, userResult, percentileResult, workoutsResult, workoutCountResult] = await Promise.all([
         supabase
           .from('user_best_lifts')
@@ -177,11 +169,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         } else {
           setUserData(null);
         }
-        // Update user with country code
         if (userResult.data.country_code && user) {
           user.country_code = userResult.data.country_code;
         }
-        // Set member since date
         if (userResult.data.created_at) {
           setMemberSince(new Date(userResult.data.created_at));
         }
@@ -190,16 +180,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         setMemberSince(null);
       }
 
-      // Set percentile data
       setPercentileData(percentileResult);
 
-      // Set recent workouts
       setRecentWorkouts(workoutsResult);
 
-      // Set workout count
       setWorkoutCount(workoutCountResult.count || 0);
 
-      // Fetch current user's lifts and profile for comparison (separate query)
+      // Current user's lifts and profile, for the comparison
       if (currentUser && currentUser.id !== user.id) {
         const [myLiftsResult, myProfile] = await Promise.all([
           supabase
@@ -238,39 +225,32 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     }
   }, [visible, user, loadUserData, checkFriendStatus]);
 
-  // Enhance topContributions with weight data from lifts
   // Must be before early return to maintain consistent hook order
   const enhancedTopContributions = useMemo(() => {
     if (!percentileData?.top_contributions) return [];
 
-    // Create a map of exercise_id -> estimated_1rm from lifts
     const liftWeightMap: Record<string, number> = {};
     lifts.forEach(lift => {
       liftWeightMap[lift.exercise_id] = lift.estimated_1rm;
     });
 
-    // Merge weight into topContributions
     return percentileData.top_contributions.map(c => ({
       ...c,
       weight: c.weight || liftWeightMap[c.exercise_id] || undefined,
     }));
   }, [percentileData?.top_contributions, lifts]);
 
-  // Compute "You vs Them" comparison data
   // Must be before early return to maintain consistent hook order
   const liftComparison = useMemo(() => {
-    // Only show comparison when viewing someone else's profile
     if (!currentUserId || currentUserId === user?.id || myLifts.length === 0 || lifts.length === 0) {
       return null;
     }
 
-    // Get body weights for percentile calculation
     const myBodyWeight = myUserData?.weight ? convertWeightToLbs(myUserData.weight.value, myUserData.weight.unit) : 0;
     const myGender = myUserData?.gender === 'male' || myUserData?.gender === 'female' ? myUserData.gender : 'male';
     const theirBodyWeight = userData?.weight ? convertWeightToLbs(userData.weight.value, userData.weight.unit) : 0;
     const theirGender = userData?.gender === 'male' || userData?.gender === 'female' ? userData.gender : 'male';
 
-    // Create maps for quick lookup
     const myLiftMap: Record<string, number> = {};
     myLifts.forEach(lift => {
       myLiftMap[lift.exercise_id] = lift.estimated_1rm;
@@ -281,20 +261,17 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       theirLiftMap[lift.exercise_id] = lift.estimated_1rm;
     });
 
-    // Find common exercises (only featured lifts for percentile mode)
     let commonExercises = Object.keys(myLiftMap).filter(id => id in theirLiftMap);
     if (comparisonMode === 'percentile') {
       commonExercises = commonExercises.filter(id => isFeaturedLift(id));
     }
     if (commonExercises.length === 0) return null;
 
-    // Build comparison array
     const comparisons = commonExercises
       .map(exerciseId => {
         const myWeight = myLiftMap[exerciseId];
         const theirWeight = theirLiftMap[exerciseId];
 
-        // Calculate percentiles if in percentile mode
         const myPercentile = myBodyWeight > 0 && isFeaturedLift(exerciseId)
           ? Math.round(calculateStrengthPercentile(myWeight, myBodyWeight, myGender, exerciseId))
           : 0;
@@ -335,8 +312,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     };
   }, [currentUserId, user?.id, myLifts, lifts, comparisonMode, myUserData, userData]);
 
-  // Derived lift stats — memoized so they don't recompute on unrelated
-  // state changes (expanded card, selected lift, etc.)
+  // Derived lift stats, memoized so they don't recompute on unrelated state changes.
   const { benchMax, squatMax, deadliftMax, big3Total, thousandPoundProgress, totalVolume, otherLifts } = useMemo(() => {
     const getBig3Lift = (exerciseId: string) => {
       const lift = lifts.find(l => l.exercise_id === exerciseId);
@@ -349,10 +325,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     const big3Total = benchMax + squatMax + deadliftMax;
     const thousandPoundProgress = Math.min(100, Math.round((big3Total / 1000) * 100));
 
-    // Total volume (sum of all 1RMs as a rough proxy)
+    // Sum of all 1RMs, a rough proxy for volume
     const totalVolume = lifts.reduce((sum, lift) => sum + lift.estimated_1rm, 0);
 
-    // Top lifts (excluding Big 3)
     const otherLifts = lifts
       .filter(l => !BIG_3.includes(l.exercise_id as typeof MAIN_LIFTS.BENCH_PRESS))
       .filter(l => getWorkoutById(l.exercise_id) !== null)
@@ -364,7 +339,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
   if (!user) return null;
 
-  // Get overall percentile from synced data
   const overallPercentile = percentileData?.overall_percentile ?? null;
 
   const getExerciseName = (id: string) => {
@@ -372,8 +346,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     return workout?.name || id;
   };
 
-  // Progression chart for the selected lift — shared by the Big-3 and Other-Lifts
-  // sections (only the caption differs).
+  // Progression chart for the selected lift, shared by the Big-3 and Other-Lifts sections.
   const renderLiftChart = (liftId: string, description: string) => (
     <View style={styles.chartContainer}>
       {isLoadingHistory ? (
@@ -402,7 +375,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -450,7 +422,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
             </View>
           ) : (
             <>
-              {/* User Info */}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
                   <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -461,7 +432,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       {getCountryName(user.country_code)}
                     </Text>
                   )}
-                  {/* Featured achievement — the badge this user chose to wear. */}
                   {(() => {
                     const featured = userData?.featured_achievement_id
                       ? achievementMeta(userData.featured_achievement_id)
@@ -487,7 +457,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </TouchableOpacity>
                     );
                   })()}
-                  {/* Last workout & Member since */}
                   <View style={styles.metaRow}>
                     {recentWorkouts.length > 0 && (
                       <Text style={[styles.metaText, { color: currentTheme.colors.text + '50' }]}>
@@ -503,7 +472,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </Text>
                     )}
                   </View>
-                  {/* Social Links */}
                   {(userData?.instagram_username || userData?.tiktok_username || userData?.discord_username) && (
                     <View style={styles.socialLinksRow}>
                       {userData?.instagram_username && (
@@ -553,7 +521,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 )}
               </View>
 
-              {/* Strength Radar */}
               {percentileData && overallPercentile !== null && (
                 <StrengthRadarCard
                   overallPercentile={Math.round(overallPercentile)}
@@ -562,7 +529,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 />
               )}
 
-              {/* 1000lb Club Progress */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                 <View style={[styles.cardHeader, { backgroundColor: 'transparent' }]}>
                   <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -588,7 +554,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   {thousandPoundProgress >= 100 ? 'Member!' : `${thousandPoundProgress}% to 1000lbs`}
                 </Text>
 
-                {/* Big 3 Breakdown */}
                 <View style={styles.big3Container}>
                   <TouchableOpacity
                     style={[
@@ -649,12 +614,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   </TouchableOpacity>
                 </View>
 
-                {/* Big 3 Progression Chart */}
                 {selectedLiftId && BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) &&
                   renderLiftChart(selectedLiftId, "Estimated from your workout sessions")}
               </View>
 
-              {/* Stats Card */}
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                 <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   Stats
@@ -687,7 +650,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 </View>
               </View>
 
-              {/* You vs Them Comparison */}
               {liftComparison && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                   <View style={styles.comparisonHeader}>
@@ -709,7 +671,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </Text>
                     </View>
                   </View>
-                  {/* Mode toggle chips */}
                   <View style={styles.comparisonChips}>
                     <TouchableOpacity
                       style={[
@@ -748,7 +709,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  {/* Column headers */}
                   <View style={[styles.comparisonHeaderRow, { borderBottomColor: currentTheme.colors.border }]}>
                     <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60' }]}>You</Text>
                     <Text style={[styles.comparisonColumnHeader, { color: currentTheme.colors.text + '60', flex: 1, textAlign: 'center' }]}>Exercise</Text>
@@ -824,7 +784,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 </View>
               )}
 
-              {/* Other Top Lifts */}
               {otherLifts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                   <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -867,13 +826,11 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     })}
                   </View>
 
-                  {/* Progression Chart for selected lift (only for non-Big3 lifts) */}
                   {selectedLiftId && !BIG_3.includes(selectedLiftId as typeof MAIN_LIFTS.BENCH_PRESS) &&
                     renderLiftChart(selectedLiftId, "Tap points to see exact values")}
                 </View>
               )}
 
-              {/* Recent Workouts */}
               {recentWorkouts.length > 0 && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
                   <Text style={[styles.cardTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -918,7 +875,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                             </View>
                           </TouchableOpacity>
 
-                          {/* Expanded exercise details */}
                           {isExpanded && workout.exercises && workout.exercises.length > 0 && (
                             <View style={[
                               styles.workoutExercisesExpanded,
@@ -980,7 +936,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         </ScrollView>
       </SafeAreaView>
 
-      {/* Full Screen Profile Picture Modal */}
       {user?.profile_picture_url && (
         <Modal
           visible={showFullScreenPicture}
@@ -1034,7 +989,6 @@ const styles = StyleSheet.create({
   loadingStack: {
     gap: space.lg,
   },
-  // The badge this user chose to wear on their profile.
   featuredRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1324,7 +1278,6 @@ const styles = StyleSheet.create({
     top: 60,
     right: 20,
   },
-  // Meta info styles (member since, last workout)
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1338,7 +1291,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
     fontSize: 12,
   },
-  // Comparison styles
   comparisonHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

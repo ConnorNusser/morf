@@ -1,6 +1,4 @@
-// Personal records for the main lifts — the best estimated 1RM the user has
-// hit on squat / bench / deadlift / overhead press, with the set + date that
-// produced it. Pure, derived from workout history.
+// Personal records for the main lifts — best estimated 1RM per lift with the set + date. Pure.
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getExercise } from '@/lib/workout/workouts';
 import { ALL_MAIN_LIFTS, convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
@@ -16,7 +14,6 @@ export interface LiftPR {
 }
 
 export function computeMainLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit): LiftPR[] {
-  // exerciseId -> best record so far
   const best = new Map<string, { e1rm: number; weight: number; reps: number; date: Date }>();
 
   for (const workout of workouts) {

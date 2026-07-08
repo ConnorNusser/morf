@@ -3,11 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const COUNTRY_CODE_KEY = 'user_country_code';
 
-// Country code to flag emoji mapping
 export const getCountryFlag = (countryCode: string | null | undefined): string => {
   if (!countryCode || countryCode.length !== 2) return '';
 
-  // Convert country code to flag emoji using regional indicator symbols
   const codePoints = countryCode
     .toUpperCase()
     .split('')
@@ -16,7 +14,6 @@ export const getCountryFlag = (countryCode: string | null | undefined): string =
   return String.fromCodePoint(...codePoints);
 };
 
-// Country code to country name mapping (common countries)
 const COUNTRY_NAMES: Record<string, string> = {
   'US': 'United States',
   'GB': 'United Kingdom',
@@ -77,9 +74,6 @@ export const getCountryName = (countryCode: string | null | undefined): string =
 class GeoService {
   private cachedCountryCode: string | null = null;
 
-  /**
-   * Get stored country code from AsyncStorage
-   */
   async getStoredCountryCode(): Promise<string | null> {
     if (this.cachedCountryCode) return this.cachedCountryCode;
 
@@ -95,9 +89,6 @@ class GeoService {
     }
   }
 
-  /**
-   * Store country code in AsyncStorage
-   */
   async setStoredCountryCode(countryCode: string): Promise<void> {
     try {
       await AsyncStorage.setItem(COUNTRY_CODE_KEY, countryCode);
@@ -107,27 +98,20 @@ class GeoService {
     }
   }
 
-  /**
-   * Request location permission and get user's country
-   */
   async requestAndGetCountry(): Promise<string | null> {
     try {
-      // Check if we already have a stored country
       const stored = await this.getStoredCountryCode();
       if (stored) return stored;
 
-      // Request permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         return null;
       }
 
-      // Get current location
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Low, // Low accuracy is fine for country detection
+        accuracy: Location.Accuracy.Low, // low accuracy is fine for country detection
       });
 
-      // Reverse geocode to get country
       const [geocode] = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,

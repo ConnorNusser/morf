@@ -45,7 +45,6 @@ export default function FullScreenImageViewer({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scale = useSharedValue(1);
 
-  // Reset index when modal opens
   useEffect(() => {
     if (visible) {
       setCurrentIndex(initialIndex);
@@ -57,7 +56,6 @@ export default function FullScreenImageViewer({
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
   const hasSocialFeatures = onLike !== undefined;
 
-  // Like animation
   const { likeAnimatedStyle, pop } = useLikePop();
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -94,7 +92,6 @@ export default function FullScreenImageViewer({
     >
       <View style={styles.container}>
         <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={28} color="#fff" />
@@ -109,7 +106,6 @@ export default function FullScreenImageViewer({
             <View style={{ width: 44 }} />
           </View>
 
-          {/* Image Carousel */}
           <ScrollView
             horizontal
             pagingEnabled
@@ -137,7 +133,6 @@ export default function FullScreenImageViewer({
             ))}
           </ScrollView>
 
-          {/* Page Indicators */}
           {images.length > 1 && (
             <View style={styles.pagination}>
               {images.map((_, index) => (
@@ -156,7 +151,6 @@ export default function FullScreenImageViewer({
             </View>
           )}
 
-          {/* Like Button */}
           {hasSocialFeatures && (
             <View style={styles.actionBar}>
               <TouchableOpacity

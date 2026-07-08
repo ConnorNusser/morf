@@ -8,10 +8,8 @@ import {
   StrengthTier,
 } from '@/lib/data/strengthStandards';
 
-// Pure (no React / react-native) so the PR-progression math is unit-testable and
-// shared with HistoryHero. History is appended per *set* (history.tsx addEntry runs
-// once per completedSet), so the curve/gate must group by day first — otherwise one
-// workout of 3 sets fabricates a 3-point "progression" and reads "3 sessions logged".
+// Pure so the PR-progression math is unit-testable. History is appended per *set*, so
+// the curve/gate must group by day first — else a 3-set workout fakes a 3-point progression.
 
 export const N = 14; // samples per lift (fixed so curves can morph into each other)
 export const MIN_SESSIONS = 3; // distinct training days needed to draw a progression
@@ -22,8 +20,8 @@ export interface LiftSeries {
   current: number; // latest best e1RM, display unit
   gainLbs: number; // all-time gain across the logged window, display unit
   sessions: number; // distinct training days, NOT set count
-  startDate: Date; // first logged session
-  endDate: Date; // latest logged session
+  startDate: Date;
+  endDate: Date;
 }
 
 // The lift closest to unlocking the hero — drives an actionable "1 of 3" empty state.
@@ -32,9 +30,7 @@ export interface NearestLift {
   sessions: number; // distinct days logged so far (< MIN_SESSIONS)
 }
 
-// Collapse to one entry per calendar day, keeping that day's best estimated 1RM.
-// Exported so the per-workout PR gate (prSessions.ts) keys off the exact same day
-// bucket the hero curve does — otherwise a "PR" chip could disagree with the curve.
+// Exported so the PR gate (prSessions.ts) buckets days identically to the hero curve.
 export const dayKeyOf = (d: Date) => {
   const date = new Date(d);
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
@@ -106,8 +102,7 @@ export function buildLiftSeries(exerciseStats: ExerciseWithMax[], weightUnit: We
   return out.sort((a, b) => b.sessions - a.sessions).slice(0, 6);
 }
 
-// When no lift qualifies yet, find the one with the most days so we can tell the
-// user exactly how close they are (e.g. "2 of 3 sessions").
+// When no lift qualifies yet, the closest one drives a "2 of 3 sessions" empty state.
 export function nearestLift(exerciseStats: ExerciseWithMax[]): NearestLift | null {
   let best: NearestLift | null = null;
   for (const ex of exerciseStats) {
@@ -120,16 +115,8 @@ export function nearestLift(exerciseStats: ExerciseWithMax[]): NearestLift | nul
 }
 
 
-// ── Aggregate Strength Index ───────────────────────────────────────────────────
-//
-// The portfolio-level answer to "am I stronger overall than N weeks ago?". Instead
-// of a raw summed est-1RM (a monotonic, always-green vanity number), this reuses the
-// app's OWN normalized model: each tracked barbell/dumbbell/machine lift with a
-// published strength standard is scored to a 0–99 bodyweight percentile
-// (calculateStrengthPercentile), and the index is the mean of those percentiles at a
-// point in time. That number is bounded, comparative ("you're 52nd percentile"), and
-// can genuinely DROP — starting a new weak lift, or gaining bodyweight faster than the
-// bar, pulls the average down. Summed lbs never can.
+// Aggregate Strength Index: the mean of each standard lift's 0–99 bodyweight percentile
+// at a point in time. Bounded, comparative, and can genuinely DROP (a summed est-1RM can't).
 
 export type IndexTimeframe = '6W' | '3M' | '1Y' | 'ALL';
 
@@ -145,10 +132,10 @@ export interface StrengthIndexSeries {
   current: number;       // latest overall percentile (0..99)
   previous: number;      // overall percentile at the start of the timeframe
   delta: number;         // current - previous (percentile points; may be negative)
-  tier: StrengthTier;    // tier of the current index
+  tier: StrengthTier;
   liftCount: number;     // standard lifts contributing at the latest sample
-  startDate: Date;       // first sample date actually used (clamped to real data)
-  endDate: Date;         // latest logged training day
+  startDate: Date;       // first sample date used (clamped to real data)
+  endDate: Date;
   hasData: boolean;      // enough signal to draw the index hero
 }
 
@@ -167,13 +154,7 @@ function bestLbsAsOf(days: DaySession[], t: number): number | null {
   return best;
 }
 
-/**
- * Build the Strength Index curve over the selected timeframe.
- *
- * @param bodyweightLbs the lifter's current bodyweight in lbs (percentiles are ratio-based)
- * @param gender        drives which standards table is used
- * @param age           optional age adjustment (older lifters graded on a gentler curve)
- */
+// Build the Strength Index curve over the timeframe. age applies a gentler curve for older lifters.
 export function buildStrengthIndexSeries(
   exerciseStats: ExerciseWithMax[],
   bodyweightLbs: number,
@@ -194,8 +175,7 @@ export function buildStrengthIndexSeries(
   };
   if (!bodyweightLbs || bodyweightLbs <= 0) return empty;
 
-  // Only lifts with a published standard for this gender contribute — otherwise the
-  // mean would be diluted by a flat 50th-percentile default for unranked accessories.
+  // Only lifts with a published standard contribute — else unranked accessories dilute the mean.
   const stdMap = gender === 'male' ? MALE_STANDARDS : FEMALE_STANDARDS;
 
   const lifts: IndexLift[] = [];
@@ -210,9 +190,8 @@ export function buildStrengthIndexSeries(
   }
   if (lifts.length === 0 || uniqueDayKeys.size < MIN_SESSIONS) return empty;
 
-  // End at the latest real training day across contributing lifts; start `timeframe`
-  // back from there, clamped forward to the first logged day so early samples aren't
-  // empty flat-line padding.
+  // End at the latest training day; start `timeframe` back, clamped to the first logged
+  // day so early samples aren't empty flat-line padding.
   let firstMs = Infinity;
   let lastMs = -Infinity;
   for (const l of lifts) {
@@ -223,8 +202,7 @@ export function buildStrengthIndexSeries(
   const startMs = spanDays === null ? firstMs : Math.max(firstMs, lastMs - spanDays * 86_400_000);
   if (lastMs <= startMs) return empty;
 
-  // Overall percentile at instant `t`: mean of each contributing lift's PR-to-date
-  // percentile. A lift with no session yet at `t` simply doesn't count.
+  // Mean of each contributing lift's PR-to-date percentile at instant `t` (none-yet lifts skipped).
   const indexAt = (t: number): { value: number; count: number } => {
     const pcts: number[] = [];
     for (const l of lifts) {
@@ -249,8 +227,7 @@ export function buildStrengthIndexSeries(
   const current = Math.round(raw[N - 1]);
   const previous = Math.round(raw[0]);
 
-  // Auto-scale to the curve's own min/max (Robinhood style) so a few-point move is
-  // still visible, while a flat index reads as a flat line.
+  // Auto-scale to the curve's own min/max so a few-point move stays visible.
   const min = Math.min(...raw);
   const max = Math.max(...raw);
   const norm = raw.map(v => (max > min ? (v - min) / (max - min) : 0.5));

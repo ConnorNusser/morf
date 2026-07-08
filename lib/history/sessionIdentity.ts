@@ -1,15 +1,12 @@
-// Per-session visual identity: reuses the app's canonical Push/Pull/Legs colour
-// scheme (lib/data/pplCategories — the same colours the Career profile uses) so the
-// feed is scannable and every session gets a memorable "face" consistent with the
-// rest of the app. The emblem is a custom generated white pictogram (person
-// pressing / hanging from a bar / squatting), shown white on a solid PPL circle.
+// Per-session visual identity: reuses the canonical PPL colour scheme (lib/data/pplCategories)
+// so the feed is scannable, each session a white pictogram on a solid PPL circle.
 import { ImageSourcePropType } from 'react-native';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPLCategory } from '@/lib/data/pplCategories';
 import { MuscleGroup } from '@/types';
 
 export interface SessionIdentity {
   key: PPLCategory;
-  color: string;             // the canonical PPL colour, fills the emblem circle
+  color: string; // fills the emblem circle
   emblem: ImageSourcePropType; // white movement pictogram
 }
 
@@ -19,9 +16,7 @@ const EMBLEMS: Record<PPLCategory, ImageSourcePropType> = {
   legs: require('@/assets/emblems/legs.png'),
 };
 
-// Title keyword → category. "Upper"/"Full" and anything unmatched fall through to the
-// session's dominant trained muscle (via MUSCLE_TO_PPL), so every session resolves to
-// one of the three canonical categories.
+// Title keyword → category; unmatched titles fall through to the dominant trained muscle.
 const TITLE_MATCH: { re: RegExp; cat: PPLCategory }[] = [
   { re: /\bpush\b/i, cat: 'push' },
   { re: /\bpull\b/i, cat: 'pull' },

@@ -28,7 +28,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
       onRequestClose={onClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
           <Text variant="title" weight="semiBold" tone="primary">
@@ -42,7 +41,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Important Note */}
           <View style={[styles.importantNote, { backgroundColor: tint(currentTheme.colors.primary), borderColor: currentTheme.colors.primary }]}>
             <Ionicons name="information-circle" size={20} color={currentTheme.colors.primary} />
             <Text variant="meta" weight="medium" tone="primary" style={styles.importantNoteText}>
@@ -50,7 +48,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
             </Text>
           </View>
 
-          {/* Special Keywords Section - Most Important */}
           <View style={styles.section}>
             <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Special Keywords
@@ -104,7 +101,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
             </View>
           </View>
 
-          {/* Equipment Keywords */}
           <View style={styles.section}>
             <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Equipment Keywords
@@ -139,7 +135,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
             </View>
           </View>
 
-          {/* Variation Keywords */}
           <View style={styles.section}>
             <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Variation Keywords
@@ -161,7 +156,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
             </View>
           </View>
 
-          {/* Format Examples */}
           <View style={styles.section}>
             <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Format Examples
@@ -188,7 +182,6 @@ export default function WorkoutKeywordsHelpModal({ visible, onClose }: WorkoutKe
             </View>
           </View>
 
-          {/* Common Abbreviations */}
           <View style={styles.section}>
             <Text variant="body" weight="semiBold" style={styles.sectionTitle}>
               Common Abbreviations
@@ -248,8 +241,7 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: space.section,
   },
-  // Accent-colored section titles are this guide's grammar (kept over
-  // SectionLabel caps); type role tokenized to body/semiBold.
+  // Accent-colored section titles are this guide's grammar (kept over SectionLabel caps).
   sectionTitle: {
     marginBottom: space.md,
   },

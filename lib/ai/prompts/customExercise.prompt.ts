@@ -1,7 +1,3 @@
-/**
- * Prompt for generating custom exercise metadata
- */
-
 export interface CustomExerciseParams {
   exerciseName: string;
 }

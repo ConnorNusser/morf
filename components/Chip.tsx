@@ -15,10 +15,7 @@ interface ChipProps {
   textStyle?: TextStyle;
 }
 
-/**
- * The one pill-shaped filter/sort chip: primary fill when selected,
- * bordered surface otherwise.
- */
+/** Pill filter/sort chip: primary fill when selected, bordered surface otherwise. */
 function Chip({
   label,
   selected = false,
@@ -50,9 +47,8 @@ function Chip({
       <Text
         variant="meta"
         tone={selected ? undefined : 'secondary'}
-        // Weight is held constant across states: the fill + ink already carry the
-        // selected emphasis, and flipping medium→semiBold changed the label's
-        // glyph width, resizing the pill and reflowing its neighbors on select.
+        // Constant weight across states: flipping medium→semiBold changes glyph width,
+        // resizing the pill and reflowing neighbors on select.
         weight="medium"
         style={[selected && { color: readableInkOn(currentTheme.colors.primary) }, textStyle]}
       >

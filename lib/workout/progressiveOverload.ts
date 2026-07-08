@@ -1,18 +1,4 @@
-/**
- * Progressive Overload Calculation System
- *
- * Calculates target and expected weights for routine exercises based on:
- * 1. Workout history for the exercise
- * 2. Estimated 1RM from best recent performance
- * 3. Recent session performance (last 3-5 sessions)
- * 4. Whether they completed their targets
- *
- * Progression Logic:
- * - If they hit target → suggest +5lbs (or +2.5kg)
- * - If they missed target → maintain same weight
- * - If they've struggled recently → suggest decrease
- * - Always sanity-check against recent performance
- */
+/** Calculates target/expected weights for routine exercises from workout history. */
 
 import {
   CalculatedRoutineExercise,
@@ -29,19 +15,16 @@ import { nextPrescription, loadIncrement, NextPrescription } from './progression
 import { getWorkoutById } from './workouts';
 
 
-/**
- * Compute display targets for one routine exercise by anchoring to the global
- * ExerciseRecord (what you actually lifted last time) and applying reactive double
- * progression. No estimated-1RM math — the number can never exceed what you've
- * demonstrated. With no record yet (cold-start), working sets show blank (0) until
- * your first logged session creates the record.
- */
+/** Compute display targets for one routine exercise, anchoring to the global
+ *  ExerciseRecord and applying reactive double progression. No estimated-1RM math,
+ *  so the number can never exceed what you've demonstrated. Cold-start (no record)
+ *  shows blank (0) working sets until the first logged session. */
 function calculateRoutineExerciseWeights(
   exercise: RoutineExercise,
   weightUnit: WeightUnit,
   record?: ExerciseRecord
 ): CalculatedRoutineExercise {
-  // Handle both old format (sets as number) and new format (sets as array)
+  // Handle both old format (sets as number) and new (sets as array).
   let sets: RoutineSet[];
   if (Array.isArray(exercise?.sets)) {
     sets = exercise.sets;
@@ -51,7 +34,7 @@ function calculateRoutineExerciseWeights(
     sets = Array(numSets).fill(null).map(() => ({ reps }));
   }
 
-  // Exercise name - prefer stored name, fall back to lookup for legacy routines
+  // Prefer stored name, fall back to lookup for legacy routines.
   let exerciseName = exercise.exerciseName;
   if (!exerciseName) {
     exerciseName = getWorkoutById(exercise.exerciseId)?.name || exercise.exerciseId;
@@ -68,11 +51,11 @@ function calculateRoutineExerciseWeights(
     };
   }
 
-  // The programmed reps for the working sets are the rep-range floor.
+  // Programmed working-set reps are the rep-range floor.
   const workingReps = sets.find(s => !s.isWarmup)?.reps ?? sets[0]?.reps ?? 10;
 
-  // Anchor to the record (in display unit) and run the progression rule; with no
-  // record the exercise is cold-start and working sets stay blank (0).
+  // Anchor to the record (in display unit) and run the progression rule; no record
+  // means cold-start and working sets stay blank (0).
   let prescription: NextPrescription | undefined;
   let lastPerformed: CalculatedRoutineExercise['lastPerformed'] | undefined;
   if (record) {
@@ -88,14 +71,13 @@ function calculateRoutineExerciseWeights(
   }
 
   const calculatedSets = sets.map(set => {
-    if (!prescription) return { ...set, targetWeight: 0 }; // cold-start: blank
+    if (!prescription) return { ...set, targetWeight: 0 }; // cold-start
     if (set.isWarmup) return { ...set, targetWeight: roundWeight(prescription.weight * 0.6, weightUnit) };
     return { ...set, reps: prescription.reps, targetWeight: prescription.weight };
   });
 
   const workingWeight = prescription?.weight ?? 0;
 
-  // Map the reactive-progression change onto the display indicator.
   let progression: 'increase' | 'maintain' | 'decrease' = 'maintain';
   if (prescription?.change === 'increase' || prescription?.change === 'add-rep') progression = 'increase';
   else if (prescription?.change === 'deload') progression = 'decrease';
@@ -131,9 +113,6 @@ export function calculateRoutine(
   };
 }
 
-/**
- * Calculate all routines
- */
 export function calculateAllRoutines(
   routines: Routine[],
   records: Record<string, ExerciseRecord>,
@@ -144,12 +123,9 @@ export function calculateAllRoutines(
 }
 
 
-// Whether a routine exercise is progressing *against the program's own
-// prescription* — rep bonuses earned, working weight climbing, or stalling out.
-// This deliberately ignores estimated 1RM: a routine rarely asks for a true max,
-// so raw e1RM bounces with rep/weight selection and reads as "declining" even
-// when the lifter is hitting every prescribed mark. Adherence is the source of
-// truth for "improving"; e1RM is left to the analytics/strength screens.
+// Adherence measures progress against the program's own prescription, not e1RM:
+// a routine rarely asks for a true max, so raw e1RM bounces with rep/weight
+// selection and reads as "declining" even when every prescribed mark is hit.
 //   improving — beating the prescription (rep bonus or weight up)
 //   holding   — meeting it, no recent gain (includes intentional post-deload)
 //   easing    — repeated misses; the program is backing the weight off

@@ -24,8 +24,6 @@ const isDarkColor = (hex: string) => {
   return 0.299 * r + 0.587 * g + 0.114 * b < 128;
 };
 
-// ── drifting aurora blob ─────────────────────────────────────────────────────
-
 interface BlobProps {
   size: number;
   colors: [string, string];
@@ -67,22 +65,13 @@ function AuroraBlob({ size, colors, from, to, duration, delay }: BlobProps) {
   );
 }
 
-// ── aurora surface ───────────────────────────────────────────────────────────
-
 interface AuroraSurfaceProps {
   children: ReactNode;
-  /** Container overrides (height, margin, radius). */
   style?: StyleProp<ViewStyle>;
-  /** Padding/layout for the content layer above the aurora. */
   contentStyle?: StyleProp<ViewStyle>;
 }
 
-/**
- * A rounded card whose background is a living aurora: drifting gradient blobs
- * (theme primary/accent) smeared by a blur layer, a legibility scrim, and an
- * optional shimmer sweep. Measures itself so blob placement scales to any
- * height — used by HistoryHero.
- */
+// Rounded card with a drifting-gradient-blob aurora background; self-measures so blob placement scales to any height.
 export function AuroraSurface({ children, style, contentStyle }: AuroraSurfaceProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;

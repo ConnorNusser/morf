@@ -9,7 +9,6 @@ export async function captureAndShare(viewRef: RefObject<ViewShot>): Promise<boo
       return false;
     }
 
-    // Capture the view as an image
     const uri = await viewRef.current.capture?.();
 
     if (!uri) {
@@ -17,7 +16,6 @@ export async function captureAndShare(viewRef: RefObject<ViewShot>): Promise<boo
       return false;
     }
 
-    // Check if sharing is available
     const isAvailable = await Sharing.isAvailableAsync();
 
     if (!isAvailable) {
@@ -25,7 +23,6 @@ export async function captureAndShare(viewRef: RefObject<ViewShot>): Promise<boo
       return false;
     }
 
-    // Share the image
     await Sharing.shareAsync(uri, {
       mimeType: 'image/png',
       dialogTitle: 'Share your workout recap',

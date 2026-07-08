@@ -38,11 +38,9 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
 
-  // Profile picture state
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
 
-  // Username state
   const [username, setUsername] = useState<string>('');
   const [editedUsername, setEditedUsername] = useState<string>('');
   const [isEditingUsername, setIsEditingUsername] = useState(false);
@@ -51,7 +49,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
 
-  // Friends state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<RemoteUser[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -60,11 +57,9 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const [addingFriendId, setAddingFriendId] = useState<string | null>(null);
   const [removingFriendId, setRemovingFriendId] = useState<string | null>(null);
 
-  // User profile modal state
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [showUserProfile, setShowUserProfile] = useState(false);
 
-  // Social links state
   const [instagramUsername, setInstagramUsername] = useState('');
   const [tiktokUsername, setTiktokUsername] = useState('');
   const [discordUsername, setDiscordUsername] = useState('');
@@ -73,7 +68,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const loadData = useCallback(async () => {
     setIsLoadingFriends(true);
     try {
-      // Load username
       let storedUsername = await analyticsService.getUsername();
       if (!storedUsername) {
         storedUsername = await analyticsService.generateDefaultUsername();
@@ -82,11 +76,9 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       setUsername(storedUsername);
       setEditedUsername(storedUsername);
 
-      // Load friends
       const friendsList = await userSyncService.getFriends();
       setFriends(friendsList);
 
-      // Load profile picture and social links
       const user = await userSyncService.getCurrentUser();
       if (user && supabase) {
         const { data: userData } = await supabase
@@ -97,7 +89,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         if (userData?.profile_picture_url) {
           setProfilePictureUrl(userData.profile_picture_url);
         }
-        // Load social links from user_data
         if (userData?.user_data) {
           const data = userData.user_data as { instagram_username?: string; tiktok_username?: string; discord_username?: string };
           setInstagramUsername(data.instagram_username || '');
@@ -106,7 +97,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         }
       }
 
-      // Sync user country in background
       userSyncService.syncUserCountry().catch(_err => {
         // Silently ignore country sync errors
       });
@@ -119,7 +109,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
   const handlePickProfilePicture = async () => {
     try {
-      // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         showAlert({
@@ -130,7 +119,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         return;
       }
 
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -145,7 +133,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       const imageUri = result.assets[0].uri;
       setIsUploadingPicture(true);
 
-      // Get current user
       const user = await userSyncService.getCurrentUser();
       if (!user || !supabase) {
         showAlert({ title: 'Error', message: 'Could not get user information', type: 'error' });
@@ -153,22 +140,18 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         return;
       }
 
-      // Determine file extension
       const ext = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${user.id}.${ext}`;
 
-      // Read file as base64 using new expo-file-system API
       const file = new File(imageUri);
       const base64 = await file.base64();
 
-      // Decode base64 to ArrayBuffer
       const binaryString = atob(base64);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('profile-pictures')
         .upload(fileName, bytes.buffer, {
@@ -183,14 +166,12 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         return;
       }
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from('profile-pictures')
         .getPublicUrl(fileName);
 
       const publicUrl = urlData.publicUrl + `?t=${Date.now()}`; // Cache bust
 
-      // Update user record
       await supabase
         .from('users')
         .update({ profile_picture_url: publicUrl })
@@ -215,7 +196,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
     }
   }, [visible, loadData]);
 
-  // Username availability check
   const checkUsernameAvailability = useCallback(async (name: string) => {
     if (name === username) {
       setUsernameAvailable(true);
@@ -245,7 +225,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
     return () => clearTimeout(timeoutId);
   }, [editedUsername, checkUsernameAvailability, isEditingUsername]);
 
-  // Search users
   const searchUsers = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSearchResults([]);
@@ -281,7 +260,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
       setIsEditingUsername(false);
       return;
     }
-    // Final validation before saving
     const validationError = await userSyncService.validateUsername(trimmedUsername);
     if (validationError) {
       showAlert({ title: 'Invalid Username', message: validationError, type: 'warning' });
@@ -315,7 +293,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         return;
       }
 
-      // Get current user_data
       const { data: currentData } = await supabase
         .from('users')
         .select('user_data')
@@ -324,7 +301,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
       const existingData = (currentData?.user_data || {}) as Record<string, unknown>;
 
-      // Update with new social links
       const updatedData = {
         ...existingData,
         instagram_username: instagramUsername.trim() || null,
@@ -480,7 +456,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
           style={layout.flex1}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Header */}
           <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
             <IconButton icon="chevron-back" onPress={onClose} />
             <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -494,7 +469,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
             renderItem={null}
             ListHeaderComponent={
               <View style={styles.content}>
-                {/* Profile Picture Section */}
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Profile Picture
@@ -532,7 +506,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   </View>
                 </View>
 
-                {/* Username Section */}
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Your Username
@@ -608,7 +581,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   </Text>
                 </View>
 
-                {/* Social Links Section */}
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Social Links
@@ -617,7 +589,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     Add your social media so friends can connect with you.
                   </Text>
 
-                  {/* Instagram */}
                   <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface }]}>
                     <View style={[styles.socialIconContainer, { backgroundColor: '#E1306C20' }]}>
                       <Ionicons name="logo-instagram" size={20} color="#E1306C" />
@@ -633,7 +604,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     />
                   </View>
 
-                  {/* TikTok */}
                   <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: 8 }]}>
                     <View style={[styles.socialIconContainer, { backgroundColor: '#00000015' }]}>
                       <Ionicons name="logo-tiktok" size={20} color={currentTheme.colors.text} />
@@ -649,7 +619,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     />
                   </View>
 
-                  {/* Discord */}
                   <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: 8 }]}>
                     <View style={[styles.socialIconContainer, { backgroundColor: '#5865F220' }]}>
                       <Ionicons name="logo-discord" size={20} color="#5865F2" />
@@ -674,7 +643,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     style={{ marginTop: 12 }}
                   />
 
-                  {/* Preview of your social links */}
                   {(instagramUsername.trim() || tiktokUsername.trim() || discordUsername.trim()) && (
                     <View style={styles.socialPreview}>
                       <Text style={[styles.socialPreviewLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
@@ -720,7 +688,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   )}
                 </View>
 
-                {/* Search Friends Section */}
                 <View style={styles.section}>
                   <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                     Add Friends
@@ -741,7 +708,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     )}
                   </View>
 
-                  {/* Search Results */}
                   {searchResults.length > 0 && (
                     <View style={styles.list}>
                       {searchResults.map(user => (
@@ -759,7 +725,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   )}
                 </View>
 
-                {/* Friends List Section */}
                 <View style={styles.section}>
                   <View style={[styles.sectionHeader, { backgroundColor: 'transparent' }]}>
                     <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -803,7 +768,6 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
           />
         </KeyboardAvoidingView>
 
-        {/* User Profile Modal */}
         <UserProfileModal
           visible={showUserProfile}
           onClose={() => setShowUserProfile(false)}

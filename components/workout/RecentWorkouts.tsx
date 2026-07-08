@@ -1,5 +1,4 @@
-// Empty-state list of the last few workouts — tap one to load it into the draft
-// and repeat/edit it. Replaces the single "repeat last workout" button.
+// List of the last few workouts — tap one to load it into the draft to repeat/edit.
 import StartButton from '@/components/home/StartButton';
 import RecentWorkoutRow from '@/components/workout/RecentWorkoutRow';
 import { Text, useInk } from '@/components/Themed';
@@ -21,9 +20,8 @@ interface RecentWorkoutsProps {
   onQuickStart: () => void;
   onGenerate: () => void;
   onImport: () => void;
-  // Collapse the composer when the list is scrolled (mirrors EditableWorkout).
   onScrollBeginDrag?: () => void;
-  // Extra bottom padding so the last row clears the floating composer dock.
+  // Bottom padding so the last row clears the floating composer dock.
   bottomInset?: number;
 }
 
@@ -47,7 +45,6 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
   };
 
   const actionRow = (
-    /* Generate / Import — bordered secondary buttons (C2 shape, pill grammar) */
     <RNView style={styles.actionRow}>
       <TouchableOpacity style={[styles.secondaryBtn, { borderColor: colors.border }]} activeOpacity={0.7} onPress={() => { playHapticFeedback('light', false); onGenerate(); }}>
         <Ionicons name="sparkles" size={16} color={colors.primary} />
@@ -60,8 +57,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
     </RNView>
   );
 
-  // Fresh user: no history to list, so the launcher becomes a full-view hero —
-  // copy centered in the void with the same actions at full presence.
+  // Fresh user: no history, so the launcher becomes a full-view centered hero.
   if (workouts.length === 0) {
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.emptyContent} keyboardShouldPersistTaps="always" onScrollBeginDrag={onScrollBeginDrag}>
@@ -91,7 +87,6 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
       />
 
       <SectionLabel style={styles.title}>Recent workouts</SectionLabel>
-      {/* Flat list on the shared repeat-row grammar (same as Home's card). */}
       <RNView>
         {workouts.map((w, i) => (
           <RecentWorkoutRow
@@ -116,7 +111,6 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: screenGutter, paddingTop: space.md, paddingBottom: space.section, gap: space.sm },
-  // Empty launcher: fill the view, center the group above the composer.
   emptyContent: {
     flexGrow: 1,
     justifyContent: 'center',

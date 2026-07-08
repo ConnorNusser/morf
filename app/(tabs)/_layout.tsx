@@ -18,7 +18,6 @@ import { userService } from '@/lib/services/userService';
 import { Ionicons } from '@expo/vector-icons';
 
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
 function TabBarIcon({ iconName, focused }: {
   iconName: 'home' | 'workout' | 'history' | 'notes' | 'profile';
   focused: boolean;
@@ -60,7 +59,6 @@ function AnimatedTabBar(props: BottomTabBarProps) {
     };
   });
 
-  // Get the default tab bar from navigation
   const { state, descriptors, navigation } = props;
 
   return (
@@ -183,7 +181,6 @@ export default function TabLayout() {
       const existingProfile = await userService.getRealUserProfile();
 
       if (!existingProfile) {
-        // No profile exists - show onboarding
         setShowOnboarding(true);
       }
     } catch (error) {
@@ -197,9 +194,8 @@ export default function TabLayout() {
     setShowOnboarding(false);
   };
 
-  // Show loading state while checking profile
   if (isCheckingProfile) {
-    return null; // Could add a loading screen here
+    return null;
   }
 
   return (
@@ -207,7 +203,6 @@ export default function TabLayout() {
       <UserProvider>
         <TabsContent />
 
-        {/* Onboarding Modal for first-time users */}
         <OnboardingModal
           visible={showOnboarding}
           onComplete={handleOnboardingComplete}

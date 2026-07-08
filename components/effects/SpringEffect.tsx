@@ -13,13 +13,12 @@ import Animated, {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Cherry blossom petal colors
 const PETAL_COLORS = [
-  '#FFB7C5', // Light pink
-  '#FF99AC', // Medium pink
-  '#FFDDE1', // Pale pink
-  '#FFE4E8', // Very light pink
-  '#FFC0CB', // Pink
+  '#FFB7C5',
+  '#FF99AC',
+  '#FFDDE1',
+  '#FFE4E8',
+  '#FFC0CB',
 ];
 
 interface Petal {
@@ -100,7 +99,6 @@ const PetalComponent = React.memo(function PetalComponent({ petal }: { petal: Pe
       )
     );
 
-    // Cancel the infinite loops on unmount so they don't keep running.
     return () => {
       cancelAnimation(translateY);
       cancelAnimation(translateX);
@@ -142,7 +140,7 @@ export default function SpringEffect({ intervalMs }: SpringEffectProps) {
   const [petals, setPetals] = useState<Petal[]>(() => generatePetals(25));
 
   useEffect(() => {
-    // Petal shower duration: 12-20 seconds
+    // Shower lasts 12-20s
     const showerDuration = 12000 + Math.random() * 8000;
 
     const stopTimeout = setTimeout(() => {

@@ -56,11 +56,8 @@ class AIWorkoutGeneratorService {
     this.genAI = new GoogleGenerativeAI(this.GEMINI_API_KEY || '');
   }
 
-  /**
-   * Generate a workout as note-style text that can be pasted into the notes input
-   */
+  /** Generates note-style text that can be pasted into the notes input. */
   async generateWorkoutNote(options: GenerateWorkoutOptions = {}): Promise<AIGeneratedWorkoutNote> {
-    // Get user context
     const userProfile = await userService.getRealUserProfile();
     const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
@@ -79,15 +76,11 @@ class AIWorkoutGeneratorService {
     }
   }
 
-  /**
-   * Refine an existing workout plan based on chat conversation
-   */
   async refinePlan(
     currentPlan: string,
     chatHistory: ChatMessage[],
     userMessage: string
   ): Promise<RefinePlanResponse> {
-    // Get user context
     const userProfile = await userService.getRealUserProfile();
     const customExercises = await storageService.getCustomExercises();
 
@@ -131,18 +124,17 @@ class AIWorkoutGeneratorService {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ALL_EQUIPMENT;
 
-    // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
+    // 100 percentile = all theme levels.
     const availableExercises = userEquipment.length > 0
       ? getWorkoutsByEquipment(userEquipment, 100)
       : getAvailableWorkouts(100);
     const exerciseNames = availableExercises.map(e => e.name);
-    // Always include all custom exercises (they're not equipment-specific)
+    // Custom exercises are always included (not equipment-specific).
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
 
     const userEquipmentDisplay = formatEquipmentList(userEquipment);
 
-    // Build chat history string
     const chatHistoryStr = chatHistory
       .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
@@ -177,7 +169,6 @@ class AIWorkoutGeneratorService {
 
     const parsed = parseGeminiJson(content);
 
-    // Track AI usage analytics
     analyticsService.trackAIUsage({
       requestType: 'plan_builder',
       inputText: userMessage,
@@ -198,24 +189,22 @@ class AIWorkoutGeneratorService {
     const gender = userProfile?.gender || 'male';
     const userEquipment = userProfile?.equipmentFilter?.includedEquipment || ALL_EQUIPMENT;
 
-    // Get available exercises filtered by user's equipment (100 percentile = all theme levels)
+    // 100 percentile = all theme levels.
     const availableExercises = userEquipment.length > 0
       ? getWorkoutsByEquipment(userEquipment, 100)
       : getAvailableWorkouts(100);
     const exerciseNames = availableExercises.map(e => e.name);
 
-    // Always include all custom exercises (they're not equipment-specific)
+    // Custom exercises are always included (not equipment-specific).
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
 
     const userEquipmentDisplay = formatEquipmentList(userEquipment);
 
-    // Analyze recent workout history for context
     const recentWorkouts = workoutHistory.slice(-5);
     const recentExercises = recentWorkouts.flatMap(w =>
       w.exercises.map(ex => {
         const info = getWorkoutById(ex.id);
-        // Check custom exercises if not found in database
         const customEx = !info ? customExercises.find(c => c.id === ex.id) : null;
         const bestSet = ex.completedSets?.reduce((best, current) => {
           return (current.weight > best.weight) ? current : best;
@@ -228,17 +217,14 @@ class AIWorkoutGeneratorService {
       })
     );
 
-    // Build exercise history summary
     const exerciseHistorySummary = recentExercises.length > 0
       ? `Recent exercise history (use these for weight suggestions):\n${recentExercises.map(e => `- ${e.name}: ${e.weight}${weightUnit} x ${e.reps}`).join('\n')}`
       : 'No recent workout history - use reasonable starting weights for a beginner/intermediate lifter.';
 
-    // Build custom exercises summary
     const customExercisesSummary = customExerciseNames.length > 0
       ? `\nUser's custom exercises (prefer these when relevant):\n${customExerciseNames.map(n => `- ${n}`).join('\n')}`
       : '';
 
-    // The user's request is the primary input
     const userRequest = options.customRequest || options.focusArea || 'a balanced full-body workout';
 
     return buildWorkoutGenerationPrompt({
@@ -272,7 +258,6 @@ class AIWorkoutGeneratorService {
 
     const parsed = parseGeminiJson(content);
 
-    // Track AI usage analytics
     analyticsService.trackAIUsage({
       requestType: 'routine_generate',
       inputText: customRequest || 'auto-generated workout',
@@ -290,12 +275,11 @@ class AIWorkoutGeneratorService {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const isMale = userProfile?.gender !== 'female';
 
-    // Default weights based on gender (in lbs, will be converted if needed)
+    // Base weights in lbs (converted below if needed).
     let baseWeights = isMale
       ? { squat: 135, bench: 135, row: 95, press: 65, curl: 25, extension: 30 }
       : { squat: 65, bench: 65, row: 45, press: 35, curl: 15, extension: 20 };
 
-    // Convert to kg if user prefers
     if (weightUnit === 'kg') {
       baseWeights = {
         squat: Math.round(baseWeights.squat * 0.453592 / 2.5) * 2.5,
@@ -307,7 +291,6 @@ class AIWorkoutGeneratorService {
       };
     }
 
-    // Parse user request to determine focus area
     const userRequest = (options.customRequest || options.focusArea || '').toLowerCase();
     let focusArea = 'full-body';
 
@@ -372,12 +355,11 @@ class AIWorkoutGeneratorService {
       ];
     }
 
-    // Build note text with "Actual" placeholder below each exercise
+    // Each exercise gets an "Actual" placeholder line below it.
     const noteText = exercises.map(ex => {
       const sets = [];
       for (let i = 0; i < ex.sets; i++) {
-        // Slight variation in reps for realism
-        const reps = ex.reps + (i === ex.sets - 1 ? -2 : 0);
+        const reps = ex.reps + (i === ex.sets - 1 ? -2 : 0); // slight rep variation for realism
         sets.push(`${ex.suggestedWeight}x${Math.max(reps, 1)}`);
       }
       return `${ex.name} ${sets.join(', ')}\nActual`;
@@ -390,16 +372,11 @@ class AIWorkoutGeneratorService {
     };
   }
 
-  /**
-   * Generate metadata for a custom exercise using AI
-   * This creates proper muscle groups, equipment, category, and description
-   */
+  /** AI-derives muscle groups, equipment, category, and description; falls back to defaults. */
   async generateCustomExerciseMetadata(exerciseName: string): Promise<CustomExercise> {
-    // Try AI first, fall back to defaults
     if (this.GEMINI_API_KEY) {
       try {
         const metadata = await this.callCustomExerciseAI(exerciseName);
-        // Use AI-formatted displayName for the exercise name
         const formattedName = metadata.displayName || exerciseName;
         const kebabId = formattedName
           .toLowerCase()
@@ -426,7 +403,6 @@ class AIWorkoutGeneratorService {
       }
     }
 
-    // Fallback: generate reasonable defaults
     const kebabId = exerciseName
       .toLowerCase()
       .replace(/[()]/g, '')
@@ -461,7 +437,6 @@ class AIWorkoutGeneratorService {
   private generateFallbackCustomExercise(exerciseName: string, kebabId: string): CustomExercise {
     const nameLower = exerciseName.toLowerCase();
 
-    // Infer equipment from name
     let equipment: Equipment[] = ['bodyweight'];
     if (nameLower.includes('barbell') || nameLower.includes('bar ')) equipment = ['barbell'];
     else if (nameLower.includes('dumbbell') || nameLower.includes('db ')) equipment = ['dumbbell'];
@@ -470,7 +445,6 @@ class AIWorkoutGeneratorService {
     else if (nameLower.includes('cable')) equipment = ['cable'];
     else if (nameLower.includes('kettlebell') || nameLower.includes('kb ')) equipment = ['kettlebell'];
 
-    // Infer tracking type from name
     let trackingType: TrackingType = 'reps';
     if (nameLower.includes('plank') || nameLower.includes('hold') || nameLower.includes('hang') ||
         nameLower.includes('wall sit') || nameLower.includes('isometric')) {
@@ -483,7 +457,6 @@ class AIWorkoutGeneratorService {
       trackingType = 'cardio';
     }
 
-    // Infer primary muscle from common exercise patterns
     let primaryMuscles: MuscleGroup[] = ['chest'];
     let secondaryMuscles: MuscleGroup[] = [];
     let category: WorkoutCategory = 'isolation';
@@ -525,7 +498,6 @@ class AIWorkoutGeneratorService {
       secondaryMuscles = ['legs'];
       category = 'isolation';
     } else if (trackingType === 'cardio') {
-      // Cardio exercises typically target legs and full-body
       primaryMuscles = ['legs'];
       secondaryMuscles = ['core'];
       category = 'cardio';

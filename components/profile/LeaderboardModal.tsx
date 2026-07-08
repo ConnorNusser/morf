@@ -21,7 +21,6 @@ import {
 } from 'react-native';
 import UserProfileModal from './UserProfileModal';
 
-// Featured exercises to always show first (in order)
 const FEATURED_EXERCISES: string[] = [
   MAIN_LIFTS.BENCH_PRESS,
   MAIN_LIFTS.SQUAT,
@@ -58,25 +57,19 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     if (visible) storageService.getExerciseRecords().then(r => setTrackedRecordIds(Object.keys(r)));
   }, [visible]);
 
-  // Check if "Overall" is selected
   const isOverallSelected = selectedExercise === 'overall';
 
-  // Get all exercise IDs that the user has tracked (excluding custom exercises)
   const getTrackedExerciseIds = useCallback(() => {
-    // Non-custom exercises the user has a record for.
     const trackedIds = new Set(trackedRecordIds.filter(id => getWorkoutById(id) !== null));
 
-    // Start with featured exercises (always in this order)
     const orderedIds: string[] = [...FEATURED_EXERCISES];
 
-    // Add remaining tracked exercises that aren't in featured list
     trackedIds.forEach(id => {
       if (!FEATURED_EXERCISES.includes(id)) {
         orderedIds.push(id);
       }
     });
 
-    // Add "Overall" as the first option
     return ['overall', ...orderedIds];
   }, [trackedRecordIds]);
 
@@ -93,7 +86,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
       const exerciseIds = getTrackedExerciseIds();
       setAvailableExercises(exerciseIds);
 
-      // Handle "Overall" leaderboard
       if (selectedExercise === 'overall') {
         if (filter === 'friends') {
           const data = await userSyncService.getFriendsOverallLeaderboard();
@@ -107,7 +99,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
         return;
       }
 
-      // Clear overall data when not selected
       setOverallLeaderboardData([]);
 
       const exercisesToQuery = [selectedExercise];
@@ -121,10 +112,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           return;
         }
 
-        // For country filter, use user's country; for global, no country filter
         const countryFilter = filter === 'country' ? myCountry : null;
 
-        // Build query with optional country filter
         let query = supabase
           .from('exercise_leaderboard')
           .select('*')
@@ -186,7 +175,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     }
   }, [visible, loadLeaderboard]);
 
-  // Sort entries by 1RM
   const sortedEntries = useMemo(() =>
     [...leaderboardData]
       .filter(e => e.exercise_id === selectedExercise)
@@ -214,7 +202,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
         />
       );
     }
-    // Show first character of username instead of person icon
     const initial = user.username ? user.username.charAt(0).toUpperCase() : '?';
     return (
       <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: currentTheme.colors.primary + '20' }]}>
@@ -255,7 +242,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
   const renderTierBadge = (tier?: string) => {
     if (!tier) return null;
-    // Extract base tier (first character) for color lookup
+    // Base tier (first char) drives the color lookup
     const baseTier = tier.charAt(0) as StrengthTier;
     const color = getTierColor(baseTier);
     return (
@@ -270,7 +257,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        {/* Header */}
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
@@ -279,9 +265,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Filters Row */}
         <View style={[styles.filtersRow, { backgroundColor: 'transparent' }]}>
-          {/* Exercise Dropdown */}
           <View style={styles.dropdownContainer}>
             <TouchableOpacity
               style={[styles.dropdown, { backgroundColor: currentTheme.colors.surface }]}
@@ -339,7 +323,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
             )}
           </View>
 
-          {/* Filter Dropdown (Friends/Global) */}
           <View style={styles.filterDropdownContainer}>
             <TouchableOpacity
               style={[styles.filterDropdown, { backgroundColor: currentTheme.colors.surface }]}
@@ -437,7 +420,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
         </View>
 
-        {/* Content */}
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -450,7 +432,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               ))}
             </View>
           ) : isOverallSelected ? (
-            // Overall Strength Leaderboard
             overallLeaderboardData.length === 0 ? (
               <View style={styles.emptyState}>
                 <Ionicons
@@ -586,7 +567,6 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
           )}
         </ScrollView>
 
-        {/* User Profile Modal */}
         <UserProfileModal
           visible={showUserProfile}
           onClose={() => setShowUserProfile(false)}

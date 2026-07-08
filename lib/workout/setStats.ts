@@ -1,7 +1,4 @@
 // Shared helpers for picking the "best" completed set out of a workout exercise.
-// Centralizes the filter-completed + kg→lbs-normalized comparison that was
-// reimplemented (inconsistently) across progressiveOverload, routineProgression,
-// trainingAdvancement, and recapStats.
 import { WeightUnit, convertWeight } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 
@@ -28,9 +25,8 @@ export function completedWorkingSets(sets: SetLike[] | undefined): CompletedSet[
 
 /**
  * Best completed working set, ranked by estimated 1RM (default) or raw weight.
- * Weights are normalized to lbs for the comparison so mixed-unit sets rank
- * correctly; the winning set is returned in its native unit. Pass the output of
- * completedWorkingSets(). Returns null when there are no qualifying sets.
+ * Weights normalize to lbs so mixed-unit sets rank correctly; the winner is
+ * returned in its native unit. Returns null when there are no qualifying sets.
  */
 export function bestCompletedSet(
   sets: CompletedSet[],

@@ -1,7 +1,3 @@
-/**
- * Prompt for refining workout plans through conversation
- */
-
 import { EXERCISE_NAMING_INSTRUCTIONS } from './workoutGeneration.prompt';
 
 export interface WorkoutRefinementParams {

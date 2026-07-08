@@ -42,7 +42,7 @@ const EquipmentFilterSection = () => {
     let newEquipment: Equipment[];
 
     if (selectedEquipment.includes(equipment)) {
-      // Don't allow deselecting all - keep at least one
+      // Keep at least one equipment selected
       if (selectedEquipment.length > 1) {
         newEquipment = selectedEquipment.filter(e => e !== equipment);
       } else {
@@ -147,7 +147,6 @@ const EquipmentFilterSection = () => {
 
       {isExpanded && (
         <View style={styles.expandedContent}>
-          {/* Select All button */}
           <TouchableOpacity
             style={[
               styles.selectAllButton,
@@ -174,7 +173,6 @@ const EquipmentFilterSection = () => {
             </Text>
           </TouchableOpacity>
 
-          {/* Equipment grid */}
           <View style={styles.equipmentGrid}>
             {EQUIPMENT_OPTIONS.map((equipment) => {
               const isSelected = selectedEquipment.includes(equipment.type);

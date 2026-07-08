@@ -14,7 +14,6 @@ import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } fr
 import { userSyncService } from './userSyncService';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 class UserService {
-  // Initialize new user with profile or update existing profile
   async createUserProfile(profile: Omit<UserProfile, 'age'> & { age: number }): Promise<void> {
     const existingProfile = await this.getRealUserProfile();
     const realProfile: UserProfile = {
@@ -95,42 +94,32 @@ class UserService {
       'hip-thrust-barbell',
     ];
 
-    // Combine all lifts
     const allLifts = [...mainLifts, ...secondaryLifts];
 
-    // Sort: preferred lifts first (in order), then rest by percentile
+    // Preferred lifts first (in order), then the rest by percentile.
     return allLifts.sort((a, b) => {
       const aIndex = preferredOrder.indexOf(a.workoutId);
       const bIndex = preferredOrder.indexOf(b.workoutId);
 
-      // Both are preferred lifts - sort by preferred order
       if (aIndex !== -1 && bIndex !== -1) {
         return aIndex - bIndex;
       }
-      // Only a is preferred - a comes first
       if (aIndex !== -1) return -1;
-      // Only b is preferred - b comes first
       if (bIndex !== -1) return 1;
-      // Neither preferred - sort by percentile (highest first)
       return b.percentileRanking - a.percentileRanking;
     });
   }
 
-  // Removed isSetupComplete functionality - profiles are always considered setup
-
-  // Get user profile (cast to UserProfile if it exists)
   async getRealUserProfile(): Promise<UserProfile | null> {
     const profile = await storageService.getUserProfile();
     if (!profile) return null;
     return profile as UserProfile;
   }
 
-  // Get user profile with automatic default creation
   async getUserProfileOrDefault(): Promise<UserProfile> {
     const profile = await this.getRealUserProfile();
-    
+
     if (!profile) {
-      // Create default profile if none exists
       const defaultProfile = {
         height: { value: 5.9, unit: 'feet' as const },
         weight: { value: 185, unit: 'lbs' as const },
@@ -146,7 +135,6 @@ class UserService {
     return profile;
   }
 
-  // Get all lifts for any featured lift ID (main or secondary) as UserProgress array
   async getAllLiftsForFeaturedExercise(liftId: FeaturedLiftType): Promise<UserProgress[] | undefined> {
     const [profile, raw] = await Promise.all([this.getRealUserProfile(), this.getRawLiftsForFeaturedExercise(liftId)]);
     if (!profile || !raw) return undefined;
@@ -191,15 +179,13 @@ class UserService {
     return lifts.sort((a, b) => a.dateRecorded.getTime() - b.dateRecorded.getTime());
   }
 
-  // Delete a workout and all associated lifts with matching parentId
   async deleteWorkoutAndLifts(workoutId: string): Promise<void> {
     try {
-      // Delete the workout from local storage (the source of exercise records +
-      // rank history now — no separate lift store to prune).
+      // Local storage is the source of exercise records + rank history now
+      // (no separate lift store to prune).
       await storageService.deleteWorkout(workoutId);
 
-      // Delete the workout from Supabase (for feed/social features)
-      await userSyncService.deleteWorkout(workoutId);
+      await userSyncService.deleteWorkout(workoutId); // remove from feed/social
     } catch (error) {
       console.error('Error deleting workout and associated lifts:', error);
       throw error;

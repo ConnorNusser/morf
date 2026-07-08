@@ -1,5 +1,4 @@
-// Shared loader for everything the Career surfaces need, so the inline Profile
-// section and the full Career modal compute from one place.
+// Shared loader for the Career surfaces, so the Profile section and the Career modal compute from one place.
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
@@ -48,8 +47,7 @@ export async function loadCareerData(): Promise<CareerData> {
 
   const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
 
-  // stats / achievements / prs come from the shared snapshot builder
-  // so the Career surfaces and the session-reward diff never drift.
+  // Shared snapshot builder, so Career surfaces and the session-reward diff never drift.
   const { stats, achievements, prs } = buildRewardSnapshot(history, {
     unit,
     overall,
@@ -62,10 +60,8 @@ export async function loadCareerData(): Promise<CareerData> {
     visibleLifts.map(l => l.workoutId), // same lift set the hero averages → consistent tier
   );
 
-  // Stamp/read the first-unlocked date per achievement (backfills already-earned
-  // ones with an old date on the first ever call, so only genuinely new wins read
-  // as "recent"). Single source of truth for both the launch interstitial and the
-  // Career screen's "Recent achievements" ordering.
+  // Stamp/read first-unlocked date per achievement; backfills already-earned ones with an old
+  // date on first call so only genuinely new wins read as "recent".
   const achievementUnlockedAt = await storageService.reconcileAchievementUnlocks(
     unlockedIds(achievements),
     new Date().toISOString(),

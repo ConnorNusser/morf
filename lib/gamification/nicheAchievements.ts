@@ -1,13 +1,9 @@
-// Niche, Strava-style achievements — the surprising/quirky badges (time-of-day,
-// holidays, comebacks, variety, rep feats) that delight more than the linear
-// milestone ladders. All derived from BehavioralSignals, which in turn come
-// purely from existing workout history. They live in the 'special' category.
+// Niche, Strava-style achievements derived from BehavioralSignals; all in the 'special' category.
 import { Achievement } from './achievements';
 import { BehavioralSignals } from './behavioralSignals';
 import { Rarity } from './rarity';
 
-// Compute the unlocked flag and clamped 0–1 progress from current/target once,
-// so the badge builders below stay declarative.
+// Compute unlocked flag + clamped 0–1 progress once, so the badge builders stay declarative.
 function makeAchievement(
   base: Pick<Achievement, 'id' | 'title' | 'description' | 'icon' | 'rarity'> & { hidden?: boolean },
   current: number,
@@ -23,8 +19,7 @@ function makeAchievement(
   };
 }
 
-// A one-shot badge: either earned or not. `hidden` marks a secret badge that the
-// UI masks until it's unlocked (the joy-of-discovery pattern).
+// One-shot badge: earned or not. `hidden` marks a secret badge masked until unlocked.
 function flag(
   id: string,
   title: string,
@@ -37,7 +32,6 @@ function flag(
   return makeAchievement({ id, title, description, icon, rarity, hidden }, earned ? 1 : 0, 1);
 }
 
-// A badge with measurable progress toward a threshold.
 function progressBadge(
   id: string,
   title: string,
@@ -80,7 +74,7 @@ export function computeNicheAchievements(s: BehavioralSignals): Achievement[] {
   ];
 }
 
-// Push/pull within 20% of each other, once there's a real sample on both sides.
+// Push/pull within 20% of each other, once there's a real sample (50+) on both sides.
 function isBalanced(s: BehavioralSignals): boolean {
   if (s.pushSets < 50 || s.pullSets < 50) return false;
   return Math.min(s.pushSets, s.pullSets) / Math.max(s.pushSets, s.pullSets) >= 0.8;

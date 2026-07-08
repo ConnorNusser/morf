@@ -12,11 +12,7 @@ interface YourLiftsProps {
   lifts: UserProgress[];
 }
 
-// Each featured lift as a tier-coloured strength card (same bar language as the
-// Big-3 total / overall strength system), tappable into its LiftProgressionModal.
-// The LiftDisplayFilter chip bar hides/shows lifts and persists the choice.
-// Restored from the pre-tab-restructure home screen — the components (WorkoutStatsCard,
-// LiftProgressionModal) were never deleted, only unmounted.
+// Each featured lift as a tier-coloured strength card; the LiftDisplayFilter chip bar hides/shows lifts and persists the choice.
 function YourLifts({ lifts }: YourLiftsProps) {
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
 

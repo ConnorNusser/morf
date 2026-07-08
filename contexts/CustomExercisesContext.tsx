@@ -20,8 +20,8 @@ export function CustomExercisesProvider({ children }: { children: React.ReactNod
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mirror the list into the module-level cache so the sync getExercise() resolver
-  // (used across lib code that isn't under this provider) can see custom exercises.
+  // Mirror into the module-level cache so the sync getExercise() resolver (used by
+  // lib code outside this provider) can see custom exercises.
   useEffect(() => { setCustomExerciseCache(customExercises); }, [customExercises]);
 
   const refresh = useCallback(async () => {
@@ -45,7 +45,7 @@ export function CustomExercisesProvider({ children }: { children: React.ReactNod
   }, []);
 
   const updateExercise = useCallback(async (oldId: string, exercise: CustomExercise) => {
-    // If the ID changed, migrate all references first
+    // If the ID changed, migrate all references first.
     if (oldId !== exercise.id) {
       await storageService.migrateExerciseId(oldId, exercise.id);
     }

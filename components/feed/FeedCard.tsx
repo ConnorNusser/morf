@@ -38,15 +38,13 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
-  // Achievements this workout earned — synced as ids, resolved to bundled
-  // art/copy on-device. Unknown ids (older app versions) drop out silently.
+  // Unknown ids (older app versions) resolve to null and drop out silently.
   const earned = useMemo(
     () => (feedData?.achievement_ids ?? []).map(achievementMeta).filter(m => m != null),
     [feedData?.achievement_ids],
   );
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
-  // Smooth animation for like button using reanimated
   const likeScale = useSharedValue(1);
 
   const likeAnimatedStyle = useAnimatedStyle(() => ({
@@ -55,7 +53,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
 
   const handleLike = () => {
     playHapticFeedback('light', false);
-    // Quick scale up, then smooth spring back
     likeScale.value = withSequence(
       withTiming(1.25, { duration: 100 }),
       withSpring(1, { damping: 12, stiffness: 200 })
@@ -63,19 +60,16 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
     onLike?.(workout.id);
   };
 
-  // Get tier for the badge - only show if workout has tracked lifts (indicated by pr_count)
+  // Only show tier for workouts with tracked lifts (pr_count > 0).
   const strengthLevel = hasPRs ? (feedData?.strength_level as StrengthTier | undefined) : undefined;
 
-  // Likes
   const likes = feedData?.likes || [];
   const likeCount = likes.length;
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
-  // Comments
   const comments = feedData?.comments || [];
   const commentCount = comments.length;
 
-  // Calculate PPL breakdown from exercises
   const pplBreakdown = useMemo(() =>
     calculatePPLBreakdown(workout.exercises),
     [workout.exercises]
@@ -87,7 +81,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
       onPress={() => onPress(workout)}
       activeOpacity={0.9}
     >
-      {/* Header with user info */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(workout)} activeOpacity={0.7}>
           {workout.profile_picture_url ? (
@@ -109,7 +102,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
           </View>
         </TouchableOpacity>
 
-        {/* Right side badges */}
         <View style={styles.badges}>
           {strengthLevel && (
             <TierBadge tier={strengthLevel} size="small" />
@@ -117,12 +109,10 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         </View>
       </View>
 
-      {/* Workout title - larger */}
       <Text style={[styles.title, { color: currentTheme.colors.text, fontWeight: '700' }]}>
         {workout.title}
       </Text>
 
-      {/* PR chips if any */}
       {hasPRs && feedData && (
         <View style={styles.prRow}>
           <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
@@ -133,8 +123,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         </View>
       )}
 
-      {/* achievements this workout earned — badge art + title, tap for the
-          full-screen spotlight (same grammar as the History log). */}
+      {/* Tap a badge for the full-screen spotlight. */}
       {earned.length > 0 && (
         <View style={styles.achRow}>
           {earned.slice(0, 3).map(m => (
@@ -156,7 +145,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         </View>
       )}
 
-      {/* Stats row */}
       <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
         {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)}
         {workout.total_volume > 0 && ` · ${formatVolume(workout.total_volume, weightUnit)}`}
@@ -164,7 +152,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         {(workout.total_cardio_seconds ?? 0) > 0 && ` · ${formatCardioDuration(workout.total_cardio_seconds ?? 0)} cardio`}
       </Text>
 
-      {/* PPL chips */}
       {pplBreakdown.total > 0 && (
         <View style={styles.pplChips}>
           {(['push', 'pull', 'legs'] as const)
@@ -186,7 +173,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         </View>
       )}
 
-      {/* Exercise list - show top exercises */}
       {workout.exercises.length > 0 && (
         <View style={styles.exercises}>
           {workout.exercises.slice(0, 3).map((ex, i) => (
@@ -212,10 +198,8 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
         </View>
       )}
 
-      {/* Like and comment bar */}
       <View style={styles.actionBar}>
         <View style={styles.actionLeft}>
-          {/* Animated like button */}
           <TouchableOpacity
             style={[
               styles.actionButton,
@@ -238,7 +222,6 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
             )}
           </TouchableOpacity>
 
-          {/* Comment button */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => onComment?.(workout)}
@@ -329,7 +312,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
   },
-  // Earned achievements: badge art + title, tappable (History-log grammar).
   achRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',

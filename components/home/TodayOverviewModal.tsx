@@ -14,8 +14,7 @@ interface Props {
   onStart: () => void;
 }
 
-// Full read-only overview of today's session — every exercise and its target
-// sets. Opened from the "+N more" link on the Today card.
+// Read-only overview of today's session — every exercise and its target sets.
 export default function TodayOverviewModal({ visible, onClose, routine, splitLabel, onStart }: Props) {
   const { currentTheme } = useTheme();
 

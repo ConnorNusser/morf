@@ -1,5 +1,4 @@
-// Per-muscle-group strength mastery — averages the percentile of the featured
-// lifts that train each group, so users get a tier per body part to chase.
+// Per-muscle-group strength mastery — averages the percentile of the lifts training each group.
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
 import { getExercise } from '@/lib/workout/workouts';
 import { MuscleGroup, UserProgress } from '@/types';
@@ -11,7 +10,7 @@ export interface MuscleMastery {
   liftCount: number;
 }
 
-// The groups we surface, in a sensible head-to-toe order.
+// Surfaced groups, head-to-toe order.
 const DISPLAY_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'];
 
 export function computeMuscleMastery(lifts: UserProgress[]): MuscleMastery[] {

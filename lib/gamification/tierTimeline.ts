@@ -1,12 +1,6 @@
-// Tier-progression timeline. Reconstructs the user's overall strength tier over
-// time from workout history, using the SAME math the dashboard uses
-// (estimated 1RM -> per-lift percentile -> averaged overall -> tier), so the
-// final point lines up with what the app shows today.
-//
-// We base the overall percentile on the four main lifts (squat / bench /
-// deadlift / OHP) — the canonical strength measure with real standards — and
-// use the user's current bodyweight for every point (bodyweight history isn't
-// tracked). The result is a clean "when you reached each tier" timeline.
+// Tier-progression timeline. Reconstructs overall strength tier over time from history using the
+// SAME dashboard math (e1RM -> per-lift percentile -> averaged overall -> tier). Uses current
+// bodyweight for every point (bodyweight history isn't tracked).
 import {
   calculateStrengthPercentile,
   getStrengthTier,
@@ -29,8 +23,7 @@ export interface TimelineProfile {
   age?: number;
 }
 
-// Rank of a tier (TIER_THRESHOLDS is ordered worst -> best, so the index itself
-// is the rank: higher index = better tier). Used to detect tier-ups.
+// Rank of a tier; TIER_THRESHOLDS is ordered worst -> best, so index = rank.
 function tierRank(tier: StrengthTier): number {
   return TIER_THRESHOLDS.findIndex(t => t.label === tier);
 }
@@ -38,8 +31,7 @@ function tierRank(tier: StrengthTier): number {
 export function computeTierTimeline(
   workouts: GeneratedWorkout[],
   profile: TimelineProfile,
-  // Which lifts feed the overall percentile. Defaults to the four main lifts;
-  // pass the dashboard's featured-lift set so the timeline matches the hero tier.
+  // Lifts feeding the overall percentile; pass the dashboard's featured set to match the hero tier.
   liftIds: readonly string[] = ALL_MAIN_LIFTS,
 ): TierMilestone[] {
   if (!profile.bodyWeightLbs || profile.bodyWeightLbs <= 0) return [];
@@ -89,8 +81,7 @@ export function computeTierTimeline(
   return milestones;
 }
 
-// The full tier ladder (worst -> best) for rendering a progression bar, with the
-// current tier flagged. Threshold = minimum percentile to reach that tier.
+// Full tier ladder (worst -> best) for a progression bar. threshold = min percentile for that tier.
 export interface TierRung {
   tier: StrengthTier;
   threshold: number;
@@ -105,8 +96,7 @@ export interface TierBandProgress {
   progress: number; // 0..1 through the current tier band
 }
 
-// Progress through the current tier band — shared by the inline Career section
-// and the modal hero so the math (and behavior at max tier) stays in one place.
+// Progress through the current tier band; shared so max-tier behavior stays in one place.
 export function getTierBandProgress(percentile: number): TierBandProgress {
   const tier = getStrengthTier(percentile);
   const idx = TIER_THRESHOLDS.findIndex(t => t.label === tier);
@@ -122,7 +112,6 @@ export function getTierBandProgress(percentile: number): TierBandProgress {
 
 export function getTierLadder(currentPercentile: number): TierRung[] {
   const currentTier = getStrengthTier(currentPercentile);
-  // TIER_THRESHOLDS is already worst -> best (E- ... S++), the order we want.
   return TIER_THRESHOLDS.map(({ label, threshold }) => ({
     tier: label,
     threshold,

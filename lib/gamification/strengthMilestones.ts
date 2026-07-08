@@ -1,6 +1,4 @@
-// Bodyweight-ratio strength milestones (e.g. "2× bodyweight deadlift") — the
-// iconic goals lifters chase. Produced as Achievement items so they flow through
-// the same unlocked / new / acknowledge machinery as the other achievements.
+// Bodyweight-ratio strength milestones (e.g. "2× bodyweight deadlift") as Achievement items.
 import { Achievement } from './achievements';
 import { LiftPR } from './personalRecords';
 import { Rarity } from './rarity';
@@ -11,8 +9,7 @@ interface MilestoneDef {
   tiers: { ratio: number; rarity: Rarity }[];
 }
 
-// Sensible bodyweight multiples per main lift, with rarity scaling to how hard
-// the ratio is to reach (a 2.5× deadlift is far rarer than a 1× bench).
+// Bodyweight multiples per main lift, rarity scaling with how hard the ratio is to reach.
 const MILESTONES: MilestoneDef[] = [
   { liftId: 'bench-press-barbell', name: 'Bench', tiers: [{ ratio: 1, rarity: 'rare' }, { ratio: 1.5, rarity: 'epic' }] },
   { liftId: 'squat-barbell', name: 'Squat', tiers: [{ ratio: 1.5, rarity: 'rare' }, { ratio: 2, rarity: 'epic' }] },

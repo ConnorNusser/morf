@@ -8,18 +8,11 @@ import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-
 interface NavRowProps {
   label: string;
   onPress: () => void;
-  /** Optional leading icon, drawn in the theme primary. */
   icon?: ComponentProps<typeof Ionicons>["name"];
-  /** "plain" sits directly on the page; "card" gets a bordered surface. */
   variant?: "plain" | "card";
   style?: StyleProp<ViewStyle>;
 }
 
-/**
- * A tappable "go somewhere" row — label on the left, chevron on the right.
- * The one shape for View Leaderboards, View Monthly Trends, and any future
- * drill-down entry point.
- */
 function NavRow({ label, onPress, icon, variant = "plain", style }: NavRowProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();

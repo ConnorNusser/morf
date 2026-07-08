@@ -20,8 +20,7 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
   const [feet, setFeet] = useState(Math.floor(value.value));
   const [inches, setInches] = useState(Math.round((value.value - Math.floor(value.value)) * 12));
   const [cm, setCm] = useState(value.unit === 'cm' ? value.value : convertHeight(value.value, 'feet', 'cm'));
-  
-  // Keyboard state
+
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [activeInput, setActiveInput] = useState<'feet' | 'inches' | 'cm' | null>(null);
   const [tempValue, setTempValue] = useState('');
@@ -113,7 +112,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
           Height
         </Text>
         
-        {/* Unit Toggle */}
         <View style={styles.unitToggle}>
           <TouchableOpacity
             style={[
@@ -156,7 +154,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
           </TouchableOpacity>
         </View>
 
-        {/* Input Fields */}
         {value.unit === 'feet' ? (
           <View style={styles.feetInputContainer}>
             <View style={styles.inputGroup}>
@@ -264,7 +261,6 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
           </View>
         )}
 
-        {/* Height Display */}
         <View style={styles.heightDisplay}>
           <Text style={[
             styles.heightText, 

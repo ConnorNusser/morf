@@ -1,6 +1,5 @@
-// Achievement / milestone engine. Pure: derives unlocked state and progress
-// from career stats + overall strength percentile. No new tracking required —
-// everything is computed from existing data, so it stays in sync automatically.
+// Achievement / milestone engine. Pure: derives unlocked state and progress from
+// career stats + overall strength percentile.
 import { convertWeight } from '@/types';
 import { CareerStats } from './careerStats';
 import { Rarity, RARITY_ORDER } from './rarity';
@@ -24,7 +23,7 @@ export interface Achievement {
   target: number;
   unlocked: boolean;
   progress: number; // 0..1, clamped
-  hidden?: boolean; // a "secret" badge — masked in the UI until earned
+  hidden?: boolean; // secret badge — masked in UI until earned
 }
 
 interface AchievementDef {
@@ -36,7 +35,6 @@ interface AchievementDef {
   rarity: Rarity;
   target: number;
   hidden?: boolean;
-  // Current value for this metric, given the user's stats + overall percentile.
   metric: (stats: CareerStats, percentile: number) => number;
 }
 
@@ -75,7 +73,7 @@ const DEFS: AchievementDef[] = [
   { id: 'tier-a', title: 'Elite', description: 'Reach A tier', icon: 'medal', category: 'strength', rarity: 'epic', target: 75, metric: (_s, p) => p },
   { id: 'tier-s', title: 'Legendary', description: 'Reach S tier', icon: 'star', category: 'strength', rarity: 'legendary', target: 90, metric: (_s, p) => p },
 
-  // For fun — silly milestones that are a wink as much as a goal.
+  // For fun
   { id: 'meme-9000', title: "It's Over 9,000!", description: 'Lift over 9,000 total', icon: 'flame', category: 'volume', rarity: 'common', target: 9_000, metric: s => s.totalVolume },
   { id: 'sets-1000', title: 'Glutton for Punishment', description: 'Complete 1,000 sets', icon: 'repeat', category: 'volume', rarity: 'rare', target: 1_000, metric: s => s.totalSets },
   { id: 'reps-marathon', title: 'Marathoner', description: 'Rep your way to a marathon — 26,200 reps', icon: 'walk', category: 'volume', rarity: 'epic', target: 26_200, metric: s => s.totalReps },
@@ -112,11 +110,9 @@ export function computeAchievements(stats: CareerStats, overallPercentile: numbe
 export interface AchievementSummary {
   unlockedCount: number;
   total: number;
-  // The closest-to-complete locked achievement — the "next goal" to chase.
-  nextUp: Achievement | null;
+  nextUp: Achievement | null; // closest-to-complete locked achievement
 }
 
-// IDs of currently-unlocked achievements.
 export function unlockedIds(achievements: Achievement[]): string[] {
   return achievements.filter(a => a.unlocked).map(a => a.id);
 }
@@ -127,8 +123,7 @@ export function newlyUnlocked(achievements: Achievement[], seenIds: string[]): A
   return achievements.filter(a => a.unlocked && !seen.has(a.id));
 }
 
-// Display fields for an achievement, masking secret badges that aren't earned yet
-// so the UI can tease "something's there" without spoiling it.
+// Display fields, masking secret badges that aren't earned yet.
 export interface AchievementDisplay {
   title: string;
   description: string;
@@ -149,9 +144,7 @@ export interface RarityCount {
   total: number;
 }
 
-// Per-rarity collection progress, in ascending rarity order. Surfaces how scarce
-// each tier is (and how much of it the lifter owns) honestly, without needing a
-// global "X% of users" backend we don't have.
+// Per-rarity collection progress, in ascending rarity order.
 export function rarityBreakdown(achievements: Achievement[]): RarityCount[] {
   return RARITY_ORDER.map(rarity => {
     const inTier = achievements.filter(a => a.rarity === rarity);

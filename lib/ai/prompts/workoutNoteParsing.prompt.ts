@@ -1,7 +1,3 @@
-/**
- * Prompt for parsing workout notes into structured data
- */
-
 import { WeightUnit } from '@/types';
 
 export interface WorkoutNoteParsingParams {

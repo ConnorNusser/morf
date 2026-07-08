@@ -16,11 +16,6 @@ interface EmptyStateProps {
   };
 }
 
-/**
- * The one empty-state layout: ghost icon, faint headline, optional fine
- * print, optional pill CTA. Both tabs (and both History sub-tabs) render
- * "nothing here yet" through this.
- */
 function EmptyState({ icon, title, subtitle, cta }: EmptyStateProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
