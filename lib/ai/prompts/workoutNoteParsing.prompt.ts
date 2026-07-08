@@ -86,35 +86,11 @@ CUSTOM/UNKNOWN EXERCISES:
 - Always format as "Exercise Name (Equipment)" even for custom exercises
 - Example: "super horizontal bench press machine 90x8" → name: "Super Horizontal Bench Press (Machine)"
 
-DISTINGUISHING TARGET vs ACTUAL SETS:
-- "Target" sets are PLANNED sets, NOT actual working sets performed
-- Keywords that indicate TARGET sets: "target", "recommended", "plan", "goal", "aim for", "try", "should do"
-- Keywords that indicate ACTUAL sets (real working sets performed): "did", "completed", "actual", "hit", "got", "lifted", specific weight x rep notation without qualifiers
-- If the input shows both target AND actual for an exercise, put target in "targetSets" and actual in "sets"
-- If no distinction is made, assume all sets are ACTUAL working sets (put in "sets")
-- NEVER put target sets in the main "sets" array - only actual working sets go there
-
 EXAMPLES:
-- "Bench target 135x8, did 145x8, 155x6" → name: "Bench Press (Barbell)", targetSets: [135x8], sets: [145x8, 155x6]
 - "Machine bench 100x10" → name: "Bench Press (Machine)", sets: [100x10]
 - "DB bench 40x12" → name: "Chest Press (Dumbbells)", sets: [40x12]
 - "Tricep pulldowns 50x15" → name: "Tricep Pushdown (Cables)", sets: [50x15]
 - "Single arm db row 35x10" → name: "Single Arm Row (Dumbbells)", sets: [35x10]
-
-MULTI-LINE FORMAT - When exercise has Target/Actual on separate lines:
-Input:
-  "Lat Pulldown
-   Target: 130x8, 130x8, 130x8
-   Actual: 120x8, 125x8, 130x6"
-Output: name: "Lat Pulldown (Cables)", targetSets: [{130,8},{130,8},{130,8}], sets: [{120,8},{125,8},{130,6}]
-
-Input:
-  "Bench Press
-   Target: 185x5 x3
-   Actual: 185x5, 185x5, 185x4"
-Output: name: "Bench Press (Barbell)", targetSets: [{185,5},{185,5},{185,5}], sets: [{185,5},{185,5},{185,4}]
-
-IMPORTANT: Always look for "Target:" and "Actual:" labels (case insensitive). Target sets go in targetSets array, Actual sets go in sets array.
 
 WORKOUT NOTES:
 ${text}
@@ -129,9 +105,6 @@ Return ONLY valid JSON in this exact format (no markdown, no backticks):
       "sets": [
         { "weight": 145, "reps": 8, "unit": "lbs" },
         { "weight": 155, "reps": 6, "unit": "lbs" }
-      ],
-      "targetSets": [
-        { "weight": 135, "reps": 8, "unit": "lbs" }
       ]
     },
     {
@@ -159,9 +132,6 @@ TRACKING TYPE RULES:
 - trackingType: "reps" (default) - for weight/rep exercises, sets have { weight, reps, unit }
 - trackingType: "cardio" - for cardio machines, sets have { duration, distance? } (duration in seconds, distance in meters)
 - trackingType: "timed" - for isometric holds, sets have { duration } (duration in seconds)
-
-NOTE: "targetSets" is optional - only include it if the input explicitly mentions recommended/target/planned sets.
-The "sets" array should ONLY contain actual working sets that were performed.
 
 The confidence score should be between 0 and 1, where 1 means very confident in the parsing.`;
 }
