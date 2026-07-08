@@ -49,8 +49,8 @@ const CARD_MIN_HEIGHT = 200;
 // The exercise list shows up to this many rows before it starts scrolling;
 // below that, the list keeps this height and leaves the extra space empty.
 const VISIBLE_EXERCISE_ROWS = 7;
-const EXERCISE_ROW_HEIGHT = 24;
-const EXERCISE_ROW_GAP = space.lg;
+const EXERCISE_ROW_HEIGHT = 16;
+const EXERCISE_ROW_GAP = space.md;
 const EXERCISE_LIST_HEIGHT =
   VISIBLE_EXERCISE_ROWS * EXERCISE_ROW_HEIGHT +
   (VISIBLE_EXERCISE_ROWS - 1) * EXERCISE_ROW_GAP;
