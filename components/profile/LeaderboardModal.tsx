@@ -1,7 +1,8 @@
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
-import { Text, View } from '@/components/Themed';
+import { Text, useInk, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { getCountryFlag, geoService } from '@/lib/services/geoService';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { supabase } from '@/lib/services/supabase';
@@ -38,6 +39,7 @@ interface LeaderboardModalProps {
 
 export default function LeaderboardModal({ visible, onClose }: LeaderboardModalProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [filter, setFilter] = useState<LeaderboardFilter>('global');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<string>('overall');
@@ -204,8 +206,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     }
     const initial = user.username ? user.username.charAt(0).toUpperCase() : '?';
     return (
-      <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: currentTheme.colors.primary + '20' }]}>
-        <Text style={[styles.avatarInitial, { color: currentTheme.colors.primary, fontSize: size * 0.45 }]}>
+      <View style={[styles.avatarPlaceholder, { width: size, height: size, borderRadius: size / 2, backgroundColor: tint(currentTheme.colors.primary) }]}>
+        <Text style={{ fontSize: size * 0.45 }}>
           {initial}
         </Text>
       </View>
@@ -228,12 +230,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
             : 'transparent',
         }
       ]}>
-        <Text style={[
-          styles.rankText,
-          {
-            color: isTop3 ? currentTheme.colors.primary : currentTheme.colors.text + '60',
-          }
-        ]}>
+        <Text variant="meta" tone={isTop3 ? undefined : 'muted'}>
           {index + 1}
         </Text>
       </View>
@@ -247,7 +244,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     const color = getTierColor(baseTier);
     return (
       <View style={[styles.tierBadge, { backgroundColor: color + '20' }]}>
-        <Text style={[styles.tierBadgeText, { color, fontWeight: '600' }]}>
+        <Text style={{ color }} variant="meta" weight="semiBold">
           {tier}
         </Text>
       </View>
@@ -257,15 +254,15 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="emphasis" weight="semiBold" tone="primary">
             Leaderboard
           </Text>
           <View style={styles.headerSpacer} />
         </View>
 
-        <View style={[styles.filtersRow, { backgroundColor: 'transparent' }]}>
+        <View style={styles.filtersRow}>
           <View style={styles.dropdownContainer}>
             <TouchableOpacity
               style={[styles.dropdown, { backgroundColor: currentTheme.colors.surface }]}
@@ -275,7 +272,10 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               }}
             >
               <Text
-                style={[styles.dropdownText, { color: currentTheme.colors.text, fontWeight: '500' }]}
+                style={styles.dropdownText}
+                variant="meta"
+                weight="medium"
+                tone="primary"
                 numberOfLines={1}
               >
                 {getExerciseName(selectedExercise)}
@@ -283,7 +283,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               <Ionicons
                 name={showExerciseDropdown ? 'chevron-up' : 'chevron-down'}
                 size={16}
-                color={currentTheme.colors.text + '80'}
+                color={ink.secondary}
               />
             </TouchableOpacity>
 
@@ -297,19 +297,18 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                         key={exerciseId}
                         style={[
                           styles.dropdownItem,
-                          selectedExercise === exerciseId && { backgroundColor: currentTheme.colors.primary + '15' }
+                          selectedExercise === exerciseId && { backgroundColor: tint(currentTheme.colors.primary) }
                         ]}
                         onPress={() => {
                           setSelectedExercise(exerciseId);
                           setShowExerciseDropdown(false);
                         }}
                       >
-                        <Text style={[
-                          styles.dropdownItemText,
-                          {
-                            color: selectedExercise === exerciseId ? currentTheme.colors.primary : currentTheme.colors.text,
-                          }
-                        ]}>
+                        <Text
+                          style={styles.dropdownItemText}
+                          variant="meta"
+                          tone={selectedExercise === exerciseId ? undefined : 'primary'}
+                        >
                           {getExerciseName(exerciseId)}
                         </Text>
                         {isFeatured && (
@@ -332,7 +331,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               }}
             >
               {filter === 'country' && userCountry ? (
-                <Text style={{ fontSize: 14 }}>{getCountryFlag(userCountry)}</Text>
+                <Text variant="meta">{getCountryFlag(userCountry)}</Text>
               ) : (
                 <Ionicons
                   name={filter === 'friends' ? 'people' : 'globe-outline'}
@@ -340,13 +339,13 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   color={currentTheme.colors.primary}
                 />
               )}
-              <Text style={[styles.filterDropdownText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+              <Text variant="meta" weight="medium" tone="primary">
                 {filter === 'friends' ? 'Friends' : filter === 'country' ? 'Country' : 'Global'}
               </Text>
               <Ionicons
                 name={showFilterDropdown ? 'chevron-up' : 'chevron-down'}
                 size={14}
-                color={currentTheme.colors.text + '80'}
+                color={ink.secondary}
               />
             </TouchableOpacity>
 
@@ -355,20 +354,19 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 <TouchableOpacity
                   style={[
                     styles.dropdownItem,
-                    filter === 'friends' && { backgroundColor: currentTheme.colors.primary + '15' }
+                    filter === 'friends' && { backgroundColor: tint(currentTheme.colors.primary) }
                   ]}
                   onPress={() => {
                     setFilter('friends');
                     setShowFilterDropdown(false);
                   }}
                 >
-                  <Ionicons name="people" size={14} color={filter === 'friends' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
-                  <Text style={[
-                    styles.dropdownItemText,
-                    {
-                      color: filter === 'friends' ? currentTheme.colors.primary : currentTheme.colors.text,
-                    }
-                  ]}>
+                  <Ionicons name="people" size={14} color={filter === 'friends' ? currentTheme.colors.primary : ink.secondary} />
+                  <Text
+                    style={styles.dropdownItemText}
+                    variant="meta"
+                    tone={filter === 'friends' ? undefined : 'primary'}
+                  >
                     Friends
                   </Text>
                 </TouchableOpacity>
@@ -376,20 +374,19 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   <TouchableOpacity
                     style={[
                       styles.dropdownItem,
-                      filter === 'country' && { backgroundColor: currentTheme.colors.primary + '15' }
+                      filter === 'country' && { backgroundColor: tint(currentTheme.colors.primary) }
                     ]}
                     onPress={() => {
                       setFilter('country');
                       setShowFilterDropdown(false);
                     }}
                   >
-                    <Text style={{ fontSize: 14 }}>{getCountryFlag(userCountry)}</Text>
-                    <Text style={[
-                      styles.dropdownItemText,
-                      {
-                        color: filter === 'country' ? currentTheme.colors.primary : currentTheme.colors.text,
-                      }
-                    ]}>
+                    <Text variant="meta">{getCountryFlag(userCountry)}</Text>
+                    <Text
+                      style={styles.dropdownItemText}
+                      variant="meta"
+                      tone={filter === 'country' ? undefined : 'primary'}
+                    >
                       Country
                     </Text>
                   </TouchableOpacity>
@@ -397,20 +394,19 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 <TouchableOpacity
                   style={[
                     styles.dropdownItem,
-                    filter === 'global' && { backgroundColor: currentTheme.colors.primary + '15' }
+                    filter === 'global' && { backgroundColor: tint(currentTheme.colors.primary) }
                   ]}
                   onPress={() => {
                     setFilter('global');
                     setShowFilterDropdown(false);
                   }}
                 >
-                  <Ionicons name="globe-outline" size={14} color={filter === 'global' ? currentTheme.colors.primary : currentTheme.colors.text + '80'} />
-                  <Text style={[
-                    styles.dropdownItemText,
-                    {
-                      color: filter === 'global' ? currentTheme.colors.primary : currentTheme.colors.text,
-                    }
-                  ]}>
+                  <Ionicons name="globe-outline" size={14} color={filter === 'global' ? currentTheme.colors.primary : ink.secondary} />
+                  <Text
+                    style={styles.dropdownItemText}
+                    variant="meta"
+                    tone={filter === 'global' ? undefined : 'primary'}
+                  >
                     Global
                   </Text>
                 </TouchableOpacity>
@@ -437,12 +433,12 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 <Ionicons
                   name={filter === 'friends' ? 'people-outline' : filter === 'country' ? 'flag-outline' : 'trophy-outline'}
                   size={32}
-                  color={currentTheme.colors.text + '30'}
+                  color={ink.ghost}
                 />
-                <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                <Text style={styles.emptyTitle} variant="emphasis" weight="medium" tone="primary">
                   {filter === 'friends' && !hasFriends ? 'No friends yet' : 'No overall data yet'}
                 </Text>
-                <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+                <Text style={styles.emptyText} variant="meta" weight="regular" tone="faint">
                   {filter === 'friends' && !hasFriends
                     ? 'Add friends from your profile to compare strength'
                     : 'Users need to track workouts to appear here'}
@@ -463,36 +459,33 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                   >
                     {renderRank(index)}
                     {renderAvatar(entry.user)}
-                    <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
+                    <View style={styles.userInfo}>
                       <View style={styles.usernameRow}>
-                        <Text style={[
-                          styles.username,
-                          {
-                            color: currentTheme.colors.text,
-                            fontWeight: index === 0 ? '600' : '500',
-                          }
-                        ]}>
+                        <Text
+                          variant="body"
+                          weight={index === 0 ? 'semiBold' : 'medium'}
+                          tone="primary"
+                        >
                           {entry.user.username}
                         </Text>
                         {entry.user.country_code && (
-                          <Text style={styles.entryFlag}>{getCountryFlag(entry.user.country_code)}</Text>
+                          <Text variant="meta">{getCountryFlag(entry.user.country_code)}</Text>
                         )}
                       </View>
-                      <Text style={[styles.strengthLevel, {
-                        color: getTierColor(entry.strength_level as StrengthTier),
-                        fontWeight: '600'
-                      }]}>
+                      <Text
+                        style={[styles.strengthLevel, { color: getTierColor(entry.strength_level as StrengthTier) }]}
+                        variant="meta"
+                        weight="semiBold"
+                      >
                         {entry.strength_level} Tier
                       </Text>
                     </View>
-                    <Text style={[
-                      styles.liftValue,
-                      {
-                        color: index === 0 ? currentTheme.colors.primary : currentTheme.colors.text,
-                      }
-                    ]}>
+                    <Text
+                      variant="body"
+                      tone={index === 0 ? undefined : 'primary'}
+                    >
                       {Math.round(entry.overall_percentile)}
-                      <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                      <Text variant="meta" weight="regular" tone="muted">
                         %
                       </Text>
                     </Text>
@@ -505,12 +498,12 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
               <Ionicons
                 name={filter === 'friends' ? 'people-outline' : filter === 'country' ? 'flag-outline' : 'barbell-outline'}
                 size={32}
-                color={currentTheme.colors.text + '30'}
+                color={ink.ghost}
               />
-              <Text style={[styles.emptyTitle, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+              <Text style={styles.emptyTitle} variant="emphasis" weight="medium" tone="primary">
                 {filter === 'friends' && !hasFriends ? 'No friends yet' : filter === 'country' ? 'No lifters in your country yet' : 'No entries yet'}
               </Text>
-              <Text style={[styles.emptyText, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+              <Text style={styles.emptyText} variant="meta" weight="regular" tone="faint">
                 {filter === 'friends' && !hasFriends
                   ? 'Add friends from your profile to compare lifts'
                   : filter === 'country'
@@ -533,31 +526,27 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 >
                   {renderRank(index)}
                   {renderAvatar(entry.user)}
-                  <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
+                  <View style={styles.userInfo}>
                     <View style={styles.usernameRow}>
                       {renderTierBadge(entry.strength_tier)}
-                      <Text style={[
-                        styles.username,
-                        {
-                          color: currentTheme.colors.text,
-                          fontWeight: index === 0 ? '600' : '500',
-                        }
-                      ]}>
+                      <Text
+                        variant="body"
+                        weight={index === 0 ? 'semiBold' : 'medium'}
+                        tone="primary"
+                      >
                         {entry.user.username}
                       </Text>
                       {entry.user.country_code && (
-                        <Text style={styles.entryFlag}>{getCountryFlag(entry.user.country_code)}</Text>
+                        <Text variant="meta">{getCountryFlag(entry.user.country_code)}</Text>
                       )}
                     </View>
                   </View>
-                  <Text style={[
-                    styles.liftValue,
-                    {
-                      color: index === 0 ? currentTheme.colors.primary : currentTheme.colors.text,
-                    }
-                  ]}>
+                  <Text
+                    variant="body"
+                    tone={index === 0 ? undefined : 'primary'}
+                  >
                     {Math.round(entry.estimated_1rm)}
-                    <Text style={[styles.liftUnit, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                    <Text variant="meta" weight="regular" tone="muted">
                       {' '}lbs
                     </Text>
                   </Text>
@@ -585,21 +574,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: {
-    fontSize: 17,
   },
   headerSpacer: {
     width: 40,
   },
   filtersRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
+    gap: space.sm,
     zIndex: 100,
   },
   dropdownContainer: {
@@ -610,13 +596,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 8,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
+    gap: space.sm,
   },
   dropdownText: {
-    fontSize: 14,
     flex: 1,
   },
   dropdownMenu: {
@@ -624,7 +609,7 @@ const styles = StyleSheet.create({
     top: 46,
     left: 0,
     right: 0,
-    borderRadius: 10,
+    borderRadius: radius.control,
     borderWidth: StyleSheet.hairlineWidth,
     maxHeight: 250,
     shadowColor: '#000',
@@ -639,12 +624,11 @@ const styles = StyleSheet.create({
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: space.md,
   },
   dropdownItemText: {
-    fontSize: 14,
     flex: 1,
   },
   featuredDot: {
@@ -658,20 +642,17 @@ const styles = StyleSheet.create({
   filterDropdown: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
-  },
-  filterDropdownText: {
-    fontSize: 13,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
+    gap: space.sm,
   },
   filterDropdownMenu: {
     position: 'absolute',
     top: 46,
     right: 0,
     minWidth: 130,
-    borderRadius: 10,
+    borderRadius: radius.control,
     borderWidth: StyleSheet.hairlineWidth,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -683,24 +664,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: screenGutter,
+    paddingTop: space.sm,
     paddingBottom: 40,
   },
   leaderboardList: {
-    gap: 2,
+    gap: space.xs,
   },
   entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    gap: 12,
-    marginHorizontal: -8,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.md,
+    gap: space.md,
+    marginHorizontal: -space.sm,
   },
   topEntry: {
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: radius.card,
+    marginBottom: space.sm,
   },
   rankBadge: {
     width: 28,
@@ -709,52 +690,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  rankText: {
-    fontSize: 13,
-  },
   userInfo: {
     flex: 1,
   },
   usernameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  entryFlag: {
-    fontSize: 14,
-  },
-  username: {
-    fontSize: 15,
+    gap: space.sm,
   },
   tierBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  tierBadgeText: {
-    fontSize: 11,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   strengthLevel: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  liftValue: {
-    fontSize: 16,
-  },
-  liftUnit: {
-    fontSize: 12,
+    marginTop: space.xs,
   },
   emptyState: {
     alignItems: 'center',
     paddingTop: 80,
-    gap: 10,
+    gap: space.md,
   },
   emptyTitle: {
-    fontSize: 17,
-    marginTop: 8,
+    marginTop: space.sm,
   },
   emptyText: {
-    fontSize: 14,
     textAlign: 'center',
     paddingHorizontal: 40,
   },
@@ -764,7 +724,5 @@ const styles = StyleSheet.create({
   avatarPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  avatarInitial: {
   },
 });

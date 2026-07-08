@@ -6,6 +6,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { space } from '@/lib/ui/tokens';
 import Card from '../Card';
 import { Text } from '../Themed';
 
@@ -55,8 +56,8 @@ const NotificationPreferencesSection = () => {
     <Card style={styles.card}>
       <TouchableOpacity style={styles.sectionHeader} onPress={() => setIsExpanded(!isExpanded)} activeOpacity={0.7}>
         <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.colors.text }]}>Reminders</Text>
-          <Text style={[styles.subtitle, { color: isExpanded ? currentTheme.colors.text : currentTheme.colors.primary }]}>
+          <Text variant="title" weight="bold" tone="primary" style={styles.sectionTitle}>Reminders</Text>
+          <Text variant="meta" tone={isExpanded ? 'secondary' : undefined} style={styles.subtitle}>
             {isExpanded ? 'Nudges to keep you training — on your terms' : summary}
           </Text>
         </View>
@@ -67,8 +68,8 @@ const NotificationPreferencesSection = () => {
         <View style={styles.rows}>
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={[styles.rowTitle, { color: currentTheme.colors.text }]}>Streak reminders</Text>
-              <Text style={[styles.rowDesc, { color: currentTheme.colors.text + '80' }]}>
+              <Text variant="body" weight="semiBold" tone="primary" style={styles.rowTitle}>Streak reminders</Text>
+              <Text variant="meta" tone="secondary" style={styles.rowDesc}>
                 A nudge when your streak is about to break
               </Text>
             </View>
@@ -77,8 +78,8 @@ const NotificationPreferencesSection = () => {
 
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={[styles.rowTitle, { color: currentTheme.colors.text }]}>Workout-day reminders</Text>
-              <Text style={[styles.rowDesc, { color: currentTheme.colors.text + '80' }]}>
+              <Text variant="body" weight="semiBold" tone="primary" style={styles.rowTitle}>Workout-day reminders</Text>
+              <Text variant="meta" tone="secondary" style={styles.rowDesc}>
                 A reminder on the days you usually train
               </Text>
             </View>
@@ -87,8 +88,8 @@ const NotificationPreferencesSection = () => {
 
           <View style={styles.row}>
             <View style={styles.rowText}>
-              <Text style={[styles.rowTitle, { color: currentTheme.colors.text }]}>Comeback nudges</Text>
-              <Text style={[styles.rowDesc, { color: currentTheme.colors.text + '80' }]}>
+              <Text variant="body" weight="semiBold" tone="primary" style={styles.rowTitle}>Comeback nudges</Text>
+              <Text variant="meta" tone="secondary" style={styles.rowDesc}>
                 A gentle nudge if it&apos;s been a while since you trained
               </Text>
             </View>
@@ -102,46 +103,39 @@ const NotificationPreferencesSection = () => {
 
 const styles = StyleSheet.create({
   card: {
-    gap: 16,
+    gap: space.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   rows: {
-    gap: 20,
-    paddingTop: 4,
+    gap: space.xl,
+    paddingTop: space.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: space.lg,
   },
   rowText: {
     flex: 1,
   },
   rowTitle: {
-    fontSize: 16,
-    fontWeight: '600',
   },
   rowDesc: {
-    fontSize: 13,
-    marginTop: 2,
+    marginTop: space.xs,
     lineHeight: 18,
   },
   track: {

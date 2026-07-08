@@ -1,7 +1,8 @@
 import Card from '@/components/Card';
 import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { useAlert } from '@/components/CustomAlert';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
+import { danger, radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
@@ -72,6 +73,7 @@ function ExerciseEditForm({
   onCancel, onSave, placeholder, saveLabel, hint, saving = false,
 }: ExerciseEditFormProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const fullNamePreview = editedName.trim()
     ? generateFullExerciseName(editedName, selectedEquipment)
     : '';
@@ -79,7 +81,7 @@ function ExerciseEditForm({
 
   return (
     <View style={styles.editForm}>
-      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
+      <Text variant="meta" tone="secondary" weight="medium" style={styles.editLabel}>
         Exercise Name (without equipment)
       </Text>
       <TextInput
@@ -94,11 +96,11 @@ function ExerciseEditForm({
         value={editedName}
         onChangeText={setEditedName}
         placeholder={placeholder}
-        placeholderTextColor={currentTheme.colors.text + '40'}
+        placeholderTextColor={ink.faint}
         autoFocus
       />
 
-      <Text style={[styles.editLabel, { color: currentTheme.colors.text + '70', fontWeight: '500', marginTop: 12 }]}>
+      <Text variant="meta" tone="secondary" weight="medium" style={[styles.editLabel, { marginTop: space.md }]}>
         Equipment Type
       </Text>
       <View style={styles.equipmentRow}>
@@ -118,12 +120,15 @@ function ExerciseEditForm({
             ]}
             onPress={() => setSelectedEquipment(eq.value)}
           >
-            <Text style={[
-              styles.equipmentChipText,
-              {
-                color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-              }
-            ]}>
+            <Text
+              variant="meta"
+              style={[
+                styles.equipmentChipText,
+                {
+                  color: selectedEquipment === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                }
+              ]}
+            >
               {eq.label}
             </Text>
           </TouchableOpacity>
@@ -132,23 +137,23 @@ function ExerciseEditForm({
 
       {fullNamePreview && (
         <View style={[styles.previewBox, { backgroundColor: currentTheme.colors.background, borderColor: currentTheme.colors.border }]}>
-          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+          <Text variant="meta" tone="faint" weight="regular" style={styles.previewLabel}>
             Full Name:
           </Text>
-          <Text style={[styles.previewValue, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="meta" tone="primary" weight="semiBold" style={styles.previewValue}>
             {fullNamePreview}
           </Text>
-          <Text style={[styles.previewLabel, { color: currentTheme.colors.text + '50', fontWeight: '400', marginTop: 4 }]}>
+          <Text variant="meta" tone="faint" weight="regular" style={[styles.previewLabel, { marginTop: space.xs }]}>
             ID:
           </Text>
-          <Text style={[styles.previewValue, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
+          <Text variant="meta" tone="secondary" weight="regular" style={styles.previewValue}>
             {previewId}
           </Text>
         </View>
       )}
 
       {hint && (
-        <Text style={[styles.hintText, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
+        <Text variant="meta" tone="faint" weight="regular" style={styles.hintText}>
           {hint}
         </Text>
       )}
@@ -159,7 +164,7 @@ function ExerciseEditForm({
           onPress={onCancel}
           disabled={saving}
         >
-          <Text style={[styles.editActionText, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="meta" tone="primary" weight="semiBold" style={styles.editActionText}>
             Cancel
           </Text>
         </TouchableOpacity>
@@ -175,7 +180,7 @@ function ExerciseEditForm({
           {saving ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={[styles.editActionText, { color: '#FFFFFF', fontWeight: '600' }]}>
+            <Text variant="meta" weight="semiBold" style={[styles.editActionText, { color: '#FFFFFF' }]}>
               {saveLabel}
             </Text>
           )}
@@ -187,6 +192,7 @@ function ExerciseEditForm({
 
 export default function CustomExercisesSection({ onExercisesUpdate }: CustomExercisesSectionProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const { play: playSound } = useSound('pop');
   const {
@@ -466,53 +472,38 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         ]}
       >
         <View style={styles.exerciseInfo}>
-          <Text style={[
-            styles.exerciseName,
-            {
-              color: currentTheme.colors.text,
-            }
-          ]}>
+          <Text variant="body" tone="primary" style={styles.exerciseName}>
             {exercise.name}
           </Text>
 
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
-              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+              <View style={[styles.metadataChip, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                <Text variant="meta" weight="medium" style={styles.metadataChipText}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
+                <Text variant="meta" tone="secondary" weight="medium" style={styles.metadataChipText}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
+                <Text variant="meta" tone="secondary" weight="medium" style={styles.metadataChipText}>
                   {exercise.category}
                 </Text>
               </View>
             )}
           </View>
 
-          <Text style={[
-            styles.exerciseId,
-            {
-              color: currentTheme.colors.text + '50',
-            }
-          ]} numberOfLines={1}>
+          <Text variant="meta" tone="faint" style={styles.exerciseId} numberOfLines={1}>
             ID: {exercise.id}
           </Text>
-          <Text style={[
-            styles.exerciseDate,
-            {
-              color: currentTheme.colors.text + '40',
-            }
-          ]}>
+          <Text variant="meta" tone="faint" style={styles.exerciseDate}>
             Created {formatDate(exercise.createdAt)}
           </Text>
         </View>
@@ -520,17 +511,17 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         <View style={styles.actionButtons}>
           <TouchableOpacity
             onPress={() => handleStartEdit(exercise)}
-            style={[styles.actionButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+            style={[styles.actionButton, { backgroundColor: tint(currentTheme.colors.primary) }]}
             activeOpacity={0.7}
           >
             <Ionicons name="pencil" size={16} color={currentTheme.colors.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => handleDeleteExercise(exercise)}
-            style={[styles.actionButton, { backgroundColor: '#DC262615' }]}
+            style={[styles.actionButton, { backgroundColor: danger + '15' }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="close-circle" size={18} color="#DC2626" />
+            <Ionicons name="close-circle" size={18} color={danger} />
           </TouchableOpacity>
         </View>
       </View>
@@ -577,35 +568,25 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
         >
           <View style={styles.sectionHeaderContent}>
             <View style={styles.titleRow}>
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                }
-              ]}>
+              <Text variant="title" weight="bold" tone="primary" style={styles.sectionTitle}>
                 Custom Exercises
               </Text>
               {customExercises.length > 0 && (
-                <View style={[styles.badge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                  <Text style={[styles.badgeText, { color: currentTheme.colors.primary }]}>
+                <View style={[styles.badge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                  <Text variant="meta" style={styles.badgeText}>
                     {customExercises.length}
                   </Text>
                 </View>
               )}
             </View>
-            <Text style={[
-              styles.subtitle,
-              {
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.subtitle}>
               {getCustomSummary()}
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={currentTheme.colors.text}
+            color={ink.primary}
           />
         </TouchableOpacity>
       </Card>
@@ -625,31 +606,31 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
             >
               <View style={styles.modalHeader}>
                 <View style={{ width: 40 }} />
-                <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.modalHeaderTitle}>
                   Custom Exercises
                 </Text>
                 <TouchableOpacity
                   onPress={closeModal}
                   style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
                 >
-                  <Ionicons name="close" size={20} color={currentTheme.colors.text} />
+                  <Ionicons name="close" size={20} color={ink.primary} />
                 </TouchableOpacity>
               </View>
 
-              <View style={[styles.disclaimerBanner, { backgroundColor: currentTheme.colors.primary + '10', borderColor: currentTheme.colors.primary + '30' }]}>
+              <View style={[styles.disclaimerBanner, { backgroundColor: tint(currentTheme.colors.primary), borderColor: currentTheme.colors.primary + '30' }]}>
                 <Ionicons name="sparkles" size={16} color={currentTheme.colors.primary} />
-                <Text style={[styles.disclaimerText, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                <Text variant="meta" tone="secondary" weight="regular" style={styles.disclaimerText}>
                   Custom exercises are auto-created when you log workouts with new exercises. You can also add them manually here.
                 </Text>
               </View>
 
               <View style={styles.searchContainer}>
                 <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-                  <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                  <Ionicons name="search" size={18} color={ink.muted} />
                   <TextInput
                     style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                     placeholder="Search exercises..."
-                    placeholderTextColor={currentTheme.colors.text + '40'}
+                    placeholderTextColor={ink.faint}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     autoCapitalize="none"
@@ -657,7 +638,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   />
                   {searchQuery.length > 0 && (
                     <TouchableOpacity onPress={() => setSearchQuery('')}>
-                      <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                      <Ionicons name="close-circle" size={18} color={ink.muted} />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -683,12 +664,15 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                   ]}
                   onPress={() => setEquipmentFilter('all')}
                 >
-                  <Text style={[
-                    styles.filterChipText,
-                    {
-                      color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
-                    }
-                  ]}>
+                  <Text
+                    variant="meta"
+                    style={[
+                      styles.filterChipText,
+                      {
+                        color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
+                      }
+                    ]}
+                  >
                     All
                   </Text>
                 </TouchableOpacity>
@@ -708,12 +692,15 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     ]}
                     onPress={() => setEquipmentFilter(eq.value)}
                   >
-                    <Text style={[
-                      styles.filterChipText,
-                      {
-                        color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                      }
-                    ]}>
+                    <Text
+                      variant="meta"
+                      style={[
+                        styles.filterChipText,
+                        {
+                          color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                        }
+                      ]}
+                    >
                       {eq.label}
                     </Text>
                   </TouchableOpacity>
@@ -728,7 +715,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     activeOpacity={0.7}
                   >
                     <Ionicons name="add" size={18} color="#FFFFFF" />
-                    <Text style={[styles.addButtonText, { fontWeight: '600' }]}>
+                    <Text variant="meta" weight="semiBold" style={styles.addButtonText}>
                       Add Custom Exercise
                     </Text>
                   </TouchableOpacity>
@@ -748,18 +735,12 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                     <Ionicons
                       name={searchQuery ? "search-outline" : "barbell-outline"}
                       size={32}
-                      color={currentTheme.colors.text + '40'}
+                      color={ink.faint}
                     />
-                    <Text style={[
-                      styles.emptyText,
-                      { color: currentTheme.colors.text + '60', fontWeight: '500' }
-                    ]}>
+                    <Text variant="body" tone="muted" weight="medium" style={styles.emptyText}>
                       {searchQuery ? 'No exercises found' : 'No custom exercises yet'}
                     </Text>
-                    <Text style={[
-                      styles.emptySubtext,
-                      { color: currentTheme.colors.text + '40', fontWeight: '400' }
-                    ]}>
+                    <Text variant="meta" tone="faint" weight="regular" style={styles.emptySubtext}>
                       {searchQuery
                         ? 'Try a different search term'
                         : 'Log workouts with new exercises and they\'ll appear here'}
@@ -768,7 +749,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 ) : (
                   <>
                     {searchQuery && (
-                      <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="muted" weight="regular" style={styles.resultsCount}>
                         {filteredCustomExercises.length} result{filteredCustomExercises.length !== 1 ? 's' : ''}
                       </Text>
                     )}
@@ -777,11 +758,11 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
                     {customExercises.length > 0 && !searchQuery && !isAdding && !editingExercise && (
                       <TouchableOpacity
-                        style={[styles.clearAllButton, { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DC262630' }]}
+                        style={[styles.clearAllButton, { backgroundColor: currentTheme.colors.surface, borderWidth: 1, borderColor: danger + '30' }]}
                         onPress={handleClearAll}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.clearAllText, { fontWeight: '600' }]}>
+                        <Text variant="meta" weight="semiBold" style={styles.clearAllText}>
                           Clear All Custom Exercises
                         </Text>
                       </TouchableOpacity>
@@ -799,13 +780,13 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
 
 const styles = StyleSheet.create({
   card: {
-    gap: 12,
+    gap: space.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
@@ -813,24 +794,20 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radius.badge,
   },
   badgeText: {
-    fontSize: 12,
   },
   subtitle: {
-    fontSize: 14,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   modalContainer: {
     flex: 1,
@@ -839,48 +816,46 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
   },
   modalHeaderTitle: {
-    fontSize: 17,
     lineHeight: 22,
   },
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
   disclaimerBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 10,
+    gap: space.md,
+    marginHorizontal: screenGutter,
+    marginBottom: space.md,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   disclaimerText: {
     flex: 1,
-    fontSize: 13,
     lineHeight: 18,
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.md,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
-    gap: 8,
+    gap: space.sm,
   },
   searchInput: {
     flex: 1,
@@ -888,74 +863,69 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   addButtonContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.md,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 6,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
+    gap: space.sm,
   },
   addButtonText: {
     color: '#FFFFFF',
-    fontSize: 14,
   },
   filterContainer: {
     flexGrow: 0,
     flexShrink: 0,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   filterContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: screenGutter,
+    gap: space.sm,
     alignItems: 'center',
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   filterChipText: {
-    fontSize: 13,
     lineHeight: 18,
   },
   exercisesList: {
     flex: 1,
   },
   exercisesListContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: screenGutter,
     paddingBottom: 40,
   },
   resultsCount: {
-    fontSize: 13,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   emptyState: {
     alignItems: 'center',
     padding: 32,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 20,
+    borderRadius: radius.card,
+    gap: space.sm,
+    marginTop: space.xl,
   },
   emptyText: {
-    fontSize: 16,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   emptySubtext: {
-    fontSize: 13,
     textAlign: 'center',
   },
   exerciseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 14,
-    marginBottom: 10,
-    borderRadius: 12,
+    padding: space.lg,
+    marginBottom: space.md,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   editingItem: {
@@ -963,117 +933,105 @@ const styles = StyleSheet.create({
   },
   exerciseInfo: {
     flex: 1,
-    marginRight: 12,
-    backgroundColor: 'transparent',
+    marginRight: space.md,
   },
   exerciseName: {
-    fontSize: 16,
   },
   metadataRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-    marginBottom: 6,
+    gap: space.sm,
+    marginTop: space.sm,
+    marginBottom: space.sm,
   },
   metadataChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   metadataChipText: {
-    fontSize: 11,
     textTransform: 'capitalize',
   },
   exerciseId: {
-    fontSize: 11,
     marginTop: 2,
   },
   exerciseDate: {
-    fontSize: 11,
     marginTop: 1,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.sm,
     alignItems: 'center',
   },
   actionButton: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearAllButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 10,
-    marginTop: 12,
+    paddingVertical: space.lg,
+    borderRadius: radius.control,
+    marginTop: space.md,
   },
   clearAllText: {
-    color: '#DC2626',
-    fontSize: 14,
+    color: danger,
   },
   editForm: {
     flex: 1,
   },
   editLabel: {
-    fontSize: 13,
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   editInput: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: radius.control,
+    padding: space.md,
     fontSize: 15,
   },
   equipmentRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   equipmentChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   equipmentChipText: {
-    fontSize: 13,
   },
   previewBox: {
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
+    marginTop: space.md,
+    padding: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   previewLabel: {
-    fontSize: 11,
   },
   previewValue: {
-    fontSize: 14,
   },
   hintText: {
-    fontSize: 11,
-    marginTop: 8,
+    marginTop: space.sm,
     fontStyle: 'italic',
   },
   editActions: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 16,
+    gap: space.md,
+    marginTop: space.lg,
   },
   editActionButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
   editActionText: {
-    fontSize: 14,
   },
   disabledButton: {
     opacity: 0.5,

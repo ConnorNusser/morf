@@ -8,7 +8,8 @@ import { ALL_EQUIPMENT, EQUIPMENT_DISPLAY_LABELS } from "@/lib/workout/equipment
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "../Card";
-import { Text } from "../Themed";
+import { Text, useInk } from "../Themed";
+import { radius, space, tint } from "@/lib/ui/tokens";
 
 const EQUIPMENT_ICONS: Record<Equipment, string> = {
   barbell: 'barbell-outline',
@@ -29,6 +30,7 @@ const EQUIPMENT_OPTIONS: { type: Equipment; label: string; icon: string }[] =
 
 const EquipmentFilterSection = () => {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { userProfile, updateProfile } = useUser();
   const { play: playSound } = useSound('pop');
 
@@ -108,32 +110,17 @@ const EquipmentFilterSection = () => {
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
-        <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.sectionTitle,
-            {
-              color: currentTheme.colors.text,
-            }
-          ]}>
+        <View style={styles.sectionHeaderContent}>
+          <Text variant="title" weight="bold" tone="primary">
             Available Equipment
           </Text>
           {!isExpanded && (
-            <Text style={[
-              styles.subtitle,
-              {
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.subtitle}>
               {getEquipmentSummary()}
             </Text>
           )}
           {isExpanded && (
-            <Text style={[
-              styles.description,
-              {
-                color: currentTheme.colors.text + '70',
-              }
-            ]}>
+            <Text variant="meta" tone="secondary" style={styles.description}>
               Select the equipment you have access to for AI workout generation
             </Text>
           )}
@@ -141,7 +128,7 @@ const EquipmentFilterSection = () => {
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color={currentTheme.colors.text}
+          color={ink.primary}
         />
       </TouchableOpacity>
 
@@ -151,7 +138,7 @@ const EquipmentFilterSection = () => {
             style={[
               styles.selectAllButton,
               {
-                backgroundColor: allSelected ? currentTheme.colors.primary + '20' : currentTheme.colors.surface,
+                backgroundColor: allSelected ? tint(currentTheme.colors.primary) : currentTheme.colors.surface,
                 borderColor: allSelected ? currentTheme.colors.primary : currentTheme.colors.border,
               }
             ]}
@@ -163,12 +150,7 @@ const EquipmentFilterSection = () => {
               size={20}
               color={allSelected ? currentTheme.colors.primary : currentTheme.colors.secondary}
             />
-            <Text style={[
-              styles.selectAllText,
-              {
-                color: allSelected ? currentTheme.colors.primary : currentTheme.colors.text,
-              }
-            ]}>
+            <Text variant="meta" tone={allSelected ? undefined : 'primary'}>
               Select All Equipment
             </Text>
           </TouchableOpacity>
@@ -192,14 +174,15 @@ const EquipmentFilterSection = () => {
                   <Ionicons
                     name={equipment.icon as React.ComponentProps<typeof Ionicons>["name"]}
                     size={22}
-                    color={isSelected ? '#FFFFFF' : currentTheme.colors.text}
+                    color={isSelected ? '#FFFFFF' : ink.primary}
                   />
-                  <Text style={[
-                    styles.equipmentLabel,
-                    {
-                      color: isSelected ? '#FFFFFF' : currentTheme.colors.text,
-                    }
-                  ]}>
+                  <Text
+                    variant="meta"
+                    style={[
+                      styles.equipmentLabel,
+                      { color: isSelected ? '#FFFFFF' : currentTheme.colors.text },
+                    ]}
+                  >
                     {equipment.label}
                   </Text>
                 </TouchableOpacity>
@@ -207,10 +190,11 @@ const EquipmentFilterSection = () => {
             })}
           </View>
 
-          <Text style={[
-            styles.hint,
-            { color: currentTheme.colors.secondary, fontWeight: '400' }
-          ]}>
+          <Text
+            variant="meta"
+            weight="regular"
+            style={[styles.hint, { color: currentTheme.colors.secondary }]}
+          >
             AI will only suggest exercises using your selected equipment
           </Text>
         </View>
@@ -221,70 +205,59 @@ const EquipmentFilterSection = () => {
 
 const styles = StyleSheet.create({
   card: {
-    gap: 16,
+    gap: space.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   subtitle: {
-    fontSize: 14,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   description: {
-    fontSize: 14,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   expandedContent: {
-    paddingTop: 8,
-    gap: 12,
+    paddingTop: space.sm,
+    gap: space.md,
   },
   selectAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    gap: space.sm,
+    paddingVertical: space.md,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.control,
     borderWidth: 1,
-  },
-  selectAllText: {
-    fontSize: 14,
   },
   equipmentGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: space.md,
   },
   equipmentButton: {
     width: '31%',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 10,
+    paddingVertical: space.md,
+    paddingHorizontal: space.sm,
+    borderRadius: radius.control,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: space.xs,
   },
   equipmentLabel: {
-    fontSize: 12,
     textAlign: 'center',
   },
   hint: {
-    fontSize: 12,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: space.xs,
   },
 });
 

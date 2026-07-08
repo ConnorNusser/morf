@@ -4,6 +4,7 @@ import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
 import FlipCard from '@/components/gamification/FlipCard';
 import TierBadge from '@/components/TierBadge';
+import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { rarityBreakdown, summarizeAchievements } from '@/lib/gamification/achievements';
@@ -12,16 +13,18 @@ import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { HEAT_OPACITIES, heatLevel } from '@/lib/gamification/trainingHeatmap';
+import { panelPad, radius, space } from '@/lib/ui/tokens';
 import { type as typeScale } from '@/lib/ui/typography';
 import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Inline Career section for the Profile: tier hero, lifetime stats, next goal and achievement preview; tap opens the full Career modal.
 export default function CareerSection() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [data, setData] = useState<CareerData | null>(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -63,18 +66,18 @@ export default function CareerSection() {
   return (
     <>
       <TouchableOpacity activeOpacity={0.9} onPress={open}>
-        <Card style={styles.card} padding={18}>
+        <Card style={styles.card} padding={panelPad}>
           <View style={styles.headerRow}>
-            <Text style={[styles.heading, { color: currentTheme.colors.text }]}>Career</Text>
+            <Text variant="heading" weight="bold" tone="primary">Career</Text>
             <View style={styles.headerRight}>
               {data.newIds.size > 0 && (
                 <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary }]}>
-                  <Text style={[styles.newBadgeText, { color: currentTheme.colors.surface }]}>
+                  <Text variant="meta" weight="bold" style={{ color: currentTheme.colors.surface }}>
                     {data.newIds.size} new
                   </Text>
                 </View>
               )}
-              <Text style={[styles.viewAll, { color: currentTheme.colors.primary }]}>View all</Text>
+              <Text variant="meta" weight="semiBold">View all</Text>
               <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.primary} />
             </View>
           </View>
@@ -87,47 +90,57 @@ export default function CareerSection() {
                   duration={1100}
                   style={[styles.percentile, { color: currentTheme.colors.text }]}
                 />
-                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>percentile</Text>
+                <Text variant="meta" tone="muted" style={styles.heroStatLabel}>percentile</Text>
               </View>
               <View style={styles.heroStat}>
                 <TierBadge tier={data.tier} size="large" variant="text" showTooltip={false} />
-                <Text style={[styles.heroStatLabel, { color: currentTheme.colors.text }]}>tier</Text>
+                <Text variant="meta" tone="muted" style={styles.heroStatLabel}>tier</Text>
               </View>
             </View>
             <AnimatedBar
               progress={band.progress}
               color={color}
-              trackColor={currentTheme.colors.text + '15'}
+              trackColor={ink.hairline}
               height={8}
               delay={150}
               style={styles.heroBar}
             />
-            <Text style={[styles.toNext, { color: currentTheme.colors.text }]}>
+            <Text variant="meta" tone="muted" style={styles.toNext}>
               {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
             </Text>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
+          <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
 
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
             {statItems.map(s => (
               <View key={s.l} style={styles.stat}>
                 <Text
-                  style={[styles.statValue, { color: s.accent ? currentTheme.colors.primary : currentTheme.colors.text }]}
+                  variant="emphasis"
+                  weight="bold"
+                  tone={s.accent ? undefined : 'primary'}
                   numberOfLines={1}
                 >
                   {s.v}
-                  {s.u ? <Text style={styles.statUnit}>{s.u}</Text> : null}
+                  {s.u ? (
+                    <Text
+                      variant="meta"
+                      weight="semiBold"
+                      style={[styles.statUnit, { color: s.accent ? currentTheme.colors.primary : currentTheme.colors.text }]}
+                    >
+                      {s.u}
+                    </Text>
+                  ) : null}
                 </Text>
-                <Text style={[styles.statLabel, { color: currentTheme.colors.text }]}>{s.l}</Text>
+                <Text variant="meta" tone="muted" style={styles.statLabel}>{s.l}</Text>
               </View>
             ))}
           </View>
 
           <View style={styles.consistency}>
             <View style={styles.consistencyHead}>
-              <Text style={[styles.consistencyLabel, { color: currentTheme.colors.text }]}>ACTIVITY</Text>
-              <Text style={[styles.consistencyMeta, { color: currentTheme.colors.text }]}>
+              <Text variant="meta" weight="bold" tone="muted" style={styles.consistencyLabel}>ACTIVITY</Text>
+              <Text variant="meta" tone="muted">
                 {recentActive} active days · last 8 weeks
               </Text>
             </View>
@@ -156,13 +169,13 @@ export default function CareerSection() {
               {(['push', 'pull', 'legs'] as PPLCategory[]).map(s => (
                 <View key={s} style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: PPL_COLORS[s] }]} />
-                  <Text style={[styles.legendText, { color: currentTheme.colors.text }]}>{PPL_LABELS[s]}</Text>
+                  <Text variant="meta" tone="muted">{PPL_LABELS[s]}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          <View style={[styles.divider, { backgroundColor: currentTheme.colors.text + '12' }]} />
+          <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
 
           {nextUp && (
             <FlipCard
@@ -171,26 +184,26 @@ export default function CareerSection() {
               front={
                 <View style={styles.nextGoalFace}>
                   <View style={styles.nextBody}>
-                    <Text style={[styles.nextLabel, { color: currentTheme.colors.text }]} numberOfLines={1}>
+                    <Text variant="meta" weight="semiBold" tone="primary" style={styles.nextLabel} numberOfLines={1}>
                       NEXT · {nextUp.title}
                     </Text>
-                    <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.text + '15' }]}>
+                    <View style={[styles.nextTrack, { backgroundColor: ink.hairline }]}>
                       <View
                         style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
                       />
                     </View>
                   </View>
-                  <Text style={[styles.nextCount, { color: currentTheme.colors.text }]}>
+                  <Text variant="meta" weight="bold" tone="muted">
                     {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
                   </Text>
                 </View>
               }
               back={
                 <View style={styles.nextGoalBack}>
-                  <Text style={[styles.nextBackText, { color: currentTheme.colors.text }]} numberOfLines={2}>
+                  <Text variant="meta" tone="secondary" style={styles.nextBackText} numberOfLines={2}>
                     {nextUp.description}
                   </Text>
-                  <Text style={[styles.nextBackPct, { color: currentTheme.colors.primary }]}>
+                  <Text variant="meta" weight="bold">
                     {Math.round(nextUp.progress * 100)}%
                   </Text>
                 </View>
@@ -204,25 +217,25 @@ export default function CareerSection() {
             front={
               <View style={styles.achFace}>
                 <View style={styles.achTopRow}>
-                  <Text style={[styles.achLabel, { color: currentTheme.colors.text }]}>ACHIEVEMENTS</Text>
+                  <Text variant="meta" weight="bold" tone="muted" style={styles.achLabel}>ACHIEVEMENTS</Text>
                   <View style={styles.achTopRight}>
                     {data.newIds.size > 0 && (
                       <View style={[styles.achNewPill, { backgroundColor: currentTheme.colors.primary }]}>
-                        <Text style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>
+                        <Text variant="meta" weight="bold" style={[styles.achNewPillText, { color: currentTheme.colors.surface }]}>
                           {data.newIds.size} NEW
                         </Text>
                       </View>
                     )}
-                    <Text style={[styles.achBig, { color: currentTheme.colors.text }]}>
+                    <Text variant="emphasis" weight="bold" tone="primary">
                       {unlockedCount}
-                      <Text style={[styles.achBigTotal, { color: currentTheme.colors.text }]}>/{total}</Text>
+                      <Text variant="meta" weight="semiBold" tone="muted">/{total}</Text>
                     </Text>
                   </View>
                 </View>
                 <AnimatedBar
                   progress={achProgress}
                   color={currentTheme.colors.primary}
-                  trackColor={currentTheme.colors.text + '15'}
+                  trackColor={ink.hairline}
                   height={6}
                   delay={250}
                 />
@@ -235,10 +248,10 @@ export default function CareerSection() {
                   return (
                     <View key={rb.rarity} style={styles.rarityCell}>
                       <View style={[styles.rarityDot, { backgroundColor: rc, opacity: rb.unlocked > 0 ? 1 : 0.3 }]} />
-                      <Text style={[styles.rarityCount, { color: currentTheme.colors.text }]}>
+                      <Text variant="meta" weight="bold" tone="primary">
                         {rb.unlocked}/{rb.total}
                       </Text>
-                      <Text style={[styles.rarityLabel, { color: rc }]}>{RARITY_META[rb.rarity].label}</Text>
+                      <Text variant="meta" weight="bold" style={[styles.rarityLabel, { color: rc }]}>{RARITY_META[rb.rarity].label}</Text>
                     </View>
                   );
                 })}
@@ -254,64 +267,53 @@ export default function CareerSection() {
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 14 },
+  card: { gap: space.lg },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heading: { fontSize: typeScale.heading, fontWeight: '700' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, marginRight: 4 },
-  newBadgeText: { fontSize: typeScale.meta, fontWeight: '700' },
-  viewAll: { fontSize: typeScale.meta, fontWeight: '600' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
+  newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.badge, marginRight: space.xs },
 
-  hero: { gap: 6 },
+  hero: { gap: space.sm },
   heroStatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroStat: { alignItems: 'center' },
   percentile: { fontSize: typeScale.hero, fontWeight: '800', lineHeight: 33, letterSpacing: -0.5 },
-  heroStatLabel: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 2 },
-  heroBar: { marginTop: 10 },
-  toNext: { fontSize: typeScale.meta, opacity: 0.55, marginTop: 6 },
+  heroStatLabel: { marginTop: space.xs },
+  heroBar: { marginTop: space.md },
+  toNext: { marginTop: space.sm },
 
-  statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
+  statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.lg },
   stat: { alignItems: 'center', flex: 1 },
-  statValue: { fontSize: typeScale.emphasis, fontWeight: '700' },
-  statUnit: { fontSize: typeScale.meta, fontWeight: '600', opacity: 0.6 },
-  statLabel: { fontSize: typeScale.meta, opacity: 0.5, marginTop: 2 },
+  statUnit: { opacity: 0.6 },
+  statLabel: { marginTop: space.xs },
 
-  consistency: { gap: 8 },
+  consistency: { gap: space.sm },
   consistencyHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  consistencyLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.45 },
-  consistencyMeta: { fontSize: typeScale.meta, opacity: 0.5 },
+  consistencyLabel: { letterSpacing: 1 },
   heatRow: { flexDirection: 'row', justifyContent: 'space-between' },
   heatCol: { gap: 3 },
   heatCell: { width: 12, height: 12, borderRadius: 2 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: space.lg, marginTop: space.sm },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   legendDot: { width: 9, height: 9, borderRadius: 3 },
-  legendText: { fontSize: 10, opacity: 0.6 },
 
   nextWrap: { width: '100%' },
-  nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: 12 },
-  nextGoalBack: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  nextGoalFace: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', gap: space.md },
+  nextGoalBack: { width: '100%', height: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.md },
   nextBody: { flex: 1 },
-  nextLabel: { fontSize: typeScale.meta, fontWeight: '600', marginBottom: 5 },
-  nextBackText: { flex: 1, fontSize: typeScale.meta, opacity: 0.7, lineHeight: 19 },
-  nextBackPct: { fontSize: 14, fontWeight: '700' },
+  nextLabel: { marginBottom: space.xs },
+  nextBackText: { flex: 1, lineHeight: 19 },
   nextTrack: { height: 5, borderRadius: 3, overflow: 'hidden' },
   nextFill: { height: 5, borderRadius: 3 },
-  nextCount: { fontSize: typeScale.meta, fontWeight: '700', opacity: 0.6 },
 
   achWrap: { width: '100%' },
-  achFace: { width: '100%', height: '100%', justifyContent: 'center', gap: 10 },
+  achFace: { width: '100%', height: '100%', justifyContent: 'center', gap: space.md },
   achTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  achLabel: { fontSize: typeScale.meta, fontWeight: '700', letterSpacing: 1, opacity: 0.5 },
-  achTopRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  achNewPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
-  achNewPillText: { fontSize: typeScale.meta, fontWeight: '800', letterSpacing: 0.3 },
-  achBig: { fontSize: 18, fontWeight: '800' },
-  achBigTotal: { fontSize: typeScale.meta, fontWeight: '600', opacity: 0.45 },
+  achLabel: { letterSpacing: 1 },
+  achTopRight: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  achNewPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.badge },
+  achNewPillText: { letterSpacing: 0.3 },
   achBackFace: { width: '100%', height: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   rarityCell: { alignItems: 'center', gap: 3, flex: 1 },
   rarityDot: { width: 8, height: 8, borderRadius: 4 },
-  rarityCount: { fontSize: typeScale.meta, fontWeight: '800' },
-  rarityLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.3, textTransform: 'uppercase' },
+  rarityLabel: { letterSpacing: 0.3, textTransform: 'uppercase' },
 });

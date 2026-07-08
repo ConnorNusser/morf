@@ -2,8 +2,9 @@ import Button from '@/components/Button';
 import { useExpandToggle } from '@/hooks/useExpandToggle';
 import Card from '@/components/Card';
 import { useAlert } from '@/components/CustomAlert';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { radius, space, tint } from '@/lib/ui/tokens';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
@@ -20,6 +21,7 @@ interface LiftDisplayPreferencesSectionProps {
 
 export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: LiftDisplayPreferencesSectionProps) {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const { play: playSound } = useSound('pop');
   const [filters, setFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -131,63 +133,48 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
-        <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.sectionTitle, 
-            { 
-              color: currentTheme.colors.text,
-            }
-          ]}>
+        <View style={styles.sectionHeaderContent}>
+          <Text variant="title" weight="bold" tone="primary">
             Lift Display Preferences
           </Text>
           {!isExpanded && (
-            <Text style={[
-              styles.subtitle, 
-              { 
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.subtitle}>
               {getPreferencesSummary()}
             </Text>
           )}
         </View>
-        <Ionicons 
-          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-          size={20} 
-          color={currentTheme.colors.text} 
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={ink.primary}
         />
       </TouchableOpacity>
 
       {isExpanded && (
         <View style={styles.expandedContent}>
-          <Text style={[
-            styles.description,
-            {
-              color: currentTheme.colors.text + '70',
-            }
-          ]}>
+          <Text variant="meta" tone="secondary" style={styles.description}>
             {"Choose which lifts to display in your \"Your Lifts\" section on the main dashboard."}
           </Text>
 
           <View style={styles.quickActions}>
             <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: currentTheme.colors.primary + '15' }]}
+              style={[styles.quickActionButton, { backgroundColor: tint(currentTheme.colors.primary) }]}
               onPress={showAllLifts}
               activeOpacity={0.7}
             >
               <Ionicons name="eye-outline" size={16} color={currentTheme.colors.primary} />
-              <Text style={[styles.quickActionText, { color: currentTheme.colors.primary }]}>
+              <Text variant="meta">
                 Show All
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
-              style={[styles.quickActionButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+              style={[styles.quickActionButton, { backgroundColor: ink.hairline }]}
               onPress={hideAllLifts}
               activeOpacity={0.7}
             >
-              <Ionicons name="eye-off-outline" size={16} color={currentTheme.colors.text + '70'} />
-              <Text style={[styles.quickActionText, { color: currentTheme.colors.text + '70' }]}>
+              <Ionicons name="eye-off-outline" size={16} color={ink.secondary} />
+              <Text variant="meta" tone="secondary">
                 Hide All
               </Text>
             </TouchableOpacity>
@@ -207,7 +194,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                       // Shown = faint primary tint, hidden = plain surface; both keep a full-alpha border to read as tappable on the flat page.
                       backgroundColor: isHidden
                         ? currentTheme.colors.surface
-                        : currentTheme.colors.primary + '18',
+                        : tint(currentTheme.colors.primary),
                       borderColor: isHidden
                         ? currentTheme.colors.border
                         : currentTheme.colors.primary,
@@ -217,35 +204,22 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
                   activeOpacity={0.7}
                 >
                   <View style={styles.liftInfo}>
-                    <Text style={[
-                      styles.liftName,
-                      {
-                        color: isHidden 
-                          ? currentTheme.colors.text + '50'
-                          : currentTheme.colors.text,
-                      }
-                    ]}>
+                    <Text
+                      variant="body"
+                      tone={isHidden ? 'faint' : 'primary'}
+                      style={styles.liftName}
+                    >
                       {workout?.name || lift.workoutId}
                     </Text>
-                    <Text style={[
-                      styles.liftStats,
-                      {
-                        color: isHidden 
-                          ? currentTheme.colors.text + '40'
-                          : currentTheme.colors.text + '70',
-                      }
-                    ]}>
+                    <Text variant="meta" tone={isHidden ? 'faint' : 'secondary'}>
                       {lift.strengthLevel} • {lift.percentileRanking}th percentile
                     </Text>
                   </View>
-                  
-                  <Ionicons 
-                    name={isHidden ? 'eye-off-outline' : 'eye-outline'} 
-                    size={20} 
-                    color={isHidden 
-                      ? currentTheme.colors.text + '40'
-                      : currentTheme.colors.primary
-                    }
+
+                  <Ionicons
+                    name={isHidden ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={isHidden ? ink.faint : currentTheme.colors.primary}
                   />
                 </TouchableOpacity>
               );
@@ -282,48 +256,39 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
 
 const styles = StyleSheet.create({
   card: {
-    gap: 12,
+    gap: space.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   subtitle: {
-    fontSize: 14,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   expandedContent: {
-    paddingTop: 12,
-    gap: 16,
+    paddingTop: space.md,
+    gap: space.lg,
   },
   description: {
-    fontSize: 14,
     lineHeight: 18,
   },
   quickActions: {
     flexDirection: 'row',
-    gap: 8,
+    gap: space.sm,
   },
   quickActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
-  },
-  quickActionText: {
-    fontSize: 13,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
+    gap: space.xs,
   },
   liftsList: {
     maxHeight: 280,
@@ -332,24 +297,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    marginBottom: 6,
-    borderRadius: 10,
+    padding: space.md,
+    marginBottom: space.sm,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   liftInfo: {
     flex: 1,
   },
   liftName: {
-    fontSize: 15,
-    marginBottom: 2,
-  },
-  liftStats: {
-    fontSize: 12,
+    marginBottom: space.xs,
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 10,
+    gap: space.md,
   },
   resetButton: {
     flex: 1,
@@ -357,4 +318,4 @@ const styles = StyleSheet.create({
   saveButton: {
     flex: 2,
   },
-}); 
+});

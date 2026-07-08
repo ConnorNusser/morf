@@ -1,5 +1,6 @@
 import Card from '@/components/Card';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
@@ -28,6 +29,7 @@ const EQUIPMENT_OPTIONS: { value: Equipment; label: string }[] = [
 
 export default function ExercisesSection() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const [userLifts, setUserLifts] = useState<UserLift[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,33 +116,28 @@ export default function ExercisesSection() {
         ]}
       >
         <View style={styles.exerciseInfo}>
-          <Text style={[
-            styles.exerciseName,
-            {
-              color: currentTheme.colors.text,
-            }
-          ]}>
+          <Text variant="body" tone="primary" style={styles.exerciseName}>
             {exercise.name}
           </Text>
 
           <View style={styles.metadataRow}>
             {exercise.equipment && exercise.equipment.length > 0 && (
-              <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.primary + '15' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.primary, fontWeight: '500' }]}>
+              <View style={[styles.metadataChip, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                <Text variant="meta" weight="medium" style={styles.metadataChipText}>
                   {exercise.equipment[0]}
                 </Text>
               </View>
             )}
             {exercise.primaryMuscles && exercise.primaryMuscles.length > 0 && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
+                <Text variant="meta" tone="secondary" weight="medium" style={styles.metadataChipText}>
                   {exercise.primaryMuscles.join(', ')}
                 </Text>
               </View>
             )}
             {exercise.category && (
               <View style={[styles.metadataChip, { backgroundColor: currentTheme.colors.text + '10' }]}>
-                <Text style={[styles.metadataChipText, { color: currentTheme.colors.text + '70', fontWeight: '500' }]}>
+                <Text variant="meta" tone="secondary" weight="medium" style={styles.metadataChipText}>
                   {exercise.category}
                 </Text>
               </View>
@@ -148,20 +145,15 @@ export default function ExercisesSection() {
           </View>
 
           {liftRecord && (
-            <View style={[styles.liftRecordRow, { backgroundColor: currentTheme.colors.accent + '15' }]}>
+            <View style={[styles.liftRecordRow, { backgroundColor: tint(currentTheme.colors.accent) }]}>
               <Ionicons name="trophy" size={12} color={currentTheme.colors.accent} />
-              <Text style={[styles.liftRecordText, { color: currentTheme.colors.accent, fontWeight: '600' }]}>
+              <Text variant="meta" weight="semiBold" style={[styles.liftRecordText, { color: currentTheme.colors.accent }]}>
                 PR: {liftRecord.weight} {liftRecord.unit} x {liftRecord.reps}
               </Text>
             </View>
           )}
 
-          <Text style={[
-            styles.exerciseId,
-            {
-              color: currentTheme.colors.text + '50',
-            }
-          ]} numberOfLines={1}>
+          <Text variant="meta" tone="faint" style={styles.exerciseId} numberOfLines={1}>
             ID: {exercise.id}
           </Text>
         </View>
@@ -179,33 +171,23 @@ export default function ExercisesSection() {
         >
           <View style={styles.sectionHeaderContent}>
             <View style={styles.titleRow}>
-              <Text style={[
-                styles.sectionTitle,
-                {
-                  color: currentTheme.colors.text,
-                }
-              ]}>
+              <Text variant="title" weight="bold" tone="primary" style={styles.sectionTitle}>
                 Exercises
               </Text>
-              <View style={[styles.badge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                <Text style={[styles.badgeText, { color: currentTheme.colors.primary }]}>
+              <View style={[styles.badge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                <Text variant="meta" style={styles.badgeText}>
                   {ALL_WORKOUTS.length}
                 </Text>
               </View>
             </View>
-            <Text style={[
-              styles.subtitle,
-              {
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.subtitle}>
               {ALL_WORKOUTS.length} built-in exercises
             </Text>
           </View>
           <Ionicons
             name="chevron-forward"
             size={20}
-            color={currentTheme.colors.text}
+            color={ink.primary}
           />
         </TouchableOpacity>
       </Card>
@@ -219,24 +201,24 @@ export default function ExercisesSection() {
         <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
           <View style={styles.modalHeader}>
             <View style={{ width: 40 }} />
-            <Text style={[styles.modalHeaderTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.modalHeaderTitle}>
               Exercises
             </Text>
             <TouchableOpacity
               onPress={closeModal}
               style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
             >
-              <Ionicons name="close" size={20} color={currentTheme.colors.text} />
+              <Ionicons name="close" size={20} color={ink.primary} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.searchContainer}>
             <View style={[styles.searchBar, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-              <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+              <Ionicons name="search" size={18} color={ink.muted} />
               <TextInput
                 style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '400' }]}
                 placeholder="Search by name, muscle, equipment..."
-                placeholderTextColor={currentTheme.colors.text + '40'}
+                placeholderTextColor={ink.faint}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="none"
@@ -244,7 +226,7 @@ export default function ExercisesSection() {
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={18} color={currentTheme.colors.text + '60'} />
+                  <Ionicons name="close-circle" size={18} color={ink.muted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -270,12 +252,15 @@ export default function ExercisesSection() {
               ]}
               onPress={() => setEquipmentFilter('all')}
             >
-              <Text style={[
-                styles.filterChipText,
-                {
-                  color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
-                }
-              ]}>
+              <Text
+                variant="meta"
+                style={[
+                  styles.filterChipText,
+                  {
+                    color: equipmentFilter === 'all' ? '#FFFFFF' : currentTheme.colors.text,
+                  }
+                ]}
+              >
                 All
               </Text>
             </TouchableOpacity>
@@ -295,12 +280,15 @@ export default function ExercisesSection() {
                 ]}
                 onPress={() => setEquipmentFilter(eq.value)}
               >
-                <Text style={[
-                  styles.filterChipText,
-                  {
-                    color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
-                  }
-                ]}>
+                <Text
+                  variant="meta"
+                  style={[
+                    styles.filterChipText,
+                    {
+                      color: equipmentFilter === eq.value ? '#FFFFFF' : currentTheme.colors.text,
+                    }
+                  ]}
+                >
                   {eq.label}
                 </Text>
               </TouchableOpacity>
@@ -318,25 +306,19 @@ export default function ExercisesSection() {
                 <Ionicons
                   name="search-outline"
                   size={32}
-                  color={currentTheme.colors.text + '40'}
+                  color={ink.faint}
                 />
-                <Text style={[
-                  styles.emptyText,
-                  { color: currentTheme.colors.text + '60', fontWeight: '500' }
-                ]}>
+                <Text variant="body" tone="muted" weight="medium" style={styles.emptyText}>
                   No exercises found
                 </Text>
-                <Text style={[
-                  styles.emptySubtext,
-                  { color: currentTheme.colors.text + '40', fontWeight: '400' }
-                ]}>
+                <Text variant="meta" tone="faint" weight="regular" style={styles.emptySubtext}>
                   Try a different search term
                 </Text>
               </View>
             ) : (
               <>
                 {searchQuery && (
-                  <Text style={[styles.resultsCount, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="muted" weight="regular" style={styles.resultsCount}>
                     {filteredExercises.length} result{filteredExercises.length !== 1 ? 's' : ''}
                   </Text>
                 )}
@@ -352,13 +334,13 @@ export default function ExercisesSection() {
 
 const styles = StyleSheet.create({
   card: {
-    gap: 12,
+    gap: space.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
@@ -366,24 +348,20 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: space.sm,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: radius.badge,
   },
   badgeText: {
-    fontSize: 12,
   },
   subtitle: {
-    fontSize: 14,
     opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   modalContainer: {
     flex: 1,
@@ -392,32 +370,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
   },
   modalHeaderTitle: {
-    fontSize: 17,
     lineHeight: 22,
   },
   closeButton: {
     width: 40,
     height: 40,
-    borderRadius: 8,
+    borderRadius: radius.control,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: screenGutter,
+    paddingBottom: space.md,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
-    gap: 8,
+    gap: space.sm,
   },
   searchInput: {
     flex: 1,
@@ -427,97 +404,88 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexGrow: 0,
     flexShrink: 0,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   filterContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: screenGutter,
+    gap: space.sm,
     alignItems: 'center',
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
   filterChipText: {
-    fontSize: 13,
     lineHeight: 18,
   },
   exercisesList: {
     flex: 1,
   },
   exercisesListContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: screenGutter,
     paddingBottom: 40,
   },
   resultsCount: {
-    fontSize: 13,
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   emptyState: {
     alignItems: 'center',
     padding: 32,
-    borderRadius: 12,
-    gap: 8,
-    marginTop: 20,
+    borderRadius: radius.card,
+    gap: space.sm,
+    marginTop: space.xl,
   },
   emptyText: {
-    fontSize: 16,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   emptySubtext: {
-    fontSize: 13,
     textAlign: 'center',
   },
   exerciseItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 14,
-    marginBottom: 10,
-    borderRadius: 12,
+    padding: space.lg,
+    marginBottom: space.md,
+    borderRadius: radius.card,
     borderWidth: 1,
   },
   exerciseInfo: {
     flex: 1,
-    marginRight: 12,
-    backgroundColor: 'transparent',
+    marginRight: space.md,
   },
   exerciseName: {
-    fontSize: 16,
   },
   metadataRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-    marginBottom: 6,
+    gap: space.sm,
+    marginTop: space.sm,
+    marginBottom: space.sm,
   },
   metadataChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   metadataChipText: {
-    fontSize: 11,
     textTransform: 'capitalize',
   },
   liftRecordRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    gap: space.xs,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
     alignSelf: 'flex-start',
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   liftRecordText: {
-    fontSize: 11,
   },
   exerciseId: {
-    fontSize: 11,
     marginTop: 2,
   },
 });

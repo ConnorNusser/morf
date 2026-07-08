@@ -6,6 +6,7 @@ import { WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { radius, space } from "@/lib/ui/tokens";
 import Card from "../Card";
 import { Text } from "../Themed";
 
@@ -42,31 +43,16 @@ const WeightUnitPreferenceSection = () => {
         activeOpacity={0.7}
       >
         <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.sectionTitle, 
-            { 
-              color: currentTheme.colors.text,
-            }
-          ]}>
+          <Text variant="title" weight="bold" tone="primary" style={styles.sectionTitle}>
             Weight Units
           </Text>
           {!isExpanded && (
-            <Text style={[
-              styles.weightUnitMeta,
-              { 
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.weightUnitMeta}>
               {weightUnit === 'kg' ? 'Metric (kg)' : 'Imperial (lbs)'}
             </Text>
           )}
           {isExpanded && (
-            <Text style={[
-              styles.weightUnitMeta,
-              { 
-                color: currentTheme.colors.text,
-              }
-            ]}>
+            <Text variant="meta" tone="secondary" style={styles.weightUnitMeta}>
               Choose your preferred unit system for weights and exercises
             </Text>
           )}
@@ -92,17 +78,17 @@ const WeightUnitPreferenceSection = () => {
               onPress={() => handleWeightUnitChange('lbs')}
               activeOpacity={0.7}
             >
-              <Text style={[
+              <Text variant="body" weight="semiBold" style={[
                 styles.unitButtonText,
-                { 
+                {
                   color: weightUnit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
                 }
               ]}>
                 lbs
               </Text>
-              <Text style={[
+              <Text variant="meta" weight="regular" style={[
                 styles.unitButtonSubtext,
-                { 
+                {
                   color: weightUnit === 'lbs' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
                 }
               ]}>
@@ -121,17 +107,17 @@ const WeightUnitPreferenceSection = () => {
               onPress={() => handleWeightUnitChange('kg')}
               activeOpacity={0.7}
             >
-              <Text style={[
+              <Text variant="body" weight="semiBold" style={[
                 styles.unitButtonText,
-                { 
+                {
                   color: weightUnit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
                 }
               ]}>
                 kg
               </Text>
-              <Text style={[
+              <Text variant="meta" weight="regular" style={[
                 styles.unitButtonSubtext,
-                { 
+                {
                   color: weightUnit === 'kg' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
                 }
               ]}>
@@ -147,51 +133,43 @@ const WeightUnitPreferenceSection = () => {
 
 const styles = StyleSheet.create({
   card: {
-    gap: 16,
+    gap: space.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   weightUnitMeta: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   weightUnitContent: {
-    paddingTop: 16,
+    paddingTop: space.lg,
   },
   unitToggle: {
     flexDirection: 'row',
     width: '100%',
-    gap: 12,
+    gap: space.md,
   },
   unitButton: {
     flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.card,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   unitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: space.xs,
   },
   unitButtonSubtext: {
-    fontSize: 12,
-    fontWeight: '400',
   },
 });
 

@@ -7,6 +7,7 @@ import WeightInput from '@/components/inputs/WeightInput';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { space } from '@/lib/ui/tokens';
 import { UserProfile } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -84,22 +85,12 @@ export default function PersonalInformationSection({
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
-        <View style={[styles.sectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.sectionTitle, 
-            { 
-              color: currentTheme.colors.text,
-            }
-          ]}>
+        <View style={styles.sectionHeaderContent}>
+          <Text variant="title" weight="bold" tone="primary" style={styles.sectionTitle}>
             Personal Information
           </Text>
           {!isExpanded && (
-            <Text style={[
-              styles.personalInfoSubtitle, 
-              { 
-                color: currentTheme.colors.primary,
-              }
-            ]}>
+            <Text variant="meta" style={styles.personalInfoSubtitle}>
               {getPersonalInfoSummary()}
             </Text>
           )}
@@ -143,28 +134,24 @@ export default function PersonalInformationSection({
 
 const styles = StyleSheet.create({
   profileCard: {
-    gap: 16,
+    gap: space.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   personalInfoSubtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   profileInputs: {
-    paddingTop: 16,
-    gap: 16,
+    paddingTop: space.lg,
+    gap: space.lg,
   },
-}); 
+});

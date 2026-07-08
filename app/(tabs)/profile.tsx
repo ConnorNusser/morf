@@ -11,12 +11,13 @@ import PersonalInformationSection from '@/components/profile/PersonalInformation
 import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/services/analytics';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
+import { danger, radius, screenGutter, space } from '@/lib/ui/tokens';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +27,7 @@ import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ProfileScreen() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const { userProfile, isLoading, refreshProfile } = useUser();
   const [showSocialModal, setShowSocialModal] = useState(false);
@@ -106,8 +108,8 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.loadingContainer, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.loadingText, { color: currentTheme.colors.text }]}>Loading...</Text>
+        <View style={styles.loadingContainer}>
+          <Text variant="body" tone="primary">Loading...</Text>
         </View>
       </View>
     );
@@ -116,7 +118,7 @@ export default function ProfileScreen() {
   return (
     <>
     <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
-      <View style={[styles.content, { backgroundColor: 'transparent' }]}>
+      <View style={styles.content}>
         <DashboardHeader title="Profile" />
 
         <CareerSection />
@@ -126,18 +128,18 @@ export default function ProfileScreen() {
           onPress={() => setShowSocialModal(true)}
           activeOpacity={0.7}
         >
-          <View style={[styles.socialButtonContent, { backgroundColor: 'transparent' }]}>
+          <View style={styles.socialButtonContent}>
             <Ionicons name="people" size={18} color={currentTheme.colors.primary} />
-            <View style={[styles.socialButtonText, { backgroundColor: 'transparent' }]}>
-              <Text style={[styles.socialButtonTitle, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+            <View style={styles.socialButtonText}>
+              <Text variant="body" tone="primary" weight="medium">
                 {username ? `@${username}` : 'Set Username'}
               </Text>
-              <Text style={[styles.socialButtonSubtitle, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+              <Text variant="meta" tone="muted" weight="regular">
                 {friendCount === 0 ? 'Add friends' : `${friendCount} friend${friendCount !== 1 ? 's' : ''}`}
               </Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={currentTheme.colors.text + '60'} />
+          <Ionicons name="chevron-forward" size={18} color={ink.muted} />
         </TouchableOpacity>
 
         <PersonalInformationSection
@@ -167,7 +169,7 @@ export default function ProfileScreen() {
           onPress={handleResetStats}
           activeOpacity={0.7}
         >
-          <Text style={[styles.resetButtonText, { fontWeight: '600' }]}>
+          <Text variant="body" weight="semiBold" style={styles.resetButtonText}>
             Reset All Data
           </Text>
         </TouchableOpacity>
@@ -188,48 +190,39 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: 16,
-    gap: 16,
-    paddingTop: 48
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.lg,
+    gap: space.lg,
+    paddingTop: 48,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    fontSize: 16,
-  },
   resetButton: {
-    backgroundColor: '#DC2626',
+    backgroundColor: danger,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    paddingVertical: space.lg,
+    borderRadius: radius.card,
+    marginTop: space.sm,
   },
   resetButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
   },
   socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    paddingVertical: space.md,
   },
   socialButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
   },
   socialButtonText: {
-    gap: 2,
-  },
-  socialButtonTitle: {
-    fontSize: 15,
-  },
-  socialButtonSubtitle: {
-    fontSize: 13,
+    gap: space.xs,
   },
 }); 

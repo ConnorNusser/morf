@@ -11,6 +11,7 @@ import {
   ThemeLevel
 } from '@/lib/storage/userProfile';
 import { isSeasonalThemeAvailable } from '@/lib/ui/theme';
+import { radius, space, tint } from '@/lib/ui/tokens';
 import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
@@ -87,14 +88,13 @@ export default function ThemeEvolutionSection() {
       activeOpacity={0.7}
     >
       <Card
-
-        padding={12}
+        padding={space.md}
         style={StyleSheet.flatten([
           styles.themeCard,
           // Selectable cards need their own contrast (shared Card is flat): surface + hairline, and a primary ring + tint when current.
           {
-            paddingHorizontal: 14,
-            borderRadius: 12,
+            paddingHorizontal: space.lg,
+            borderRadius: radius.card,
             backgroundColor: currentTheme.colors.surface,
             borderWidth: 1,
             borderColor: currentTheme.colors.border,
@@ -103,32 +103,31 @@ export default function ThemeEvolutionSection() {
           isCurrentTheme(themeKey) && {
             borderColor: currentTheme.colors.primary,
             borderWidth: 2,
-            backgroundColor: currentTheme.colors.primary + '14',
+            backgroundColor: tint(currentTheme.colors.primary),
           },
         ])}
       >
-        <View style={[styles.themeInfo, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.themeName,
-            {
-              color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '40',
-            }
-          ]}>
+        <View style={styles.themeInfo}>
+          <Text
+            variant="body"
+            weight="bold"
+            tone={isThemeAvailable(themeKey) ? 'primary' : 'faint'}
+            style={styles.themeName}
+          >
             {getThemeDisplayName(themeKey)}
           </Text>
-          <Text style={[
-            styles.themeRequirement,
-            {
-              color: isThemeAvailable(themeKey) ? currentTheme.colors.text : currentTheme.colors.text + '30',
-            }
-          ]}>
+          <Text
+            variant="meta"
+            tone={isThemeAvailable(themeKey) ? 'muted' : 'faint'}
+            style={styles.themeRequirement}
+          >
             {getThemeRequirement(themeKey)}
           </Text>
         </View>
 
-        <View style={[styles.themeRight, { backgroundColor: 'transparent' }]}>
+        <View style={styles.themeRight}>
           {isThemeAvailable(themeKey) && (
-            <View style={[styles.colorIndicators, { backgroundColor: 'transparent' }]}>
+            <View style={styles.colorIndicators}>
               <View style={[
                 styles.colorDot,
                 { backgroundColor: theme.colors.primary }
@@ -146,34 +145,19 @@ export default function ThemeEvolutionSection() {
             </View>
           )}
 
-          <View style={[styles.themeStatus, { backgroundColor: 'transparent' }]}>
+          <View style={styles.themeStatus}>
             {isCurrentTheme(themeKey) && (
-              <Text style={[
-                styles.statusText,
-                {
-                  color: currentTheme.colors.primary,
-                }
-              ]}>
+              <Text variant="meta" weight="medium">
                 ✓ Current Theme
               </Text>
             )}
             {!isThemeAvailable(themeKey) && (
-              <Text style={[
-                styles.statusText,
-                {
-                  color: currentTheme.colors.text + '60',
-                }
-              ]}>
+              <Text variant="meta" weight="medium" tone="muted">
                 🔒 Locked
               </Text>
             )}
             {isThemeAvailable(themeKey) && !isCurrentTheme(themeKey) && (
-              <Text style={[
-                styles.statusText,
-                {
-                  color: currentTheme.colors.text + '80',
-                }
-              ]}>
+              <Text variant="meta" weight="medium" tone="secondary">
                 Tap to activate
               </Text>
             )}
@@ -203,67 +187,40 @@ export default function ThemeEvolutionSection() {
 
   return (
     <Card>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.sectionHeader}
         onPress={toggleExpanded}
         activeOpacity={0.7}
       >
-        <View style={[styles.themeSectionHeaderContent, { backgroundColor: 'transparent' }]}>
-          <Text style={[
-            styles.themeEvolutionTitle, 
-            { 
-              color: currentTheme.colors.text,
-            }
-          ]}>
+        <View style={styles.themeSectionHeaderContent}>
+          <Text variant="emphasis" weight="bold" tone="primary" style={styles.themeEvolutionTitle}>
             Theme Evolution
           </Text>
           {!isExpanded && (
-            <Text style={[
-              styles.currentThemeText, 
-              { 
-                color: currentTheme.colors.primary,
-                marginTop: 2,
-              }
-            ]}>
+            <Text variant="meta" weight="medium" style={{ marginTop: space.xs }}>
               {getThemeDisplayName(currentThemeLevel)}
             </Text>
           )}
           {isExpanded && (
-            <Text style={[
-              styles.themeEvolutionSubtitle, 
-              { 
-                color: currentTheme.colors.text,
-              }
-            ]}>
+            <Text variant="meta" tone="secondary" style={styles.themeEvolutionSubtitle}>
               Unlock new themes as you progress
             </Text>
           )}
         </View>
-        <Ionicons 
-          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-          size={20} 
-          color={currentTheme.colors.text} 
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={currentTheme.colors.text}
         />
       </TouchableOpacity>
-      
+
       {isExpanded && (
         <View>
           <View style={styles.sectionContainer}>
-            <Text style={[
-              styles.subsectionTitle,
-              {
-                color: currentTheme.colors.text,
-              }
-            ]}>
+            <Text variant="body" tone="primary" style={styles.subsectionTitle}>
               Fitness Progression Themes
             </Text>
-            <Text style={[
-              styles.subsectionDescription,
-              {
-                color: currentTheme.colors.text,
-                opacity: 0.7,
-              }
-            ]}>
+            <Text variant="meta" tone="secondary" style={styles.subsectionDescription}>
               Unlock themes based on your strength percentile
             </Text>
             <View style={styles.themeGrid}>
@@ -280,28 +237,17 @@ export default function ThemeEvolutionSection() {
           ]}>
             <View style={styles.shareableHeader}>
               <View>
-                <Text style={[
-                  styles.subsectionTitle,
-                  {
-                    color: currentTheme.colors.text,
-                  }
-                ]}>
+                <Text variant="body" tone="primary" style={styles.subsectionTitle}>
                   Special Themes
                 </Text>
-                <Text style={[
-                  styles.subsectionDescription,
-                  {
-                    color: currentTheme.colors.text,
-                    opacity: 0.7,
-                  }
-                ]}>
+                <Text variant="meta" tone="secondary" style={styles.subsectionDescription}>
                   {shareCount}/3 shares • {shareCount >= 3 ? 'All unlocked' : shareCount >= 1 ? 'Next at 3 shares' : 'Next at 1 share'}
                 </Text>
               </View>
               <TouchableOpacity
                 style={[
                   styles.shareButtonCompact,
-                  { 
+                  {
                     backgroundColor: currentTheme.colors.surface,
                     borderColor: currentTheme.colors.border
                   }
@@ -333,28 +279,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   themeSectionHeaderContent: {
     flex: 1,
   },
   themeEvolutionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 6,
+    marginBottom: space.sm,
   },
   themeEvolutionSubtitle: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 15,
-  },
-  currentThemeText: {
-    fontSize: 14,
-    fontWeight: '500',
+    marginBottom: space.lg,
   },
   themeGrid: {
-    gap: 8,
-    paddingTop: 12,
+    gap: space.sm,
+    paddingTop: space.md,
   },
   themeCard: {
     flexDirection: 'row',
@@ -368,23 +306,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   themeName: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 3,
+    marginBottom: space.xs,
   },
   themeRequirement: {
-    fontSize: 10,
-    opacity: 0.6,
     fontStyle: 'italic',
   },
   themeRight: {
     alignItems: 'flex-end',
-    gap: 8,
-    marginLeft: 12,
+    gap: space.sm,
+    marginLeft: space.md,
   },
   colorIndicators: {
     flexDirection: 'row',
-    gap: 6,
+    gap: space.sm,
   },
   colorDot: {
     width: 16,
@@ -394,40 +328,34 @@ const styles = StyleSheet.create({
   themeStatus: {
     alignItems: 'center',
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
   sectionContainer: {
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    paddingVertical: space.md,
+    paddingHorizontal: space.xs,
   },
   subsectionTitle: {
-    fontSize: 16,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   subsectionDescription: {
-    fontSize: 12,
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
   shareableSection: {
     borderTopWidth: 0.5,
-    marginTop: 16,
-    paddingTop: 16,
+    marginTop: space.lg,
+    paddingTop: space.lg,
   },
   shareableHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   shareButtonCompact: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    paddingVertical: space.sm,
+    paddingHorizontal: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
   },
-}); 
+});

@@ -1,7 +1,8 @@
 import Card from '@/components/Card';
 import { useAlert } from '@/components/CustomAlert';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
+import { space } from '@/lib/ui/tokens';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as StoreReview from 'expo-store-review';
@@ -11,6 +12,7 @@ import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function AppInfoSection() {
   const { currentTheme } = useTheme();
+  const ink = useInk();
   const { showAlert } = useAlert();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -86,29 +88,19 @@ export default function AppInfoSection() {
         activeOpacity={0.7}
       >
         <View style={styles.sectionHeaderContent}>
-          <Text style={[
-            styles.sectionTitle, 
-            { 
-              color: currentTheme.colors.text,
-            }
-          ]}>
+          <Text variant="title" weight="bold" tone="primary">
             App Info
           </Text>
           {!isExpanded && appVersion && (
-            <Text style={[
-              styles.versionSubtitle, 
-              { 
-                color: currentTheme.colors.text + '70',
-              }
-            ]}>
+            <Text variant="meta" tone="secondary" style={styles.versionSubtitle}>
               Version {appVersion}
             </Text>
           )}
         </View>
         {isExpanded ? (
-          <ChevronUp size={20} color={currentTheme.colors.text} />
+          <ChevronUp size={20} color={ink.primary} />
         ) : (
-          <ChevronDown size={20} color={currentTheme.colors.text} />
+          <ChevronDown size={20} color={ink.primary} />
         )}
       </TouchableOpacity>
       
@@ -116,20 +108,10 @@ export default function AppInfoSection() {
         <View style={styles.appInfoContent}>
           {appVersion && (
             <View style={styles.infoRow}>
-              <Text style={[
-                styles.infoLabel,
-                { 
-                  color: currentTheme.colors.text,
-                }
-              ]}>
+              <Text variant="body" weight="medium" tone="primary">
                 Version
               </Text>
-              <Text style={[
-                styles.infoValue,
-                { 
-                  color: currentTheme.colors.text + '70',
-                }
-              ]}>
+              <Text variant="body" tone="secondary">
                 {appVersion}
               </Text>
             </View>
@@ -142,12 +124,7 @@ export default function AppInfoSection() {
               activeOpacity={0.6}
             >
               <Star size={18} color={currentTheme.colors.primary} />
-              <Text style={[
-                styles.actionText,
-                {
-                  color: currentTheme.colors.text,
-                }
-              ]}>
+              <Text variant="body" weight="medium" tone="primary">
                 Rate App
               </Text>
             </TouchableOpacity>
@@ -159,13 +136,8 @@ export default function AppInfoSection() {
               onPress={handleContactSupport}
               activeOpacity={0.6}
             >
-              <Mail size={18} color={currentTheme.colors.text + '80'} />
-              <Text style={[
-                styles.actionText,
-                {
-                  color: currentTheme.colors.text,
-                }
-              ]}>
+              <Mail size={18} color={ink.secondary} />
+              <Text variant="body" weight="medium" tone="primary">
                 Support
               </Text>
             </TouchableOpacity>
@@ -179,42 +151,28 @@ export default function AppInfoSection() {
 
 const styles = StyleSheet.create({
   appInfoCard: {
-    gap: 16,
+    gap: space.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: space.xs,
   },
   sectionHeaderContent: {
     flex: 1,
-    backgroundColor: 'transparent',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
   },
   versionSubtitle: {
-    fontSize: 14,
-    opacity: 0.8,
-    marginTop: 2,
+    marginTop: space.xs,
   },
   appInfoContent: {
-    paddingTop: 20,
-    gap: 20,
+    paddingTop: space.xl,
+    gap: space.xl,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-  },
-  infoLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 16,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -225,16 +183,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
-  },
-  actionText: {
-    fontSize: 16,
-    fontWeight: '500',
+    paddingVertical: space.md,
+    gap: space.sm,
   },
   separator: {
     width: 1,
     height: 20,
     opacity: 0.3,
   },
-}); 
+});

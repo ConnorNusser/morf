@@ -2,11 +2,11 @@ import Button from '@/components/Button';
 import { useAlert } from '@/components/CustomAlert';
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
-import { Text, View } from '@/components/Themed';
+import { Text, View, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { analyticsService } from '@/lib/services/analytics';
 import { layout } from '@/lib/ui/styles';
-import { space } from '@/lib/ui/tokens';
+import { danger, radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { Friend, RemoteUser } from '@/types';
@@ -37,6 +37,7 @@ interface SocialModalProps {
 export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const { currentTheme } = useTheme();
   const { showAlert } = useAlert();
+  const ink = useInk();
 
   const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
   const [isUploadingPicture, setIsUploadingPicture] = useState(false);
@@ -380,20 +381,20 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
 
   const renderSearchResult = ({ item }: { item: RemoteUser }) => (
     <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
-      <View style={[styles.userInfo, { backgroundColor: 'transparent' }]}>
+      <View style={styles.userInfo}>
         {item.profile_picture_url ? (
           <Image
             source={{ uri: item.profile_picture_url }}
-            style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}
+            style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}
           />
         ) : (
-          <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-            <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+          <View style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+            <Text variant="body" weight="semiBold" style={styles.avatarText}>
               {item.username.charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
-        <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+        <Text variant="body" weight="medium" tone="primary" style={styles.username}>
           @{item.username}
         </Text>
       </View>
@@ -414,36 +415,36 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const renderFriend = ({ item }: { item: Friend }) => (
     <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
       <TouchableOpacity
-        style={[styles.userInfo, { backgroundColor: 'transparent' }]}
+        style={styles.userInfo}
         onPress={() => handleViewUserProfile(item.user)}
         activeOpacity={0.7}
       >
         {item.user.profile_picture_url ? (
           <Image
             source={{ uri: item.user.profile_picture_url }}
-            style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}
+            style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}
           />
         ) : (
-          <View style={[styles.avatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-            <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
+          <View style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+            <Text variant="body" weight="semiBold" style={styles.avatarText}>
               {item.user.username.charAt(0).toUpperCase()}
             </Text>
           </View>
         )}
-        <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+        <Text variant="body" weight="medium" tone="primary" style={styles.username}>
           @{item.user.username}
         </Text>
-        <Ionicons name="chevron-forward" size={16} color={currentTheme.colors.text + '40'} />
+        <Ionicons name="chevron-forward" size={16} color={ink.faint} />
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.removeButton, { backgroundColor: '#EF444420' }]}
+        style={[styles.removeButton, { backgroundColor: tint(danger) }]}
         onPress={() => handleRemoveFriend(item)}
         disabled={removingFriendId === item.user.id}
       >
         {removingFriendId === item.user.id ? (
-          <ActivityIndicator size="small" color="#EF4444" />
+          <ActivityIndicator size="small" color={danger} />
         ) : (
-          <Ionicons name="close" size={18} color="#EF4444" />
+          <Ionicons name="close" size={18} color={danger} />
         )}
       </TouchableOpacity>
     </View>
@@ -456,9 +457,9 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
           style={layout.flex1}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
+          <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <IconButton icon="chevron-back" onPress={onClose} />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="emphasis" weight="semiBold" tone="primary" style={styles.headerTitle}>
               Social
             </Text>
             <View style={styles.headerSpacer} />
@@ -470,7 +471,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
             ListHeaderComponent={
               <View style={styles.content}>
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold" tone="primary" style={styles.sectionTitle}>
                     Profile Picture
                   </Text>
                   <View style={styles.profilePictureContainer}>
@@ -488,8 +489,8 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                           style={styles.profilePictureImage}
                         />
                       ) : (
-                        <View style={[styles.profilePicturePlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                          <Text style={[styles.profilePicturePlaceholderText, { color: currentTheme.colors.primary }]}>
+                        <View style={[styles.profilePicturePlaceholder, { backgroundColor: tint(currentTheme.colors.primary) }]}>
+                          <Text variant="header" weight="semiBold" style={styles.profilePicturePlaceholderText}>
                             {username ? username.charAt(0).toUpperCase() : '?'}
                           </Text>
                         </View>
@@ -499,7 +500,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       </View>
                     </TouchableOpacity>
                     <View style={styles.profilePictureTextContainer}>
-                      <Text style={[styles.profilePictureHint, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="secondary" style={styles.profilePictureHint}>
                         Tap to upload a profile picture
                       </Text>
                     </View>
@@ -507,20 +508,20 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold" tone="primary" style={styles.sectionTitle}>
                     Your Username
                   </Text>
 
                   {isEditingUsername ? (
                     <View style={styles.section}>
                       <View style={[styles.usernameInputContainer, { backgroundColor: currentTheme.colors.surface }]}>
-                        <Text style={[styles.atSymbol, { color: currentTheme.colors.primary }]}>@</Text>
+                        <Text variant="emphasis" weight="semiBold" style={styles.atSymbol}>@</Text>
                         <TextInput
                           style={[styles.usernameInput, { color: currentTheme.colors.text, fontWeight: '500' }]}
                           value={editedUsername}
                           onChangeText={setEditedUsername}
                           placeholder="Enter username"
-                          placeholderTextColor={currentTheme.colors.text + '60'}
+                          placeholderTextColor={ink.muted}
                           autoCapitalize="none"
                           autoCorrect={false}
                           autoFocus
@@ -532,12 +533,12 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                           <Ionicons
                             name={usernameAvailable ? 'checkmark-circle' : 'close-circle'}
                             size={20}
-                            color={usernameAvailable ? '#22C55E' : '#EF4444'}
+                            color={usernameAvailable ? '#22C55E' : danger}
                           />
                         )}
                       </View>
                       {usernameError && editedUsername !== username && (
-                        <Text style={[styles.errorText, { fontWeight: '400' }]}>
+                        <Text variant="meta" style={styles.errorText}>
                           {usernameError}
                         </Text>
                       )}
@@ -551,7 +552,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                             setUsernameAvailable(null);
                           }}
                         >
-                          <Text style={[styles.cancelButtonText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                          <Text variant="body" weight="medium" tone="primary" style={styles.cancelButtonText}>
                             Cancel
                           </Text>
                         </TouchableOpacity>
@@ -570,22 +571,22 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       style={[styles.usernameDisplay, { backgroundColor: currentTheme.colors.surface }]}
                       onPress={() => setIsEditingUsername(true)}
                     >
-                      <Text style={[styles.usernameDisplayText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                      <Text variant="body" weight="medium" tone="primary" style={styles.usernameDisplayText}>
                         @{username}
                       </Text>
-                      <Ionicons name="pencil" size={18} color={currentTheme.colors.text + '60'} />
+                      <Ionicons name="pencil" size={18} color={ink.muted} />
                     </TouchableOpacity>
                   )}
-                  <Text style={[styles.helperText, { color: currentTheme.colors.text + '80', fontWeight: '400' }]}>
+                  <Text variant="meta" tone="secondary" style={styles.helperText}>
                     Your username is how friends can find you.
                   </Text>
                 </View>
 
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold" tone="primary" style={styles.sectionTitle}>
                     Social Links
                   </Text>
-                  <Text style={[styles.helperText, { color: currentTheme.colors.text + '80', fontWeight: '400', marginBottom: 12 }]}>
+                  <Text variant="meta" tone="secondary" style={[styles.helperText, { marginBottom: space.md }]}>
                     Add your social media so friends can connect with you.
                   </Text>
 
@@ -598,13 +599,13 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       value={instagramUsername}
                       onChangeText={setInstagramUsername}
                       placeholder="Instagram username"
-                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      placeholderTextColor={ink.faint}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
                   </View>
 
-                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: 8 }]}>
+                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: space.sm }]}>
                     <View style={[styles.socialIconContainer, { backgroundColor: '#00000015' }]}>
                       <Ionicons name="logo-tiktok" size={20} color={currentTheme.colors.text} />
                     </View>
@@ -613,13 +614,13 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       value={tiktokUsername}
                       onChangeText={setTiktokUsername}
                       placeholder="TikTok username"
-                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      placeholderTextColor={ink.faint}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
                   </View>
 
-                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: 8 }]}>
+                  <View style={[styles.socialInputContainer, { backgroundColor: currentTheme.colors.surface, marginTop: space.sm }]}>
                     <View style={[styles.socialIconContainer, { backgroundColor: '#5865F220' }]}>
                       <Ionicons name="logo-discord" size={20} color="#5865F2" />
                     </View>
@@ -628,7 +629,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       value={discordUsername}
                       onChangeText={setDiscordUsername}
                       placeholder="Discord username"
-                      placeholderTextColor={currentTheme.colors.text + '40'}
+                      placeholderTextColor={ink.faint}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
@@ -640,12 +641,12 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                     variant="primary"
                     size="medium"
                     disabled={isSavingSocials}
-                    style={{ marginTop: 12 }}
+                    style={{ marginTop: space.md }}
                   />
 
                   {(instagramUsername.trim() || tiktokUsername.trim() || discordUsername.trim()) && (
                     <View style={styles.socialPreview}>
-                      <Text style={[styles.socialPreviewLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                      <Text variant="meta" tone="muted" style={styles.socialPreviewLabel}>
                         Your links (tap to test):
                       </Text>
                       <View style={styles.socialPreviewButtons}>
@@ -656,19 +657,19 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                             activeOpacity={0.7}
                           >
                             <Ionicons name="logo-instagram" size={20} color="#E1306C" />
-                            <Text style={[styles.socialPreviewText, { color: '#E1306C', fontWeight: '500' }]}>
+                            <Text variant="meta" weight="medium" style={[styles.socialPreviewText, { color: '#E1306C' }]}>
                               @{instagramUsername.trim()}
                             </Text>
                           </TouchableOpacity>
                         )}
                         {tiktokUsername.trim() && (
                           <TouchableOpacity
-                            style={[styles.socialPreviewButton, { backgroundColor: currentTheme.colors.text + '10' }]}
+                            style={[styles.socialPreviewButton, { backgroundColor: ink.hairline }]}
                             onPress={() => Linking.openURL(`https://tiktok.com/@${tiktokUsername.trim()}`)}
                             activeOpacity={0.7}
                           >
                             <Ionicons name="logo-tiktok" size={20} color={currentTheme.colors.text} />
-                            <Text style={[styles.socialPreviewText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
+                            <Text variant="meta" weight="medium" tone="primary" style={styles.socialPreviewText}>
                               @{tiktokUsername.trim()}
                             </Text>
                           </TouchableOpacity>
@@ -678,7 +679,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                             style={[styles.socialPreviewButton, { backgroundColor: '#5865F220' }]}
                           >
                             <Ionicons name="logo-discord" size={20} color="#5865F2" />
-                            <Text style={[styles.socialPreviewText, { color: '#5865F2', fontWeight: '500' }]}>
+                            <Text variant="meta" weight="medium" style={[styles.socialPreviewText, { color: '#5865F2' }]}>
                               {discordUsername.trim()}
                             </Text>
                           </View>
@@ -689,17 +690,17 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                 </View>
 
                 <View style={styles.section}>
-                  <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="body" weight="semiBold" tone="primary" style={styles.sectionTitle}>
                     Add Friends
                   </Text>
                   <View style={[styles.searchContainer, { backgroundColor: currentTheme.colors.surface }]}>
-                    <Ionicons name="search" size={18} color={currentTheme.colors.text + '60'} />
+                    <Ionicons name="search" size={18} color={ink.muted} />
                     <TextInput
                       style={[styles.searchInput, { color: currentTheme.colors.text, fontWeight: '500' }]}
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                       placeholder="Search by username..."
-                      placeholderTextColor={currentTheme.colors.text + '60'}
+                      placeholderTextColor={ink.muted}
                       autoCapitalize="none"
                       autoCorrect={false}
                     />
@@ -719,20 +720,20 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   )}
 
                   {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
-                    <Text style={[styles.noResults, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                    <Text variant="meta" tone="muted" style={styles.noResults}>
                       No users found
                     </Text>
                   )}
                 </View>
 
                 <View style={styles.section}>
-                  <View style={[styles.sectionHeader, { backgroundColor: 'transparent' }]}>
-                    <Text style={[styles.sectionTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <View style={styles.sectionHeader}>
+                    <Text variant="body" weight="semiBold" tone="primary" style={styles.sectionTitle}>
                       Your Friends
                     </Text>
                     {friends.length > 0 && (
                       <View style={[styles.badge, { backgroundColor: currentTheme.colors.primary }]}>
-                        <Text style={[styles.badgeText, { fontWeight: '600' }]}>
+                        <Text variant="meta" weight="semiBold" style={styles.badgeText}>
                           {friends.length}
                         </Text>
                       </View>
@@ -740,15 +741,15 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                   </View>
 
                   {isLoadingFriends ? (
-                    <View style={{ marginTop: 16, gap: 4 }}>
+                    <View style={{ marginTop: space.lg, gap: space.xs }}>
                       {[1, 2, 3].map((i) => (
                         <SkeletonCard key={i} variant="leaderboard-row" />
                       ))}
                     </View>
                   ) : friends.length === 0 ? (
                     <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
-                      <Ionicons name="people-outline" size={32} color={currentTheme.colors.text + '40'} />
-                      <Text style={[styles.emptyText, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                      <Ionicons name="people-outline" size={32} color={ink.faint} />
+                      <Text variant="meta" tone="muted" style={styles.emptyText}>
                         No friends yet. Search above to add friends!
                       </Text>
                     </View>
@@ -783,19 +784,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: {
-    fontSize: 17,
-  },
+  headerTitle: {},
   headerSpacer: {
     width: 40,
   },
   content: {
-    padding: 16,
-    gap: 24,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.lg,
+    gap: space.section,
   },
   section: {
     gap: space.md,
@@ -806,32 +806,26 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
-  sectionTitle: {
-    fontSize: 16,
-  },
+  sectionTitle: {},
   badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.badge,
   },
   badgeText: {
     color: '#FFFFFF',
-    fontSize: 12,
   },
   usernameInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 4,
+    borderRadius: radius.control,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    gap: space.xs,
   },
-  atSymbol: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  atSymbol: {},
   usernameInput: {
     flex: 1,
     fontSize: 16,
@@ -839,44 +833,38 @@ const styles = StyleSheet.create({
   },
   usernameButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: space.md,
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
     borderWidth: 1,
     alignItems: 'center',
   },
-  cancelButtonText: {
-    fontSize: 15,
-  },
+  cancelButtonText: {},
   usernameDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    borderRadius: radius.card,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
   },
-  usernameDisplayText: {
-    fontSize: 16,
-  },
+  usernameDisplayText: {},
   helperText: {
-    fontSize: 13,
     lineHeight: 18,
   },
   errorText: {
-    fontSize: 13,
-    color: '#EF4444',
+    color: danger,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
+    borderRadius: radius.control,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    gap: space.sm,
   },
   searchInput: {
     flex: 1,
@@ -884,21 +872,20 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   noResults: {
-    fontSize: 14,
     textAlign: 'center',
-    paddingVertical: 12,
+    paddingVertical: space.md,
   },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 12,
+    padding: space.md,
+    borderRadius: radius.card,
   },
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
   },
   avatar: {
     width: 36,
@@ -907,13 +894,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  username: {
-    fontSize: 15,
-  },
+  avatarText: {},
+  username: {},
   addButton: {
     width: 32,
     height: 32,
@@ -929,18 +911,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyState: {
-    padding: 24,
-    borderRadius: 12,
+    padding: space.section,
+    borderRadius: radius.card,
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   emptyText: {
-    fontSize: 14,
     textAlign: 'center',
   },
   profilePictureContainer: {
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
   },
   profilePictureButton: {
     width: 100,
@@ -962,10 +943,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profilePicturePlaceholderText: {
-    fontSize: 40,
-    fontWeight: '600',
-  },
+  profilePicturePlaceholderText: {},
   profilePictureEditBadge: {
     position: 'absolute',
     bottom: 0,
@@ -979,49 +957,43 @@ const styles = StyleSheet.create({
   profilePictureTextContainer: {
     alignItems: 'center',
   },
-  profilePictureHint: {
-    fontSize: 13,
-  },
+  profilePictureHint: {},
   socialInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
-    paddingRight: 16,
-    gap: 12,
+    borderRadius: radius.control,
+    paddingRight: space.lg,
+    gap: space.md,
   },
   socialIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: radius.control,
     justifyContent: 'center',
     alignItems: 'center',
   },
   socialInput: {
     flex: 1,
     fontSize: 15,
-    paddingVertical: 14,
+    paddingVertical: space.lg,
   },
   socialPreview: {
-    marginTop: 16,
-    gap: 8,
+    marginTop: space.lg,
+    gap: space.sm,
   },
-  socialPreviewLabel: {
-    fontSize: 13,
-  },
+  socialPreviewLabel: {},
   socialPreviewButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   socialPreviewButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    gap: space.sm,
+    paddingHorizontal: space.md,
+    paddingVertical: space.md,
+    borderRadius: radius.control,
   },
-  socialPreviewText: {
-    fontSize: 14,
-  },
+  socialPreviewText: {},
 });
