@@ -1,4 +1,3 @@
-import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor, getStrengthTier } from '@/lib/data/strengthStandards';
 import { PendingStrengthProgress } from '@/lib/storage/storage';
 import React, { useEffect, useState } from 'react';
@@ -223,7 +222,6 @@ export default function StrengthProgressOverlay({
   visible,
   onDismiss,
 }: StrengthProgressOverlayProps) {
-  const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   const previousTier = getStrengthTier(progress.previousPercentile);

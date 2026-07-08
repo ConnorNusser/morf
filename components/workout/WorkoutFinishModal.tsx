@@ -72,7 +72,6 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const { width: screenWidth } = useWindowDimensions();
   const isSmallScreen = screenWidth < 380; // iPhone SE, iPhone 12/13 mini
 
-  const { play: playSuccess } = useSound('selectionComplete');
   const { play: playTap } = useSound('tapVariant1');
   const { play: playUnlock } = useSound('unlock');
 

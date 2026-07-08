@@ -70,7 +70,6 @@ function AchievementRewardRow({
 }: {
   achievement: SessionRewards['newAchievements'][number];
 }) {
-  const { currentTheme } = useTheme();
   const accent = RARITY_META[achievement.rarity].accent;
 
   const front = (
@@ -111,7 +110,6 @@ function AchievementRewardRow({
 }
 
 function RewardsSection({ rewards }: { rewards: SessionRewards }) {
-  const { currentTheme } = useTheme();
   const { newAchievements } = rewards;
   const shownAch = newAchievements.slice(0, 3);
 
@@ -174,7 +172,6 @@ const Particle =({ delay, startX, color }: { delay: number; startX: number; colo
 };
 
 const PulsingBadge =({ text, color }: { text: string; color: string }) => {
-  const { currentTheme } = useTheme();
   const opacity = useSharedValue(0.7);
 
   useEffect(() => {
@@ -261,7 +258,6 @@ const StatCard =({
   primaryColor: string;
 }) => {
   const scale = useSharedValue(1);
-  const { currentTheme } = useTheme();
 
   const handlePressIn = () => {
     scale.value = withSpring(0.95, { damping: 15 });
