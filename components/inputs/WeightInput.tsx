@@ -4,6 +4,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { WeightUnit, convertWeight } from '@/lib/storage/userProfile';
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import UnitToggle from '@/components/ui/UnitToggle';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
 
 interface WeightInputProps {
@@ -76,47 +77,15 @@ export default function WeightInput({ value, onChange, style }: WeightInputProps
           Weight
         </Text>
         
-        <View style={styles.unitToggle}>
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              { 
-                backgroundColor: value.unit === 'lbs' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
-            onPress={() => handleUnitChange('lbs')}
-          >
-            <Text style={[
-              styles.unitButtonText,
-              { 
-                color: value.unit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
-              }
-            ]}>
-              lbs
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              { 
-                backgroundColor: value.unit === 'kg' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
-            onPress={() => handleUnitChange('kg')}
-          >
-            <Text style={[
-              styles.unitButtonText,
-              { 
-                color: value.unit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
-              }
-            ]}>
-              kg
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <UnitToggle
+          style={styles.unitToggle}
+          value={value.unit}
+          onChange={handleUnitChange}
+          options={[
+            { label: 'lbs', value: 'lbs' },
+            { label: 'kg', value: 'kg' },
+          ]}
+        />
 
         <View style={styles.inputContainer}>
           <TouchableOpacity
@@ -179,21 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   unitToggle: {
-    flexDirection: 'row',
     marginBottom: 12,
-    gap: 8,
-  },
-  unitButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  unitButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   inputContainer: {
     flexDirection: 'row',

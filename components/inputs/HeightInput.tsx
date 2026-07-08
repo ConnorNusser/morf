@@ -4,6 +4,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { HeightUnit, convertHeight, formatHeight } from '@/lib/storage/userProfile';
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View, ViewStyle } from 'react-native';
+import UnitToggle from '@/components/ui/UnitToggle';
 import CustomNumberKeyboard from './CustomNumberKeyboard';
 
 interface HeightInputProps {
@@ -112,47 +113,15 @@ export default function HeightInput({ value, onChange, style }: HeightInputProps
           Height
         </Text>
         
-        <View style={styles.unitToggle}>
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              { 
-                backgroundColor: value.unit === 'feet' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
-            onPress={() => handleUnitChange('feet')}
-          >
-            <Text style={[
-              styles.unitButtonText,
-              { 
-                color: value.unit === 'feet' ? '#FFFFFF' : currentTheme.colors.text,
-              }
-            ]}>
-              ft/in
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[
-              styles.unitButton,
-              { 
-                backgroundColor: value.unit === 'cm' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                borderColor: currentTheme.colors.border,
-              },
-            ]}
-            onPress={() => handleUnitChange('cm')}
-          >
-            <Text style={[
-              styles.unitButtonText,
-              { 
-                color: value.unit === 'cm' ? '#FFFFFF' : currentTheme.colors.text,
-              }
-            ]}>
-              cm
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <UnitToggle
+          style={styles.unitToggle}
+          value={value.unit}
+          onChange={handleUnitChange}
+          options={[
+            { label: 'ft/in', value: 'feet' },
+            { label: 'cm', value: 'cm' },
+          ]}
+        />
 
         {value.unit === 'feet' ? (
           <View style={styles.feetInputContainer}>
@@ -297,21 +266,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   unitToggle: {
-    flexDirection: 'row',
     marginBottom: 12,
-    gap: 8,
-  },
-  unitButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  unitButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   feetInputContainer: {
     flexDirection: 'row',
