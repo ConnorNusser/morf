@@ -2,6 +2,7 @@ import IconButton from '@/components/IconButton';
 import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
+import Badge from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
@@ -425,11 +426,10 @@ export default function WorkoutThreadModal({
           {(hasPRs || pplBreakdown.total > 0) && (
             <View style={styles.tagsRow}>
               {hasPRs && (
-                <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-                  <Text style={styles.prChipText}>
-                    {feedData?.pr_count === 1 ? 'New PR' : `${feedData?.pr_count} PRs`}
-                  </Text>
-                </View>
+                <Badge
+                  variant="solid"
+                  label={feedData?.pr_count === 1 ? 'New PR' : `${feedData?.pr_count} PRs`}
+                />
               )}
               {(['push', 'pull', 'legs'] as const)
                 .filter(category => pplBreakdown.counts[category] > 0)
@@ -780,15 +780,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  prChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  prChipText: {
-    fontSize: 13,
-    color: '#FFFFFF',
   },
   actionsRow: {
     flexDirection: 'row',

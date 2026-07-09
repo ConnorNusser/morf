@@ -2,6 +2,7 @@ import AchievementBadge from '@/components/gamification/AchievementBadge';
 import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
+import Badge from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { achievementMeta } from '@/lib/gamification/achievementMeta';
@@ -115,11 +116,10 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
 
       {hasPRs && feedData && (
         <View style={styles.prRow}>
-          <View style={[styles.prChip, { backgroundColor: currentTheme.colors.primary }]}>
-            <Text style={styles.prChipText}>
-              {feedData.pr_count === 1 ? 'New PR' : `${feedData.pr_count} PRs`}
-            </Text>
-          </View>
+          <Badge
+            variant="solid"
+            label={feedData.pr_count === 1 ? 'New PR' : `${feedData.pr_count} PRs`}
+          />
         </View>
       )}
 
@@ -302,15 +302,6 @@ const styles = StyleSheet.create({
   prRow: {
     flexDirection: 'row',
     marginTop: 4,
-  },
-  prChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-  },
-  prChipText: {
-    fontSize: 13,
-    color: '#FFFFFF',
   },
   achRow: {
     flexDirection: 'row',

@@ -1,3 +1,4 @@
+import Badge from "@/components/ui/Badge";
 import Card from "@/components/Card";
 import IconButton from "@/components/IconButton";
 import ProgressBar from "@/components/ProgressBar";
@@ -471,24 +472,11 @@ export default function OverallStrengthModal({
                   >
                     {l.percentileRanking}
                   </Text>
-                  <View
-                    style={[
-                      styles.percentileBadge,
-                      {
-                        backgroundColor: getPercentileColor(
-                          l.percentileRanking,
-                        ),
-                      },
-                    ]}
-                  >
-                    <Text
-                      variant="meta"
-                      weight="semiBold"
-                      style={{ color: currentTheme.colors.background }}
-                    >
-                      {l.strengthLevel}
-                    </Text>
-                  </View>
+                  <Badge
+                    variant="solid"
+                    color={getPercentileColor(l.percentileRanking)}
+                    label={l.strengthLevel}
+                  />
                 </View>
               </View>
             ))}
@@ -569,11 +557,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
-  },
-  percentileBadge: {
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-    borderRadius: radius.badge,
   },
   insightRow: {
     flexDirection: "row",
