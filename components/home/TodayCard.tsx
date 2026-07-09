@@ -29,7 +29,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -40,12 +39,8 @@ const ROUTINE_ADVICE_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
 
 const CARD_MIN_HEIGHT = 200;
 
-const VISIBLE_EXERCISE_ROWS = 7;
 const EXERCISE_ROW_HEIGHT = 16;
 const EXERCISE_ROW_GAP = space.md;
-const EXERCISE_LIST_HEIGHT =
-  VISIBLE_EXERCISE_ROWS * EXERCISE_ROW_HEIGHT +
-  (VISIBLE_EXERCISE_ROWS - 1) * EXERCISE_ROW_GAP;
 
 function splitLabel(splitType?: string): string | null {
   if (!splitType || splitType === "custom") return null;
@@ -326,12 +321,10 @@ export default function TodayCard() {
             )}
           </View>
 
-          <ScrollView
-            style={styles.exerciseList}
-            contentContainerStyle={styles.exerciseListContent}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-          >
+          {/* Natural height — the home screen itself scrolls now, so a fixed
+              7-row inner scroll window would only fight it (and waste space
+              on short routines / trap long ones). */}
+          <View style={[styles.exerciseList, styles.exerciseListContent]}>
             {exercises.map((ex, i) => {
               const workingSets = ex.sets.filter((s) => !s.isWarmup);
               const setCount = workingSets.length || ex.sets.length;
@@ -357,7 +350,7 @@ export default function TodayCard() {
                 </View>
               );
             })}
-          </ScrollView>
+          </View>
           <Spacer height={12} />
           <StartButton
             label={trainedToday ? "Train again" : "Start workout"}
@@ -433,7 +426,6 @@ const styles = StyleSheet.create({
   },
   exerciseList: {
     marginTop: space.lg,
-    height: EXERCISE_LIST_HEIGHT,
   },
   exerciseListContent: {
     gap: EXERCISE_ROW_GAP,
