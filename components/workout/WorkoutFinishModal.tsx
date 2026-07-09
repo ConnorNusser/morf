@@ -3,7 +3,7 @@ import IconButton from '@/components/IconButton';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import ExerciseBadge, { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
-import WorkoutCompleteScreen from '@/components/workout/WorkoutCompleteScreen';
+import WorkoutCompleteScreen, { PercentileMove } from '@/components/workout/WorkoutCompleteScreen';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { unlockedIds } from '@/lib/gamification/achievements';
@@ -83,6 +83,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
   const [strengthWin, setStrengthWin] = useState(false);
+  const [percentileMove, setPercentileMove] = useState<PercentileMove | null>(null);
+  const [savedTitle, setSavedTitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible && noteText.trim()) {
@@ -91,6 +93,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setError(null);
       setSessionRewards(null);
       setStrengthWin(false);
+      setPercentileMove(null);
+      setSavedTitle(null);
 
       const parseWorkout = async () => {
         try {
@@ -150,6 +154,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
+        setPercentileMove({ before: overallBefore, after: overallAfter });
+        // The just-saved session (newest by createdAt) carries the generated title for the share card.
+        const newest = afterHistory.reduce<(typeof afterHistory)[number] | null>(
+          (best, w) => (!best || new Date(w.createdAt) > new Date(best.createdAt) ? w : best),
+          null,
+        );
+        if (newest?.title) setSavedTitle(newest.title);
         // Strength win = PR/achievement, or the overall percentile moved; drives History vs feed.
         setStrengthWin(rewards.hasRewards || overallAfter !== overallBefore);
 
@@ -468,6 +479,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       onDone={handleDone}
       isSmallScreen={isSmallScreen}
       rewards={sessionRewards}
+      title={savedTitle}
+      percentileMove={percentileMove}
     />
   );
 

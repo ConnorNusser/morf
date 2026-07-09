@@ -1,3 +1,9 @@
+// Post-workout celebration. The hero is a shareable recap card (ViewShot →
+// system share sheet): brand, session title + stats, top lift, PRs, and the
+// lifter's overall standing. Below it: the career-style percentile progression
+// this session earned, plus any unlocked achievements.
+// White-alpha palette throughout is a named exception — this screen is always
+// dark regardless of theme.
 import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
@@ -5,20 +11,24 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space, tint, track, trend } from '@/lib/ui/tokens';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import CareerModal from '@/components/gamification/CareerModal';
+import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
+import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { convertWeightToLbs } from '@/lib/utils/utils';
+import { convertWeightForPreference, convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
 import { UserProfile, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated as RNAnimated,
   Dimensions,
   Image,
   ScrollView,
@@ -28,18 +38,34 @@ import {
 import Animated, {
   Easing,
   FadeIn,
-  interpolateColor,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withRepeat,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ViewShot from 'react-native-view-shot';
 import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Drop trailing "(Equipment)" so PR rows fit on one line.
+const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
+
+// Generated fallback titles ("Workout - 7/9/2026") read as filler on the share
+// card — swap them for a clean day-based headline.
+function cardTitleFor(title: string | null | undefined): string {
+  const t = (title || '').trim();
+  if (t && !/^workout\b/i.test(t)) return t;
+  const day = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  return `${day} workout`;
+}
+
+// Solid (non-alpha) card surface so ViewShot captures cleanly on the dark screen.
+const CARD_BG = '#111116';
+const CARD_BORDER = 'rgba(255,255,255,0.12)';
+const CARD_HAIRLINE = 'rgba(255,255,255,0.08)';
 
 interface PRInfo {
   exerciseName: string;
@@ -50,11 +76,17 @@ interface PRInfo {
   percentile?: number;
 }
 
+export interface PercentileMove {
+  before: number;
+  after: number;
+}
+
 interface WorkoutCompleteScreenProps {
   stats: {
     exercises: number;
     sets: number;
     durationStr: string;
+    volume?: number; // lbs
   };
   exercises: (ParsedExercise | ParsedExerciseSummary)[];
   userLifts: UserProgress[];
@@ -63,6 +95,10 @@ interface WorkoutCompleteScreenProps {
   onDone: () => void;
   isSmallScreen?: boolean;
   rewards?: SessionRewards | null;
+  // Generated title of the just-saved session ("Push Day"); null until it lands.
+  title?: string | null;
+  // Overall strength percentile before → after this session.
+  percentileMove?: PercentileMove | null;
 }
 
 function AchievementRewardRow({
@@ -112,27 +148,26 @@ function AchievementRewardRow({
 function RewardsSection({ rewards }: { rewards: SessionRewards }) {
   const { newAchievements } = rewards;
   const shownAch = newAchievements.slice(0, 3);
+  if (shownAch.length === 0) return null;
 
   // No artificial delay: this only mounts once async rewards land, so a delay just made it lag.
   return (
     <Animated.View entering={FadeIn.duration(400)} style={styles.rewardsSection}>
-      {shownAch.length > 0 && (
-        <View style={styles.achList}>
-          {shownAch.map(a => (
-            <AchievementRewardRow key={a.id} achievement={a} />
-          ))}
-          {newAchievements.length > shownAch.length && (
-            <Text variant="meta" style={styles.achMore}>
-              +{newAchievements.length - shownAch.length} more unlocked
-            </Text>
-          )}
-        </View>
-      )}
+      <View style={styles.achList}>
+        {shownAch.map(a => (
+          <AchievementRewardRow key={a.id} achievement={a} />
+        ))}
+        {newAchievements.length > shownAch.length && (
+          <Text variant="meta" style={styles.achMore}>
+            +{newAchievements.length - shownAch.length} more unlocked
+          </Text>
+        )}
+      </View>
     </Animated.View>
   );
 }
 
-const Particle =({ delay, startX, color }: { delay: number; startX: number; color: string }) => {
+const Particle = ({ delay, startX, color }: { delay: number; startX: number; color: string }) => {
   const translateY = useSharedValue(-50);
   const translateX = useSharedValue(startX);
   const rotate = useSharedValue(0);
@@ -171,35 +206,7 @@ const Particle =({ delay, startX, color }: { delay: number; startX: number; colo
   );
 };
 
-const PulsingBadge =({ text, color }: { text: string; color: string }) => {
-  const opacity = useSharedValue(0.7);
-
-  useEffect(() => {
-    opacity.value = withDelay(
-      400,
-      withRepeat(
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true
-      )
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
-  return (
-    <Animated.View style={[styles.prBadge, { backgroundColor: color, borderColor: color }, animatedStyle]}>
-      <Text variant="meta" weight="bold" style={styles.prBadgeText}>
-        {text}
-      </Text>
-    </Animated.View>
-  );
-};
-
-const AnimatedCounter =({
+const AnimatedCounter = ({
   value,
   suffix = '',
   duration = 1500,
@@ -238,88 +245,69 @@ const AnimatedCounter =({
   );
 };
 
-const StatCard =({
-  icon,
-  value,
-  label,
-  suffix = '',
-  delay = 0,
-  onPress,
-  isSmallScreen,
-  primaryColor,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  value: number | string;
-  label: string;
-  suffix?: string;
-  delay?: number;
-  onPress?: () => void;
-  isSmallScreen?: boolean;
-  primaryColor: string;
-}) => {
-  const scale = useSharedValue(1);
+// Percentile sweep: before → after with the tier color. RN Animated (not
+// reanimated) because `from` is dynamic and the pattern matches WorkoutStatsCard.
+function ProgressionBar({ from, to, color }: { from: number; to: number; color: string }) {
+  const fill = useRef(new RNAnimated.Value(Math.max(2, Math.min(100, from)))).current;
+  useEffect(() => {
+    RNAnimated.timing(fill, {
+      toValue: Math.max(2, Math.min(100, to)),
+      duration: 1100,
+      delay: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [to, fill]);
+  const width = fill.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'], extrapolate: 'clamp' });
+  return (
+    <View style={styles.progressTrack}>
+      <RNAnimated.View style={[styles.progressFill, { width, backgroundColor: color }]} />
+    </View>
+  );
+}
 
-  const handlePressIn = () => {
-    scale.value = withSpring(0.95, { damping: 15 });
-  };
+// The percentile progression this session earned — the Career hero's language.
+function ProgressionSection({ move }: { move: PercentileMove }) {
+  // A 0 "before" means this is the first percentile ever computed — a delta
+  // against nothing reads as noise, so only show earned movement.
+  const delta = move.before > 0 ? move.after - move.before : 0;
+  const tier = getStrengthTier(move.after);
+  const color = getTierColor(tier);
+  const band = getTierBandProgress(move.after);
 
-  const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15 });
-  };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const content = (
-    <Animated.View
-      style={[
-        styles.statCard,
-        { backgroundColor: 'rgba(255,255,255,0.1)' },
-        isSmallScreen && styles.statCardSmall,
-        animatedStyle,
-      ]}
-    >
-      <Ionicons name={icon} size={isSmallScreen ? 20 : 24} color={primaryColor} />
-      {typeof value === 'number' ? (
-        <AnimatedCounter
-          value={value}
-          suffix={suffix}
-          delay={delay}
-          style={[
-            styles.statCardValue,
-            isSmallScreen && styles.statCardValueSmall,
-          ]}
-        />
-      ) : (
-        <Text style={[
-          styles.statCardValue,
-          isSmallScreen && styles.statCardValueSmall,
-        ]}>
-          {value}
+  return (
+    <Animated.View entering={FadeIn.delay(400)} style={styles.progressSection}>
+      <View style={styles.progressHead}>
+        <Text variant="meta" weight="bold" style={styles.progressLabel}>
+          OVERALL STRENGTH
         </Text>
-      )}
-      <Text variant="meta" style={styles.statCardLabel}>
-        {label}
+        <Text variant="meta" weight="semiBold" style={styles.progressValue}>
+          {delta > 0 && (
+            <Text variant="meta" weight="bold" style={{ color: trend.up }}>
+              +{delta}{'  '}
+            </Text>
+          )}
+          {move.after} percentile
+        </Text>
+      </View>
+      <ProgressionBar from={move.before} to={move.after} color={color} />
+      <Text variant="meta" style={styles.progressCaption}>
+        {band.nextTier ? (
+          <>
+            <Text variant="meta" weight="semiBold" style={styles.progressCaptionStrong}>
+              {band.toNext}
+            </Text>
+            {' to '}
+            <Text variant="meta" weight="semiBold" style={{ color: getTierColor(band.nextTier) }}>
+              {band.nextTier}
+            </Text>
+          </>
+        ) : (
+          'Max tier reached'
+        )}
       </Text>
     </Animated.View>
   );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        onPress={onPress}
-        activeOpacity={1}
-      >
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return content;
-};
+}
 
 export default function WorkoutCompleteScreen({
   stats,
@@ -330,14 +318,13 @@ export default function WorkoutCompleteScreen({
   onDone,
   isSmallScreen = false,
   rewards,
+  title,
+  percentileMove,
 }: WorkoutCompleteScreenProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const [showExerciseDetails, setShowExerciseDetails] = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
-
-  const checkScale = useSharedValue(0);
-  const prGlow = useSharedValue(0);
+  const shareRef = useRef<ViewShot>(null);
 
   const particles = useMemo(() => {
     const colors = [
@@ -348,7 +335,7 @@ export default function WorkoutCompleteScreen({
       '#4ECDC4',
       '#A78BFA',
     ];
-    return Array.from({ length: 30 }, (_, i) => ({
+    return Array.from({ length: 24 }, (_, i) => ({
       id: i,
       delay: Math.random() * 500,
       startX: Math.random() * SCREEN_WIDTH,
@@ -419,47 +406,61 @@ export default function WorkoutCompleteScreen({
     return detectedPRs;
   }, [rewards, exercises, userLifts, userProfile]);
 
+  // The session's heaviest statement: best e1RM set across weighted lifts.
+  const topLift = useMemo(() => {
+    let best: { name: string; weight: number; reps: number; e1rm: number } | null = null;
+    for (const exercise of exercises) {
+      if (exercise.trackingType && exercise.trackingType !== 'reps') continue;
+      for (const set of exercise.sets || []) {
+        if ((set.weight || 0) <= 0 || (set.reps || 0) <= 0) continue;
+        const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
+        if (!best || e1rm > best.e1rm) {
+          const info = exercise.matchedExerciseId ? getWorkoutById(exercise.matchedExerciseId) : null;
+          best = {
+            name: (info?.name || exercise.name).replace(/\s*\([^)]*\)\s*$/, '').trim(),
+            weight: Math.round(set.weight),
+            reps: set.reps,
+            e1rm: Math.round(e1rm),
+          };
+        }
+      }
+    }
+    return best;
+  }, [exercises]);
+
   useEffect(() => {
-    checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    // When PRs are already visible at mount, the PR effect below fires
-    // 'success' this same instant — stacking 'medium' on top blurs both.
-    if (prs.length === 0) playHapticFeedback('medium', false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only haptic
   }, []);
 
-  // PRs from the history diff land after mount — celebrate on the transition,
-  // not just at mount, or a diff-only PR gets the muted haptic and no glow.
+  // Celebrate diff-only PRs that land after mount too.
   const prCelebrated = useRef(false);
   useEffect(() => {
     if (prs.length === 0 || prCelebrated.current) return;
     prCelebrated.current = true;
     playHapticFeedback('success', false);
-    prGlow.value = withDelay(
-      500,
-      withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prs]);
 
-  const checkAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-  }));
+  // "2 PRs · 1 achievement unlocked" — the session's wins in one line.
+  const winsLine = useMemo(() => {
+    const parts: string[] = [];
+    if (prs.length > 0) parts.push(`${prs.length} ${prs.length === 1 ? 'PR' : 'PRs'}`);
+    const achCount = rewards?.newAchievements.length ?? 0;
+    if (achCount > 0) parts.push(`${achCount} ${achCount === 1 ? 'achievement' : 'achievements'}`);
+    return parts.length > 0 ? `${parts.join(' · ')} unlocked` : 'Great job crushing it today';
+  }, [prs, rewards]);
 
-  const prGlowStyle = useAnimatedStyle(() => ({
-    borderWidth: 1.5,
-    borderColor: interpolateColor(
-      prGlow.value,
-      [0, 1],
-      ['rgba(255,215,0,0.18)', 'rgba(255,215,0,0.85)'],
-    ),
-    shadowColor: '#FFD700',
-    shadowOpacity: 0.25 + prGlow.value * 0.45,
-    shadowRadius: 8 + prGlow.value * 16,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 4 + prGlow.value * 8,
-  }));
+  const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const volumeDisplay =
+    stats.volume && stats.volume > 0
+      ? `${formatCompact(Math.round(convertWeightForPreference(stats.volume, 'lbs', weightUnit)))} ${weightUnit}`
+      : null;
+  const overallAfter = percentileMove?.after ?? 0;
 
-  const handleStatPress = useCallback(() => setShowExerciseDetails(v => !v), []);
+  const handleShare = () => {
+    playHapticFeedback('light', false);
+    captureAndShare(shareRef as React.RefObject<ViewShot>);
+  };
 
   return (
     <Animated.View entering={FadeIn} style={styles.container}>
@@ -477,82 +478,102 @@ export default function WorkoutCompleteScreen({
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.content}>
-          <Animated.View style={[styles.logoHeader, checkAnimatedStyle]}>
-            <Image
-              source={require('@/assets/images/icon-original.png')}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-            <Text variant="body" weight="medium" style={styles.logoText}>
-              morf
-            </Text>
+        <View style={[styles.content, isSmallScreen && styles.contentSmall]}>
+          <Animated.Text entering={FadeIn.delay(150)} style={styles.title}>
+            Workout Complete
+          </Animated.Text>
+          <Animated.Text entering={FadeIn.delay(250)} style={styles.subtitle}>
+            {winsLine}
+          </Animated.Text>
+
+          {/* ---- Shareable recap card ---- */}
+          <Animated.View entering={FadeIn.delay(350)} style={styles.cardWrap}>
+            <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
+              <View style={styles.card}>
+                <View style={styles.cardBrandRow}>
+                  <Image
+                    source={require('@/assets/images/icon-original.png')}
+                    style={styles.cardLogo}
+                    resizeMode="contain"
+                  />
+                  <Text variant="meta" weight="semiBold" style={styles.cardBrand}>
+                    morf
+                  </Text>
+                  <View style={styles.flex} />
+                  <Text variant="meta" style={styles.cardDate}>
+                    {dateStr}
+                  </Text>
+                </View>
+
+                <Text style={styles.cardTitle} numberOfLines={1}>
+                  {cardTitleFor(title)}
+                </Text>
+                <Text variant="meta" style={styles.cardMeta}>
+                  {stats.durationStr} · {stats.sets} {stats.sets === 1 ? 'set' : 'sets'}
+                  {volumeDisplay ? ` · ${volumeDisplay} lifted` : ''}
+                </Text>
+
+                {topLift && (
+                  <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
+                    <Text variant="meta" weight="bold" style={styles.cardLabel}>
+                      TOP LIFT
+                    </Text>
+                    <View style={styles.cardRow}>
+                      <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
+                        {topLift.name}
+                      </Text>
+                      <Text variant="body" weight="bold" style={styles.cardRowValue}>
+                        {topLift.weight} × {topLift.reps}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {prs.length > 0 && (
+                  <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
+                    <Text variant="meta" weight="bold" style={[styles.cardLabel, { color: '#FFD700' }]}>
+                      {prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRS`}
+                    </Text>
+                    {prs.map((pr, index) => (
+                      <View key={pr.exerciseId || index} style={styles.cardRow}>
+                        <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
+                          {shortName(pr.exerciseName)}
+                        </Text>
+                        <View style={styles.prValueCluster}>
+                          <AnimatedCounter
+                            value={pr.newPR}
+                            delay={600 + index * 100}
+                            duration={1000}
+                            style={styles.prValue}
+                          />
+                          <Text variant="meta" style={styles.prUnit}>
+                            {weightUnit}
+                          </Text>
+                          {pr.improvement > 0 && (
+                            <Text variant="meta" weight="bold" style={styles.improvementText}>
+                              ↑{pr.improvement}
+                            </Text>
+                          )}
+                          {pr.percentile != null && <TierBadge percentile={pr.percentile} size="small" />}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {overallAfter > 0 && (
+                  <View style={[styles.cardFooter, { borderTopColor: CARD_HAIRLINE }]}>
+                    <TierBadge percentile={overallAfter} size="small" />
+                    <Text variant="meta" weight="medium" style={styles.cardFooterText}>
+                      Stronger than {overallAfter}% of lifters
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </ViewShot>
           </Animated.View>
 
-          <Animated.Text
-            entering={FadeIn.delay(200)}
-            style={styles.title}
-          >
-            Workout Complete!
-          </Animated.Text>
-          <Animated.Text
-            entering={FadeIn.delay(300)}
-            style={styles.subtitle}
-          >
-            Great job crushing it today
-          </Animated.Text>
-
-          {prs.length > 0 && (
-            <View style={styles.prSection}>
-              <PulsingBadge
-                text={prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRs`}
-                color="#3B82F6"
-              />
-              <Animated.View
-                entering={FadeIn.delay(500)}
-                style={[
-                  styles.prCard,
-                  {
-                    backgroundColor: 'rgba(255,255,255,0.06)',
-                  },
-                  prGlowStyle,
-                ]}
-              >
-                {prs.map((pr, index) => (
-                  <Animated.View
-                    key={pr.exerciseId || index}
-                    entering={FadeIn.delay(600 + index * 100)}
-                    style={styles.prRow}
-                  >
-                    <View style={styles.prCardContent}>
-                      <Text variant="meta" style={styles.prExerciseName}>
-                        {pr.exerciseName}
-                      </Text>
-                      <View style={styles.prValueRow}>
-                        <AnimatedCounter
-                          value={pr.newPR}
-                          delay={650 + index * 100}
-                          duration={1200}
-                          style={styles.prValue}
-                        />
-                        <Text variant="meta" style={styles.prUnit}>
-                          {weightUnit}
-                        </Text>
-                        {pr.improvement > 0 && (
-                          <Text variant="meta" weight="semiBold" style={styles.improvementText}>
-                            ↑{pr.improvement}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    {pr.percentile && (
-                      <TierBadge percentile={pr.percentile} size="small" />
-                    )}
-                  </Animated.View>
-                ))}
-              </Animated.View>
-            </View>
-          )}
+          {percentileMove && percentileMove.after > 0 && <ProgressionSection move={percentileMove} />}
 
           {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
 
@@ -572,64 +593,6 @@ export default function WorkoutCompleteScreen({
               <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.5)" />
             </TouchableOpacity>
           </Animated.View>
-
-          <Animated.View entering={FadeIn.delay(500)} style={[styles.statsContainer, isSmallScreen && styles.statsContainerSmall]}>
-            <StatCard
-              icon="time-outline"
-              value={stats.durationStr}
-              label="Duration"
-              delay={600}
-              isSmallScreen={isSmallScreen}
-              primaryColor={currentTheme.colors.primary}
-            />
-            <StatCard
-              icon="barbell-outline"
-              value={stats.exercises}
-              label="Exercises"
-              delay={700}
-              onPress={handleStatPress}
-              isSmallScreen={isSmallScreen}
-              primaryColor={currentTheme.colors.primary}
-            />
-            <StatCard
-              icon="flame-outline"
-              value={stats.sets}
-              label="Sets"
-              delay={800}
-              onPress={handleStatPress}
-              isSmallScreen={isSmallScreen}
-              primaryColor={currentTheme.colors.primary}
-            />
-          </Animated.View>
-
-          {showExerciseDetails && (
-            <Animated.View entering={FadeIn} style={styles.exerciseDetailsContainer}>
-              <Text variant="meta" weight="semiBold" style={styles.exerciseDetailsTitle}>
-                Exercises
-              </Text>
-              {exercises.map((exercise, index) => {
-                const exerciseInfo = exercise.matchedExerciseId
-                  ? getWorkoutById(exercise.matchedExerciseId)
-                  : null;
-                const setCount = exercise.sets?.length || (exercise as ParsedExerciseSummary).setCount || 0;
-
-                return (
-                  <View
-                    key={index}
-                    style={[styles.exerciseDetailRow, { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.1)' }]}
-                  >
-                    <Text variant="meta" weight="medium" style={styles.exerciseDetailName}>
-                      {exerciseInfo?.name || exercise.name}
-                    </Text>
-                    <Text variant="meta" style={styles.exerciseDetailSets}>
-                      {setCount} {setCount === 1 ? 'set' : 'sets'}
-                    </Text>
-                  </View>
-                );
-              })}
-            </Animated.View>
-          )}
-
         </View>
       </ScrollView>
 
@@ -637,12 +600,21 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
+        <Button
+          title="Share"
+          onPress={handleShare}
+          variant="secondary"
+          size="large"
+          style={styles.shareButton}
+          textStyle={styles.shareButtonText}
+        />
         {/* White label kept: this screen is always dark regardless of theme (named palette exception). */}
         <Button
           title="Done"
           onPress={onDone}
           variant="primary"
           size="large"
+          style={styles.doneButton}
           textStyle={styles.doneButtonText}
         />
       </Animated.View>
@@ -657,81 +629,102 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  flex: { flex: 1 },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 60,
+    paddingTop: 72,
   },
   content: {
-    alignItems: 'center',
     paddingHorizontal: space.section,
-    paddingTop: space.lg,
     paddingBottom: 40,
   },
-  logoHeader: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  headerLogo: {
-    width: 64,
-    height: 64,
-    borderRadius: 14,
-  },
-  logoText: {
-    color: 'rgba(255,255,255,0.4)',
-    letterSpacing: track.caps,
-    marginTop: space.md,
+  contentSmall: {
+    paddingHorizontal: space.lg,
   },
   title: {
     fontSize: type.statHero,
     fontWeight: '700',
     color: '#fff',
     textAlign: 'center',
-    marginBottom: space.md,
+    marginBottom: space.sm,
   },
   subtitle: {
     fontSize: type.body,
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
-    marginBottom: 36,
+    marginBottom: 28,
   },
-  prSection: {
+
+  cardWrap: {
     width: '100%',
-    marginBottom: 32,
-    gap: space.md,
+    marginBottom: 28,
   },
-  prBadge: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.badge,
-    alignSelf: 'center',
-    borderWidth: 1.5,
-  },
-  prBadgeText: {
-    color: '#fff',
-  },
-  prCard: {
+  card: {
+    backgroundColor: CARD_BG,
+    borderColor: CARD_BORDER,
+    borderWidth: 1,
     borderRadius: radius.card,
-    padding: space.lg,
-    gap: space.sm,
+    padding: space.xl,
   },
-  prRow: {
+  cardBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginBottom: space.lg,
+  },
+  cardLogo: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+  },
+  cardBrand: {
+    color: 'rgba(255,255,255,0.55)',
+    letterSpacing: track.caps,
+  },
+  cardDate: {
+    color: 'rgba(255,255,255,0.4)',
+  },
+  cardTitle: {
+    fontSize: type.header,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: track.display,
+  },
+  cardMeta: {
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: space.xs,
+    marginBottom: space.lg,
+  },
+  cardSection: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+    marginBottom: space.md,
+  },
+  cardLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: track.caps,
+    marginBottom: space.sm,
+  },
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: space.sm,
+    gap: space.md,
+    paddingVertical: space.xs,
   },
-  prCardContent: {
-    flex: 1,
-    gap: 2,
+  cardRowName: {
+    color: '#fff',
+    flexShrink: 1,
   },
-  prExerciseName: {
-    color: 'rgba(255,255,255,0.7)',
+  cardRowValue: {
+    color: '#fff',
+    fontVariant: ['tabular-nums'],
   },
-  prValueRow: {
+  prValueCluster: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
@@ -740,6 +733,7 @@ const styles = StyleSheet.create({
     fontSize: type.emphasis,
     fontWeight: '700',
     color: '#fff',
+    fontVariant: ['tabular-nums'],
   },
   prUnit: {
     color: 'rgba(255,255,255,0.5)',
@@ -747,10 +741,56 @@ const styles = StyleSheet.create({
   improvementText: {
     color: trend.up,
   },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.md,
+  },
+  cardFooterText: {
+    color: 'rgba(255,255,255,0.7)',
+  },
+
+  progressSection: {
+    width: '100%',
+    marginBottom: 28,
+  },
+  progressHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space.sm,
+  },
+  progressLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    letterSpacing: track.caps,
+  },
+  progressValue: {
+    color: 'rgba(255,255,255,0.75)',
+  },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressCaption: {
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: space.sm,
+    textAlign: 'right',
+  },
+  progressCaptionStrong: {
+    color: 'rgba(255,255,255,0.75)',
+  },
+
   rewardsSection: {
     width: '100%',
-    marginBottom: 32,
-    gap: space.md,
+    marginBottom: 28,
   },
   achList: {
     width: '100%',
@@ -792,7 +832,6 @@ const styles = StyleSheet.create({
   },
   viewAllWrap: {
     width: '100%',
-    marginBottom: 28,
   },
   // White-alpha border is the dark-screen palette exception.
   viewAllButton: {
@@ -807,71 +846,20 @@ const styles = StyleSheet.create({
   viewAllText: {
     color: '#fff',
   },
-  statsContainer: {
+  buttonContainer: {
     flexDirection: 'row',
     gap: space.md,
-    marginBottom: 36,
-  },
-  statsContainerSmall: {
-    gap: space.sm,
-  },
-  statCard: {
-    alignItems: 'center',
-    paddingVertical: space.lg,
-    paddingHorizontal: space.xl,
-    borderRadius: radius.card,
-    minWidth: 90,
-  },
-  statCardSmall: {
-    paddingVertical: space.md,
-    paddingHorizontal: space.lg,
-    minWidth: 75,
-  },
-  statCardValue: {
-    fontSize: type.statHero,
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: track.display,
-    marginTop: space.sm,
-  },
-  statCardValueSmall: {
-    fontSize: type.title,
-    marginTop: space.sm,
-  },
-  statCardLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: space.xs,
-  },
-  exerciseDetailsContainer: {
-    width: '100%',
-    marginBottom: space.section,
-  },
-  exerciseDetailsTitle: {
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: space.md,
-    textAlign: 'center',
-  },
-  exerciseDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    borderRadius: radius.control,
-    borderWidth: 1,
-    marginBottom: space.sm,
-  },
-  exerciseDetailName: {
-    color: '#fff',
-    flex: 1,
-  },
-  exerciseDetailSets: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  buttonContainer: {
     paddingHorizontal: space.section,
     paddingTop: space.lg,
-    gap: space.md,
+  },
+  shareButton: {
+    flex: 1,
+  },
+  shareButtonText: {
+    color: '#fff',
+  },
+  doneButton: {
+    flex: 2,
   },
   doneButtonText: {
     color: '#fff',
