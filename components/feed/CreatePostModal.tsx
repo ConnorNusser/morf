@@ -231,7 +231,7 @@ export default function CreatePostModal({
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={handleClose} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="emphasis" tone="primary" weight="semiBold">
             New Post
           </Text>
           <TouchableOpacity
@@ -411,9 +411,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
   },
   postButton: {
     paddingHorizontal: 20,

@@ -318,7 +318,7 @@ export default function CommentsModal({
         ]}>
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
             <View style={styles.handle} />
-            <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text variant="body" tone="primary" weight="semiBold">
               Comments {comments.length > 0 && `(${comments.length})`}
             </Text>
           </View>
@@ -466,9 +466,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: 'rgba(128,128,128,0.4)',
     marginBottom: 10,
-  },
-  headerTitle: {
-    fontSize: 16,
   },
   scrollContent: {
     flex: 1,

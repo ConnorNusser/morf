@@ -195,7 +195,6 @@ export const styles = StyleSheet.create({
     padding: 20,
   },
   renameTitle: {
-    fontSize: 17,
     marginBottom: 14,
   },
   renameInput: {

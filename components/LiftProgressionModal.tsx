@@ -2,6 +2,7 @@ import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import ProgressionIndicator from '@/components/ProgressionIndicator';
 import TierBadge from '@/components/TierBadge';
+import { Text as ThemedText } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { calculateAllPredictions, predictionModels } from '@/lib/data/predictionModels';
 import { FEMALE_STANDARDS, MALE_STANDARDS, OneRMCalculator } from '@/lib/data/strengthStandards';
@@ -379,9 +380,9 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
+          <ThemedText variant="emphasis" tone="primary" weight="semiBold">
             {workoutName} Progression
-          </Text>
+          </ThemedText>
           <IconButton icon="close" onPress={onClose} />
         </View>
 
@@ -447,10 +448,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
   },
   headerSpacer: {
     width: 32,

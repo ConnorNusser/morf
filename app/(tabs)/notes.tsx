@@ -815,7 +815,7 @@ export default function NotesScreen() {
       <Modal visible={!!renamingProgram} transparent animationType="fade" onRequestClose={() => setRenamingProgram(null)}>
         <RNView style={styles.renameOverlay}>
           <RNView style={[styles.renameCard, { backgroundColor: currentTheme.colors.surface }]}>
-            <Text weight="semiBold" style={[styles.renameTitle, { color: currentTheme.colors.text }]}>
+            <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.renameTitle}>
               Rename program
             </Text>
             <TextInput

@@ -153,7 +153,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <View style={styles.headerSpacer} />
-          <Text style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+          <Text variant="emphasis" tone="primary" weight="semiBold">
             {headerTitle}
           </Text>
           <IconButton icon="close" onPress={onClose} />
@@ -488,9 +488,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerTitle: {
-    fontSize: 17,
   },
   headerSpacer: {
     width: 40,

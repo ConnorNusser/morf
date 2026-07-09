@@ -343,7 +343,9 @@ export default function WorkoutThreadModal({
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
           <RNView style={styles.headerSpacer} />
           <Text
-            style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}
+            variant="emphasis"
+            tone="primary"
+            weight="semiBold"
             numberOfLines={1}
           >
             {workout.title}
@@ -649,7 +651,7 @@ export default function WorkoutThreadModal({
               {selectedPplCategory && (
                 <View style={[styles.pplModalTitleChip, { backgroundColor: PPL_COLORS[selectedPplCategory] + '20' }]}>
                   <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[selectedPplCategory] }]} />
-                  <Text style={[styles.pplModalTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+                  <Text variant="emphasis" tone="primary" weight="semiBold">
                     {PPL_LABELS[selectedPplCategory]}
                   </Text>
                 </View>
@@ -705,9 +707,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
   },
   headerSpacer: {
     width: 44,
@@ -1029,10 +1028,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     gap: 8,
-  },
-  pplModalTitle: {
-    fontSize: 17,
-    lineHeight: 22,
   },
   pplModalContent: {
     flex: 1,
