@@ -231,6 +231,9 @@ export default function HomeScreen() {
           {
             backgroundColor: currentTheme.colors.background,
             paddingTop: contentTopPadding,
+            // Clear the floating tab bar so the last card (View Leaderboards)
+            // isn't sliced — matches the scrollBottom clearance used elsewhere.
+            paddingBottom: scrollBottom,
           },
         ]}
       >
