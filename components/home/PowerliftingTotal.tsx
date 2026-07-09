@@ -9,9 +9,11 @@ import { TIER_COLORS } from "@/lib/data/strengthStandards";
 import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity, RARITY_META } from "@/lib/gamification/rarity";
 import { TOTAL_CLUB_TIERS } from "@/lib/gamification/strengthFeats";
+import useCountUp from "@/hooks/useCountUp";
 import { radius, space, tint, track, withAlpha } from "@/lib/ui/tokens";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 
 // A club's color is its strength-tier color (600 = E grey ... 2000 = S gold).
 const clubColor = (target: number): string =>
@@ -95,6 +97,9 @@ export default function PowerliftingTotal({
   const clubAccent = club ? RARITY_META[club.rarity].accent : TIER_COLORS.S;
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
+  // The headline total counts up while the ladder cells fill in sequence.
+  const shownTotal = useCountUp(data.total, { duration: 900 });
+
   return (
     <View style={styles.container}>
       <View style={styles.titleRow}>
@@ -138,7 +143,7 @@ export default function PowerliftingTotal({
             weight="bold"
             style={styles.headerNum}
           >
-            {data.total.toLocaleString()}
+            {shownTotal.toLocaleString()}
           </Text>
           <Text variant="meta" tone="muted">
             {" "}
@@ -174,13 +179,23 @@ export default function PowerliftingTotal({
               style={[
                 styles.ladderCell,
                 {
-                  backgroundColor: fill || colors.border,
-                  opacity: fill ? 1 : 0.3,
                   borderWidth: i === currentCell ? 2 : 0,
                   borderColor: colors.text,
                 },
               ]}
-            />
+            >
+              <View
+                style={[styles.ladderCellBase, { backgroundColor: colors.border }]}
+              />
+              {fill && (
+                <Animated.View
+                  entering={FadeIn.delay(i * 22)
+                    .duration(240)
+                    .reduceMotion(ReduceMotion.System)}
+                  style={[StyleSheet.absoluteFill, { backgroundColor: fill }]}
+                />
+              )}
+            </View>
           );
         })}
       </View>
@@ -275,7 +290,10 @@ const styles = StyleSheet.create({
   liftLabel: { width: 58 },
 
   ladderRow: { flexDirection: "row", gap: 2, marginTop: space.md },
-  ladderCell: { flex: 1, height: 14, borderRadius: 2 },
+  ladderCell: { flex: 1, height: 14, borderRadius: 2, overflow: "hidden" },
+  // Faded track under the animated fill (child opacity, since a parent
+  // opacity would cap the fill too).
+  ladderCellBase: { ...StyleSheet.absoluteFillObject, opacity: 0.3 },
   ladderLabels: { flexDirection: "row", marginTop: space.xs },
   ladderBaseLabel: { textAlign: "right" },
 });

@@ -2,6 +2,7 @@ import { useAlert } from "@/components/CustomAlert";
 import IconButton from "@/components/IconButton";
 import SessionAnalysis from "@/components/history/SessionAnalysis";
 import { Text, useInk } from "@/components/Themed";
+import ScreenModal from "@/components/ui/ScreenModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { screenGutter, space, tint } from "@/lib/ui/tokens";
 import { lineHeightFor, type } from "@/lib/ui/typography";
@@ -11,14 +12,7 @@ import { getExercise } from "@/lib/workout/workouts";
 import { convertWeight, GeneratedWorkout, WeightUnit } from "@/types";
 import * as Clipboard from "expo-clipboard";
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Modal,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface WorkoutDetailModalProps {
   workout: GeneratedWorkout | null;
@@ -89,64 +83,57 @@ export default function WorkoutDetailModal({
     });
 
   return (
-    <Modal visible={!!workout} animationType="slide" presentationStyle="fullScreen">
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={styles.header}>
-          <IconButton
-            icon={copied ? "checkmark" : "copy-outline"}
-            onPress={handleCopy}
-            style={copied ? { backgroundColor: tint(currentTheme.colors.primary) } : undefined}
-            iconColor={copied ? currentTheme.colors.primary : undefined}
-          />
-          <Text variant="title" tone="primary" weight="semiBold">
-            Session
-          </Text>
-          <IconButton icon="close" onPress={onClose} />
-        </View>
+    <ScreenModal
+      visible={!!workout}
+      onClose={onClose}
+      presentation="pageSheet"
+      rightActions={
+        <IconButton
+          icon={copied ? "checkmark" : "copy-outline"}
+          onPress={handleCopy}
+          style={copied ? { backgroundColor: tint(currentTheme.colors.primary) } : undefined}
+          iconColor={copied ? currentTheme.colors.primary : undefined}
+        />
+      }
+    >
+      {workout && (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>
+              {workout.title}
+            </Text>
+            <Text variant="meta" tone="secondary" style={styles.date}>
+              {formatFullDate(workout.createdAt)}
+              {workout.estimatedDuration > 0 &&
+                ` · ${formatMinutes(workout.estimatedDuration)}`}
+            </Text>
+          </View>
 
-        {workout && (
-          <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.hero}>
-              <Text variant="screenTitle" tone="primary" weight="bold" style={styles.title}>
-                {workout.title}
-              </Text>
-              <Text variant="body" tone="secondary" style={styles.date}>
-                {formatFullDate(workout.createdAt)}
-                {workout.estimatedDuration > 0 &&
-                  ` · ${formatMinutes(workout.estimatedDuration)}`}
-              </Text>
-            </View>
+          <SessionAnalysis workout={workout} weightUnit={weightUnit} prDays={prDays} />
 
-            <SessionAnalysis workout={workout} weightUnit={weightUnit} prDays={prDays} />
-
-            <TouchableOpacity onPress={handleDelete} style={styles.delete} hitSlop={8}>
-              <Text variant="meta" weight="semiBold" style={{ color: ink.faint }}>
-                Delete session
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </Modal>
+          <TouchableOpacity onPress={handleDelete} style={styles.delete} hitSlop={8}>
+            <Text variant="meta" weight="semiBold" style={{ color: ink.faint }}>
+              Delete session
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+    </ScreenModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: screenGutter,
-    paddingVertical: space.md,
-  },
   scrollView: { flex: 1 },
-  scrollContent: { paddingHorizontal: screenGutter, paddingBottom: space.section },
-  hero: { marginBottom: space.lg },
+  scrollContent: {
+    paddingHorizontal: screenGutter,
+    paddingTop: space.lg,
+    paddingBottom: space.section,
+  },
+  hero: { marginBottom: space.section },
   title: { lineHeight: lineHeightFor(type.screenTitle), letterSpacing: -0.5 },
   date: { marginTop: space.xs },
   delete: { alignItems: "center", paddingVertical: space.section },

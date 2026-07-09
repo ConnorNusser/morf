@@ -1,12 +1,14 @@
 // The Sessions tab — a scannable feed of compact session rows, newest first.
-// One row = title, meta, and a single standout summary line; the full analysis
-// (KPIs, muscle focus, per-set detail) lives behind the tap in WorkoutDetailModal,
-// which renders SessionAnalysis — so no information is lost, only relocated.
+// One row = title + right-aligned date, then a single quiet detail line; the
+// full analysis (KPIs, muscle focus, per-set detail) lives behind the tap in
+// WorkoutDetailModal, which renders SessionAnalysis — so no information is
+// lost, only relocated.
 import AchievementBadge from "@/components/gamification/AchievementBadge";
 import AchievementModal, {
   AchievementModalItem,
 } from "@/components/gamification/AchievementModal";
 import { Text, useInk } from "@/components/Themed";
+import Badge from "@/components/ui/Badge";
 import { PPL_COLORS, PPL_LABELS } from "@/lib/data/pplCategories";
 import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity } from "@/lib/gamification/rarity";
@@ -14,7 +16,6 @@ import { SessionRecap } from "@/lib/history/sessionRecap";
 import { formatRelativeDate } from "@/lib/ui/formatters";
 import { space, trend } from "@/lib/ui/tokens";
 import { GeneratedWorkout } from "@/types";
-import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -34,18 +35,18 @@ const cleanTitle = (t: string): string | null => {
 // Drop trailing "(Equipment)".
 const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
 
-// The one-line payload: best set first, then how much else there was.
-// "Deadlift 225×5 · e1RM 253 · +3 lifts" / bodyweight: "Pull Ups ×12 · +2 lifts".
-function summaryParts(recap: SessionRecap): { set: string; e1rm: number | null; more: number } | null {
-  const more = Math.max(0, recap.lineup.length - 1);
+// The detail line's lead: the session's best set.
+// "Deadlift 225×5" / bodyweight: "Pull Ups ×12".
+function topSetLabel(recap: SessionRecap): string | null {
   if (recap.standout) {
     const s = recap.standout;
-    return { set: `${shortName(s.name)} ${s.weight}×${s.reps}`, e1rm: s.e1rm, more };
+    return `${shortName(s.name)} ${s.weight}×${s.reps}`;
   }
   const top = recap.lineup[0];
   if (!top) return null;
-  const set = top.weight > 0 ? `${top.name} ${top.weight}×${top.reps}` : `${top.name} ×${top.reps}`;
-  return { set, e1rm: null, more };
+  return top.weight > 0
+    ? `${top.name} ${top.weight}×${top.reps}`
+    : `${top.name} ×${top.reps}`;
 }
 
 function SessionView({
@@ -65,12 +66,11 @@ function SessionView({
   const title =
     cleanTitle(recap.title) ??
     (recap.split ? `${PPL_LABELS[recap.split]} session` : "Workout");
-  const splitColor = recap.split ? PPL_COLORS[recap.split] : ink.muted;
-  const summary = summaryParts(recap);
+  const topSet = topSetLabel(recap);
 
   return (
     <TouchableOpacity
-      activeOpacity={0.7}
+      activeOpacity={0.6}
       onPress={() => onPress(recap.workout)}
       style={[
         styles.session,
@@ -81,8 +81,7 @@ function SessionView({
       ]}
     >
       <RNView style={styles.titleRow}>
-        <RNView style={[styles.dot, { backgroundColor: splitColor }]} />
-        <Text variant="title" tone="primary" weight="semiBold" numberOfLines={1} style={styles.title}>
+        <Text variant="body" tone="primary" weight="semiBold" numberOfLines={1} style={styles.title}>
           {title}
         </Text>
         {/* Icon-only badges — titles live in the spotlight modal a tap away. */}
@@ -94,47 +93,37 @@ function SessionView({
             hitSlop={8}
             accessibilityLabel={a.title}
           >
-            <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={20} />
+            <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={18} />
           </TouchableOpacity>
         ))}
-        {recap.pr && (
-          <Text variant="meta" weight="bold" style={[styles.prTag, { color: trend.up, borderColor: trend.up }]}>
-            PR
-          </Text>
-        )}
-        <Ionicons name="chevron-forward" size={14} color={ink.faint} />
+        {recap.pr && <Badge label="PR" color={trend.up} />}
+        <Text variant="meta" tone="faint" style={styles.date}>
+          {formatRelativeDate(recap.workout.createdAt)}
+        </Text>
       </RNView>
 
-      <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.meta}>
-        {formatRelativeDate(recap.workout.createdAt)}
+      <Text variant="meta" numberOfLines={1} style={styles.detail}>
         {recap.split && (
-          <>
-            {" · "}
-            <Text variant="meta" weight="semiBold" style={{ color: splitColor }}>
-              {PPL_LABELS[recap.split]}
+          <Text variant="meta" weight="semiBold" style={{ color: PPL_COLORS[recap.split] }}>
+            {PPL_LABELS[recap.split]}
+            <Text variant="meta" tone="muted">
+              {"  ·  "}
             </Text>
-          </>
-        )}
-        {` · ${recap.sets} ${recap.sets === 1 ? "set" : "sets"} · ${recap.durationMin}m`}
-      </Text>
-
-      {summary && (
-        <Text variant="body" numberOfLines={1} style={styles.summary}>
-          <Text variant="body" tone="primary" weight="medium">
-            {summary.set}
           </Text>
-          {summary.e1rm !== null && (
-            <Text variant="body" tone="muted">
-              {" · "}e1RM {summary.e1rm}
+        )}
+        {topSet && (
+          <Text variant="meta" tone="secondary" weight="medium">
+            {topSet}
+            <Text variant="meta" tone="muted">
+              {"  ·  "}
             </Text>
-          )}
-          {summary.more > 0 && (
-            <Text variant="body" tone="muted">
-              {" · "}+{summary.more} {summary.more === 1 ? "lift" : "lifts"}
-            </Text>
-          )}
+          </Text>
+        )}
+        <Text variant="meta" tone="muted">
+          {recap.sets} {recap.sets === 1 ? "set" : "sets"}
+          {recap.durationMin > 0 ? `  ·  ${recap.durationMin}m` : ""}
         </Text>
-      )}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -201,19 +190,10 @@ export default function SessionsFeed({
 }
 
 const styles = StyleSheet.create({
-  session: { paddingVertical: space.lg },
+  session: { paddingVertical: space.md },
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  title: { flex: 1, letterSpacing: -0.3 },
-  meta: { marginTop: 2 },
-  summary: { marginTop: space.sm },
-  prTag: {
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    letterSpacing: 0.3,
-    overflow: "hidden",
-  },
+  title: { flex: 1, letterSpacing: -0.2 },
+  date: { marginLeft: space.xs, fontVariant: ["tabular-nums"] },
+  detail: { marginTop: space.xs },
   viewAll: { paddingVertical: space.lg, alignItems: "center" },
 });

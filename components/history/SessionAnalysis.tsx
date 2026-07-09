@@ -2,11 +2,12 @@
 import AnimatedBar from "@/components/AnimatedBar";
 import { prExerciseIdsForWorkout } from "@/components/history/prSessions";
 import { Text, useInk } from "@/components/Themed";
+import Badge from "@/components/ui/Badge";
 import SectionLabel from "@/components/ui/SectionLabel";
 import StatStrip from "@/components/ui/StatStrip";
 import { useTheme } from "@/contexts/ThemeContext";
 import { OneRMCalculator } from "@/lib/data/strengthStandards";
-import { radius, space, trend } from "@/lib/ui/tokens";
+import { space, trend } from "@/lib/ui/tokens";
 import {
   calculateWorkoutStats,
   convertWeightForPreference,
@@ -178,15 +179,14 @@ export default function SessionAnalysis({
                 <Text variant="body" tone="primary" weight="semiBold" numberOfLines={1} style={styles.flexShrink}>
                   {shortName(r.name)}
                 </Text>
-                {r.isPR && (
-                  <Text variant="meta" weight="bold" style={[styles.prTag, { color: trend.up, borderColor: trend.up }]}>
-                    PR
-                  </Text>
-                )}
+                {r.isPR && <Badge label="PR" color={trend.up} />}
               </View>
               {r.best && (
-                <Text variant="meta" tone="muted" weight="medium">
-                  e1RM {r.best.e1rm}
+                <Text variant="meta" tone="muted" style={styles.tabular}>
+                  e1RM{" "}
+                  <Text variant="meta" tone="primary" weight="semiBold">
+                    {r.best.e1rm}
+                  </Text>
                 </Text>
               )}
             </View>
@@ -199,24 +199,22 @@ export default function SessionAnalysis({
                 style={styles.volBar}
               />
             )}
-            <View style={styles.setsGrid}>
-              {r.sets.map((s, i) => (
-                <View key={i} style={[styles.setPill, { backgroundColor: ink.ghost }]}>
-                  <Text variant="meta" tone="primary" weight="medium">
-                    {formatSet(
-                      {
-                        weight: toDisplay(s.weight, s.unit || "lbs"),
-                        reps: s.reps,
-                        unit: weightUnit,
-                        duration: s.duration,
-                        distance: s.distance,
-                      },
-                      { trackingType: r.trackingType, compact: true },
-                    )}
-                  </Text>
-                </View>
-              ))}
-            </View>
+            <Text variant="meta" tone="secondary" style={[styles.setsLine, styles.tabular]}>
+              {r.sets
+                .map((s) =>
+                  formatSet(
+                    {
+                      weight: toDisplay(s.weight, s.unit || "lbs"),
+                      reps: s.reps,
+                      unit: weightUnit,
+                      duration: s.duration,
+                      distance: s.distance,
+                    },
+                    { trackingType: r.trackingType, compact: true },
+                  ),
+                )
+                .join("   ")}
+            </Text>
           </View>
         ))}
       </View>
@@ -240,15 +238,6 @@ const styles = StyleSheet.create({
   exRow: { paddingVertical: space.md, borderTopWidth: StyleSheet.hairlineWidth },
   exHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.sm },
   exNameRow: { flexDirection: "row", alignItems: "center", gap: space.sm, flex: 1 },
-  prTag: {
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    letterSpacing: 0.3,
-    overflow: "hidden",
-  },
-  volBar: { marginTop: space.sm, marginBottom: space.md },
-  setsGrid: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
-  setPill: { paddingHorizontal: space.md, paddingVertical: space.xs, borderRadius: radius.badge },
+  volBar: { marginTop: space.sm, marginBottom: space.sm },
+  setsLine: { marginTop: space.xs },
 });

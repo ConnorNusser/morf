@@ -1,10 +1,12 @@
 import { Text } from "@/components/Themed";
 import SectionLabel from "@/components/ui/SectionLabel";
+import useCountUp from "@/hooks/useCountUp";
 import { getTierColor, StrengthTier } from "@/lib/data/strengthStandards";
+import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { OverallStats } from "@/lib/storage/userProfile";
 import { space } from "@/lib/ui/tokens";
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "./Card";
 import ProgressBar from "./ProgressBar";
 import TierBadge from "./TierBadge";
@@ -23,25 +25,10 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Count the headline up from animateFrom → percentile on replay, else show current.
-  const [shownPercentile, setShownPercentile] = useState(
-    animateFrom != null ? Math.round(animateFrom) : percentile,
-  );
-  const counter = useRef(new Animated.Value(animateFrom ?? percentile)).current;
-  useEffect(() => {
-    if (animateFrom == null) {
-      setShownPercentile(percentile);
-      return;
-    }
-    counter.setValue(animateFrom);
-    const id = counter.addListener(({ value }) => setShownPercentile(Math.round(value)));
-    Animated.timing(counter, {
-      toValue: percentile,
-      duration: 800,
-      useNativeDriver: false,
-    }).start();
-    return () => counter.removeListener(id);
-  }, [animateFrom, percentile, counter]);
+  // Headline counts up on every arrival — from the pre-workout percentile on
+  // replay, from 0 on a fresh mount — mirroring the Career hero.
+  const shownPercentile = useCountUp(percentile, { from: animateFrom ?? 0 });
+  const band = getTierBandProgress(percentile);
 
   return (
     <>
@@ -89,9 +76,25 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
               showTicks={true}
               color={tierColor}
             />
-            <Text variant="meta" tone="secondary" style={styles.progressLabel}>
-              Progress to S Tier
-            </Text>
+            {band.nextTier ? (
+              <Text variant="meta" tone="secondary" style={styles.progressLabel}>
+                <Text variant="meta" tone="primary" weight="semiBold">
+                  {band.toNext}
+                </Text>
+                {" to "}
+                <Text
+                  variant="meta"
+                  weight="semiBold"
+                  style={{ color: getTierColor(band.nextTier) }}
+                >
+                  {band.nextTier}
+                </Text>
+              </Text>
+            ) : (
+              <Text variant="meta" tone="secondary" style={styles.progressLabel}>
+                Max tier reached
+              </Text>
+            )}
           </View>
         </Card>
       </TouchableOpacity>
