@@ -2,6 +2,8 @@
 // One pure computeSessionRewards() feeds every surface so they never drift.
 import { GeneratedWorkout, WeightUnit } from '@/types';
 import { Achievement, computeAchievements } from './achievements';
+import { computeNextUnlocks, NextUnlock } from './nextUnlocks';
+import { computeSessionBonuses, SessionBonus } from './sessionBonuses';
 import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
 import { computeNicheAchievements } from './nicheAchievements';
@@ -46,6 +48,8 @@ export interface SessionPR {
 export interface SessionRewards {
   newAchievements: Achievement[]; // unlocked in `after` but not `before`
   newPRs: SessionPR[]; // main-lift e1RM PRs set this session
+  bonuses: SessionBonus[]; // surprise callouts (variable reward — see sessionBonuses.ts)
+  nextUnlocks: NextUnlock[]; // nearest locked achievements (goal gradient — see nextUnlocks.ts)
   hasRewards: boolean; // anything worth celebrating
 }
 
@@ -60,10 +64,26 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     if (prev === null || lift.estimatedOneRM > prev) newPRs.push({ lift, previous: prev });
   }
 
+  // Don't repeat what an unlock already says: an achievement earned this session
+  // outranks a bonus about the same fact, and celebrating one fact twice
+  // devalues both. Map each bonus to the achievement families that cover it.
+  const bonusOverlaps: Record<string, (achievementId: string) => boolean> = {
+    'volume-boundary': id => id.startsWith('volume-'),
+    'biggest-session': id => id.startsWith('session-'),
+    'day-streak-record': id => id.startsWith('streak-'),
+    'heaviest-set': id => id.startsWith('plates-'),
+  };
+  const bonuses = computeSessionBonuses(before, after).filter(bonus => {
+    const overlaps = bonusOverlaps[bonus.id];
+    return !overlaps || !newAchievements.some(a => overlaps(a.id));
+  });
+
   return {
     newAchievements,
     newPRs,
-    hasRewards: newAchievements.length > 0 || newPRs.length > 0,
+    bonuses,
+    nextUnlocks: computeNextUnlocks(after.achievements, 2, before.achievements),
+    hasRewards: newAchievements.length > 0 || newPRs.length > 0 || bonuses.length > 0,
   };
 }
 

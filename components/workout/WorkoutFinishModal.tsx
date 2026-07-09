@@ -13,6 +13,7 @@ import {
   SessionRewards,
 } from '@/lib/gamification/sessionRewards';
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { getStreakShields, StreakShieldState } from '@/lib/workout/streak';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, track, trend } from '@/lib/ui/tokens';
@@ -82,6 +83,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [userLifts, setUserLifts] = useState<UserProgress[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [sessionRewards, setSessionRewards] = useState<SessionRewards | null>(null);
+  const [streakState, setStreakState] = useState<StreakShieldState | null>(null);
   const [strengthWin, setStrengthWin] = useState(false);
 
   useEffect(() => {
@@ -90,6 +92,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       setParsedWorkout(null);
       setError(null);
       setSessionRewards(null);
+      setStreakState(null);
       setStrengthWin(false);
 
       const parseWorkout = async () => {
@@ -150,6 +153,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
+        setStreakState(getStreakShields(afterHistory));
         // Strength win = PR/achievement, or the overall percentile moved; drives History vs feed.
         setStrengthWin(rewards.hasRewards || overallAfter !== overallBefore);
 
@@ -468,6 +472,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
       onDone={handleDone}
       isSmallScreen={isSmallScreen}
       rewards={sessionRewards}
+      streak={streakState}
     />
   );
 

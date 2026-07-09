@@ -30,6 +30,8 @@ history (GeneratedWorkout[])
 | Achievement presentation | `achievementMeta.ts` (`achievementMeta(id)`), `achievementEmblems.ts` (`emblemFor(id)`), `rarity.ts` |
 | Tiers | `tierTimeline.ts` (`computeTierTimeline`, `getTierBandProgress(percentile)`) |
 | Per-session rewards | `sessionRewards.ts` (`buildRewardSnapshot` before/after → `computeSessionRewards` diff) |
+| Surprise bonuses | `sessionBonuses.ts` (variable-reward callouts from the snapshot diff — must be true facts, never invented) |
+| Goal gradient | `nextUnlocks.ts` (`computeNextUnlocks` — nearest visible locked achievements, ≥40% progress only) |
 | Muscle / heatmap | `muscleMastery.ts`, `trainingHeatmap.ts` |
 | Profile icons | `profileIcons.ts` (unlocks gated by achievements) |
 

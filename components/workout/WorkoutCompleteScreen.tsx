@@ -12,6 +12,9 @@ import FlipCard from '@/components/gamification/FlipCard';
 import CareerModal from '@/components/gamification/CareerModal';
 import { RARITY_META } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
+import { NextUnlock } from '@/lib/gamification/nextUnlocks';
+import { SessionBonus } from '@/lib/gamification/sessionBonuses';
+import { MAX_SHIELDS, StreakShieldState } from '@/lib/workout/streak';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
@@ -63,6 +66,7 @@ interface WorkoutCompleteScreenProps {
   onDone: () => void;
   isSmallScreen?: boolean;
   rewards?: SessionRewards | null;
+  streak?: StreakShieldState | null;
 }
 
 function AchievementRewardRow({
@@ -129,6 +133,110 @@ function RewardsSection({ rewards }: { rewards: SessionRewards }) {
         </View>
       )}
     </Animated.View>
+  );
+}
+
+// Gold surprise chip — the variable-reward moment. Springs in late so it reads
+// as "the app noticed something", not as part of the fixed layout.
+const GOLD = '#FFD700';
+function BonusCallout({ bonus, index }: { bonus: SessionBonus; index: number }) {
+  const scale = useSharedValue(0.6);
+  useEffect(() => {
+    scale.value = withDelay(900 + index * 250, withSpring(1, { damping: 11, stiffness: 160 }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
+  }, []);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <Animated.View entering={FadeIn.delay(900 + index * 250)} style={[styles.bonusRow, style]}>
+      <View style={styles.bonusIconWrap}>
+        <Ionicons name={bonus.icon as keyof typeof Ionicons.glyphMap} size={18} color={GOLD} />
+      </View>
+      <View style={styles.achTextWrap}>
+        <Text variant="body" weight="semiBold" style={styles.bonusTitle} numberOfLines={1}>
+          {bonus.title}
+        </Text>
+        <Text variant="meta" style={styles.bonusDetail} numberOfLines={2}>
+          {bonus.detail}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+// Goal gradient: the bar animates toward its (nearly full) value so the gap to
+// the unlock — not the progress made — is what the eye lands on.
+function NextUnlockRow({ unlock, index }: { unlock: NextUnlock; index: number }) {
+  const fill = useSharedValue(0);
+  const accent = RARITY_META[unlock.rarity].accent;
+  useEffect(() => {
+    fill.value = withDelay(
+      1400 + index * 200,
+      withTiming(unlock.progress, { duration: 900, easing: Easing.out(Easing.cubic) })
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
+  }, []);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+
+  return (
+    <Animated.View entering={FadeIn.delay(1400 + index * 200)} style={styles.nextRow}>
+      <View style={styles.nextHeader}>
+        <Ionicons name={unlock.icon as keyof typeof Ionicons.glyphMap} size={15} color={accent} />
+        <Text variant="meta" weight="semiBold" style={styles.nextTitle} numberOfLines={1}>
+          {unlock.title}
+        </Text>
+        <Text variant="meta" weight="bold" style={[styles.nextPercent, { color: accent }]}>
+          {unlock.percentLabel}
+        </Text>
+      </View>
+      <View style={styles.nextTrack}>
+        <Animated.View style={[styles.nextFill, { backgroundColor: accent }, fillStyle]} />
+      </View>
+      <Text variant="meta" style={styles.nextDesc} numberOfLines={1}>
+        {unlock.description}
+      </Text>
+    </Animated.View>
+  );
+}
+
+// Week streak + shield bank. Shields only render once there's a streak worth
+// protecting — showing empty pips to a new user reads as a demand, not a reward.
+function StreakRow({ streak }: { streak: StreakShieldState }) {
+  const pips = Array.from({ length: MAX_SHIELDS }, (_, i) => i < streak.shieldsAvailable);
+  return (
+    <View style={styles.streakWrap}>
+      <Animated.View entering={FadeIn.delay(400)} style={styles.streakRow}>
+        <Ionicons name="flame" size={16} color="#FF8A3D" />
+        <Text variant="meta" weight="semiBold" style={styles.streakText}>
+          {streak.current}-week streak
+        </Text>
+        <View style={styles.streakPips}>
+          {pips.map((filled, i) => (
+            <Ionicons
+              key={i}
+              name={filled ? 'shield' : 'shield-outline'}
+              size={13}
+              color={filled ? '#4ECDC4' : 'rgba(255,255,255,0.25)'}
+            />
+          ))}
+        </View>
+        <Text variant="meta" style={styles.streakHint}>
+          {streak.shieldsAvailable > 0
+            ? `${streak.shieldsAvailable} shield${streak.shieldsAvailable > 1 ? 's' : ''} banked`
+            : `shield in ${streak.weeksToNextShield} wk${streak.weeksToNextShield > 1 ? 's' : ''}`}
+        </Text>
+      </Animated.View>
+      {streak.savedLastWeek && (
+        // The save has to be *felt* or the shield prevents nothing — a user who
+        // believes the streak died last week has no reason to come back.
+        <Animated.View entering={FadeIn.delay(600)} style={styles.shieldSaveRow}>
+          <Ionicons name="shield-checkmark" size={15} color="#4ECDC4" />
+          <Text variant="meta" weight="medium" style={styles.shieldSaveText}>
+            A shield covered last week — your {streak.current}-week streak survived
+          </Text>
+        </Animated.View>
+      )}
+    </View>
   );
 }
 
@@ -330,6 +438,7 @@ export default function WorkoutCompleteScreen({
   onDone,
   isSmallScreen = false,
   rewards,
+  streak,
 }: WorkoutCompleteScreenProps) {
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -357,6 +466,20 @@ export default function WorkoutCompleteScreen({
   }, [currentTheme]);
 
   const prs = useMemo((): PRInfo[] => {
+    // The history diff is the source of truth for PRs — it catches every main
+    // lift, not just tier-eligible featured ones. The badge scan below is only
+    // the fallback while rewards are still computing (or failed best-effort).
+    if (rewards) {
+      return rewards.newPRs.map(({ lift, previous }) => ({
+        exerciseName: lift.name,
+        exerciseId: lift.exerciseId,
+        newPR: Math.round(lift.estimatedOneRM),
+        previousPR: Math.round(previous ?? 0),
+        improvement: previous !== null ? Math.round(lift.estimatedOneRM - previous) : 0,
+        percentile: userLifts.find(l => l.workoutId === lift.exerciseId)?.percentileRanking,
+      }));
+    }
+
     const detectedPRs: PRInfo[] = [];
     const bodyWeightLbs = userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined;
 
@@ -402,7 +525,7 @@ export default function WorkoutCompleteScreen({
     }
 
     return detectedPRs;
-  }, [exercises, userLifts, userProfile]);
+  }, [rewards, exercises, userLifts, userProfile]);
 
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
@@ -435,6 +558,17 @@ export default function WorkoutCompleteScreen({
   }));
 
   const handleStatPress = useCallback(() => setShowExerciseDetails(v => !v), []);
+
+  // Headline the session's best true fact — the same sentence every session
+  // stops being read at all. Falls back to the generic line until rewards land.
+  const subtitle = useMemo(() => {
+    if (prs.length === 1) return `New ${prs[0].exerciseName} PR — the numbers don't lie`;
+    if (prs.length > 1) return `${prs.length} PRs in a single session`;
+    if (streak?.savedLastWeek) return 'Your shield held the line — streak intact';
+    if (streak && streak.trainedThisWeek && streak.current >= 2) return `Week ${streak.current} of your streak, banked`;
+    if (rewards?.bonuses.length) return 'Not a normal day in the gym';
+    return 'Great job crushing it today';
+  }, [prs, streak, rewards]);
 
   return (
     <Animated.View entering={FadeIn} style={styles.container}>
@@ -474,8 +608,10 @@ export default function WorkoutCompleteScreen({
             entering={FadeIn.delay(300)}
             style={styles.subtitle}
           >
-            Great job crushing it today
+            {subtitle}
           </Animated.Text>
+
+          {streak && streak.current >= 2 && <StreakRow streak={streak} />}
 
           {prs.length > 0 && (
             <View style={styles.prSection}>
@@ -529,7 +665,26 @@ export default function WorkoutCompleteScreen({
             </View>
           )}
 
+          {rewards && rewards.bonuses.length > 0 && (
+            <View style={styles.bonusSection}>
+              {rewards.bonuses.map((b, i) => (
+                <BonusCallout key={b.id} bonus={b} index={i} />
+              ))}
+            </View>
+          )}
+
           {rewards?.hasRewards && <RewardsSection rewards={rewards} />}
+
+          {rewards && rewards.nextUnlocks.length > 0 && (
+            <Animated.View entering={FadeIn.delay(1300)} style={styles.nextSection}>
+              <Text variant="meta" weight="semiBold" style={styles.nextSectionLabel}>
+                NEXT UP
+              </Text>
+              {rewards.nextUnlocks.map((u, i) => (
+                <NextUnlockRow key={u.id} unlock={u} index={i} />
+              ))}
+            </Animated.View>
+          )}
 
           <Animated.View entering={FadeIn.delay(550)} style={styles.viewAllWrap}>
             <TouchableOpacity
@@ -608,8 +763,10 @@ export default function WorkoutCompleteScreen({
         </View>
       </ScrollView>
 
+      {/* Arrives after the last reward animation (bonuses 900ms, next-ups 1400ms)
+          so a fast tapper still sees the payoff land — a 1s hold, not a lock. */}
       <Animated.View
-        entering={FadeIn.delay(700)}
+        entering={FadeIn.delay(1600)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
         {/* White label kept: this screen is always dark regardless of theme (named palette exception). */}
@@ -726,6 +883,120 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 32,
     gap: space.md,
+  },
+  streakWrap: {
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: -20,
+    marginBottom: 28,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,138,61,0.10)',
+  },
+  shieldSaveRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(78,205,196,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(78,205,196,0.35)',
+  },
+  shieldSaveText: {
+    color: '#4ECDC4',
+  },
+  streakText: {
+    color: '#fff',
+  },
+  streakPips: {
+    flexDirection: 'row',
+    gap: 3,
+    marginLeft: space.xs,
+  },
+  streakHint: {
+    color: 'rgba(255,255,255,0.55)',
+  },
+  bonusSection: {
+    width: '100%',
+    marginBottom: 32,
+    gap: space.md,
+  },
+  bonusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    borderRadius: radius.card,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.35)',
+  },
+  bonusIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,215,0,0.14)',
+  },
+  bonusTitle: {
+    color: '#fff',
+  },
+  bonusDetail: {
+    color: 'rgba(255,255,255,0.65)',
+    marginTop: 1,
+  },
+  nextSection: {
+    width: '100%',
+    marginBottom: 32,
+    gap: space.md,
+  },
+  nextSectionLabel: {
+    color: 'rgba(255,255,255,0.45)',
+    letterSpacing: track.caps,
+    textAlign: 'center',
+  },
+  nextRow: {
+    width: '100%',
+    borderRadius: radius.card,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.md,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    gap: space.xs,
+  },
+  nextHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  nextTitle: {
+    color: '#fff',
+    flex: 1,
+  },
+  nextPercent: {},
+  nextTrack: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+    marginTop: space.xs,
+  },
+  nextFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  nextDesc: {
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 2,
   },
   achList: {
     width: '100%',

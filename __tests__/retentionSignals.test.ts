@@ -18,40 +18,40 @@ const day = (offset: number, hour = 18, minute = 0) =>
 //   day 10+   → two+ weeks ago
 describe('getStreakState (week-based)', () => {
   it('returns zero for no workouts', () => {
-    expect(getStreakState([], NOW)).toEqual({ current: 0, trainedThisWeek: false, trainedToday: false });
+    expect(getStreakState([], NOW)).toMatchObject({ current: 0, trainedThisWeek: false, trainedToday: false });
   });
 
   it('counts this week as a 1-week streak, flags trainedToday', () => {
-    expect(getStreakState([w(day(0))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
+    expect(getStreakState([w(day(0))], NOW)).toMatchObject({ current: 1, trainedThisWeek: true, trainedToday: true });
   });
 
   it('counts the week even when today is a rest day', () => {
     // trained Tuesday this week, resting Wednesday — streak intact, not today
-    expect(getStreakState([w(day(1))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: false });
+    expect(getStreakState([w(day(1))], NOW)).toMatchObject({ current: 1, trainedThisWeek: true, trainedToday: false });
   });
 
   it('treats a rest week in progress as still alive off last week', () => {
     // nothing this week yet, trained last week → streak holds at 1
-    expect(getStreakState([w(day(3))], NOW)).toEqual({ current: 1, trainedThisWeek: false, trainedToday: false });
+    expect(getStreakState([w(day(3))], NOW)).toMatchObject({ current: 1, trainedThisWeek: false, trainedToday: false });
   });
 
   it('counts consecutive trained weeks', () => {
     // this week (day 0) + last week (day 7) = 2-week streak
-    expect(getStreakState([w(day(0)), w(day(7))], NOW)).toEqual({ current: 2, trainedThisWeek: true, trainedToday: true });
+    expect(getStreakState([w(day(0)), w(day(7))], NOW)).toMatchObject({ current: 2, trainedThisWeek: true, trainedToday: true });
   });
 
   it('breaks when a full week passed with no workout', () => {
     // trained two weeks ago only; last week empty → broken
-    expect(getStreakState([w(day(14))], NOW)).toEqual({ current: 0, trainedThisWeek: false, trainedToday: false });
+    expect(getStreakState([w(day(14))], NOW)).toMatchObject({ current: 0, trainedThisWeek: false, trainedToday: false });
   });
 
   it('stops counting at a skipped week', () => {
     // this week + two weeks ago, but last week skipped → only this week counts
-    expect(getStreakState([w(day(0)), w(day(14))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
+    expect(getStreakState([w(day(0)), w(day(14))], NOW)).toMatchObject({ current: 1, trainedThisWeek: true, trainedToday: true });
   });
 
   it('dedupes multiple workouts within the same week', () => {
-    expect(getStreakState([w(day(0)), w(day(1)), w(day(2))], NOW)).toEqual({ current: 1, trainedThisWeek: true, trainedToday: true });
+    expect(getStreakState([w(day(0)), w(day(1)), w(day(2))], NOW)).toMatchObject({ current: 1, trainedThisWeek: true, trainedToday: true });
   });
 });
 

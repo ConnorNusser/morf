@@ -1,5 +1,6 @@
 import WorkoutLaunch from '@/components/home/WorkoutLaunch';
 import { loadCareerData } from '@/lib/gamification/careerData';
+import { computeNextUnlocks, NextUnlock } from '@/lib/gamification/nextUnlocks';
 import { Rarity } from '@/lib/gamification/rarity';
 import { WeightUnit } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
@@ -23,6 +24,7 @@ export interface CareerSnapshot {
   daysActive?: number;
   currentStreak?: number;
   achievements?: AchievementFact[];
+  nextUnlocks?: NextUnlock[]; // what today's session could earn — anticipation, not history
 }
 
 interface LaunchConfig {
@@ -72,6 +74,7 @@ export function WorkoutLaunchProvider({ children }: { children: React.ReactNode 
         daysActive: d.stats.daysActive,
         currentStreak: d.stats.currentStreak,
         achievements,
+        nextUnlocks: computeNextUnlocks(d.achievements),
       });
     } catch {
       // keep the last known snapshot

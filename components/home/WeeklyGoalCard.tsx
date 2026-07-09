@@ -17,6 +17,7 @@ import {
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from "@/lib/workout/weeklyGoal";
+import { getStreakShields, MAX_SHIELDS } from "@/lib/workout/streak";
 import { getWorkoutById } from "@/lib/workout/workouts";
 import { GeneratedWorkout, WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -91,6 +92,11 @@ export default function WeeklyGoalCard() {
     [history],
   );
 
+  const shieldState = useMemo(
+    () => (history ? getStreakShields(history) : null),
+    [history],
+  );
+
   const selectGoal = useCallback((next: number) => {
     setGoal(next);
     storageService.saveWeeklyGoal(next);
@@ -161,6 +167,47 @@ export default function WeeklyGoalCard() {
             </View>
           ))}
         </View>
+
+        {/* Ambient stakes: the streak is visible where the train/skip decision
+            happens, not just after a workout — loss aversion needs the
+            thing-to-lose in view *before* the action. */}
+        {shieldState && shieldState.current >= 2 && (
+          <View style={styles.streakRow}>
+            <Ionicons
+              name="flame"
+              size={14}
+              color={shieldState.trainedThisWeek ? GOAL_MET_COLOR : ink.muted}
+            />
+            <Text variant="meta" tone="secondary" weight="semiBold">
+              {shieldState.current}-week streak
+            </Text>
+            <View style={styles.shieldPips}>
+              {Array.from({ length: MAX_SHIELDS }, (_, i) => (
+                <Ionicons
+                  key={i}
+                  name={i < shieldState.shieldsAvailable ? "shield" : "shield-outline"}
+                  size={12}
+                  color={i < shieldState.shieldsAvailable ? "#4ECDC4" : ink.muted}
+                />
+              ))}
+            </View>
+            <Text
+              variant="meta"
+              tone="secondary"
+              style={
+                !shieldState.trainedThisWeek && shieldState.shieldsAvailable === 0
+                  ? { color: TREND_DOWN }
+                  : undefined
+              }
+            >
+              {shieldState.trainedThisWeek
+                ? `week ${shieldState.current} secured`
+                : shieldState.shieldsAvailable > 0
+                  ? "shield has your back"
+                  : "train by Sunday to keep it"}
+            </Text>
+          </View>
+        )}
 
         {load && load.sets > 0 && (
           <View
@@ -324,6 +371,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: space.xs,
     paddingTop: space.md,
+  },
+  streakRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm,
+    paddingTop: space.md,
+  },
+  shieldPips: {
+    flexDirection: "row",
+    gap: 2,
   },
   trendChip: {
     flexDirection: "row",
