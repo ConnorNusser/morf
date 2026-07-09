@@ -1,17 +1,20 @@
-// The Sessions tab — every session rendered as a full inline analysis, newest first. Tapping a header opens the focused view.
+// The Sessions tab — a scannable feed of compact session rows, newest first.
+// One row = title, meta, and a single standout summary line; the full analysis
+// (KPIs, muscle focus, per-set detail) lives behind the tap in WorkoutDetailModal,
+// which renders SessionAnalysis — so no information is lost, only relocated.
 import AchievementBadge from "@/components/gamification/AchievementBadge";
 import AchievementModal, {
   AchievementModalItem,
 } from "@/components/gamification/AchievementModal";
-import SessionAnalysis from "@/components/history/SessionAnalysis";
 import { Text, useInk } from "@/components/Themed";
 import { PPL_COLORS, PPL_LABELS } from "@/lib/data/pplCategories";
 import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity } from "@/lib/gamification/rarity";
 import { SessionRecap } from "@/lib/history/sessionRecap";
 import { formatRelativeDate } from "@/lib/ui/formatters";
-import { space } from "@/lib/ui/tokens";
-import { GeneratedWorkout, WeightUnit } from "@/types";
+import { space, trend } from "@/lib/ui/tokens";
+import { GeneratedWorkout } from "@/types";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -28,18 +31,31 @@ const cleanTitle = (t: string): string | null => {
   return !s || /^workout\b/i.test(s) ? null : s;
 };
 
+// Drop trailing "(Equipment)".
+const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, "").trim();
+
+// The one-line payload: best set first, then how much else there was.
+// "Deadlift 225×5 · e1RM 253 · +3 lifts" / bodyweight: "Pull Ups ×12 · +2 lifts".
+function summaryParts(recap: SessionRecap): { set: string; e1rm: number | null; more: number } | null {
+  const more = Math.max(0, recap.lineup.length - 1);
+  if (recap.standout) {
+    const s = recap.standout;
+    return { set: `${shortName(s.name)} ${s.weight}×${s.reps}`, e1rm: s.e1rm, more };
+  }
+  const top = recap.lineup[0];
+  if (!top) return null;
+  const set = top.weight > 0 ? `${top.name} ${top.weight}×${top.reps}` : `${top.name} ×${top.reps}`;
+  return { set, e1rm: null, more };
+}
+
 function SessionView({
   recap,
-  weightUnit,
-  prDays,
   achievements,
   last,
   onPress,
   onPressAchievement,
 }: {
   recap: SessionRecap;
-  weightUnit: WeightUnit;
-  prDays: Map<string, Set<string>>;
   achievements?: SessionAchievement[];
   last: boolean;
   onPress: (w: GeneratedWorkout) => void;
@@ -50,9 +66,12 @@ function SessionView({
     cleanTitle(recap.title) ??
     (recap.split ? `${PPL_LABELS[recap.split]} session` : "Workout");
   const splitColor = recap.split ? PPL_COLORS[recap.split] : ink.muted;
+  const summary = summaryParts(recap);
 
   return (
-    <RNView
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => onPress(recap.workout)}
       style={[
         styles.session,
         !last && {
@@ -61,66 +80,68 @@ function SessionView({
         },
       ]}
     >
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={() => onPress(recap.workout)}
-        style={styles.head}
-      >
-        <RNView style={styles.titleRow}>
-          <RNView style={[styles.dot, { backgroundColor: splitColor }]} />
-          <Text variant="heading" tone="primary" weight="bold" numberOfLines={1} style={styles.title}>
-            {title}
-          </Text>
-        </RNView>
-        <Text variant="meta" tone="secondary" numberOfLines={1}>
-          {formatRelativeDate(recap.workout.createdAt)}
-          {recap.split && (
-            <>
-              {" · "}
-              <Text variant="meta" weight="semiBold" style={{ color: splitColor }}>
-                {PPL_LABELS[recap.split]}
-              </Text>
-            </>
-          )}
-          {` · ${recap.sets} sets · ${recap.durationMin}m`}
+      <RNView style={styles.titleRow}>
+        <RNView style={[styles.dot, { backgroundColor: splitColor }]} />
+        <Text variant="title" tone="primary" weight="semiBold" numberOfLines={1} style={styles.title}>
+          {title}
         </Text>
-      </TouchableOpacity>
+        {/* Icon-only badges — titles live in the spotlight modal a tap away. */}
+        {(achievements ?? []).slice(0, 3).map((a) => (
+          <TouchableOpacity
+            key={a.id}
+            onPress={() => onPressAchievement(a, recap)}
+            activeOpacity={0.7}
+            hitSlop={8}
+            accessibilityLabel={a.title}
+          >
+            <AchievementBadge icon={a.icon} emblem={emblemFor(a.id)} rarity={a.rarity} size={20} />
+          </TouchableOpacity>
+        ))}
+        {recap.pr && (
+          <Text variant="meta" weight="bold" style={[styles.prTag, { color: trend.up, borderColor: trend.up }]}>
+            PR
+          </Text>
+        )}
+        <Ionicons name="chevron-forward" size={14} color={ink.faint} />
+      </RNView>
 
-      {achievements && achievements.length > 0 && (
-        <RNView style={styles.achRow}>
-          {achievements.slice(0, 5).map((a) => (
-            <TouchableOpacity
-              key={a.id}
-              style={styles.achItem}
-              onPress={() => onPressAchievement(a, recap)}
-              activeOpacity={0.7}
-              hitSlop={6}
-              accessibilityLabel={a.title}
-            >
-              <AchievementBadge
-                icon={a.icon}
-                emblem={emblemFor(a.id)}
-                rarity={a.rarity}
-                size={26}
-              />
-              <Text variant="meta" tone="secondary" weight="semiBold" numberOfLines={1}>
-                {a.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </RNView>
+      <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.meta}>
+        {formatRelativeDate(recap.workout.createdAt)}
+        {recap.split && (
+          <>
+            {" · "}
+            <Text variant="meta" weight="semiBold" style={{ color: splitColor }}>
+              {PPL_LABELS[recap.split]}
+            </Text>
+          </>
+        )}
+        {` · ${recap.sets} ${recap.sets === 1 ? "set" : "sets"} · ${recap.durationMin}m`}
+      </Text>
+
+      {summary && (
+        <Text variant="body" numberOfLines={1} style={styles.summary}>
+          <Text variant="body" tone="primary" weight="medium">
+            {summary.set}
+          </Text>
+          {summary.e1rm !== null && (
+            <Text variant="body" tone="muted">
+              {" · "}e1RM {summary.e1rm}
+            </Text>
+          )}
+          {summary.more > 0 && (
+            <Text variant="body" tone="muted">
+              {" · "}+{summary.more} {summary.more === 1 ? "lift" : "lifts"}
+            </Text>
+          )}
+        </Text>
       )}
-
-      <SessionAnalysis workout={recap.workout} weightUnit={weightUnit} prDays={prDays} />
-    </RNView>
+    </TouchableOpacity>
   );
 }
 
 interface SessionsFeedProps {
   recaps: SessionRecap[];
-  weightUnit: WeightUnit;
   visibleCount: number;
-  prDays: Map<string, Set<string>>;
   onPressSession: (w: GeneratedWorkout) => void;
   onToggleShowAll?: () => void;
   totalCount: number;
@@ -129,9 +150,7 @@ interface SessionsFeedProps {
 
 export default function SessionsFeed({
   recaps,
-  weightUnit,
   visibleCount,
-  prDays,
   onPressSession,
   onToggleShowAll,
   totalCount,
@@ -153,7 +172,7 @@ export default function SessionsFeed({
 
   const entries = recaps.slice(0, Math.max(1, visibleCount));
   const hasMore = totalCount > visibleCount;
-  const showToggle = onToggleShowAll && (hasMore || visibleCount > 3);
+  const showToggle = onToggleShowAll && (hasMore || visibleCount > 8);
 
   return (
     <RNView>
@@ -161,8 +180,6 @@ export default function SessionsFeed({
         <SessionView
           key={r.workout.id}
           recap={r}
-          weightUnit={weightUnit}
-          prDays={prDays}
           achievements={achievementsByWorkout?.[r.workout.id]}
           last={i === entries.length - 1 && !showToggle}
           onPress={onPressSession}
@@ -184,17 +201,19 @@ export default function SessionsFeed({
 }
 
 const styles = StyleSheet.create({
-  session: { paddingBottom: space.section, marginBottom: space.section },
-  head: { paddingBottom: space.md },
+  session: { paddingVertical: space.lg },
   titleRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   dot: { width: 8, height: 8, borderRadius: 4 },
   title: { flex: 1, letterSpacing: -0.3 },
-  achRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: space.md,
-    marginBottom: space.lg,
+  meta: { marginTop: 2 },
+  summary: { marginTop: space.sm },
+  prTag: {
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    letterSpacing: 0.3,
+    overflow: "hidden",
   },
-  achItem: { flexDirection: "row", alignItems: "center", gap: space.sm },
   viewAll: { paddingVertical: space.lg, alignItems: "center" },
 });
