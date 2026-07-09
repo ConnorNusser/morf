@@ -161,7 +161,7 @@ class RetentionNotificationService {
     };
 
     if (prefs.streakReminders) {
-      const { current, shieldsAvailable, trainedThisWeek } = getStreakState(workouts, now);
+      const { current, trainedThisWeek } = getStreakState(workouts, now);
       // Week streaks only break when a full week passes empty, so the nudge
       // lands when the week is nearly over: pre-planned for Saturday, or the
       // remaining slot today if the weekend has already started.
@@ -189,14 +189,9 @@ class RetentionNotificationService {
           if (minute !== null) fireAt = atMinute(nextSaturday, minute);
         }
         if (fireAt) {
-          // Shielded users get the honest version — a miss won't break the
-          // streak, so don't manufacture fake stakes. Unshielded copy names the
-          // real ones: the weeks on the line and what one session preserves.
-          const body = shieldsAvailable > 0
-            ? `Your shield covers a miss, but week ${current + 1} only counts if you earn it.`
-            : current >= 4
-              ? `${current} weeks on the line — one session before Sunday keeps the run alive.`
-              : `Train this week so you don't lose your streak.`;
+          const body = current >= 4
+            ? `${current} weeks strong. Get a workout in before the week's out.`
+            : `Train this week so you don't lose your streak.`;
           candidates.push({ type: 'streak', fireAt, title: `${current}-week streak`, body });
         }
       }
@@ -204,7 +199,7 @@ class RetentionNotificationService {
 
     if (prefs.habitReminders) {
       const habit = getHabitDay(workouts, now);
-      const { current, trainedToday, trainedThisWeek } = getStreakState(workouts, now);
+      const { trainedToday } = getStreakState(workouts, now);
       if (habit) {
         const minute = Math.max(habit.medianStartMinute || HABIT_FALLBACK_MINUTE, EARLIEST_MINUTE);
         if (minute <= latest) {
@@ -214,16 +209,11 @@ class RetentionNotificationService {
           if (offset === 0 && (trainedToday || minute <= nowMinute)) offset = 7;
           const fireDay = new Date(now);
           fireDay.setDate(fireDay.getDate() + offset);
-          // Tie the habit cue to a concrete payoff when one exists: securing the
-          // next streak week beats a generic "you normally train today".
-          const body = current >= 2 && !trainedThisWeek
-            ? `Your usual day — today's session locks in week ${current + 1} of your streak.`
-            : 'You normally train today. Pick up where you left off.';
           candidates.push({
             type: 'habit',
             fireAt: atMinute(fireDay, minute),
             title: 'Your usual training day',
-            body,
+            body: 'You normally train today. Pick up where you left off.',
           });
         }
       }
@@ -237,12 +227,10 @@ class RetentionNotificationService {
       // nudge won't land, that's a server-side job's problem.
       const days = getDaysSinceLastWorkout(workouts, now);
       if (days !== null && days <= COMEBACK_MAX_DAYS) {
-        const { longest } = getStreakState(workouts, now);
-        // Give the lapsed user something to chase (their own record), not
-        // something to feel bad about. Guilt sells one open; a goal sells a habit.
-        const bodyFor = (daysAtFire: number) => longest >= 3
-          ? `Your best run is ${longest} weeks. Day one of the next one is a single session away.`
-          : `It's been ${daysAtFire} days since your last workout — a quick session is all it takes to restart.`;
+        // Body is baked in at plant time, so derive the day count from the rung
+        // (fire date = lastWorkout + rung) to stay accurate when it fires.
+        const bodyFor = (daysAtFire: number) =>
+          `It's been ${daysAtFire} days since your last workout — a quick session is all it takes to restart.`;
         // A ladder of rungs, one per week of the lapse window (+5/+12/+19/+26
         // days after the last workout) — a single nudge covers the highest
         // churn-risk month at a quarter of the density the cap allows. One

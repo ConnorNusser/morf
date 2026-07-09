@@ -1,19 +1,16 @@
 // Pure helpers behind the retention reminders. `now` is injectable for tests.
 import { GeneratedWorkout } from '@/types';
-import { getStreakShields, getWeekStreak } from '@/lib/workout/streak';
+import { getWeekStreak } from '@/lib/workout/streak';
 
 export interface StreakState {
   current: number; // consecutive trained *weeks* — see lib/workout/streak.ts
-  longest: number; // best run ever (comeback copy: a record to chase, not a scolding)
-  shieldsAvailable: number; // banked streak shields — see getStreakShields
   trainedThisWeek: boolean;
   trainedToday: boolean;
 }
 
 export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Date()): StreakState {
-  const { current, longest, trainedThisWeek, trainedToday } = getWeekStreak(workouts, now);
-  const { shieldsAvailable } = getStreakShields(workouts, now);
-  return { current, longest, shieldsAvailable, trainedThisWeek, trainedToday };
+  const { current, trainedThisWeek, trainedToday } = getWeekStreak(workouts, now);
+  return { current, trainedThisWeek, trainedToday };
 }
 
 // Whole days since the most recent workout (0 = trained today), or null if never.

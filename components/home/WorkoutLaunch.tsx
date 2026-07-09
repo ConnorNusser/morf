@@ -58,11 +58,6 @@ function volumeComparison(volumeLbs: number): string {
 function buildPool(c: CareerSnapshot): Brief[] {
   const facts: Brief[] = [];
   const unit = c.unit || 'lbs';
-  // Lead with what today could earn — the anticipation half of the reward loop.
-  // Past facts reassure; a near unlock gives this session a reason to exist.
-  for (const u of c.nextUnlocks || []) {
-    facts.push({ tag: 'NEXT UP', text: `${u.percentLabel} of the way to “${u.title}”. Today could be the day.` });
-  }
   if (c.totalVolume && c.totalVolume > 0) {
     const lbs = unit === 'kg' ? c.totalVolume * 2.20462 : c.totalVolume;
     facts.push({ tag: 'TOTAL VOLUME', text: `You’ve moved ${formatCompact(c.totalVolume)} ${unit} — about ${volumeComparison(lbs)}.` });
