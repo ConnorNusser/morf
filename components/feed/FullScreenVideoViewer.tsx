@@ -7,12 +7,11 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState, useEffect } from 'react';
 import {
   Dimensions,
-  Modal,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import MediaViewerShell from '@/components/feed/MediaViewerShell';
 import Animated from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -100,21 +99,7 @@ export default function FullScreenVideoViewer({
   if (!visible || !videoUrl) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={handleClose}
-      statusBarTranslucent
-    >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ width: 44 }} />
-          </View>
+    <MediaViewerShell visible={visible} onClose={handleClose}>
 
           <TouchableOpacity
             style={styles.videoContainer}
@@ -187,40 +172,11 @@ export default function FullScreenVideoViewer({
               )}
             </View>
           </View>
-        </SafeAreaView>
-      </View>
-    </Modal>
+    </MediaViewerShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   videoContainer: {
     flex: 1,
     justifyContent: 'center',

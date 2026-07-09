@@ -198,17 +198,17 @@ export default function MonthlyTrendsModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="close" onPress={handleClose} />
+          {/* Spacer mirrors the close button so the title stays centered. */}
+          <View style={styles.headerSpacer} />
           <Text variant="title" tone="primary" weight="semiBold">
             Monthly Trends
           </Text>
-          {/* Spacer mirrors the close button so the title stays centered. */}
-          <View style={styles.headerSpacer} />
+          <IconButton icon="close" onPress={handleClose} />
         </View>
 
         <ScrollView

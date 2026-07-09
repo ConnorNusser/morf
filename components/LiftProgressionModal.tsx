@@ -1,3 +1,4 @@
+import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import ProgressionIndicator from '@/components/ProgressionIndicator';
 import TierBadge from '@/components/TierBadge';
@@ -11,7 +12,7 @@ import { convertWeightForPreference, formatSet } from '@/lib/utils/utils';
 import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface LiftProgressionModalProps {
   visible: boolean;
@@ -381,9 +382,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           <Text style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
             {workoutName} Progression
           </Text>
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}>
-            <Ionicons name="close" size={20} color={currentTheme.colors.text} />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -448,13 +447,6 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,

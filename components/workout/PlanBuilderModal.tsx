@@ -153,7 +153,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
     >
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="chevron-back" onPress={onCancel} />
+          <IconButton icon="close" onPress={onCancel} />
           <Text variant="title" weight="semiBold" tone="primary">
             Plan Builder
           </Text>

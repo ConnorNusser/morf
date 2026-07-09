@@ -107,14 +107,14 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <RNView style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="close" onPress={onClose} />
+          <RNView style={styles.headerSpacer} />
           <Text variant="title" weight="semiBold" tone="primary">
             Start Routine
           </Text>
-          <RNView style={styles.headerSpacer} />
+          <IconButton icon="close" onPress={onClose} />
         </RNView>
 
         {routines.length > 0 && (

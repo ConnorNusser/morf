@@ -341,14 +341,14 @@ export default function WorkoutThreadModal({
     >
       <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={[styles.header, { backgroundColor: 'transparent', borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="close" onPress={onClose} />
+          <RNView style={styles.headerSpacer} />
           <Text
             style={[styles.headerTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}
             numberOfLines={1}
           >
             {workout.title}
           </Text>
-          <RNView style={styles.headerSpacer} />
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <KeyboardAvoidingView
@@ -639,14 +639,12 @@ export default function WorkoutThreadModal({
       <Modal
         visible={pplModalVisible}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={handleClosePplModal}
       >
         <View style={[styles.pplModalContainer, { backgroundColor: currentTheme.colors.background }]}>
           <View style={[styles.pplModalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <TouchableOpacity onPress={handleClosePplModal} style={styles.pplModalCloseButton}>
-              <Ionicons name="close" size={24} color={currentTheme.colors.text} />
-            </TouchableOpacity>
+            <View style={styles.pplModalCloseButton} />
             <View style={styles.pplModalTitleContainer}>
               {selectedPplCategory && (
                 <View style={[styles.pplModalTitleChip, { backgroundColor: PPL_COLORS[selectedPplCategory] + '20' }]}>
@@ -657,7 +655,7 @@ export default function WorkoutThreadModal({
                 </View>
               )}
             </View>
-            <View style={styles.pplModalCloseButton} />
+            <IconButton icon="close" onPress={handleClosePplModal} />
           </View>
 
           <ScrollView style={styles.pplModalContent} contentContainerStyle={styles.pplModalContentContainer}>

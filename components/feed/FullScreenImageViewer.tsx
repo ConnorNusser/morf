@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Dimensions,
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -12,7 +11,7 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import MediaViewerShell from '@/components/feed/MediaViewerShell';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -83,28 +82,19 @@ export default function FullScreenImageViewer({
   if (!visible || images.length === 0) return null;
 
   return (
-    <Modal
+    <MediaViewerShell
       visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#fff" />
-            </TouchableOpacity>
-            {images.length > 1 && (
-              <View style={styles.counter}>
-                <Text style={styles.counterText}>
-                  {currentIndex + 1} / {images.length}
-                </Text>
-              </View>
-            )}
-            <View style={{ width: 44 }} />
+      onClose={onClose}
+      headerCenter={
+        images.length > 1 ? (
+          <View style={styles.counter}>
+            <Text style={styles.counterText}>
+              {currentIndex + 1} / {images.length}
+            </Text>
           </View>
+        ) : null
+      }
+    >
 
           <ScrollView
             horizontal
@@ -173,40 +163,11 @@ export default function FullScreenImageViewer({
               </TouchableOpacity>
             </View>
           )}
-        </SafeAreaView>
-      </View>
-    </Modal>
+    </MediaViewerShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    position: 'absolute',
-    top: 50,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   counter: {
     paddingHorizontal: 16,
     paddingVertical: 8,

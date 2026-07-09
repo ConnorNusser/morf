@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import IconButton from '@/components/IconButton';
 import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { useAlert } from '@/components/CustomAlert';
 import { Text, View, useInk } from '@/components/Themed';
@@ -609,12 +610,7 @@ export default function CustomExercisesSection({ onExercisesUpdate }: CustomExer
                 <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.modalHeaderTitle}>
                   Custom Exercises
                 </Text>
-                <TouchableOpacity
-                  onPress={closeModal}
-                  style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
-                >
-                  <Ionicons name="close" size={20} color={ink.primary} />
-                </TouchableOpacity>
+                <IconButton icon="close" onPress={closeModal} />
               </View>
 
               <View style={[styles.disclaimerBanner, { backgroundColor: tint(currentTheme.colors.primary), borderColor: currentTheme.colors.primary + '30' }]}>
@@ -821,13 +817,6 @@ const styles = StyleSheet.create({
   },
   modalHeaderTitle: {
     lineHeight: 22,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.control,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   disclaimerBanner: {
     flexDirection: 'row',

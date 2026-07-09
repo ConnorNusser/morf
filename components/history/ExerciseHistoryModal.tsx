@@ -109,15 +109,15 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
   if (!exercise) return null;
 
   return (
-    <Modal visible={!!exercise} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal visible={!!exercise} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="close" onPress={onClose} />
+          {/* Spacer mirrors the close button so the title stays centered. */}
+          <View style={{ width: 40 }} />
           <Text variant="title" tone="primary" weight="semiBold" style={styles.modalTitle} numberOfLines={1}>
             {exercise.name}
           </Text>
-          {/* Spacer mirrors the close button so the title stays centered. */}
-          <View style={{ width: 40 }} />
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>

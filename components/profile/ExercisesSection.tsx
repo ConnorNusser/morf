@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import IconButton from '@/components/IconButton';
 import { Text, View, useInk } from '@/components/Themed';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -204,12 +205,7 @@ export default function ExercisesSection() {
             <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.modalHeaderTitle}>
               Exercises
             </Text>
-            <TouchableOpacity
-              onPress={closeModal}
-              style={[styles.closeButton, { backgroundColor: currentTheme.colors.surface }]}
-            >
-              <Ionicons name="close" size={20} color={ink.primary} />
-            </TouchableOpacity>
+            <IconButton icon="close" onPress={closeModal} />
           </View>
 
           <View style={styles.searchContainer}>
@@ -375,13 +371,6 @@ const styles = StyleSheet.create({
   },
   modalHeaderTitle: {
     lineHeight: 22,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.control,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   searchContainer: {
     paddingHorizontal: screenGutter,
