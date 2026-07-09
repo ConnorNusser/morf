@@ -4,7 +4,6 @@
 // this session earned, plus any unlocked achievements.
 // White-alpha palette throughout is a named exception — this screen is always
 // dark regardless of theme.
-import Button from '@/components/Button';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -35,11 +34,13 @@ import {
   Animated as RNAnimated,
   Dimensions,
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import Animated, {
   Easing,
   FadeIn,
@@ -52,7 +53,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ViewShot from 'react-native-view-shot';
+import ViewShot, { captureRef } from 'react-native-view-shot';
 import playHapticFeedback from '@/lib/utils/haptic';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -304,6 +305,45 @@ function ProgressionBar({ from, to, color }: { from: number; to: number; color: 
   );
 }
 
+// Circular icon action with a caption — the bottom bar's share-destination unit.
+function MiniAction({
+  icon,
+  label,
+  onPress,
+  accent,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  accent?: boolean;
+}) {
+  const { currentTheme } = useTheme();
+  return (
+    <TouchableOpacity
+      style={styles.miniAction}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <RNView
+        style={[
+          styles.miniCircle,
+          accent && {
+            backgroundColor: currentTheme.colors.primary,
+            borderColor: currentTheme.colors.primary,
+          },
+        ]}
+      >
+        <Ionicons name={icon} size={22} color="#fff" />
+      </RNView>
+      <Text variant="meta" style={styles.miniLabel}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 // The percentile progression this session earned — the Career hero's language.
 function ProgressionSection({ move }: { move: PercentileMove }) {
   // A 0 "before" means this is the first percentile ever computed — a delta
@@ -536,20 +576,60 @@ export default function WorkoutCompleteScreen({
       : null;
   const overallAfter = percentileMove?.after ?? 0;
 
-  const handleShare = () => {
+  // ---- Tailored shares: each platform gets the format it's actually used with ----
+  const [copied, setCopied] = useState(false);
+
+  // Switch the capture format first (sticker for IG overlays, card for feeds),
+  // let it paint, then hand off.
+  const captureAs = (mode: 'card' | 'sticker', then: () => void) => {
     playHapticFeedback('light', false);
-    captureAndShare(shareRef as React.RefObject<ViewShot>);
+    setShareMode(mode);
+    setTimeout(then, 150);
   };
+
+  // Instagram lives on story overlays → transparent sticker into the sheet.
+  const handleInstagram = () =>
+    captureAs('sticker', () => captureAndShare(shareRef as React.RefObject<ViewShot>));
+
+  // X is text-first → a pre-written brag, no image required.
+  const handlePost = () => {
+    playHapticFeedback('light', false);
+    const text = liftSpotlight
+      ? `${liftSpotlight.name} ${liftSpotlight.e1rm} ${weightUnit} e1RM today — stronger than ${liftSpotlight.percentile}% of lifters. Tracked with morf.`
+      : overallTier
+        ? `Stronger than ${overallAfter}% of lifters. Tracked with morf.`
+        : `${volumeDisplay ?? 'A lot'} lifted today. Tracked with morf.`;
+    Linking.openURL(`https://x.com/intent/post?text=${encodeURIComponent(text)}`).catch(() => {});
+  };
+
+  // Copy puts the current card on the clipboard for anywhere else (Discord, group chats).
+  const handleCopy = async () => {
+    playHapticFeedback('light', false);
+    try {
+      const base64 = await captureRef(shareRef, { format: 'png', quality: 1, result: 'base64' });
+      await Clipboard.setImageAsync(base64);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy card failed:', err);
+    }
+  };
+
+  // Everything else → the framed card through the system sheet.
+  const handleMore = () =>
+    captureAs('card', () => captureAndShare(shareRef as React.RefObject<ViewShot>));
 
   const overallTier = overallAfter > 0 ? getStrengthTier(overallAfter) : null;
 
-  // Card layouts on offer — tap the card to flip through them.
+  // Card layouts on offer — tap the card to flip through them. Up to four:
+  // identity, lift brag, PR haul, and the session's workload.
   const cardVariants = useMemo(() => {
-    const v: ('overall' | 'lift' | 'prs')[] = ['overall'];
+    const v: ('overall' | 'lift' | 'prs' | 'volume')[] = ['overall'];
     if (liftSpotlight) v.push('lift');
     if (prs.length > 0) v.push('prs');
+    if (volumeDisplay) v.push('volume');
     return v;
-  }, [liftSpotlight, prs]);
+  }, [liftSpotlight, prs, volumeDisplay]);
   const activeVariant = cardVariants[Math.min(cardIndex, cardVariants.length - 1)];
 
   const flipCard = () => {
@@ -606,6 +686,24 @@ export default function WorkoutCompleteScreen({
           {liftSpotlight.reps}
         </Text>
         {sessionLine}
+      </View>
+    ) : activeVariant === 'volume' ? (
+      <View style={styles.cardHero}>
+        <Text variant="meta" weight="bold" style={styles.cardLabel}>
+          WORK DONE
+        </Text>
+        <Text style={styles.cardHeroVolume}>{volumeDisplay}</Text>
+        <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+          moved in {stats.durationStr}
+        </Text>
+        <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
+          {stats.sets} {stats.sets === 1 ? 'set' : 'sets'} · {stats.exercises}{' '}
+          {stats.exercises === 1 ? 'exercise' : 'exercises'}
+          {topLift ? ` · ${topLift.name} ${topLift.weight}×${topLift.reps}` : ''}
+        </Text>
+        <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
+          {cardTitleFor(title)}
+        </Text>
       </View>
     ) : activeVariant === 'prs' ? (
       <>
@@ -737,7 +835,7 @@ export default function WorkoutCompleteScreen({
         </Text>
       </View>
 
-      {cardBody}
+      <View style={styles.cardBodyWrap}>{cardBody}</View>
 
       <View style={[styles.cardTagline, { borderTopColor: CARD_HAIRLINE }]}>
         <Text variant="meta" style={styles.cardTaglineText}>
@@ -855,26 +953,18 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
-        {/* White labels + fixed dark surface: this screen is always dark
-            regardless of theme (named palette exception). Share is the hero
-            action — it's why this screen exists. */}
-        <Button
-          title="Done"
-          onPress={onDone}
-          variant="secondary"
-          size="large"
-          style={styles.doneButton}
-          textStyle={styles.doneButtonText}
+        {/* One mini action per destination, each tailored to how that platform
+            is used; the chevron dismisses (the app's close grammar). */}
+        <MiniAction icon="chevron-down" label="Done" onPress={onDone} />
+        <RNView style={styles.actionSpacer} />
+        <MiniAction icon="logo-instagram" label="Story" onPress={handleInstagram} />
+        <MiniAction icon="logo-twitter" label="Post" onPress={handlePost} />
+        <MiniAction
+          icon={copied ? 'checkmark' : 'copy-outline'}
+          label={copied ? 'Copied' : 'Copy'}
+          onPress={handleCopy}
         />
-        <Button
-          title="Share"
-          icon="share-outline"
-          onPress={handleShare}
-          variant="primary"
-          size="large"
-          style={styles.shareButton}
-          textStyle={styles.shareButtonText}
-        />
+        <MiniAction icon="share-outline" label="More" onPress={handleMore} accent />
       </Animated.View>
 
       <CareerModal visible={showAllAchievements} onClose={() => setShowAllAchievements(false)} />
@@ -937,8 +1027,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0,
   },
+  // Poster proportions: ~4:5 at full-width, so it drops into feeds cleanly.
   cardInner: {
     padding: space.xl,
+    minHeight: 440,
+  },
+  cardBodyWrap: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   cardHero: {
     alignItems: 'center',
@@ -1158,23 +1254,30 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: space.md,
+    alignItems: 'flex-start',
+    gap: space.lg,
     paddingHorizontal: space.section,
     paddingTop: space.lg,
   },
-  shareButton: {
-    flex: 1.5,
-  },
-  shareButtonText: {
-    color: '#fff',
-  },
-  doneButton: {
+  actionSpacer: {
     flex: 1,
+  },
+  miniAction: {
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  miniCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.18)',
   },
-  doneButtonText: {
-    color: '#fff',
+  miniLabel: {
+    color: 'rgba(255,255,255,0.5)',
   },
   dotsRow: {
     flexDirection: 'row',
