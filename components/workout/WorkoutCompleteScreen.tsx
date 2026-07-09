@@ -12,12 +12,13 @@ import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
+import { tierEmblemFor } from '@/lib/gamification/tierEmblems';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import CareerModal from '@/components/gamification/CareerModal';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { RARITY_META } from '@/lib/gamification/rarity';
+import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getWorkoutById } from '@/lib/workout/workouts';
@@ -614,15 +615,23 @@ export default function WorkoutCompleteScreen({
 
   const overallTier = overallAfter > 0 ? getStrengthTier(overallAfter) : null;
 
-  // Card layouts on offer — tap the card to flip through them. Up to four:
-  // identity, lift brag, PR haul, and the session's workload.
+  // The rarest achievement earned this session fronts the achievement card.
+  const spotlightAchievement = useMemo(() => {
+    const list = rewards?.newAchievements ?? [];
+    if (list.length === 0) return null;
+    return [...list].sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity))[0];
+  }, [rewards]);
+
+  // Card layouts on offer — tap the card to flip through them:
+  // identity, lift brag, PR haul, achievement unlock, and the session's workload.
   const cardVariants = useMemo(() => {
-    const v: ('overall' | 'lift' | 'prs' | 'volume')[] = ['overall'];
+    const v: ('overall' | 'lift' | 'prs' | 'achievement' | 'volume')[] = ['overall'];
     if (liftSpotlight) v.push('lift');
     if (prs.length > 0) v.push('prs');
+    if (spotlightAchievement) v.push('achievement');
     if (volumeDisplay) v.push('volume');
     return v;
-  }, [liftSpotlight, prs, volumeDisplay]);
+  }, [liftSpotlight, prs, spotlightAchievement, volumeDisplay]);
   const activeVariant = cardVariants[Math.min(cardIndex, cardVariants.length - 1)];
 
   const flipCard = () => {
@@ -686,6 +695,32 @@ export default function WorkoutCompleteScreen({
           {stats.exercises === 1 ? 'exercise' : 'exercises'}
         </Text>
       </View>
+    ) : activeVariant === 'achievement' && spotlightAchievement ? (
+      <View style={styles.cardHero}>
+        <AchievementBadge
+          icon={spotlightAchievement.icon}
+          emblem={ACHIEVEMENT_EMBLEMS[spotlightAchievement.id]}
+          rarity={spotlightAchievement.rarity}
+          size={84}
+        />
+        <Text
+          variant="meta"
+          weight="bold"
+          style={[
+            styles.cardLabel,
+            styles.cardAchLabel,
+            { color: RARITY_META[spotlightAchievement.rarity].accent },
+          ]}
+        >
+          {RARITY_META[spotlightAchievement.rarity].label.toUpperCase()} · UNLOCKED
+        </Text>
+        <Text style={styles.cardAchTitle} numberOfLines={1}>
+          {spotlightAchievement.title}
+        </Text>
+        <Text variant="meta" style={styles.cardAchDesc} numberOfLines={2}>
+          {spotlightAchievement.description}
+        </Text>
+      </View>
     ) : activeVariant === 'prs' ? (
       <>
         <View style={styles.cardHero}>
@@ -727,11 +762,17 @@ export default function WorkoutCompleteScreen({
       <View style={styles.cardHero}>
         {overallTier ? (
           <>
-            <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
-              {overallTier}
-            </Text>
+            <Image source={tierEmblemFor(overallTier)} style={styles.cardEmblem} resizeMode="contain" />
             <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-              Stronger than {overallAfter}% of lifters
+              <Text
+                variant="body"
+                weight="bold"
+                style={{ color: getTierColor(overallTier) }}
+              >
+                {overallTier}
+              </Text>
+              {' · Stronger than '}
+              {overallAfter}% of lifters
             </Text>
           </>
         ) : (
@@ -1247,6 +1288,30 @@ const styles = StyleSheet.create({
   },
   cardHeroGold: {
     color: '#FFD700',
+  },
+  // Pixel medallion — scaled with nearest-neighbor crispness left to the asset's 256px.
+  cardEmblem: {
+    width: 132,
+    height: 132,
+    marginBottom: space.md,
+  },
+  cardAchLabel: {
+    marginTop: space.lg,
+    marginBottom: 0,
+  },
+  cardAchTitle: {
+    fontSize: type.header,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: track.display,
+    marginTop: space.sm,
+    textAlign: 'center',
+  },
+  cardAchDesc: {
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: space.sm,
+    textAlign: 'center',
+    lineHeight: lineHeightFor(type.meta),
   },
   ember: {
     position: 'absolute',
