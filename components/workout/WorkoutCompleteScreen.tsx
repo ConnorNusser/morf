@@ -17,7 +17,7 @@ import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
 import { UserProfile, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -357,6 +357,21 @@ export default function WorkoutCompleteScreen({
   }, [currentTheme]);
 
   const prs = useMemo((): PRInfo[] => {
+    // The history diff is the source of truth for PRs — it covers every
+    // featured lift, including secondary lifts the badge scan below misses
+    // (which the app already pushes to friends). The badge scan is only the
+    // fallback while rewards are still computing (or failed best-effort).
+    if (rewards) {
+      return rewards.newPRs.map(({ lift, previous }) => ({
+        exerciseName: lift.name,
+        exerciseId: lift.exerciseId,
+        newPR: Math.round(lift.estimatedOneRM),
+        previousPR: Math.round(previous ?? 0),
+        improvement: previous !== null ? Math.round(lift.estimatedOneRM - previous) : 0,
+        percentile: userLifts.find(l => l.workoutId === lift.exerciseId)?.percentileRanking,
+      }));
+    }
+
     const detectedPRs: PRInfo[] = [];
     const bodyWeightLbs = userProfile ? convertWeightToLbs(userProfile.weight.value, userProfile.weight.unit) : undefined;
 
@@ -402,19 +417,29 @@ export default function WorkoutCompleteScreen({
     }
 
     return detectedPRs;
-  }, [exercises, userLifts, userProfile]);
+  }, [rewards, exercises, userLifts, userProfile]);
 
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
-    if (prs.length > 0) {
-      prGlow.value = withDelay(
-        500,
-        withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
-      );
-    }
+    // When PRs are already visible at mount, the PR effect below fires
+    // 'success' this same instant — stacking 'medium' on top blurs both.
+    if (prs.length === 0) playHapticFeedback('medium', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PRs from the history diff land after mount — celebrate on the transition,
+  // not just at mount, or a diff-only PR gets the muted haptic and no glow.
+  const prCelebrated = useRef(false);
+  useEffect(() => {
+    if (prs.length === 0 || prCelebrated.current) return;
+    prCelebrated.current = true;
+    playHapticFeedback('success', false);
+    prGlow.value = withDelay(
+      500,
+      withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prs]);
 
   const checkAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: checkScale.value }],
