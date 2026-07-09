@@ -22,7 +22,11 @@ import { RARITY_META } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { convertWeightForPreference, convertWeightToLbs } from '@/lib/utils/utils';
+import {
+  convertWeightForPreference,
+  convertWeightToLbs,
+  getPercentileSuffix,
+} from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
 import { UserProfile, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +43,7 @@ import {
 import Animated, {
   Easing,
   FadeIn,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -314,14 +319,17 @@ function ProgressionSection({ move }: { move: PercentileMove }) {
         <Text variant="meta" weight="bold" style={styles.progressLabel}>
           OVERALL STRENGTH
         </Text>
-        <Text variant="meta" weight="semiBold" style={styles.progressValue}>
+        <View style={styles.progressValueRow}>
           {delta > 0 && (
             <Text variant="meta" weight="bold" style={{ color: trend.up }}>
-              +{delta}{'  '}
+              +{delta}
             </Text>
           )}
-          {move.after} percentile
-        </Text>
+          <AnimatedCounter value={move.after} delay={500} duration={1100} style={styles.progressNum} />
+          <Text variant="meta" style={styles.progressValue}>
+            percentile
+          </Text>
+        </View>
       </View>
       <ProgressionBar from={move.before} to={move.after} color={color} />
       <Text variant="meta" style={styles.progressCaption}>
@@ -361,6 +369,9 @@ export default function WorkoutCompleteScreen({
   // card = framed poster on the generated backdrop; sticker = transparent
   // stats-only PNG to overlay on your own photo (IG-story style).
   const [shareMode, setShareMode] = useState<'card' | 'sticker'>('card');
+  // Which card layout is showing — tap the card to flip to the next one.
+  const [cardIndex, setCardIndex] = useState(0);
+  const cardRotY = useSharedValue(0);
   const shareRef = useRef<ViewShot>(null);
 
   // Rising embers, gold-heavy with a few theme-blue sparks mixed in.
@@ -461,6 +472,41 @@ export default function WorkoutCompleteScreen({
     return best;
   }, [exercises]);
 
+  // The single-lift brag: the highest-percentile featured lift trained this
+  // session ("stronger than 85% of Bench Press lifters") — the share moment.
+  const liftSpotlight = useMemo(() => {
+    let best: {
+      name: string;
+      percentile: number;
+      e1rm: number;
+      weight: number;
+      reps: number;
+    } | null = null;
+    for (const exercise of exercises) {
+      if (!exercise.matchedExerciseId) continue;
+      const lift = userLifts.find((l) => l.workoutId === exercise.matchedExerciseId);
+      if (!lift || lift.percentileRanking <= 0) continue;
+      let top: { e1rm: number; weight: number; reps: number } | null = null;
+      for (const set of exercise.sets || []) {
+        if ((set.weight || 0) <= 0 || (set.reps || 0) <= 0) continue;
+        const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
+        if (!top || e1rm > top.e1rm) top = { e1rm, weight: set.weight, reps: set.reps };
+      }
+      if (!top) continue;
+      if (!best || lift.percentileRanking > best.percentile) {
+        const info = getWorkoutById(exercise.matchedExerciseId);
+        best = {
+          name: shortName(info?.name || exercise.name),
+          percentile: lift.percentileRanking,
+          e1rm: Math.round(top.e1rm),
+          weight: Math.round(top.weight),
+          reps: top.reps,
+        };
+      }
+    }
+    return best;
+  }, [exercises, userLifts]);
+
   useEffect(() => {
     playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only haptic
@@ -497,73 +543,82 @@ export default function WorkoutCompleteScreen({
 
   const overallTier = overallAfter > 0 ? getStrengthTier(overallAfter) : null;
 
-  // The card body, shared by both share modes. Identity first (tier + standing),
-  // then the session, then the receipts (top lift, PRs), then the brand line.
-  const cardContent = (
-    <View style={styles.cardInner}>
-      <View style={styles.cardBrandRow}>
-        <Image
-          source={require('@/assets/images/icon-original.png')}
-          style={styles.cardLogo}
-          resizeMode="contain"
-        />
-        <Text variant="meta" weight="semiBold" style={styles.cardBrand}>
-          morf
-        </Text>
-        <View style={styles.flex} />
-        <Text variant="meta" style={styles.cardDate}>
-          {dateStr}
-        </Text>
-      </View>
+  // Card layouts on offer — tap the card to flip through them.
+  const cardVariants = useMemo(() => {
+    const v: ('overall' | 'lift' | 'prs')[] = ['overall'];
+    if (liftSpotlight) v.push('lift');
+    if (prs.length > 0) v.push('prs');
+    return v;
+  }, [liftSpotlight, prs]);
+  const activeVariant = cardVariants[Math.min(cardIndex, cardVariants.length - 1)];
 
+  const flipCard = () => {
+    if (cardVariants.length < 2) return;
+    playHapticFeedback('light', false);
+    const next = (cardIndex + 1) % cardVariants.length;
+    cardRotY.value = withTiming(
+      90,
+      { duration: 150, easing: Easing.in(Easing.quad) },
+      (finished) => {
+        'worklet';
+        if (finished) {
+          runOnJS(setCardIndex)(next);
+          cardRotY.value = -90;
+          cardRotY.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) });
+        }
+      },
+    );
+  };
+  const flipStyle = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1000 }, { rotateY: `${cardRotY.value}deg` }],
+  }));
+
+  // The session line every layout carries, so each capture stays branded/context-ful.
+  const sessionLine = (
+    <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
+      {cardTitleFor(title)} · {stats.durationStr} · {stats.sets}{' '}
+      {stats.sets === 1 ? 'set' : 'sets'}
+      {volumeDisplay ? ` · ${volumeDisplay}` : ''}
+    </Text>
+  );
+
+  // Middle of the card, by layout: overall standing / single-lift brag / PR haul.
+  const cardBody =
+    activeVariant === 'lift' && liftSpotlight ? (
       <View style={styles.cardHero}>
-        {overallTier ? (
-          <>
-            <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
-              {overallTier}
-            </Text>
-            <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-              Stronger than {overallAfter}% of lifters
-            </Text>
-          </>
-        ) : (
-          volumeDisplay && (
-            <>
-              <Text style={styles.cardHeroVolume}>{volumeDisplay}</Text>
-              <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-                lifted today
-              </Text>
-            </>
-          )
-        )}
-        <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
-          {cardTitleFor(title)} · {stats.durationStr} · {stats.sets}{' '}
-          {stats.sets === 1 ? 'set' : 'sets'}
-          {volumeDisplay && overallTier ? ` · ${volumeDisplay}` : ''}
+        <Text variant="meta" weight="bold" style={styles.cardLabel}>
+          {liftSpotlight.name.toUpperCase()}
         </Text>
+        <Text
+          style={[
+            styles.cardHeroTier,
+            { color: getTierColor(getStrengthTier(liftSpotlight.percentile)) },
+          ]}
+        >
+          {liftSpotlight.percentile}
+          {getPercentileSuffix(liftSpotlight.percentile)}
+        </Text>
+        <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+          Stronger than {liftSpotlight.percentile}% of {liftSpotlight.name} lifters
+        </Text>
+        <Text variant="meta" style={styles.cardHeroMeta}>
+          {liftSpotlight.e1rm} {weightUnit} e1RM · best set {liftSpotlight.weight} ×{' '}
+          {liftSpotlight.reps}
+        </Text>
+        {sessionLine}
       </View>
-
-      {topLift && (
-        <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
-          <Text variant="meta" weight="bold" style={styles.cardLabel}>
-            TOP LIFT
+    ) : activeVariant === 'prs' ? (
+      <>
+        <View style={styles.cardHero}>
+          <Text style={[styles.cardHeroTier, styles.cardHeroGold]}>
+            {prs.length} {prs.length === 1 ? 'PR' : 'PRs'}
           </Text>
-          <View style={styles.cardRow}>
-            <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
-              {topLift.name}
-            </Text>
-            <Text variant="body" weight="bold" style={styles.cardRowValue}>
-              {topLift.weight} × {topLift.reps}
-            </Text>
-          </View>
+          <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+            New personal {prs.length === 1 ? 'record' : 'records'} today
+          </Text>
+          {sessionLine}
         </View>
-      )}
-
-      {prs.length > 0 && (
         <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
-          <Text variant="meta" weight="bold" style={[styles.cardLabel, { color: '#FFD700' }]}>
-            {prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRS`}
-          </Text>
           {prs.map((pr, index) => (
             <View key={pr.exerciseId || index} style={styles.cardRow}>
               <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
@@ -589,7 +644,100 @@ export default function WorkoutCompleteScreen({
             </View>
           ))}
         </View>
-      )}
+      </>
+    ) : (
+      <>
+        <View style={styles.cardHero}>
+          {overallTier ? (
+            <>
+              <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
+                {overallTier}
+              </Text>
+              <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+                Stronger than {overallAfter}% of lifters
+              </Text>
+            </>
+          ) : (
+            volumeDisplay && (
+              <>
+                <Text style={styles.cardHeroVolume}>{volumeDisplay}</Text>
+                <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+                  lifted today
+                </Text>
+              </>
+            )
+          )}
+          {sessionLine}
+        </View>
+
+        {topLift && (
+          <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
+            <Text variant="meta" weight="bold" style={styles.cardLabel}>
+              TOP LIFT
+            </Text>
+            <View style={styles.cardRow}>
+              <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
+                {topLift.name}
+              </Text>
+              <Text variant="body" weight="bold" style={styles.cardRowValue}>
+                {topLift.weight} × {topLift.reps}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {prs.length > 0 && (
+          <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
+            <Text variant="meta" weight="bold" style={[styles.cardLabel, { color: '#FFD700' }]}>
+              {prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRS`}
+            </Text>
+            {prs.map((pr, index) => (
+              <View key={pr.exerciseId || index} style={styles.cardRow}>
+                <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
+                  {shortName(pr.exerciseName)}
+                </Text>
+                <View style={styles.prValueCluster}>
+                  <AnimatedCounter
+                    value={pr.newPR}
+                    delay={600 + index * 100}
+                    duration={1000}
+                    style={styles.prValue}
+                  />
+                  <Text variant="meta" style={styles.prUnit}>
+                    {weightUnit}
+                  </Text>
+                  {pr.improvement > 0 && (
+                    <Text variant="meta" weight="bold" style={styles.improvementText}>
+                      ↑{pr.improvement}
+                    </Text>
+                  )}
+                  {pr.percentile != null && <TierBadge percentile={pr.percentile} size="small" />}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </>
+    );
+
+  const cardContent = (
+    <View style={styles.cardInner}>
+      <View style={styles.cardBrandRow}>
+        <Image
+          source={require('@/assets/images/icon-original.png')}
+          style={styles.cardLogo}
+          resizeMode="contain"
+        />
+        <Text variant="meta" weight="semiBold" style={styles.cardBrand}>
+          morf
+        </Text>
+        <View style={styles.flex} />
+        <Text variant="meta" style={styles.cardDate}>
+          {dateStr}
+        </Text>
+      </View>
+
+      {cardBody}
 
       <View style={[styles.cardTagline, { borderTopColor: CARD_HAIRLINE }]}>
         <Text variant="meta" style={styles.cardTaglineText}>
@@ -618,16 +766,37 @@ export default function WorkoutCompleteScreen({
 
           {/* ---- Shareable recap card ---- */}
           <Animated.View entering={FadeIn.delay(350)} style={styles.cardWrap}>
-            <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
-              {/* One stable wrapper — swapping wrapper types would remount the
-                  content and restart the PR counters on every mode toggle. */}
-              <RNView style={[styles.card, shareMode === 'sticker' && styles.cardSticker]}>
-                {shareMode === 'card' && (
-                  <Image source={CARD_BACKDROP} style={styles.cardBgAbs} resizeMode="cover" />
-                )}
-                {cardContent}
+            <TouchableOpacity activeOpacity={0.92} onPress={flipCard} disabled={cardVariants.length < 2}>
+              <Animated.View style={flipStyle}>
+                <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
+                  {/* One stable wrapper — swapping wrapper types would remount the
+                      content and restart the PR counters on every mode toggle. */}
+                  <RNView style={[styles.card, shareMode === 'sticker' && styles.cardSticker]}>
+                    {shareMode === 'card' && (
+                      <Image source={CARD_BACKDROP} style={styles.cardBgAbs} resizeMode="cover" />
+                    )}
+                    {cardContent}
+                  </RNView>
+                </ViewShot>
+              </Animated.View>
+            </TouchableOpacity>
+
+            {cardVariants.length > 1 && (
+              <RNView style={styles.dotsRow}>
+                {cardVariants.map((v, i) => (
+                  <RNView
+                    key={v}
+                    style={[
+                      styles.dot,
+                      i === Math.min(cardIndex, cardVariants.length - 1) && styles.dotActive,
+                    ]}
+                  />
+                ))}
+                <Text variant="meta" style={styles.dotsHint}>
+                  tap card for more layouts
+                </Text>
               </RNView>
-            </ViewShot>
+            )}
           </Animated.View>
 
           {/* Card = the framed poster; Sticker = transparent stats to overlay on
@@ -686,22 +855,25 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
-        <Button
-          title="Share"
-          onPress={handleShare}
-          variant="secondary"
-          size="large"
-          style={styles.shareButton}
-          textStyle={styles.shareButtonText}
-        />
-        {/* White label kept: this screen is always dark regardless of theme (named palette exception). */}
+        {/* White labels + fixed dark surface: this screen is always dark
+            regardless of theme (named palette exception). Share is the hero
+            action — it's why this screen exists. */}
         <Button
           title="Done"
           onPress={onDone}
-          variant="primary"
+          variant="secondary"
           size="large"
           style={styles.doneButton}
           textStyle={styles.doneButtonText}
+        />
+        <Button
+          title="Share"
+          icon="share-outline"
+          onPress={handleShare}
+          variant="primary"
+          size="large"
+          style={styles.shareButton}
+          textStyle={styles.shareButtonText}
         />
       </Animated.View>
 
@@ -894,17 +1066,28 @@ const styles = StyleSheet.create({
     letterSpacing: track.caps,
   },
   progressValue: {
-    color: 'rgba(255,255,255,0.75)',
+    color: 'rgba(255,255,255,0.55)',
+  },
+  progressValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: space.xs,
+  },
+  progressNum: {
+    fontSize: type.emphasis,
+    fontWeight: '700',
+    color: '#fff',
+    fontVariant: ['tabular-nums'],
   },
   progressTrack: {
-    height: 8,
-    borderRadius: 4,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: 'rgba(255,255,255,0.12)',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 5,
   },
   progressCaption: {
     color: 'rgba(255,255,255,0.45)',
@@ -980,16 +1163,41 @@ const styles = StyleSheet.create({
     paddingTop: space.lg,
   },
   shareButton: {
-    flex: 1,
+    flex: 1.5,
   },
   shareButtonText: {
     color: '#fff',
   },
   doneButton: {
-    flex: 2,
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.18)',
   },
   doneButtonText: {
     color: '#fff',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.sm,
+    marginTop: space.md,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  dotActive: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  dotsHint: {
+    color: 'rgba(255,255,255,0.35)',
+    marginLeft: space.xs,
+  },
+  cardHeroGold: {
+    color: '#FFD700',
   },
   ember: {
     position: 'absolute',
