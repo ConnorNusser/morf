@@ -37,8 +37,8 @@ function YourLifts({ lifts }: YourLiftsProps) {
       <LiftDisplayFilter availableLifts={lifts} onFiltersChanged={setFilters} />
 
       <View style={styles.list}>
-        {visibleLifts.map((lift) => (
-          <WorkoutStatsCard key={lift.workoutId} stats={lift} />
+        {visibleLifts.map((lift, i) => (
+          <WorkoutStatsCard key={lift.workoutId} stats={lift} delay={i * 90} />
         ))}
       </View>
     </View>

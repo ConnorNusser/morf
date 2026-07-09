@@ -5,7 +5,8 @@ import TierBadge from '@/components/TierBadge';
 import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { getPercentileColor } from '@/lib/data/strengthStandards';
+import { getPercentileColor, getTierColor } from '@/lib/data/strengthStandards';
+import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { space } from '@/lib/ui/tokens';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
@@ -15,9 +16,11 @@ import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface WorkoutStatsCardProps {
   stats: UserProgress;
+  // Stagger offset (ms) so a list of cards sweeps in sequence, career-style.
+  delay?: number;
 }
 
-export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
+export default function WorkoutStatsCard({ stats, delay = 0 }: WorkoutStatsCardProps) {
   const ink = useInk();
   const { userProfile } = useUser();
   const { workoutId, personalRecord, percentileRanking } = stats;
@@ -30,6 +33,7 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
 
   const workout = getWorkoutById(workoutId);
   const accentColor = getPercentileColor(percentileRanking);
+  const band = getTierBandProgress(percentileRanking);
 
   // Sweep the fill from 0 on mount so post-workout arrival (remount) animates instead of snapping.
   const fill = useRef(new Animated.Value(0)).current;
@@ -37,9 +41,10 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
     Animated.timing(fill, {
       toValue: Math.max(3, Math.min(100, percentileRanking)),
       duration: 800,
+      delay,
       useNativeDriver: false,
     }).start();
-  }, [percentileRanking, fill]);
+  }, [percentileRanking, fill, delay]);
   const fillWidth = fill.interpolate({
     inputRange: [0, 100],
     outputRange: ['0%', '100%'],
@@ -88,6 +93,22 @@ export default function WorkoutStatsCard({ stats }: WorkoutStatsCardProps) {
               ]}
             />
           </View>
+
+          {band.nextTier && (
+            <View style={styles.nextRow}>
+              <Text variant="meta" tone="muted">
+                {band.toNext}
+                {' to '}
+                <Text
+                  variant="meta"
+                  weight="semiBold"
+                  style={{ color: getTierColor(band.nextTier) }}
+                >
+                  {band.nextTier}
+                </Text>
+              </Text>
+            </View>
+          )}
         </Card>
       </TouchableOpacity>
 
@@ -127,5 +148,9 @@ const styles = StyleSheet.create({
   trackFill: {
     height: '100%',
     borderRadius: 5,
+  },
+  nextRow: {
+    alignItems: 'flex-end',
+    marginTop: space.sm,
   },
 });
