@@ -1,5 +1,6 @@
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
+import TierBadge from '@/components/TierBadge';
 import { Text, useInk, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
@@ -239,16 +240,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
   const renderTierBadge = (tier?: string) => {
     if (!tier) return null;
-    // Base tier (first char) drives the color lookup
-    const baseTier = tier.charAt(0) as StrengthTier;
-    const color = getTierColor(baseTier);
-    return (
-      <View style={[styles.tierBadge, { backgroundColor: color + '20' }]}>
-        <Text style={{ color }} variant="meta" weight="semiBold">
-          {tier}
-        </Text>
-      </View>
-    );
+    return <TierBadge tier={tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />;
   };
 
   return (
@@ -697,11 +689,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-  },
-  tierBadge: {
-    paddingHorizontal: space.sm,
-    paddingVertical: space.xs,
-    borderRadius: radius.badge,
   },
   strengthLevel: {
     marginTop: space.xs,

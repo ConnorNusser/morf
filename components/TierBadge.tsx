@@ -4,13 +4,16 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 type TierBadgeSize = 'tiny' | 'small' | 'medium' | 'large';
-type TierBadgeVariant = 'badge' | 'text';
+// badge = tint fill + border; outline = border only (no fill); text = colored letter only.
+type TierBadgeVariant = 'badge' | 'outline' | 'text';
 
 interface TierBadgeProps {
   tier?: StrengthTier;
   percentile?: number;
   size?: TierBadgeSize;
   variant?: TierBadgeVariant;
+  /** Only applies to variant="badge": set false for a fill-only pill with no border. */
+  bordered?: boolean;
   showTooltip?: boolean;
 }
 
@@ -52,6 +55,7 @@ export default function TierBadge({
   percentile,
   size = 'medium',
   variant = 'badge',
+  bordered = true,
   showTooltip = true,
 }: TierBadgeProps) {
   const { showAlert } = useAlert();
@@ -94,15 +98,17 @@ export default function TierBadge({
     return textContent;
   }
 
+  const isOutline = variant === 'outline';
   const badgeContent = (
     <View
       style={[
         styles.badge,
         sizeStyles.badge,
         {
-          backgroundColor: tierColor + '20',
+          backgroundColor: isOutline ? 'transparent' : tierColor + '20',
           borderColor: tierColor,
-        }
+        },
+        !isOutline && !bordered && styles.borderless,
       ]}
     >
       <Text
@@ -183,6 +189,9 @@ const SIZE_STYLES = {
 const styles = StyleSheet.create({
   badge: {
     alignSelf: 'flex-start',
+  },
+  borderless: {
+    borderWidth: 0,
   },
   text: {
     textAlign: 'center',

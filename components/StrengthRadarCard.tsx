@@ -138,7 +138,6 @@ export default function StrengthRadarCard({
           </Text>
           {filteredContributions.slice(0, 5).map((c, i) => {
             const tier = getStrengthTier(c.percentile);
-            const tierColor = getTierColor(tier);
             return (
               <View
                 key={c.exercise_id || i}
@@ -153,9 +152,7 @@ export default function StrengthRadarCard({
                   )}
                 </View>
                 <View style={[styles.contributionRight, { backgroundColor: 'transparent' }]}>
-                  <View style={[styles.tierBadgeSmall, { backgroundColor: tierColor + '20' }]}>
-                    <Text style={[styles.contributionTier, { color: tierColor }]}>{tier}</Text>
-                  </View>
+                  <TierBadge tier={tier} size="tiny" bordered={false} showTooltip={false} />
                   <Text style={[styles.contributionPercent, { color: currentTheme.colors.text + '60' }]}>{c.percentile}%</Text>
                 </View>
               </View>
@@ -243,15 +240,6 @@ const styles = StyleSheet.create({
   contributionWeight: {
     fontSize: 11,
     marginTop: 1,
-  },
-  tierBadgeSmall: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  contributionTier: {
-    fontSize: 12,
-    fontWeight: '700',
   },
   contributionPercent: {
     fontSize: 10,

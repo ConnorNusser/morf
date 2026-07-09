@@ -1,5 +1,6 @@
 import Chip from '@/components/Chip';
 import IconButton from '@/components/IconButton';
+import TierBadge from '@/components/TierBadge';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -524,9 +525,7 @@ function MuscleMasteryView({ mastery }: { mastery: MuscleMastery[] }) {
               <View style={[styles.muscleTrack, { backgroundColor: currentTheme.colors.border }]}>
                 <View style={[styles.muscleFill, { backgroundColor: color, width: `${Math.max(3, m.percentile)}%` }]} />
               </View>
-              <View style={[styles.muscleTier, { borderColor: color }]}>
-                <Text variant="meta" weight="bold" style={{ color }}>{m.tier}</Text>
-              </View>
+              <TierBadge tier={m.tier} size="tiny" variant="outline" showTooltip={false} />
             </View>
           );
         })}
@@ -1001,7 +1000,6 @@ const styles = StyleSheet.create({
   muscleName: { width: 78 },
   muscleTrack: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
   muscleFill: { height: 7, borderRadius: 4 },
-  muscleTier: { minWidth: 34, alignItems: 'center', borderWidth: 1.5, borderRadius: radius.badge, paddingHorizontal: space.xs, paddingVertical: 1 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 26, borderRadius: 3 },
