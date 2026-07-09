@@ -52,7 +52,7 @@ export const themes: Record<ThemeLevel, Theme> = {
     colors: {
       background: "#121215",
       text: "#E4E4E7",
-      primary: "#1D9BF0",
+      primary: "#1F6FEB",
       secondary: "#18181B",
       accent: "#D4D4D8",
       surface: "#1C1C1F",
