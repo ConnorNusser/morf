@@ -100,6 +100,7 @@ export default function WorkoutScreen() {
     toggleSetDone,
     removeExerciseFrom,
     moveExercise,
+    moveExerciseToEdge,
     getPreviousSets,
     getStartedRoutineChange,
     syncStartedRoutine,
@@ -797,6 +798,7 @@ export default function WorkoutScreen() {
             onToggleDone={handleToggleDone}
             onRemoveExercise={removeExerciseFrom}
             onMoveExercise={moveExercise}
+            onMoveExerciseToEdge={moveExerciseToEdge}
             getPreviousSets={getPreviousSets}
             onScrollBeginDrag={closeComposer}
             bottomInset={COMPOSER_DOCK_HEIGHT}

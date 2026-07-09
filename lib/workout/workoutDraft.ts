@@ -227,6 +227,17 @@ export function moveExercise(draft: WorkoutDraft, key: string, dir: -1 | 1): Wor
   return next;
 }
 
+export function moveExerciseToEdge(draft: WorkoutDraft, key: string, edge: 'top' | 'bottom'): WorkoutDraft {
+  const from = draft.findIndex(ex => ex.key === key);
+  if (from < 0) return draft;
+  const to = edge === 'top' ? 0 : draft.length - 1;
+  if (to === from) return draft;
+  const next = [...draft];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved);
+  return next;
+}
+
 /** Build a routine's exercise list from the draft — captures order, set count, reps.
  *  Routines store no weights (computed from records), so only structure carries over.
  *  Only exercises with a resolved id survive; warmup flags and notes are preserved

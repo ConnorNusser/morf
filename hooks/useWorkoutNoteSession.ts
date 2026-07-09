@@ -21,6 +21,7 @@ import {
   draftToRoutineExercises,
   mergeParsed,
   moveExercise as moveExerciseInDraft,
+  moveExerciseToEdge as moveExerciseToEdgeInDraft,
   previewSetEdit as previewSetEditInDraft,
   removeExercise as removeExerciseFromDraft,
   removeSet as removeSetFromDraft,
@@ -60,6 +61,7 @@ export interface UseWorkoutNoteSessionReturn {
   toggleSetDone: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
   moveExercise: (key: string, dir: -1 | 1) => void;
+  moveExerciseToEdge: (key: string, edge: 'top' | 'bottom') => void;
   dismissAutofill: (key: string) => void;
   getPreviousSets: (exerciseId?: string) => DraftSet[] | null;
   getStartedRoutineChange: () => Promise<{ name: string } | null>;
@@ -126,6 +128,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
   const moveExercise = useCallback((key: string, dir: -1 | 1) => setDraft(d => moveExerciseInDraft(d, key, dir)), []);
+  const moveExerciseToEdge = useCallback((key: string, edge: 'top' | 'bottom') => setDraft(d => moveExerciseToEdgeInDraft(d, key, edge)), []);
   const dismissAutofill = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
 
   const [showSummary, setShowSummary] = useState(false);
@@ -728,6 +731,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     toggleSetDone,
     removeExerciseFrom,
     moveExercise,
+    moveExerciseToEdge,
     dismissAutofill,
     getPreviousSets,
     getStartedRoutineChange,
