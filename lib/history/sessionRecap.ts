@@ -13,6 +13,7 @@ export interface StandoutSet {
   weight: number; // display unit
   reps: number;
   unit: WeightUnit;
+  e1rm: number; // display unit, rounded — powers the compact feed row
   // Null when no real standard or profile lacks bodyweight/gender: no fake 50th-pct tiers.
   tierInfo: TierGrade | null;
 }
@@ -86,6 +87,7 @@ function standoutSet(
         weight: Math.round(convertWeight(s.weight, s.unit || 'lbs', unit)),
         reps: s.reps,
         unit,
+        e1rm: Math.round(convertWeight(lbs, 'lbs', unit)),
         tierInfo: null,
       };
       if (!best || lbs > best.e1rm) best = { e1rm: lbs, id: ex.id, set };
