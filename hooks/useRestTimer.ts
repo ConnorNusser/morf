@@ -32,6 +32,8 @@ const readTimer = async (): Promise<{ data: RestTimerData; elapsed: number; rema
 export const useRestTimer = () => {
   const [isResting, setIsResting] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
+  // Full length of the current rest (grows with addTime) — drives progress UI.
+  const [totalDuration, setTotalDuration] = useState(0);
 
   useEffect(() => {
     loadExistingTimer();
@@ -58,6 +60,7 @@ export const useRestTimer = () => {
         if (timer.remaining > 0) {
           setIsResting(true);
           setRemainingTime(timer.remaining);
+          setTotalDuration(timer.data.duration);
         } else {
           // Timer expired while app was closed
           await clearTimer();
@@ -95,6 +98,7 @@ export const useRestTimer = () => {
       // set" card the rest card then overwrites.
       setIsResting(true);
       setRemainingTime(duration);
+      setTotalDuration(duration);
 
       // No-op until the native target is built; self-ticks to endTime.
       startLiveActivity({
@@ -131,6 +135,7 @@ export const useRestTimer = () => {
 
         await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(newTimerData));
         setRemainingTime(newRemaining);
+        setTotalDuration(newTimerData.duration);
 
         // Push the new end time to the Live Activity so its countdown re-syncs.
         updateLiveActivity({
@@ -172,6 +177,7 @@ export const useRestTimer = () => {
   return {
     isResting,
     remainingTime,
+    totalDuration,
     formattedTime: formattedTime(),
     startTimer,
     skipTimer,
