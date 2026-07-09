@@ -255,11 +255,11 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          <IconButton icon="chevron-back" onPress={onClose} />
+          <View style={styles.headerSpacer} />
           <Text variant="emphasis" weight="semiBold" tone="primary">
             Leaderboard
           </Text>
-          <View style={styles.headerSpacer} />
+          <IconButton icon="close" onPress={onClose} />
         </View>
 
         <View style={styles.filtersRow}>

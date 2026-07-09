@@ -458,11 +458,11 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-            <IconButton icon="chevron-back" onPress={onClose} />
+            <View style={styles.headerSpacer} />
             <Text variant="emphasis" weight="semiBold" tone="primary" style={styles.headerTitle}>
               Social
             </Text>
-            <View style={styles.headerSpacer} />
+            <IconButton icon="close" onPress={onClose} />
           </View>
 
           <FlatList

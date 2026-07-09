@@ -99,7 +99,7 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   }, [selectedIds, allExercises, onSelect, onClose]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
         <RNView style={[styles.modalHeader, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="close" onPress={onClose} />
@@ -330,7 +330,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const excludeIds = useMemo(() => exercises.map(e => e.exerciseId), [exercises]);
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.modalContainer, { backgroundColor: currentTheme.colors.background }]}>
         <KeyboardAvoidingView
           style={styles.flex1}
