@@ -49,7 +49,7 @@ export interface SessionPR {
 
 export interface SessionRewards {
   newAchievements: Achievement[]; // unlocked in `after` but not `before`
-  newPRs: SessionPR[]; // main-lift e1RM PRs set this session
+  newPRs: SessionPR[]; // featured-lift (main + secondary) e1RM PRs set this session
   bonuses: SessionBonus[]; // surprise callouts (variable reward — see sessionBonuses.ts)
   nextUnlocks: NextUnlock[]; // nearest locked achievements (goal gradient — see nextUnlocks.ts)
   hasRewards: boolean; // anything worth celebrating

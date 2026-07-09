@@ -88,6 +88,7 @@ export interface StreakShieldState {
   shieldsAvailable: number; // banked and unspent right now
   savedWeeks: number; // empty weeks a shield has bridged in the active run
   savedLastWeek: boolean; // a shield bridged the immediately-previous week — worth celebrating, a rescue nobody notices prevents nothing
+  earnedShieldThisWeek: boolean; // a shield banked during this week — the earn teaches "consistency buys protection", so it gets a moment too
   weeksToNextShield: number; // trained weeks until the next shield banks (0 when bank is full)
   trainedThisWeek: boolean;
 }
@@ -109,6 +110,7 @@ export function getStreakShields(workouts: GeneratedWorkout[], now: Date = new D
       shieldsAvailable: 0,
       savedWeeks: 0,
       savedLastWeek: false,
+      earnedShieldThisWeek: false,
       weeksToNextShield: WEEKS_PER_SHIELD,
       trainedThisWeek: false,
     };
@@ -124,6 +126,7 @@ export function getStreakShields(workouts: GeneratedWorkout[], now: Date = new D
   let saved = 0;
   let consecutiveEmpty = 0;
   let lastSavedKey: string | null = null;
+  let lastEarnedKey: string | null = null;
 
   for (const cur = new Date(y, m - 1, d); cur.getTime() <= thisWeek.getTime(); cur.setDate(cur.getDate() + 7)) {
     const key = dateKey(cur);
@@ -131,7 +134,10 @@ export function getStreakShields(workouts: GeneratedWorkout[], now: Date = new D
       consecutiveEmpty = 0;
       current += 1;
       trainedRun += 1;
-      if (trainedRun % WEEKS_PER_SHIELD === 0 && shields < MAX_SHIELDS) shields += 1;
+      if (trainedRun % WEEKS_PER_SHIELD === 0 && shields < MAX_SHIELDS) {
+        shields += 1;
+        lastEarnedKey = key;
+      }
     } else if (key === thisWeekKey) {
       // The in-progress week never breaks the run or spends a shield.
       break;
@@ -159,6 +165,7 @@ export function getStreakShields(workouts: GeneratedWorkout[], now: Date = new D
     shieldsAvailable: shields,
     savedWeeks: saved,
     savedLastWeek: lastSavedKey === dateKey(lastWeek),
+    earnedShieldThisWeek: lastEarnedKey === thisWeekKey,
     weeksToNextShield: shields >= MAX_SHIELDS ? 0 : WEEKS_PER_SHIELD - (trainedRun % WEEKS_PER_SHIELD),
     trainedThisWeek,
   };

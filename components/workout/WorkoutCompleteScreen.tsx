@@ -14,7 +14,7 @@ import { RARITY_META } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { NextUnlock } from '@/lib/gamification/nextUnlocks';
 import { SessionBonus } from '@/lib/gamification/sessionBonuses';
-import { MAX_SHIELDS, StreakShieldState } from '@/lib/workout/streak';
+import { MAX_SHIELDS, StreakShieldState, WEEKS_PER_SHIELD } from '@/lib/workout/streak';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
@@ -233,6 +233,16 @@ function StreakRow({ streak }: { streak: StreakShieldState }) {
           <Ionicons name="shield-checkmark" size={15} color="#4ECDC4" />
           <Text variant="meta" weight="medium" style={styles.shieldSaveText}>
             A shield covered last week — your {streak.current}-week streak survived
+          </Text>
+        </Animated.View>
+      )}
+      {!streak.savedLastWeek && streak.earnedShieldThisWeek && (
+        // The earn matters as much as the save: it's the moment that teaches
+        // "consistency buys protection" — the contingency that makes the bank pull.
+        <Animated.View entering={FadeIn.delay(600)} style={styles.shieldSaveRow}>
+          <Ionicons name="shield-half" size={15} color="#4ECDC4" />
+          <Text variant="meta" weight="medium" style={styles.shieldSaveText}>
+            Shield earned — {WEEKS_PER_SHIELD} straight weeks banks one
           </Text>
         </Animated.View>
       )}
@@ -529,7 +539,9 @@ export default function WorkoutCompleteScreen({
 
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    playHapticFeedback('medium', false);
+    // When PRs are already visible at mount, the PR effect below fires
+    // 'success' this same instant — stacking 'medium' on top blurs both.
+    if (prs.length === 0) playHapticFeedback('medium', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
