@@ -6,6 +6,8 @@ import {
   addSet,
   removeSet,
   removeExercise,
+  moveExercise,
+  moveExerciseToEdge,
   addNamedExercise,
   buildDraft,
   draftToParsedWorkout,
@@ -92,6 +94,37 @@ describe('edit helpers', () => {
   it('removeExercise drops the whole card', () => {
     const d = base();
     expect(removeExercise(d, d[0].key)).toHaveLength(0);
+  });
+});
+
+describe('reordering', () => {
+  const four = (): WorkoutDraft =>
+    draftFromParsed({
+      exercises: [ex('A', [[100, 5]]), ex('B', [[100, 5]]), ex('C', [[100, 5]]), ex('D', [[100, 5]])],
+      confidence: 1,
+      rawText: '',
+    });
+  const names = (d: WorkoutDraft) => d.map(e => e.name);
+
+  it('moveExercise shifts one position and clamps at the edges', () => {
+    const d = four();
+    expect(names(moveExercise(d, d[2].key, -1))).toEqual(['A', 'C', 'B', 'D']);
+    expect(names(moveExercise(d, d[0].key, -1))).toEqual(['A', 'B', 'C', 'D']);
+    expect(names(moveExercise(d, d[3].key, 1))).toEqual(['A', 'B', 'C', 'D']);
+  });
+
+  it('moveExerciseToEdge sends an exercise to the top or bottom', () => {
+    const d = four();
+    expect(names(moveExerciseToEdge(d, d[2].key, 'top'))).toEqual(['C', 'A', 'B', 'D']);
+    expect(names(moveExerciseToEdge(d, d[1].key, 'bottom'))).toEqual(['A', 'C', 'D', 'B']);
+  });
+
+  it('moveExerciseToEdge is a no-op when already there or key is unknown', () => {
+    const d = four();
+    expect(moveExerciseToEdge(d, d[0].key, 'top')).toBe(d);
+    expect(moveExerciseToEdge(d, d[3].key, 'bottom')).toBe(d);
+    expect(moveExerciseToEdge(d, 'nope', 'top')).toBe(d);
+    expect(names(d)).toEqual(['A', 'B', 'C', 'D']); // untouched
   });
 });
 

@@ -1,14 +1,16 @@
-// Editable workout draft (source of truth); check-off-first logging, remove via long-press.
+// Editable workout draft (source of truth); check-off-first logging. Each
+// exercise has an options menu (⋯ → bottom sheet) for reordering and removal.
 import { Text, useInk } from '@/components/Themed';
+import BottomSheet from '@/components/ui/BottomSheet';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact } from '@/lib/gamification/careerStats';
-import { radius, screenGutter, space, tint, track, trend } from '@/lib/ui/tokens';
+import { danger, radius, screenGutter, space, tint, track, trend } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { DraftExercise, DraftSet, WorkoutDraft, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 const DONE_GREEN = trend.up;
@@ -23,6 +25,7 @@ interface EditableWorkoutProps {
   onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
   onMoveExercise?: (key: string, dir: -1 | 1) => void;
+  onMoveExerciseToEdge?: (key: string, edge: 'top' | 'bottom') => void;
   getPreviousSets?: (exerciseId?: string) => DraftSet[] | null;
   onScrollBeginDrag?: () => void;
   // Bottom padding so the last row can scroll clear of the floating composer dock.
@@ -56,12 +59,40 @@ function NumberField({ value, active, onPress, theme }: {
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, previous, canMoveUp, canMoveDown }: {
+function MenuRow({ icon, label, onPress, disabled, destructive }: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  const ink = useInk();
+  const iconColor = destructive ? danger : disabled ? ink.ghost : ink.secondary;
+  const textColor = destructive ? danger : disabled ? ink.faint : ink.primary;
+  return (
+    <TouchableOpacity
+      style={styles.menuRow}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.6}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={20} color={iconColor} />
+      <Text variant="body" weight="medium" style={{ color: textColor }}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onOpenMenu, onMoveExercise, previous, canMoveUp, canMoveDown }: {
   exercise: DraftExercise;
   previous: DraftSet[] | null;
   canMoveUp: boolean;
   canMoveDown: boolean;
-} & Omit<EditableWorkoutProps, 'draft' | 'weightUnit' | 'getPreviousSets'> & { weightUnit: WeightUnit }) {
+  onOpenMenu: (key: string) => void;
+} & Omit<EditableWorkoutProps, 'draft' | 'weightUnit' | 'getPreviousSets' | 'onRemoveExercise' | 'onMoveExerciseToEdge'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const hasPrev = !!previous && previous.length > 0;
@@ -69,28 +100,22 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   return (
     <RNView style={styles.section}>
       <RNView style={styles.exHeaderRow}>
-        <TouchableOpacity
-          style={styles.exNameTouch}
-          activeOpacity={0.6}
-          onLongPress={() => { playHapticFeedback('medium', false); onRemoveExercise(exercise.key); }}
-        >
-          <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.exName} numberOfLines={1}>
-            {exercise.name || 'Unnamed exercise'}
-          </Text>
-        </TouchableOpacity>
+        <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.exName} numberOfLines={1}>
+          {exercise.name || 'Unnamed exercise'}
+        </Text>
 
         {/* Reordering here also reorders the routine (offered on finish). */}
         {onMoveExercise && (
           <RNView style={styles.reorderCluster}>
             <TouchableOpacity
-              hitSlop={8}
+              hitSlop={10}
               disabled={!canMoveUp}
               onPress={() => { playHapticFeedback('light', false); onMoveExercise(exercise.key, -1); }}
             >
               <Ionicons name="chevron-up" size={18} color={canMoveUp ? ink.secondary : ink.ghost} />
             </TouchableOpacity>
             <TouchableOpacity
-              hitSlop={8}
+              hitSlop={10}
               disabled={!canMoveDown}
               onPress={() => { playHapticFeedback('light', false); onMoveExercise(exercise.key, 1); }}
             >
@@ -98,6 +123,16 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
             </TouchableOpacity>
           </RNView>
         )}
+
+        <TouchableOpacity
+          hitSlop={10}
+          style={styles.menuButton}
+          onPress={() => { playHapticFeedback('light', false); onOpenMenu(exercise.key); }}
+          accessibilityRole="button"
+          accessibilityLabel={`Options for ${exercise.name || 'exercise'}`}
+        >
+          <Ionicons name="ellipsis-horizontal" size={18} color={ink.secondary} />
+        </TouchableOpacity>
       </RNView>
 
       <RNView style={styles.colHeader}>
@@ -160,37 +195,107 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, onMoveExerciseToEdge, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
+  const ink = useInk();
+  // Which exercise's options sheet is open (by key so draft updates never go stale).
+  const [menuKey, setMenuKey] = useState<string | null>(null);
+
   if (draft.length === 0) return null;
 
   const sets = totalSets(draft);
   const volume = totalVolume(draft);
 
-  return (
-    <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, bottomInset != null && { paddingBottom: bottomInset }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={onScrollBeginDrag} showsVerticalScrollIndicator>
-      <SectionLabel style={styles.summary}>
-        {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
-        {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
-      </SectionLabel>
+  const menuIndex = draft.findIndex(ex => ex.key === menuKey);
+  const menuExercise = menuIndex >= 0 ? draft[menuIndex] : null;
+  const closeMenu = () => setMenuKey(null);
+  const menuAction = (fn: () => void, haptic: 'light' | 'medium' = 'light') => () => {
+    playHapticFeedback(haptic, false);
+    fn();
+    closeMenu();
+  };
 
-      {draft.map((ex, i) => (
-        <ExerciseSection
-          key={ex.key}
-          exercise={ex}
-          previous={getPreviousSets?.(ex.exerciseId) ?? null}
-          canMoveUp={i > 0}
-          canMoveDown={i < draft.length - 1}
-          weightUnit={weightUnit}
-          onEditField={onEditField}
-          activeField={activeField}
-          onAddSet={onAddSet}
-          onRemoveSet={onRemoveSet}
-          onToggleDone={onToggleDone}
-          onRemoveExercise={onRemoveExercise}
-          onMoveExercise={draft.length > 1 ? onMoveExercise : undefined}
-        />
-      ))}
-    </ScrollView>
+  return (
+    <>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.scrollContent, bottomInset != null && { paddingBottom: bottomInset }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" onScrollBeginDrag={onScrollBeginDrag} showsVerticalScrollIndicator>
+        <SectionLabel style={styles.summary}>
+          {draft.length} {draft.length === 1 ? 'exercise' : 'exercises'} · {sets} {sets === 1 ? 'set' : 'sets'}
+          {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
+        </SectionLabel>
+
+        {draft.map((ex, i) => (
+          <ExerciseSection
+            key={ex.key}
+            exercise={ex}
+            previous={getPreviousSets?.(ex.exerciseId) ?? null}
+            canMoveUp={i > 0}
+            canMoveDown={i < draft.length - 1}
+            weightUnit={weightUnit}
+            onEditField={onEditField}
+            activeField={activeField}
+            onAddSet={onAddSet}
+            onRemoveSet={onRemoveSet}
+            onToggleDone={onToggleDone}
+            onOpenMenu={setMenuKey}
+            onMoveExercise={draft.length > 1 ? onMoveExercise : undefined}
+          />
+        ))}
+      </ScrollView>
+
+      <BottomSheet visible={menuExercise != null} onClose={closeMenu}>
+        {menuExercise && (
+          <RNView style={styles.menuContent}>
+            <RNView style={styles.menuHeader}>
+              <Text variant="title" tone="primary" weight="semiBold" numberOfLines={1}>
+                {menuExercise.name || 'Unnamed exercise'}
+              </Text>
+              <Text variant="meta" tone="muted" style={styles.menuSub}>
+                {menuExercise.sets.length} {menuExercise.sets.length === 1 ? 'set' : 'sets'}
+              </Text>
+            </RNView>
+
+            {draft.length > 1 && onMoveExercise && (
+              <>
+                <MenuRow
+                  icon="arrow-up"
+                  label="Move up"
+                  disabled={menuIndex === 0}
+                  onPress={menuAction(() => onMoveExercise(menuExercise.key, -1))}
+                />
+                <MenuRow
+                  icon="arrow-down"
+                  label="Move down"
+                  disabled={menuIndex === draft.length - 1}
+                  onPress={menuAction(() => onMoveExercise(menuExercise.key, 1))}
+                />
+              </>
+            )}
+            {draft.length > 2 && onMoveExerciseToEdge && (
+              <>
+                <MenuRow
+                  icon="arrow-up-circle-outline"
+                  label="Move to top"
+                  disabled={menuIndex === 0}
+                  onPress={menuAction(() => onMoveExerciseToEdge(menuExercise.key, 'top'))}
+                />
+                <MenuRow
+                  icon="arrow-down-circle-outline"
+                  label="Move to bottom"
+                  disabled={menuIndex === draft.length - 1}
+                  onPress={menuAction(() => onMoveExerciseToEdge(menuExercise.key, 'bottom'))}
+                />
+              </>
+            )}
+            <RNView style={[styles.menuDivider, { backgroundColor: ink.hairline }]} />
+            <MenuRow
+              icon="trash-outline"
+              label="Remove exercise"
+              destructive
+              onPress={menuAction(() => onRemoveExercise(menuExercise.key), 'medium')}
+            />
+          </RNView>
+        )}
+      </BottomSheet>
+    </>
   );
 }
 
@@ -206,10 +311,16 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: screenGutter, paddingTop: space.sm, paddingBottom: space.section },
   summary: { marginBottom: space.md },
   section: { marginBottom: space.section },
-  exName: { paddingBottom: space.xs },
+  exName: { flex: 1, paddingBottom: space.xs },
   exHeaderRow: { flexDirection: 'row', alignItems: 'center' },
-  exNameTouch: { flex: 1 },
   reorderCluster: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingLeft: space.sm, paddingBottom: space.xs },
+  menuButton: { paddingLeft: space.md, paddingBottom: space.xs },
+
+  menuContent: { paddingHorizontal: screenGutter, paddingTop: space.xs },
+  menuHeader: { paddingBottom: space.md },
+  menuSub: { marginTop: 2 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md },
+  menuDivider: { height: StyleSheet.hairlineWidth, marginVertical: space.xs },
 
   colHeader: { flexDirection: 'row', alignItems: 'center', gap: ROW_GAP, paddingBottom: space.xs },
   checkCol: { width: CHECK_W, alignItems: 'center', justifyContent: 'center' },
