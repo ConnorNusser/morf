@@ -1,7 +1,7 @@
-// Personal records for the main lifts — best estimated 1RM per lift with the set + date. Pure.
+// Personal records for the featured lifts — best estimated 1RM per lift with the set + date. Pure.
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getExercise } from '@/lib/workout/workouts';
-import { ALL_MAIN_LIFTS, convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
+import { ALL_FEATURED_SECONDARY_LIFTS, ALL_MAIN_LIFTS, convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
 
 export interface LiftPR {
   exerciseId: string;
@@ -13,13 +13,27 @@ export interface LiftPR {
   unit: WeightUnit;
 }
 
+// Main + featured secondary lifts: anything the app treats as PR-worthy
+// elsewhere (friend pushes, tier badges) must be PR-worthy on the lifter's own
+// celebration screen too — friends congratulating a PR the lifter never saw is
+// the loop celebrating outward before inward.
+const FEATURED_LIFT_IDS: readonly string[] = [...ALL_MAIN_LIFTS, ...ALL_FEATURED_SECONDARY_LIFTS];
+
 export function computeMainLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit): LiftPR[] {
+  return computeLiftPRs(workouts, unit, ALL_MAIN_LIFTS);
+}
+
+export function computeFeaturedLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit): LiftPR[] {
+  return computeLiftPRs(workouts, unit, FEATURED_LIFT_IDS);
+}
+
+function computeLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit, liftIds: readonly string[]): LiftPR[] {
   const best = new Map<string, { e1rm: number; weight: number; reps: number; date: Date }>();
 
   for (const workout of workouts) {
     const date = new Date(workout.createdAt);
     for (const exercise of workout.exercises || []) {
-      if (!ALL_MAIN_LIFTS.includes(exercise.id as (typeof ALL_MAIN_LIFTS)[number])) continue;
+      if (!liftIds.includes(exercise.id)) continue;
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
         const weight = set.unit === unit ? set.weight : convertWeight(set.weight, set.unit, unit);
@@ -32,8 +46,8 @@ export function computeMainLiftPRs(workouts: GeneratedWorkout[], unit: WeightUni
     }
   }
 
-  // Keep the canonical main-lift order.
-  return ALL_MAIN_LIFTS.filter(id => best.has(id)).map(id => {
+  // Keep the canonical lift order.
+  return liftIds.filter(id => best.has(id)).map(id => {
     const r = best.get(id)!;
     return {
       exerciseId: id,

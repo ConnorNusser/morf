@@ -171,6 +171,19 @@ export default function WeeklyGoalCard() {
         {/* Ambient stakes: the streak is visible where the train/skip decision
             happens, not just after a workout — loss aversion needs the
             thing-to-lose in view *before* the action. */}
+        {/* Week 1 — the most fragile habit stage — gets a low-key line toward
+            the first milestone: no flame inflation, no pips, still true. */}
+        {shieldState && shieldState.current === 1 && (
+          <View style={styles.streakRow}>
+            <Ionicons name="flame-outline" size={14} color={ink.muted} />
+            <Text variant="meta" tone="secondary">
+              {shieldState.trainedThisWeek
+                ? "Week 1 in the books — next week makes it a streak"
+                : "Train this week to turn last week into a 2-week streak"}
+            </Text>
+          </View>
+        )}
+
         {shieldState && shieldState.current >= 2 && (
           <View style={styles.streakRow}>
             <Ionicons

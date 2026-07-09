@@ -165,17 +165,28 @@ class RetentionNotificationService {
       // Week streaks only break when a full week passes empty, so the nudge
       // lands when the week is nearly over: pre-planned for Saturday, or the
       // remaining slot today if the weekend has already started.
-      if (current >= MIN_STREAK_FOR_REMINDER && !trainedThisWeek) {
+      if (current >= MIN_STREAK_FOR_REMINDER) {
         const fromMonday = (now.getDay() + 6) % 7; // 0 = Mon … 6 = Sun
         let fireAt: Date | null = null;
-        if (fromMonday >= 5) {
-          const minute = pickFireMinute(STREAK_DEFAULT_MINUTE, nowMinute, latest);
-          if (minute !== null) fireAt = atMinute(now, minute);
+        if (!trainedThisWeek) {
+          if (fromMonday >= 5) {
+            const minute = pickFireMinute(STREAK_DEFAULT_MINUTE, nowMinute, latest);
+            if (minute !== null) fireAt = atMinute(now, minute);
+          } else {
+            const saturday = new Date(now);
+            saturday.setDate(saturday.getDate() + (5 - fromMonday));
+            const minute = futureMinute(STREAK_DEFAULT_MINUTE);
+            if (minute !== null) fireAt = atMinute(saturday, minute);
+          }
         } else {
-          const saturday = new Date(now);
-          saturday.setDate(saturday.getDate() + (5 - fromMonday));
+          // This week is banked — pre-plan next Saturday so the post-workout
+          // refresh (the most reliable one there is) protects *next* week too.
+          // Still accurate at fire time: an in-progress week never shrinks
+          // `current`, and training before then re-plans everything anyway.
+          const nextSaturday = new Date(now);
+          nextSaturday.setDate(nextSaturday.getDate() + (5 - fromMonday) + 7);
           const minute = futureMinute(STREAK_DEFAULT_MINUTE);
-          if (minute !== null) fireAt = atMinute(saturday, minute);
+          if (minute !== null) fireAt = atMinute(nextSaturday, minute);
         }
         if (fireAt) {
           // Shielded users get the honest version — a miss won't break the
@@ -232,20 +243,27 @@ class RetentionNotificationService {
         const bodyFor = (daysAtFire: number) => longest >= 3
           ? `Your best run is ${longest} weeks. Day one of the next one is a single session away.`
           : `It's been ${daysAtFire} days since your last workout — a quick session is all it takes to restart.`;
-        let fireAt: Date | null = null;
-        let daysAtFire = days;
-        if (days >= COMEBACK_MIN_DAYS) {
-          const minute = pickFireMinute(COMEBACK_DEFAULT_MINUTE, nowMinute, latest);
-          if (minute !== null) fireAt = atMinute(now, minute);
-        } else {
-          const fireDay = new Date(now);
-          fireDay.setDate(fireDay.getDate() + (COMEBACK_MIN_DAYS - days));
-          const minute = futureMinute(COMEBACK_DEFAULT_MINUTE);
-          if (minute !== null) fireAt = atMinute(fireDay, minute);
-          daysAtFire = COMEBACK_MIN_DAYS;
-        }
-        if (fireAt) {
-          candidates.push({ type: 'comeback', fireAt, title: "Let's get back to it", body: bodyFor(daysAtFire) });
+        // A ladder of rungs, one per week of the lapse window (+5/+12/+19/+26
+        // days after the last workout) — a single nudge covers the highest
+        // churn-risk month at a quarter of the density the cap allows. One
+        // rung per trailing week keeps it cap-compliant by construction, and
+        // any app open or workout re-plans (or clears) the whole ladder.
+        for (let rung = COMEBACK_MIN_DAYS; rung <= COMEBACK_MAX_DAYS; rung += 7) {
+          const delta = rung - days;
+          if (delta < 0) continue;
+          let fireAt: Date | null = null;
+          if (delta === 0) {
+            const minute = pickFireMinute(COMEBACK_DEFAULT_MINUTE, nowMinute, latest);
+            if (minute !== null) fireAt = atMinute(now, minute);
+          } else {
+            const fireDay = new Date(now);
+            fireDay.setDate(fireDay.getDate() + delta);
+            const minute = futureMinute(COMEBACK_DEFAULT_MINUTE);
+            if (minute !== null) fireAt = atMinute(fireDay, minute);
+          }
+          if (fireAt) {
+            candidates.push({ type: 'comeback', fireAt, title: "Let's get back to it", body: bodyFor(rung) });
+          }
         }
       }
     }

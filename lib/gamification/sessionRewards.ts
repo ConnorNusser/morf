@@ -7,7 +7,7 @@ import { computeSessionBonuses, SessionBonus } from './sessionBonuses';
 import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
 import { computeNicheAchievements } from './nicheAchievements';
-import { computeMainLiftPRs, LiftPR } from './personalRecords';
+import { computeFeaturedLiftPRs, computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthFeats } from './strengthFeats';
 import { computeStrengthMilestones } from './strengthMilestones';
 
@@ -36,7 +36,9 @@ export function buildRewardSnapshot(history: GeneratedWorkout[], ctx: RewardCont
   return {
     stats,
     achievements,
-    prs: computeMainLiftPRs(history, ctx.unit),
+    // Featured (main + secondary) so the celebration diff covers every lift the
+    // app treats as PR-worthy; feats/milestones above stay main-lift-only.
+    prs: computeFeaturedLiftPRs(history, ctx.unit),
   };
 }
 

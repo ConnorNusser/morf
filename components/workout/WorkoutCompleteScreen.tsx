@@ -20,7 +20,7 @@ import { convertWeightToLbs } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
 import { UserProfile, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -529,15 +529,23 @@ export default function WorkoutCompleteScreen({
 
   useEffect(() => {
     checkScale.value = withSpring(1, { damping: 12, stiffness: 100 });
-    playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
-    if (prs.length > 0) {
-      prGlow.value = withDelay(
-        500,
-        withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
-      );
-    }
+    playHapticFeedback('medium', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // PRs from the history diff land after mount — celebrate on the transition,
+  // not just at mount, or the diff-only PR gets the muted haptic and no glow.
+  const prCelebrated = useRef(false);
+  useEffect(() => {
+    if (prs.length === 0 || prCelebrated.current) return;
+    prCelebrated.current = true;
+    playHapticFeedback('success', false);
+    prGlow.value = withDelay(
+      500,
+      withRepeat(withTiming(1, { duration: 1100, easing: Easing.inOut(Easing.ease) }), -1, true),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prs]);
 
   const checkAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: checkScale.value }],
@@ -604,8 +612,11 @@ export default function WorkoutCompleteScreen({
           >
             Workout Complete!
           </Animated.Text>
+          {/* Keyed by content: when async rewards upgrade the line, it fades in
+              fresh instead of rewriting itself under the reader's eye. */}
           <Animated.Text
-            entering={FadeIn.delay(300)}
+            key={subtitle}
+            entering={FadeIn.duration(400)}
             style={styles.subtitle}
           >
             {subtitle}
