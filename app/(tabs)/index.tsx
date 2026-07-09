@@ -224,18 +224,25 @@ export default function HomeScreen() {
 
   return (
     <>
-      <View
+      {/* Scroll when content is tall (so the last card is never sliced);
+          flexGrow fills the viewport when it's short so the flex spacer can
+          pin View Leaderboards to the bottom instead of leaving dead space. */}
+      <ScrollView
         style={[
-          styles.content,
           layout.flex1,
+          { backgroundColor: currentTheme.colors.background },
+        ]}
+        contentContainerStyle={[
+          styles.content,
+          styles.homeContent,
           {
-            backgroundColor: currentTheme.colors.background,
             paddingTop: contentTopPadding,
             // Clear the floating tab bar so the last card (View Leaderboards)
             // isn't sliced — matches the scrollBottom clearance used elsewhere.
             paddingBottom: scrollBottom,
           },
         ]}
+        showsVerticalScrollIndicator={false}
       >
         <DashboardHeader
           viewMode={viewMode}
@@ -247,13 +254,16 @@ export default function HomeScreen() {
         <WeeklyGoalCard />
         <TodayCard />
 
+        {/* Absorbs leftover height; collapses to zero once content scrolls. */}
+        <View style={layout.flex1} />
+
         <NavRow
           label="View Leaderboards"
           icon="trophy-outline"
           variant="card"
           onPress={() => setShowLeaderboard(true)}
         />
-      </View>
+      </ScrollView>
 
       <LeaderboardModal
         visible={showLeaderboard}
@@ -299,6 +309,9 @@ const styles = StyleSheet.create({
   content: {
     padding: screenGutter,
     gap: space.sm,
+  },
+  homeContent: {
+    flexGrow: 1,
   },
   feedHeader: {
     paddingHorizontal: screenGutter,
