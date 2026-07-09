@@ -41,6 +41,7 @@ import {
   View as RNView,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as MediaLibrary from 'expo-media-library';
 import Animated, {
   Easing,
   FadeIn,
@@ -490,28 +491,6 @@ export default function WorkoutCompleteScreen({
     return detectedPRs;
   }, [rewards, exercises, userLifts, userProfile]);
 
-  // The session's heaviest statement: best e1RM set across weighted lifts.
-  const topLift = useMemo(() => {
-    let best: { name: string; weight: number; reps: number; e1rm: number } | null = null;
-    for (const exercise of exercises) {
-      if (exercise.trackingType && exercise.trackingType !== 'reps') continue;
-      for (const set of exercise.sets || []) {
-        if ((set.weight || 0) <= 0 || (set.reps || 0) <= 0) continue;
-        const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
-        if (!best || e1rm > best.e1rm) {
-          const info = exercise.matchedExerciseId ? getWorkoutById(exercise.matchedExerciseId) : null;
-          best = {
-            name: (info?.name || exercise.name).replace(/\s*\([^)]*\)\s*$/, '').trim(),
-            weight: Math.round(set.weight),
-            reps: set.reps,
-            e1rm: Math.round(e1rm),
-          };
-        }
-      }
-    }
-    return best;
-  }, [exercises]);
-
   // The single-lift brag: the highest-percentile featured lift trained this
   // session ("stronger than 85% of Bench Press lifters") — the share moment.
   const liftSpotlight = useMemo(() => {
@@ -560,13 +539,13 @@ export default function WorkoutCompleteScreen({
     playHapticFeedback('success', false);
   }, [prs]);
 
-  // "2 PRs · 1 achievement unlocked" — the session's wins in one line.
+  // "2 PRs · 1 achievement unlocked" — the session's wins, or nothing at all.
   const winsLine = useMemo(() => {
     const parts: string[] = [];
     if (prs.length > 0) parts.push(`${prs.length} ${prs.length === 1 ? 'PR' : 'PRs'}`);
     const achCount = rewards?.newAchievements.length ?? 0;
     if (achCount > 0) parts.push(`${achCount} ${achCount === 1 ? 'achievement' : 'achievements'}`);
-    return parts.length > 0 ? `${parts.join(' · ')} unlocked` : 'Great job crushing it today';
+    return parts.length > 0 ? `${parts.join(' · ')} unlocked` : null;
   }, [prs, rewards]);
 
   const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -615,9 +594,23 @@ export default function WorkoutCompleteScreen({
     }
   };
 
-  // Everything else → the framed card through the system sheet.
-  const handleMore = () =>
-    captureAs('card', () => captureAndShare(shareRef as React.RefObject<ViewShot>));
+  // Save drops the framed card straight into the photo library — ready for
+  // lifting profiles, grid posts, or anywhere the share sheet doesn't reach.
+  const [saved, setSaved] = useState(false);
+  const handleSave = () =>
+    captureAs('card', async () => {
+      try {
+        const uri = await captureRef(shareRef, { format: 'png', quality: 1 });
+        const { granted } = await MediaLibrary.requestPermissionsAsync(true);
+        if (!granted) return;
+        await MediaLibrary.saveToLibraryAsync(uri);
+        playHapticFeedback('success', false);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      } catch (err) {
+        console.error('Save card failed:', err);
+      }
+    });
 
   const overallTier = overallAfter > 0 ? getStrengthTier(overallAfter) : null;
 
@@ -653,16 +646,10 @@ export default function WorkoutCompleteScreen({
     transform: [{ perspective: 1000 }, { rotateY: `${cardRotY.value}deg` }],
   }));
 
-  // The session line every layout carries, so each capture stays branded/context-ful.
-  const sessionLine = (
-    <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
-      {cardTitleFor(title)} · {stats.durationStr} · {stats.sets}{' '}
-      {stats.sets === 1 ? 'set' : 'sets'}
-      {volumeDisplay ? ` · ${volumeDisplay}` : ''}
-    </Text>
-  );
-
-  // Middle of the card, by layout: overall standing / single-lift brag / PR haul.
+  // Middle of the card, by layout. One message per card — a single dominant
+  // number the eye lands on first, one support line, and nothing that repeats.
+  // (Shareable-card psychology: the hero stat carries the post; extra rows
+  // read as UI, not a flex.)
   const cardBody =
     activeVariant === 'lift' && liftSpotlight ? (
       <View style={styles.cardHero}>
@@ -682,10 +669,8 @@ export default function WorkoutCompleteScreen({
           Stronger than {liftSpotlight.percentile}% of {liftSpotlight.name} lifters
         </Text>
         <Text variant="meta" style={styles.cardHeroMeta}>
-          {liftSpotlight.e1rm} {weightUnit} e1RM · best set {liftSpotlight.weight} ×{' '}
-          {liftSpotlight.reps}
+          {liftSpotlight.e1rm} {weightUnit} e1RM
         </Text>
-        {sessionLine}
       </View>
     ) : activeVariant === 'volume' ? (
       <View style={styles.cardHero}>
@@ -699,10 +684,6 @@ export default function WorkoutCompleteScreen({
         <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
           {stats.sets} {stats.sets === 1 ? 'set' : 'sets'} · {stats.exercises}{' '}
           {stats.exercises === 1 ? 'exercise' : 'exercises'}
-          {topLift ? ` · ${topLift.name} ${topLift.weight}×${topLift.reps}` : ''}
-        </Text>
-        <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
-          {cardTitleFor(title)}
         </Text>
       </View>
     ) : activeVariant === 'prs' ? (
@@ -714,7 +695,6 @@ export default function WorkoutCompleteScreen({
           <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
             New personal {prs.length === 1 ? 'record' : 'records'} today
           </Text>
-          {sessionLine}
         </View>
         <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
           {prs.map((pr, index) => (
@@ -744,78 +724,30 @@ export default function WorkoutCompleteScreen({
         </View>
       </>
     ) : (
-      <>
-        <View style={styles.cardHero}>
-          {overallTier ? (
+      <View style={styles.cardHero}>
+        {overallTier ? (
+          <>
+            <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
+              {overallTier}
+            </Text>
+            <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
+              Stronger than {overallAfter}% of lifters
+            </Text>
+          </>
+        ) : (
+          volumeDisplay && (
             <>
-              <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
-                {overallTier}
-              </Text>
+              <Text style={styles.cardHeroVolume}>{volumeDisplay}</Text>
               <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-                Stronger than {overallAfter}% of lifters
+                lifted today
               </Text>
             </>
-          ) : (
-            volumeDisplay && (
-              <>
-                <Text style={styles.cardHeroVolume}>{volumeDisplay}</Text>
-                <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-                  lifted today
-                </Text>
-              </>
-            )
-          )}
-          {sessionLine}
-        </View>
-
-        {topLift && (
-          <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
-            <Text variant="meta" weight="bold" style={styles.cardLabel}>
-              TOP LIFT
-            </Text>
-            <View style={styles.cardRow}>
-              <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
-                {topLift.name}
-              </Text>
-              <Text variant="body" weight="bold" style={styles.cardRowValue}>
-                {topLift.weight} × {topLift.reps}
-              </Text>
-            </View>
-          </View>
+          )
         )}
-
-        {prs.length > 0 && (
-          <View style={[styles.cardSection, { borderTopColor: CARD_HAIRLINE }]}>
-            <Text variant="meta" weight="bold" style={[styles.cardLabel, { color: '#FFD700' }]}>
-              {prs.length === 1 ? 'NEW PR' : `${prs.length} NEW PRS`}
-            </Text>
-            {prs.map((pr, index) => (
-              <View key={pr.exerciseId || index} style={styles.cardRow}>
-                <Text variant="body" weight="semiBold" style={styles.cardRowName} numberOfLines={1}>
-                  {shortName(pr.exerciseName)}
-                </Text>
-                <View style={styles.prValueCluster}>
-                  <AnimatedCounter
-                    value={pr.newPR}
-                    delay={600 + index * 100}
-                    duration={1000}
-                    style={styles.prValue}
-                  />
-                  <Text variant="meta" style={styles.prUnit}>
-                    {weightUnit}
-                  </Text>
-                  {pr.improvement > 0 && (
-                    <Text variant="meta" weight="bold" style={styles.improvementText}>
-                      ↑{pr.improvement}
-                    </Text>
-                  )}
-                  {pr.percentile != null && <TierBadge percentile={pr.percentile} size="small" />}
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
-      </>
+        <Text variant="meta" style={styles.cardHeroMeta} numberOfLines={1}>
+          {cardTitleFor(title)} · {stats.durationStr}
+        </Text>
+      </View>
     );
 
   const cardContent = (
@@ -855,12 +787,17 @@ export default function WorkoutCompleteScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.content, isSmallScreen && styles.contentSmall]}>
-          <Animated.Text entering={FadeIn.delay(150)} style={styles.title}>
+          <Animated.Text
+            entering={FadeIn.delay(150)}
+            style={[styles.title, !winsLine && styles.titleSolo]}
+          >
             Workout Complete
           </Animated.Text>
-          <Animated.Text entering={FadeIn.delay(250)} style={styles.subtitle}>
-            {winsLine}
-          </Animated.Text>
+          {winsLine && (
+            <Animated.Text entering={FadeIn.delay(250)} style={styles.subtitle}>
+              {winsLine}
+            </Animated.Text>
+          )}
 
           {/* ---- Shareable recap card ---- */}
           <Animated.View entering={FadeIn.delay(350)} style={styles.cardWrap}>
@@ -964,7 +901,12 @@ export default function WorkoutCompleteScreen({
           label={copied ? 'Copied' : 'Copy'}
           onPress={handleCopy}
         />
-        <MiniAction icon="share-outline" label="More" onPress={handleMore} accent />
+        <MiniAction
+          icon={saved ? 'checkmark' : 'download-outline'}
+          label={saved ? 'Saved' : 'Save'}
+          onPress={handleSave}
+          accent
+        />
       </Animated.View>
 
       <CareerModal visible={showAllAchievements} onClose={() => setShowAllAchievements(false)} />
@@ -984,7 +926,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 72,
+    paddingTop: 36,
   },
   content: {
     paddingHorizontal: space.section,
@@ -1000,11 +942,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: space.sm,
   },
+  titleSolo: {
+    marginBottom: space.section,
+  },
   subtitle: {
     fontSize: type.body,
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
-    marginBottom: 28,
+    marginBottom: space.section,
   },
 
   cardWrap: {
@@ -1266,10 +1211,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.xs,
   },
+  // Rounded squares (radius.card), matching the app's tile shape language.
   miniCircle: {
     width: 52,
     height: 52,
-    borderRadius: 26,
+    borderRadius: radius.card,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.08)',
