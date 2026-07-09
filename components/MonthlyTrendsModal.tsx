@@ -1,5 +1,6 @@
 import IconButton from '@/components/IconButton';
 import { Text, useInk } from '@/components/Themed';
+import ScreenModal from '@/components/ui/ScreenModal';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -14,8 +15,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
   Dimensions,
-  Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
@@ -195,21 +194,7 @@ export default function MonthlyTrendsModal({
   if (!visible) return null;
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
-    >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
-          {/* Spacer mirrors the close button so the title stays centered. */}
-          <View style={styles.headerSpacer} />
-          <Text variant="title" tone="primary" weight="semiBold">
-            Monthly Trends
-          </Text>
-          <IconButton icon="close" onPress={handleClose} />
-        </View>
+    <ScreenModal visible={visible} onClose={handleClose} title="Monthly Trends">
 
         <ScrollView
           style={styles.content}
@@ -406,27 +391,11 @@ export default function MonthlyTrendsModal({
             })}
           </Animated.View>
         </ScrollView>
-      </SafeAreaView>
-    </Modal>
+    </ScreenModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSpacer: {
-    width: 40,
-    height: 40,
-  },
   content: {
     flex: 1,
   },

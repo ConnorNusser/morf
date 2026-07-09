@@ -1,10 +1,11 @@
 import { Text } from '@/components/Themed';
+import BottomSheet from '@/components/ui/BottomSheet';
 import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space } from '@/lib/ui/tokens';
 import { CalculatedRoutine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   visible: boolean;
@@ -21,10 +22,8 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
   const totalSets = routine.exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <TouchableOpacity style={styles.backdropFill} activeOpacity={1} onPress={onClose} />
-        <View style={[styles.sheet, { backgroundColor: currentTheme.colors.background }]}>
+    <BottomSheet visible={visible} onClose={onClose} showGrabber={false}>
+        <View style={styles.content}>
           <View style={styles.header}>
             <View style={styles.headerText}>
               <Text variant="title" tone="primary" weight="semiBold">
@@ -77,26 +76,14 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: '#00000066',
-    justifyContent: 'flex-end',
-  },
-  backdropFill: {
-    flex: 1,
-  },
-  sheet: {
-    maxHeight: '85%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: space.xl,
-    paddingBottom: 34,
+  content: {
+    paddingHorizontal: space.xl,
+    paddingTop: space.xl,
   },
   header: {
     flexDirection: 'row',
