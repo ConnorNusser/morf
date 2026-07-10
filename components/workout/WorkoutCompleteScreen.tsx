@@ -12,7 +12,6 @@ import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
-import { tierEmblemFor } from '@/lib/gamification/tierEmblems';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
@@ -762,17 +761,11 @@ export default function WorkoutCompleteScreen({
       <View style={styles.cardHero}>
         {overallTier ? (
           <>
-            <Image source={tierEmblemFor(overallTier)} style={styles.cardEmblem} resizeMode="contain" />
+            <Text style={[styles.cardHeroTier, { color: getTierColor(overallTier) }]}>
+              {overallTier}
+            </Text>
             <Text variant="body" weight="semiBold" style={styles.cardHeroLine}>
-              <Text
-                variant="body"
-                weight="bold"
-                style={{ color: getTierColor(overallTier) }}
-              >
-                {overallTier}
-              </Text>
-              {' · Stronger than '}
-              {overallAfter}% of lifters
+              Stronger than {overallAfter}% of lifters
             </Text>
           </>
         ) : (
@@ -1288,12 +1281,6 @@ const styles = StyleSheet.create({
   },
   cardHeroGold: {
     color: '#FFD700',
-  },
-  // Pixel medallion — scaled with nearest-neighbor crispness left to the asset's 256px.
-  cardEmblem: {
-    width: 132,
-    height: 132,
-    marginBottom: space.md,
   },
   cardAchLabel: {
     marginTop: space.lg,
