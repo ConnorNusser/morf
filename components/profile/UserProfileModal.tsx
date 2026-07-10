@@ -24,7 +24,7 @@ import { getWorkoutById } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { convertWeightToLbs } from '@/lib/utils/utils';
-import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, isFeaturedLift } from '@/types';
+import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, formatHeight, isFeaturedLift } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -61,6 +61,10 @@ interface AchievementShowcase {
 }
 
 const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
+
+// Ambient gradient alpha: the 12% tint() token reads too faint across a full
+// sheet, so the top wash gets its own slightly deeper stop.
+const wash = (color: string): string => color + '2E';
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
   const { currentTheme } = useTheme();
@@ -423,6 +427,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+        {/* Fixed tier-color ambience behind the whole sheet — doesn't scroll away. */}
+        {tierColor && !isLoading && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <LinearGradient colors={[wash(tierColor), 'transparent']} style={styles.ambientTop} />
+            <LinearGradient colors={['transparent', tint(tierColor)]} style={styles.ambientBottom} />
+          </View>
+        )}
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           <IconButton icon="chevron-back" onPress={onClose} />
           <Text variant="emphasis" weight="semiBold" tone="primary">
@@ -470,13 +481,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
             </View>
           ) : (
             <>
-              {tierColor && (
-                <LinearGradient
-                  pointerEvents="none"
-                  colors={[tint(tierColor), 'transparent']}
-                  style={styles.tierWash}
-                />
-              )}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
                   <View style={styles.nameRow}>
@@ -520,6 +524,14 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </TouchableOpacity>
                     );
                   })()}
+                  {(userData?.height || userData?.weight) && (
+                    <Text variant="meta" tone="muted">
+                      {[
+                        userData?.height ? formatHeight(userData.height) : null,
+                        userData?.weight ? `${Math.round(userData.weight.value)} ${userData.weight.unit}` : null,
+                      ].filter(Boolean).join(' · ')}
+                    </Text>
+                  )}
                   {(userData?.instagram_username || userData?.tiktok_username || userData?.discord_username) && (
                     <View style={styles.socialLinksRow}>
                       {userData?.instagram_username && (
@@ -1113,13 +1125,19 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 0 },
   },
-  // Tier-tinted wash fading down from the top of the sheet, behind the header.
-  tierWash: {
+  ambientTop: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 220,
+    height: '45%',
+  },
+  ambientBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '35%',
   },
   userInfoLeft: {
     flex: 1,
