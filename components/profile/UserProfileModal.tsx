@@ -1,8 +1,9 @@
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
-import { achievementMeta } from '@/lib/gamification/achievementMeta';
-import { RARITY_META } from '@/lib/gamification/rarity';
+import { achievementMeta, AchievementMeta } from '@/lib/gamification/achievementMeta';
+import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
+import PercentileSparkline from '@/components/profile/PercentileSparkline';
 import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
 import { formatRelativeTime, formatDuration } from '@/lib/ui/formatters';
@@ -18,7 +19,7 @@ import { layout } from '@/lib/ui/styles';
 import { space, radius, screenGutter, tint, trend } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { WorkoutSummary } from '@/lib/services/feedService';
+import { WorkoutFeedData, WorkoutSummary } from '@/lib/services/feedService';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { calculateStrengthPercentile, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
@@ -51,6 +52,13 @@ interface UserProfileModalProps {
   user: RemoteUser | null;
 }
 
+// Aggregated from every workout's feed_data: career PRs + earned achievements.
+interface AchievementShowcase {
+  totalPRs: number;
+  totalAchievements: number;
+  rarest: AchievementMeta[];
+}
+
 const BIG_3 = [MAIN_LIFTS.BENCH_PRESS, MAIN_LIFTS.SQUAT, MAIN_LIFTS.DEADLIFT];
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
@@ -63,6 +71,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [percentileData, setPercentileData] = useState<UserPercentileData | null>(null);
   const [recentWorkouts, setRecentWorkouts] = useState<WorkoutSummary[]>([]);
   const [workoutCount, setWorkoutCount] = useState<number>(0);
+  const [showcase, setShowcase] = useState<AchievementShowcase | null>(null);
   const [myLifts, setMyLifts] = useState<UserLiftData[]>([]);
   const [myUserData, setMyUserData] = useState<RemoteUserData | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -142,7 +151,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       const currentUser = await userSyncService.getCurrentUser();
       setCurrentUserId(currentUser?.id || null);
 
-      const [liftsResult, userResult, percentileResult, workoutsResult, workoutCountResult] = await Promise.all([
+      const [liftsResult, userResult, percentileResult, workoutsResult, workoutCountResult, feedDataResult] = await Promise.all([
         supabase
           .from('user_best_lifts')
           .select('exercise_id, estimated_1rm, recorded_at')
@@ -157,6 +166,12 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         supabase
           .from('user_workouts')
           .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+        // Just the gamification snapshots — aggregated below into career PRs
+        // and the rarest-achievements showcase.
+        supabase
+          .from('user_workouts')
+          .select('feed_data')
           .eq('user_id', user.id)
       ]);
 
@@ -190,6 +205,21 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
       setWorkoutCount(workoutCountResult.count || 0);
 
+      let totalPRs = 0;
+      const earnedIds = new Set<string>();
+      for (const row of feedDataResult.data || []) {
+        const fd = row.feed_data as WorkoutFeedData | null;
+        totalPRs += fd?.pr_count || 0;
+        (fd?.achievement_ids || []).forEach(id => earnedIds.add(id));
+      }
+      // Unknown ids (older app versions) resolve to undefined and drop out.
+      const rarest = [...earnedIds]
+        .map(achievementMeta)
+        .filter((m): m is AchievementMeta => m != null)
+        .sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity))
+        .slice(0, 6);
+      setShowcase({ totalPRs, totalAchievements: earnedIds.size, rarest });
+
       // Current user's lifts and profile, for the comparison
       if (currentUser && currentUser.id !== user.id) {
         const [myLiftsResult, myProfile] = await Promise.all([
@@ -216,6 +246,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
       setPercentileData(null);
       setRecentWorkouts([]);
       setWorkoutCount(0);
+      setShowcase(null);
       setMyLifts([]);
     } finally {
       setIsLoading(false);
@@ -347,6 +378,15 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   // Overall tier drives the identity color, same as feed usernames.
   const overallTier = (percentileData?.strength_level as StrengthTier | undefined)
     ?? (overallPercentile !== null ? getStrengthTier(overallPercentile) : undefined);
+  const tierColor = overallTier ? getTierColor(overallTier) : undefined;
+
+  const sparkHistory = percentileData?.percentile_history?.slice(-30) ?? [];
+  const sparkDelta = sparkHistory.length >= 2
+    ? Math.round(sparkHistory[sparkHistory.length - 1].percentile - sparkHistory[0].percentile)
+    : 0;
+  const sparkSince = sparkHistory.length >= 2
+    ? new Date(sparkHistory[0].date).toLocaleDateString('en-US', { month: 'short' })
+    : '';
 
   const getExerciseName = (id: string) => {
     const workout = getWorkoutById(id);
@@ -436,7 +476,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       variant="title"
                       weight="semiBold"
                       tone="primary"
-                      style={overallTier ? { color: getTierColor(overallTier) } : undefined}
+                      style={tierColor ? { color: tierColor } : undefined}
                     >
                       @{user.username}
                     </Text>
@@ -524,12 +564,18 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   >
                     <Image
                       source={{ uri: user.profile_picture_url }}
-                      style={styles.avatarImage}
+                      style={[styles.avatarImage, tierColor ? { borderWidth: 2, borderColor: tierColor } : null]}
                     />
                   </TouchableOpacity>
                 ) : (
-                  <View style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}>
-                    <Text variant="statHero" weight="semiBold">
+                  <View
+                    style={[
+                      styles.avatar,
+                      { backgroundColor: tint(tierColor ?? currentTheme.colors.primary) },
+                      tierColor ? { borderWidth: 2, borderColor: tierColor } : null,
+                    ]}
+                  >
+                    <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
                       {user.username.charAt(0).toUpperCase()}
                     </Text>
                   </View>
@@ -542,6 +588,24 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   muscleGroups={percentileData.muscle_groups}
                   topContributions={enhancedTopContributions}
                 />
+              )}
+
+              {sparkHistory.length >= 2 && tierColor && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={styles.cardHeader}>
+                    <Text variant="body" weight="semiBold" tone="primary">
+                      Strength Journey
+                    </Text>
+                    <Text
+                      variant="meta"
+                      weight="semiBold"
+                      style={{ color: sparkDelta > 0 ? trend.up : sparkDelta < 0 ? trend.down : ink.muted }}
+                    >
+                      {sparkDelta >= 0 ? '+' : ''}{sparkDelta} since {sparkSince}
+                    </Text>
+                  </View>
+                  <PercentileSparkline history={sparkHistory} color={tierColor} />
+                </View>
               )}
 
               <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
@@ -636,8 +700,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               <StatStrip
                 items={[
                   { value: workoutCount, label: 'Workouts' },
+                  { value: showcase?.totalPRs ?? 0, label: 'PRs' },
                   { value: lifts.length, label: 'Exercises' },
-                  { value: Math.round(totalVolume).toLocaleString(), label: 'Total 1RM lbs' },
+                  { value: Math.round(totalVolume).toLocaleString(), label: 'Total 1RM' },
                 ]}
               />
 
@@ -771,6 +836,39 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   <Text variant="meta" tone="faint" style={styles.comparisonFooter}>
                     Comparing {liftComparison.comparisons.length} shared exercises ({comparisonMode === 'percentile' ? 'percentile' : '1RM lbs'})
                   </Text>
+                </View>
+              )}
+
+              {showcase && showcase.rarest.length > 0 && (
+                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                  <View style={styles.cardHeader}>
+                    <Text variant="body" weight="semiBold" tone="primary">
+                      Rarest Achievements
+                    </Text>
+                    <Text variant="meta" tone="muted">
+                      {showcase.totalAchievements} earned
+                    </Text>
+                  </View>
+                  <View style={styles.showcaseGrid}>
+                    {showcase.rarest.map(m => (
+                      <TouchableOpacity
+                        key={m.id}
+                        style={styles.showcaseCell}
+                        activeOpacity={0.7}
+                        onPress={() => setSpotlight({ ...m, earnedLabel: `@${user.username}` })}
+                        accessibilityRole="button"
+                        accessibilityLabel={m.title}
+                      >
+                        <AchievementBadge icon={m.icon} emblem={emblemFor(m.id)} rarity={m.rarity} size={40} />
+                        <Text variant="meta" weight="medium" tone="primary" numberOfLines={1} style={styles.showcaseTitle}>
+                          {m.title}
+                        </Text>
+                        <Text variant="meta" weight="semiBold" style={{ color: RARITY_META[m.rarity].accent }}>
+                          {RARITY_META[m.rarity].label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
               )}
 
@@ -1060,6 +1158,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.sm,
     borderRadius: radius.control,
     borderWidth: 1,
+  },
+  showcaseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: space.lg,
+  },
+  showcaseCell: {
+    flexBasis: '33.3%',
+    alignItems: 'center',
+    gap: space.xs,
+    paddingHorizontal: space.xs,
+  },
+  showcaseTitle: {
+    textAlign: 'center',
+    maxWidth: '100%',
   },
   liftsList: {
     gap: space.sm,
