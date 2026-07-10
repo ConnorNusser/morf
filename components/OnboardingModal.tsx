@@ -12,18 +12,27 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  LayoutAnimation,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   View
 } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import EquipmentFilterInput from './inputs/EquipmentFilterInput';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -34,7 +43,6 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [height, setHeight] = useState<{ value: number; unit: HeightUnit }>({ value: 5.9, unit: 'feet' });
   const [weight, setWeight] = useState<{ value: number; unit: WeightUnit }>({ value: 185, unit: 'lbs' });
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [gender, setGender] = useState<Gender>('male');
   const [age, setAge] = useState<number>(28);
   const [availableEquipment, setAvailableEquipment] = useState<Equipment[]>(ALL_EQUIPMENT);
@@ -47,21 +55,19 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const totalSteps = 7;
 
   const handleNext = () => {
-    playHapticFeedback('selection', false);
+    const next = Math.min(currentStep + 1, totalSteps - 1);
+    // Reaching the payoff step is the small win — mark it.
+    playHapticFeedback(next === totalSteps - 1 ? 'success' : 'selection', false);
     playSound();
-    setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1));
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCurrentStep(next);
   };
 
   const handleBack = () => {
     playHapticFeedback('selection', false);
     playSound();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCurrentStep(prev => Math.max(prev - 1, 0));
-  };
-
-  const handleWeightUnitChange = (weightUnit: WeightUnit) => {
-    playHapticFeedback('selection', false);
-    playSound();
-    setWeightUnit(weightUnit);
   };
 
   const canProceedFromStep = () => {
@@ -88,7 +94,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
         weight,
         gender,
         age,
-        weightUnitPreference: weightUnit,
+        weightUnitPreference: weight.unit,
         equipmentFilter: {
           mode: availableEquipment.length === ALL_EQUIPMENT.length ? 'all' : 'custom',
           includedEquipment: availableEquipment,
@@ -143,8 +149,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             {/* The climb, in the app's own pixel language: E up to S. */}
             <View style={styles.tierLadderRow}>
               {(['E', 'D', 'C', 'B', 'A', 'S'] as const).map((t, i) => (
-                <Image
+                <Animated.Image
                   key={t}
+                  entering={FadeInDown.delay(250 + i * 90).duration(350)}
                   source={tierEmblemFor(t)}
                   style={[styles.tierLadderEmblem, { width: 30 + i * 4, height: 30 + i * 4 }]}
                   resizeMode="contain"
@@ -154,7 +161,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepIndicator, { 
               color: currentTheme.colors.text + '60',
             }]}>
-              Setup takes about a minute
+              Setup takes about a minute · no account needed
             </Text>
           </View>
         );
@@ -168,7 +175,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
             }]}>
-              This helps us calculate your strength percentiles and track progress.
+              Rounds out your strength profile.
             </Text>
             <View style={styles.inputWrapper}>
               <HeightInput value={height} onChange={setHeight} style={styles.inputComponent} />
@@ -185,7 +192,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
             }]}>
-              We use this to personalize your workout recommendations.
+              Your lifts are graded relative to bodyweight — this one matters most.
             </Text>
             <View style={styles.inputWrapper}>
               <WeightInput value={weight} onChange={setWeight} style={styles.inputComponent} />
@@ -202,7 +209,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
             }]}>
-              This helps us provide more accurate strength standards.
+              {"Strength curves differ — you'll be graded against the right one."}
             </Text>
             <View style={styles.inputWrapper}>
               <GenderInput value={gender} onChange={setGender} style={styles.inputComponent} />
@@ -219,7 +226,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepSubtitle, { 
               color: currentTheme.colors.text + '80',
             }]}>
-              This helps us provide more accurate strength standards.
+              {"Standards shift with age — you're graded against your bracket."}
             </Text>
             <View style={styles.inputWrapper}>
               <TextInput
@@ -254,7 +261,7 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.stepSubtitle, {
               color: currentTheme.colors.text + '80',
             }]}>
-              This helps us generate workouts with exercises you can actually do.
+              So generated workouts only use gear you can actually reach.
             </Text>
             <View style={styles.inputWrapper}>
               <EquipmentFilterInput
@@ -269,77 +276,21 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 6:
         return (
           <View style={styles.stepContent}>
+            <Animated.Image
+              entering={ZoomIn.springify().damping(11).delay(120)}
+              source={tierEmblemFor('E')}
+              style={styles.payoffEmblem}
+              resizeMode="contain"
+            />
             <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
-            }]}>Choose your weight units</Text>
-            
-            <View style={styles.unitSelectionContainer}>
-              <View style={styles.unitToggle}>
-                <TouchableOpacity
-                  style={[
-                    styles.unitButton,
-                    { 
-                      backgroundColor: weightUnit === 'lbs' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                      borderColor: currentTheme.colors.border,
-                    },
-                  ]}
-                  onPress={() => handleWeightUnitChange('lbs')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.unitButtonText,
-                    { 
-                      color: weightUnit === 'lbs' ? '#FFFFFF' : currentTheme.colors.text,
-                    }
-                  ]}>
-                    lbs
-                  </Text>
-                  <Text style={[
-                    styles.unitButtonSubtext,
-                    { 
-                      color: weightUnit === 'lbs' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                    }
-                  ]}>
-                    Imperial
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[
-                    styles.unitButton,
-                    { 
-                      backgroundColor: weightUnit === 'kg' ? currentTheme.colors.primary : currentTheme.colors.surface,
-                      borderColor: currentTheme.colors.border,
-                    },
-                  ]}
-                  onPress={() => handleWeightUnitChange('kg')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[
-                    styles.unitButtonText,
-                    { 
-                      color: weightUnit === 'kg' ? '#FFFFFF' : currentTheme.colors.text,
-                    }
-                  ]}>
-                    kg
-                  </Text>
-                  <Text style={[
-                    styles.unitButtonSubtext,
-                    { 
-                      color: weightUnit === 'kg' ? '#FFFFFF' + '90' : currentTheme.colors.text + '70',
-                    }
-                  ]}>
-                    Metric
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              
-              <Text style={[styles.unitHint, { 
-                color: currentTheme.colors.text + '60',
-              }]}>
-                You can change this later in your profile settings
-              </Text>
-            </View>
+            }]}>You start at E</Text>
+            <Text style={[styles.stepSubtitle, {
+              color: currentTheme.colors.text + '80',
+            }]}>
+              Everyone does. Log your first workout and your lifts get graded
+              against real strength standards — then the climb begins.
+            </Text>
           </View>
         );
 
@@ -429,8 +380,8 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <>
               <Text style={[styles.nextButtonText, { 
                 color: currentTheme.colors.background,
-              }]}>Complete</Text>
-              <Ionicons name="checkmark" size={20} color={currentTheme.colors.background} />
+              }]}>Start lifting</Text>
+              <Ionicons name="arrow-forward" size={20} color={currentTheme.colors.background} />
             </>
           )}
         </TouchableOpacity>
@@ -448,7 +399,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           keyboardDismissMode="interactive"
         >
           {renderProgressBar()}
-          {renderStep()}
+          <Animated.View key={currentStep} entering={FadeInDown.duration(280)}>
+            {renderStep()}
+          </Animated.View>
         </ScrollView>
         {renderNavigationButtons()}
       </View>
@@ -510,6 +463,12 @@ const styles = StyleSheet.create({
   stepIndicator: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  payoffEmblem: {
+    width: 128,
+    height: 128,
+    alignSelf: 'center',
+    marginBottom: 28,
   },
   tierLadderRow: {
     flexDirection: 'row',
@@ -597,38 +556,5 @@ const styles = StyleSheet.create({
   nextButtonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  unitSelectionContainer: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  unitToggle: {
-    flexDirection: 'row',
-    width: '100%',
-    marginBottom: 20,
-    gap: 12,
-  },
-  unitButton: {
-    flex: 1,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  unitButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  unitButtonSubtext: {
-    fontSize: 14,
-    fontWeight: '400',
-  },
-  unitHint: {
-    fontSize: 14,
-    textAlign: 'center',
-    fontStyle: 'italic',
   },
 }); 
