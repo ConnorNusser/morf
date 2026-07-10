@@ -416,7 +416,7 @@ export default function HistoryScreen() {
 
             {workouts.length === 0 && (
               <EmptyState
-                icon="barbell-outline"
+                art={require("@/assets/achievements/barbell.png")}
                 title="No workouts yet"
                 subtitle="Start logging to track your progress"
                 cta={{
@@ -446,7 +446,7 @@ export default function HistoryScreen() {
               </Card>
             ) : (
               <EmptyState
-                icon="barbell-outline"
+                art={require("@/assets/achievements/barbell.png")}
                 title="No sessions yet"
                 subtitle="Your workout log will show here"
                 cta={{
@@ -560,7 +560,7 @@ export default function HistoryScreen() {
               </>
             ) : (
               <EmptyState
-                icon="fitness-outline"
+                art={require("@/assets/achievements/dumbbell.png")}
                 title="No exercises tracked"
                 subtitle="Complete workouts to build your exercise history"
                 cta={{

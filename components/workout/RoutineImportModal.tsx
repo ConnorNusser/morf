@@ -221,7 +221,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
             })
           ) : (
             <EmptyState
-              icon="barbell-outline"
+              art={require('@/assets/achievements/scroll.png')}
               title={routines.length === 0 ? 'No routines yet' : 'No matching routines'}
               subtitle="Create routines in the Routines tab"
             />

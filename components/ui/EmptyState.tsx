@@ -3,10 +3,19 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { radius, screenGutter, space } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { ComponentProps } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ImageSourcePropType,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface EmptyStateProps {
-  icon: ComponentProps<typeof Ionicons>["name"];
+  /** Pixel-art illustration (the app's emblem style) — preferred over `icon`. */
+  art?: ImageSourcePropType;
+  /** Ionicon fallback for contextual states (e.g. search misses). */
+  icon?: ComponentProps<typeof Ionicons>["name"];
   title: string;
   subtitle?: string;
   cta?: {
@@ -16,13 +25,17 @@ interface EmptyStateProps {
   };
 }
 
-function EmptyState({ icon, title, subtitle, cta }: EmptyStateProps) {
+function EmptyState({ art, icon, title, subtitle, cta }: EmptyStateProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
 
   return (
     <View style={styles.container}>
-      <Ionicons name={icon} size={48} color={ink.ghost} />
+      {art ? (
+        <Image source={art} style={styles.art} resizeMode="contain" />
+      ) : (
+        icon && <Ionicons name={icon} size={48} color={ink.ghost} />
+      )}
       <Text variant="heading" tone="faint" weight="medium" style={styles.title}>
         {title}
       </Text>
@@ -54,6 +67,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
+  },
+  // Quieted so the illustration reads as scene-setting, not content.
+  art: {
+    width: 72,
+    height: 72,
+    opacity: 0.85,
   },
   title: {
     marginTop: space.lg,
