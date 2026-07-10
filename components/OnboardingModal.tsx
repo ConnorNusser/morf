@@ -4,7 +4,7 @@ import { analyticsService } from '@/lib/services/analytics';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { tierEmblemFor } from '@/lib/gamification/tierEmblems';
+import { getTierColor } from '@/lib/data/strengthStandards';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { ALL_EQUIPMENT } from '@/lib/workout/equipment';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,16 +146,14 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
               Log your lifts, get graded against real strength standards, and
               climb the tiers.
             </Text>
-            {/* The climb, in the app's own pixel language: E up to S. */}
+            {/* The climb, in the tier system's own type: E up to S. */}
             <View style={styles.tierLadderRow}>
               {(['E', 'D', 'C', 'B', 'A', 'S'] as const).map((t, i) => (
-                <Animated.Image
-                  key={t}
-                  entering={FadeInDown.delay(250 + i * 90).duration(350)}
-                  source={tierEmblemFor(t)}
-                  style={[styles.tierLadderEmblem, { width: 30 + i * 4, height: 30 + i * 4 }]}
-                  resizeMode="contain"
-                />
+                <Animated.View key={t} entering={FadeInDown.delay(250 + i * 90).duration(350)}>
+                  <Text style={[styles.tierLadderLetter, { fontSize: 22 + i * 4, color: getTierColor(t) }]}>
+                    {t}
+                  </Text>
+                </Animated.View>
               ))}
             </View>
             <Text style={[styles.stepIndicator, { 
@@ -276,12 +274,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 6:
         return (
           <View style={styles.stepContent}>
-            <Animated.Image
-              entering={ZoomIn.springify().damping(11).delay(120)}
-              source={tierEmblemFor('E')}
-              style={styles.payoffEmblem}
-              resizeMode="contain"
-            />
+            <Animated.View entering={ZoomIn.springify().damping(11).delay(120)}>
+              <Text style={[styles.payoffTier, { color: getTierColor('E') }]}>E</Text>
+            </Animated.View>
             <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
             }]}>You start at E</Text>
@@ -464,20 +459,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  payoffEmblem: {
-    width: 128,
-    height: 128,
-    alignSelf: 'center',
-    marginBottom: 28,
+  // The tier letter as display glyph — same treatment as the Career hero.
+  payoffTier: {
+    fontSize: 88,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   tierLadderRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 10,
+    alignItems: 'baseline',
+    gap: 14,
     marginBottom: 24,
   },
-  tierLadderEmblem: {
-    opacity: 0.95,
+  tierLadderLetter: {
+    fontWeight: '800',
   },
   stepTitle: {
     fontSize: 32,
