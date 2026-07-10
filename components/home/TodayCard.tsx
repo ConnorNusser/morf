@@ -102,11 +102,11 @@ export default function TodayCard() {
       const records = await loadExerciseRecords(history);
       const candidates = getUpNextCandidates(routines, programs);
       setDays(
-        candidates.map((rt) => calculateRoutine(rt, records, weightUnit)),
+        candidates.map((rt) => calculateRoutine(rt, records, weightUnit, history)),
       );
       const today = getUpNextRoutine(routines, programs, pointerId);
       setCalculated(
-        today ? calculateRoutine(today, records, weightUnit) : null,
+        today ? calculateRoutine(today, records, weightUnit, history) : null,
       );
     } catch (err) {
       console.error("TodayCard: failed to load", err);

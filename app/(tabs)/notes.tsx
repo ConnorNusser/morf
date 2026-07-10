@@ -15,7 +15,7 @@ import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
-import { CalculatedRoutine, ExerciseRecord, Program, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -57,8 +57,10 @@ export default function NotesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [routines, setRoutines] = useState<Routine[]>([]);
-  // Global per-exercise records — the anchor every routine's prescription uses.
+  // Global per-exercise records — seed prescriptions for slots with no history of their own.
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
+  // Workout history — each routine's prescription anchors to its own last session in here.
+  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);
@@ -100,6 +102,7 @@ export default function NotesScreen() {
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
+      setWorkoutHistory(history);
       setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading data:', error);
@@ -119,8 +122,8 @@ export default function NotesScreen() {
   };
 
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
-  }, [routines, exerciseRecords, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit, workoutHistory);
+  }, [routines, exerciseRecords, weightUnit, workoutHistory]);
 
   // Precompute muscle groups once instead of recomputing getMuscleGroups per card on every render (e.g. each expand/collapse).
   const muscleGroupsByRoutine = useMemo(() => {

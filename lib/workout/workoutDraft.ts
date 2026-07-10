@@ -258,38 +258,45 @@ export function moveExerciseToEdge(draft: WorkoutDraft, key: string, edge: 'top'
   return next;
 }
 
-/** Build a routine's exercise list from the draft — captures order, set count, reps.
- *  Routines store no weights (computed from records), so only structure carries over.
- *  Only exercises with a resolved id survive; warmup flags and notes are preserved
- *  from the previous routine by matching exerciseId. */
+/** Build a routine's exercise list from the draft — captures order and set count.
+ *  Routines store no weights, and stored reps are the rep-range FLOOR the
+ *  progression rule works against — the reps performed in a session are
+ *  performance (the prescription moves them every workout), not program, so
+ *  carried-over sets keep their stored floors (added sets inherit the last one)
+ *  and only a brand-new exercise takes its reps from the draft. Rep targets are
+ *  edited in the routine editor. Only exercises with a resolved id survive;
+ *  warmup flags and notes are preserved by matching exerciseId. */
 export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExercise[]): RoutineExercise[] {
   return draft
     .filter(ex => ex.exerciseId && ex.sets.length > 0)
     .map(ex => {
       const existing = prev.find(p => p.exerciseId === ex.exerciseId);
+      const lastStored = existing?.sets[existing.sets.length - 1];
       return {
         exerciseId: ex.exerciseId as string,
         exerciseName: ex.name,
-        sets: ex.sets.map((s, i) => ({ reps: s.reps, isWarmup: existing?.sets[i]?.isWarmup })),
+        sets: ex.sets.map((s, i) => ({
+          reps: existing?.sets[i]?.reps ?? lastStored?.reps ?? s.reps,
+          isWarmup: existing?.sets[i]?.isWarmup,
+        })),
         intensityModifier: existing?.intensityModifier,
         notes: existing?.notes,
       };
     });
 }
 
-/** True when folding the draft into the routine would change it (exercises, order,
- *  set counts, or reps). Drives the pre-finish "update your routine?" prompt. */
+/** True when folding the draft into the routine would change its STRUCTURE —
+ *  exercises, order, or set counts. Drives the pre-finish "update your routine?"
+ *  prompt. Reps are deliberately not compared: the draft carries prescription
+ *  reps (floor+1 after a normal in-range session), so comparing them fired the
+ *  prompt after every unchanged session — and accepting ratcheted the stored
+ *  rep floor upward, breaking the fixed range that load steps are earned against. */
 export function routineDiffersFromDraft(draft: WorkoutDraft, prev: RoutineExercise[]): boolean {
   const next = draftToRoutineExercises(draft, prev);
   if (next.length !== prev.length) return true;
   for (let i = 0; i < next.length; i++) {
-    const a = next[i];
-    const b = prev[i];
-    if (a.exerciseId !== b.exerciseId) return true;
-    if (a.sets.length !== b.sets.length) return true;
-    for (let j = 0; j < a.sets.length; j++) {
-      if (a.sets[j].reps !== b.sets[j].reps) return true;
-    }
+    if (next[i].exerciseId !== prev[i].exerciseId) return true;
+    if (next[i].sets.length !== prev[i].sets.length) return true;
   }
   return false;
 }
