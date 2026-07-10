@@ -79,6 +79,10 @@ export default function PowerliftingTotal({
       liftBands[liftBands.length - 1]?.color
     );
   };
+  // Cells fill proportionally: 240 lb = 2 full cells + 40% of the third,
+  // and the unearned remainder of a cell stays on the grey track.
+  const fillFractionForCell = (i: number) =>
+    Math.max(0, Math.min(1, (data.total - i * STEP) / STEP));
 
   const bandOf = (cellIdx: number) => {
     const lower = cellIdx * STEP;
@@ -97,8 +101,12 @@ export default function PowerliftingTotal({
   const clubAccent = club ? RARITY_META[club.rarity].accent : TIER_COLORS.S;
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
-  // The headline total counts up while the ladder cells fill in sequence.
-  const shownTotal = useCountUp(data.total, { duration: 900 });
+  // The headline total counts up while the ladder cells fill in sequence —
+  // both finish at the same moment (when the last filled cell completes).
+  const FILL_STAGGER = 66;
+  const FILL_DURATION = 720;
+  const fillEndMs = currentCell * FILL_STAGGER + FILL_DURATION;
+  const shownTotal = useCountUp(data.total, { duration: fillEndMs });
 
   return (
     <View style={styles.container}>
@@ -174,25 +182,29 @@ export default function PowerliftingTotal({
         {Array.from({ length: cellCount }, (_, i) => {
           const fill = colorForCell(i);
           return (
-            <View
-              key={i}
-              style={[
-                styles.ladderCell,
-                {
-                  borderWidth: i === currentCell ? 2 : 0,
-                  borderColor: colors.text,
-                },
-              ]}
-            >
+            <View key={i} style={styles.ladderCell}>
               <View
                 style={[styles.ladderCellBase, { backgroundColor: colors.border }]}
               />
               {fill && (
                 <Animated.View
-                  entering={FadeIn.delay(i * 22)
+                  entering={FadeIn.delay(i * FILL_STAGGER)
+                    .duration(FILL_DURATION)
+                    .reduceMotion(ReduceMotion.System)}
+                  style={[
+                    styles.ladderCellFill,
+                    { backgroundColor: fill, width: `${fillFractionForCell(i) * 100}%` },
+                  ]}
+                />
+              )}
+              {/* Current-cell outline lands only after the fill sequence finishes. */}
+              {i === currentCell && (
+                <Animated.View
+                  pointerEvents="none"
+                  entering={FadeIn.delay(fillEndMs)
                     .duration(240)
                     .reduceMotion(ReduceMotion.System)}
-                  style={[StyleSheet.absoluteFill, { backgroundColor: fill }]}
+                  style={[styles.ladderCellOutline, { borderColor: colors.text }]}
                 />
               )}
             </View>
@@ -294,6 +306,12 @@ const styles = StyleSheet.create({
   // Faded track under the animated fill (child opacity, since a parent
   // opacity would cap the fill too).
   ladderCellBase: { ...StyleSheet.absoluteFillObject, opacity: 0.3 },
+  ladderCellFill: { position: "absolute", top: 0, bottom: 0, left: 0 },
+  ladderCellOutline: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderRadius: 2,
+  },
   ladderLabels: { flexDirection: "row", marginTop: space.xs },
   ladderBaseLabel: { textAlign: "right" },
 });

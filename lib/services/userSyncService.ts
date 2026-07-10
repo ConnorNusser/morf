@@ -11,10 +11,16 @@ import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
 
+// Overall strength snapshot used by the feed to color/annotate author names.
+export interface UserStrengthSummary {
+  tier: StrengthTier;
+  percentile: number;
+}
+
 class UserSyncService {
   private currentUserId: string | null = null;
-  // user_id → overall tier; null marks a confirmed "no percentile row yet".
-  private strengthLevelCache = new Map<string, StrengthTier | null>();
+  // user_id → overall strength; null marks a confirmed "no percentile row yet".
+  private strengthLevelCache = new Map<string, UserStrengthSummary | null>();
 
   async syncUser(username: string): Promise<RemoteUser | null> {
     if (!supabase) return null;
@@ -814,12 +820,12 @@ class UserSyncService {
   }
 
   /**
-   * Batch lookup of overall strength tiers (from user_percentiles), for
-   * tier-coloring feed author names. Cached per session — tiers move slowly,
-   * so pagination and re-renders don't refetch known users.
+   * Batch lookup of overall strength (from user_percentiles), for tier-coloring
+   * feed author names and showing their percentile. Cached per session — tiers
+   * move slowly, so pagination and re-renders don't refetch known users.
    */
-  async getUserStrengthLevels(userIds: string[]): Promise<Record<string, StrengthTier>> {
-    const result: Record<string, StrengthTier> = {};
+  async getUserStrengthLevels(userIds: string[]): Promise<Record<string, UserStrengthSummary>> {
+    const result: Record<string, UserStrengthSummary> = {};
     const missing: string[] = [];
 
     for (const id of new Set(userIds)) {
@@ -836,7 +842,7 @@ class UserSyncService {
     try {
       const { data, error } = await supabase
         .from('user_percentiles')
-        .select('user_id, strength_level')
+        .select('user_id, strength_level, overall_percentile')
         .in('user_id', missing);
 
       if (error) {
@@ -845,9 +851,10 @@ class UserSyncService {
       }
 
       for (const row of data || []) {
-        const level = (row.strength_level as StrengthTier) || null;
-        this.strengthLevelCache.set(row.user_id, level);
-        if (level) result[row.user_id] = level;
+        const tier = (row.strength_level as StrengthTier) || null;
+        const summary = tier ? { tier, percentile: Math.round(row.overall_percentile ?? 0) } : null;
+        this.strengthLevelCache.set(row.user_id, summary);
+        if (summary) result[row.user_id] = summary;
       }
       // Cache the misses too so users without percentile rows don't refetch.
       for (const id of missing) {

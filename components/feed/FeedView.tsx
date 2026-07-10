@@ -4,11 +4,10 @@ import { useTabBar } from '@/contexts/TabBarContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoControl } from '@/contexts/VideoPlayerContext';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { StrengthTier } from '@/lib/data/strengthStandards';
 import { feedService, FeedPost, toggleLikeFor } from '@/lib/services/feedService';
 import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
-import { userSyncService } from '@/lib/services/userSyncService';
+import { userSyncService, UserStrengthSummary } from '@/lib/services/userSyncService';
 import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -51,7 +50,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [currentUsername, setCurrentUsername] = useState<string>('');
-  const [tierByUser, setTierByUser] = useState<Record<string, StrengthTier>>({});
+  const [tierByUser, setTierByUser] = useState<Record<string, UserStrengthSummary>>({});
 
   // Overall tiers live in Supabase (user_percentiles), not the feed payload —
   // batch-fetch them per author so cards can tier-color usernames.
@@ -307,7 +306,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           onComment={onWorkoutPress}
           currentUserId={currentUserId}
           weightUnit={weightUnit}
-          overallTier={tierByUser[workout.user_id]}
+          overallStrength={tierByUser[workout.user_id]}
         />
       );
     } else {
@@ -320,7 +319,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           onComment={onPostComment}
           currentUserId={currentUserId}
           isVisible={isVisible}
-          overallTier={tierByUser[post.user_id]}
+          overallStrength={tierByUser[post.user_id]}
         />
       );
     }

@@ -26,8 +26,9 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Headline counts up on every arrival — from the pre-workout percentile on
-  // replay, from 0 on a fresh mount — mirroring the Career hero.
-  const shownPercentile = useCountUp(percentile, { from: animateFrom ?? 0 });
+  // replay, from 0 on a fresh mount — mirroring the Career hero. Deliberately
+  // slow so the sweep reads as a moment, not a flicker.
+  const shownPercentile = useCountUp(percentile, { from: animateFrom ?? 0, duration: 2400 });
   const band = getTierBandProgress(percentile);
 
   return (
@@ -72,6 +73,7 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
               progress={percentile}
               from={animateFrom ?? 0}
               height={10}
+              duration={2400}
               style={styles.progressBar}
               showTicks={true}
               color={tierColor}
