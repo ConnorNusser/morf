@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
 import { getNextInCycle } from '@/lib/workout/activeRoutine';
+import { EMPTY_REVIEW_STATE, ReviewPromptState } from '@/lib/workout/reviewPrompt';
 
 const STORAGE_KEYS = {
   USER_PROFILE: 'user_profile',
@@ -29,6 +30,7 @@ const STORAGE_KEYS = {
   UP_NEXT_POINTER: 'up_next_pointer',
   CYCLE_STARTED_AT: 'cycle_started_at',
   EXERCISE_RECORDS: 'exercise_records',
+  REVIEW_PROMPT_STATE: 'review_prompt_state',
 } as const;
 
 export interface PendingStrengthProgress {
@@ -388,6 +390,25 @@ class StorageService {
       }
     } catch (error) {
       console.error('Error recording trained day:', error);
+    }
+  }
+
+  // App-review prompt bookkeeping (last ask + count) — gates the native sheet.
+  async getReviewPromptState(): Promise<ReviewPromptState> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.REVIEW_PROMPT_STATE);
+      return data ? { ...EMPTY_REVIEW_STATE, ...JSON.parse(data) } : EMPTY_REVIEW_STATE;
+    } catch (error) {
+      console.error('Error loading review prompt state:', error);
+      return EMPTY_REVIEW_STATE;
+    }
+  }
+
+  async setReviewPromptState(state: ReviewPromptState): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.REVIEW_PROMPT_STATE, JSON.stringify(state));
+    } catch (error) {
+      console.error('Error saving review prompt state:', error);
     }
   }
 

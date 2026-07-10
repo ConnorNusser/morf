@@ -6,7 +6,7 @@ import { space } from '@/lib/ui/tokens';
 import Constants from 'expo-constants';
 import * as Linking from 'expo-linking';
 import * as StoreReview from 'expo-store-review';
-import { ChevronDown, ChevronUp, Mail, Star } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 
@@ -97,11 +97,11 @@ export default function AppInfoSection() {
             </Text>
           )}
         </View>
-        {isExpanded ? (
-          <ChevronUp size={20} color={ink.primary} />
-        ) : (
-          <ChevronDown size={20} color={ink.primary} />
-        )}
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={ink.primary}
+        />
       </TouchableOpacity>
       
       {isExpanded && (
@@ -123,7 +123,7 @@ export default function AppInfoSection() {
               onPress={handleRateApp}
               activeOpacity={0.6}
             >
-              <Star size={18} color={currentTheme.colors.primary} />
+              <Ionicons name="star-outline" size={18} color={currentTheme.colors.primary} />
               <Text variant="body" weight="medium" tone="primary">
                 Rate App
               </Text>
@@ -136,7 +136,7 @@ export default function AppInfoSection() {
               onPress={handleContactSupport}
               activeOpacity={0.6}
             >
-              <Mail size={18} color={ink.secondary} />
+              <Ionicons name="mail-outline" size={18} color={ink.secondary} />
               <Text variant="body" weight="medium" tone="primary">
                 Support
               </Text>
