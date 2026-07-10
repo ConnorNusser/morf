@@ -17,6 +17,7 @@ import { useUser } from "@/contexts/UserContext";
 import { getStrengthTier } from "@/lib/data/strengthStandards";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
+import { userSyncService } from "@/lib/services/userSyncService";
 import {
   HomeViewMode,
   PendingStrengthProgress,
@@ -54,6 +55,8 @@ export default function HomeScreen() {
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+  // The viewer's own backend user, for the feed header's profile button.
+  const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
 
   useEffect(() => {
     const loadViewMode = async () => {
@@ -61,6 +64,7 @@ export default function HomeScreen() {
       setViewMode(savedMode);
     };
     loadViewMode();
+    userSyncService.getCurrentUser().then(setCurrentUser);
   }, []);
 
   useEffect(() => {
@@ -205,6 +209,10 @@ export default function HomeScreen() {
             <DashboardHeader
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
+              onProfilePress={
+                currentUser ? () => setSelectedUser(currentUser) : undefined
+              }
+              profileImageUrl={currentUser?.profile_picture_url}
             />
           </View>
           <FeedView

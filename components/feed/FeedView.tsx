@@ -53,18 +53,17 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [tierByUser, setTierByUser] = useState<Record<string, UserStrengthSummary>>({});
 
   // Overall tiers live in Supabase (user_percentiles), not the feed payload —
-  // batch-fetch them per author so cards can tier-color usernames.
-  useEffect(() => {
-    const ids = Array.from(new Set(feedItems.map(item => item.data.user_id).filter(Boolean)));
+  // batch-fetch them per author BEFORE the cards render (awaited inside
+  // loadFeed/loadMore, behind the skeleton), so usernames appear already
+  // tier-colored instead of flashing the plain text color first.
+  const fetchTiersFor = useCallback(async (items: FeedItem[]) => {
+    const ids = Array.from(new Set(items.map(item => item.data.user_id).filter(Boolean)));
     if (ids.length === 0) return;
-    let cancelled = false;
-    userSyncService.getUserStrengthLevels(ids).then(tiers => {
-      if (!cancelled && Object.keys(tiers).length > 0) {
-        setTierByUser(prev => ({ ...prev, ...tiers }));
-      }
-    });
-    return () => { cancelled = true; };
-  }, [feedItems]);
+    const tiers = await userSyncService.getUserStrengthLevels(ids);
+    if (Object.keys(tiers).length > 0) {
+      setTierByUser(prev => ({ ...prev, ...tiers }));
+    }
+  }, []);
 
   const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 80,
@@ -107,6 +106,10 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         ...posts.map(p => ({ type: 'post' as const, data: p })),
       ].sort(byNewest);
 
+      // Resolve tier colors while the skeleton is still up (cached per session,
+      // so refreshes only hit the network for unseen authors).
+      await fetchTiersFor(combined);
+
       setFeedItems(combined);
       setCurrentUserId(user?.id || null);
       setCurrentUsername(user?.username || '');
@@ -118,7 +121,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [fetchTiersFor]);
 
   const loadMore = useCallback(async () => {
     if (isLoadingMore || !hasMore) return;
@@ -143,6 +146,10 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           ...morePosts.map(p => ({ type: 'post' as const, data: p })),
         ].sort(byNewest);
 
+        // Same as loadFeed: tiers first (behind the footer spinner) so newly
+        // appended cards don't flicker into their colors.
+        await fetchTiersFor(newItems);
+
         setFeedItems(prev => [...prev, ...newItems]);
       }
     } catch (error) {
@@ -150,7 +157,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     } finally {
       setIsLoadingMore(false);
     }
-  }, [feedItems, hasMore, isLoadingMore]);
+  }, [feedItems, hasMore, isLoadingMore, fetchTiersFor]);
 
   useEffect(() => {
     loadFeed();
