@@ -867,6 +867,133 @@ class UserSyncService {
     return result;
   }
 
+  /**
+   * All lift rows for an exercise recorded on or before the cutoff — the raw
+   * material for reconstructing the board as of that date (user_lifts is
+   * append-only, so history is complete). Feeds lib/gamification/leaderboardInsights.
+   */
+  async getLiftRowsAsOf(exerciseId: string, cutoffIso: string): Promise<{ user_id: string; estimated_1rm: number }[]> {
+    if (!supabase) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('user_lifts')
+        .select('user_id, estimated_1rm')
+        .eq('exercise_id', exerciseId)
+        .lte('recorded_at', cutoffIso)
+        .limit(5000);
+
+      if (error) {
+        console.error('Error fetching historical lifts:', error);
+        return [];
+      }
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching historical lifts:', error);
+      return [];
+    }
+  }
+
+  /** Percentile snapshot histories for a set of users (empty array = no history yet). */
+  async getPercentileHistories(userIds: string[]): Promise<Record<string, { percentile: number; date: string }[]>> {
+    if (!supabase || userIds.length === 0) return {};
+
+    try {
+      const { data, error } = await supabase
+        .from('user_percentiles')
+        .select('user_id, percentile_history')
+        .in('user_id', userIds);
+
+      if (error) {
+        console.error('Error fetching percentile histories:', error);
+        return {};
+      }
+
+      const result: Record<string, { percentile: number; date: string }[]> = {};
+      for (const row of data || []) {
+        result[row.user_id] = row.percentile_history || [];
+      }
+      return result;
+    } catch (error) {
+      console.error('Error fetching percentile histories:', error);
+      return {};
+    }
+  }
+
+  /**
+   * The viewer's own standing on a lift board, even when they're outside the
+   * visible top 50. Global rank comes from the exercise_leaderboard view;
+   * a country rank is recomputed by counting compatriots above them.
+   */
+  async getMyLiftStanding(exerciseId: string, countryCode?: string | null): Promise<{ rank: number; oneRm: number; tier?: string } | null> {
+    if (!supabase) return null;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('exercise_leaderboard')
+        .select('estimated_1rm, strength_tier, rank')
+        .eq('exercise_id', exerciseId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      let rank = data.rank as number;
+      if (countryCode) {
+        const { count, error: countError } = await supabase
+          .from('exercise_leaderboard')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('exercise_id', exerciseId)
+          .eq('country_code', countryCode)
+          .gt('estimated_1rm', data.estimated_1rm);
+        if (countError || count == null) return null;
+        rank = count + 1;
+      }
+
+      return { rank, oneRm: data.estimated_1rm, tier: data.strength_tier || undefined };
+    } catch (error) {
+      console.error('Error fetching own lift standing:', error);
+      return null;
+    }
+  }
+
+  /** Same as getMyLiftStanding, for the overall-percentile board. */
+  async getMyOverallStanding(countryCode?: string | null): Promise<{ rank: number; percentile: number; tier?: string } | null> {
+    if (!supabase) return null;
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('overall_leaderboard')
+        .select('overall_percentile, strength_level, rank')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error || !data) return null;
+
+      let rank = data.rank as number;
+      if (countryCode) {
+        const { count, error: countError } = await supabase
+          .from('overall_leaderboard')
+          .select('user_id', { count: 'exact', head: true })
+          .eq('country_code', countryCode)
+          .gt('overall_percentile', data.overall_percentile);
+        if (countError || count == null) return null;
+        rank = count + 1;
+      }
+
+      return { rank, percentile: data.overall_percentile, tier: data.strength_level || undefined };
+    } catch (error) {
+      console.error('Error fetching own overall standing:', error);
+      return null;
+    }
+  }
+
   async syncWorkout(workout: GeneratedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {
     if (!supabase) return false;
 
