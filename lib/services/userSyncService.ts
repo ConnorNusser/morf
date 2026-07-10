@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
 import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
-import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator, StrengthTier } from '@/lib/data/strengthStandards';
 import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
 import { userService } from './userService';
 import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
@@ -13,6 +13,8 @@ import { containsProfanity } from '@/lib/utils/moderation';
 
 class UserSyncService {
   private currentUserId: string | null = null;
+  // user_id → overall tier; null marks a confirmed "no percentile row yet".
+  private strengthLevelCache = new Map<string, StrengthTier | null>();
 
   async syncUser(username: string): Promise<RemoteUser | null> {
     if (!supabase) return null;
@@ -809,6 +811,53 @@ class UserSyncService {
       console.error('Error getting user percentile data:', error);
       return null;
     }
+  }
+
+  /**
+   * Batch lookup of overall strength tiers (from user_percentiles), for
+   * tier-coloring feed author names. Cached per session — tiers move slowly,
+   * so pagination and re-renders don't refetch known users.
+   */
+  async getUserStrengthLevels(userIds: string[]): Promise<Record<string, StrengthTier>> {
+    const result: Record<string, StrengthTier> = {};
+    const missing: string[] = [];
+
+    for (const id of new Set(userIds)) {
+      if (this.strengthLevelCache.has(id)) {
+        const cached = this.strengthLevelCache.get(id);
+        if (cached) result[id] = cached;
+      } else {
+        missing.push(id);
+      }
+    }
+
+    if (missing.length === 0 || !supabase) return result;
+
+    try {
+      const { data, error } = await supabase
+        .from('user_percentiles')
+        .select('user_id, strength_level')
+        .in('user_id', missing);
+
+      if (error) {
+        console.error('Error fetching strength levels:', error);
+        return result;
+      }
+
+      for (const row of data || []) {
+        const level = (row.strength_level as StrengthTier) || null;
+        this.strengthLevelCache.set(row.user_id, level);
+        if (level) result[row.user_id] = level;
+      }
+      // Cache the misses too so users without percentile rows don't refetch.
+      for (const id of missing) {
+        if (!this.strengthLevelCache.has(id)) this.strengthLevelCache.set(id, null);
+      }
+    } catch (error) {
+      console.error('Error fetching strength levels:', error);
+    }
+
+    return result;
   }
 
   async syncWorkout(workout: GeneratedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {

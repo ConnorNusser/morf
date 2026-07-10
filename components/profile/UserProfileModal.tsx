@@ -9,15 +9,18 @@ import { formatRelativeTime, formatDuration } from '@/lib/ui/formatters';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View, useInk } from '@/components/Themed';
+import TierBadge from '@/components/TierBadge';
+import EmptyState from '@/components/ui/EmptyState';
+import StatStrip from '@/components/ui/StatStrip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryName } from '@/lib/services/geoService';
 import { layout } from '@/lib/ui/styles';
-import { space, radius, screenGutter, tint } from '@/lib/ui/tokens';
+import { space, radius, screenGutter, tint, trend } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { WorkoutSummary } from '@/lib/services/feedService';
 import { getWorkoutById } from '@/lib/workout/workouts';
-import { calculateStrengthPercentile } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, isFeaturedLift } from '@/types';
@@ -341,6 +344,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   if (!user) return null;
 
   const overallPercentile = percentileData?.overall_percentile ?? null;
+  // Overall tier drives the identity color, same as feed usernames.
+  const overallTier = (percentileData?.strength_level as StrengthTier | undefined)
+    ?? (overallPercentile !== null ? getStrengthTier(overallPercentile) : undefined);
 
   const getExerciseName = (id: string) => {
     const workout = getWorkoutById(id);
@@ -425,9 +431,17 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
             <>
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
-                  <Text variant="title" weight="semiBold" tone="primary">
-                    @{user.username}
-                  </Text>
+                  <View style={styles.nameRow}>
+                    <Text
+                      variant="title"
+                      weight="semiBold"
+                      tone="primary"
+                      style={overallTier ? { color: getTierColor(overallTier) } : undefined}
+                    >
+                      @{user.username}
+                    </Text>
+                    {overallTier && <TierBadge tier={overallTier} size="tiny" />}
+                  </View>
                   {user.country_code && (
                     <Text variant="meta" weight="regular" tone="muted">
                       {getCountryName(user.country_code)}
@@ -545,7 +559,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     style={[
                       styles.progressBar,
                       {
-                        backgroundColor: thousandPoundProgress >= 100 ? '#22C55E' : currentTheme.colors.primary,
+                        backgroundColor: thousandPoundProgress >= 100 ? trend.up : currentTheme.colors.primary,
                         width: `${thousandPoundProgress}%`
                       }
                     ]}
@@ -619,37 +633,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   renderLiftChart(selectedLiftId, "Estimated from your workout sessions")}
               </View>
 
-              <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
-                <Text variant="body" weight="semiBold" tone="primary">
-                  Stats
-                </Text>
-                <View style={styles.statsGrid}>
-                  <View style={styles.statItem}>
-                    <Text variant="heading" weight="bold">
-                      {workoutCount}
-                    </Text>
-                    <Text variant="meta" weight="medium" tone="secondary">
-                      Workouts
-                    </Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text variant="heading" weight="bold">
-                      {lifts.length}
-                    </Text>
-                    <Text variant="meta" weight="medium" tone="secondary">
-                      Exercises
-                    </Text>
-                  </View>
-                  <View style={styles.statItem}>
-                    <Text variant="heading" weight="bold">
-                      {Math.round(totalVolume).toLocaleString()}
-                    </Text>
-                    <Text variant="meta" weight="medium" tone="secondary">
-                      Total 1RM lbs
-                    </Text>
-                  </View>
-                </View>
-              </View>
+              <StatStrip
+                items={[
+                  { value: workoutCount, label: 'Workouts' },
+                  { value: lifts.length, label: 'Exercises' },
+                  { value: Math.round(totalVolume).toLocaleString(), label: 'Total 1RM lbs' },
+                ]}
+              />
 
               {liftComparison && (
                 <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
@@ -663,10 +653,10 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         weight="bold"
                         style={{
                           color: liftComparison.myWins > liftComparison.theirWins
-                            ? '#22C55E'
+                            ? trend.up
                             : liftComparison.myWins < liftComparison.theirWins
-                              ? '#EF4444'
-                              : currentTheme.colors.text + '60'
+                              ? trend.down
+                              : ink.muted
                         }}
                       >
                         {liftComparison.myWins}-{liftComparison.theirWins}
@@ -726,12 +716,12 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         <View key={comp.exerciseId} style={styles.comparisonRow}>
                           <View style={[
                             styles.comparisonValuePill,
-                            comp.iWin && !comp.isTie && { backgroundColor: '#22C55E15' }
+                            comp.iWin && !comp.isTie && { backgroundColor: tint(trend.up) }
                           ]}>
                             <Text
                               variant="meta"
                               weight="semiBold"
-                              style={{ color: comp.iWin && !comp.isTie ? '#22C55E' : currentTheme.colors.text }}
+                              style={{ color: comp.iWin && !comp.isTie ? trend.up : currentTheme.colors.text }}
                             >
                               {comp.myValue}{comparisonMode === 'percentile' ? '%' : ''}
                             </Text>
@@ -746,7 +736,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                                 weight="semiBold"
                                 style={[
                                   styles.comparisonDiff,
-                                  { color: diff > 0 ? '#22C55E' : '#EF4444' }
+                                  { color: diff > 0 ? trend.up : trend.down }
                                 ]}
                               >
                                 {diffText}{comparisonMode === 'percentile' ? '%' : ''}
@@ -924,12 +914,11 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               )}
 
               {lifts.length === 0 && (
-                <View style={styles.emptyState}>
-                  <Ionicons name="barbell-outline" size={32} color={ink.ghost} />
-                  <Text variant="meta" weight="regular" tone="muted" style={styles.emptyText}>
-                    No lift data available yet
-                  </Text>
-                </View>
+                <EmptyState
+                  icon="barbell-outline"
+                  title="No lifts yet"
+                  subtitle={`@${user.username} hasn't logged any tracked lifts.`}
+                />
               )}
             </>
           )}
@@ -1005,6 +994,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: space.sm,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   avatar: {
     width: 72,
     height: 72,
@@ -1066,15 +1060,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.sm,
     borderRadius: radius.control,
     borderWidth: 1,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: space.lg,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: space.xs,
   },
   liftsList: {
     gap: space.sm,
@@ -1180,14 +1165,6 @@ const styles = StyleSheet.create({
   },
   prBadgeText: {
     color: '#000',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: space.md,
-  },
-  emptyText: {
-    textAlign: 'center',
   },
   friendButton: {
     flexDirection: 'row',

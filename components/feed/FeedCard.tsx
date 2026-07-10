@@ -9,7 +9,7 @@ import { achievementMeta } from '@/lib/gamification/achievementMeta';
 import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
-import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
+import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { WorkoutSummary } from '@/lib/services/feedService';
 import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
@@ -32,10 +32,12 @@ interface FeedCardProps {
   onComment?: (workout: FeedWorkout) => void;
   currentUserId?: string | null;
   weightUnit?: WeightUnit;
+  /** Author's overall strength tier — colors the username when known. */
+  overallTier?: StrengthTier;
 }
 
 
-function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs' }: FeedCardProps) {
+function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallTier }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -94,7 +96,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
             </View>
           )}
           <View>
-            <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text style={[styles.username, { color: overallTier ? getTierColor(overallTier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}
             </Text>
             <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
