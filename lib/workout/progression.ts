@@ -120,7 +120,7 @@ const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
   OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
 
 // Best working set to record this session. More lenient than resolveWorkingSet: for record-keeping a lone top set falls back to the heaviest completed set.
-function recordableSet(sets: LoggedSet[]): LastPerformance | null {
+export function recordableSet(sets: LoggedSet[]): LastPerformance | null {
   const resolved = resolveWorkingSet(sets);
   if (resolved) return resolved;
   const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0);

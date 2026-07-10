@@ -9,7 +9,7 @@ import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { type } from '@/lib/ui/typography';
-import { CalculatedRoutine, ExerciseRecord, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -39,6 +39,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   const { userProfile } = useUser();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
+  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
 
@@ -65,6 +66,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
         return b.createdAt.getTime() - a.createdAt.getTime();
       });
       setRoutines(sorted);
+      setWorkoutHistory(history);
       setExerciseRecords(await loadExerciseRecords(history));
     } catch (error) {
       console.error('Error loading routines:', error);
@@ -72,8 +74,8 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   };
 
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
-  }, [routines, exerciseRecords, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit, workoutHistory);
+  }, [routines, exerciseRecords, weightUnit, workoutHistory]);
 
   const filteredRoutines = useMemo(() => {
     if (!searchQuery.trim()) return calculatedRoutines;

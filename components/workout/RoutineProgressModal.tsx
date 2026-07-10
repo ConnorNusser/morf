@@ -110,8 +110,8 @@ export default function RoutineProgressModal({
   };
 
   const calculatedRoutines = useMemo(() => {
-    return calculateAllRoutines(routines, exerciseRecords, weightUnit);
-  }, [routines, exerciseRecords, weightUnit]);
+    return calculateAllRoutines(routines, exerciseRecords, weightUnit, workoutHistory);
+  }, [routines, exerciseRecords, weightUnit, workoutHistory]);
 
   const routineProgressList = useMemo((): RoutineProgress[] => {
     return calculatedRoutines.map(routine => {
