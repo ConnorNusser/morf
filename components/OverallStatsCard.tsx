@@ -4,7 +4,7 @@ import useCountUp from "@/hooks/useCountUp";
 import { getTierColor, StrengthTier } from "@/lib/data/strengthStandards";
 import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { OverallStats } from "@/lib/storage/userProfile";
-import { space } from "@/lib/ui/tokens";
+import { space, STRENGTH_ANIM_MS } from "@/lib/ui/tokens";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Card from "./Card";
@@ -26,9 +26,9 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Headline counts up on every arrival — from the pre-workout percentile on
-  // replay, from 0 on a fresh mount — mirroring the Career hero. Deliberately
-  // slow so the sweep reads as a moment, not a flicker.
-  const shownPercentile = useCountUp(percentile, { from: animateFrom ?? 0, duration: 2400 });
+  // replay, from 0 on a fresh mount — mirroring the Career hero. Runs on the
+  // shared strength clock so it lands with the Main Lift Total below it.
+  const shownPercentile = useCountUp(percentile, { from: animateFrom ?? 0, duration: STRENGTH_ANIM_MS });
   const band = getTierBandProgress(percentile);
 
   return (
@@ -73,7 +73,7 @@ export default function OverallStatsCard({ stats, animateFrom }: OverallStatsCar
               progress={percentile}
               from={animateFrom ?? 0}
               height={10}
-              duration={2400}
+              duration={STRENGTH_ANIM_MS}
               style={styles.progressBar}
               showTicks={true}
               color={tierColor}

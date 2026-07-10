@@ -80,3 +80,7 @@ export const trend = {
 } as const;
 
 export const danger = "#FF3B30";
+
+// Shared clock for the History-tab strength animations (Overall Strength bar,
+// Main Lift Total ladder + both count-ups) so they all land together.
+export const STRENGTH_ANIM_MS = 2400;

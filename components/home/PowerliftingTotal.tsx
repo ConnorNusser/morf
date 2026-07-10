@@ -10,7 +10,7 @@ import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity, RARITY_META } from "@/lib/gamification/rarity";
 import { TOTAL_CLUB_TIERS } from "@/lib/gamification/strengthFeats";
 import useCountUp from "@/hooks/useCountUp";
-import { radius, space, tint, track, withAlpha } from "@/lib/ui/tokens";
+import { radius, space, STRENGTH_ANIM_MS, tint, track, withAlpha } from "@/lib/ui/tokens";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
@@ -101,12 +101,13 @@ export default function PowerliftingTotal({
   const clubAccent = club ? RARITY_META[club.rarity].accent : TIER_COLORS.S;
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
-  // The headline total counts up while the ladder cells fill in sequence —
-  // both finish at the same moment (when the last filled cell completes).
-  const FILL_STAGGER = 66;
-  const FILL_DURATION = 720;
-  const fillEndMs = currentCell * FILL_STAGGER + FILL_DURATION;
-  const shownTotal = useCountUp(data.total, { duration: fillEndMs });
+  // The headline total counts up while the ladder cells fill in sequence.
+  // Everything runs on the shared strength clock: the stagger is derived so
+  // the LAST filled cell — and the count-up, and the Overall Strength bar
+  // above — all land at exactly STRENGTH_ANIM_MS.
+  const fillDuration = currentCell > 0 ? 720 : STRENGTH_ANIM_MS;
+  const fillStagger = currentCell > 0 ? (STRENGTH_ANIM_MS - fillDuration) / currentCell : 0;
+  const shownTotal = useCountUp(data.total, { duration: STRENGTH_ANIM_MS });
 
   return (
     <View style={styles.container}>
@@ -188,8 +189,8 @@ export default function PowerliftingTotal({
               />
               {fill && (
                 <Animated.View
-                  entering={FadeIn.delay(i * FILL_STAGGER)
-                    .duration(FILL_DURATION)
+                  entering={FadeIn.delay(i * fillStagger)
+                    .duration(fillDuration)
                     .reduceMotion(ReduceMotion.System)}
                   style={[
                     styles.ladderCellFill,
@@ -201,7 +202,7 @@ export default function PowerliftingTotal({
               {i === currentCell && (
                 <Animated.View
                   pointerEvents="none"
-                  entering={FadeIn.delay(fillEndMs)
+                  entering={FadeIn.delay(STRENGTH_ANIM_MS)
                     .duration(240)
                     .reduceMotion(ReduceMotion.System)}
                   style={[styles.ladderCellOutline, { borderColor: colors.text }]}
