@@ -61,17 +61,17 @@ export const THEME_CONFIG: Record<ThemeLevel, {
   share_warm: {
     displayName: 'Rose',
     requiredPercentile: -1, // -1 marks shareable themes
-    description: '🌸 Share to unlock (1 share needed)',
+    description: 'Share Morf once to unlock',
   },
   share_cool: {
     displayName: 'Cyber',
     requiredPercentile: -1,
-    description: '⚡ Share to unlock (3 shares needed)',
+    description: 'Share Morf 3 times to unlock',
   },
   winter_2026: {
     displayName: 'Winter 2026',
     requiredPercentile: -2, // -2 marks seasonal themes
-    description: '❄️ Dec 1 - Mar 20',
+    description: 'Seasonal · Dec 1 – Mar 20',
   },
 };
 

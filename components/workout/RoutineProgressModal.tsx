@@ -601,8 +601,8 @@ export default function RoutineProgressModal({
         {routineProgressList.length === 0 ? (
           <View style={styles.emptyWrap}>
             <EmptyState
-              icon="barbell-outline"
-              title="No Progress Yet"
+              art={require('@/assets/achievements/strength.png')}
+              title="No progress yet"
               subtitle="Complete workouts to track your gains"
             />
           </View>

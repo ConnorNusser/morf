@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Image,
   Modal,
   RefreshControl,
   SafeAreaView,
@@ -767,7 +768,11 @@ export default function NotesScreen() {
         ) : (
           <RNView style={styles.emptyState}>
             <RNView style={[styles.emptyIcon, { backgroundColor: currentTheme.colors.surface }]}>
-              <Ionicons name="sparkles" size={32} color={currentTheme.colors.primary} />
+              <Image
+                source={require('@/assets/achievements/scroll.png')}
+                style={{ width: 40, height: 40 }}
+                resizeMode="contain"
+              />
             </RNView>
             <Text weight="semiBold" style={[styles.emptyTitle, { color: currentTheme.colors.text }]}>
               No routines yet

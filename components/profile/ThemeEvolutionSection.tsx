@@ -1,4 +1,5 @@
 import Card from '@/components/Card';
+import Badge from '@/components/ui/Badge';
 import { Text, View } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
@@ -17,7 +18,7 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Share, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image, Share, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ThemeEvolutionSection() {
   const { currentTheme, currentThemeLevel, themes, setThemeLevel } = useTheme();
@@ -147,14 +148,19 @@ export default function ThemeEvolutionSection() {
 
           <View style={styles.themeStatus}>
             {isCurrentTheme(themeKey) && (
-              <Text variant="meta" weight="medium">
-                ✓ Current Theme
-              </Text>
+              <Badge label="Active" color={currentTheme.colors.primary} />
             )}
             {!isThemeAvailable(themeKey) && (
-              <Text variant="meta" weight="medium" tone="muted">
-                🔒 Locked
-              </Text>
+              <View style={styles.lockedRow}>
+                <Image
+                  source={require('@/assets/images/pixel/padlock.png')}
+                  style={styles.lockArt}
+                  resizeMode="contain"
+                />
+                <Text variant="meta" weight="medium" tone="muted">
+                  Locked
+                </Text>
+              </View>
             )}
             {isThemeAvailable(themeKey) && !isCurrentTheme(themeKey) && (
               <Text variant="meta" weight="medium" tone="secondary">
@@ -308,9 +314,7 @@ const styles = StyleSheet.create({
   themeName: {
     marginBottom: space.xs,
   },
-  themeRequirement: {
-    fontStyle: 'italic',
-  },
+  themeRequirement: {},
   themeRight: {
     alignItems: 'flex-end',
     gap: space.sm,
@@ -327,6 +331,16 @@ const styles = StyleSheet.create({
   },
   themeStatus: {
     alignItems: 'center',
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  lockArt: {
+    width: 16,
+    height: 16,
+    opacity: 0.7,
   },
   sectionContainer: {
     paddingVertical: space.md,

@@ -1,7 +1,7 @@
 // List of the last few workouts — tap one to load it into the draft to repeat/edit.
 import StartButton from '@/components/home/StartButton';
 import RecentWorkoutRow from '@/components/workout/RecentWorkoutRow';
-import { Text, useInk } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
@@ -12,7 +12,7 @@ import { getExercise } from '@/lib/workout/workouts';
 import { GeneratedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface RecentWorkoutsProps {
   workouts: GeneratedWorkout[];
@@ -32,7 +32,6 @@ function exerciseNames(w: GeneratedWorkout): string[] {
 export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGenerate, onImport, onScrollBeginDrag, bottomInset }: RecentWorkoutsProps) {
   const { currentTheme } = useTheme();
   const { colors } = currentTheme;
-  const ink = useInk();
   const launch = useWorkoutLaunch();
 
   const quickStart = () => {
@@ -62,7 +61,11 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={styles.emptyContent} keyboardShouldPersistTaps="always" onScrollBeginDrag={onScrollBeginDrag}>
         <RNView style={styles.emptyHero}>
-          <Ionicons name="barbell-outline" size={64} color={ink.ghost} />
+          <Image
+            source={require('@/assets/achievements/barbell.png')}
+            style={styles.emptyArt}
+            resizeMode="contain"
+          />
           <Text variant="heading" weight="semiBold" tone="primary" style={styles.emptyTitle}>
             Start your first workout
           </Text>
@@ -122,6 +125,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
     marginBottom: space.section,
+  },
+  emptyArt: {
+    width: 80,
+    height: 80,
+    opacity: 0.85,
+    marginBottom: space.sm,
   },
   emptyTitle: {
     marginTop: space.md,

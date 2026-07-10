@@ -9,6 +9,7 @@ import { lineHeightFor, type } from '@/lib/ui/typography';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Image,
   StyleSheet,
   Modal,
   SafeAreaView,
@@ -181,7 +182,11 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           >
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
-              <Ionicons name="sparkles" size={48} color={withAlpha(currentTheme.colors.primary, 'faint')} />
+              <Image
+                source={require('@/assets/achievements/scroll.png')}
+                style={styles.welcomeArt}
+                resizeMode="contain"
+              />
               <Text variant="heading" weight="semiBold" tone="primary" style={styles.welcomeTitle}>
                 {"Let's Build Your Workout"}
               </Text>
@@ -362,6 +367,11 @@ const styles = StyleSheet.create({
     // Empty-state rhythm (matches EmptyState).
     paddingVertical: 60,
     gap: space.md,
+  },
+  welcomeArt: {
+    width: 64,
+    height: 64,
+    opacity: 0.85,
   },
   welcomeTitle: {
     marginTop: space.sm,

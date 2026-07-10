@@ -23,7 +23,6 @@ import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeight, UserProfile, UserProgress, WeightUnit } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Modal,
   ScrollView,
@@ -31,7 +30,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Animated, {
+  Easing,
   FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -49,13 +55,29 @@ interface WorkoutFinishModalProps {
   onComplete?: (strengthWin: boolean) => void;
 }
 
-const Logo =({ size = 80 }: { size?: number }) => (
-  <Image
-    source={require('@/assets/images/icon-original.png')}
-    style={[styles.logoImage, { width: size, height: size }]}
-    resizeMode="contain"
-  />
-);
+// Pixel hourglass that flips over while the parse runs — the in-theme spinner.
+const PixelHourglass = () => {
+  const rotate = useSharedValue(0);
+  useEffect(() => {
+    rotate.value = withRepeat(
+      withSequence(
+        withDelay(700, withTiming(180, { duration: 550, easing: Easing.inOut(Easing.cubic) })),
+        withDelay(700, withTiming(360, { duration: 550, easing: Easing.inOut(Easing.cubic) })),
+      ),
+      -1,
+      false,
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs for the screen's lifetime
+  }, []);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
+  return (
+    <Animated.Image
+      source={require('@/assets/achievements/hourglass.png')}
+      style={[styles.hourglass, style]}
+      resizeMode="contain"
+    />
+  );
+};
 
 const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   visible,
@@ -267,14 +289,9 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
   const renderParsing = () => (
     <View style={styles.centerContainer}>
-      <Logo />
-      <ActivityIndicator
-        size="large"
-        color={currentTheme.colors.primary}
-        style={styles.loadingIndicator}
-      />
+      <PixelHourglass />
       <Text variant="title" weight="semiBold" style={styles.parsingText}>
-        Analyzing your workout...
+        Analyzing your workout…
       </Text>
       {error && (
         <Animated.View entering={FadeIn} style={styles.errorContainer}>
@@ -519,9 +536,6 @@ const styles = StyleSheet.create({
     // Extra-wide gutter is structural to the centered parsing composition.
     paddingHorizontal: 32,
   },
-  loadingIndicator: {
-    marginVertical: space.section,
-  },
   // Dark parsing overlay keeps its white text (named palette exception).
   parsingText: {
     color: '#fff',
@@ -635,9 +649,10 @@ const styles = StyleSheet.create({
   confirmButton: {
     width: '100%',
   },
-  logoImage: {
-    width: 80,
-    height: 80,
+  hourglass: {
+    width: 72,
+    height: 72,
+    marginBottom: space.section,
   },
   setsSection: {
     gap: space.xs,

@@ -4,6 +4,7 @@ import { analyticsService } from '@/lib/services/analytics';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
+import { tierEmblemFor } from '@/lib/gamification/tierEmblems';
 import { Equipment, Gender, HeightUnit, WeightUnit } from '@/types';
 import { ALL_EQUIPMENT } from '@/lib/workout/equipment';
 import { Ionicons } from '@expo/vector-icons';
@@ -131,17 +132,29 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             <Text style={[styles.welcomeTitle, { 
               color: currentTheme.colors.text,
             }]}>
-              Welcome to Morf!
+              Welcome to Morf
             </Text>
             <Text style={[styles.welcomeSubtitle, { 
               color: currentTheme.colors.text + '90',
             }]}>
-              {"Let's set up your profile to create personalized workouts just for you."}
+              Log your lifts, get graded against real strength standards, and
+              climb the tiers.
             </Text>
+            {/* The climb, in the app's own pixel language: E up to S. */}
+            <View style={styles.tierLadderRow}>
+              {(['E', 'D', 'C', 'B', 'A', 'S'] as const).map((t, i) => (
+                <Image
+                  key={t}
+                  source={tierEmblemFor(t)}
+                  style={[styles.tierLadderEmblem, { width: 30 + i * 4, height: 30 + i * 4 }]}
+                  resizeMode="contain"
+                />
+              ))}
+            </View>
             <Text style={[styles.stepIndicator, { 
               color: currentTheme.colors.text + '60',
             }]}>
-              This will take about 1 minute
+              Setup takes about a minute
             </Text>
           </View>
         );
@@ -497,6 +510,15 @@ const styles = StyleSheet.create({
   stepIndicator: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  tierLadderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 10,
+    marginBottom: 24,
+  },
+  tierLadderEmblem: {
+    opacity: 0.95,
   },
   stepTitle: {
     fontSize: 32,
