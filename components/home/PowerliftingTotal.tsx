@@ -105,7 +105,7 @@ export default function PowerliftingTotal({
   // Everything runs on the shared strength clock: the stagger is derived so
   // the LAST filled cell — and the count-up, and the Overall Strength bar
   // above — all land at exactly STRENGTH_ANIM_MS.
-  const fillDuration = currentCell > 0 ? 720 : STRENGTH_ANIM_MS;
+  const fillDuration = currentCell > 0 ? 360 : STRENGTH_ANIM_MS;
   const fillStagger = currentCell > 0 ? (STRENGTH_ANIM_MS - fillDuration) / currentCell : 0;
   const shownTotal = useCountUp(data.total, { duration: STRENGTH_ANIM_MS });
 
