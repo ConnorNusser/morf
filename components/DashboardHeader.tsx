@@ -21,6 +21,9 @@ interface DashboardHeaderProps {
   onTierPress?: () => void;
   /** Overrides the default "Morf" wordmark when there's no view selector. */
   title?: string;
+  /** Shows an avatar button on the right that opens the viewer's own profile (feed mode). */
+  onProfilePress?: () => void;
+  profileImageUrl?: string;
 }
 
 export default function DashboardHeader({
@@ -29,6 +32,8 @@ export default function DashboardHeader({
   stats,
   onTierPress,
   title,
+  onProfilePress,
+  profileImageUrl,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -88,6 +93,28 @@ export default function DashboardHeader({
                   tier={stats.tier}
                   progress={stats.tierProgress ?? 0}
                 />
+              </TouchableOpacity>
+            )}
+
+            {onProfilePress && (
+              <TouchableOpacity
+                style={styles.levelButton}
+                onPress={onProfilePress}
+                activeOpacity={0.7}
+                accessibilityLabel="View your profile"
+              >
+                {profileImageUrl ? (
+                  <Image
+                    source={{ uri: profileImageUrl }}
+                    style={styles.profileAvatar}
+                  />
+                ) : (
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={34}
+                    color={ink.secondary}
+                  />
+                )}
               </TouchableOpacity>
             )}
           </View>
@@ -224,6 +251,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.control,
+  },
+  profileAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
   },
   appName: {
     letterSpacing: track.display,

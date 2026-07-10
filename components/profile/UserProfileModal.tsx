@@ -439,37 +439,43 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
           <Text variant="emphasis" weight="semiBold" tone="primary">
             Profile
           </Text>
-          <TouchableOpacity
-            style={[
-              styles.friendButton,
-              {
-                backgroundColor: isFriend ? currentTheme.colors.surface : currentTheme.colors.primary,
-                borderColor: isFriend ? currentTheme.colors.border : currentTheme.colors.primary,
-                borderWidth: 1,
-              }
-            ]}
-            onPress={handleToggleFriend}
-            disabled={isFriendLoading}
-            activeOpacity={0.7}
-          >
-            {isFriendLoading ? (
-              <ActivityIndicator size="small" color={isFriend ? currentTheme.colors.text : '#FFFFFF'} />
-            ) : (
-              <>
-                <Ionicons
-                  name={isFriend ? 'checkmark' : 'person-add'}
-                  size={16}
-                  color={isFriend ? currentTheme.colors.text : '#FFFFFF'}
-                />
-                <Text
-                  variant="meta"
-                  style={{ color: isFriend ? currentTheme.colors.text : '#FFFFFF' }}
-                >
-                  {isFriend ? 'Friends' : 'Add'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* No friend button on your own profile (reachable via the feed header). */}
+          {currentUserId !== user?.id ? (
+            <TouchableOpacity
+              style={[
+                styles.friendButton,
+                {
+                  backgroundColor: isFriend ? currentTheme.colors.surface : currentTheme.colors.primary,
+                  borderColor: isFriend ? currentTheme.colors.border : currentTheme.colors.primary,
+                  borderWidth: 1,
+                }
+              ]}
+              onPress={handleToggleFriend}
+              disabled={isFriendLoading}
+              activeOpacity={0.7}
+            >
+              {isFriendLoading ? (
+                <ActivityIndicator size="small" color={isFriend ? currentTheme.colors.text : '#FFFFFF'} />
+              ) : (
+                <>
+                  <Ionicons
+                    name={isFriend ? 'checkmark' : 'person-add'}
+                    size={16}
+                    color={isFriend ? currentTheme.colors.text : '#FFFFFF'}
+                  />
+                  <Text
+                    variant="meta"
+                    style={{ color: isFriend ? currentTheme.colors.text : '#FFFFFF' }}
+                  >
+                    {isFriend ? 'Friends' : 'Add'}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : (
+            /* Spacer keeps the "Profile" title centered by the space-between row. */
+            <View style={[styles.friendButton, { backgroundColor: 'transparent' }]} />
+          )}
         </View>
 
         <ScrollView style={layout.flex1} contentContainerStyle={styles.scrollContent}>
