@@ -62,7 +62,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
       <ScrollView style={styles.scroll} contentContainerStyle={styles.emptyContent} keyboardShouldPersistTaps="always" onScrollBeginDrag={onScrollBeginDrag}>
         <RNView style={styles.emptyHero}>
           <Image
-            source={require('@/assets/achievements/barbell.png')}
+            source={require('@/assets/images/sl/barbell.png')}
             style={styles.emptyArt}
             resizeMode="contain"
           />
@@ -127,9 +127,8 @@ const styles = StyleSheet.create({
     marginBottom: space.section,
   },
   emptyArt: {
-    width: 80,
-    height: 80,
-    opacity: 0.85,
+    width: 96,
+    height: 96,
     marginBottom: space.sm,
   },
   emptyTitle: {

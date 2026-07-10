@@ -12,7 +12,7 @@ import {
 } from "react-native";
 
 interface EmptyStateProps {
-  /** Pixel-art illustration (the app's emblem style) — preferred over `icon`. */
+  /** Emblem-style illustration (the app's rank-art language) — preferred over `icon`. */
   art?: ImageSourcePropType;
   /** Ionicon fallback for contextual states (e.g. search misses). */
   icon?: ComponentProps<typeof Ionicons>["name"];
@@ -68,11 +68,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 60,
   },
-  // Quieted so the illustration reads as scene-setting, not content.
   art: {
-    width: 72,
-    height: 72,
-    opacity: 0.85,
+    width: 84,
+    height: 84,
   },
   title: {
     marginTop: space.lg,

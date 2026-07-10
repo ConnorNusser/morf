@@ -1,5 +1,5 @@
-// Pixel tier medallions (OSRS-style, matching the achievement emblems) — one
-// per base tier; +/- variants share their letter's emblem.
+// Tier rank emblems (Solo Leveling-inspired obsidian sigils) — one per base
+// tier; +/- variants share their letter's emblem.
 import { getBaseTier, StrengthTier, StrengthTierBase } from '@/lib/data/strengthStandards';
 import { ImageSourcePropType } from 'react-native';
 
