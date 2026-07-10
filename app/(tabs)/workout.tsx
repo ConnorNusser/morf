@@ -1,6 +1,7 @@
 import Button from "@/components/Button";
 import { useAlert } from "@/components/CustomAlert";
 import IconButton from "@/components/IconButton";
+import RestBar from "@/components/workout/RestBar";
 import { Text, useInk, View } from "@/components/Themed";
 import EditableWorkout from "@/components/workout/EditableWorkout";
 import NumberPad from "@/components/workout/NumberPad";
@@ -215,6 +216,8 @@ export default function WorkoutScreen() {
   // Rest timer hook
   const {
     isResting,
+    remainingTime: restRemaining,
+    totalDuration: restDuration,
     formattedTime: formattedRestTime,
     startTimer: startRestTimer,
     skipTimer: skipRestTimer,
@@ -354,7 +357,6 @@ export default function WorkoutScreen() {
       toggleSetDone(key, index);
       if (becomingDone) {
         startRestTimer(120, { exerciseName: ex?.name });
-        setIsTimerExpanded(true);
       }
     },
     [draft, toggleSetDone, startRestTimer],
@@ -394,12 +396,9 @@ export default function WorkoutScreen() {
       showAlert({ title: "Voice", message: voice.error, type: "info" });
   }, [voice.error, showAlert]);
 
-  // UI state (modals, expanded timer)
-  const [isTimerExpanded, setIsTimerExpanded] = useState(false);
-  // When a rest ends (countdown hits zero, skipped, or added-time expires), fold
-  // the expanded rest screen back down — the panel only makes sense while resting.
+  // Ease the rest bar in/out as rests start and end so the list below doesn't jump.
   useEffect(() => {
-    if (!isResting) setIsTimerExpanded(false);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   }, [isResting]);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showRoutineImport, setShowRoutineImport] = useState(false);
@@ -498,7 +497,6 @@ export default function WorkoutScreen() {
     if (set && !set.done) {
       editSet(editing.key, editing.index, { done: true });
       startRestTimer(120, { exerciseName: ex?.name });
-      setIsTimerExpanded(true);
     }
     editOrigin.current = null;
     setEditing(null);
@@ -523,37 +521,33 @@ export default function WorkoutScreen() {
     [loadDraftFromRoutine],
   );
 
-  // Handle timer tap - toggle expansion and start rest if not resting
+  // Tapping the header clock starts a rest when none is running (the rest bar
+  // appears on its own); while resting it's purely a readout.
   const handleTimerTap = useCallback(() => {
+    if (isResting) return;
     playHapticFeedback("light", false);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    startRestTimer(120); // 2 minutes default
+  }, [isResting, startRestTimer]);
 
-    if (!isTimerExpanded) {
-      if (!isResting) {
-        startRestTimer(120); // 2 minutes default
-      }
-      setIsTimerExpanded(true);
-    } else {
-      setIsTimerExpanded(false);
-    }
-  }, [isTimerExpanded, isResting, startRestTimer]);
-
-  // Handle finish rest
-  const handleFinishRest = useCallback(() => {
+  // Restart-workout-timer moved out of the rest UI: long-press the header clock.
+  const handleTimerLongPress = useCallback(() => {
     playHapticFeedback("medium", false);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    skipRestTimer();
-    setIsTimerExpanded(false);
-  }, [skipRestTimer]);
+    showAlert({
+      title: "Restart workout timer",
+      message: `Reset the elapsed time (${formatTime(elapsedTime)}) to zero?`,
+      type: "confirm",
+      buttons: [
+        { text: "Cancel", style: "cancel" },
+        { text: "Restart", onPress: resetWorkoutTimer },
+      ],
+    });
+  }, [showAlert, formatTime, elapsedTime, resetWorkoutTimer]);
 
-  // Handle add time to rest
-  const handleAddRestTime = useCallback(
-    (seconds: number) => {
-      playHapticFeedback("light", false);
-      addRestTime(seconds);
-    },
-    [addRestTime],
-  );
+  // Skip the rest countdown from the rest bar.
+  const handleSkipRest = useCallback(() => {
+    playHapticFeedback("medium", false);
+    skipRestTimer();
+  }, [skipRestTimer]);
 
   // Handle finish button press. If this workout came from a routine and its shape
   // changed (exercises added/removed/reordered, set counts or reps edited), offer
@@ -624,7 +618,11 @@ export default function WorkoutScreen() {
 
           <View style={styles.headerCenter}>
             {hasWorkoutStarted ? (
-              <TouchableOpacity onPress={handleTimerTap} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={handleTimerTap}
+                onLongPress={handleTimerLongPress}
+                activeOpacity={0.7}
+              >
                 <RNView
                   style={[
                     styles.timerContainer,
@@ -711,79 +709,15 @@ export default function WorkoutScreen() {
           </View>
         </View>
 
-        {/* Expanded Rest Timer */}
-        {isTimerExpanded && hasWorkoutStarted && (
-          <RNView
-            style={[
-              styles.expandedTimer,
-              { backgroundColor: currentTheme.colors.surface },
-            ]}
-          >
-            <RNView style={styles.expandedTimerRow}>
-              {/* Subtract time */}
-              <IconButton
-                icon="remove"
-                onPress={() => handleAddRestTime(-30)}
-                style={{
-                  ...styles.adjustButton,
-                  backgroundColor: ink.hairline,
-                }}
-              />
-
-              {/* Rest timer display */}
-              <RNView style={styles.expandedTimerCenter}>
-                <Text variant="statHero">{formattedRestTime}</Text>
-                <Text
-                  variant="meta"
-                  tone="muted"
-                  style={styles.expandedTimerLabel}
-                >
-                  rest remaining
-                </Text>
-              </RNView>
-
-              {/* Add time */}
-              <IconButton
-                icon="add"
-                onPress={() => handleAddRestTime(30)}
-                iconColor={currentTheme.colors.primary}
-                style={{
-                  ...styles.adjustButton,
-                  backgroundColor: tint(currentTheme.colors.primary),
-                }}
-              />
-            </RNView>
-
-            {/* Buttons row */}
-            <RNView style={styles.expandedButtonsRow}>
-              {/* Reset workout timer with duration — quiet wide button (keeps its
-                  elapsed-time label, so it can't collapse to an icon-only control) */}
-              <TouchableOpacity
-                style={[
-                  styles.resetWorkoutButton,
-                  { backgroundColor: ink.hairline },
-                ]}
-                onPress={resetWorkoutTimer}
-              >
-                <Text
-                  variant="meta"
-                  tone="secondary"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                >
-                  Restart Workout ({formatTime(elapsedTime)})
-                </Text>
-              </TouchableOpacity>
-
-              {/* Done button */}
-              <Button
-                title="Done"
-                variant="primary"
-                onPress={handleFinishRest}
-                style={styles.doneRestButton}
-              />
-            </RNView>
-          </RNView>
+        {/* Rest bar — appears on its own while a rest is running */}
+        {isResting && hasWorkoutStarted && (
+          <RestBar
+            remaining={restRemaining}
+            duration={restDuration}
+            formatted={formattedRestTime}
+            onAdjust={addRestTime}
+            onSkip={handleSkipRest}
+          />
         )}
 
         {/* Workout (fills) — the editable source of truth, with one empty state */}
@@ -1177,48 +1111,6 @@ const styles = StyleSheet.create({
   restLabel: {
     letterSpacing: track.caps,
     marginLeft: space.xs,
-  },
-  expandedTimer: {
-    marginHorizontal: screenGutter,
-    marginBottom: space.md,
-    paddingVertical: space.lg,
-    paddingHorizontal: space.xl,
-    borderRadius: radius.card,
-  },
-  expandedTimerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: space.xl,
-  },
-  expandedTimerCenter: {
-    alignItems: "center",
-    minWidth: 100,
-  },
-  expandedTimerLabel: {
-    marginTop: space.xs,
-  },
-  adjustButton: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-  },
-  expandedButtonsRow: {
-    flexDirection: "row",
-    marginTop: space.lg,
-    gap: space.md,
-  },
-  resetWorkoutButton: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: space.sm,
-    paddingVertical: space.md,
-    borderRadius: radius.pill,
-  },
-  doneRestButton: {
-    flex: 1,
   },
   finishButton: {
     // Keep the 40pt header row height stable (Button small is minHeight 36).

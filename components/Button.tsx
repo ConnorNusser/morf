@@ -4,6 +4,7 @@ import { readableInkOn } from '@/lib/ui/contrast';
 import { radius } from '@/lib/ui/tokens';
 import playHapticFeedback, { type HapticType } from '@/lib/utils/haptic';
 import { getSound, type SoundName } from '@/lib/utils/sounds';
+import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
 import React from 'react';
 import { TextStyle, TouchableOpacity, ViewStyle } from 'react-native';
@@ -14,6 +15,8 @@ interface ButtonProps {
   /** primary = pill CTA (C1); secondary = bordered surface (C2). */
   variant?: 'primary' | 'secondary';
   size?: 'small' | 'medium' | 'large';
+  /** Optional leading icon, tinted with the label. */
+  icon?: keyof typeof Ionicons.glyphMap;
   disabled?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
@@ -27,6 +30,7 @@ function Button({
   onPress,
   variant = 'primary',
   size = 'medium',
+  icon,
   disabled = false,
   style,
   textStyle,
@@ -62,8 +66,10 @@ function Button({
 
   const getButtonStyle = () => {
     const baseStyle = {
+      flexDirection: 'row' as const,
       justifyContent: 'center' as const,
       alignItems: 'center' as const,
+      gap: 8,
       opacity: disabled ? 0.6 : 1,
     };
 
@@ -99,6 +105,18 @@ function Button({
       disabled={disabled}
       activeOpacity={0.8}
     >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={size === 'small' ? 15 : 18}
+          color={
+            (textStyle as TextStyle | undefined)?.color ??
+            (variant === 'primary'
+              ? readableInkOn(currentTheme.colors.primary)
+              : currentTheme.colors.text)
+          }
+        />
+      )}
       <Text
         variant={labelVariant[size]}
         weight="semiBold"
