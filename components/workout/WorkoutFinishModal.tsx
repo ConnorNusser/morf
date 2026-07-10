@@ -55,7 +55,7 @@ interface WorkoutFinishModalProps {
   onComplete?: (strengthWin: boolean) => void;
 }
 
-// Pixel hourglass that flips over while the parse runs — the in-theme spinner.
+// Arcane hourglass that flips over while the parse runs — the in-theme spinner.
 const PixelHourglass = () => {
   const rotate = useSharedValue(0);
   useEffect(() => {
@@ -72,7 +72,7 @@ const PixelHourglass = () => {
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
   return (
     <Animated.Image
-      source={require('@/assets/achievements/hourglass.png')}
+      source={require('@/assets/images/sl/hourglass.png')}
       style={[styles.hourglass, style]}
       resizeMode="contain"
     />
