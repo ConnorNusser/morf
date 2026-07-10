@@ -27,6 +27,7 @@ import { convertWeightToLbs } from '@/lib/utils/utils';
 import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, isFeaturedLift } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -469,6 +470,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
             </View>
           ) : (
             <>
+              {tierColor && (
+                <LinearGradient
+                  pointerEvents="none"
+                  colors={[tint(tierColor), 'transparent']}
+                  style={styles.tierWash}
+                />
+              )}
               <View style={styles.userHeader}>
                 <View style={styles.userInfoLeft}>
                   <View style={styles.nameRow}>
@@ -512,21 +520,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       </TouchableOpacity>
                     );
                   })()}
-                  <View style={styles.metaRow}>
-                    {recentWorkouts.length > 0 && (
-                      <Text variant="meta" tone="faint">
-                        Last workout {formatRelativeTime(recentWorkouts[0].created_at)}
-                      </Text>
-                    )}
-                    {recentWorkouts.length > 0 && memberSince && (
-                      <Text variant="meta" tone="faint" style={styles.metaDot}>·</Text>
-                    )}
-                    {memberSince && (
-                      <Text variant="meta" tone="faint">
-                        Joined {memberSince.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-                      </Text>
-                    )}
-                  </View>
                   {(userData?.instagram_username || userData?.tiktok_username || userData?.discord_username) && (
                     <View style={styles.socialLinksRow}>
                       {userData?.instagram_username && (
@@ -557,29 +550,44 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     </View>
                   )}
                 </View>
-                {user.profile_picture_url ? (
-                  <TouchableOpacity
-                    onPress={() => setShowFullScreenPicture(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Image
-                      source={{ uri: user.profile_picture_url }}
-                      style={[styles.avatarImage, tierColor ? { borderWidth: 2, borderColor: tierColor } : null]}
-                    />
-                  </TouchableOpacity>
-                ) : (
-                  <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: tint(tierColor ?? currentTheme.colors.primary) },
-                      tierColor ? { borderWidth: 2, borderColor: tierColor } : null,
-                    ]}
-                  >
-                    <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
-                      {user.username.charAt(0).toUpperCase()}
-                    </Text>
+                <View style={styles.userHeaderRight}>
+                  {user.profile_picture_url ? (
+                    <TouchableOpacity
+                      onPress={() => setShowFullScreenPicture(true)}
+                      activeOpacity={0.8}
+                      style={tierColor ? [styles.avatarGlow, { shadowColor: tierColor }] : null}
+                    >
+                      <Image
+                        source={{ uri: user.profile_picture_url }}
+                        style={[styles.avatarImage, tierColor ? { borderWidth: 2, borderColor: tierColor } : null]}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <View
+                      style={[
+                        styles.avatar,
+                        { backgroundColor: tint(tierColor ?? currentTheme.colors.primary) },
+                        tierColor ? [styles.avatarGlow, { borderWidth: 2, borderColor: tierColor, shadowColor: tierColor }] : null,
+                      ]}
+                    >
+                      <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
+                        {user.username.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.metaCol}>
+                    {recentWorkouts.length > 0 && (
+                      <Text variant="meta" tone="faint" style={styles.metaText}>
+                        Last workout {formatRelativeTime(recentWorkouts[0].created_at)}
+                      </Text>
+                    )}
+                    {memberSince && (
+                      <Text variant="meta" tone="faint" style={styles.metaText}>
+                        Joined {memberSince.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </Text>
+                    )}
                   </View>
-                )}
+                </View>
               </View>
 
               {percentileData && overallPercentile !== null && (
@@ -1083,10 +1091,35 @@ const styles = StyleSheet.create({
   },
   userHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingVertical: space.sm,
     paddingHorizontal: space.xs,
+  },
+  userHeaderRight: {
+    alignItems: 'flex-end',
+    gap: space.sm,
+    marginLeft: space.lg,
+  },
+  metaCol: {
+    alignItems: 'flex-end',
+    gap: space.xs,
+  },
+  metaText: {
+    textAlign: 'right',
+  },
+  avatarGlow: {
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  // Tier-tinted wash fading down from the top of the sheet, behind the header.
+  tierWash: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 220,
   },
   userInfoLeft: {
     flex: 1,
@@ -1103,13 +1136,11 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: space.lg,
   },
   avatarImage: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    marginLeft: space.lg,
   },
   socialLinksRow: {
     flexDirection: 'row',
@@ -1302,15 +1333,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     right: 20,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: space.xs,
-    flexWrap: 'wrap',
-  },
-  metaDot: {
-    marginHorizontal: space.sm,
   },
   comparisonHeader: {
     flexDirection: 'row',
