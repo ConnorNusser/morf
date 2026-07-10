@@ -7,6 +7,7 @@ import WorkoutCompleteScreen, { PercentileMove } from '@/components/workout/Work
 import { useTheme } from '@/contexts/ThemeContext';
 import { useSound } from '@/hooks/useSound';
 import { unlockedIds } from '@/lib/gamification/achievements';
+import { maybeAskForReview } from '@/lib/services/appReview';
 import {
   buildRewardSnapshot,
   computeSessionRewards,
@@ -185,6 +186,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         if (newest?.title) setSavedTitle(newest.title);
         // Strength win = PR/achievement, or the overall percentile moved; drives History vs feed.
         setStrengthWin(rewards.hasRewards || overallAfter !== overallBefore);
+
+        // Maybe ask for an App Store review — on the celebration, after a win,
+        // heavily gated (see lib/workout/reviewPrompt). Fire-and-forget.
+        maybeAskForReview({
+          totalWorkouts: afterHistory.length,
+          hadWin: rewards.hasRewards || overallAfter > overallBefore,
+        });
 
         // Primary celebration moment — acknowledge unlocks so the Profile badge doesn't re-celebrate.
         if (rewards.hasRewards) {
