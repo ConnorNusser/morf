@@ -21,10 +21,12 @@ export interface DraftExercise {
 
 export type WorkoutDraft = DraftExercise[];
 
-let keyCounter = 0;
+// Random, not a counter: persisted sessions come back across app relaunches
+// with their keys intact, and a module counter restarts at 0 — it would mint
+// keys colliding with restored ones, making two exercises edit/remove/render
+// as one.
 function nextKey(): string {
-  keyCounter += 1;
-  return `dex_${keyCounter}`;
+  return `dex_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function displayName(ex: ParsedExercise): string {
@@ -32,8 +34,21 @@ function displayName(ex: ParsedExercise): string {
   return ex.name;
 }
 
-function consolidationKey(exerciseId: string | undefined, name: string): string {
-  return exerciseId || name.toLowerCase().trim();
+function normName(name: string): string {
+  return name.toLowerCase().trim();
+}
+
+/** Same exercise iff the ids match — or either side lacks an id and the names
+ *  match. Rows don't always carry an id for the same exercise (a routine import
+ *  keys a custom exercise by its custom id; the local parser can only resolve
+ *  catalog names, so the same exercise typed into the composer arrives id-less),
+ *  and comparing id-to-name would file one exercise as two. */
+function isSameExercise(
+  a: { exerciseId?: string; name: string },
+  b: { exerciseId?: string; name: string },
+): boolean {
+  if (a.exerciseId && b.exerciseId) return a.exerciseId === b.exerciseId;
+  return normName(a.name) === normName(b.name);
 }
 
 /** Append parsed exercises into a draft, merging sets into an existing match.
@@ -42,11 +57,17 @@ export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts:
   const next: WorkoutDraft = draft.map(e => ({ ...e, sets: [...e.sets] }));
   for (const pex of parsed) {
     const name = displayName(pex);
-    const ckey = consolidationKey(pex.matchedExerciseId, name);
     const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, done: opts.done }));
-    const existing = next.find(e => consolidationKey(e.exerciseId, e.name) === ckey);
+    const existing = next.find(e => isSameExercise(e, { exerciseId: pex.matchedExerciseId, name }));
     if (existing) {
       existing.sets.push(...sets);
+      // A recognized parse upgrades a name-keyed row, so later merges and
+      // routine folding see the resolved exercise.
+      if (!existing.exerciseId && pex.matchedExerciseId) {
+        existing.exerciseId = pex.matchedExerciseId;
+        existing.recognized = !pex.isCustom;
+        existing.name = name;
+      }
     } else {
       next.push({
         key: nextKey(),
@@ -128,8 +149,7 @@ export function addNamedExercise(
   draft: WorkoutDraft,
   exercise: { name: string; exerciseId?: string; recognized: boolean; previous?: DraftSet[]; target?: DraftSet[] },
 ): WorkoutDraft {
-  const ckey = consolidationKey(exercise.exerciseId, exercise.name);
-  if (draft.some(e => consolidationKey(e.exerciseId, e.name) === ckey)) return draft;
+  if (draft.some(e => isSameExercise(e, exercise))) return draft;
   const ref = exercise.target?.length ? exercise.target : exercise.previous;
   return [
     ...draft,
