@@ -46,6 +46,67 @@ describe('mergeParsed', () => {
   });
 });
 
+describe('exercise identity and keys', () => {
+  // A fresh copy of the module is a fresh JS run: its key counter restarts at 0,
+  // exactly like the app relaunching mid-session and restoring a persisted draft.
+  const loadFreshRun = () => {
+    let mod!: typeof import('../lib/workout/workoutDraft');
+    jest.isolateModules(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- isolateModules needs a sync require to get a fresh module instance
+      mod = require('../lib/workout/workoutDraft');
+    });
+    return mod;
+  };
+
+  it('keys minted after a relaunch never collide with restored ones', () => {
+    const previousRun = loadFreshRun();
+    const persisted: WorkoutDraft = previousRun.mergeParsed(
+      [],
+      [ex('Bench', [[135, 8]]), ex('Squat', [[225, 5]])],
+    );
+
+    const currentRun = loadFreshRun(); // relaunch: counter back at 0
+    const next: WorkoutDraft = currentRun.mergeParsed(persisted, [ex('Lat Pulldown', [[100, 10]])]);
+
+    expect(new Set(next.map(e => e.key)).size).toBe(3);
+    // A keyed edit touches exactly one exercise — colliding keys made
+    // updateSet/removeExercise hit two different exercises at once.
+    const edited: WorkoutDraft = currentRun.updateSet(next, next[2].key, 0, { weight: 999 });
+    expect(edited.filter(e => e.sets[0]?.weight === 999)).toHaveLength(1);
+    expect(currentRun.removeExercise(next, next[2].key)).toHaveLength(2);
+  });
+
+  it('a typed line with no id merges into a routine row keyed by a custom id', () => {
+    // Routine import carries the custom exercise's id; the local parser can't
+    // resolve custom names, so the composer line for the same exercise is id-less.
+    let d = addNamedExercise([], { name: 'Landmine Twist', exerciseId: 'custom_123', recognized: false });
+    d = mergeParsed(d, [ex('landmine twist', [[45, 12]])], { done: true });
+    expect(d).toHaveLength(1);
+    expect(d[0].exerciseId).toBe('custom_123');
+    expect(d[0].sets).toHaveLength(1);
+  });
+
+  it('a recognized parse upgrades a name-keyed row with its id', () => {
+    let d = mergeParsed([], [ex('Bench Press (Barbell)', [[135, 8]])]);
+    d = mergeParsed(d, [ex('Bench Press (Barbell)', [[155, 6]], 'bench-press-barbell')]);
+    expect(d).toHaveLength(1);
+    expect(d[0].exerciseId).toBe('bench-press-barbell');
+    expect(d[0].recognized).toBe(true);
+    expect(d[0].sets).toHaveLength(2);
+  });
+
+  it('two different resolved ids stay two exercises', () => {
+    let d = mergeParsed([], [ex('Bench Press', [[135, 8]], 'bench-press-barbell')]);
+    d = mergeParsed(d, [ex('Bench Press', [[90, 10]], 'bench-press-dumbbells')]);
+    expect(d).toHaveLength(2);
+  });
+
+  it('addNamedExercise no-ops against an id-less row with the same name', () => {
+    const d = mergeParsed([], [ex('Bench Press (Barbell)', [[135, 8]])]);
+    expect(addNamedExercise(d, { name: 'bench press (barbell)', exerciseId: 'bench-press-barbell', recognized: true })).toBe(d);
+  });
+});
+
 describe('draftToNoteText', () => {
   it('round-trips weighted and bodyweight sets', () => {
     const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [155, 6]]), ex('Pull-up', [[0, 10]])], confidence: 1, rawText: '' });
