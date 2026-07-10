@@ -12,18 +12,27 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  LayoutAnimation,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  UIManager,
   View
 } from 'react-native';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import EquipmentFilterInput from './inputs/EquipmentFilterInput';
 import GenderInput from './inputs/GenderInput';
 import HeightInput from './inputs/HeightInput';
 import WeightInput from './inputs/WeightInput';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 
 interface OnboardingModalProps {
   visible: boolean;
@@ -46,14 +55,18 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
   const totalSteps = 7;
 
   const handleNext = () => {
-    playHapticFeedback('selection', false);
+    const next = Math.min(currentStep + 1, totalSteps - 1);
+    // Reaching the payoff step is the small win — mark it.
+    playHapticFeedback(next === totalSteps - 1 ? 'success' : 'selection', false);
     playSound();
-    setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1));
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setCurrentStep(next);
   };
 
   const handleBack = () => {
     playHapticFeedback('selection', false);
     playSound();
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setCurrentStep(prev => Math.max(prev - 1, 0));
   };
 
@@ -136,8 +149,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
             {/* The climb, in the app's own pixel language: E up to S. */}
             <View style={styles.tierLadderRow}>
               {(['E', 'D', 'C', 'B', 'A', 'S'] as const).map((t, i) => (
-                <Image
+                <Animated.Image
                   key={t}
+                  entering={FadeInDown.delay(250 + i * 90).duration(350)}
                   source={tierEmblemFor(t)}
                   style={[styles.tierLadderEmblem, { width: 30 + i * 4, height: 30 + i * 4 }]}
                   resizeMode="contain"
@@ -262,7 +276,12 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
       case 6:
         return (
           <View style={styles.stepContent}>
-            <Image source={tierEmblemFor('E')} style={styles.payoffEmblem} resizeMode="contain" />
+            <Animated.Image
+              entering={ZoomIn.springify().damping(11).delay(120)}
+              source={tierEmblemFor('E')}
+              style={styles.payoffEmblem}
+              resizeMode="contain"
+            />
             <Text style={[styles.stepTitle, {
               color: currentTheme.colors.text,
             }]}>You start at E</Text>
@@ -380,7 +399,9 @@ export function OnboardingModal({ visible, onComplete }: OnboardingModalProps) {
           keyboardDismissMode="interactive"
         >
           {renderProgressBar()}
-          {renderStep()}
+          <Animated.View key={currentStep} entering={FadeInDown.duration(280)}>
+            {renderStep()}
+          </Animated.View>
         </ScrollView>
         {renderNavigationButtons()}
       </View>
