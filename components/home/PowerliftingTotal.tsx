@@ -10,7 +10,7 @@ import { emblemFor } from "@/lib/gamification/achievementEmblems";
 import { Rarity, RARITY_META } from "@/lib/gamification/rarity";
 import { TOTAL_CLUB_TIERS } from "@/lib/gamification/strengthFeats";
 import useCountUp from "@/hooks/useCountUp";
-import { radius, space, tint, track, withAlpha } from "@/lib/ui/tokens";
+import { radius, space, STRENGTH_ANIM_MS, tint, track, withAlpha } from "@/lib/ui/tokens";
 import React, { useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
@@ -79,6 +79,10 @@ export default function PowerliftingTotal({
       liftBands[liftBands.length - 1]?.color
     );
   };
+  // Cells fill proportionally: 240 lb = 2 full cells + 40% of the third,
+  // and the unearned remainder of a cell stays on the grey track.
+  const fillFractionForCell = (i: number) =>
+    Math.max(0, Math.min(1, (data.total - i * STEP) / STEP));
 
   const bandOf = (cellIdx: number) => {
     const lower = cellIdx * STEP;
@@ -98,7 +102,12 @@ export default function PowerliftingTotal({
   const [spotlight, setSpotlight] = useState<AchievementModalItem | null>(null);
 
   // The headline total counts up while the ladder cells fill in sequence.
-  const shownTotal = useCountUp(data.total, { duration: 900 });
+  // Everything runs on the shared strength clock: the stagger is derived so
+  // the LAST filled cell — and the count-up, and the Overall Strength bar
+  // above — all land at exactly STRENGTH_ANIM_MS.
+  const fillDuration = currentCell > 0 ? 360 : STRENGTH_ANIM_MS;
+  const fillStagger = currentCell > 0 ? (STRENGTH_ANIM_MS - fillDuration) / currentCell : 0;
+  const shownTotal = useCountUp(data.total, { duration: STRENGTH_ANIM_MS });
 
   return (
     <View style={styles.container}>
@@ -174,25 +183,29 @@ export default function PowerliftingTotal({
         {Array.from({ length: cellCount }, (_, i) => {
           const fill = colorForCell(i);
           return (
-            <View
-              key={i}
-              style={[
-                styles.ladderCell,
-                {
-                  borderWidth: i === currentCell ? 2 : 0,
-                  borderColor: colors.text,
-                },
-              ]}
-            >
+            <View key={i} style={styles.ladderCell}>
               <View
                 style={[styles.ladderCellBase, { backgroundColor: colors.border }]}
               />
               {fill && (
                 <Animated.View
-                  entering={FadeIn.delay(i * 22)
+                  entering={FadeIn.delay(i * fillStagger)
+                    .duration(fillDuration)
+                    .reduceMotion(ReduceMotion.System)}
+                  style={[
+                    styles.ladderCellFill,
+                    { backgroundColor: fill, width: `${fillFractionForCell(i) * 100}%` },
+                  ]}
+                />
+              )}
+              {/* Current-cell outline lands only after the fill sequence finishes. */}
+              {i === currentCell && (
+                <Animated.View
+                  pointerEvents="none"
+                  entering={FadeIn.delay(STRENGTH_ANIM_MS)
                     .duration(240)
                     .reduceMotion(ReduceMotion.System)}
-                  style={[StyleSheet.absoluteFill, { backgroundColor: fill }]}
+                  style={[styles.ladderCellOutline, { borderColor: colors.text }]}
                 />
               )}
             </View>
@@ -294,6 +307,12 @@ const styles = StyleSheet.create({
   // Faded track under the animated fill (child opacity, since a parent
   // opacity would cap the fill too).
   ladderCellBase: { ...StyleSheet.absoluteFillObject, opacity: 0.3 },
+  ladderCellFill: { position: "absolute", top: 0, bottom: 0, left: 0 },
+  ladderCellOutline: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderRadius: 2,
+  },
   ladderLabels: { flexDirection: "row", marginTop: space.xs },
   ladderBaseLabel: { textAlign: "right" },
 });

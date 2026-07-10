@@ -10,6 +10,7 @@ interface ProgressBarProps {
   showTicks?: boolean;
   color?: string;
   from?: number; // fill-animation start (default 0) — e.g. pre-workout percentile so the bar sweeps the earned delta
+  duration?: number; // fill-animation duration in ms
 }
 
 export default function ProgressBar({
@@ -20,6 +21,7 @@ export default function ProgressBar({
   showTicks = false,
   color,
   from = 0,
+  duration = 800,
 }: ProgressBarProps) {
   const { currentTheme } = useTheme();
   const animatedProgress = useRef(new Animated.Value(Math.max(0, Math.min(100, from)))).current;
@@ -37,13 +39,13 @@ export default function ProgressBar({
     if (animated) {
       Animated.timing(animatedProgress, {
         toValue: Math.max(0, Math.min(100, progress)),
-        duration: 800,
+        duration,
         useNativeDriver: false,
       }).start();
     } else {
       animatedProgress.setValue(Math.max(0, Math.min(100, progress)));
     }
-  }, [progress, animated, animatedProgress]);
+  }, [progress, animated, animatedProgress, duration]);
 
   const progressWidth = animatedProgress.interpolate({
     inputRange: [0, 100],

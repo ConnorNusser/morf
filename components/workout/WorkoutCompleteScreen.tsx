@@ -817,7 +817,7 @@ export default function WorkoutCompleteScreen({
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + space.md }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.content, isSmallScreen && styles.contentSmall]}>
@@ -960,7 +960,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'flex-start',
-    paddingTop: 36,
   },
   content: {
     paddingHorizontal: space.section,

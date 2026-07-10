@@ -5,7 +5,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useVideoPlayerContext } from '@/contexts/VideoPlayerContext';
 import { formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { getTierColor } from '@/lib/data/strengthStandards';
 import { FeedPost } from '@/lib/services/feedService';
+import { UserStrengthSummary } from '@/lib/services/userSyncService';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState, useEffect } from 'react';
@@ -31,6 +33,8 @@ interface FeedPostCardProps {
   onComment?: (post: FeedPost) => void;
   currentUserId?: string | null;
   isVisible?: boolean;
+  /** Author's overall strength — colors the username and shows their percentile. */
+  overallStrength?: UserStrengthSummary;
 }
 
 function FeedPostCard({
@@ -40,6 +44,7 @@ function FeedPostCard({
   onComment,
   currentUserId,
   isVisible = false,
+  overallStrength,
 }: FeedPostCardProps) {
   const { currentTheme } = useTheme();
   const { registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches } = useVideoPlayerContext();
@@ -161,11 +166,19 @@ function FeedPostCard({
               </View>
             )}
             <View>
-              <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+              <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}
               </Text>
               <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 {formatRelativeTime(post.created_at)}
+                {overallStrength && (
+                  <>
+                    {' · '}
+                    <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
+                      {overallStrength.percentile}%
+                    </Text>
+                  </>
+                )}
               </Text>
             </View>
           </TouchableOpacity>
@@ -376,6 +389,10 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 15,
+  },
+  percentile: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   time: {
     fontSize: 13,

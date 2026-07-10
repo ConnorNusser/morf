@@ -7,7 +7,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { feedService, FeedPost, toggleLikeFor } from '@/lib/services/feedService';
 import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
-import { userSyncService } from '@/lib/services/userSyncService';
+import { userSyncService, UserStrengthSummary } from '@/lib/services/userSyncService';
 import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -50,6 +50,21 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [currentUsername, setCurrentUsername] = useState<string>('');
+  const [tierByUser, setTierByUser] = useState<Record<string, UserStrengthSummary>>({});
+
+  // Overall tiers live in Supabase (user_percentiles), not the feed payload —
+  // batch-fetch them per author so cards can tier-color usernames.
+  useEffect(() => {
+    const ids = Array.from(new Set(feedItems.map(item => item.data.user_id).filter(Boolean)));
+    if (ids.length === 0) return;
+    let cancelled = false;
+    userSyncService.getUserStrengthLevels(ids).then(tiers => {
+      if (!cancelled && Object.keys(tiers).length > 0) {
+        setTierByUser(prev => ({ ...prev, ...tiers }));
+      }
+    });
+    return () => { cancelled = true; };
+  }, [feedItems]);
 
   const viewabilityConfig = useMemo(() => ({
     itemVisiblePercentThreshold: 80,
@@ -291,6 +306,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           onComment={onWorkoutPress}
           currentUserId={currentUserId}
           weightUnit={weightUnit}
+          overallStrength={tierByUser[workout.user_id]}
         />
       );
     } else {
@@ -303,10 +319,11 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           onComment={onPostComment}
           currentUserId={currentUserId}
           isVisible={isVisible}
+          overallStrength={tierByUser[post.user_id]}
         />
       );
     }
-  }, [visibleItems, currentUserId, weightUnit, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
+  }, [visibleItems, currentUserId, weightUnit, tierByUser, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;

@@ -9,8 +9,9 @@ import { achievementMeta } from '@/lib/gamification/achievementMeta';
 import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
-import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
+import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { WorkoutSummary } from '@/lib/services/feedService';
+import { UserStrengthSummary } from '@/lib/services/userSyncService';
 import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,10 +33,12 @@ interface FeedCardProps {
   onComment?: (workout: FeedWorkout) => void;
   currentUserId?: string | null;
   weightUnit?: WeightUnit;
+  /** Author's overall strength — colors the username and shows their percentile. */
+  overallStrength?: UserStrengthSummary;
 }
 
 
-function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs' }: FeedCardProps) {
+function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallStrength }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -94,11 +97,19 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
             </View>
           )}
           <View>
-            <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
+            <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}
             </Text>
             <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
               {formatRelativeTime(workout.created_at)}
+              {overallStrength && (
+                <>
+                  {' · '}
+                  <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
+                    {overallStrength.percentile}%
+                  </Text>
+                </>
+              )}
             </Text>
           </View>
         </TouchableOpacity>
@@ -283,6 +294,10 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 15,
+  },
+  percentile: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   time: {
     fontSize: 13,
