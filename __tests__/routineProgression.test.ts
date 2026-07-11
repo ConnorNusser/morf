@@ -325,6 +325,18 @@ describe('repeated overshoots count in full', () => {
   });
 });
 
+describe('translation rep cap', () => {
+  it('100-rep endurance sets translate like 30-rep sets, not 4x strength', () => {
+    const curls = day('curl', 'Curls 3×6', 6, 'bicep-curl-barbell');
+    const history = [session('curl', [[20, 100], [20, 100], [20, 100]], 1, 'bicep-curl-barbell')];
+    const rec: ExerciseRecord = { ...record(20, 6), exerciseId: 'bicep-curl-barbell' };
+    const ex = calculateRoutine(curls, { 'bicep-curl-barbell': rec }, 'lbs', history).exercises[0];
+    // Capped factor 2 ÷ 1.2 → 33.3 → grid 32.5 (curl inc 2.5), held — not 70.
+    expect(ex.workingWeight).toBe(32.5);
+    expect(ex.progression).toBe('maintain');
+  });
+});
+
 describe('median-set judgment', () => {
   // 4×6 day at 135 — sessions are judged by the TYPICAL (lower-median) set,
   // so one collapsed fatigue set can't turn an overshoot into a deload.
