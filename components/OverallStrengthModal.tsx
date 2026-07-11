@@ -23,7 +23,7 @@ import {
   calculateOverallPercentile,
   roundedAverage as toAvg,
 } from "@/lib/utils/utils";
-import { UserProfile, UserProgress } from "@/types";
+import { UserProfile, UserProgress, LBS_PER_KG } from "@/types";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Animated,
@@ -210,7 +210,7 @@ export default function OverallStrengthModal({
     const gender = profile.gender;
     const bodyWeight =
       profile.weight.unit === "kg"
-        ? Math.round(profile.weight.value * 2.20462)
+        ? Math.round(profile.weight.value * LBS_PER_KG)
         : profile.weight.value;
     const ageFactor = profile.age
       ? AGE_ADJUSTMENT_FACTORS[getAgeCategory(profile.age)]

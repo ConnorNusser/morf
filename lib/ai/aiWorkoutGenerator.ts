@@ -1,4 +1,4 @@
-import { CustomExercise, Equipment, LoggedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
+import { CustomExercise, Equipment, LoggedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory, LBS_PER_KG} from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -282,12 +282,12 @@ class AIWorkoutGeneratorService {
 
     if (weightUnit === 'kg') {
       baseWeights = {
-        squat: Math.round(baseWeights.squat * 0.453592 / 2.5) * 2.5,
-        bench: Math.round(baseWeights.bench * 0.453592 / 2.5) * 2.5,
-        row: Math.round(baseWeights.row * 0.453592 / 2.5) * 2.5,
-        press: Math.round(baseWeights.press * 0.453592 / 2.5) * 2.5,
-        curl: Math.round(baseWeights.curl * 0.453592 / 2.5) * 2.5,
-        extension: Math.round(baseWeights.extension * 0.453592 / 2.5) * 2.5,
+        squat: Math.round(baseWeights.squat * 1 / LBS_PER_KG / 2.5) * 2.5,
+        bench: Math.round(baseWeights.bench * 1 / LBS_PER_KG / 2.5) * 2.5,
+        row: Math.round(baseWeights.row * 1 / LBS_PER_KG / 2.5) * 2.5,
+        press: Math.round(baseWeights.press * 1 / LBS_PER_KG / 2.5) * 2.5,
+        curl: Math.round(baseWeights.curl * 1 / LBS_PER_KG / 2.5) * 2.5,
+        extension: Math.round(baseWeights.extension * 1 / LBS_PER_KG / 2.5) * 2.5,
       };
     }
 

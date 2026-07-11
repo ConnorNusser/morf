@@ -38,6 +38,7 @@ enum LiveActivityMutator {
     }
   }
 
+  // Keep in sync with DEFAULT_REST_SECONDS in hooks/useRestTimer.ts.
   private static let kRestSeconds = 120.0
 
   static func completeSet() async {

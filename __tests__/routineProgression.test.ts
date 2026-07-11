@@ -331,8 +331,8 @@ describe('translation rep cap', () => {
     const history = [session('curl', [[20, 100], [20, 100], [20, 100]], 1, 'bicep-curl-barbell')];
     const rec: ExerciseRecord = { ...record(20, 6), exerciseId: 'bicep-curl-barbell' };
     const ex = calculateRoutine(curls, { 'bicep-curl-barbell': rec }, 'lbs', history).exercises[0];
-    // Capped factor 2 ÷ 1.2 → 33.3 → grid 32.5 (curl inc 2.5), held — not 70.
-    expect(ex.workingWeight).toBe(32.5);
+    // Capped factor 2 ÷ 1.2 → 33.3 → grid 30 (standard 5-lb step), held — not 70.
+    expect(ex.workingWeight).toBe(30);
     expect(ex.progression).toBe('maintain');
   });
 });

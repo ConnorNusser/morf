@@ -11,6 +11,7 @@ import { type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { LBS_PER_KG } from '@/types';
 import Animated, {
   Easing,
   FadeIn,
@@ -59,7 +60,7 @@ function buildPool(c: CareerSnapshot): Brief[] {
   const facts: Brief[] = [];
   const unit = c.unit || 'lbs';
   if (c.totalVolume && c.totalVolume > 0) {
-    const lbs = unit === 'kg' ? c.totalVolume * 2.20462 : c.totalVolume;
+    const lbs = unit === 'kg' ? c.totalVolume * LBS_PER_KG : c.totalVolume;
     facts.push({ tag: 'TOTAL VOLUME', text: `You’ve moved ${formatCompact(c.totalVolume)} ${unit} — about ${volumeComparison(lbs)}.` });
   }
   if (c.percentile > 0) facts.push({ tag: 'STRENGTH RANK', text: `You out-lift ${c.percentile}% of lifters. Extend the lead today.` });
