@@ -12,7 +12,6 @@ import {
   CalculatedRoutine
 } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { LastPerformance, LoggedSet, nextPrescription, loadIncrement, resolveWorkingSet, NextPrescription } from './progression';
 import { getCatalogExercise } from './exerciseCatalog';
 
@@ -50,27 +49,24 @@ const REP_RANGE_TOLERANCE = 2;
 // Anchors older than this with a fresher record reseed (layoffs).
 const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
 
-/** Re-express a performed set at a different rep count, grid-floored minus one
- *  increment. Always from the current working set, never best-ever e1RM.
- *  Clamped monotonic against reality: asking FEWER reps than performed can never
- *  prescribe less weight than performed (the estimate + safety margin otherwise
- *  goes below the bar at light weights — 10×20 asked for 12 prescribed 7.5), and
- *  asking more reps can never prescribe above it. */
+/** Re-express a performed set at a different rep count via the Epley ratio
+ *  (weight × (1 + reps/30) is unit-free, so no damped-e1RM/percentage-table
+ *  distortion at high reps), grid-floored to the increment. Prescribed as a
+ *  hold, so the next session validates it. Clamped monotonic against reality:
+ *  asking FEWER reps than performed can never prescribe below the performed
+ *  weight; asking more can never prescribe above it. */
 function equivalentWeight(
   performed: LastPerformance,
   floorReps: number,
   weightUnit: WeightUnit,
   increment: number,
 ): number {
-  const lbs = performed.unit === 'lbs' ? performed.weight : convertWeight(performed.weight, performed.unit, 'lbs');
-  const equivalentLbs =
-    OneRMCalculator.estimate(lbs, performed.reps) * (OneRMCalculator.getPercentageFor(floorReps) / 100);
-  const display = weightUnit === 'kg' ? convertWeight(equivalentLbs, 'lbs', 'kg') : equivalentLbs;
-  const estimated = Math.max(increment, Math.floor(display / increment) * increment - increment);
-
   const performedDisplay = performed.unit === weightUnit
     ? performed.weight
     : convertWeight(performed.weight, performed.unit, weightUnit);
+  const display = performedDisplay * (1 + performed.reps / 30) / (1 + floorReps / 30);
+  const estimated = Math.max(increment, Math.floor(display / increment) * increment);
+
   if (floorReps <= performed.reps) {
     return Math.max(estimated, Math.ceil(performedDisplay / increment) * increment);
   }

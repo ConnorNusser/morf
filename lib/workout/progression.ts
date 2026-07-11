@@ -3,8 +3,8 @@
  *  1. ANCHOR TO REALITY: next prescription derives from the weight actually lifted last time, never a best-ever estimated 1RM, so it can't run past what you can do.
  *  2. DOUBLE PROGRESSION: reps climb within a range session to session; load only steps once the range is topped, so load increases are always earned.
  *  3. ASYMMETRIC & PROPORTIONAL: up moves one increment at a time; down is immediate and scales with how badly you missed (miss the floor by 4 reps → drop ~12%).
- * Judged on the TYPICAL (median) working set — one collapsed fatigue set can neither
- * condemn a session where the others beat the ceiling, nor earn anything alone.
+ * Judged on the (upper-)median working set — one collapsed set can't condemn a
+ * session, one strong set can't carry it, and repeated overshoots count in full.
  */
 import { WeightUnit, ExerciseRecord, convertWeight, isFeaturedLift } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
@@ -117,7 +117,7 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   if (done.length === 0) {
     if (work.length === 0) return null;
     const sorted = work.map(s => s.reps).sort((a, b) => a - b);
-    return { weight: 0, reps: sorted[Math.floor((sorted.length - 1) / 2)], unit: work[0].unit };
+    return { weight: 0, reps: sorted[Math.ceil((sorted.length - 1) / 2)], unit: work[0].unit };
   }
 
   const countByWeight = new Map<number, number>();
@@ -140,10 +140,11 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   }
 
   const atWeight = done.filter(s => s.weight === workingWeight);
-  // Lower median: 8,9,9,4 judges as 8 (the 4 is the fatigue bill for the
-  // overshoot, not a miss), while 6,4,4,4 still judges as 4.
+  // Upper median: 11,11,31,31 judges as 31 (the overshoot is the signal — the
+  // 11s were just the too-low target being followed), 8,9,9,4 as 9, while a
+  // lone strong set among misses (8,4,4,4 → 4) still can't carry a session.
   const sorted = atWeight.map(s => s.reps).sort((a, b) => a - b);
-  const reps = sorted[Math.floor((sorted.length - 1) / 2)];
+  const reps = sorted[Math.ceil((sorted.length - 1) / 2)];
   return { weight: workingWeight, reps, unit: atWeight[0].unit };
 }
 
