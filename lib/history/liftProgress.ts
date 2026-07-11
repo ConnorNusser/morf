@@ -9,6 +9,7 @@ import {
   OneRMCalculator,
   StrengthTier,
   TIER_THRESHOLDS,
+  epleyFactor,
 } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
@@ -57,7 +58,7 @@ export interface LiftProgress {
 // Epley 1RM in lbs, so months compare on a unit-invariant basis.
 const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number => {
   const lbs = unit === 'lbs' ? weight : convertWeight(weight, unit, 'lbs');
-  return lbs * (1 + reps / 30);
+  return lbs * epleyFactor(reps);
 };
 
 const monthKey = (d: Date): string => `${d.getFullYear()}-${d.getMonth()}`;
@@ -141,7 +142,7 @@ function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading
 
 // reps for bodyweight; only for RELATIVE movement, so display units are fine.
 const pointMetric = (p: LiftProgressPoint): number =>
-  p.weight > 0 ? p.weight * (1 + p.reps / 30) : p.reps;
+  p.weight > 0 ? p.weight * epleyFactor(p.reps) : p.reps;
 
 // Month-over-month movement to 0..1 around neutral 0.5; ~8% monthly move saturates. One month = neutral.
 function momentum01(points: LiftProgressPoint[]): number {
