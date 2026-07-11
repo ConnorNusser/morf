@@ -83,8 +83,7 @@ export function nextPrescription(
   return { weight: newWeight, reps: range.floor, change: 'deload' };
 }
 
-/** One set as it was actually logged. `isWarmup` is recorded at save time for
- *  sessions logged since roles were persisted; legacy history lacks it. */
+/** One logged set. `isWarmup` is recorded at save time; legacy history lacks it. */
 export interface LoggedSet {
   weight: number;
   reps: number;
@@ -94,14 +93,10 @@ export interface LoggedSet {
 }
 
 /**
- * Pick the working set to judge progression from.
- * Role-recorded sessions (isWarmup persisted): warmups are excluded by their flag —
- * nothing is guessed. Among the remaining work sets, prefer the repeated weight with
- * the most sets (ties → heaviest) so a bonus single logged after the real work reads
- * as a test; with nothing repeated, every set is still KNOWN work, so trust the label
- * and take the heaviest (pyramids and single-top-set sessions stay readable).
- * Legacy/unlabeled sessions: same voting over all sets, and nothing repeated returns
- * null — the caller should HOLD rather than make a drastic move off a guess.
+ * The working set to judge progression from: flagged warmups excluded, then the
+ * repeated weight with the most sets (ties → heaviest) so a top single reads as a
+ * test. Nothing repeated → heaviest when roles are recorded (all known work);
+ * null on unlabeled legacy sessions — hold rather than move off a guess.
  */
 export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   const hasRecordedRoles = sets.some(s => s.isWarmup !== undefined);
@@ -122,9 +117,7 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   }
 
   if (workingWeight < 0) {
-    // Nothing repeated. With recorded roles these are all known work sets — take
-    // the heaviest. Without roles we can't tell work from test: hold.
-    if (!hasRecordedRoles) return null;
+    if (!hasRecordedRoles) return null; // can't tell work from test — hold
     const top = done.reduce((a, b) => (b.weight > a.weight ? b : a));
     return { weight: top.weight, reps: top.reps, unit: top.unit };
   }
@@ -137,7 +130,8 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
 const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
   OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
 
-// Best working set to record this session. More lenient than resolveWorkingSet: for record-keeping a lone top set falls back to the heaviest completed set. Deliberately NOT used for routine anchors — prescriptions must never lurch off a stray single.
+// Record-keeping variant: falls back to the heaviest lone set. Never used for
+// routine anchors — prescriptions must not lurch off a stray single.
 function recordableSet(sets: LoggedSet[]): LastPerformance | null {
   const resolved = resolveWorkingSet(sets);
   if (resolved) return resolved;

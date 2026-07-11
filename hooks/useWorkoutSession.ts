@@ -176,8 +176,6 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
         name: ex.exerciseName,
         matchedExerciseId: ex.exerciseId, // authoritative id, never re-resolved by name
         isCustom: customExercises.some(c => c.id === ex.exerciseId),
-        // Carry each set's role so it survives the draft and the save — anchor
-        // resolution and routine folding read the flag instead of guessing.
         sets: ex.sets.map(s => ({ weight: s.targetWeight || 0, reps: s.reps, unit: ex.unit, completed: false, isWarmup: s.isWarmup })),
       })),
       confidence: 1,
@@ -654,10 +652,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
 
   const lastWorkoutTitle = lastWorkout ? (lastWorkout.title || 'last workout') : null;
 
-  // Repeat a logged workout STRUCTURED — ids stay authoritative and set roles
-  // survive. (This used to serialize to text and re-parse through the fuzzy
-  // matcher, which could swap equipment variants, orphan custom exercises, and
-  // dropped warmup flags.) Rows arrive un-done: a repeat is a plan, not work.
+  // Repeat a logged workout structured — ids authoritative, roles survive.
+  // Rows arrive un-done: a repeat is a plan, not work.
   const prefillWorkout = useCallback((w: LoggedWorkout) => {
     const parsed: ParsedWorkout = {
       exercises: w.exercises
