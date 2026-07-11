@@ -12,6 +12,7 @@ import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
 import { Text, View, useInk } from '@/components/Themed';
+import ScreenBackground from '@/components/ui/ScreenBackground';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { analyticsService } from '@/lib/services/analytics';
@@ -107,17 +108,18 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <View style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+      <ScreenBackground>
         <View style={styles.loadingContainer}>
           <Text variant="body" tone="primary">Loading...</Text>
         </View>
-      </View>
+      </ScreenBackground>
     );
   }
 
   return (
     <>
-    <ScrollView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+    <ScreenBackground>
+    <ScrollView style={layout.flex1}>
       <View style={styles.content}>
         <DashboardHeader title="Profile" />
 
@@ -176,6 +178,7 @@ export default function ProfileScreen() {
       </View>
       <View style={{ marginBottom: 100 }} />
     </ScrollView>
+    </ScreenBackground>
 
     <SocialModal
       visible={showSocialModal}
