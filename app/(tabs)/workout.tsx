@@ -14,7 +14,7 @@ import WorkoutNoteInput, {
   WorkoutNoteInputRef,
 } from "@/components/workout/WorkoutNoteInput";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useRestTimer } from "@/hooks/useRestTimer";
+import { DEFAULT_REST_SECONDS, useRestTimer } from "@/hooks/useRestTimer";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 import {
@@ -357,7 +357,7 @@ export default function WorkoutScreen() {
       const becomingDone = set ? !set.done : false;
       toggleSetDone(key, index);
       if (becomingDone) {
-        startRestTimer(120, { exerciseName: ex?.name });
+        startRestTimer(DEFAULT_REST_SECONDS, { exerciseName: ex?.name });
       }
     },
     [draft, toggleSetDone, startRestTimer],
@@ -497,7 +497,7 @@ export default function WorkoutScreen() {
     const set = ex?.sets[editing.index];
     if (set && !set.done) {
       editSet(editing.key, editing.index, { done: true });
-      startRestTimer(120, { exerciseName: ex?.name });
+      startRestTimer(DEFAULT_REST_SECONDS, { exerciseName: ex?.name });
     }
     editOrigin.current = null;
     setEditing(null);
@@ -527,7 +527,7 @@ export default function WorkoutScreen() {
   const handleTimerTap = useCallback(() => {
     if (isResting) return;
     playHapticFeedback("light", false);
-    startRestTimer(120); // 2 minutes default
+    startRestTimer(DEFAULT_REST_SECONDS);
   }, [isResting, startRestTimer]);
 
   // Restart-workout-timer moved out of the rest UI: long-press the header clock.

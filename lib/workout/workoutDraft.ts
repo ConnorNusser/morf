@@ -2,6 +2,7 @@
 // (draftToLogText) so the finish/save/persistence pipeline works unchanged.
 import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutTextParser';
 import { roundWeight } from '@/lib/utils/utils';
+import { WARMUP_TOP_FRACTION } from '@/lib/workout/progressiveOverload';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { RoutineExercise, WeightUnit, convertWeight } from '@/types';
 
@@ -239,8 +240,8 @@ export function addWarmupSet(draft: WorkoutDraft, key: string): WorkoutDraft {
     const top = work.reduce((m, s) => Math.max(m, s.weight), 0);
     const unit = ex.sets[0]?.unit ?? 'lbs';
     const added: DraftSet = {
-      weight: top > 0 ? roundWeight(top * 0.6, unit) : 0,
-      reps: work[0]?.reps ?? ex.sets[0]?.reps ?? 5,
+      weight: top > 0 ? roundWeight(top * WARMUP_TOP_FRACTION, unit) : 0,
+      reps: work[0]?.reps ?? ex.sets[0]?.reps ?? 10, // 10 = the app-wide default reps
       unit,
       done: false,
       isWarmup: true,

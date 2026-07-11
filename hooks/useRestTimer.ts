@@ -1,9 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/lib/storage/storage';
 import { useEffect, useState } from 'react';
 
 import { endLiveActivity, startLiveActivity, updateLiveActivity } from '@/lib/liveActivity/liveActivity';
 
-const REST_TIMER_KEY = 'activeRestTimer';
+// Keep in sync with kRestSeconds in modules/live-activity/ios/Intents.swift and
+// targets/morfwidget/Intents.swift (separate binaries — no shared source).
+export const DEFAULT_REST_SECONDS = 120;
 
 interface RestTimerData {
   startTime: string;
@@ -21,7 +24,7 @@ const restEndTime = (d: RestTimerData): number => new Date(d.startTime).getTime(
 
 // Persisted timer → elapsed/remaining seconds, or null when none. Can throw.
 const readTimer = async (): Promise<{ data: RestTimerData; elapsed: number; remaining: number } | null> => {
-  const raw = await AsyncStorage.getItem(REST_TIMER_KEY);
+  const raw = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_REST_TIMER);
   if (!raw) return null;
   const data: RestTimerData = JSON.parse(raw);
   const elapsed = Math.floor((Date.now() - new Date(data.startTime).getTime()) / 1000);
@@ -85,7 +88,7 @@ export const useRestTimer = () => {
     }
   };
 
-  const startTimer = async (duration: number = 90, context?: RestContext) => {
+  const startTimer = async (duration: number = DEFAULT_REST_SECONDS, context?: RestContext) => {
     try {
       const timerData: RestTimerData = {
         startTime: new Date().toISOString(),
@@ -112,7 +115,7 @@ export const useRestTimer = () => {
         },
       });
 
-      await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(timerData));
+      await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_REST_TIMER, JSON.stringify(timerData));
     } catch (error) {
       console.error('Error starting rest timer:', error);
     }
@@ -133,7 +136,7 @@ export const useRestTimer = () => {
           duration: timer.elapsed + newRemaining,
         };
 
-        await AsyncStorage.setItem(REST_TIMER_KEY, JSON.stringify(newTimerData));
+        await AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_REST_TIMER, JSON.stringify(newTimerData));
         setRemainingTime(newRemaining);
         setTotalDuration(newTimerData.duration);
 
@@ -162,7 +165,7 @@ export const useRestTimer = () => {
 
   const clearTimer = async () => {
     try {
-      await AsyncStorage.removeItem(REST_TIMER_KEY);
+      await AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_REST_TIMER);
     } catch (error) {
       console.error('Error clearing rest timer:', error);
     }

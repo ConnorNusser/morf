@@ -574,19 +574,14 @@ export const convertHeight = (value: number, fromUnit: HeightUnit, toUnit: Heigh
   return value;
 };
 
-// Convert weight between units
+// The one kg↔lbs factor — every conversion in the app derives from it.
+export const LBS_PER_KG = 2.20462;
+
+// Convert weight between units (rounded to 0.1 for display friendliness).
 export const convertWeight = (value: number, fromUnit: WeightUnit, toUnit: WeightUnit): number => {
   if (fromUnit === toUnit) return value;
-  
-  if (fromUnit === 'lbs' && toUnit === 'kg') {
-    return Math.round((value * 0.453592) * 10) / 10;
-  }
-  
-  if (fromUnit === 'kg' && toUnit === 'lbs') {
-    return Math.round((value / 0.453592) * 10) / 10;
-  }
-  
-  return value;
+  const raw = fromUnit === 'kg' ? value * LBS_PER_KG : value / LBS_PER_KG;
+  return Math.round(raw * 10) / 10;
 };
 
 // Format height for display

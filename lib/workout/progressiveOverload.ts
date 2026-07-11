@@ -47,6 +47,13 @@ export function getRoutineAnchor(
 // another rep range's work and gets re-expressed (equivalentWeight).
 const REP_RANGE_TOLERANCE = 2;
 
+// Warmups top out at this fraction of the working weight, ramping down in
+// WARMUP_RAMP_STEP steps (floored) for earlier warmups — distinct weights so a
+// warmup pair can never be mistaken for the working set.
+export const WARMUP_TOP_FRACTION = 0.6;
+const WARMUP_RAMP_STEP = 0.15;
+const WARMUP_MIN_FRACTION = 0.3;
+
 // Anchors older than this with a fresher record reseed (layoffs).
 const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
 
@@ -156,14 +163,12 @@ function calculateRoutineExerciseWeights(
     lastPerformed = { weight: Math.round(recordWeight), reps: record.reps, date: record.updatedAt, completed: true };
   }
 
-  // Warmups ramp toward 60% — distinct weights, so a warmup pair can never be
-  // mistaken for the working set.
   const warmupCount = sets.filter(s => s.isWarmup).length;
   let warmupIndex = 0;
   const calculatedSets = sets.map(set => {
     if (!prescription) return { ...set, targetWeight: 0 }; // cold-start
     if (set.isWarmup) {
-      const fraction = Math.max(0.3, 0.6 - 0.15 * (warmupCount - 1 - warmupIndex));
+      const fraction = Math.max(WARMUP_MIN_FRACTION, WARMUP_TOP_FRACTION - WARMUP_RAMP_STEP * (warmupCount - 1 - warmupIndex));
       warmupIndex += 1;
       return { ...set, targetWeight: roundWeight(prescription.weight * fraction, weightUnit) };
     }

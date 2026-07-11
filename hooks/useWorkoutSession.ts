@@ -39,6 +39,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, AppStateStatus, Keyboard } from 'react-native';
 
 // Cap AI parse latency so a hanging call falls back to local parse.
+const AI_PARSE_TIMEOUT_MS = 4000;
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     p,
@@ -252,7 +253,7 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     // A name with no sets, unrecognized offline — ask the AI what exercise it is.
     if (local.exercises.length === 0 && !/\d/.test(trimmed)) {
       try {
-        const first = (await withTimeout(workoutTextParser.parseWorkoutText(trimmed), 4000)).exercises[0];
+        const first = (await withTimeout(workoutTextParser.parseWorkoutText(trimmed), AI_PARSE_TIMEOUT_MS)).exercises[0];
         if (first) {
           const id = first.matchedExerciseId;
           const name = id ? getCatalogExercise(id)?.name ?? first.name : first.name;
@@ -268,7 +269,7 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     // Only let AI parse when text carries digits: a bare fragment yields a 0×0 set.
     if (/\d/.test(trimmed)) {
       try {
-        const ai = await withTimeout(workoutTextParser.parseWorkoutText(trimmed), 4000);
+        const ai = await withTimeout(workoutTextParser.parseWorkoutText(trimmed), AI_PARSE_TIMEOUT_MS);
         const real = ai.exercises.filter(ex => ex.sets.some(s => s.reps > 0));
         if (real.length > 0) {
           mergeInto(real);

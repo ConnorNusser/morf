@@ -1,15 +1,15 @@
-import { WeightUnit, TrackingType, LoggedWorkout } from "@/types";
+import { LBS_PER_KG, WeightUnit, TrackingType, LoggedWorkout } from "@/types";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
-    return Math.round(weight * 2.20462);
+    return Math.round(weight * LBS_PER_KG);
   }
   return weight;
 };
 
 const convertWeightToKg = (weight: number, unit: WeightUnit): number => {
   if (unit === 'lbs') {
-    return Math.round(weight / 2.20462);
+    return Math.round(weight / LBS_PER_KG);
   }
   return weight;
 };
@@ -49,7 +49,7 @@ export const formatVolume = (volumeLbs: number, unit: WeightUnit): string =>
   `${formatVolumeNumber(volumeLbs, unit)} ${unit}`;
 
 export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string => {
-  const volume = unit === 'kg' ? volumeLbs / 2.205 : volumeLbs;
+  const volume = unit === 'kg' ? volumeLbs / LBS_PER_KG : volumeLbs;
   return volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
 };
 
@@ -265,7 +265,7 @@ export const setVolumeLbs = (set: { weight?: number; reps?: number; unit?: strin
   if (set.completed === false) return 0;
   const weight = set.weight || 0;
   if (weight <= 0) return 0;
-  const weightLbs = set.unit === 'kg' ? weight * 2.20462 : weight;
+  const weightLbs = set.unit === 'kg' ? weight * LBS_PER_KG : weight;
   return weightLbs * (set.reps || 0);
 };
 

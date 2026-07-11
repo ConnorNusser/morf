@@ -17,7 +17,9 @@ export {
 
 export const EXERCISE_CATALOG: Exercise[] = exercisesData as Exercise[];
 
-export const MAIN_LIFTS: Exercise[] = EXERCISE_CATALOG.filter(workout => workout.isMainLift);
+// Distinct name from types' MAIN_LIFTS id-map — this is the catalog rows whose
+// json isMainLift flag is set (an invariant test ties the two together).
+export const MAIN_LIFT_EXERCISES: Exercise[] = EXERCISE_CATALOG.filter(workout => workout.isMainLift);
 
 export const getAvailableExercises = (userPercentile: number): Exercise[] => {
   const getUserThemeLevel = (percentile: number): ThemeLevel => {

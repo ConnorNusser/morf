@@ -5,8 +5,13 @@ import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/wor
 import { getNextInCycle } from '@/lib/workout/activeRoutine';
 import { EMPTY_REVIEW_STATE, ReviewPromptState } from '@/lib/workout/reviewPrompt';
 
-const STORAGE_KEYS = {
+// Exported so non-storageService persistence (rest timer) registers its key here
+// and clearAllData can actually clear everything. NB: visual-loop/*.js seeds
+// re-type user_profile / workout_history / routines / active_note_session by hand.
+export const STORAGE_KEYS = {
   USER_PROFILE: 'user_profile',
+  // Owned by hooks/useRestTimer (raw AsyncStorage, not storageService).
+  ACTIVE_REST_TIMER: 'activeRestTimer',
   WORKOUT_HISTORY: 'workout_history',
   ACTIVE_NOTE_SESSION: 'active_note_session',
   THEME_PREFERENCE: 'theme_preference',

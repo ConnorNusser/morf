@@ -38,7 +38,8 @@ const MISS_TOLERANCE_REPS = 1;
 const PCT_PER_REP = 0.033;
 const MAX_DROP = 0.25; // never cut more than 25% in a single session
 
-/** Plate increment for one load step — bigger for compounds, smaller for isolations. */
+/** Plate increment for one load step. Two tiers only — no micro-loading:
+ *  every step lands on the roundWeight/NumberPad grid. */
 export function loadIncrement(exerciseId: string, unit: WeightUnit): number {
   const exercise = getCatalogExercise(exerciseId);
   const isCompound = exercise?.category === 'compound';
@@ -46,8 +47,7 @@ export function loadIncrement(exerciseId: string, unit: WeightUnit): number {
   const isBigCompound = isCompound && (muscles.includes('legs') || muscles.includes('glutes') || muscles.includes('back'));
 
   if (isBigCompound) return unit === 'kg' ? 5 : 10; // squat / deadlift / row
-  if (isCompound) return unit === 'kg' ? 2.5 : 5; // bench / press
-  return unit === 'kg' ? 1.25 : 2.5; // isolation
+  return unit === 'kg' ? 2.5 : 5; // everything else
 }
 
 /** The core rule: last session's performance + target range → next prescription. Pure. */
