@@ -6,7 +6,7 @@ import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import PercentileSparkline from '@/components/profile/PercentileSparkline';
 import IconButton from '@/components/IconButton';
 import InteractiveProgressChart from '@/components/InteractiveProgressChart';
-import { formatRelativeTime, formatDuration } from '@/lib/ui/formatters';
+import { formatRelativeTime, formatDurationWords } from '@/lib/ui/formatters';
 import SkeletonCard from '@/components/SkeletonCard';
 import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View, useInk } from '@/components/Themed';
@@ -23,7 +23,7 @@ import { WorkoutFeedData, WorkoutSummary } from '@/lib/services/feedService';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { calculateStrengthPercentile, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
-import { convertWeightToLbs } from '@/lib/utils/utils';
+import { convertWeightToLbs, formatVolume} from '@/lib/utils/utils';
 import { RemoteUser, RemoteUserData, MAIN_LIFTS, UserPercentileData, UserProgress, formatHeight, isFeaturedLift } from '@/types';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -977,7 +977,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                                 </Text>
                               </View>
                               <Text variant="meta" weight="regular" tone="secondary">
-                                {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)} · {workout.total_volume.toLocaleString()} lbs
+                                {workout.exercise_count} exercises · {formatDurationWords(workout.duration_seconds)} · {formatVolume(workout.total_volume, 'lbs')}
                               </Text>
                             </View>
                             <View style={[styles.workoutChevron, { backgroundColor: isExpanded ? tint(currentTheme.colors.primary) : currentTheme.colors.border + '50' }]}>

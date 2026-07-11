@@ -14,6 +14,7 @@ import { FeaturedLiftType, UserLift, UserProfile, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { trend } from '@/lib/ui/tokens';
 
 interface LiftProgressionModalProps {
   visible: boolean;
@@ -206,7 +207,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
     const latestIdx = monthlyPoints.length - 1;
     const metric = (p: LiftProgressPoint) => (p.weight > 0 ? p.weight : p.reps);
     const delta = monthlyPoints.length > 1 ? metric(monthlyPoints[latestIdx]) - metric(monthlyPoints[latestIdx - 1]) : 0;
-    const latestColor = delta > 0 ? '#10B981' : delta < 0 ? '#EF4444' : currentTheme.colors.text;
+    const latestColor = delta > 0 ? trend.up : delta < 0 ? trend.down : currentTheme.colors.text;
     const setLabel = (w: number, r: number) => (w > 0 ? `${w}×${r}` : `×${r}`);
 
     return (
@@ -338,7 +339,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                   <Text style={[styles.predictionValue, { color: currentTheme.colors.primary }]}>
                     {convertedPrediction3M} {weightUnit}
                   </Text>
-                  <Text style={[styles.predictionGain, { color: '#10B981' }]}>
+                  <Text style={[styles.predictionGain, { color: trend.up }]}>
                     +{gain3M} {weightUnit}
                   </Text>
                 </View>
@@ -350,7 +351,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
                   <Text style={[styles.predictionValue, { color: currentTheme.colors.primary }]}>
                     {convertedPrediction1Y} {weightUnit}
                   </Text>
-                  <Text style={[styles.predictionGain, { color: '#10B981' }]}>
+                  <Text style={[styles.predictionGain, { color: trend.up }]}>
                     +{gain1Y} {weightUnit}
                   </Text>
                 </View>

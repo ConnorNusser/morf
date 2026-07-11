@@ -43,10 +43,12 @@ export default function WorkoutDetailModal({
       .filter((e) => e.completedSets && e.completedSets.length > 0)
       .map((e) => {
         const name = getExerciseName(e.id, getExercise(e.id));
-        const parts = e.completedSets!.map(
-          (s) =>
-            `${Math.round(convertWeight(s.weight, s.unit || "lbs", weightUnit))}x${s.reps}`,
-        );
+        // Parser-compatible tokens (see draftToLogText): decimals kept — rounding
+        // here silently corrupted 32.5-lb sets on paste-back — and kg suffixed.
+        const parts = e.completedSets!.map((s) => {
+          const w = convertWeight(s.weight, s.unit || "lbs", weightUnit);
+          return w > 0 ? `${w}${weightUnit === "kg" ? "kg" : ""}x${s.reps}` : `x${s.reps}`;
+        });
         return `${name} ${parts.join(", ")}`;
       })
       .join("\n");

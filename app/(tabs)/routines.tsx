@@ -19,6 +19,7 @@ import { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Program, Routine, Wei
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
+import { trend } from '@/lib/ui/tokens';
 import {
   Image,
   Modal,
@@ -310,8 +311,8 @@ export default function NotesScreen() {
   // How an exercise reads against the program's own prescription (not est 1RM).
   const adherenceMeta = (status: AdherenceStatus): { label: string; color: string } => {
     switch (status) {
-      case 'improving': return { label: 'Improving', color: '#34C759' };
-      case 'easing': return { label: 'Easing back', color: '#FF3B30' };
+      case 'improving': return { label: 'Improving', color: trend.up };
+      case 'easing': return { label: 'Easing back', color: trend.down };
       case 'holding': return { label: 'On track', color: currentTheme.colors.text + '70' };
       default: return { label: 'Not started', color: currentTheme.colors.text + '40' };
     }
@@ -630,8 +631,8 @@ export default function NotesScreen() {
                     <RNView style={styles.programMomentum}>
                       <RNView style={styles.momentumBar}>
                         {programStatuses.map((s, i) => {
-                          const segColor = s === 'improving' ? '#34C759'
-                            : s === 'easing' ? '#FF3B30'
+                          const segColor = s === 'improving' ? trend.up
+                            : s === 'easing' ? trend.down
                             : s === 'holding' ? currentTheme.colors.text + '40'
                             : currentTheme.colors.text + '15';
                           return <RNView key={i} style={[styles.momentumSeg, { backgroundColor: segColor }]} />;

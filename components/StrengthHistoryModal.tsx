@@ -10,6 +10,7 @@ import { getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { MuscleGroupPercentiles, PercentileHistoryEntry, UserPercentileData } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { trend } from '@/lib/ui/tokens';
 
 const getColorForPercentile = (percentile: number): string => {
   const tier = getStrengthTier(percentile);
@@ -124,7 +125,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
   const firstValue = displayPercentiles[0] || 0;
   const lastValue = displayPercentiles[displayPercentiles.length - 1] || 0;
   const change = lastValue - firstValue;
-  const changeColor = change > 0 ? '#22C55E' : change < 0 ? '#EF4444' : currentTheme.colors.text + '60';
+  const changeColor = change > 0 ? trend.up : change < 0 ? trend.down : currentTheme.colors.text + '60';
 
   const overallFirstValue = displayHistory[0]?.percentile || 0;
   const overallLastValue = displayHistory[displayHistory.length - 1]?.percentile || 0;
@@ -180,7 +181,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
             </View>
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: overallChange >= 0 ? '#22C55E' : '#EF4444', fontWeight: '700' }]}>
+              <Text style={[styles.statValue, { color: overallChange >= 0 ? trend.up : trend.down, fontWeight: '700' }]}>
                 {overallChange > 0 ? '+' : ''}{overallChange}
               </Text>
               <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60' }]}>
@@ -457,7 +458,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                         {entryChange !== 0 && (
                           <Text style={[
                             styles.historyChange,
-                            { color: entryChange > 0 ? '#22C55E' : '#EF4444' }
+                            { color: entryChange > 0 ? trend.up : trend.down }
                           ]}>
                             {entryChange > 0 ? '+' : ''}{entryChange}
                           </Text>

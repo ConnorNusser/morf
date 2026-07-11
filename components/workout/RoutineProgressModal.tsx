@@ -22,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import Svg, { Circle, Line, Polygon, Text as SvgText } from 'react-native-svg';
+import { formatRelativeDate } from '@/lib/ui/formatters';
 
 interface RoutineProgressModalProps {
   visible: boolean;
@@ -61,7 +62,7 @@ interface RoutineProgress {
   name: string;
   exercises: ExerciseProgress[];
   completions: number;
-  daysSinceLastWorkout: number | null;
+  lastWorkoutDate: Date | null;
   improving: number;
   stable: number;
   declining: number;
@@ -126,9 +127,6 @@ export default function RoutineProgressModal({
 
       const lastWorkout = routineWorkouts[routineWorkouts.length - 1];
       const lastWorkoutDate = lastWorkout ? new Date(lastWorkout.createdAt) : null;
-      const daysSinceLastWorkout = lastWorkoutDate
-        ? Math.floor((Date.now() - lastWorkoutDate.getTime()) / (1000 * 60 * 60 * 24))
-        : null;
 
       for (const exercise of routine.exercises) {
         const weightHistory: WeightDataPoint[] = [];
@@ -180,7 +178,7 @@ export default function RoutineProgressModal({
         name: routine.name,
         exercises,
         completions: routineWorkouts.length,
-        daysSinceLastWorkout,
+        lastWorkoutDate,
         improving,
         stable,
         declining,
@@ -243,13 +241,8 @@ export default function RoutineProgressModal({
     setExpandedExerciseId(prev => prev === exerciseId ? null : exerciseId);
   };
 
-  const formatLastWorkout = (days: number | null) => {
-    if (days === null) return 'Never';
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days}d ago`;
-    return `${Math.floor(days / 7)}w ago`;
-  };
+  // Same vocabulary as the routines tab cards (formatRelativeDate).
+  const formatLastWorkout = (date: Date | null) => (date ? formatRelativeDate(date) : 'Never');
 
   const ProgressDots =({ filled, total = 3, color }: { filled: number, total?: number, color: string }) => (
     <View style={styles.progressDots}>
@@ -760,7 +753,7 @@ export default function RoutineProgressModal({
 
                     <View style={styles.routineMeta}>
                       <Text variant="meta" tone="faint">
-                        {routine.completions} sessions · Last: {formatLastWorkout(routine.daysSinceLastWorkout)}
+                        {routine.completions} sessions · Last: {formatLastWorkout(routine.lastWorkoutDate)}
                       </Text>
                     </View>
 

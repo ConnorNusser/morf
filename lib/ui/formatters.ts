@@ -16,7 +16,8 @@ export const formatRelativeTime = (date: Date): string => {
   return date.toLocaleDateString();
 };
 
-export const formatDuration = (seconds: number): string => {
+// Word-style ("45min" / "1h 5m") — distinct name from utils' m:ss formatDuration.
+export const formatDurationWords = (seconds: number): string => {
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   if (hours > 0) return `${hours}h ${mins}m`;
@@ -25,9 +26,11 @@ export const formatDuration = (seconds: number): string => {
 
 // "Today" / "Yesterday" / weekday (<7d) / "Mon 5".
 export const formatRelativeDate = (date: Date): string => {
-  const now = new Date();
+  // Calendar days, not raw 24h windows — an 11pm workout viewed at 8am is
+  // "Yesterday", matching the dateKey bucketing used everywhere else.
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const d = new Date(date);
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';

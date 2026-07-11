@@ -18,6 +18,7 @@ import { space, trend } from "@/lib/ui/tokens";
 import { LoggedWorkout } from "@/types";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
+import { formatMinutes } from '@/lib/utils/utils';
 
 export interface SessionAchievement {
   id: string;
@@ -121,7 +122,7 @@ function SessionView({
         )}
         <Text variant="meta" tone="muted">
           {recap.sets} {recap.sets === 1 ? "set" : "sets"}
-          {recap.durationMin > 0 ? `  ·  ${recap.durationMin}m` : ""}
+          {recap.durationMin > 0 ? `  ·  ${formatMinutes(recap.durationMin)}` : ""}
         </Text>
       </Text>
     </TouchableOpacity>

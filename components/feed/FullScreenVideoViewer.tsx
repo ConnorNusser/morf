@@ -2,6 +2,7 @@ import { Text } from '@/components/Themed';
 import { useMute } from '@/hooks/useMute';
 import { useLikePop } from '@/hooks/useLikePop';
 import playHapticFeedback from '@/lib/utils/haptic';
+import { formatDuration } from '@/lib/utils/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState, useEffect } from 'react';
@@ -90,11 +91,7 @@ export default function FullScreenVideoViewer({
     onClose();
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  const formatTime = (seconds: number) => formatDuration(Math.floor(seconds));
 
   if (!visible || !videoUrl) return null;
 

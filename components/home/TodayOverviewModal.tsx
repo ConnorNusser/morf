@@ -57,7 +57,7 @@ export default function TodayOverviewModal({ visible, onClose, routine, splitLab
                       {set.isWarmup ? 'Warmup' : `Set ${ex.sets.slice(0, si + 1).filter(s => !s.isWarmup).length}`}
                     </Text>
                     <Text variant="body" tone="primary">
-                      {set.targetWeight > 0 ? `${set.targetWeight} ${ex.unit}` : 'Bodyweight'} × {set.reps}
+                      {set.targetWeight > 0 ? `${set.targetWeight} ${ex.unit} × ${set.reps}` : `${set.reps} reps`}
                     </Text>
                   </View>
                 ))}

@@ -35,7 +35,7 @@ interface EditableWorkoutProps {
 
 function fmtPrev(set: DraftSet): string {
   const w = Number.isInteger(set.weight) ? String(set.weight) : String(parseFloat(set.weight.toFixed(2)));
-  return set.weight > 0 ? `${w}×${set.reps}` : `${set.reps}`;
+  return set.weight > 0 ? `${w}×${set.reps}` : `×${set.reps}`; // bodyweight: ×12 (app-wide compact convention)
 }
 
 // Opens the custom number pad on tap (no OS keyboard); cell geometry is a named exception (spreadsheet grid).

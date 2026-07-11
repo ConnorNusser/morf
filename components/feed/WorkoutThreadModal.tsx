@@ -5,7 +5,7 @@ import TierBadge from '@/components/TierBadge';
 import Badge from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
-import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
+import { formatDurationWords, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
@@ -406,7 +406,7 @@ export default function WorkoutThreadModal({
             <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
-                {formatDuration(workout.duration_seconds)}
+                {formatDurationWords(workout.duration_seconds)}
               </Text>
               <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
                 duration

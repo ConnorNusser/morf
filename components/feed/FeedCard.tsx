@@ -6,7 +6,7 @@ import Badge from '@/components/ui/Badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { achievementMeta } from '@/lib/gamification/achievementMeta';
-import { formatDuration, formatRelativeTime } from '@/lib/ui/formatters';
+import { formatDurationWords, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCategories';
 import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
@@ -157,7 +157,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
       )}
 
       <Text style={[styles.stats, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
-        {workout.exercise_count} exercises · {formatDuration(workout.duration_seconds)}
+        {workout.exercise_count} exercises · {formatDurationWords(workout.duration_seconds)}
         {workout.total_volume > 0 && ` · ${formatVolume(workout.total_volume, weightUnit)}`}
         {(workout.total_distance_meters ?? 0) > 0 && ` · ${formatDistance(workout.total_distance_meters ?? 0)}`}
         {(workout.total_cardio_seconds ?? 0) > 0 && ` · ${formatCardioDuration(workout.total_cardio_seconds ?? 0)} cardio`}
