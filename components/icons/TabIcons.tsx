@@ -2,7 +2,7 @@
 // round caps, stroke = tint color. The center Workout tab carries the hex-badge
 // mark from the app's visual identity.
 import React from 'react';
-import Svg, { Circle, Line, Path } from 'react-native-svg';
+import Svg, { Circle, Line, Path, Rect } from 'react-native-svg';
 
 interface IconProps {
   size?: number;
@@ -58,26 +58,16 @@ export function HistoryIcon({ size = 24, color = '#000000' }: IconProps) {
 }
 
 export function RoutinesIcon({ size = 24, color = '#000000' }: IconProps) {
-  // The up-next ring: a segmented cycle of days with the current-day node.
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path d="M14.41 4.37A8 8 0 0 1 19.81 13.73" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
-      <Path d="M17.41 17.9A8 8 0 0 1 6.59 17.9" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
-      <Path d="M4.19 13.73A8 8 0 0 1 9.59 4.37" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
-      <Circle cx="12" cy="4" r="1.8" fill={color} />
-    </Svg>
-  );
-}
-
-export function MorfMarkIcon({ size = 24, color = '#000000' }: IconProps) {
-  // The brand M (monoline take on the app icon's letterform) — profile is your
-  // Morf identity. Slightly heavier stroke so the letter carries at tab size.
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="3" y="5" width="18" height="16" rx="2" stroke={color} strokeWidth="2" fill="none" />
+      <Line x1="8" y1="3" x2="8" y2="7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <Line x1="16" y1="3" x2="16" y2="7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <Line x1="3" y1="10" x2="21" y2="10" stroke={color} strokeWidth="2" />
       <Path
-        d="M4 20V5L12 14.5L20 5V20"
+        d="M9 15l2 2 4-4"
         stroke={color}
-        strokeWidth="2.4"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
@@ -85,3 +75,4 @@ export function MorfMarkIcon({ size = 24, color = '#000000' }: IconProps) {
     </Svg>
   );
 }
+
