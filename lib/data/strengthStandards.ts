@@ -1,4 +1,4 @@
-import { Gender, MainLiftType, StrengthStandard } from '@/types';
+import { Gender, MainLiftType, StrengthStandard, WeightUnit, convertWeight } from '@/types';
 
 // Strength standards as body-weight multipliers, from drug-tested unequipped powerlifting data.
 // Source: van den Hoek et al. 2024, "Normative data for the squat, bench press and deadlift" (809,986 entries).
@@ -920,6 +920,11 @@ export function getNextTierInfo(percentile: number): {
 // ratio — used raw here and for rep-count translation in progressiveOverload.
 export const epleyFactor = (reps: number): number => 1 + reps / 30;
 
+// Estimated 1RM in lbs from a set logged in ANY unit — the single
+// convert-then-estimate path. (Shown to users as just "1RM".)
+export const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
+  OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
+
 export class OneRMCalculator {
   // Epley formula: 1RM = weight × (1 + reps/30)
   static epley(weight: number, reps: number): number {
@@ -951,26 +956,5 @@ export class OneRMCalculator {
     return Math.round((epley + brzycki + lombardi) / 3);
   }
 
-  static getPercentageFor(reps: number): number {
-    const percentages: Record<number, number> = {
-      1: 100,
-      2: 95,
-      3: 93,
-      4: 90,
-      5: 87,
-      6: 85,
-      7: 83,
-      8: 80,
-      9: 77,
-      10: 75,
-      11: 73,
-      12: 70,
-    };
-    
-    return percentages[reps] || 70;
-  }
 
-  static getWeightForPercentage(oneRM: number, percentage: number): number {
-    return Math.round((oneRM * percentage) / 100);
-  }
 } 

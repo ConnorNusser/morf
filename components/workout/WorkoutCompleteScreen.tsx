@@ -10,7 +10,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space, tint, track, trend } from '@/lib/ui/tokens';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
-import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
@@ -27,7 +27,7 @@ import {
   getPercentileSuffix,
 } from '@/lib/utils/utils';
 import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutTextParser';
-import { UserProfile, UserProgress, WeightUnit } from '@/types';
+import { UserProfile, UserProgress, WeightUnit, convertWeight } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -459,7 +459,8 @@ export default function WorkoutCompleteScreen({
         sets,
         userLifts,
         bodyWeightLbs,
-        userProfile?.gender
+        userProfile?.gender,
+        userProfile?.age
       );
 
       if (badgeInfo?.type === 'tier' && badgeInfo.isPR) {
@@ -469,7 +470,7 @@ export default function WorkoutCompleteScreen({
         const best1RM = Math.max(
           ...sets.map(set => {
             if (set.reps === 0) return 0;
-            return OneRMCalculator.estimate(set.weight, set.reps);
+            return e1rmLbs(set.weight, set.reps, set.unit);
           }),
           0
         );
@@ -508,8 +509,9 @@ export default function WorkoutCompleteScreen({
       let top: { e1rm: number; weight: number; reps: number } | null = null;
       for (const set of exercise.sets || []) {
         if ((set.weight || 0) <= 0 || (set.reps || 0) <= 0) continue;
-        const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
-        if (!top || e1rm > top.e1rm) top = { e1rm, weight: set.weight, reps: set.reps };
+        const e1rm = e1rmLbs(set.weight, set.reps, set.unit);
+        const weightPref = set.unit === weightUnit ? set.weight : convertWeight(set.weight, set.unit, weightUnit);
+        if (!top || e1rm > top.e1rm) top = { e1rm, weight: weightPref, reps: set.reps };
       }
       if (!top) continue;
       if (!best || lift.percentileRanking > best.percentile) {
@@ -517,14 +519,14 @@ export default function WorkoutCompleteScreen({
         best = {
           name: shortName(info?.name || exercise.name),
           percentile: lift.percentileRanking,
-          e1rm: Math.round(top.e1rm),
+          e1rm: Math.round(weightUnit === 'kg' ? convertWeight(top.e1rm, 'lbs', 'kg') : top.e1rm),
           weight: Math.round(top.weight),
           reps: top.reps,
         };
       }
     }
     return best;
-  }, [exercises, userLifts]);
+  }, [exercises, userLifts, weightUnit]);
 
   useEffect(() => {
     playHapticFeedback(prs.length > 0 ? 'success' : 'medium', false);
@@ -574,7 +576,7 @@ export default function WorkoutCompleteScreen({
   const handlePost = () => {
     playHapticFeedback('light', false);
     const text = liftSpotlight
-      ? `${liftSpotlight.name} ${liftSpotlight.e1rm} ${weightUnit} e1RM today — stronger than ${liftSpotlight.percentile}% of lifters. Tracked with morf.`
+      ? `${liftSpotlight.name} ${liftSpotlight.e1rm} ${weightUnit} 1RM today — stronger than ${liftSpotlight.percentile}% of lifters. Tracked with morf.`
       : overallTier
         ? `Stronger than ${overallAfter}% of lifters. Tracked with morf.`
         : `${volumeDisplay ?? 'A lot'} lifted today. Tracked with morf.`;
@@ -677,7 +679,7 @@ export default function WorkoutCompleteScreen({
           Stronger than {liftSpotlight.percentile}% of {liftSpotlight.name} lifters
         </Text>
         <Text variant="meta" style={styles.cardHeroMeta}>
-          {liftSpotlight.e1rm} {weightUnit} e1RM
+          {liftSpotlight.e1rm} {weightUnit} 1RM
         </Text>
       </View>
     ) : activeVariant === 'volume' ? (

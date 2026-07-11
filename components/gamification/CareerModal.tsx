@@ -415,7 +415,7 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
               <Text variant="emphasis" tone="primary" weight="bold">
                 {pr.estimatedOneRM} {pr.unit}
               </Text>
-              <Text variant="meta" tone="faint" style={styles.prValueLabel}>est. 1RM</Text>
+              <Text variant="meta" tone="faint" style={styles.prValueLabel}>1RM</Text>
             </View>
           </View>
         ))}

@@ -1,4 +1,7 @@
 // Personal records for the featured lifts — best estimated 1RM per lift with the set + date. Pure.
+// INTENTIONAL: Career PRs scan EVERY completed set (a 275×1 grind counts here),
+// while records/tiers/leaderboard grade the working-set e1RM — two different
+// "your best" definitions, kept deliberately distinct.
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { ALL_FEATURED_SECONDARY_LIFTS, ALL_MAIN_LIFTS, convertWeight, LoggedWorkout, WeightUnit } from '@/types';

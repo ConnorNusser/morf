@@ -11,8 +11,7 @@ import {
   calculateStrengthPercentile,
   MALE_STANDARDS,
   FEMALE_STANDARDS,
-  OneRMCalculator
-} from '@/lib/data/strengthStandards';
+  OneRMCalculator, e1rmLbs} from '@/lib/data/strengthStandards';
 import { analyticsService } from '@/lib/services/analytics';
 import { bestCompletedSet, completedWorkingSets } from './setStats';
 import { getCatalogExercise } from './exerciseCatalog';
@@ -72,15 +71,13 @@ function calculatePercentiles(
       if (standards[ex.id]) {
         const bestSet = bestCompletedSet(completedWorkingSets(ex.completedSets), 'e1rm');
         if (bestSet) {
-          const estimated1RMLbs = OneRMCalculator.estimate(
-            convertWeight(bestSet.weight, bestSet.unit, 'lbs'),
-            bestSet.reps
-          );
+          const estimated1RMLbs = e1rmLbs(bestSet.weight, bestSet.reps, bestSet.unit);
           const percentile = calculateStrengthPercentile(
             estimated1RMLbs,
             bodyWeightLbs,
             gender,
-            ex.id
+            ex.id,
+            userProfile.age
           );
           percentiles.push(percentile);
         }

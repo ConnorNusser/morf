@@ -1,7 +1,7 @@
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { calculateStrengthPercentile, getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { radius, space, tint, trend } from '@/lib/ui/tokens';
 import { Gender, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,7 @@ interface ExerciseBadgeProps {
   weightUnit?: WeightUnit;
   bodyWeightLbs?: number;
   gender?: Gender;
+  age?: number;
 }
 
 export type BadgeInfo =
@@ -37,7 +38,8 @@ export function getExerciseBadgeInfo(
   sets: ExerciseSet[],
   userLifts: UserProgress[],
   bodyWeightLbs?: number,
-  gender?: Gender
+  gender?: Gender,
+  age?: number
 ): BadgeInfo {
   if (isCustom || !matchedExerciseId) {
     const maxWeight = Math.max(...sets.map(s => s.weight), 0);
@@ -49,10 +51,11 @@ export function getExerciseBadgeInfo(
 
   const userLift = userLifts.find(l => l.workoutId === matchedExerciseId);
 
+  // Lbs throughout — userLift.personalRecord and the standards are lbs.
   const best1RM = Math.max(
     ...sets.map(set => {
       if (set.reps === 0) return 0;
-      return OneRMCalculator.estimate(set.weight, set.reps);
+      return e1rmLbs(set.weight, set.reps, (set.unit as WeightUnit) ?? 'lbs');
     }),
     0
   );
@@ -63,7 +66,8 @@ export function getExerciseBadgeInfo(
       best1RM,
       bodyWeightLbs,
       gender,
-      matchedExerciseId
+      matchedExerciseId,
+      age
     );
 
     if (workoutPercentile > 0) {
@@ -97,12 +101,13 @@ export default function ExerciseBadge({
   weightUnit = 'lbs',
   bodyWeightLbs,
   gender,
+  age,
 }: ExerciseBadgeProps) {
   const { currentTheme } = useTheme();
 
   const badgeInfo = useMemo(
-    () => getExerciseBadgeInfo(matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender),
-    [matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender]
+    () => getExerciseBadgeInfo(matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender, age),
+    [matchedExerciseId, isCustom, sets, userLifts, bodyWeightLbs, gender, age]
   );
 
   if (!badgeInfo) return null;

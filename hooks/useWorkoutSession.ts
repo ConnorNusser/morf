@@ -7,7 +7,7 @@ import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs } from '@/lib/data/strengthStandards';
 import { getExercise, getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { ParsedWorkout, workoutTextParser } from '@/lib/workout/workoutTextParser';
 import {
@@ -491,8 +491,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
       const doneSets = exercise.completedSets.filter(s => s.completed && s.weight > 0);
       if (doneSets.length > 0) {
         const bestSet = doneSets.reduce((best, current) => {
-          const bestOneRM = OneRMCalculator.estimate(best.weight, best.reps);
-          const currentOneRM = OneRMCalculator.estimate(current.weight, current.reps);
+          const bestOneRM = e1rmLbs(best.weight, best.reps, best.unit);
+          const currentOneRM = e1rmLbs(current.weight, current.reps, current.unit);
           return currentOneRM > bestOneRM ? current : best;
         });
 
@@ -523,7 +523,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
 
     let prCount = 0;
     for (const { liftData, exercise, previousPR } of liftDataWithMeta) {
-      const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
+      // Lbs on both sides — previousPR (personalRecord) is stored in lbs.
+      const newPR = e1rmLbs(liftData.weight, liftData.reps, liftData.unit);
       if (newPR > previousPR) {
         prCount++;
         const workoutInfo = getCatalogExercise(exercise.id);

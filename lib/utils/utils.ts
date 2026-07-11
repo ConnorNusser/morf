@@ -229,9 +229,10 @@ export const formatSet = (
 // Best-set string for syncing to database/feed (userSyncService).
 export const formatBestSet = (
   set: SetFormatData,
-  trackingType: TrackingType = 'reps'
+  trackingType: TrackingType = 'reps',
+  opts: { showUnit?: boolean } = {}
 ): string => {
-  return formatSet(set, { trackingType, compact: true, showUnit: false });
+  return formatSet(set, { trackingType, compact: true, showUnit: opts.showUnit ?? false });
 };
 
 export interface WorkoutStats {
@@ -257,6 +258,16 @@ export interface ExerciseForStats {
   completedSets?: ExerciseSetForStats[];
   trackingType?: TrackingType;
 }
+
+// Volume of ONE logged set in lbs — completed sets only, kg converted. The
+// single per-set volume rule; every volume sum routes through here.
+export const setVolumeLbs = (set: { weight?: number; reps?: number; unit?: string; completed?: boolean }): number => {
+  if (set.completed === false) return 0;
+  const weight = set.weight || 0;
+  if (weight <= 0) return 0;
+  const weightLbs = set.unit === 'kg' ? weight * 2.20462 : weight;
+  return weightLbs * (set.reps || 0);
+};
 
 export const calculateWorkoutStats = (
   exercises: ExerciseForStats[],
@@ -285,12 +296,10 @@ export const calculateWorkoutStats = (
       } else if (trackingType === 'timed') {
         // Timed exercises count as sets but don't contribute to volume.
       } else {
-        const weight = set.weight || 0;
-        const reps = set.reps || 0;
-        if (weight > 0) {
+        const vol = setVolumeLbs(set);
+        if (vol > 0) {
           hasWeightedExercises = true;
-          const weightLbs = set.unit === 'kg' ? weight * 2.20462 : weight;
-          totalVolumeLbs += weightLbs * reps;
+          totalVolumeLbs += vol;
         }
       }
     }

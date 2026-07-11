@@ -86,7 +86,7 @@ function ExerciseCard({ exercise, weightUnit, grading, onPress }: ExerciseCardPr
               {isBodyweight ? (exercise.bestReps ?? 0) : exercise.estimated1RM}
             </Text>
             <Text variant="meta" tone="muted" style={styles.statUnit}>
-              {isBodyweight ? 'reps' : `${weightUnit} · est. 1RM`}
+              {isBodyweight ? 'reps' : `${weightUnit} · 1RM`}
             </Text>
             {trend.deltaDisplay > 0 && (
               <View style={[styles.delta, { backgroundColor: tint(trend.isPositive ? UP : DOWN) }]}>

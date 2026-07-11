@@ -51,7 +51,7 @@ class UserService {
       workoutId: exerciseId,
       personalRecord: pr,
       lastUpdated: record?.bestE1RMAt ?? record?.updatedAt ?? new Date(),
-      percentileRanking: Math.floor(percentile),
+      percentileRanking: Math.round(percentile),
       strengthLevel: getStrengthLevelName(percentile),
     };
   }
@@ -147,7 +147,7 @@ class UserService {
         workoutId: lift.id,
         personalRecord: e1rm,
         lastUpdated: lift.dateRecorded,
-        percentileRanking: Math.floor(percentile),
+        percentileRanking: Math.round(percentile),
         strengthLevel: getStrengthLevelName(percentile),
       };
     });

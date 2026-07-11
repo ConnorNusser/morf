@@ -10,6 +10,7 @@ import {
   StrengthTier,
   TIER_THRESHOLDS,
   epleyFactor,
+  e1rmLbs,
 } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
@@ -55,11 +56,9 @@ export interface LiftProgress {
   rankScore: number; // 0..1: tier proximity blended with movement; stalled lifts sink
 }
 
-// Epley 1RM in lbs, so months compare on a unit-invariant basis.
-const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number => {
-  const lbs = unit === 'lbs' ? weight : convertWeight(weight, unit, 'lbs');
-  return lbs * epleyFactor(reps);
-};
+// Month-best sets are SELECTED with the same estimator that GRADES them —
+// mixing pure Epley for selection with the damped estimate for grading picked
+// high-rep sets the grader then scored low.
 
 const monthKey = (d: Date): string => `${d.getFullYear()}-${d.getMonth()}`;
 const monthLabel = (d: Date): string => d.toLocaleDateString('en-US', { month: 'short' });

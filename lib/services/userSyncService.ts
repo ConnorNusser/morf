@@ -1,9 +1,11 @@
+// INTENTIONAL: synced/leaderboard percentiles do NOT honor hiddenLiftIds —
+// hiding a lift affects your local dashboard only, never your public rank.
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
-import { LoggedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
-import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator, StrengthTier } from '@/lib/data/strengthStandards';
-import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
+import { LoggedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift, WeightUnit} from '@/types';
+import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator, StrengthTier, e1rmLbs} from '@/lib/data/strengthStandards';
+import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet, setVolumeLbs} from '@/lib/utils/utils';
 import { userService } from './userService';
 import { getCatalogExercise, getExerciseById, EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
@@ -1025,10 +1027,8 @@ class UserSyncService {
           if (trackingType === 'reps' && completedSets.length > 1) {
             // Best by estimated 1RM (consistent with summary and history cards).
             bestSet = completedSets.reduce((best, current) => {
-              const bestWeightLbs = best.unit === 'kg' ? best.weight * 2.205 : best.weight;
-              const currentWeightLbs = current.unit === 'kg' ? current.weight * 2.205 : current.weight;
-              const best1RM = OneRMCalculator.estimate(bestWeightLbs, best.reps);
-              const current1RM = OneRMCalculator.estimate(currentWeightLbs, current.reps);
+              const best1RM = e1rmLbs(best.weight, best.reps, best.unit as WeightUnit);
+              const current1RM = e1rmLbs(current.weight, current.reps, current.unit as WeightUnit);
               return current1RM > best1RM ? current : best;
             }, completedSets[0]);
           } else if (trackingType === 'cardio' && completedSets.length > 1) {
@@ -1048,9 +1048,9 @@ class UserSyncService {
           // Percentile only for featured reps-based lifts.
           let percentile: number | undefined;
           if (trackingType === 'reps' && bestSet && isFeaturedLift(ex.id) && bodyWeightLbs > 0) {
-            const weightLbs = bestSet.unit === 'kg' ? bestSet.weight * 2.205 : bestSet.weight;
-            const estimated1RM = OneRMCalculator.estimate(weightLbs, bestSet.reps);
-            percentile = calculateStrengthPercentile(estimated1RM, bodyWeightLbs, gender, ex.id);
+            const estimated1RM = e1rmLbs(bestSet.weight, bestSet.reps, bestSet.unit as WeightUnit);
+            // Age-adjusted, same as the profile percentile — the feed card must agree.
+            percentile = calculateStrengthPercentile(estimated1RM, bodyWeightLbs, gender, ex.id, userProfile.age);
             if (percentile <= 0) percentile = undefined;
           }
 
@@ -1067,7 +1067,8 @@ class UserSyncService {
           return {
             name: exerciseInfo?.name || ex.id.replace(/-/g, ' ').replace(/_/g, ' '),
             sets: completedSets.length,
-            bestSet: bestSet ? formatBestSet(bestSet, trackingType) : '',
+            // Unit included — viewers have no other way to know the logger's unit.
+            bestSet: bestSet ? formatBestSet(bestSet, trackingType, { showUnit: true }) : '',
             exerciseId: ex.id,
             percentile,
             allSets,
@@ -1087,11 +1088,7 @@ class UserSyncService {
       const totalVolume = workout.exercises.reduce((sum, ex) => {
         return sum + ex.completedSets
           .filter(s => s.completed)
-          .reduce((setSum, set) => {
-            const weight = set.weight || 0;
-            const weightInLbs = set.unit === 'kg' ? weight * 2.205 : weight;
-            return setSum + (weightInLbs * (set.reps || 0));
-          }, 0);
+          .reduce((setSum, set) => setSum + setVolumeLbs(set), 0);
       }, 0);
 
       // Cardio totals: read trackingType off the exercise summaries.

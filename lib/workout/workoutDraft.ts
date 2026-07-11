@@ -3,7 +3,7 @@
 import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutTextParser';
 import { roundWeight } from '@/lib/utils/utils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
-import { RoutineExercise, WeightUnit } from '@/types';
+import { RoutineExercise, WeightUnit, convertWeight } from '@/types';
 
 export interface DraftSet {
   weight: number;
@@ -135,9 +135,17 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
   return { exercises, confidence: 1, rawText: draftToLogText(draft) };
 }
 
-/** Total volume (Σ weight × reps) across the draft, in the preferred unit. */
-export function totalVolume(draft: WorkoutDraft): number {
-  return draft.reduce((sum, e) => sum + e.sets.reduce((s, set) => s + set.weight * set.reps, 0), 0);
+/** Total volume (Σ weight × reps) across the draft, converted to `unit`. */
+export function totalVolume(draft: WorkoutDraft, unit: WeightUnit = 'lbs'): number {
+  return draft.reduce(
+    (sum, e) =>
+      sum +
+      e.sets.reduce((s, set) => {
+        const w = set.unit === unit ? set.weight : convertWeight(set.weight, set.unit, unit);
+        return s + w * set.reps;
+      }, 0),
+    0,
+  );
 }
 
 /** Add a named exercise with no sets, pre-filling from the best reference
