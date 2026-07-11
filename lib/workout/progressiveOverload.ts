@@ -55,6 +55,11 @@ const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
  *  hold, so the next session validates it. Clamped monotonic against reality:
  *  asking FEWER reps than performed can never prescribe below the performed
  *  weight; asking more can never prescribe above it. */
+// Rep-max math says nothing past ~30 reps — 100-rep endurance work implies the
+// same strength as 30-rep work, not 4× (a 20×100 set would otherwise translate
+// to a 70-lb 6-rep prescription).
+const epleyFactor = (reps: number) => 1 + Math.min(reps, 30) / 30;
+
 function equivalentWeight(
   performed: LastPerformance,
   floorReps: number,
@@ -64,7 +69,7 @@ function equivalentWeight(
   const performedDisplay = performed.unit === weightUnit
     ? performed.weight
     : convertWeight(performed.weight, performed.unit, weightUnit);
-  const display = performedDisplay * (1 + performed.reps / 30) / (1 + floorReps / 30);
+  const display = performedDisplay * epleyFactor(performed.reps) / epleyFactor(floorReps);
   const estimated = Math.max(increment, Math.floor(display / increment) * increment);
 
   if (floorReps <= performed.reps) {
