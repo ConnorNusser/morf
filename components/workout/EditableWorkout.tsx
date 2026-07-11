@@ -21,6 +21,7 @@ interface EditableWorkoutProps {
   onEditField: (key: string, index: number, field: 'weight' | 'reps') => void;
   activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
   onAddSet: (key: string) => void;
+  onAddWarmupSet?: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
   onToggleDone: (key: string, index: number) => void;
   onRemoveExercise: (key: string) => void;
@@ -86,13 +87,11 @@ function MenuRow({ icon, label, onPress, disabled, destructive }: {
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onOpenMenu, onMoveExercise, previous, canMoveUp, canMoveDown }: {
+function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onOpenMenu, previous }: {
   exercise: DraftExercise;
   previous: DraftSet[] | null;
-  canMoveUp: boolean;
-  canMoveDown: boolean;
   onOpenMenu: (key: string) => void;
-} & Omit<EditableWorkoutProps, 'draft' | 'weightUnit' | 'getPreviousSets' | 'onRemoveExercise' | 'onMoveExerciseToEdge'> & { weightUnit: WeightUnit }) {
+} & Omit<EditableWorkoutProps, 'draft' | 'weightUnit' | 'getPreviousSets' | 'onRemoveExercise' | 'onMoveExercise' | 'onMoveExerciseToEdge' | 'onAddWarmupSet'> & { weightUnit: WeightUnit }) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const hasPrev = !!previous && previous.length > 0;
@@ -104,29 +103,11 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
           {exercise.name || 'Unnamed exercise'}
         </Text>
 
-        {/* Reordering here also reorders the routine (offered on finish). */}
-        {onMoveExercise && (
-          <RNView style={styles.reorderCluster}>
-            <TouchableOpacity
-              hitSlop={10}
-              disabled={!canMoveUp}
-              onPress={() => { playHapticFeedback('light', false); onMoveExercise(exercise.key, -1); }}
-            >
-              <Ionicons name="chevron-up" size={18} color={canMoveUp ? ink.secondary : ink.ghost} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              hitSlop={10}
-              disabled={!canMoveDown}
-              onPress={() => { playHapticFeedback('light', false); onMoveExercise(exercise.key, 1); }}
-            >
-              <Ionicons name="chevron-down" size={18} color={canMoveDown ? ink.secondary : ink.ghost} />
-            </TouchableOpacity>
-          </RNView>
-        )}
-
+        {/* Single entry point for exercise actions (reorder lives in the sheet) —
+            a bordered circle so it reads as a button, not stray glyphs. */}
         <TouchableOpacity
-          hitSlop={10}
-          style={styles.menuButton}
+          hitSlop={8}
+          style={[styles.menuButton, { borderColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }]}
           onPress={() => { playHapticFeedback('light', false); onOpenMenu(exercise.key); }}
           accessibilityRole="button"
           accessibilityLabel={`Options for ${exercise.name || 'exercise'}`}
@@ -172,17 +153,23 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
                   theme={currentTheme}
                 />
                 <RNView style={styles.prevCol}>
-                  {prev && (
+                  {set.isWarmup ? (
+                    <Text variant="meta" tone="muted" numberOfLines={1} style={styles.warmupLabel}>warmup</Text>
+                  ) : prev ? (
                     <Text variant="meta" tone="muted" numberOfLines={1}>{fmtPrev(prev)}</Text>
-                  )}
+                  ) : null}
                 </RNView>
-                <TouchableOpacity
-                  hitSlop={8}
-                  style={styles.removeCol}
-                  onPress={() => { playHapticFeedback('light', false); onRemoveSet(exercise.key, i); }}
-                >
-                  <Ionicons name="close" size={17} color={ink.faint} />
-                </TouchableOpacity>
+                <RNView style={styles.removeCol}>
+                  <TouchableOpacity
+                    hitSlop={4}
+                    style={[styles.removeBtn, { backgroundColor: ink.hairline }]}
+                    onPress={() => { playHapticFeedback('light', false); onRemoveSet(exercise.key, i); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove set ${i + 1}`}
+                  >
+                    <Ionicons name="close" size={16} color={ink.secondary} />
+                  </TouchableOpacity>
+                </RNView>
               </RNView>
             );
           })}
@@ -195,7 +182,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, onMoveExerciseToEdge, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onAddWarmupSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, onMoveExerciseToEdge, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
   const ink = useInk();
   // Which exercise's options sheet is open (by key so draft updates never go stale).
   const [menuKey, setMenuKey] = useState<string | null>(null);
@@ -222,13 +209,11 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
           {volume > 0 ? ` · ${formatCompact(volume)} ${weightUnit}` : ''}
         </SectionLabel>
 
-        {draft.map((ex, i) => (
+        {draft.map(ex => (
           <ExerciseSection
             key={ex.key}
             exercise={ex}
             previous={getPreviousSets?.(ex.exerciseId) ?? null}
-            canMoveUp={i > 0}
-            canMoveDown={i < draft.length - 1}
             weightUnit={weightUnit}
             onEditField={onEditField}
             activeField={activeField}
@@ -236,7 +221,6 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
             onRemoveSet={onRemoveSet}
             onToggleDone={onToggleDone}
             onOpenMenu={setMenuKey}
-            onMoveExercise={draft.length > 1 ? onMoveExercise : undefined}
           />
         ))}
       </ScrollView>
@@ -253,6 +237,13 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
               </Text>
             </RNView>
 
+            {onAddWarmupSet && (
+              <MenuRow
+                icon="flame-outline"
+                label="Add warmup set"
+                onPress={menuAction(() => onAddWarmupSet(menuExercise.key))}
+              />
+            )}
             {draft.length > 1 && onMoveExercise && (
               <>
                 <MenuRow
@@ -312,9 +303,16 @@ const styles = StyleSheet.create({
   summary: { marginBottom: space.md },
   section: { marginBottom: space.section },
   exName: { flex: 1, paddingBottom: space.xs },
-  exHeaderRow: { flexDirection: 'row', alignItems: 'center' },
-  reorderCluster: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingLeft: space.sm, paddingBottom: space.xs },
-  menuButton: { paddingLeft: space.md, paddingBottom: space.xs },
+  exHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  menuButton: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space.xs,
+  },
 
   menuContent: { paddingHorizontal: screenGutter, paddingTop: space.xs },
   menuHeader: { paddingBottom: space.md },
@@ -327,7 +325,15 @@ const styles = StyleSheet.create({
   colLabelCol: { width: FIELD_W, textAlign: 'center', textTransform: 'uppercase', letterSpacing: track.caps },
   prevCol: { flex: 1, minWidth: PREV_W, alignItems: 'flex-start', justifyContent: 'center', paddingLeft: space.xs },
   prevHeaderLabel: { textTransform: 'uppercase', letterSpacing: track.caps },
+  warmupLabel: { textTransform: 'uppercase', letterSpacing: track.caps },
   removeCol: { width: REMOVE_W, alignItems: 'center' },
+  removeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   setRow: {
     flexDirection: 'row',

@@ -15,6 +15,7 @@ export interface ParsedSet {
   completed?: boolean; // per-set check-off (draft); undefined = treat as done
   duration?: number;  // seconds
   distance?: number;  // meters
+  isWarmup?: boolean; // recorded set role (draft/routine); absent on plain text parses
 }
 
 export interface ParsedExercise {
@@ -294,6 +295,7 @@ class WorkoutNoteParser {
         completed: set.completed ?? true,
         duration: set.duration,
         distance: set.distance,
+        isWarmup: set.isWarmup,
       }));
 
       const finalId = exerciseIdMap.get(index) || exerciseNameToId(ex.name);

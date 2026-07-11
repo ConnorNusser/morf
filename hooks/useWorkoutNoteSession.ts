@@ -16,6 +16,7 @@ import {
   WorkoutDraft,
   addNamedExercise,
   addSet as addSetToDraft,
+  addWarmupSet as addWarmupSetToDraft,
   buildDraft,
   draftToNoteText,
   draftToRoutineExercises,
@@ -57,6 +58,7 @@ export interface UseWorkoutNoteSessionReturn {
   editSet: (key: string, index: number, patch: Partial<DraftSet>) => void;
   applyLiveSet: (key: string, index: number, originalSets: DraftSet[], weight: number, reps: number) => void;
   addSetTo: (key: string) => void;
+  addWarmupSetTo: (key: string) => void;
   removeSetFrom: (key: string, index: number) => void;
   toggleSetDone: (key: string, index: number) => void;
   removeExerciseFrom: (key: string) => void;
@@ -124,6 +126,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     [],
   );
   const addSetTo = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
+  const addWarmupSetTo = useCallback((key: string) => setDraft(d => addWarmupSetToDraft(d, key)), []);
   const removeSetFrom = useCallback((key: string, index: number) => setDraft(d => removeSetFromDraft(d, key, index)), []);
   const toggleSetDone = useCallback((key: string, index: number) => setDraft(d => toggleSetDoneInDraft(d, key, index)), []);
   const removeExerciseFrom = useCallback((key: string) => setDraft(d => removeExerciseFromDraft(d, key)), []);
@@ -184,7 +187,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         name: ex.exerciseName,
         matchedExerciseId: ex.exerciseId, // authoritative id, never re-resolved by name
         isCustom: customExercises.some(c => c.id === ex.exerciseId),
-        sets: ex.sets.map(s => ({ weight: s.targetWeight || 0, reps: s.reps, unit: ex.unit, completed: false })),
+        // Carry each set's role so it survives the draft and the save — anchor
+        // resolution and routine folding read the flag instead of guessing.
+        sets: ex.sets.map(s => ({ weight: s.targetWeight || 0, reps: s.reps, unit: ex.unit, completed: false, isWarmup: s.isWarmup })),
       })),
       confidence: 1,
       rawText: '',
@@ -727,6 +732,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     editSet,
     applyLiveSet,
     addSetTo,
+    addWarmupSetTo,
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,

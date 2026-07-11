@@ -207,6 +207,9 @@ export interface WorkoutSetCompletion {
   // For timed/cardio exercises
   duration?: number;  // Duration in seconds (for 'timed' and 'cardio' tracking types)
   distance?: number;  // Distance in meters (for 'cardio' tracking type)
+  // Recorded set role (since roles were persisted): true = warmup, false = work.
+  // Absent on legacy history — consumers fall back to inferring roles there.
+  isWarmup?: boolean;
 }
 
 export interface WorkoutExerciseSession extends ExerciseSet {
@@ -225,9 +228,6 @@ export interface ExerciseSet {
 
 // ===== ROUTINE TYPES =====
 
-// Intensity modifier affects what percentage of working weight to use
-export type IntensityModifier = 'heavy' | 'moderate' | 'light';
-
 // A single set in a routine exercise
 export interface RoutineSet {
   reps: number;
@@ -239,7 +239,6 @@ export interface RoutineExercise {
   exerciseId: string;
   exerciseName?: string;  // Stored at creation time for display (avoids lookups, supports custom exercises)
   sets: RoutineSet[];  // Array of individual sets
-  intensityModifier?: IntensityModifier;
   notes?: string;
 }
 

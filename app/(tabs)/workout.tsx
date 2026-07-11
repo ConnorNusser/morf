@@ -97,6 +97,7 @@ export default function WorkoutScreen() {
     editSet,
     applyLiveSet,
     addSetTo,
+    addWarmupSetTo,
     removeSetFrom,
     toggleSetDone,
     removeExerciseFrom,
@@ -728,6 +729,7 @@ export default function WorkoutScreen() {
             onEditField={openNumberPad}
             activeField={editing}
             onAddSet={addSetTo}
+            onAddWarmupSet={addWarmupSetTo}
             onRemoveSet={removeSetFrom}
             onToggleDone={handleToggleDone}
             onRemoveExercise={removeExerciseFrom}
