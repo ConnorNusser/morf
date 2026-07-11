@@ -305,7 +305,6 @@ export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExerci
             ? { reps: storedWarmupReps[warmupIdx++] ?? s.reps, isWarmup: true }
             : { reps: floors[workIdx++] ?? floors[floors.length - 1] ?? s.reps, isWarmup: undefined },
         ),
-        intensityModifier: existing?.intensityModifier,
         notes: existing?.notes,
       };
     });

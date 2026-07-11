@@ -62,23 +62,6 @@ describe('convertToRoutines conversion seam', () => {
     expect(base('leg-curl-machine')).toBe(12);
   });
 
-  it('derives intensity per movement instead of blanket heavy', async () => {
-    const [routine] = await aiRoutineGenerator.convertToRoutines(program([
-      { name: 'Bench Press (Barbell)', sets: 4, reps: 5 },   // compound, low rep -> heavy
-      { name: 'Bicep Curl (Barbell)', sets: 3, reps: 12 },   // isolation -> light
-    ]));
-    const im = (id: string) => routine.exercises.find(e => e.exerciseId === id)!.intensityModifier;
-    expect(im('bench-press-barbell')).toBe('heavy');
-    expect(im('bicep-curl-barbell')).toBe('light');
-  });
-
-  it('tags higher-rep compound work as moderate', async () => {
-    const [routine] = await aiRoutineGenerator.convertToRoutines(program([
-      { name: 'Bench Press (Barbell)', sets: 3, reps: 10 },
-    ]));
-    expect(routine.exercises[0].intensityModifier).toBe('moderate');
-  });
-
   it('enforces hard excludes at the seam even if the model returned them', async () => {
     const [routine] = await aiRoutineGenerator.convertToRoutines(
       program([
