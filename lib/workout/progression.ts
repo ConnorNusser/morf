@@ -62,16 +62,17 @@ export function nextPrescription(
     return { weight: roundWeight(weight + increment, last.unit), reps: range.floor, change: 'increase' };
   }
 
-  // Inside the range → keep the load, chase one more rep.
+  // Inside the range → keep the load, chase one more rep. (Round to the plate
+  // grid — a kg-logged anchor shown in lbs would otherwise prescribe 226.)
   if (reps >= range.floor) {
-    return { weight, reps: Math.min(reps + 1, range.ceiling), change: 'add-rep' };
+    return { weight: roundWeight(weight, last.unit), reps: Math.min(reps + 1, range.ceiling), change: 'add-rep' };
   }
 
   const shortfall = range.floor - reps;
 
   // Near miss → hold and retry.
   if (shortfall <= MISS_TOLERANCE_REPS) {
-    return { weight, reps: range.floor, change: 'hold' };
+    return { weight: roundWeight(weight, last.unit), reps: range.floor, change: 'hold' };
   }
 
   // Real miss → drop proportionally to the shortfall so next time you land on the floor.
@@ -92,20 +93,25 @@ export interface LoggedSet {
 
 /**
  * Pick the working set to judge progression from, out of a messy session with untagged warmups and ad-hoc test sets.
- * Working sets are the same load repeated, so the working weight is THE HEAVIEST WEIGHT DONE FOR 2+ SETS — that ignores warmup ramps and stray test sets, and follows self-correction.
+ * Working sets are the same load repeated, so the working weight is the repeated weight with THE MOST SETS (ties → heaviest)
+ * — most-sets-first so a pair of top singles/doubles logged after the real work reads as a test, not a missed session.
  * Returns null with no confident working set (e.g. a lone top set) — the caller should HOLD rather than make a drastic move.
  */
 export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0);
   if (done.length === 0) return null;
 
-  // Heaviest weight performed at least twice.
   const countByWeight = new Map<number, number>();
   for (const s of done) countByWeight.set(s.weight, (countByWeight.get(s.weight) ?? 0) + 1);
 
   let workingWeight = -1;
+  let workingCount = 0;
   for (const [w, count] of countByWeight) {
-    if (count >= 2 && w > workingWeight) workingWeight = w;
+    if (count < 2) continue;
+    if (count > workingCount || (count === workingCount && w > workingWeight)) {
+      workingWeight = w;
+      workingCount = count;
+    }
   }
 
   // Nothing repeated — can't confidently tell work from test, so hold.
@@ -119,8 +125,8 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
 const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
   OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
 
-// Best working set to record this session. More lenient than resolveWorkingSet: for record-keeping a lone top set falls back to the heaviest completed set.
-export function recordableSet(sets: LoggedSet[]): LastPerformance | null {
+// Best working set to record this session. More lenient than resolveWorkingSet: for record-keeping a lone top set falls back to the heaviest completed set. Deliberately NOT used for routine anchors — prescriptions must never lurch off a stray single.
+function recordableSet(sets: LoggedSet[]): LastPerformance | null {
   const resolved = resolveWorkingSet(sets);
   if (resolved) return resolved;
   const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0);

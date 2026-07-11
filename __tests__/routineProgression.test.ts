@@ -3,7 +3,7 @@ import { updateExerciseRecords } from '@/lib/workout/progression';
 import { buildDraft, draftToRoutineExercises, routineDiffersFromDraft, removeSet } from '@/lib/workout/workoutDraft';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import type { ParsedWorkout } from '@/lib/workout/workoutNoteParser';
-import type { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine } from '@/types';
+import type { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, RoutineExercise } from '@/types';
 
 const BENCH = 'bench-press-barbell';
 
@@ -113,15 +113,117 @@ describe('seeding a slot with no history of its own', () => {
     expect(ex.progression).toBe('maintain'); // a seed to validate, not a move
   });
 
-  it('uses the record directly when its reps are within the slot range', () => {
+  it('uses the record weight directly when its reps are within the slot range — but HOLDS', () => {
     const push = day('push', 'Push 3×8', 8);
-    const t = target(calculateRoutine(push, { [BENCH]: record(155, 8) }, 'lbs', []));
-    expect(t).toEqual({ weight: 155, reps: 9 }); // in range → add-rep, as before
+    const calc = calculateRoutine(push, { [BENCH]: record(155, 8) }, 'lbs', []);
+    expect(target(calc)).toEqual({ weight: 155, reps: 8 });
+    expect(calc.exercises[0].progression).toBe('maintain');
+  });
+
+  it('a seed never earns an increase off another day\'s work', () => {
+    // Record topped out at 200×10 elsewhere; a brand-new 3×8 slot must open AT
+    // 200 as a hold — not 205 "increase" for a session this routine never did.
+    const push = day('push', 'Push 3×8', 8);
+    const calc = calculateRoutine(push, { [BENCH]: record(200, 10) }, 'lbs', []);
+    expect(target(calc)).toEqual({ weight: 200, reps: 8 });
+    expect(calc.exercises[0].progression).toBe('maintain');
   });
 
   it('cold-starts blank with no record at all', () => {
     const push = day('push', 'Push 3×8', 8);
     expect(target(calculateRoutine(push, {}, 'lbs', [])).weight).toBe(0);
+  });
+});
+
+describe('anchor robustness (audit regressions)', () => {
+  const heavy = day('heavy', 'Heavy 3×5', 5);
+
+  it('a cut-short session (ramped warmups + one work set) does not move the anchor', () => {
+    const history = [
+      session('heavy', [[225, 5], [225, 5], [225, 5]], 5), // full session
+      session('heavy', [[115, 5], [135, 5], [225, 5]], 1), // cut short: 2 warmups + 1 work set, nothing repeated
+    ];
+    const t = target(calculateRoutine(heavy, { [BENCH]: record(225, 5) }, 'lbs', history));
+    expect(t.weight).toBe(225); // anchored to the full session, not 135
+  });
+
+  it('top singles logged after the work sets read as a test, not a miss', () => {
+    const history = [session('heavy', [[225, 5], [225, 5], [225, 5], [245, 1], [245, 1]], 1)];
+    const calc = calculateRoutine(heavy, { [BENCH]: record(225, 5) }, 'lbs', history);
+    expect(target(calc)).toEqual({ weight: 225, reps: 6 }); // 3 sets at 225 outvote 2 singles
+    expect(calc.exercises[0].progression).toBe('increase');
+  });
+
+  it('a lone checked set neither ratchets nor deloads — the anchor looks further back', () => {
+    const history = [
+      session('heavy', [[225, 5], [225, 5], [225, 5]], 5),
+      session('heavy', [[225, 7]], 1), // only one set checked, at ceiling reps
+    ];
+    const t = target(calculateRoutine(heavy, { [BENCH]: record(225, 5) }, 'lbs', history));
+    expect(t).toEqual({ weight: 225, reps: 6 }); // not 230 off a single set
+  });
+
+  it('the same exercise in two slots anchors each slot to its own work', () => {
+    const doubled: Routine = {
+      ...heavy,
+      exercises: [
+        { exerciseId: BENCH, exerciseName: 'Bench Press (Barbell)', sets: [{ reps: 5 }, { reps: 5 }, { reps: 5 }] },
+        { exerciseId: BENCH, exerciseName: 'Bench Press (Barbell)', sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] },
+      ],
+    } as Routine;
+    const w: GeneratedWorkout = {
+      ...session('heavy', [[225, 5], [225, 5], [225, 5]], 1),
+      exercises: [
+        session('heavy', [[225, 5], [225, 5], [225, 5]], 1).exercises[0],
+        session('heavy', [[150, 12], [150, 12], [150, 12]], 1).exercises[0],
+      ],
+    } as GeneratedWorkout;
+    const calc = calculateRoutine(doubled, { [BENCH]: record(225, 5) }, 'lbs', [w]);
+    expect(calc.exercises[0].workingWeight).toBe(225); // heavy slot: its own 225
+    expect(calc.exercises[1].workingWeight).toBe(150); // backoff slot: its own 150, no phantom deload
+    expect(calc.exercises[1].progression).toBe('increase'); // 150×12 → add-rep
+  });
+
+  it('editing a routine\'s reps re-expresses the old anchor instead of misreading it', () => {
+    const history = [session('heavy', [[200, 5], [200, 5], [200, 5]], 1)];
+    // Floor edited 5 → 12: not a catastrophic miss — translate and hold.
+    const volumeized = day('heavy', 'Heavy (now 3×12)', 12);
+    const down = calculateRoutine(volumeized, { [BENCH]: record(200, 5) }, 'lbs', history);
+    expect(down.exercises[0].progression).toBe('maintain');
+    const expectedDown = Math.max(5, Math.floor((OneRMCalculator.estimate(200, 5) * (OneRMCalculator.getPercentageFor(12) / 100)) / 5) * 5 - 5);
+    expect(down.exercises[0].workingWeight).toBe(expectedDown);
+
+    // Floor edited 12 → 5: not a top-out — translate up and hold.
+    const historyVol = [session('heavy', [[100, 12], [100, 12], [100, 12]], 1)];
+    const strengthized = day('heavy', 'Heavy (now 3×5)', 5);
+    const up = calculateRoutine(strengthized, { [BENCH]: record(100, 12) }, 'lbs', historyVol);
+    expect(up.exercises[0].progression).toBe('maintain');
+    expect(up.exercises[0].workingWeight).toBeGreaterThan(100); // translated up, not +one increment
+  });
+
+  it('an anchor much older than a fresher record reseeds instead of prescribing ancient peak', () => {
+    // Last heavy session over a year ago at 225; global record since refreshed
+    // at 135×10 by recent light work.
+    const old = { ...session('heavy', [[225, 5], [225, 5], [225, 5]], 0), createdAt: new Date('2025-01-05') } as GeneratedWorkout;
+    const freshRecord = { ...record(135, 10), updatedAt: new Date('2026-07-01') };
+    const calc = calculateRoutine(heavy, { [BENCH]: freshRecord }, 'lbs', [old]);
+    expect(calc.exercises[0].workingWeight).toBeLessThan(200); // reseeded from 135×10, not 225+
+    expect(calc.exercises[0].progression).toBe('maintain');
+  });
+
+  it('prescribed warmups ramp — no two warmups share a weight', () => {
+    const withWarmups: Routine = {
+      ...heavy,
+      exercises: [{
+        exerciseId: BENCH,
+        exerciseName: 'Bench Press (Barbell)',
+        sets: [{ reps: 5, isWarmup: true }, { reps: 5, isWarmup: true }, { reps: 5 }, { reps: 5 }, { reps: 5 }],
+      }],
+    } as Routine;
+    const history = [session('heavy', [[200, 5], [200, 5], [200, 5]], 1)];
+    const calc = calculateRoutine(withWarmups, { [BENCH]: record(200, 5) }, 'lbs', history);
+    const warmupWeights = calc.exercises[0].sets.filter(s => s.isWarmup).map(s => s.targetWeight);
+    expect(new Set(warmupWeights).size).toBe(warmupWeights.length);
   });
 });
 
@@ -193,6 +295,21 @@ describe('finish-time routine folding (ratchet regression)', () => {
   it('folding keeps the stored rep floors on carried-over sets', () => {
     const folded = draftToRoutineExercises(draftFrom(6), stored);
     expect(folded[0].sets.map(s => s.reps)).toEqual([5, 5, 5]); // floor survives
+  });
+
+  it('deleting a row cannot slide the warmup flag onto a work set', () => {
+    const withWarmup: RoutineExercise[] = [{
+      exerciseId: BENCH,
+      exerciseName: 'Bench Press (Barbell)',
+      sets: [{ reps: 10, isWarmup: true }, { reps: 8 }, { reps: 8 }, { reps: 8 }],
+    }];
+    // User deletes one row mid-session (draft has 3), accepts the fold.
+    const folded = draftToRoutineExercises(draftFrom(8), withWarmup);
+    expect(folded[0].sets).toEqual([
+      { reps: 10, isWarmup: true }, // warmup survives as the warmup
+      { reps: 8, isWarmup: undefined },
+      { reps: 8, isWarmup: undefined }, // a WORK set was dropped; none became a warmup
+    ]);
   });
 
   it('added sets inherit the floor; a new exercise takes its reps from the draft', () => {
