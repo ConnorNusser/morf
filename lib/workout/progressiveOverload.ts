@@ -51,7 +51,11 @@ const REP_RANGE_TOLERANCE = 2;
 const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
 
 /** Re-express a performed set at a different rep count, grid-floored minus one
- *  increment. Always from the current working set, never best-ever e1RM. */
+ *  increment. Always from the current working set, never best-ever e1RM.
+ *  Clamped monotonic against reality: asking FEWER reps than performed can never
+ *  prescribe less weight than performed (the estimate + safety margin otherwise
+ *  goes below the bar at light weights — 10×20 asked for 12 prescribed 7.5), and
+ *  asking more reps can never prescribe above it. */
 function equivalentWeight(
   performed: LastPerformance,
   floorReps: number,
@@ -62,7 +66,15 @@ function equivalentWeight(
   const equivalentLbs =
     OneRMCalculator.estimate(lbs, performed.reps) * (OneRMCalculator.getPercentageFor(floorReps) / 100);
   const display = weightUnit === 'kg' ? convertWeight(equivalentLbs, 'lbs', 'kg') : equivalentLbs;
-  return Math.max(increment, Math.floor(display / increment) * increment - increment);
+  const estimated = Math.max(increment, Math.floor(display / increment) * increment - increment);
+
+  const performedDisplay = performed.unit === weightUnit
+    ? performed.weight
+    : convertWeight(performed.weight, performed.unit, weightUnit);
+  if (floorReps <= performed.reps) {
+    return Math.max(estimated, Math.ceil(performedDisplay / increment) * increment);
+  }
+  return Math.min(estimated, Math.max(increment, Math.floor(performedDisplay / increment) * increment));
 }
 
 /** Targets for one routine exercise: double progression against the routine's
