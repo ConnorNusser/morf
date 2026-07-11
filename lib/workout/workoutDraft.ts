@@ -247,18 +247,33 @@ export function moveExerciseToEdge(draft: WorkoutDraft, key: string, edge: 'top'
  *  edited in the routine editor. Only exercises with a resolved id survive;
  *  warmup flags and notes are preserved by matching exerciseId. */
 export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExercise[]): RoutineExercise[] {
+  // Same exercise in two slots: the nth draft entry folds into the nth stored
+  // slot, so a top-sets/backoff-sets pair can't overwrite each other's floors.
+  const seen = new Map<string, number>();
   return draft
     .filter(ex => ex.exerciseId && ex.sets.length > 0)
     .map(ex => {
-      const existing = prev.find(p => p.exerciseId === ex.exerciseId);
-      const lastStored = existing?.sets[existing.sets.length - 1];
+      const occurrence = seen.get(ex.exerciseId as string) ?? 0;
+      seen.set(ex.exerciseId as string, occurrence + 1);
+      const existing = prev.filter(p => p.exerciseId === ex.exerciseId)[occurrence];
+
+      // Warmups are program structure (editor-owned): their count never grows or
+      // shifts from a session. The draft's set-count delta applies to WORK sets,
+      // so deleting/adding rows can't slide the isWarmup flag onto a work set.
+      const warmups = (existing?.sets ?? []).filter(s => s.isWarmup);
+      const floors = (existing?.sets ?? []).filter(s => !s.isWarmup).map(s => s.reps);
+      const warmupCount = Math.min(warmups.length, Math.max(0, ex.sets.length - 1));
+      const workCount = Math.max(1, ex.sets.length - warmupCount);
+      const workReps = (i: number): number =>
+        floors[i] ?? floors[floors.length - 1] ?? ex.sets[Math.min(warmupCount + i, ex.sets.length - 1)].reps;
+
       return {
         exerciseId: ex.exerciseId as string,
         exerciseName: ex.name,
-        sets: ex.sets.map((s, i) => ({
-          reps: existing?.sets[i]?.reps ?? lastStored?.reps ?? s.reps,
-          isWarmup: existing?.sets[i]?.isWarmup,
-        })),
+        sets: [
+          ...warmups.slice(0, warmupCount).map(s => ({ reps: s.reps, isWarmup: true })),
+          ...Array.from({ length: workCount }, (_, i) => ({ reps: workReps(i), isWarmup: undefined })),
+        ],
         intensityModifier: existing?.intensityModifier,
         notes: existing?.notes,
       };
