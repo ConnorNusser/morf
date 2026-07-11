@@ -244,6 +244,32 @@ describe('anchor robustness (audit regressions)', () => {
   });
 });
 
+describe('rep-translation monotonicity', () => {
+  const CURL = 'bicep-curl-barbell'; // isolation → 2.5 lb increment
+
+  it('massively overshooting reps can never prescribe LESS than the bar you lifted', () => {
+    // 3×12 curls at 10 lbs, performed 10 × 20/18/20: the damped e1RM estimate
+    // minus the safety increment landed at 7.5 — below the performed weight.
+    const curls = day('curl', 'Curls 3×12', 12, CURL);
+    const w = session('curl', [[10, 20], [10, 18], [10, 20]], 1, CURL);
+    const rec: ExerciseRecord = { ...record(10, 20), exerciseId: CURL };
+    const ex = calculateRoutine(curls, { [CURL]: rec }, 'lbs', [w]).exercises[0];
+    expect(ex.workingWeight).toBeGreaterThanOrEqual(10); // never below the bar
+    expect(ex.workingWeight).toBe(10);
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(12);
+    expect(ex.progression).toBe('maintain');
+  });
+
+  it('translating toward MORE reps can never prescribe above the performed weight', () => {
+    // 225 triples against a 3×12 day: estimate lands well under 225 and stays there.
+    const volume = day('vol', 'Bench 3×12', 12);
+    const history = [session('vol', [[225, 3], [225, 3], [225, 3]], 1)];
+    const ex = calculateRoutine(volume, { [BENCH]: record(225, 3) }, 'lbs', history).exercises[0];
+    expect(ex.workingWeight).toBeLessThanOrEqual(225);
+    expect(ex.workingWeight).toBeGreaterThan(100); // still a real estimate, not a floor
+  });
+});
+
 describe('median-set judgment', () => {
   // 4×6 day at 135 — sessions are judged by the TYPICAL (lower-median) set,
   // so one collapsed fatigue set can't turn an overshoot into a deload.
