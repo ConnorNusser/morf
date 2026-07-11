@@ -1,6 +1,6 @@
 // AI routine generator — builds routines from proven program methodologies.
 
-import { CustomExercise, Equipment, GeneratedWorkout, IntensityModifier, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
+import { CustomExercise, Equipment, GeneratedWorkout, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -179,7 +179,6 @@ class AIRoutineGeneratorService {
             exerciseId: matched.id,
             exerciseName: matched.name,
             sets: newSets,
-            intensityModifier: this.deriveIntensity(matched.id, reps),
             notes: ex.notes,
           });
           order.push(matched.id);
@@ -215,16 +214,6 @@ class AIRoutineGeneratorService {
     const match = String(raw).match(/\d+/);
     const n = match ? parseInt(match[0], 10) : NaN;
     return Number.isFinite(n) && n > 0 ? n : 10;
-  }
-
-  // intensityModifier scales working weight in progressiveOverload, so a blanket
-  // 'heavy' over-loads isolation work. Derive it from type + rep target instead.
-  private deriveIntensity(exerciseId: string, baseReps: number): IntensityModifier {
-    const exercise = getWorkoutById(exerciseId);
-    const isCompound = exercise?.category === 'compound';
-    if (!isCompound) return 'light';     // isolation / accessory work
-    if (baseReps <= 6) return 'heavy';   // heavy compound work
-    return 'moderate';                    // higher-rep compound work
   }
 
   // Match precedence: exact (built-in, then custom), partial contains, then

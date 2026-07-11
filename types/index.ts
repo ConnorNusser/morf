@@ -228,9 +228,6 @@ export interface ExerciseSet {
 
 // ===== ROUTINE TYPES =====
 
-// Intensity modifier affects what percentage of working weight to use
-export type IntensityModifier = 'heavy' | 'moderate' | 'light';
-
 // A single set in a routine exercise
 export interface RoutineSet {
   reps: number;
@@ -242,7 +239,6 @@ export interface RoutineExercise {
   exerciseId: string;
   exerciseName?: string;  // Stored at creation time for display (avoids lookups, supports custom exercises)
   sets: RoutineSet[];  // Array of individual sets
-  intensityModifier?: IntensityModifier;
   notes?: string;
 }
 
