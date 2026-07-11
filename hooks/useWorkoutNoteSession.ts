@@ -8,9 +8,8 @@ import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { getWorkoutById } from '@/lib/workout/workouts';
-import { ParsedExerciseSummary, ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
-import { workoutToNoteText } from '@/lib/workout/workoutNoteFormat';
+import { getExercise, getWorkoutById } from '@/lib/workout/workouts';
+import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
 import {
   DraftSet,
   WorkoutDraft,
@@ -75,12 +74,6 @@ export interface UseWorkoutNoteSessionReturn {
   formatTime: (seconds: number) => string;
   resetWorkoutTimer: () => void;
 
-  showSummary: boolean;
-  setShowSummary: (show: boolean) => void;
-  summaryLoading: boolean;
-  parsedExercises: ParsedExerciseSummary[];
-  handleQuickSummary: () => Promise<void>;
-
   showFinishModal: boolean;
   setShowFinishModal: (show: boolean) => void;
   handleFinishWorkout: () => void;
@@ -133,10 +126,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const moveExercise = useCallback((key: string, dir: -1 | 1) => setDraft(d => moveExerciseInDraft(d, key, dir)), []);
   const moveExerciseToEdge = useCallback((key: string, edge: 'top' | 'bottom') => setDraft(d => moveExerciseToEdgeInDraft(d, key, edge)), []);
   const dismissAutofill = useCallback((key: string) => setDraft(d => addSetToDraft(d, key)), []);
-
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [parsedExercises, setParsedExercises] = useState<ParsedExerciseSummary[]>([]);
 
   const [showFinishModal, setShowFinishModal] = useState(false);
 
@@ -398,7 +387,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     } else if (noteText.length === 0 && workoutStartTime && !manuallyStarted) {
       setWorkoutStartTime(null);
       setElapsedTime(0);
-      setParsedExercises([]);
     }
   }, [noteText, workoutStartTime, isSessionLoaded, manuallyStarted]);
 
@@ -454,28 +442,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }, []);
-
-  const handleQuickSummary = useCallback(async () => {
-    if (!noteText.trim()) {
-      showAlert({ title: 'No workout data', message: 'Start typing your workout to see a summary.', type: 'info' });
-      return;
-    }
-
-    Keyboard.dismiss();
-    setSummaryLoading(true);
-    setShowSummary(true);
-
-    try {
-      const parsed = await workoutNoteParser.parseWorkoutNote(noteText);
-      const summary = workoutNoteParser.toSummary(parsed);
-      setParsedExercises(summary);
-    } catch (error) {
-      console.error('Error parsing workout:', error);
-      setParsedExercises([]);
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [noteText, showAlert]);
 
   const handleFinishWorkout = useCallback(() => {
     if (!noteText.trim()) {
@@ -648,7 +614,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     setManuallyStarted(false);
     setWorkoutStartTime(null);
     setElapsedTime(0);
-    setParsedExercises([]);
     setStartedRoutineId(null);
     await storageService.clearNoteSession();
   }, []);
@@ -687,24 +652,43 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
   }, [userProfile, updateProfile]);
 
-  const lastWorkoutNote = lastWorkout ? workoutToNoteText(lastWorkout) : '';
-  const lastWorkoutTitle = lastWorkoutNote ? (lastWorkout?.title || 'last workout') : null;
+  const lastWorkoutTitle = lastWorkout ? (lastWorkout.title || 'last workout') : null;
 
-  const prefillLastWorkout = useCallback(() => {
-    if (!lastWorkoutNote) return;
-    loadDraftFromText(lastWorkoutNote);
+  // Repeat a logged workout STRUCTURED — ids stay authoritative and set roles
+  // survive. (This used to serialize to text and re-parse through the fuzzy
+  // matcher, which could swap equipment variants, orphan custom exercises, and
+  // dropped warmup flags.) Rows arrive un-done: a repeat is a plan, not work.
+  const prefillWorkout = useCallback((w: GeneratedWorkout) => {
+    const parsed: ParsedWorkout = {
+      exercises: w.exercises
+        .filter(ex => ex.completedSets.length > 0)
+        .map(ex => ({
+          name: getExercise(ex.id)?.name ?? ex.id,
+          matchedExerciseId: ex.id, // authoritative id, never re-resolved by name
+          isCustom: customExercises.some(c => c.id === ex.id),
+          sets: ex.completedSets.map(s => ({
+            weight: s.weight,
+            reps: s.reps,
+            unit: s.unit,
+            completed: false,
+            duration: s.duration,
+            distance: s.distance,
+            isWarmup: s.isWarmup,
+          })),
+        })),
+      confidence: 1,
+      rawText: '',
+    };
+    if (parsed.exercises.length === 0) return;
+    setDraft(buildDraft(parsed));
     // A repeat is freestyle — not advancing a routine's up-next cycle.
     setStartedRoutineId(null);
     if (!workoutStartTime) setWorkoutStartTime(new Date());
-  }, [lastWorkoutNote, workoutStartTime, loadDraftFromText]);
+  }, [customExercises, workoutStartTime]);
 
-  const prefillWorkout = useCallback((w: GeneratedWorkout) => {
-    const text = workoutToNoteText(w);
-    if (!text) return;
-    loadDraftFromText(text);
-    setStartedRoutineId(null);
-    if (!workoutStartTime) setWorkoutStartTime(new Date());
-  }, [workoutStartTime, loadDraftFromText]);
+  const prefillLastWorkout = useCallback(() => {
+    if (lastWorkout) prefillWorkout(lastWorkout);
+  }, [lastWorkout, prefillWorkout]);
 
   // A repeat handed off from Home's recent list (same pattern as getPendingRoutine).
   useFocusEffect(
@@ -748,12 +732,6 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     workoutStartTime,
     formatTime,
     resetWorkoutTimer,
-
-    showSummary,
-    setShowSummary,
-    summaryLoading,
-    parsedExercises,
-    handleQuickSummary,
 
     showFinishModal,
     setShowFinishModal,

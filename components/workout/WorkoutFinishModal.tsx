@@ -19,7 +19,7 @@ import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, track, trend } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
-import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { ParsedWorkout } from '@/lib/workout/workoutNoteParser';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { convertWeight, UserProfile, UserProgress, WeightUnit } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -47,7 +47,8 @@ type ModalState = 'parsing' | 'confirmation' | 'celebration';
 interface WorkoutFinishModalProps {
   visible: boolean;
   noteText: string;
-  prebuiltWorkout?: ParsedWorkout | null; // structured draft → skip the AI parse
+  // The structured draft IS the workout — the only input this modal accepts.
+  prebuiltWorkout: ParsedWorkout;
   duration?: number; // in seconds (optional for preview mode)
   weightUnit?: WeightUnit;
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
@@ -121,9 +122,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
-          // A structured draft is already the workout; only parse raw text when there's no draft.
           const [parsed, lifts, profile] = await Promise.all([
-            prebuiltWorkout ?? workoutNoteParser.parseWorkoutNote(noteText),
+            prebuiltWorkout,
             userService.getAllFeaturedLifts(),
             userService.getUserProfileOrDefault(),
           ]);
