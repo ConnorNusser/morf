@@ -5,7 +5,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs } from '@/lib/data/strengthStandards';
 import { storageService } from '@/lib/storage/storage';
 import { radius } from '@/lib/ui/tokens';
 import { type as typeScale } from '@/lib/ui/typography';
@@ -17,8 +17,7 @@ import {
   formatDuration,
   formatHoursCompact,
   formatMinutes as formatTime,
-  getWorkoutCategory,
-} from '@/lib/utils/utils';
+  getWorkoutCategory, setVolumeLbs} from '@/lib/utils/utils';
 import {
   DEFAULT_WEEKLY_GOAL,
   WEEKLY_GOAL_MAX,
@@ -143,7 +142,7 @@ export default function WeeklyOverviewModal({
       acc[category].time += workout.estimatedDuration;
       acc[category].sets += workout.exercises.reduce((s, ex) => s + ex.completedSets.length, 0);
       acc[category].volume += workout.exercises.reduce(
-        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + set.weight * set.reps, 0),
+        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + setVolumeLbs(set), 0),
         0
       );
       return acc;
@@ -161,7 +160,7 @@ export default function WeeklyOverviewModal({
         acc[exercise.id].sessions += 1;
         acc[exercise.id].totalSets += exercise.completedSets.length;
         exercise.completedSets.forEach(set => {
-          acc[exercise.id].totalVolume += set.weight * set.reps;
+          acc[exercise.id].totalVolume += setVolumeLbs(set);
           acc[exercise.id].totalReps += set.reps;
           acc[exercise.id].maxWeight = Math.max(acc[exercise.id].maxWeight, set.weight);
         });
@@ -176,7 +175,7 @@ export default function WeeklyOverviewModal({
       acc[day].workouts += 1;
       acc[day].time += workout.estimatedDuration;
       acc[day].volume += workout.exercises.reduce(
-        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + set.weight * set.reps, 0),
+        (s, ex) => s + ex.completedSets.reduce((ss, set) => ss + setVolumeLbs(set), 0),
         0
       );
       return acc;
@@ -213,7 +212,7 @@ export default function WeeklyOverviewModal({
         if (!ppl) return;
         pplBreakdown[ppl].sets += exercise.completedSets.length;
         pplBreakdown[ppl].volume += exercise.completedSets.reduce(
-          (s, set) => s + set.weight * set.reps,
+          (s, set) => s + setVolumeLbs(set),
           0
         );
       });
@@ -255,7 +254,7 @@ export default function WeeklyOverviewModal({
       for (const exercise of workout.exercises || []) {
         for (const set of exercise.completedSets || []) {
           if (!set.completed || set.weight <= 0) continue;
-          const e1rm = OneRMCalculator.estimate(set.weight, set.reps);
+          const e1rm = e1rmLbs(set.weight, set.reps, set.unit);
           if (isThisWeek) {
             const prev = bestThisWeek.get(exercise.id);
             if (!prev || e1rm > prev.e1rm) {
@@ -450,7 +449,7 @@ export default function WeeklyOverviewModal({
             </View>
             <View style={styles.prMeta}>
               <Text tone="primary" weight="semiBold" style={styles.prVal}>{pr.e1rm} lbs</Text>
-              <Text tone="faint" style={styles.prContext}>est. 1RM · +{pr.improvement}</Text>
+              <Text tone="faint" style={styles.prContext}>1RM · +{pr.improvement}</Text>
             </View>
           </View>
         ))}
@@ -626,7 +625,7 @@ export default function WeeklyOverviewModal({
               {workout.exercises.reduce((s, ex) => s + ex.completedSets.length, 0)} sets
             </Text>
             {workout.exercises.slice(0, 4).map((exercise, exIndex) => {
-              const vol = exercise.completedSets.reduce((s, set) => s + set.weight * set.reps, 0);
+              const vol = exercise.completedSets.reduce((s, set) => s + setVolumeLbs(set), 0);
               return (
                 <View key={exIndex} style={styles.exerciseLine}>
                   <Text tone="primary" style={styles.exerciseLineName} numberOfLines={1}>

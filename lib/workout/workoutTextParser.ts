@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
 import { analyticsService } from '@/lib/services/analytics';
 import { exerciseNameToId } from '@/lib/data/exerciseUtils';
+import { setVolumeLbs } from '@/lib/utils/utils';
 import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
 import { storageService } from '@/lib/storage/storage';
 import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
@@ -316,7 +317,7 @@ class WorkoutTextParser {
     }
 
     const totalVolume = parsed.exercises.reduce((total, ex) => {
-      return total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0);
+      return total + ex.sets.reduce((setTotal, set) => setTotal + setVolumeLbs(set), 0);
     }, 0);
 
     // Use a leading "# ..." line as the title (e.g. "# Push Day").

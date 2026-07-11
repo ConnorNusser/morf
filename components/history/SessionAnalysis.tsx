@@ -140,7 +140,7 @@ export default function SessionAnalysis({
             <Text variant="emphasis" tone="primary" weight="bold" style={styles.tabular}>
               {toDisplay(analysis.topLift.best.weight, analysis.topLift.best.unit)} × {analysis.topLift.best.reps}
               <Text variant="meta" tone="muted" weight="medium">
-                {"  "}e1RM {analysis.topLift.best.e1rm}
+                {"  "}1RM {analysis.topLift.best.e1rm}
               </Text>
             </Text>
           </View>
@@ -183,7 +183,7 @@ export default function SessionAnalysis({
               </View>
               {r.best && (
                 <Text variant="meta" tone="muted" style={styles.tabular}>
-                  e1RM{" "}
+                  1RM{" "}
                   <Text variant="meta" tone="primary" weight="semiBold">
                     {r.best.e1rm}
                   </Text>

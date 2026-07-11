@@ -6,6 +6,7 @@ import {
   MALE_STANDARDS,
   OneRMCalculator,
   StrengthTier,
+  e1rmLbs as sharedE1rmLbs,
 } from '@/lib/data/strengthStandards';
 
 // Pure so the PR-progression math is unit-testable. History is appended per *set*, so
@@ -37,7 +38,7 @@ export const dayKeyOf = (d: Date) => {
 };
 
 export const e1rmLbs = (e: Pick<ExerciseHistoryEntry, 'weight' | 'reps' | 'unit'>) =>
-  OneRMCalculator.estimate(e.unit === 'kg' ? convertWeight(e.weight, 'kg', 'lbs') : e.weight, e.reps);
+  sharedE1rmLbs(e.weight, e.reps, e.unit);
 
 interface DaySession {
   date: Date;
@@ -203,7 +204,10 @@ export function buildStrengthIndexSeries(
   if (lastMs <= startMs) return empty;
 
   // Mean of each contributing lift's PR-to-date percentile at instant `t` (none-yet lifts skipped).
-  const indexAt = (t: number): { value: number; count: number } => {
+  // INTENTIONAL: the History Strength Index averages ALL ranked lifts (zeros
+// included) — deliberately a different lens than the home tier's featured-lift
+// average (calculateOverallPercentile, zeros excluded).
+const indexAt = (t: number): { value: number; count: number } => {
     const pcts: number[] = [];
     for (const l of lifts) {
       const lbs = bestLbsAsOf(l.days, t);

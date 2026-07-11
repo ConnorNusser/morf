@@ -8,7 +8,7 @@
  */
 import { WeightUnit, ExerciseRecord, convertWeight, isFeaturedLift } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs } from '@/lib/data/strengthStandards';
 import { getCatalogExercise } from './exerciseCatalog';
 
 /** A rep range for a working set: hit `floor`+ to hold, hit `ceiling` to earn load. */
@@ -147,9 +147,6 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   const reps = sorted[Math.ceil((sorted.length - 1) / 2)];
   return { weight: workingWeight, reps, unit: atWeight[0].unit };
 }
-
-const e1rmLbs = (weight: number, reps: number, unit: WeightUnit): number =>
-  OneRMCalculator.estimate(unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight, reps);
 
 // Record-keeping variant: falls back to the heaviest lone set. Never used for
 // routine anchors — prescriptions must not lurch off a stray single.

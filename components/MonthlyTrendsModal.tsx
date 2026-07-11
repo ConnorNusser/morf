@@ -8,7 +8,7 @@ import { useUser } from '@/contexts/UserContext';
 import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
-import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
+import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats, convertWeightForPreference} from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { LoggedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
@@ -323,7 +323,7 @@ export default function MonthlyTrendsModal({
                       <View style={styles.statItem}>
                         <Ionicons name="barbell-outline" size={16} color={ink.muted} />
                         <Text variant="meta" tone="primary" weight="medium">
-                          {formatVolume(month.totalVolume)} {weightUnit}
+                          {formatVolume(weightUnit === 'kg' ? convertWeightForPreference(month.totalVolume, 'lbs', 'kg') : month.totalVolume)} {weightUnit}
                         </Text>
                       </View>
                       <View style={styles.statItem}>

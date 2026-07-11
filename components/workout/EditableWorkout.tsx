@@ -189,7 +189,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
   if (draft.length === 0) return null;
 
   const sets = totalSets(draft);
-  const volume = totalVolume(draft);
+  const volume = totalVolume(draft, weightUnit);
 
   const menuIndex = draft.findIndex(ex => ex.key === menuKey);
   const menuExercise = menuIndex >= 0 ? draft[menuIndex] : null;

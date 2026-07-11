@@ -13,7 +13,7 @@ import {
   computeSessionRewards,
   SessionRewards,
 } from '@/lib/gamification/sessionRewards';
-import { getStrengthTier, getTierColor, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, track, trend } from '@/lib/ui/tokens';
@@ -243,7 +243,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         exercise.sets || [],
         userLifts,
         bodyWeightLbs,
-        userProfile?.gender
+        userProfile?.gender,
+        userProfile?.age
       );
       if (badgeInfo?.type === 'tier') {
         sessionPercentiles.push(badgeInfo.percentile);
@@ -418,14 +419,15 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                   ? getCatalogExercise(exercise.matchedExerciseId)
                   : null;
 
-                const best1RM = exercise.sets ? Math.max(
+                const best1RMLbs = exercise.sets ? Math.max(
                   ...exercise.sets.map(set =>
                     set.weight > 0 && set.reps > 0
-                      ? OneRMCalculator.estimate(set.weight, set.reps)
+                      ? e1rmLbs(set.weight, set.reps, set.unit)
                       : 0
                   ),
                   0
                 ) : 0;
+                const best1RM = weightUnit === 'kg' ? convertWeight(best1RMLbs, 'lbs', 'kg') : best1RMLbs;
 
                 return (
                   <View

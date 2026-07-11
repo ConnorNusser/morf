@@ -7,6 +7,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
 import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import { Equipment, UserLift, Exercise } from '@/types';
+import { e1rmLbs } from '@/lib/data/strengthStandards';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -75,8 +76,8 @@ export default function ExercisesSection() {
     if (liftsForExercise.length === 0) return null;
 
     return liftsForExercise.reduce((best, current) => {
-      const bestOneRM = best.weight * (1 + best.reps / 30);
-      const currentOneRM = current.weight * (1 + current.reps / 30);
+      const bestOneRM = e1rmLbs(best.weight, best.reps, best.unit);
+      const currentOneRM = e1rmLbs(current.weight, current.reps, current.unit);
       return currentOneRM > bestOneRM ? current : best;
     });
   }, [userLifts]);
