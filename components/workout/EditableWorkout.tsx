@@ -103,8 +103,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
           {exercise.name || 'Unnamed exercise'}
         </Text>
 
-        {/* Single entry point for exercise actions (reorder lives in the sheet) —
-            a bordered circle so it reads as a button, not stray glyphs. */}
+        {/* Single entry point for exercise actions; reorder lives in the sheet. */}
         <TouchableOpacity
           hitSlop={8}
           style={[styles.menuButton, { borderColor: currentTheme.colors.border, backgroundColor: currentTheme.colors.surface }]}

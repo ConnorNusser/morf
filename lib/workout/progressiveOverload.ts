@@ -21,20 +21,10 @@ export interface RoutineAnchor extends LastPerformance {
   at: Date;
 }
 
-/** Anchor for (routine, exercise slot): the working set from the most recent
- *  saved session OF THIS ROUTINE that logged the exercise. Freestyle sessions
- *  and other days can't move it — each routine progresses against its own last
- *  performance, so a 3×12 day and a 5×5 day sharing an exercise never read each
- *  other's work as a miss or a top-out. Derived from history (workouts carry
- *  routineId); no stored counter to drift.
- *
- *  `occurrence` handles the same exercise programmed twice in one routine
- *  (top sets + backoff sets): the nth routine slot reads the nth logged entry.
- *
- *  Strict resolveWorkingSet only — no lone-set fallback. A session with nothing
- *  repeated (cut short, a PR single, only warmups checked) simply doesn't move
- *  the anchor; we look one session further back, and a routine with no readable
- *  session holds via the seed path instead of lurching off one stray set. */
+/** Working set from this routine's most recent readable session — other days and
+ *  freestyle sessions can't move it. `occurrence`: the nth slot of a duplicated
+ *  exercise reads the nth logged entry. An unreadable session (nothing resolves)
+ *  is skipped rather than guessed at. */
 export function getRoutineAnchor(
   routineId: string,
   exerciseId: string,
@@ -53,19 +43,15 @@ export function getRoutineAnchor(
   return null;
 }
 
-// An anchor/record whose reps sit within this of the slot's floor is directly
-// comparable; further out it's another rep range's work and gets re-expressed
-// at the slot's reps instead (equivalentWeight).
+// Reps within this of the slot's floor are directly comparable; further out is
+// another rep range's work and gets re-expressed (equivalentWeight).
 const REP_RANGE_TOLERANCE = 2;
 
-// An anchor this old, with a fresher global record on file, no longer reflects
-// current strength (layoffs, long routine pauses) — reseed from the record.
+// Anchors older than this with a fresher record reseed (layoffs).
 const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
 
-/** Re-express a performed set at a different rep count via the rep-max curve
- *  (getPercentageFor), grid-floored minus one increment — a conservative
- *  starting point the next session validates. Uses the CURRENT working set,
- *  never best-ever e1RM (that's a trophy). */
+/** Re-express a performed set at a different rep count, grid-floored minus one
+ *  increment. Always from the current working set, never best-ever e1RM. */
 function equivalentWeight(
   performed: LastPerformance,
   floorReps: number,
@@ -79,10 +65,8 @@ function equivalentWeight(
   return Math.max(increment, Math.floor(display / increment) * increment - increment);
 }
 
-/** Compute display targets for one routine exercise via reactive double
- *  progression against this routine's own anchor. No anchor yet → seed from the
- *  global working set (rep-translated when the ranges differ); no record at all
- *  → cold-start, working sets stay blank (0). */
+/** Targets for one routine exercise: double progression against the routine's
+ *  own anchor; no anchor → seed from the global record; no record → blank. */
 function calculateRoutineExerciseWeights(
   exercise: RoutineExercise,
   weightUnit: WeightUnit,
@@ -123,8 +107,6 @@ function calculateRoutineExerciseWeights(
   const range = { floor: workingReps, ceiling: workingReps + 2 };
   const inBand = (reps: number) => Math.abs(reps - workingReps) <= REP_RANGE_TOLERANCE;
 
-  // An anchor much older than a fresher global record is a pre-layoff number —
-  // reseed from the record instead of prescribing at-or-above ancient peak.
   const anchorStale =
     anchor && record &&
     new Date(record.updatedAt).getTime() > anchor.at.getTime() &&
@@ -137,24 +119,19 @@ function calculateRoutineExerciseWeights(
       ? anchor.weight
       : convertWeight(anchor.weight, anchor.unit, weightUnit);
     if (inBand(anchor.reps)) {
-      // This routine's own last session, same rep range — run the progression rule.
       prescription = nextPrescription(
         { weight: anchorWeight, reps: anchor.reps, unit: weightUnit },
         range,
         increment,
       );
     } else {
-      // The routine's reps were edited since that session — re-express the old
-      // work at the new reps and hold, instead of reading a 5→12 edit as a
-      // catastrophic miss or a 12→5 edit as a top-out.
+      // Routine's reps were edited since that session — translate, don't judge.
       prescription = { weight: equivalentWeight(anchor, workingReps, weightUnit, increment), reps: workingReps, change: 'hold' };
     }
     lastPerformed = { weight: Math.round(anchorWeight), reps: anchor.reps, date: anchor.at, completed: true };
   } else if (record) {
-    // No usable history in this routine — SEED from the global working set and
-    // always hold: day one validates the number, it never earns an increase off
-    // another day's work. In-band reps use the record weight as performed;
-    // out-of-band reps are re-expressed at this slot's reps.
+    // Seed from the global record and HOLD — day one validates; it never earns
+    // an increase off another day's work.
     const recordWeight = record.unit === weightUnit
       ? record.weight
       : convertWeight(record.weight, record.unit, weightUnit);
@@ -165,9 +142,8 @@ function calculateRoutineExerciseWeights(
     lastPerformed = { weight: Math.round(recordWeight), reps: record.reps, date: record.updatedAt, completed: true };
   }
 
-  // Warmups ramp (…45% → 60% of the working weight for the last one) — ramping
-  // also means prescribed warmups never repeat a weight, so a cut-short session
-  // can't read a warmup pair as the working set and collapse the anchor.
+  // Warmups ramp toward 60% — distinct weights, so a warmup pair can never be
+  // mistaken for the working set.
   const warmupCount = sets.filter(s => s.isWarmup).length;
   let warmupIndex = 0;
   const calculatedSets = sets.map(set => {
@@ -202,9 +178,7 @@ function calculateRoutineExerciseWeights(
   };
 }
 
-/** Calculate one routine's display targets. Each exercise anchors to this
- *  routine's own history first; the global record only seeds slots with no
- *  history of their own. */
+/** One routine's display targets, anchored to its own history. */
 export function calculateRoutine(
   routine: Routine,
   records: Record<string, ExerciseRecord>,
@@ -212,8 +186,7 @@ export function calculateRoutine(
   history: LoggedWorkout[] = []
 ): CalculatedRoutine {
   const exercises = routine?.exercises || [];
-  // Same exercise in two slots (top sets + backoff sets): the nth slot reads
-  // the nth logged entry, so each slot progresses on its own work.
+  // nth slot of a duplicated exercise reads the nth logged entry.
   const seen = new Map<string, number>();
   return {
     ...routine,

@@ -10,9 +10,7 @@ export interface DraftSet {
   reps: number;
   unit: WeightUnit;
   done?: boolean; // checked off (green row)
-  // Recorded role, not a guess: carried from the routine prescription or set by
-  // the explicit "Add warmup set" action, and persisted through save so anchor
-  // resolution and routine folding read it instead of reconstructing it.
+  // Recorded role — survives save so nothing downstream has to guess it.
   isWarmup?: boolean;
 }
 
@@ -26,10 +24,8 @@ export interface DraftExercise {
 
 export type WorkoutDraft = DraftExercise[];
 
-// Random, not a counter: persisted sessions come back across app relaunches
-// with their keys intact, and a module counter restarts at 0 — it would mint
-// keys colliding with restored ones, making two exercises edit/remove/render
-// as one.
+// Random, not a counter: restored sessions keep their keys and a counter
+// restarts at 0 — colliding keys make two exercises edit/remove as one.
 function nextKey(): string {
   return `dex_${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -43,11 +39,8 @@ function normName(name: string): string {
   return name.toLowerCase().trim();
 }
 
-/** Same exercise iff the ids match — or either side lacks an id and the names
- *  match. Rows don't always carry an id for the same exercise (a routine import
- *  keys a custom exercise by its custom id; the local parser can only resolve
- *  catalog names, so the same exercise typed into the composer arrives id-less),
- *  and comparing id-to-name would file one exercise as two. */
+/** Ids match when both exist; otherwise names. Custom/typed rows can arrive
+ *  id-less, and comparing id-to-name would file one exercise as two. */
 function isSameExercise(
   a: { exerciseId?: string; name: string },
   b: { exerciseId?: string; name: string },
@@ -66,8 +59,7 @@ export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts:
     const existing = next.find(e => isSameExercise(e, { exerciseId: pex.matchedExerciseId, name }));
     if (existing) {
       existing.sets.push(...sets);
-      // A recognized parse upgrades a name-keyed row, so later merges and
-      // routine folding see the resolved exercise.
+      // A recognized parse upgrades a name-keyed row.
       if (!existing.exerciseId && pex.matchedExerciseId) {
         existing.exerciseId = pex.matchedExerciseId;
         existing.recognized = !pex.isCustom;
@@ -133,12 +125,10 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       name: ex.name,
       matchedExerciseId: ex.exerciseId,
       isCustom: !ex.exerciseId,
-      // Only log sets checked off (done === true); un-done rows (prescriptions,
-      // prefill/restore, added) are dropped so they don't land in history as completed.
+      // Only checked-off sets log; un-done rows must not land in history.
       sets: ex.sets
         .filter(s => s.done === true)
-        // Stamp the role on every saved set (false, not undefined, for work sets)
-        // so downstream can tell a role-recorded session from legacy history.
+        // Role stamped true/false on every saved set; absent = legacy session.
         .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true, isWarmup: s.isWarmup === true })),
     }))
     .filter(ex => ex.sets.length > 0);
@@ -226,8 +216,7 @@ export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): 
 export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const last = ex.sets[ex.sets.length - 1];
-    // A manually added set starts un-done and is a WORK set — sets append at the
-    // end, after the work; warmups are added explicitly via addWarmupSet.
+    // Appended sets are un-done WORK sets; warmups go through addWarmupSet.
     const added: DraftSet = last
       ? { ...last, done: false, isWarmup: undefined }
       : { weight: 0, reps: 0, unit: 'lbs', done: false };
@@ -235,9 +224,7 @@ export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   });
 }
 
-/** Prepend an explicit warmup row (from the exercise's ⋯ menu): ~60% of the
- *  heaviest work set, flagged so the anchor and the routine fold read it as a
- *  warmup — no guessing downstream. */
+/** Prepend a flagged warmup row at ~60% of the heaviest work set. */
 export function addWarmupSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const work = ex.sets.filter(s => !s.isWarmup);
@@ -287,17 +274,11 @@ export function moveExerciseToEdge(draft: WorkoutDraft, key: string, edge: 'top'
   return next;
 }
 
-/** Build a routine's exercise list from the draft — captures order and set count.
- *  Routines store no weights, and stored reps are the rep-range FLOOR the
- *  progression rule works against — the reps performed in a session are
- *  performance (the prescription moves them every workout), not program, so
- *  carried-over sets keep their stored floors (added sets inherit the last one)
- *  and only a brand-new exercise takes its reps from the draft. Rep targets are
- *  edited in the routine editor. Only exercises with a resolved id survive;
- *  warmup flags and notes are preserved by matching exerciseId. */
+/** Fold the draft into routine structure. Stored reps are the rep-range FLOOR
+ *  (program, editor-owned) — performed reps are performance and never overwrite
+ *  them; only brand-new rows take reps from the draft. */
 export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExercise[]): RoutineExercise[] {
-  // Same exercise in two slots: the nth draft entry folds into the nth stored
-  // slot, so a top-sets/backoff-sets pair can't overwrite each other's floors.
+  // nth draft entry of a duplicated exercise folds into the nth stored slot.
   const seen = new Map<string, number>();
   return draft
     .filter(ex => ex.exerciseId && ex.sets.length > 0)
@@ -306,12 +287,6 @@ export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExerci
       seen.set(ex.exerciseId as string, occurrence + 1);
       const existing = prev.filter(p => p.exerciseId === ex.exerciseId)[occurrence];
 
-      // Each draft row carries its recorded role (isWarmup), so the fold reads
-      // it instead of reconstructing it from counts — adding a warmup row in the
-      // session adds a warmup slot; deleting one removes exactly that slot.
-      // Reps still preserve the stored floors for carried-over sets (performed
-      // reps are performance, not program); added work sets inherit the last
-      // floor, and only brand-new rows take their reps from the draft.
       const storedWarmupReps = (existing?.sets ?? []).filter(s => s.isWarmup).map(s => s.reps);
       const floors = (existing?.sets ?? []).filter(s => !s.isWarmup).map(s => s.reps);
       let warmupIdx = 0;
@@ -330,12 +305,9 @@ export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExerci
     });
 }
 
-/** True when folding the draft into the routine would change its STRUCTURE —
- *  exercises, order, or set counts. Drives the pre-finish "update your routine?"
- *  prompt. Reps are deliberately not compared: the draft carries prescription
- *  reps (floor+1 after a normal in-range session), so comparing them fired the
- *  prompt after every unchanged session — and accepting ratcheted the stored
- *  rep floor upward, breaking the fixed range that load steps are earned against. */
+/** Structure diff (exercises, order, set counts) for the "update your routine?"
+ *  prompt. Reps are deliberately excluded — the draft carries prescription reps,
+ *  and comparing them would fire the prompt after every unchanged session. */
 export function routineDiffersFromDraft(draft: WorkoutDraft, prev: RoutineExercise[]): boolean {
   const next = draftToRoutineExercises(draft, prev);
   if (next.length !== prev.length) return true;
