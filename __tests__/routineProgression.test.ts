@@ -270,6 +270,47 @@ describe('rep-translation monotonicity', () => {
   });
 });
 
+describe('bodyweight progression', () => {
+  const PULLUP = 'pull-up-bodyweight';
+  const pullDay = day('pull', 'Pull-ups 3×8', 8, PULLUP);
+
+  it('hitting the prescribed reps climbs the rep target (no ceiling)', () => {
+    const history = [session('pull', [[0, 8], [0, 8], [0, 8]], 1, PULLUP)];
+    const ex = calculateRoutine(pullDay, {}, 'lbs', history).exercises[0];
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(9);
+    expect(ex.workingWeight).toBe(0);
+    expect(ex.progression).toBe('increase');
+
+    // Far past the floor: still reps+1, never rep-translated.
+    const deep = [session('pull', [[0, 20], [0, 20], [0, 19]], 1, PULLUP)];
+    const ex2 = calculateRoutine(pullDay, {}, 'lbs', deep).exercises[0];
+    expect(ex2.sets.find(s => !s.isWarmup)?.reps).toBe(21);
+    expect(ex2.workingWeight).toBe(0);
+  });
+
+  it('a real miss drops the rep target to what was performed', () => {
+    const history = [session('pull', [[0, 5], [0, 5], [0, 4]], 1, PULLUP)];
+    const ex = calculateRoutine(pullDay, {}, 'lbs', history).exercises[0];
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(5);
+    expect(ex.progression).toBe('decrease');
+  });
+
+  it('assigning weight switches to normal load progression', () => {
+    // Weighted pull-ups: loaded sets outvote bodyweight burnout sets.
+    const history = [session('pull', [[25, 8], [25, 8], [25, 8], [0, 12]], 1, PULLUP)];
+    const ex = calculateRoutine(pullDay, {}, 'lbs', history).exercises[0];
+    expect(ex.workingWeight).toBe(25); // anchored to the loaded work, not the burnout
+  });
+
+  it('a bodyweight record seeds a new slot at bodyweight, not one increment', () => {
+    const rec: ExerciseRecord = { ...record(0, 12), exerciseId: PULLUP, bestE1RMLbs: 0 };
+    const ex = calculateRoutine(pullDay, { [PULLUP]: rec }, 'lbs', []).exercises[0];
+    expect(ex.workingWeight).toBe(0); // not 2.5 lbs
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(8);
+    expect(ex.progression).toBe('maintain');
+  });
+});
+
 describe('median-set judgment', () => {
   // 4×6 day at 135 — sessions are judged by the TYPICAL (lower-median) set,
   // so one collapsed fatigue set can't turn an overshoot into a deload.

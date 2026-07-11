@@ -130,7 +130,8 @@ function calculateRoutineExerciseWeights(
     const anchorWeight = anchor.unit === weightUnit
       ? anchor.weight
       : convertWeight(anchor.weight, anchor.unit, weightUnit);
-    if (inBand(anchor.reps)) {
+    if (anchorWeight === 0 || inBand(anchor.reps)) {
+      // Bodyweight anchors are reps-only — never rep-translated, whatever the reps.
       prescription = nextPrescription(
         { weight: anchorWeight, reps: anchor.reps, unit: weightUnit },
         range,
@@ -147,9 +148,11 @@ function calculateRoutineExerciseWeights(
     const recordWeight = record.unit === weightUnit
       ? record.weight
       : convertWeight(record.weight, record.unit, weightUnit);
-    const seed = inBand(record.reps)
-      ? roundWeight(recordWeight, weightUnit)
-      : equivalentWeight(record, workingReps, weightUnit, increment);
+    const seed = recordWeight === 0
+      ? 0 // bodyweight record seeds bodyweight
+      : inBand(record.reps)
+        ? roundWeight(recordWeight, weightUnit)
+        : equivalentWeight(record, workingReps, weightUnit, increment);
     prescription = { weight: seed, reps: workingReps, change: 'hold' };
     lastPerformed = { weight: Math.round(recordWeight), reps: record.reps, date: record.updatedAt, completed: true };
   }
