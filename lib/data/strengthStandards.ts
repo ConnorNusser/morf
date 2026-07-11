@@ -916,10 +916,14 @@ export function getNextTierInfo(percentile: number): {
 
 
 // 1RM estimation
+// Unrounded Epley factor (1RM = weight × factor). The single home for the
+// ratio — used raw here and for rep-count translation in progressiveOverload.
+export const epleyFactor = (reps: number): number => 1 + reps / 30;
+
 export class OneRMCalculator {
   // Epley formula: 1RM = weight × (1 + reps/30)
   static epley(weight: number, reps: number): number {
-    return Math.round(weight * (1 + reps / 30));
+    return Math.round(weight * epleyFactor(reps));
   }
 
   // Brzycki formula: 1RM = weight × (36 / (37 - reps))
