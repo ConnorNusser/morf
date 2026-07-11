@@ -1,14 +1,10 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { TIER_COLORS, getStrengthTier, getBaseTier } from '@/lib/data/strengthStandards';
+import { TIER_COLORS, getStrengthTier, getBaseTier, getPercentileColor} from '@/lib/data/strengthStandards';
 import React, { useCallback, useMemo, useRef } from 'react';
 import { Dimensions, GestureResponderEvent, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, G, Line, LinearGradient, Path, Stop, Text as SvgText } from 'react-native-svg';
 
-const getTierColorForValue = (value: number): string => {
-  const tier = getStrengthTier(value);
-  const baseTier = getBaseTier(tier);
-  return TIER_COLORS[baseTier];
-};
+
 
 const FOCUS_DELAY_MS = 75;
 const MOVE_THRESHOLD = 10;
@@ -115,7 +111,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       const r = radius * Math.max(0, Math.min(1, item.value / 100));
       const x = center + Math.cos(angle) * r;
       const y = center + Math.sin(angle) * r;
-      const tierColor = getTierColorForValue(item.value);
+      const tierColor = getPercentileColor(item.value);
       return { x, y, value: item.value, tierColor };
     });
   }, [data, center, radius, angleStep]);
@@ -156,7 +152,7 @@ export default function RadarChart({ data, size, tiers = [], selectedIndex = -1,
       : sorted;
 
     return withOuter.map((t) => {
-      const color = getTierColorForValue(t.threshold > 0 ? t.threshold : 1);
+      const color = getPercentileColor(t.threshold > 0 ? t.threshold : 1);
       return {
         label: t.label,
         r: radius * (t.threshold / 100),

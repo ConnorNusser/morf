@@ -172,7 +172,7 @@ export default function MonthlyTrendsModal({
     m.pplCounts.push + m.pplCounts.pull + m.pplCounts.legs
   ), 1);
 
-  const formatVolume = (volume: number) => formatCompact(volume, { millions: true });
+  const formatVolume = (volume: number) => formatCompact(volume);
 
 
   const handleClose = () => {

@@ -6,7 +6,7 @@ import { retentionNotificationService } from '@/lib/services/retentionNotificati
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { calculateOverallPercentile } from '@/lib/utils/utils';
+import { calculateOverallPercentile, formatDuration} from '@/lib/utils/utils';
 import { e1rmLbs } from '@/lib/data/strengthStandards';
 import { getExercise, getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { ParsedWorkout, workoutTextParser } from '@/lib/workout/workoutTextParser';
@@ -431,16 +431,7 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     return () => subscription.remove();
   }, [workoutStartTime, draft.length, manuallyStarted, isSessionLoaded, calculateElapsedTime, restoreSession]);
 
-  const formatTime = useCallback((seconds: number): string => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hrs > 0) {
-      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }, []);
+  const formatTime = useCallback((seconds: number): string => formatDuration(seconds), []);
 
   const handleFinishWorkout = useCallback(() => {
     if (!logText.trim()) {

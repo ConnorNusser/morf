@@ -1,4 +1,5 @@
 import { LBS_PER_KG, WeightUnit, TrackingType, LoggedWorkout } from "@/types";
+import { trend } from "@/lib/ui/tokens";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
@@ -50,15 +51,16 @@ export const formatVolume = (volumeLbs: number, unit: WeightUnit): string =>
 
 export const formatVolumeNumber = (volumeLbs: number, unit: WeightUnit): string => {
   const volume = unit === 'kg' ? volumeLbs / LBS_PER_KG : volumeLbs;
-  return volume >= 1000 ? `${(volume / 1000).toFixed(1)}k` : Math.round(volume).toLocaleString();
+  return formatCompact(volume);
 };
 
-// Abbreviate as "1.2k" / "1.2M"; values below 1000 returned verbatim.
-export const formatCompact = (value: number, opts: { suffix?: string; millions?: boolean } = {}): string => {
+// Abbreviate as "1.2k" / "1.2m"; below 1000 rounded verbatim. THE compact
+// number formatter — careerStats re-exports it; volume displays route here.
+export const formatCompact = (value: number, opts: { suffix?: string } = {}): string => {
   const suffix = opts.suffix ?? '';
-  if (opts.millions && value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M${suffix}`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}k${suffix}`;
-  return `${value}${suffix}`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, '')}M${suffix}`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}K${suffix}`;
+  return `${Math.round(value)}${suffix}`;
 };
 
 /** Local-date key "YYYY-MM-DD" (not UTC) — used as a per-day bucketing key. */
@@ -96,14 +98,15 @@ export function roundWeight(weight: number, unit: WeightUnit): number {
 export const roundedAverage = (arr: number[]): number =>
   arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
 
-/** Color for an exercise's progression direction; `neutralColor` is used for "maintain". */
+/** Color for an exercise's progression direction; `neutralColor` is used for
+ *  "maintain". Colors come from the one trend palette (lib/ui/tokens.ts). */
 export function getProgressionColor(
   progression: 'increase' | 'maintain' | 'decrease',
   neutralColor: string
 ): string {
   switch (progression) {
-    case 'increase': return '#34C759';
-    case 'decrease': return '#FF3B30';
+    case 'increase': return trend.up;
+    case 'decrease': return trend.down;
     default: return neutralColor;
   }
 }
@@ -211,12 +214,14 @@ export const formatSet = (
   const reps = set.reps ?? 0;
   const unit = set.unit ?? 'lbs';
 
+  // Conventions: compact weighted "225×5", compact bodyweight "×12",
+  // long weighted "225 lbs × 5", long bodyweight "12 reps".
   if (weight === 0) {
-    return `${reps} reps`;
+    return compact ? `×${reps}` : `${reps} reps`;
   }
 
   if (compact) {
-    return `${weight}×${reps}`;
+    return showUnit ? `${weight}${unit}×${reps}` : `${weight}×${reps}`;
   }
 
   if (showUnit) {

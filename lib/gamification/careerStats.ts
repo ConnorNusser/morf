@@ -105,11 +105,7 @@ export function computeCareerStats(
 }
 
 // Compact large numbers for stat tiles: 1840 -> "1.8K", 1_250_000 -> "1.3M".
-export function formatCompact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
-  return String(Math.round(n));
-}
+export { formatCompact } from '@/lib/utils/utils';
 
 // Total-volume comparison: heaviest object the user has "lifted" the equivalent of, else null.
 const HEAVY_OBJECTS: { single: string; plural: string; lbs: number }[] = [
