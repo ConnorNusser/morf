@@ -56,6 +56,7 @@ import {
   KeyboardAvoidingView,
   LayoutAnimation,
   Platform,
+  Pressable,
   View as RNView,
   StyleSheet,
   TouchableOpacity,
@@ -80,6 +81,10 @@ const TAB_BAR_CLEARANCE = 85;
 // list scrolls *behind* the dock, so it pads its content by this much to let the
 // last row clear the pill instead of tucking under it.
 const COMPOSER_DOCK_HEIGHT = TAB_BAR_CLEARANCE + space.lg + 48 + space.sm;
+
+// Height of the open composer's input row (34pt single-line pill + vertical
+// padding) — lifts the empty state clear of the bar when the keyboard is up.
+const COMPOSER_OPEN_BAR_HEIGHT = space.sm + 34 + space.sm;
 
 export default function WorkoutScreen() {
   const { currentTheme } = useTheme();
@@ -749,7 +754,20 @@ export default function WorkoutScreen() {
             />
           )}
           {hasWorkoutStarted && draft.length === 0 && (
-            <RNView style={styles.empty} pointerEvents="none">
+            /* With no list rendered (EditableWorkout is null when the draft is
+               empty) this overlay is the only surface behind the composer, so it
+               doubles as the tap-outside-to-dismiss target. While the keyboard is
+               up it re-centers in the strip that stays visible above the composer
+               bar instead of hiding behind the keyboard. */
+            <Pressable
+              style={[
+                styles.empty,
+                keyboardVisible && {
+                  bottom: keyboardHeight + COMPOSER_OPEN_BAR_HEIGHT,
+                },
+              ]}
+              onPress={closeComposer}
+            >
               <Ionicons name="barbell-outline" size={56} color={ink.ghost} />
               <Text
                 variant="heading"
@@ -762,7 +780,7 @@ export default function WorkoutScreen() {
               <Text variant="body" tone="muted" style={styles.emptyText}>
                 Add your first set below — type or speak it.
               </Text>
-            </RNView>
+            </Pressable>
           )}
         </View>
 
