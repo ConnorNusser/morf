@@ -1,6 +1,6 @@
 import { calculateRoutine, getRoutineAnchor } from '@/lib/workout/progressiveOverload';
 import { updateExerciseRecords } from '@/lib/workout/progression';
-import { buildDraft, draftToRoutineExercises, routineDiffersFromDraft, removeSet } from '@/lib/workout/workoutDraft';
+import { addWarmupSet, buildDraft, draftToRoutineExercises, routineDiffersFromDraft, removeSet } from '@/lib/workout/workoutDraft';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import type { ParsedWorkout } from '@/lib/workout/workoutNoteParser';
 import type { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, RoutineExercise } from '@/types';
@@ -211,6 +211,23 @@ describe('anchor robustness (audit regressions)', () => {
     expect(calc.exercises[0].progression).toBe('maintain');
   });
 
+  it('recorded roles beat the heuristic: flagged warmups can never win the vote', () => {
+    // Three identical-weight warmups + two work sets — the unlabeled heuristic
+    // would pick 135 (most sets); recorded flags make it unambiguous.
+    const w = session('heavy', [[135, 5], [135, 5], [135, 5], [225, 5], [225, 5]], 1);
+    w.exercises[0].completedSets.forEach((s, i) => { s.isWarmup = i < 3; });
+    const t = target(calculateRoutine(heavy, { [BENCH]: record(225, 5) }, 'lbs', [w]));
+    expect(t).toEqual({ weight: 225, reps: 6 });
+  });
+
+  it('a role-recorded pyramid does not freeze — heaviest known work set anchors', () => {
+    // Nothing repeated, but every set is labeled work: trust the label.
+    const w = session('heavy', [[185, 5], [205, 5], [225, 5]], 1);
+    w.exercises[0].completedSets.forEach(s => { s.isWarmup = false; });
+    const t = target(calculateRoutine(heavy, { [BENCH]: record(225, 5) }, 'lbs', [w]));
+    expect(t).toEqual({ weight: 225, reps: 6 });
+  });
+
   it('prescribed warmups ramp — no two warmups share a weight', () => {
     const withWarmups: Routine = {
       ...heavy,
@@ -297,19 +314,57 @@ describe('finish-time routine folding (ratchet regression)', () => {
     expect(folded[0].sets.map(s => s.reps)).toEqual([5, 5, 5]); // floor survives
   });
 
-  it('deleting a row cannot slide the warmup flag onto a work set', () => {
+  it('the fold reads recorded roles — flags never slide between rows', () => {
     const withWarmup: RoutineExercise[] = [{
       exerciseId: BENCH,
       exerciseName: 'Bench Press (Barbell)',
       sets: [{ reps: 10, isWarmup: true }, { reps: 8 }, { reps: 8 }, { reps: 8 }],
     }];
-    // User deletes one row mid-session (draft has 3), accepts the fold.
-    const folded = draftToRoutineExercises(draftFrom(8), withWarmup);
-    expect(folded[0].sets).toEqual([
-      { reps: 10, isWarmup: true }, // warmup survives as the warmup
+    const loaded = (rows: { reps: number; isWarmup?: boolean }[]) =>
+      buildDraft({
+        exercises: [{
+          name: 'Bench Press (Barbell)', matchedExerciseId: BENCH, isCustom: false,
+          sets: rows.map(r => ({ weight: 100, reps: r.reps, unit: 'lbs' as const, completed: false, isWarmup: r.isWarmup })),
+        }],
+        confidence: 1, rawText: '',
+      }, { asTarget: true });
+
+    // Deleted a WORK row → warmup stays the warmup, one work set gone.
+    const droppedWork = draftToRoutineExercises(loaded([{ reps: 10, isWarmup: true }, { reps: 9 }, { reps: 9 }]), withWarmup);
+    expect(droppedWork[0].sets).toEqual([
+      { reps: 10, isWarmup: true },
+      { reps: 8, isWarmup: undefined }, // stored floor survives
       { reps: 8, isWarmup: undefined },
-      { reps: 8, isWarmup: undefined }, // a WORK set was dropped; none became a warmup
     ]);
+
+    // Deleted the WARMUP row → the warmup is genuinely removed, floors intact.
+    const droppedWarmup = draftToRoutineExercises(loaded([{ reps: 9 }, { reps: 9 }, { reps: 9 }]), withWarmup);
+    expect(droppedWarmup[0].sets).toEqual([
+      { reps: 8, isWarmup: undefined },
+      { reps: 8, isWarmup: undefined },
+      { reps: 8, isWarmup: undefined },
+    ]);
+  });
+
+  it('adding a warmup mid-session folds a warmup slot into the routine', () => {
+    // Connor's scenario: program has 4 work sets and no warmup; user adds one
+    // at the start via the ⋯ menu and accepts "update your routine?".
+    const fourWork = day('heavy', 'Heavy 4×5', 5);
+    fourWork.exercises[0].sets = [{ reps: 5 }, { reps: 5 }, { reps: 5 }, { reps: 5 }];
+    const loaded = buildDraft({
+      exercises: [{
+        name: 'Bench Press (Barbell)', matchedExerciseId: BENCH, isCustom: false,
+        sets: [5, 5, 5, 5].map(reps => ({ weight: 225, reps, unit: 'lbs' as const, completed: false })),
+      }],
+      confidence: 1, rawText: '',
+    }, { asTarget: true });
+    const withWarmup = addWarmupSet(loaded, loaded[0].key);
+
+    expect(withWarmup[0].sets[0]).toMatchObject({ isWarmup: true, weight: 135 }); // 60% of 225, grid-rounded
+    expect(routineDiffersFromDraft(withWarmup, fourWork.exercises)).toBe(true); // prompt fires
+    const folded = draftToRoutineExercises(withWarmup, fourWork.exercises);
+    expect(folded[0].sets.map(s => !!s.isWarmup)).toEqual([true, false, false, false, false]);
+    expect(folded[0].sets.slice(1).map(s => s.reps)).toEqual([5, 5, 5, 5]); // floors untouched
   });
 
   it('added sets inherit the floor; a new exercise takes its reps from the draft', () => {

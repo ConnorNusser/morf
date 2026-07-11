@@ -83,22 +83,29 @@ export function nextPrescription(
   return { weight: newWeight, reps: range.floor, change: 'deload' };
 }
 
-/** One set as it was actually logged (no warmup flag exists on real sets). */
+/** One set as it was actually logged. `isWarmup` is recorded at save time for
+ *  sessions logged since roles were persisted; legacy history lacks it. */
 export interface LoggedSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
   completed: boolean;
+  isWarmup?: boolean;
 }
 
 /**
- * Pick the working set to judge progression from, out of a messy session with untagged warmups and ad-hoc test sets.
- * Working sets are the same load repeated, so the working weight is the repeated weight with THE MOST SETS (ties → heaviest)
- * — most-sets-first so a pair of top singles/doubles logged after the real work reads as a test, not a missed session.
- * Returns null with no confident working set (e.g. a lone top set) — the caller should HOLD rather than make a drastic move.
+ * Pick the working set to judge progression from.
+ * Role-recorded sessions (isWarmup persisted): warmups are excluded by their flag —
+ * nothing is guessed. Among the remaining work sets, prefer the repeated weight with
+ * the most sets (ties → heaviest) so a bonus single logged after the real work reads
+ * as a test; with nothing repeated, every set is still KNOWN work, so trust the label
+ * and take the heaviest (pyramids and single-top-set sessions stay readable).
+ * Legacy/unlabeled sessions: same voting over all sets, and nothing repeated returns
+ * null — the caller should HOLD rather than make a drastic move off a guess.
  */
 export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
-  const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0);
+  const hasRecordedRoles = sets.some(s => s.isWarmup !== undefined);
+  const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0 && s.isWarmup !== true);
   if (done.length === 0) return null;
 
   const countByWeight = new Map<number, number>();
@@ -114,8 +121,13 @@ export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
     }
   }
 
-  // Nothing repeated — can't confidently tell work from test, so hold.
-  if (workingWeight < 0) return null;
+  if (workingWeight < 0) {
+    // Nothing repeated. With recorded roles these are all known work sets — take
+    // the heaviest. Without roles we can't tell work from test: hold.
+    if (!hasRecordedRoles) return null;
+    const top = done.reduce((a, b) => (b.weight > a.weight ? b : a));
+    return { weight: top.weight, reps: top.reps, unit: top.unit };
+  }
 
   const atWeight = done.filter(s => s.weight === workingWeight);
   const reps = Math.min(...atWeight.map(s => s.reps)); // limiting set gates progression
