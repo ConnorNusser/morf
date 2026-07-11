@@ -11,17 +11,23 @@ import {
   isThemeUnlocked,
   ThemeLevel
 } from '@/lib/storage/userProfile';
+import {
+  BACKGROUND_GRADIENTS,
+  BackgroundGradient,
+  isGradientUnlocked,
+} from '@/lib/ui/backgroundGradients';
 import { isSeasonalThemeAvailable } from '@/lib/ui/theme';
 import { radius, space, tint } from '@/lib/ui/tokens';
 import { userService } from '@/lib/services/userService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Share, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function ThemeEvolutionSection() {
-  const { currentTheme, currentThemeLevel, themes, setThemeLevel } = useTheme();
+  const { currentTheme, currentThemeLevel, themes, setThemeLevel, currentGradientId, setGradientId } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -173,6 +179,103 @@ export default function ThemeEvolutionSection() {
     </TouchableOpacity>
   );
 
+  const handleGradientSelect = (gradient: BackgroundGradient) => {
+    if (!isGradientUnlocked(gradient.id, calculatedPercentile)) return;
+    playHapticFeedback('medium', false);
+    playSelectionComplete();
+    setGradientId(gradient.id);
+  };
+
+  // Gradient card mirrors the theme card, with a gradient swatch as the preview.
+  const renderGradientCard = (gradient: BackgroundGradient) => {
+    const unlocked = isGradientUnlocked(gradient.id, calculatedPercentile);
+    const active = gradient.id === currentGradientId;
+    return (
+      <TouchableOpacity
+        key={gradient.id}
+        onPress={() => handleGradientSelect(gradient)}
+        disabled={!unlocked}
+        activeOpacity={0.7}
+      >
+        <Card
+          padding={space.md}
+          style={StyleSheet.flatten([
+            styles.themeCard,
+            {
+              paddingHorizontal: space.lg,
+              borderRadius: radius.card,
+              backgroundColor: currentTheme.colors.surface,
+              borderWidth: 1,
+              borderColor: currentTheme.colors.border,
+            },
+            !unlocked && styles.lockedTheme,
+            active && {
+              borderColor: currentTheme.colors.primary,
+              borderWidth: 2,
+              backgroundColor: tint(currentTheme.colors.primary),
+            },
+          ])}
+        >
+          <View style={styles.themeInfo}>
+            <Text
+              variant="body"
+              weight="bold"
+              tone={unlocked ? 'primary' : 'faint'}
+              style={styles.themeName}
+            >
+              {gradient.displayName}
+            </Text>
+            <Text
+              variant="meta"
+              tone={unlocked ? 'muted' : 'faint'}
+              style={styles.themeRequirement}
+            >
+              {gradient.description}
+            </Text>
+          </View>
+
+          <View style={styles.themeRight}>
+            {unlocked && (
+              gradient.colors ? (
+                <LinearGradient
+                  colors={gradient.colors}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={[styles.gradientSwatch, { borderColor: currentTheme.colors.border }]}
+                />
+              ) : (
+                <Ionicons name="ban-outline" size={16} color={currentTheme.colors.text} />
+              )
+            )}
+
+            <View style={styles.themeStatus}>
+              {active && (
+                <Badge label="Active" color={currentTheme.colors.primary} />
+              )}
+              {!unlocked && (
+                <View style={styles.lockedRow}>
+                  <Image
+                    source={require('@/assets/images/pixel/padlock.png')}
+                    style={styles.lockArt}
+                    resizeMode="contain"
+                  />
+                  <Text variant="meta" weight="medium" tone="muted">
+                    Locked
+                  </Text>
+                </View>
+              )}
+              {unlocked && !active && (
+                <Text variant="meta" weight="medium" tone="secondary">
+                  Tap to activate
+                </Text>
+              )}
+            </View>
+          </View>
+        </Card>
+      </TouchableOpacity>
+    );
+  };
+
   const handleShareApp = async () => {
     try {
       const result = await Share.share({
@@ -233,6 +336,22 @@ export default function ThemeEvolutionSection() {
               {themeEntries
                 .filter(([themeKey]) => !themeKey.startsWith('share_') && themeKey !== 'winter_2026')
                 .map(([themeKey, theme]) => renderThemeCard(themeKey, theme))}
+            </View>
+          </View>
+
+          <View style={[
+            styles.sectionContainer,
+            styles.shareableSection,
+            { borderTopColor: currentTheme.colors.border }
+          ]}>
+            <Text variant="body" tone="primary" style={styles.subsectionTitle}>
+              Background Gradients
+            </Text>
+            <Text variant="meta" tone="secondary" style={styles.subsectionDescription}>
+              A color wash behind every screen — unlocks by tier
+            </Text>
+            <View style={styles.themeGrid}>
+              {BACKGROUND_GRADIENTS.map(renderGradientCard)}
             </View>
           </View>
 
@@ -328,6 +447,12 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
+  },
+  gradientSwatch: {
+    width: 44,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
   },
   themeStatus: {
     alignItems: 'center',

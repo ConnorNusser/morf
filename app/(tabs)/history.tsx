@@ -13,6 +13,7 @@ import { Text, useInk, View } from "@/components/Themed";
 import Divider from "@/components/ui/Divider";
 import EmptyState from "@/components/ui/EmptyState";
 import NavRow from "@/components/ui/NavRow";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import SegmentedTabs from "@/components/ui/SegmentedTabs";
 import StatStrip from "@/components/ui/StatStrip";
 import { useCustomExercises } from "@/contexts/CustomExercisesContext";
@@ -350,12 +351,8 @@ export default function HistoryScreen() {
   }, [trackedExercises, exerciseSearch, exerciseSort]);
 
   return (
-    <SafeAreaView
-      style={[
-        layout.flex1,
-        { backgroundColor: currentTheme.colors.background },
-      ]}
-    >
+    <ScreenBackground>
+    <SafeAreaView style={layout.flex1}>
       <View style={styles.header}>
         <Text
           variant="screenTitle"
@@ -599,6 +596,7 @@ export default function HistoryScreen() {
         onClose={() => setSelectedExercise(null)}
       />
     </SafeAreaView>
+    </ScreenBackground>
   );
 }
 

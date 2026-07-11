@@ -13,6 +13,7 @@ import WorkoutFinishModal from "@/components/workout/WorkoutFinishModal";
 import WorkoutNoteInput, {
   WorkoutNoteInputRef,
 } from "@/components/workout/WorkoutNoteInput";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import { useTheme } from "@/contexts/ThemeContext";
 import { DEFAULT_REST_SECONDS, useRestTimer } from "@/hooks/useRestTimer";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
@@ -586,13 +587,8 @@ export default function WorkoutScreen() {
   ]);
 
   return (
-    <SafeAreaView
-      edges={["top"]}
-      style={[
-        layout.flex1,
-        { backgroundColor: currentTheme.colors.background },
-      ]}
-    >
+    <ScreenBackground>
+    <SafeAreaView edges={["top"]} style={layout.flex1}>
       <KeyboardAvoidingView
         style={layout.flex1}
         // No behavior: the only keyboard-avoided surface is the floating dock,
@@ -980,6 +976,7 @@ export default function WorkoutScreen() {
         );
       })()}
     </SafeAreaView>
+    </ScreenBackground>
   );
 }
 

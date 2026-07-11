@@ -1,4 +1,5 @@
 import { storageService } from '@/lib/storage/storage';
+import { BackgroundGradientId, DEFAULT_GRADIENT_ID } from '@/lib/ui/backgroundGradients';
 import { Theme, ThemeLevel, themes } from '@/lib/ui/theme';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
@@ -7,6 +8,8 @@ interface ThemeContextType {
   currentThemeLevel: ThemeLevel;
   themes: typeof themes;
   setThemeLevel: (level: ThemeLevel) => void;
+  currentGradientId: BackgroundGradientId;
+  setGradientId: (id: BackgroundGradientId) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -16,6 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const getDefaultTheme = (): ThemeLevel => 'beginner_dark';
 
   const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
+  const [currentGradientId, setCurrentGradientId] = useState<BackgroundGradientId>(DEFAULT_GRADIENT_ID);
 
   useEffect(() => {
     const loadThemePreference = async () => {
@@ -27,6 +31,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setCurrentThemeLevel(defaultTheme);
         await storageService.saveThemePreference(defaultTheme);
       }
+      const savedGradient = await storageService.getGradientPreference();
+      if (savedGradient) {
+        setCurrentGradientId(savedGradient);
+      }
     };
     loadThemePreference();
   }, []);
@@ -36,6 +44,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await storageService.saveThemePreference(level);
   }, []);
 
+  const setGradientId = useCallback(async (id: BackgroundGradientId) => {
+    setCurrentGradientId(id);
+    await storageService.saveGradientPreference(id);
+  }, []);
+
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
   const value = useMemo(() => ({
@@ -43,7 +56,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     currentThemeLevel,
     themes,
     setThemeLevel,
-  }), [currentTheme, currentThemeLevel, setThemeLevel]);
+    currentGradientId,
+    setGradientId,
+  }), [currentTheme, currentThemeLevel, setThemeLevel, currentGradientId, setGradientId]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

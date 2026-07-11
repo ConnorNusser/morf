@@ -9,6 +9,7 @@ import SkeletonCard from "@/components/SkeletonCard";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { View } from "@/components/Themed";
 import NavRow from "@/components/ui/NavRow";
+import ScreenBackground from "@/components/ui/ScreenBackground";
 import UnlockNotificationModal, {
   NotificationType,
 } from "@/components/UnlockNotificationModal";
@@ -166,27 +167,26 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <ScrollView
-        style={[
-          layout.flex1,
-          { backgroundColor: currentTheme.colors.background },
-        ]}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <View
-          style={[
-            styles.content,
-            { paddingTop: contentTopPadding },
-          ]}
+      <ScreenBackground>
+        <ScrollView
+          style={layout.flex1}
+          contentContainerStyle={styles.scrollContent}
         >
-          <DashboardHeader />
-          <SkeletonCard variant="overall" />
-          <SkeletonCard variant="button" />
-          <SkeletonCard variant="stats" />
-          <SkeletonCard variant="stats" />
-          <SkeletonCard variant="stats" />
-        </View>
-      </ScrollView>
+          <View
+            style={[
+              styles.content,
+              { paddingTop: contentTopPadding },
+            ]}
+          >
+            <DashboardHeader />
+            <SkeletonCard variant="overall" />
+            <SkeletonCard variant="button" />
+            <SkeletonCard variant="stats" />
+            <SkeletonCard variant="stats" />
+            <SkeletonCard variant="stats" />
+          </View>
+        </ScrollView>
+      </ScreenBackground>
     );
   }
 
@@ -194,12 +194,7 @@ export default function HomeScreen() {
   if (viewMode === "feed") {
     return (
       <>
-        <View
-          style={[
-            layout.flex1,
-            { backgroundColor: currentTheme.colors.background },
-          ]}
-        >
+        <ScreenBackground>
           <View
             style={[
               styles.feedHeader,
@@ -219,7 +214,7 @@ export default function HomeScreen() {
             onUserPress={setSelectedUser}
             refreshTrigger={feedRefreshTrigger}
           />
-        </View>
+        </ScreenBackground>
 
         <UserProfileModal
           visible={selectedUser !== null}
@@ -235,11 +230,9 @@ export default function HomeScreen() {
       {/* Scroll when content is tall (so the last card is never sliced);
           flexGrow fills the viewport when it's short so the flex spacer can
           pin View Leaderboards to the bottom instead of leaving dead space. */}
+      <ScreenBackground>
       <ScrollView
-        style={[
-          layout.flex1,
-          { backgroundColor: currentTheme.colors.background },
-        ]}
+        style={layout.flex1}
         contentContainerStyle={[
           styles.content,
           styles.homeContent,
@@ -272,6 +265,7 @@ export default function HomeScreen() {
           onPress={() => setShowLeaderboard(true)}
         />
       </ScrollView>
+      </ScreenBackground>
 
       <LeaderboardModal
         visible={showLeaderboard}

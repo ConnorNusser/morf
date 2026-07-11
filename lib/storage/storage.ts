@@ -1,6 +1,7 @@
 import { CustomExercise, ExerciseRecord, LoggedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
+import { BackgroundGradientId, getBackgroundGradient } from '@/lib/ui/backgroundGradients';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
 import { getNextInCycle } from '@/lib/workout/activeRoutine';
 import { EMPTY_REVIEW_STATE, ReviewPromptState } from '@/lib/workout/reviewPrompt';
@@ -15,6 +16,7 @@ export const STORAGE_KEYS = {
   WORKOUT_HISTORY: 'workout_history',
   ACTIVE_NOTE_SESSION: 'active_note_session',
   THEME_PREFERENCE: 'theme_preference',
+  BACKGROUND_GRADIENT: 'background_gradient',
   LIFT_DISPLAY_FILTERS: 'lift_display_filters',
   ROUTINES: 'routines',
   PROGRAMS: 'programs',
@@ -152,6 +154,26 @@ class StorageService {
       return data as ThemeLevel;
     } catch (error) {
       console.error('Error loading theme preference:', error);
+      return null;
+    }
+  }
+
+  async saveGradientPreference(gradientId: BackgroundGradientId): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.BACKGROUND_GRADIENT, gradientId);
+    } catch (error) {
+      console.error('Error saving gradient preference:', error);
+    }
+  }
+
+  async getGradientPreference(): Promise<BackgroundGradientId | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.BACKGROUND_GRADIENT);
+      if (!data) return null;
+      // getBackgroundGradient maps unknown/removed ids to 'none'
+      return getBackgroundGradient(data).id;
+    } catch (error) {
+      console.error('Error loading gradient preference:', error);
       return null;
     }
   }

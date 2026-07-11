@@ -5,6 +5,7 @@ import { formatRelativeDate } from '@/lib/ui/formatters';
 import RoutineEditorModal from '@/components/workout/RoutineEditorModal';
 import RoutineGeneratorModal from '@/components/workout/RoutineGeneratorModal';
 import RoutineProgressModal from '@/components/workout/RoutineProgressModal';
+import ScreenBackground from '@/components/ui/ScreenBackground';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
 import { storageService } from '@/lib/storage/storage';
@@ -516,7 +517,8 @@ export default function NotesScreen() {
   const ghostChip = { backgroundColor: 'transparent', borderColor: currentTheme.colors.text + '1A' };
 
   return (
-    <SafeAreaView style={[layout.flex1, { backgroundColor: currentTheme.colors.background }]}>
+    <ScreenBackground>
+    <SafeAreaView style={layout.flex1}>
       <RNView style={styles.header}>
         <Text weight="bold" style={[styles.headerTitle, { color: currentTheme.colors.text }]}>
           Routines
@@ -851,5 +853,6 @@ export default function NotesScreen() {
         </RNView>
       </Modal>
     </SafeAreaView>
+    </ScreenBackground>
   );
 }
