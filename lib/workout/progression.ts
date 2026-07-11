@@ -58,6 +58,14 @@ export function nextPrescription(
 ): NextPrescription {
   const { weight, reps } = last;
 
+  // Bodyweight (no load assigned): reps-only progression — no load to step, no
+  // ceiling; hit the target and the target climbs.
+  if (weight === 0) {
+    if (reps >= range.floor) return { weight: 0, reps: reps + 1, change: 'add-rep' };
+    if (range.floor - reps <= MISS_TOLERANCE_REPS) return { weight: 0, reps: range.floor, change: 'hold' };
+    return { weight: 0, reps: Math.max(1, reps), change: 'deload' };
+  }
+
   // Topped the range → earn a load step, reset reps to floor.
   if (reps >= range.ceiling) {
     return { weight: roundWeight(weight + increment, last.unit), reps: range.floor, change: 'increase' };
@@ -101,8 +109,16 @@ export interface LoggedSet {
  */
 export function resolveWorkingSet(sets: LoggedSet[]): LastPerformance | null {
   const hasRecordedRoles = sets.some(s => s.isWarmup !== undefined);
-  const done = sets.filter(s => s.completed && s.weight > 0 && s.reps > 0 && s.isWarmup !== true);
-  if (done.length === 0) return null;
+  const work = sets.filter(s => s.completed && s.reps > 0 && s.isWarmup !== true);
+  const done = work.filter(s => s.weight > 0);
+
+  // Pure bodyweight session (no loaded sets): reps-only anchor at weight 0.
+  // Any loaded set present (weighted pull-ups) → judge the loaded work instead.
+  if (done.length === 0) {
+    if (work.length === 0) return null;
+    const sorted = work.map(s => s.reps).sort((a, b) => a - b);
+    return { weight: 0, reps: sorted[Math.floor((sorted.length - 1) / 2)], unit: work[0].unit };
+  }
 
   const countByWeight = new Map<number, number>();
   for (const s of done) countByWeight.set(s.weight, (countByWeight.get(s.weight) ?? 0) + 1);
