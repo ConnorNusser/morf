@@ -12,10 +12,10 @@ import Animated, {
 
 import { HapticTab } from '@/components/HapticTab';
 import ProfileIcon from '@/components/icons/ProfileIcon';
+import { HistoryIcon, HomeIcon, RoutinesIcon, WorkoutIcon } from '@/components/icons/TabIcons';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { userService } from '@/lib/services/userService';
-import { Ionicons } from '@expo/vector-icons';
 
 
 function TabBarIcon({ iconName, focused }: {
@@ -24,20 +24,21 @@ function TabBarIcon({ iconName, focused }: {
 }) {
   const { currentTheme } = useTheme();
   const color = focused ? currentTheme.colors.primary : '#8E8E93';
-  const size = 24;
 
+  // One monoline family (see components/icons/TabIcons.tsx); the center
+  // workout tab runs larger, matching the old "+".
   const getIcon = () => {
     switch (iconName) {
       case 'home':
-        return <Ionicons name="home" size={20} color={color} />;
+        return <HomeIcon size={22} color={color} />;
       case 'workout':
-        return <Ionicons name="add" size={28} color={color} style={{ marginTop: -4 }} />;
+        return <WorkoutIcon size={28} color={color} />;
       case 'history':
-        return <Ionicons name="time-outline" size={22} color={color} />;
+        return <HistoryIcon size={22} color={color} />;
       case 'routines':
-        return <Ionicons name="calendar-outline" size={20} color={color} />;
+        return <RoutinesIcon size={22} color={color} />;
       case 'profile':
-        return <ProfileIcon color={color} size={size} />;
+        return <ProfileIcon color={color} size={22} />;
       default:
         return null;
     }
