@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useLikePop } from '@/hooks/useLikePop';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
@@ -11,7 +12,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   InputAccessoryView,
   Keyboard,
   Modal,
@@ -95,15 +95,7 @@ function CommentItem({
         onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
         activeOpacity={0.7}
       >
-        {comment.profile_picture_url ? (
-          <Image source={{ uri: comment.profile_picture_url }} style={styles.commentAvatarImage} />
-        ) : (
-          <View style={[styles.commentAvatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-            <Text style={[styles.commentAvatarText, { color: currentTheme.colors.primary }]}>
-              {comment.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <UserAvatar uri={comment.profile_picture_url} size={36} />
       </TouchableOpacity>
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
@@ -498,21 +490,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 10,
     paddingVertical: 4,
-  },
-  commentAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  commentAvatarText: {
-    fontSize: 15,
-  },
-  commentAvatarImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
   },
   commentContent: {
     flex: 1,

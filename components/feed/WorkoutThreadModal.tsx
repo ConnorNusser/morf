@@ -3,6 +3,7 @@ import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import Badge from '@/components/ui/Badge';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
 import { formatDurationWords, formatRelativeTime } from '@/lib/ui/formatters';
@@ -17,7 +18,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Image,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -95,15 +95,7 @@ function WorkoutCommentItem({
         onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
         activeOpacity={0.7}
       >
-        {comment.profile_picture_url ? (
-          <Image source={{ uri: comment.profile_picture_url }} style={styles.commentAvatarImage} />
-        ) : (
-          <View style={[styles.commentAvatar, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-            <Text style={[styles.commentAvatarText, { color: currentTheme.colors.primary }]}>
-              {comment.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <UserAvatar uri={comment.profile_picture_url} size={32} />
       </TouchableOpacity>
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
@@ -371,15 +363,7 @@ export default function WorkoutThreadModal({
               activeOpacity={0.7}
               style={styles.userTapArea}
             >
-              {workout.profile_picture_url ? (
-                <Image source={{ uri: workout.profile_picture_url }} style={styles.avatar} />
-              ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                  <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-                    {workout.username.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <UserAvatar uri={workout.profile_picture_url} size={44} />
               <View style={styles.userInfo}>
                 <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                   @{workout.username}
@@ -728,21 +712,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
-  },
   userInfo: {
     flex: 1,
     marginLeft: 12,
@@ -912,21 +881,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-  },
-  commentAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  commentAvatarImage: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  commentAvatarText: {
-    fontSize: 14,
   },
   commentContent: {
     flex: 1,
