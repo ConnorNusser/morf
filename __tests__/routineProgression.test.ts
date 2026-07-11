@@ -244,6 +244,48 @@ describe('anchor robustness (audit regressions)', () => {
   });
 });
 
+describe('median-set judgment', () => {
+  // 4×6 day at 135 — sessions are judged by the TYPICAL (lower-median) set,
+  // so one collapsed fatigue set can't turn an overshoot into a deload.
+  const fourBySix: Routine = {
+    ...day('heavy', 'Bench 4×6', 6),
+    exercises: [{
+      exerciseId: BENCH,
+      exerciseName: 'Bench Press (Barbell)',
+      sets: [{ reps: 6 }, { reps: 6 }, { reps: 6 }, { reps: 6 }],
+    }],
+  } as Routine;
+  const rec = record(135, 6);
+  const judge = (reps: number[]) =>
+    calculateRoutine(fourBySix, { [BENCH]: rec }, 'lbs', [
+      session('heavy', reps.map(r => [135, r] as [number, number]), 1),
+    ]).exercises[0];
+
+  it('8/9/9/4 is an overshoot, not a miss — load increases', () => {
+    const ex = judge([8, 9, 9, 4]);
+    expect(ex.workingWeight).toBe(140);
+    expect(ex.progression).toBe('increase');
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(6); // reset to floor
+  });
+
+  it('6/6/6/4 made the session — same weight, chase reps', () => {
+    const ex = judge([6, 6, 6, 4]);
+    expect(ex.workingWeight).toBe(135);
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(7);
+  });
+
+  it('4/4/4/4 genuinely missed — deload as before', () => {
+    const ex = judge([4, 4, 4, 4]);
+    expect(ex.workingWeight).toBe(125);
+    expect(ex.progression).toBe('decrease');
+  });
+
+  it('a lone strong set among misses cannot carry the session (lower median)', () => {
+    const ex = judge([8, 4, 4, 4]);
+    expect(ex.progression).toBe('decrease'); // median 4, not rescued by the 8
+  });
+});
+
 describe('cross-day spiral regression', () => {
   it('alternating heavy and volume days never erodes either target', () => {
     const heavy = day('heavy', 'Heavy 3×5', 5);
