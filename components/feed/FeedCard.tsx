@@ -3,6 +3,7 @@ import AchievementModal, { AchievementModalItem } from '@/components/gamificatio
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import Badge from '@/components/ui/Badge';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { achievementMeta } from '@/lib/gamification/achievementMeta';
@@ -16,7 +17,7 @@ import { formatDistance, formatDuration as formatCardioDuration, formatVolume } 
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 export type FeedWorkout = WorkoutSummary & {
@@ -87,15 +88,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(workout)} activeOpacity={0.7}>
-          {workout.profile_picture_url ? (
-            <Image source={{ uri: workout.profile_picture_url }} style={styles.avatar} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-              <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-                {workout.username.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
+          <UserAvatar uri={workout.profile_picture_url} size={44} />
           <View>
             <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}
@@ -276,21 +269,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
   },
   username: {
     fontSize: 15,

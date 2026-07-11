@@ -1,4 +1,5 @@
 import { Text, View } from '@/components/Themed';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useImageCarousel } from '@/hooks/useImageCarousel';
 import { useMute } from '@/hooks/useMute';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -156,15 +157,7 @@ function FeedPostCard({
       >
         <View style={styles.header}>
           <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
-            {post.profile_picture_url ? (
-              <Image source={{ uri: post.profile_picture_url }} style={styles.avatar} />
-            ) : (
-              <View style={[styles.avatarPlaceholder, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                <Text style={[styles.avatarText, { color: currentTheme.colors.primary }]}>
-                  {post.username.charAt(0).toUpperCase()}
-                </Text>
-              </View>
-            )}
+            <UserAvatar uri={post.profile_picture_url} size={44} />
             <View>
               <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}
@@ -371,21 +364,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     flex: 1,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 18,
   },
   username: {
     fontSize: 15,
