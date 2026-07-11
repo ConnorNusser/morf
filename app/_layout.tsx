@@ -140,9 +140,9 @@ export default function RootLayout() {
     const responseSub = notificationService.addNotificationResponseListener(
       (response) => {
         const data = response.notification.request.content.data;
-        // Retention reminders deep-link to the Notes tab ("Up Next" routine).
+        // Retention reminders deep-link to the Routines tab ("Up Next" routine).
         if (data?.kind === "retention") {
-          router.push("/(tabs)/notes");
+          router.push("/(tabs)/routines");
         } else if (
           data?.type === "friend_pr" ||
           data?.type === "post_like" ||
