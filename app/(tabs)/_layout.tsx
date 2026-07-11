@@ -11,8 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { HapticTab } from '@/components/HapticTab';
-import ProfileIcon from '@/components/icons/ProfileIcon';
-import { HistoryIcon, HomeIcon, RoutinesIcon, WorkoutIcon } from '@/components/icons/TabIcons';
+import { HistoryIcon, HomeIcon, ProfileBadgeIcon, RoutinesIcon, WorkoutIcon } from '@/components/icons/TabIcons';
 import { OnboardingModal } from '@/components/OnboardingModal';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { userService } from '@/lib/services/userService';
@@ -38,7 +37,7 @@ function TabBarIcon({ iconName, focused }: {
       case 'routines':
         return <RoutinesIcon size={22} color={color} />;
       case 'profile':
-        return <ProfileIcon color={color} size={22} />;
+        return <ProfileBadgeIcon color={color} size={22} />;
       default:
         return null;
     }

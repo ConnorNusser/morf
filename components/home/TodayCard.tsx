@@ -218,7 +218,7 @@ export default function TodayCard() {
                   styles.secondaryButton,
                   { borderColor: currentTheme.colors.border },
                 ]}
-                onPress={() => router.push("/notes")}
+                onPress={() => router.push("/routines")}
                 activeOpacity={0.85}
               >
                 <Text variant="title" tone="primary" weight="semiBold">
