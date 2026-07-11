@@ -1,20 +1,24 @@
 // Tier-gated background gradients: an optional color wash rendered behind
-// every tab screen (see components/ui/ScreenBackground.tsx). Options are
-// sorted by the tier that unlocks them, and each draws its colors from that
-// tier's theme (primary → accent), so the ladder reads E → S.
+// every tab screen (see components/ui/ScreenBackground.tsx). One gradient per
+// strength tier, anchored on that tier's canonical TIER_COLORS entry (the
+// color every tier badge/leaderboard band uses) fading to a lighter companion
+// shade, and named after the tier's rarity word.
+
+import { StrengthTierBase, TIER_COLORS } from '@/lib/data/strengthStandards';
 
 export type BackgroundGradientId =
   | 'none'
-  | 'earth'
-  | 'steel'
-  | 'circuit'
-  | 'ocean'
-  | 'nebula'
-  | 'ember';
+  | 'common'
+  | 'uncommon'
+  | 'rare'
+  | 'epic'
+  | 'legendary';
 
 export interface BackgroundGradient {
   id: BackgroundGradientId;
   displayName: string;
+  /** Tier whose TIER_COLORS entry anchors the gradient; null for 'none'. */
+  tier: StrengthTierBase | null;
   /** Percentile gate, mirrors THEME_CONFIG tiers (0 = everyone). */
   requiredPercentile: number;
   description: string;
@@ -29,51 +33,50 @@ export const BACKGROUND_GRADIENTS: BackgroundGradient[] = [
   {
     id: 'none',
     displayName: 'None',
+    tier: null,
     requiredPercentile: 0,
     description: 'No gradient',
     colors: null,
   },
   {
-    id: 'earth',
-    displayName: 'Earth',
+    id: 'common',
+    displayName: 'Common',
+    tier: 'E',
     requiredPercentile: 0,
-    description: 'Available to everyone',
-    colors: ['#8B5A3C', '#7FB069'], // E tier
+    description: 'E Tier · Available to everyone',
+    colors: [TIER_COLORS.E, '#B8B8B8'],
   },
   {
-    id: 'steel',
-    displayName: 'Steel',
-    requiredPercentile: 0,
-    description: 'Available to everyone',
-    colors: ['#1F6FEB', '#D4D4D8'], // E tier dark
-  },
-  {
-    id: 'circuit',
-    displayName: 'Circuit',
+    id: 'uncommon',
+    displayName: 'Uncommon',
+    tier: 'C',
     requiredPercentile: 25,
-    description: 'Requires 25th percentile',
-    colors: ['#5856D6', '#34C759'], // C tier
+    description: 'C Tier · Requires 25th percentile',
+    colors: [TIER_COLORS.C, '#6FCF97'],
   },
   {
-    id: 'ocean',
-    displayName: 'Ocean',
+    id: 'rare',
+    displayName: 'Rare',
+    tier: 'B',
     requiredPercentile: 50,
-    description: 'Requires 50th percentile',
-    colors: ['#3B82F6', '#22D3EE'], // B tier
+    description: 'B Tier · Requires 50th percentile',
+    colors: [TIER_COLORS.B, '#7EA4F2'],
   },
   {
-    id: 'nebula',
-    displayName: 'Nebula',
+    id: 'epic',
+    displayName: 'Epic',
+    tier: 'A',
     requiredPercentile: 75,
-    description: 'Requires 75th percentile',
-    colors: ['#A855F7', '#F472B6'], // A tier
+    description: 'A Tier · Requires 75th percentile',
+    colors: [TIER_COLORS.A, '#D178FF'],
   },
   {
-    id: 'ember',
-    displayName: 'Ember',
+    id: 'legendary',
+    displayName: 'Legendary',
+    tier: 'S',
     requiredPercentile: 90,
-    description: 'Requires 90th percentile',
-    colors: ['#C15F3C', '#E67D22'], // S tier
+    description: 'S Tier · Requires 90th percentile',
+    colors: [TIER_COLORS.S, '#FF9F1C'],
   },
 ];
 

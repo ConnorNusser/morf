@@ -1,3 +1,4 @@
+import { TIER_COLORS } from '@/lib/data/strengthStandards';
 import {
   BACKGROUND_GRADIENTS,
   DEFAULT_GRADIENT_ID,
@@ -40,14 +41,23 @@ describe('background gradient catalog', () => {
       }
     }
   });
+
+  it('anchors every gradient on its tier color from TIER_COLORS', () => {
+    for (const g of BACKGROUND_GRADIENTS) {
+      if (g.id === 'none') continue;
+      expect(g.tier).not.toBeNull();
+      expect(g.colors![0]).toBe(TIER_COLORS[g.tier!]);
+    }
+  });
 });
 
 describe('getBackgroundGradient', () => {
   it('resolves known ids', () => {
-    expect(getBackgroundGradient('ember').id).toBe('ember');
+    expect(getBackgroundGradient('legendary').id).toBe('legendary');
   });
 
-  it('falls back to none for unknown, null, or undefined ids', () => {
+  it('falls back to none for unknown, legacy, null, or undefined ids', () => {
+    expect(getBackgroundGradient('earth').id).toBe('none'); // pre-rename id
     expect(getBackgroundGradient('sparkle_legacy').id).toBe('none');
     expect(getBackgroundGradient(null).id).toBe('none');
     expect(getBackgroundGradient(undefined).id).toBe('none');
@@ -55,20 +65,19 @@ describe('getBackgroundGradient', () => {
 });
 
 describe('isGradientUnlocked', () => {
-  it('none and E-tier gradients are available to everyone', () => {
+  it('none and the E-tier gradient are available to everyone', () => {
     expect(isGradientUnlocked('none', 0)).toBe(true);
-    expect(isGradientUnlocked('earth', 0)).toBe(true);
-    expect(isGradientUnlocked('steel', 0)).toBe(true);
+    expect(isGradientUnlocked('common', 0)).toBe(true);
   });
 
   it('gates each tier at its percentile boundary', () => {
-    expect(isGradientUnlocked('circuit', 24)).toBe(false);
-    expect(isGradientUnlocked('circuit', 25)).toBe(true);
-    expect(isGradientUnlocked('ocean', 49)).toBe(false);
-    expect(isGradientUnlocked('ocean', 50)).toBe(true);
-    expect(isGradientUnlocked('nebula', 74)).toBe(false);
-    expect(isGradientUnlocked('nebula', 75)).toBe(true);
-    expect(isGradientUnlocked('ember', 89)).toBe(false);
-    expect(isGradientUnlocked('ember', 90)).toBe(true);
+    expect(isGradientUnlocked('uncommon', 24)).toBe(false);
+    expect(isGradientUnlocked('uncommon', 25)).toBe(true);
+    expect(isGradientUnlocked('rare', 49)).toBe(false);
+    expect(isGradientUnlocked('rare', 50)).toBe(true);
+    expect(isGradientUnlocked('epic', 74)).toBe(false);
+    expect(isGradientUnlocked('epic', 75)).toBe(true);
+    expect(isGradientUnlocked('legendary', 89)).toBe(false);
+    expect(isGradientUnlocked('legendary', 90)).toBe(true);
   });
 });
