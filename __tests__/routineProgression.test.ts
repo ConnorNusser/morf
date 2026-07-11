@@ -102,10 +102,9 @@ describe('seeding a slot with no history of its own', () => {
     const calc = calculateRoutine(volume, { [BENCH]: record(225, 5) }, 'lbs', []);
     const ex = calc.exercises[0];
 
-    // Equivalent of 225×5 at 12 reps via the same curve, grid-floored minus one
-    // increment (bench increment = 5).
-    const equivalent = OneRMCalculator.estimate(225, 5) * (OneRMCalculator.getPercentageFor(12) / 100);
-    const expected = Math.max(5, Math.floor(equivalent / 5) * 5 - 5);
+    // Epley-ratio equivalent of 225×5 at 12 reps, grid-floored (bench inc = 5).
+    const equivalent = 225 * (1 + 5 / 30) / (1 + 12 / 30);
+    const expected = Math.max(5, Math.floor(equivalent / 5) * 5);
     expect(ex.workingWeight).toBe(expected);
     expect(ex.workingWeight).toBeLessThan(200); // far below the 5-rep load
     expect(ex.workingWeight).toBeGreaterThan(150); // but a real working weight
@@ -190,7 +189,7 @@ describe('anchor robustness (audit regressions)', () => {
     const volumeized = day('heavy', 'Heavy (now 3×12)', 12);
     const down = calculateRoutine(volumeized, { [BENCH]: record(200, 5) }, 'lbs', history);
     expect(down.exercises[0].progression).toBe('maintain');
-    const expectedDown = Math.max(5, Math.floor((OneRMCalculator.estimate(200, 5) * (OneRMCalculator.getPercentageFor(12) / 100)) / 5) * 5 - 5);
+    const expectedDown = Math.max(5, Math.floor((200 * (1 + 5 / 30) / (1 + 12 / 30)) / 5) * 5);
     expect(down.exercises[0].workingWeight).toBe(expectedDown);
 
     // Floor edited 12 → 5: not a top-out — translate up and hold.
@@ -311,6 +310,21 @@ describe('bodyweight progression', () => {
   });
 });
 
+describe('repeated overshoots count in full', () => {
+  it("40-lb rows at 11/11/31/31 against an 11-rep slot jump, not +1 rep", () => {
+    // The 11s were the too-low target being followed; the 31s are the signal.
+    const rows = day('row', 'Rows 4×11', 11, 'row-barbell');
+    rows.exercises[0].sets = [{ reps: 11 }, { reps: 11 }, { reps: 11 }, { reps: 11 }];
+    const history = [session('row', [[40, 11], [40, 11], [40, 31], [40, 31]], 1, 'row-barbell')];
+    const rec: ExerciseRecord = { ...record(40, 11), exerciseId: 'row-barbell' };
+    const ex = calculateRoutine(rows, { 'row-barbell': rec }, 'lbs', history).exercises[0];
+    // Upper median 31 → Epley-translated to an 11-rep weight (row inc = 10) → 50×11 hold.
+    expect(ex.workingWeight).toBe(50);
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(11);
+    expect(ex.progression).toBe('maintain');
+  });
+});
+
 describe('median-set judgment', () => {
   // 4×6 day at 135 — sessions are judged by the TYPICAL (lower-median) set,
   // so one collapsed fatigue set can't turn an overshoot into a deload.
@@ -328,11 +342,12 @@ describe('median-set judgment', () => {
       session('heavy', reps.map(r => [135, r] as [number, number]), 1),
     ]).exercises[0];
 
-  it('8/9/9/4 is an overshoot, not a miss — load increases', () => {
+  it('8/9/9/4 is an overshoot, not a miss — load climbs', () => {
+    // Upper median 9 → translated to the 6-rep equivalent and held.
     const ex = judge([8, 9, 9, 4]);
-    expect(ex.workingWeight).toBe(140);
-    expect(ex.progression).toBe('increase');
-    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(6); // reset to floor
+    expect(ex.workingWeight).toBe(145);
+    expect(ex.progression).toBe('maintain');
+    expect(ex.sets.find(s => !s.isWarmup)?.reps).toBe(6);
   });
 
   it('6/6/6/4 made the session — same weight, chase reps', () => {
@@ -347,7 +362,7 @@ describe('median-set judgment', () => {
     expect(ex.progression).toBe('decrease');
   });
 
-  it('a lone strong set among misses cannot carry the session (lower median)', () => {
+  it('a lone strong set among misses cannot carry the session (median)', () => {
     const ex = judge([8, 4, 4, 4]);
     expect(ex.progression).toBe('decrease'); // median 4, not rescued by the 8
   });
