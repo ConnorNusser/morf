@@ -1,6 +1,7 @@
 // Editable source of truth for a logging session; serializes back to note syntax
 // (draftToNoteText) so the finish/save/persistence pipeline works unchanged.
 import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
+import { roundWeight } from '@/lib/utils/utils';
 import { getWorkoutById } from '@/lib/workout/workouts';
 import { RoutineExercise, WeightUnit } from '@/types';
 
@@ -9,6 +10,10 @@ export interface DraftSet {
   reps: number;
   unit: WeightUnit;
   done?: boolean; // checked off (green row)
+  // Recorded role, not a guess: carried from the routine prescription or set by
+  // the explicit "Add warmup set" action, and persisted through save so anchor
+  // resolution and routine folding read it instead of reconstructing it.
+  isWarmup?: boolean;
 }
 
 export interface DraftExercise {
@@ -43,7 +48,7 @@ export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts:
   for (const pex of parsed) {
     const name = displayName(pex);
     const ckey = consolidationKey(pex.matchedExerciseId, name);
-    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, done: opts.done }));
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, done: opts.done, isWarmup: s.isWarmup }));
     const existing = next.find(e => consolidationKey(e.exerciseId, e.name) === ckey);
     if (existing) {
       existing.sets.push(...sets);
@@ -72,7 +77,7 @@ export function buildDraft(
 ): WorkoutDraft {
   return parsed.exercises.map(pex => {
     const name = displayName(pex);
-    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit }));
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, isWarmup: s.isWarmup }));
     return {
       key: nextKey(),
       name,
@@ -111,7 +116,9 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       // prefill/restore, added) are dropped so they don't land in history as completed.
       sets: ex.sets
         .filter(s => s.done === true)
-        .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true })),
+        // Stamp the role on every saved set (false, not undefined, for work sets)
+        // so downstream can tell a role-recorded session from legacy history.
+        .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true, isWarmup: s.isWarmup === true })),
     }))
     .filter(ex => ex.sets.length > 0);
   return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
@@ -199,9 +206,31 @@ export function toggleSetDone(draft: WorkoutDraft, key: string, index: number): 
 export function addSet(draft: WorkoutDraft, key: string): WorkoutDraft {
   return mapExercise(draft, key, ex => {
     const last = ex.sets[ex.sets.length - 1];
-    // A manually added set starts un-done.
-    const added: DraftSet = last ? { ...last, done: false } : { weight: 0, reps: 0, unit: 'lbs', done: false };
+    // A manually added set starts un-done and is a WORK set — sets append at the
+    // end, after the work; warmups are added explicitly via addWarmupSet.
+    const added: DraftSet = last
+      ? { ...last, done: false, isWarmup: undefined }
+      : { weight: 0, reps: 0, unit: 'lbs', done: false };
     return { ...ex, sets: [...ex.sets, added] };
+  });
+}
+
+/** Prepend an explicit warmup row (from the exercise's ⋯ menu): ~60% of the
+ *  heaviest work set, flagged so the anchor and the routine fold read it as a
+ *  warmup — no guessing downstream. */
+export function addWarmupSet(draft: WorkoutDraft, key: string): WorkoutDraft {
+  return mapExercise(draft, key, ex => {
+    const work = ex.sets.filter(s => !s.isWarmup);
+    const top = work.reduce((m, s) => Math.max(m, s.weight), 0);
+    const unit = ex.sets[0]?.unit ?? 'lbs';
+    const added: DraftSet = {
+      weight: top > 0 ? roundWeight(top * 0.6, unit) : 0,
+      reps: work[0]?.reps ?? ex.sets[0]?.reps ?? 5,
+      unit,
+      done: false,
+      isWarmup: true,
+    };
+    return { ...ex, sets: [added, ...ex.sets] };
   });
 }
 
@@ -257,23 +286,25 @@ export function draftToRoutineExercises(draft: WorkoutDraft, prev: RoutineExerci
       seen.set(ex.exerciseId as string, occurrence + 1);
       const existing = prev.filter(p => p.exerciseId === ex.exerciseId)[occurrence];
 
-      // Warmups are program structure (editor-owned): their count never grows or
-      // shifts from a session. The draft's set-count delta applies to WORK sets,
-      // so deleting/adding rows can't slide the isWarmup flag onto a work set.
-      const warmups = (existing?.sets ?? []).filter(s => s.isWarmup);
+      // Each draft row carries its recorded role (isWarmup), so the fold reads
+      // it instead of reconstructing it from counts — adding a warmup row in the
+      // session adds a warmup slot; deleting one removes exactly that slot.
+      // Reps still preserve the stored floors for carried-over sets (performed
+      // reps are performance, not program); added work sets inherit the last
+      // floor, and only brand-new rows take their reps from the draft.
+      const storedWarmupReps = (existing?.sets ?? []).filter(s => s.isWarmup).map(s => s.reps);
       const floors = (existing?.sets ?? []).filter(s => !s.isWarmup).map(s => s.reps);
-      const warmupCount = Math.min(warmups.length, Math.max(0, ex.sets.length - 1));
-      const workCount = Math.max(1, ex.sets.length - warmupCount);
-      const workReps = (i: number): number =>
-        floors[i] ?? floors[floors.length - 1] ?? ex.sets[Math.min(warmupCount + i, ex.sets.length - 1)].reps;
+      let warmupIdx = 0;
+      let workIdx = 0;
 
       return {
         exerciseId: ex.exerciseId as string,
         exerciseName: ex.name,
-        sets: [
-          ...warmups.slice(0, warmupCount).map(s => ({ reps: s.reps, isWarmup: true })),
-          ...Array.from({ length: workCount }, (_, i) => ({ reps: workReps(i), isWarmup: undefined })),
-        ],
+        sets: ex.sets.map(s =>
+          s.isWarmup
+            ? { reps: storedWarmupReps[warmupIdx++] ?? s.reps, isWarmup: true }
+            : { reps: floors[workIdx++] ?? floors[floors.length - 1] ?? s.reps, isWarmup: undefined },
+        ),
         intensityModifier: existing?.intensityModifier,
         notes: existing?.notes,
       };

@@ -207,6 +207,9 @@ export interface WorkoutSetCompletion {
   // For timed/cardio exercises
   duration?: number;  // Duration in seconds (for 'timed' and 'cardio' tracking types)
   distance?: number;  // Distance in meters (for 'cardio' tracking type)
+  // Recorded set role (since roles were persisted): true = warmup, false = work.
+  // Absent on legacy history — consumers fall back to inferring roles there.
+  isWarmup?: boolean;
 }
 
 export interface WorkoutExerciseSession extends ExerciseSet {

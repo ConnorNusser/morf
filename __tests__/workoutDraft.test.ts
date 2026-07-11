@@ -9,6 +9,7 @@ import {
   moveExercise,
   moveExerciseToEdge,
   addNamedExercise,
+  addWarmupSet,
   buildDraft,
   draftToParsedWorkout,
   toggleSetDone,
@@ -178,6 +179,32 @@ describe('draftToParsedWorkout', () => {
     const d = buildDraft({ exercises: [ex('Bench', [[135, 8]])], confidence: 1, rawText: '' }, { asTarget: true });
     // never checked off → nothing performed
     expect(draftToParsedWorkout(d).exercises).toHaveLength(0);
+  });
+});
+
+describe('set roles', () => {
+  it('addWarmupSet prepends a flagged row at ~60% of the top work set', () => {
+    let d = draftFromParsed({ exercises: [ex('Bench', [[225, 5], [225, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' });
+    d = addWarmupSet(d, d[0].key);
+    expect(d[0].sets[0]).toMatchObject({ isWarmup: true, weight: 135, reps: 5, done: false });
+    expect(d[0].sets).toHaveLength(3);
+  });
+
+  it('addSet appends a WORK set even when the last row is a warmup', () => {
+    let d = draftFromParsed({ exercises: [ex('Bench', [[135, 5]])], confidence: 1, rawText: '' });
+    d = addWarmupSet(d, d[0].key);
+    d = removeSet(d, d[0].key, 1); // only the warmup row remains
+    d = addSet(d, d[0].key);
+    expect(d[0].sets[1].isWarmup).toBeUndefined();
+  });
+
+  it('draftToParsedWorkout stamps the role on every saved set', () => {
+    let d = draftFromParsed({ exercises: [ex('Bench', [[225, 5]], 'bench-press-barbell')], confidence: 1, rawText: '' });
+    d = addWarmupSet(d, d[0].key);
+    d = toggleSetDone(d, d[0].key, 0);
+    d = toggleSetDone(d, d[0].key, 1);
+    const saved = draftToParsedWorkout(d).exercises[0].sets;
+    expect(saved.map(s => s.isWarmup)).toEqual([true, false]); // false, not undefined
   });
 });
 
