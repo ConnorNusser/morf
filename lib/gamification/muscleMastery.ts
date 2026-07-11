@@ -1,6 +1,6 @@
 // Per-muscle-group strength mastery — averages the percentile of the lifts training each group.
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
-import { getExercise } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { MuscleGroup, UserProgress } from '@/types';
 
 export interface MuscleMastery {

@@ -1,11 +1,11 @@
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
-import { GeneratedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
+import { LoggedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift } from '@/types';
 import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator, StrengthTier } from '@/lib/data/strengthStandards';
 import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet } from '@/lib/utils/utils';
 import { userService } from './userService';
-import { getWorkoutById, getExerciseById, ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { getCatalogExercise, getExerciseById, EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } from './feedService';
 import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
@@ -632,7 +632,7 @@ class UserSyncService {
 
       const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
       const liftToMuscles: Record<string, string[]> = {};
-      ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
+      EXERCISE_CATALOG.forEach((w: { id: string; primaryMuscles?: string[] }) => {
         liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
       });
 
@@ -662,7 +662,7 @@ class UserSyncService {
         .filter(l => l.percentileRanking > 0)
         .slice(0, 5)
         .map(l => {
-          const workout = getWorkoutById(l.workoutId);
+          const workout = getCatalogExercise(l.workoutId);
           return {
             exercise_id: l.workoutId,
             name: workout?.name || l.workoutId.replace('-', ' '),
@@ -994,7 +994,7 @@ class UserSyncService {
     }
   }
 
-  async syncWorkout(workout: GeneratedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {
+  async syncWorkout(workout: LoggedWorkout, durationSeconds: number, prCount: number = 0): Promise<boolean> {
     if (!supabase) return false;
 
     try {

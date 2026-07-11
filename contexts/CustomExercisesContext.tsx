@@ -1,5 +1,5 @@
 import { storageService } from '@/lib/storage/storage';
-import { setCustomExerciseCache } from '@/lib/workout/workouts';
+import { setCustomExerciseCache } from '@/lib/workout/exerciseCatalog';
 import { CustomExercise } from '@/types';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 

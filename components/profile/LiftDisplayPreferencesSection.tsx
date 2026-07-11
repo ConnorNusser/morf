@@ -9,7 +9,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -182,7 +182,7 @@ export default function LiftDisplayPreferencesSection({ onPreferencesUpdate }: L
 
           <ScrollView style={styles.liftsList} showsVerticalScrollIndicator={false}>
             {availableLifts.map((lift) => {
-              const workout = getWorkoutById(lift.workoutId);
+              const workout = getCatalogExercise(lift.workoutId);
               const isHidden = filters.hiddenLiftIds.includes(lift.workoutId);
               
               return (

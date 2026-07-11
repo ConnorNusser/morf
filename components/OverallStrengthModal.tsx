@@ -77,8 +77,8 @@ export default function OverallStrengthModal({
     ] as const;
     const liftToMuscles: Record<string, string[]> = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { ALL_WORKOUTS } = require("@/lib/workout/workouts");
-    ALL_WORKOUTS.forEach((w: { id: string; primaryMuscles?: string[] }) => {
+    const { EXERCISE_CATALOG } = require("@/lib/workout/exerciseCatalog");
+    EXERCISE_CATALOG.forEach((w: { id: string; primaryMuscles?: string[] }) => {
       liftToMuscles[w.id] = [...(w.primaryMuscles || [])];
     });
 
@@ -102,9 +102,9 @@ export default function OverallStrengthModal({
   const tooltipDetails = useMemo(() => {
     const byGroup: Record<string, { name: string; pct: number }[]> = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { getWorkoutById } = require("@/lib/workout/workouts");
+    const { getCatalogExercise } = require("@/lib/workout/exerciseCatalog");
     lifts.forEach((l) => {
-      const w = getWorkoutById(l.workoutId);
+      const w = getCatalogExercise(l.workoutId);
       if (!w) return;
       const primaryGroups = [...(w.primaryMuscles || [])];
       primaryGroups.forEach((g) => {
@@ -131,9 +131,9 @@ export default function OverallStrengthModal({
       { id: string; name: string; pct: number; oneRM: number }[]
     > = {};
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- Lazy import for circular dependency avoidance
-    const { getWorkoutById } = require("@/lib/workout/workouts");
+    const { getCatalogExercise } = require("@/lib/workout/exerciseCatalog");
     lifts.forEach((l) => {
-      const w = getWorkoutById(l.workoutId);
+      const w = getCatalogExercise(l.workoutId);
       if (!w) return;
       const groups = w.primaryMuscles || [];
       groups.forEach((g: string) => {

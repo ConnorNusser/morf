@@ -2,8 +2,8 @@ import { calculateRoutine, getRoutineAnchor } from '@/lib/workout/progressiveOve
 import { updateExerciseRecords } from '@/lib/workout/progression';
 import { addWarmupSet, buildDraft, draftToRoutineExercises, routineDiffersFromDraft, removeSet } from '@/lib/workout/workoutDraft';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import type { ParsedWorkout } from '@/lib/workout/workoutNoteParser';
-import type { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, RoutineExercise } from '@/types';
+import type { ParsedWorkout } from '@/lib/workout/workoutTextParser';
+import type { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Routine, RoutineExercise } from '@/types';
 
 const BENCH = 'bench-press-barbell';
 
@@ -22,7 +22,7 @@ const session = (
   sets: [number, number][],
   daysAgo: number,
   exerciseId = BENCH,
-): GeneratedWorkout =>
+): LoggedWorkout =>
   ({
     id: `w_${routineId ?? 'freestyle'}_${daysAgo}`,
     createdAt: new Date(Date.UTC(2026, 5, 30 - daysAgo)),
@@ -39,7 +39,7 @@ const session = (
         })),
       },
     ],
-  }) as GeneratedWorkout;
+  }) as LoggedWorkout;
 
 const record = (weight: number, reps: number): ExerciseRecord => ({
   exerciseId: BENCH,
@@ -171,13 +171,13 @@ describe('anchor robustness (audit regressions)', () => {
         { exerciseId: BENCH, exerciseName: 'Bench Press (Barbell)', sets: [{ reps: 12 }, { reps: 12 }, { reps: 12 }] },
       ],
     } as Routine;
-    const w: GeneratedWorkout = {
+    const w: LoggedWorkout = {
       ...session('heavy', [[225, 5], [225, 5], [225, 5]], 1),
       exercises: [
         session('heavy', [[225, 5], [225, 5], [225, 5]], 1).exercises[0],
         session('heavy', [[150, 12], [150, 12], [150, 12]], 1).exercises[0],
       ],
-    } as GeneratedWorkout;
+    } as LoggedWorkout;
     const calc = calculateRoutine(doubled, { [BENCH]: record(225, 5) }, 'lbs', [w]);
     expect(calc.exercises[0].workingWeight).toBe(225); // heavy slot: its own 225
     expect(calc.exercises[1].workingWeight).toBe(150); // backoff slot: its own 150, no phantom deload
@@ -204,7 +204,7 @@ describe('anchor robustness (audit regressions)', () => {
   it('an anchor much older than a fresher record reseeds instead of prescribing ancient peak', () => {
     // Last heavy session over a year ago at 225; global record since refreshed
     // at 135×10 by recent light work.
-    const old = { ...session('heavy', [[225, 5], [225, 5], [225, 5]], 0), createdAt: new Date('2025-01-05') } as GeneratedWorkout;
+    const old = { ...session('heavy', [[225, 5], [225, 5], [225, 5]], 0), createdAt: new Date('2025-01-05') } as LoggedWorkout;
     const freshRecord = { ...record(135, 10), updatedAt: new Date('2026-07-01') };
     const calc = calculateRoutine(heavy, { [BENCH]: freshRecord }, 'lbs', [old]);
     expect(calc.exercises[0].workingWeight).toBeLessThan(200); // reseeded from 135×10, not 225+
@@ -249,7 +249,7 @@ describe('cross-day spiral regression', () => {
     const heavy = day('heavy', 'Heavy 3×5', 5);
     const volume = day('volume', 'Volume 3×12', 12);
     // Established heavy bencher; volume day brand new.
-    const history: GeneratedWorkout[] = [session('heavy', [[225, 5], [225, 5], [225, 5]], 10)];
+    const history: LoggedWorkout[] = [session('heavy', [[225, 5], [225, 5], [225, 5]], 10)];
     let records: Record<string, ExerciseRecord> = { [BENCH]: record(225, 5) };
 
     const heavyTargets: number[] = [];

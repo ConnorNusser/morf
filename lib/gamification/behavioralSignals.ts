@@ -1,8 +1,8 @@
 // Derived behavioral signals for niche achievements, computed purely from workout history.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
-import { getExercise } from '@/lib/workout/workouts';
-import { GeneratedWorkout } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { LoggedWorkout } from '@/types';
 
 export interface BehavioralSignals {
   trainedBefore6am: boolean; // any session started before 06:00
@@ -47,7 +47,7 @@ function isThanksgiving(d: Date): boolean {
   return d.getMonth() === 10 && d.getDay() === 4 && d.getDate() >= 22 && d.getDate() <= 28;
 }
 
-export function computeBehavioralSignals(workouts: GeneratedWorkout[]): BehavioralSignals {
+export function computeBehavioralSignals(workouts: LoggedWorkout[]): BehavioralSignals {
   const empty: BehavioralSignals = {
     trainedBefore6am: false,
     trainedAfter10pm: false,

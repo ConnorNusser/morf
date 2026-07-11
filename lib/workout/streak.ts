@@ -3,7 +3,7 @@
 // a gap only ends it once a fully-elapsed week passes with no workout.
 // Week math steps with setDate (not ms arithmetic) to stay DST-correct; `now` is
 // injectable for tests.
-import { GeneratedWorkout } from '@/types';
+import { LoggedWorkout } from '@/types';
 import { dateKey, weekStart } from '@/lib/utils/utils';
 
 function parseDayKey(key: string): Date {
@@ -18,7 +18,7 @@ export interface WeekStreak {
   trainedToday: boolean;
 }
 
-export function getWeekStreak(workouts: GeneratedWorkout[], now: Date = new Date()): WeekStreak {
+export function getWeekStreak(workouts: LoggedWorkout[], now: Date = new Date()): WeekStreak {
   if (workouts.length === 0) {
     return { current: 0, longest: 0, trainedThisWeek: false, trainedToday: false };
   }

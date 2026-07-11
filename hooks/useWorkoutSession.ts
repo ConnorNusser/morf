@@ -8,8 +8,8 @@ import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { getExercise, getWorkoutById } from '@/lib/workout/workouts';
-import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { getExercise, getCatalogExercise } from '@/lib/workout/exerciseCatalog';
+import { ParsedWorkout, workoutTextParser } from '@/lib/workout/workoutTextParser';
 import {
   DraftSet,
   WorkoutDraft,
@@ -17,7 +17,7 @@ import {
   addSet as addSetToDraft,
   addWarmupSet as addWarmupSetToDraft,
   buildDraft,
-  draftToNoteText,
+  draftToLogText,
   draftToRoutineExercises,
   mergeParsed,
   moveExercise as moveExerciseInDraft,
@@ -32,7 +32,7 @@ import {
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateExerciseRecords } from '@/lib/workout/progression';
-import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, GeneratedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
+import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, LoggedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRepeatWorkout, getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,7 +46,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-export interface UseWorkoutNoteSessionReturn {
+export interface UseWorkoutSessionReturn {
   composerText: string;
   setComposerText: (text: string) => void;
   commitComposer: () => Promise<void>;
@@ -67,7 +67,7 @@ export interface UseWorkoutNoteSessionReturn {
   getPreviousSets: (exerciseId?: string) => DraftSet[] | null;
   getStartedRoutineChange: () => Promise<{ name: string } | null>;
   syncStartedRoutine: () => Promise<void>;
-  noteText: string;
+  logText: string;
 
   elapsedTime: number;
   workoutStartTime: Date | null;
@@ -89,13 +89,13 @@ export interface UseWorkoutNoteSessionReturn {
 
   lastWorkoutTitle: string | null; // null when there's nothing to repeat
   prefillLastWorkout: () => void;
-  recentWorkouts: GeneratedWorkout[];
-  prefillWorkout: (w: GeneratedWorkout) => void;
+  recentWorkouts: LoggedWorkout[];
+  prefillWorkout: (w: LoggedWorkout) => void;
   startEmptyWorkout: () => void;
   customExercises: CustomExercise[];
 }
 
-export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
+export function useWorkoutSession(): UseWorkoutSessionReturn {
   const { refreshProfile, userProfile, updateProfile } = useUser();
   const { showAlert } = useAlert();
 
@@ -106,7 +106,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  const noteText = useMemo(() => draftToNoteText(draft), [draft]);
+  const logText = useMemo(() => draftToLogText(draft), [draft]);
 
   const editSet = useCallback((key: string, index: number, patch: Partial<DraftSet>) => {
     setDraft(d => updateSetInDraft(d, key, index, patch));
@@ -135,9 +135,9 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // Which routine this workout is from (for UP NEXT cycling).
   const [startedRoutineId, setStartedRoutineId] = useState<string | null>(null);
 
-  const [lastWorkout, setLastWorkout] = useState<GeneratedWorkout | null>(null);
+  const [lastWorkout, setLastWorkout] = useState<LoggedWorkout | null>(null);
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
-  const [history, setHistory] = useState<GeneratedWorkout[]>([]);
+  const [history, setHistory] = useState<LoggedWorkout[]>([]);
 
   const refreshLastWorkout = useCallback(async () => {
     try {
@@ -145,7 +145,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
         storageService.getWorkoutHistory(),
         storageService.getCustomExercises(),
       ]);
-      const newest = history.reduce<GeneratedWorkout | null>((latest, w) => {
+      const newest = history.reduce<LoggedWorkout | null>((latest, w) => {
         return !latest || new Date(w.createdAt) > new Date(latest.createdAt) ? w : latest;
       }, null);
       setLastWorkout(newest);
@@ -164,7 +164,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       return;
     }
     const normalized = text.replace(/\n[ \t]*(target|actual)s?:[ \t]*/gi, ' ');
-    const parsed = workoutNoteParser.parseLocal(normalized);
+    const parsed = workoutTextParser.parseLocal(normalized);
     setDraft(buildDraft(parsed, { asTarget: opts?.asTarget }));
   }, []);
 
@@ -229,7 +229,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const mergeInto = (exercises: ParsedWorkout['exercises']) =>
       setDraft(d => mergeParsed(d, exercises, { done: true }));
 
-    const local = workoutNoteParser.parseLocal(trimmed);
+    const local = workoutTextParser.parseLocal(trimmed);
     // "Known" = matched the built-in catalog or a custom exercise by name.
     const norm = (s: string) => s.toLowerCase().trim();
     const isKnown = (ex: ParsedWorkout['exercises'][number]) =>
@@ -246,7 +246,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     const namedId = matchExerciseByName(trimmed);
     if (namedId && local.exercises.length === 0) {
       const previous = getLastSetsFor(namedId, history, weightUnit) ?? undefined;
-      const name = getWorkoutById(namedId)?.name ?? trimmed;
+      const name = getCatalogExercise(namedId)?.name ?? trimmed;
       setDraft(d => addNamedExercise(d, { name, exerciseId: namedId, recognized: true, previous }));
       return true;
     }
@@ -254,10 +254,10 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // A name with no sets, unrecognized offline — ask the AI what exercise it is.
     if (local.exercises.length === 0 && !/\d/.test(trimmed)) {
       try {
-        const first = (await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000)).exercises[0];
+        const first = (await withTimeout(workoutTextParser.parseWorkoutText(trimmed), 4000)).exercises[0];
         if (first) {
           const id = first.matchedExerciseId;
-          const name = id ? getWorkoutById(id)?.name ?? first.name : first.name;
+          const name = id ? getCatalogExercise(id)?.name ?? first.name : first.name;
           const previous = id ? getLastSetsFor(id, history, weightUnit) ?? undefined : undefined;
           setDraft(d => addNamedExercise(d, { name, exerciseId: id, recognized: !!id && !first.isCustom, previous }));
           return true;
@@ -270,7 +270,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     // Only let AI parse when text carries digits: a bare fragment yields a 0×0 set.
     if (/\d/.test(trimmed)) {
       try {
-        const ai = await withTimeout(workoutNoteParser.parseWorkoutNote(trimmed), 4000);
+        const ai = await withTimeout(workoutTextParser.parseWorkoutText(trimmed), 4000);
         const real = ai.exercises.filter(ex => ex.sets.some(s => s.reps > 0));
         if (real.length > 0) {
           mergeInto(real);
@@ -303,7 +303,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   const restoreSession = useCallback((s: NonNullable<Awaited<ReturnType<typeof storageService.getNoteSession>>>) => {
     const savedDraft = s.draft as WorkoutDraft | null;
     if (savedDraft && savedDraft.length) setDraft(savedDraft);
-    else if (s.noteText) loadDraftFromText(s.noteText);
+    else if (s.noteText) loadDraftFromText(s.noteText); // legacy sessions persisted text only
     setManuallyStarted(s.manuallyStarted);
     setWorkoutStartTime(s.startTime);
     setElapsedTime(calculateElapsedTime(s.startTime));
@@ -349,14 +349,14 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
   // Debounced persist: per-keystroke edits would otherwise write AsyncStorage every
   // render and lag typing. Latest snapshot held in a ref, flushed on unmount.
-  const sessionSnapshot = useRef({ noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId });
-  sessionSnapshot.current = { noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId };
+  const sessionSnapshot = useRef({ logText, draft, manuallyStarted, workoutStartTime, startedRoutineId });
+  sessionSnapshot.current = { logText, draft, manuallyStarted, workoutStartTime, startedRoutineId };
   const persistSession = useCallback(async () => {
     const snap = sessionSnapshot.current;
     const active = snap.draft.length > 0 || snap.manuallyStarted;
     if (active && snap.workoutStartTime) {
       await storageService.saveNoteSession({
-        noteText: snap.noteText,
+        noteText: snap.logText, // legacy persisted field name — do not rename (user data)
         draft: snap.draft,
         manuallyStarted: snap.manuallyStarted,
         startTime: snap.workoutStartTime,
@@ -373,7 +373,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { persistSession(); }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [noteText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded, persistSession]);
+  }, [logText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded, persistSession]);
 
   // Flush the pending save on unmount so leaving the tab mid-edit isn't lost.
   useEffect(() => () => { persistSession(); }, [persistSession]);
@@ -382,13 +382,13 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   useEffect(() => {
     if (!isSessionLoaded) return;
 
-    if (noteText.length > 0 && !workoutStartTime) {
+    if (logText.length > 0 && !workoutStartTime) {
       setWorkoutStartTime(new Date());
-    } else if (noteText.length === 0 && workoutStartTime && !manuallyStarted) {
+    } else if (logText.length === 0 && workoutStartTime && !manuallyStarted) {
       setWorkoutStartTime(null);
       setElapsedTime(0);
     }
-  }, [noteText, workoutStartTime, isSessionLoaded, manuallyStarted]);
+  }, [logText, workoutStartTime, isSessionLoaded, manuallyStarted]);
 
   useEffect(() => {
     if (!workoutStartTime) return;
@@ -444,19 +444,19 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   }, []);
 
   const handleFinishWorkout = useCallback(() => {
-    if (!noteText.trim()) {
+    if (!logText.trim()) {
       showAlert({ title: 'No workout data', message: 'Add some exercises before finishing your workout.', type: 'info' });
       return;
     }
     Keyboard.dismiss();
     setShowFinishModal(true);
-  }, [noteText, showAlert]);
+  }, [logText, showAlert]);
 
   const handleSaveWorkout = useCallback(async (parsedWorkout: ParsedWorkout) => {
     const durationMinutes = Math.ceil(elapsedTime / 60);
 
     // Also auto-creates custom exercises; routineId when started from a routine.
-    const generatedWorkout = await workoutNoteParser.toGeneratedWorkoutWithCustomExercises(
+    const generatedWorkout = await workoutTextParser.toLoggedWorkoutWithCustomExercises(
       parsedWorkout,
       durationMinutes,
       startedRoutineId || undefined
@@ -528,7 +528,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
       const newPR = OneRMCalculator.estimate(liftData.weight, liftData.reps);
       if (newPR > previousPR) {
         prCount++;
-        const workoutInfo = getWorkoutById(exercise.id);
+        const workoutInfo = getCatalogExercise(exercise.id);
         if (workoutInfo) {
           newPRs.push({
             exerciseId: exercise.id,
@@ -551,7 +551,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     }
 
     // Sync lifts to Supabase for leaderboard (excluding custom exercises).
-    const liftsToSyncFiltered = liftsToSync.filter(lift => getWorkoutById(lift.id) !== null);
+    const liftsToSyncFiltered = liftsToSync.filter(lift => getCatalogExercise(lift.id) !== null);
     if (liftsToSyncFiltered.length > 0) {
       userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
         console.error('Error syncing lifts to Supabase:', err);
@@ -578,7 +578,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
 
     // Save strength progress for the home screen celebration, only on a change.
     if (afterOverallPercentile !== beforeOverallPercentile) {
-      console.log('[useWorkoutNoteSession] Saving strength progress:', {
+      console.log('[useWorkoutSession] Saving strength progress:', {
         before: beforeOverallPercentile,
         after: afterOverallPercentile,
       });
@@ -658,7 +658,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
   // survive. (This used to serialize to text and re-parse through the fuzzy
   // matcher, which could swap equipment variants, orphan custom exercises, and
   // dropped warmup flags.) Rows arrive un-done: a repeat is a plan, not work.
-  const prefillWorkout = useCallback((w: GeneratedWorkout) => {
+  const prefillWorkout = useCallback((w: LoggedWorkout) => {
     const parsed: ParsedWorkout = {
       exercises: w.exercises
         .filter(ex => ex.completedSets.length > 0)
@@ -726,7 +726,7 @@ export function useWorkoutNoteSession(): UseWorkoutNoteSessionReturn {
     getPreviousSets,
     getStartedRoutineChange,
     syncStartedRoutine,
-    noteText,
+    logText,
 
     elapsedTime,
     workoutStartTime,

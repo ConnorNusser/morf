@@ -1,7 +1,7 @@
 import {
   mergeParsed,
   draftFromParsed,
-  draftToNoteText,
+  draftToLogText,
   updateSet,
   addSet,
   removeSet,
@@ -16,7 +16,7 @@ import {
   totalVolume,
   WorkoutDraft,
 } from '../lib/workout/workoutDraft';
-import { ParsedExercise } from '../lib/workout/workoutNoteParser';
+import { ParsedExercise } from '../lib/workout/workoutTextParser';
 
 const ex = (name: string, sets: [number, number][], matchedExerciseId?: string): ParsedExercise => ({
   name,
@@ -108,17 +108,17 @@ describe('exercise identity and keys', () => {
   });
 });
 
-describe('draftToNoteText', () => {
+describe('draftToLogText', () => {
   it('round-trips weighted and bodyweight sets', () => {
     const d = draftFromParsed({ exercises: [ex('Bench', [[135, 8], [155, 6]]), ex('Pull-up', [[0, 10]])], confidence: 1, rawText: '' });
-    const text = draftToNoteText(d);
+    const text = draftToLogText(d);
     expect(text).toContain('Bench 135x8, 155x6');
     expect(text).toContain('Pull-up x10');
   });
 
   it('encodes kg so the unit survives serialization', () => {
     const d: WorkoutDraft = [{ key: 'k', name: 'Squat', recognized: false, sets: [{ weight: 100, reps: 5, unit: 'kg' }] }];
-    expect(draftToNoteText(d)).toBe('Squat 100kgx5');
+    expect(draftToLogText(d)).toBe('Squat 100kgx5');
   });
 });
 

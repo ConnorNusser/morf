@@ -1,4 +1,4 @@
-import { ExerciseWithMax, GeneratedWorkout } from '@/types';
+import { ExerciseWithMax, LoggedWorkout } from '@/types';
 import { dayKeyOf, e1rmLbs } from './liftSeries';
 
 // A PR = a training day whose best e1RM strictly beats every PRIOR day. Walking a
@@ -129,7 +129,7 @@ export function buildSessionPRs(exerciseStats: ExerciseWithMax[]): Map<string, S
 // Exercises in a workout that set a new all-time best on its calendar day (buildPRDays
 // membership). Shared by WorkoutCard and WorkoutDetailModal so their badges can't disagree.
 export function prExerciseIdsForWorkout(
-  workout: Pick<GeneratedWorkout, 'exercises' | 'createdAt'>,
+  workout: Pick<LoggedWorkout, 'exercises' | 'createdAt'>,
   prDays: Map<string, Set<string>>,
 ): Set<string> {
   const dayKey = dayKeyOf(workout.createdAt);

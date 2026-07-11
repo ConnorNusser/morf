@@ -14,10 +14,10 @@ import {
   formatCompact,
   formatSet,
 } from "@/lib/utils/utils";
-import { getExercise } from "@/lib/workout/workouts";
+import { getExercise } from "@/lib/workout/exerciseCatalog";
 import {
   convertWeight,
-  GeneratedWorkout,
+  LoggedWorkout,
   TrackingType,
   WeightUnit,
 } from "@/types";
@@ -31,7 +31,7 @@ const shortName = (name: string): string =>
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 interface SessionAnalysisProps {
-  workout: GeneratedWorkout;
+  workout: LoggedWorkout;
   weightUnit: WeightUnit;
   prDays: Map<string, Set<string>>;
 }

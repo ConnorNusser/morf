@@ -17,8 +17,8 @@ import {
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from "@/lib/workout/weeklyGoal";
-import { getWorkoutById } from "@/lib/workout/workouts";
-import { GeneratedWorkout, WeightUnit } from "@/types";
+import { getCatalogExercise } from "@/lib/workout/exerciseCatalog";
+import { LoggedWorkout, WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import React, { useCallback, useMemo, useState } from "react";
@@ -27,11 +27,11 @@ import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]; // Monday-start
 
 // Dominant Push/Pull/Legs category for a day, by majority of each exercise's primary muscle.
-function dominantPPL(workouts: GeneratedWorkout[]): PPLCategory | null {
+function dominantPPL(workouts: LoggedWorkout[]): PPLCategory | null {
   const counts: Record<PPLCategory, number> = { push: 0, pull: 0, legs: 0 };
   for (const workout of workouts) {
     for (const exercise of workout.exercises || []) {
-      const muscle = getWorkoutById(exercise.id)?.primaryMuscles?.[0];
+      const muscle = getCatalogExercise(exercise.id)?.primaryMuscles?.[0];
       const category = muscle ? MUSCLE_TO_PPL[muscle] : undefined;
       if (category) counts[category]++;
     }
@@ -56,7 +56,7 @@ const GOAL_OPTIONS = Array.from(
 export default function WeeklyGoalCard() {
   const { currentTheme } = useTheme();
   const ink = useInk();
-  const [history, setHistory] = useState<GeneratedWorkout[] | null>(null);
+  const [history, setHistory] = useState<LoggedWorkout[] | null>(null);
   const [goal, setGoal] = useState(DEFAULT_WEEKLY_GOAL);
   const [unit, setUnit] = useState<WeightUnit>("lbs");
   const [picking, setPicking] = useState(false);

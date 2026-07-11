@@ -10,8 +10,8 @@ import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, tint, trend } from '@/lib/ui/tokens';
 import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
-import { getWorkoutById } from '@/lib/workout/workouts';
-import { ExerciseRecord, GeneratedWorkout, MuscleGroup, Routine } from '@/types';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
+import { ExerciseRecord, LoggedWorkout, MuscleGroup, Routine } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -77,7 +77,7 @@ export default function RoutineProgressModal({
   const weightUnit = userProfile?.weightUnitPreference || 'lbs';
 
   const [routines, setRoutines] = useState<Routine[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<LoggedWorkout[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
@@ -218,7 +218,7 @@ export default function RoutineProgressModal({
       for (const ex of workout.exercises) {
         const sets = ex.completedSets?.filter(s => s.completed && s.weight > 0).length ?? 0;
         if (!sets) continue;
-        let muscle = getWorkoutById(ex.id)?.primaryMuscles?.[0] as MuscleGroup | undefined;
+        let muscle = getCatalogExercise(ex.id)?.primaryMuscles?.[0] as MuscleGroup | undefined;
         if (!muscle || muscle === 'full-body') continue;
         if (muscle === 'glutes') muscle = 'legs';
         if (counts[muscle] !== undefined) counts[muscle] += sets;

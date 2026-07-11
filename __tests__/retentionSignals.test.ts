@@ -1,9 +1,9 @@
-import { GeneratedWorkout } from '../types';
+import { LoggedWorkout } from '../types';
 import { getStreakState, getHabitDay, getDaysSinceLastWorkout } from '../lib/workout/retentionSignals';
 
 // Minimal workout fixture — the signal helpers only read `createdAt`.
-function w(date: Date): GeneratedWorkout {
-  return { id: date.toISOString(), title: 'test', exercises: [], createdAt: date } as unknown as GeneratedWorkout;
+function w(date: Date): LoggedWorkout {
+  return { id: date.toISOString(), title: 'test', exercises: [], createdAt: date } as unknown as LoggedWorkout;
 }
 
 // Fixed reference "now": Wednesday, June 10 2026, 20:00 local (evening — after a

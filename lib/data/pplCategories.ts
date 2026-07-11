@@ -1,5 +1,5 @@
 import { MuscleGroup } from '@/types';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 
 export type PPLCategory = 'push' | 'pull' | 'legs';
 
@@ -35,7 +35,7 @@ export function calculatePPLBreakdown(exercises: { name: string }[]): PPLBreakdo
   const counts: Record<PPLCategory, number> = { push: 0, pull: 0, legs: 0 };
 
   exercises.forEach(ex => {
-    const exerciseData = ALL_WORKOUTS.find(
+    const exerciseData = EXERCISE_CATALOG.find(
       w => w.name.toLowerCase() === ex.name.toLowerCase()
     );
     if (exerciseData && exerciseData.primaryMuscles.length > 0) {

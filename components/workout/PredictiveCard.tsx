@@ -3,9 +3,9 @@ import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { radius, screenGutter, space } from '@/lib/ui/tokens';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
-import { ParsedSet, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
+import { ParsedSet, workoutTextParser } from '@/lib/workout/workoutTextParser';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
@@ -30,7 +30,7 @@ function toLines(parsed: { exercises: { name: string; matchedExerciseId?: string
     .map(ex => ({ ...ex, sets: ex.sets.filter(s => s.reps > 0) }))
     .filter(ex => ex.sets.length > 0)
     .map(ex => ({
-      name: ex.matchedExerciseId ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name : ex.name,
+      name: ex.matchedExerciseId ? getCatalogExercise(ex.matchedExerciseId)?.name || ex.name : ex.name,
       summary: ex.sets.map((s: ParsedSet) => (s.weight > 0 ? `${s.weight} ${unit} × ${s.reps}` : `${s.reps} reps`)).join(',  '),
     }));
 }
@@ -62,7 +62,7 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       const settle = (next: PreviewLine[]) => { if (id === reqId.current) { setLines(next); setLoading(false); } };
       const refine = (next: PreviewLine[]) => { if (id === reqId.current && next.length > 0) setLines(next); };
 
-      const local = workoutNoteParser.parseLocal(text, weightUnit);
+      const local = workoutTextParser.parseLocal(text, weightUnit);
       const localLines = toLines(local, weightUnit);
       const looksLikeSet = /\d/.test(text);
       const trimmed = text.trim();
@@ -71,25 +71,25 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       if (localLines.length > 0) {
         settle(localLines);
         if (!localIsReasonable(local)) {
-          try { refine(toLines(await workoutNoteParser.parseWorkoutNote(text, weightUnit), weightUnit)); } catch { /* keep local */ }
+          try { refine(toLines(await workoutTextParser.parseWorkoutText(text, weightUnit), weightUnit)); } catch { /* keep local */ }
         }
         return;
       }
 
       // 2) Looks like a set we couldn't read (e.g. "DL 225x5") — let the AI interpret it once.
       if (looksLikeSet) {
-        try { settle(toLines(await workoutNoteParser.parseWorkoutNote(text, weightUnit), weightUnit)); }
+        try { settle(toLines(await workoutTextParser.parseWorkoutText(text, weightUnit), weightUnit)); }
         catch { settle([]); }
         return;
       }
 
       // 3) Name only, no sets — recognize the exercise so it can be added (sets autofill from last time); local match first, AI fallback for unknown names.
       const localId = matchExerciseByName(trimmed);
-      if (localId) { settle([{ name: getWorkoutById(localId)?.name || trimmed }]); return; }
+      if (localId) { settle([{ name: getCatalogExercise(localId)?.name || trimmed }]); return; }
       if (/[a-z]/i.test(trimmed) && trimmed.length >= 3) {
         try {
-          const first = (await workoutNoteParser.parseWorkoutNote(text, weightUnit)).exercises[0];
-          const nm = first ? (first.matchedExerciseId ? getWorkoutById(first.matchedExerciseId)?.name || first.name : first.name) : null;
+          const first = (await workoutTextParser.parseWorkoutText(text, weightUnit)).exercises[0];
+          const nm = first ? (first.matchedExerciseId ? getCatalogExercise(first.matchedExerciseId)?.name || first.name : first.name) : null;
           settle(nm ? [{ name: nm }] : []);
         } catch { settle([]); }
         return;

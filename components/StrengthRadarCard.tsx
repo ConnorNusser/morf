@@ -5,7 +5,7 @@ import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getNextTierInfo, getStrengthTier, getTierColor, RADAR_TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { MuscleGroupPercentiles, TopContribution } from '@/types';
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
@@ -39,7 +39,7 @@ export default function StrengthRadarCard({
     const map: Record<string, TopContribution[]> = {};
 
     topContributions.forEach(c => {
-      const workout = getWorkoutById(c.exercise_id);
+      const workout = getCatalogExercise(c.exercise_id);
       if (!workout) return;
 
       const groups = workout.primaryMuscles || [];

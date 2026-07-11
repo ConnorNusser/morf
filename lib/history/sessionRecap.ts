@@ -5,8 +5,8 @@ import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { gradeE1rm, LiftGrading, TierGrade } from '@/lib/history/liftProgress';
 import { calculateWorkoutStats } from '@/lib/utils/utils';
-import { getExercise } from '@/lib/workout/workouts';
-import { convertWeight, CustomExercise, GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { convertWeight, CustomExercise, LoggedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 
 export interface StandoutSet {
   name: string;
@@ -31,7 +31,7 @@ export interface LineupItem {
 }
 
 export interface SessionRecap {
-  workout: GeneratedWorkout;
+  workout: LoggedWorkout;
   title: string;
   headline: string | null;
   standout: StandoutSet | null; // PR lift's set if any, else highest e1RM
@@ -54,7 +54,7 @@ const COMEBACK_MIN_DAYS = 7;
 const DAY_MS = 86400000;
 
 // Primary muscles, ordered by sets hitting them.
-function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
+function sessionMuscles(workout: LoggedWorkout): MuscleGroup[] {
   const counts = new Map<MuscleGroup, number>();
   for (const ex of workout.exercises) {
     const done = (ex.completedSets || []).filter(s => s.completed).length;
@@ -67,7 +67,7 @@ function sessionMuscles(workout: GeneratedWorkout): MuscleGroup[] {
 
 // PR lift's top set when the day set a record (headline and number agree), else highest e1RM.
 function standoutSet(
-  workout: GeneratedWorkout,
+  workout: LoggedWorkout,
   unit: WeightUnit,
   grading: LiftGrading | null,
   preferName?: string,
@@ -103,12 +103,12 @@ function standoutSet(
   return { ...winner.set, tierInfo };
 }
 
-function volumeLbs(workout: GeneratedWorkout, getTrackingType: (id: string) => TrackingType | undefined): number {
+function volumeLbs(workout: LoggedWorkout, getTrackingType: (id: string) => TrackingType | undefined): number {
   return calculateWorkoutStats(workout.exercises, getTrackingType).totalVolumeLbs;
 }
 
 // Best set per exercise (e1RM; reps for bodyweight), workout order.
-function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[] {
+function sessionLineup(workout: LoggedWorkout, unit: WeightUnit): LineupItem[] {
   const out: LineupItem[] = [];
   for (const ex of workout.exercises) {
     const done = (ex.completedSets || []).filter(s => s.completed);
@@ -132,7 +132,7 @@ function sessionLineup(workout: GeneratedWorkout, unit: WeightUnit): LineupItem[
 
 // Newest first. Headline priority: major PR › comeback › biggest-of-its-kind › PR › none.
 export function buildSessionRecaps(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   customExercises: CustomExercise[],
   weightUnit: WeightUnit,
   grading: LiftGrading | null = null,

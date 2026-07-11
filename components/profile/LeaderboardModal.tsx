@@ -19,7 +19,7 @@ import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, tint, track, trend } from '@/lib/ui/tokens';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { LeaderboardEntry, MAIN_LIFTS, RemoteUser } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -90,7 +90,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   const isOverallSelected = selectedExercise === 'overall';
 
   const getTrackedExerciseIds = useCallback(() => {
-    const trackedIds = new Set(trackedRecordIds.filter(id => getWorkoutById(id) !== null));
+    const trackedIds = new Set(trackedRecordIds.filter(id => getCatalogExercise(id) !== null));
 
     const orderedIds: string[] = [...FEATURED_EXERCISES];
 
@@ -238,7 +238,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
   const getExerciseName = (id: string) => {
     if (id === 'overall') return 'Overall';
-    const workout = getWorkoutById(id);
+    const workout = getCatalogExercise(id);
     return workout?.name || id;
   };
 

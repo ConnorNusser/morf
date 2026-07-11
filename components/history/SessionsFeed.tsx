@@ -15,7 +15,7 @@ import { Rarity } from "@/lib/gamification/rarity";
 import { SessionRecap } from "@/lib/history/sessionRecap";
 import { formatRelativeDate } from "@/lib/ui/formatters";
 import { space, trend } from "@/lib/ui/tokens";
-import { GeneratedWorkout } from "@/types";
+import { LoggedWorkout } from "@/types";
 import React, { useState } from "react";
 import { View as RNView, StyleSheet, TouchableOpacity } from "react-native";
 
@@ -59,7 +59,7 @@ function SessionView({
   recap: SessionRecap;
   achievements?: SessionAchievement[];
   last: boolean;
-  onPress: (w: GeneratedWorkout) => void;
+  onPress: (w: LoggedWorkout) => void;
   onPressAchievement: (a: SessionAchievement, recap: SessionRecap) => void;
 }) {
   const ink = useInk();
@@ -131,7 +131,7 @@ function SessionView({
 interface SessionsFeedProps {
   recaps: SessionRecap[];
   visibleCount: number;
-  onPressSession: (w: GeneratedWorkout) => void;
+  onPressSession: (w: LoggedWorkout) => void;
   onToggleShowAll?: () => void;
   totalCount: number;
   achievementsByWorkout?: Record<string, SessionAchievement[]>;

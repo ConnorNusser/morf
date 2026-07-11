@@ -1,12 +1,12 @@
 // Autofill an added exercise from its last training session. Unit-aware.
 import type { DraftSet } from '@/lib/workout/workoutDraft';
-import { convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
+import { convertWeight, LoggedWorkout, WeightUnit } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
 
 // Most recent completed sets for an exercise in the preferred unit, or null if never trained.
 export function getLastSetsFor(
   exerciseId: string,
-  history: GeneratedWorkout[],
+  history: LoggedWorkout[],
   unit: WeightUnit,
 ): DraftSet[] | null {
   const sorted = [...history].sort(

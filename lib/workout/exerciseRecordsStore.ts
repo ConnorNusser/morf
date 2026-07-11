@@ -1,13 +1,13 @@
 // Loads global per-exercise records, seeding first-run from workout history AND
 // legacy profile.lifts so existing users' rank doesn't drop on upgrade.
 import { storageService } from '@/lib/storage/storage';
-import { ExerciseRecord, GeneratedWorkout, UserLift, isFeaturedLift } from '@/types';
+import { ExerciseRecord, LoggedWorkout, UserLift, isFeaturedLift } from '@/types';
 import { updateExerciseRecords } from './progression';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 
 export async function loadExerciseRecords(
-  history: GeneratedWorkout[]
+  history: LoggedWorkout[]
 ): Promise<Record<string, ExerciseRecord>> {
   const existing = await storageService.getExerciseRecords();
   if (Object.keys(existing).length > 0) return existing; // already migrated

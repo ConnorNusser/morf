@@ -1,8 +1,8 @@
 // Editable source of truth for a logging session; serializes back to note syntax
-// (draftToNoteText) so the finish/save/persistence pipeline works unchanged.
-import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
+// (draftToLogText) so the finish/save/persistence pipeline works unchanged.
+import type { ParsedExercise, ParsedWorkout } from '@/lib/workout/workoutTextParser';
 import { roundWeight } from '@/lib/utils/utils';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { RoutineExercise, WeightUnit } from '@/types';
 
 export interface DraftSet {
@@ -35,7 +35,7 @@ function nextKey(): string {
 }
 
 function displayName(ex: ParsedExercise): string {
-  if (ex.matchedExerciseId) return getWorkoutById(ex.matchedExerciseId)?.name || ex.name;
+  if (ex.matchedExerciseId) return getCatalogExercise(ex.matchedExerciseId)?.name || ex.name;
   return ex.name;
 }
 
@@ -109,7 +109,7 @@ export function buildDraft(
   });
 }
 
-export function draftToNoteText(draft: WorkoutDraft): string {
+export function draftToLogText(draft: WorkoutDraft): string {
   return draft
     .map(ex => {
       const tokens = ex.sets.map(s => {
@@ -142,7 +142,7 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
         .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true, isWarmup: s.isWarmup === true })),
     }))
     .filter(ex => ex.sets.length > 0);
-  return { exercises, confidence: 1, rawText: draftToNoteText(draft) };
+  return { exercises, confidence: 1, rawText: draftToLogText(draft) };
 }
 
 /** Total volume (Σ weight × reps) across the draft, in the preferred unit. */

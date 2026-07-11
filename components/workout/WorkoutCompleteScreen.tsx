@@ -20,13 +20,13 @@ import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { captureAndShare } from '@/lib/ui/shareUtils';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import {
   convertWeightForPreference,
   convertWeightToLbs,
   getPercentileSuffix,
 } from '@/lib/utils/utils';
-import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutNoteParser';
+import { ParsedExercise, ParsedExerciseSummary } from '@/lib/workout/workoutTextParser';
 import { UserProfile, UserProgress, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -463,7 +463,7 @@ export default function WorkoutCompleteScreen({
       );
 
       if (badgeInfo?.type === 'tier' && badgeInfo.isPR) {
-        const exerciseInfo = getWorkoutById(exercise.matchedExerciseId);
+        const exerciseInfo = getCatalogExercise(exercise.matchedExerciseId);
         const userLift = userLifts.find(l => l.workoutId === exercise.matchedExerciseId);
 
         const best1RM = Math.max(
@@ -513,7 +513,7 @@ export default function WorkoutCompleteScreen({
       }
       if (!top) continue;
       if (!best || lift.percentileRanking > best.percentile) {
-        const info = getWorkoutById(exercise.matchedExerciseId);
+        const info = getCatalogExercise(exercise.matchedExerciseId);
         best = {
           name: shortName(info?.name || exercise.name),
           percentile: lift.percentileRanking,

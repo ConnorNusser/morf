@@ -15,7 +15,7 @@ import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, tint, track, trend, withAlpha } from '@/lib/ui/tokens';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { validateRoutines } from '@/lib/workout/trainingAdvancement';
-import { getAvailableWorkouts, getWorkoutsByEquipment } from '@/lib/workout/workouts';
+import { getAvailableExercises, getExercisesByEquipment } from '@/lib/workout/exerciseCatalog';
 import { Equipment, Program, TrainingAdvancement } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -149,8 +149,8 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
   const availableExercises = useMemo(() => {
     const source = userEquipment.length > 0
-      ? getWorkoutsByEquipment(userEquipment, 200)
-      : getAvailableWorkouts(200);
+      ? getExercisesByEquipment(userEquipment, 200)
+      : getAvailableExercises(200);
     return source.map(e => ({ id: e.id, name: e.name, muscleGroup: e.primaryMuscles[0] || '' }));
   }, [userEquipment]);
 

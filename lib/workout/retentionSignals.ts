@@ -1,5 +1,5 @@
 // Pure helpers behind the retention reminders. `now` is injectable for tests.
-import { GeneratedWorkout } from '@/types';
+import { LoggedWorkout } from '@/types';
 import { getWeekStreak } from '@/lib/workout/streak';
 
 export interface StreakState {
@@ -8,13 +8,13 @@ export interface StreakState {
   trainedToday: boolean;
 }
 
-export function getStreakState(workouts: GeneratedWorkout[], now: Date = new Date()): StreakState {
+export function getStreakState(workouts: LoggedWorkout[], now: Date = new Date()): StreakState {
   const { current, trainedThisWeek, trainedToday } = getWeekStreak(workouts, now);
   return { current, trainedThisWeek, trainedToday };
 }
 
 // Whole days since the most recent workout (0 = trained today), or null if never.
-export function getDaysSinceLastWorkout(workouts: GeneratedWorkout[], now: Date = new Date()): number | null {
+export function getDaysSinceLastWorkout(workouts: LoggedWorkout[], now: Date = new Date()): number | null {
   let latest = -Infinity;
   for (const w of workouts) {
     const t = new Date(w.createdAt).getTime();
@@ -38,7 +38,7 @@ const HABIT_MIN_COUNT = 3;
 const HABIT_WINDOW_DAYS = 28;
 
 // The weekday they train most; null unless ≥ HABIT_MIN_COUNT sessions in window.
-export function getHabitDay(workouts: GeneratedWorkout[], now: Date = new Date()): HabitDay | null {
+export function getHabitDay(workouts: LoggedWorkout[], now: Date = new Date()): HabitDay | null {
   const cutoff = new Date(now);
   cutoff.setDate(cutoff.getDate() - HABIT_WINDOW_DAYS);
 

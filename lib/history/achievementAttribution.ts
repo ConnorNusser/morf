@@ -5,7 +5,7 @@
 import { computeAchievements } from '@/lib/gamification/achievements';
 import { computeCareerStats } from '@/lib/gamification/careerStats';
 import { Rarity } from '@/lib/gamification/rarity';
-import { GeneratedWorkout, WeightUnit } from '@/types';
+import { LoggedWorkout, WeightUnit } from '@/types';
 
 export interface EarnedAchievement {
   id: string;
@@ -16,7 +16,7 @@ export interface EarnedAchievement {
 }
 
 export function attributeAchievements(
-  history: GeneratedWorkout[],
+  history: LoggedWorkout[],
   unit: WeightUnit,
 ): Record<string, EarnedAchievement[]> {
   const chrono = [...history].sort(

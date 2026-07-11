@@ -1,5 +1,5 @@
 // Lifetime "career" stats derived purely from workout history. Pure + clock-injectable.
-import { GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
+import { LoggedWorkout, WeightUnit, convertWeight } from '@/types';
 import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getWeekStreak } from '@/lib/workout/streak';
 
@@ -44,7 +44,7 @@ function longestConsecutive(dayKeys: Set<string>): number {
 }
 
 export function computeCareerStats(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   unit: WeightUnit,
   now: Date = new Date(),
 ): CareerStats {

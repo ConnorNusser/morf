@@ -20,7 +20,7 @@ import { space, radius, screenGutter, tint, trend } from '@/lib/ui/tokens';
 import { supabase } from '@/lib/services/supabase';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { WorkoutFeedData, WorkoutSummary } from '@/lib/services/feedService';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { calculateStrengthPercentile, getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { userService } from '@/lib/services/userService';
 import { convertWeightToLbs } from '@/lib/utils/utils';
@@ -325,7 +325,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
         return {
           exerciseId,
-          name: getWorkoutById(exerciseId)?.name || exerciseId,
+          name: getCatalogExercise(exerciseId)?.name || exerciseId,
           myValue,
           theirValue,
           myWeight: Math.round(myWeight),
@@ -370,7 +370,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
     const otherLifts = lifts
       .filter(l => !BIG_3.includes(l.exercise_id as typeof MAIN_LIFTS.BENCH_PRESS))
-      .filter(l => getWorkoutById(l.exercise_id) !== null)
+      .filter(l => getCatalogExercise(l.exercise_id) !== null)
       .sort((a, b) => b.estimated_1rm - a.estimated_1rm)
       .slice(0, 5);
 
@@ -394,7 +394,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     : '';
 
   const getExerciseName = (id: string) => {
-    const workout = getWorkoutById(id);
+    const workout = getCatalogExercise(id);
     return workout?.name || id;
   };
 

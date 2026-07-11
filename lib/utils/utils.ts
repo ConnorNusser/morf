@@ -1,4 +1,4 @@
-import { WeightUnit, TrackingType, GeneratedWorkout } from "@/types";
+import { WeightUnit, TrackingType, LoggedWorkout } from "@/types";
 
 const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
@@ -138,7 +138,7 @@ export const formatHoursCompact = (minutes: number): string => {
 };
 
 // Categorize a workout into a split bucket from its title.
-export const getWorkoutCategory = (workout: GeneratedWorkout): string => {
+export const getWorkoutCategory = (workout: LoggedWorkout): string => {
   const title = workout.title.toLowerCase();
 
   if (title.includes('push') || title.includes('chest') || title.includes('bench')) {

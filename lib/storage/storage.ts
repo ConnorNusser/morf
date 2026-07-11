@@ -1,4 +1,4 @@
-import { CustomExercise, ExerciseRecord, GeneratedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
+import { CustomExercise, ExerciseRecord, LoggedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { DEFAULT_WEEKLY_GOAL, WEEKLY_GOAL_MAX, WEEKLY_GOAL_MIN } from '@/lib/workout/weeklyGoal';
@@ -82,7 +82,7 @@ class StorageService {
     }
   }
 
-  async saveWorkout(workout: GeneratedWorkout): Promise<void> {
+  async saveWorkout(workout: LoggedWorkout): Promise<void> {
     try {
       const history = await this.getWorkoutHistory();
       history.push(workout);
@@ -93,12 +93,12 @@ class StorageService {
     }
   }
 
-  async getWorkoutHistory(): Promise<GeneratedWorkout[]> {
+  async getWorkoutHistory(): Promise<LoggedWorkout[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.WORKOUT_HISTORY);
       if (!data) return [];
       
-      const workouts = JSON.parse(data) as (Omit<GeneratedWorkout, 'createdAt'> & { createdAt: string })[];
+      const workouts = JSON.parse(data) as (Omit<LoggedWorkout, 'createdAt'> & { createdAt: string })[];
       return workouts.map((w) => ({
         ...w,
         createdAt: new Date(w.createdAt),

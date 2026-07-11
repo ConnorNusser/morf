@@ -9,7 +9,7 @@ import {
   TIER_THRESHOLDS,
 } from '@/lib/data/strengthStandards';
 import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { ALL_MAIN_LIFTS, convertWeight, Gender, GeneratedWorkout } from '@/types';
+import { ALL_MAIN_LIFTS, convertWeight, Gender, LoggedWorkout } from '@/types';
 
 export interface TierMilestone {
   tier: StrengthTier;
@@ -29,7 +29,7 @@ function tierRank(tier: StrengthTier): number {
 }
 
 export function computeTierTimeline(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   profile: TimelineProfile,
   // Lifts feeding the overall percentile; pass the dashboard's featured set to match the hero tier.
   liftIds: readonly string[] = ALL_MAIN_LIFTS,

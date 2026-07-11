@@ -1,9 +1,9 @@
 import { attributeAchievements } from '@/lib/history/achievementAttribution';
-import { GeneratedWorkout } from '@/types';
+import { LoggedWorkout } from '@/types';
 
 // Minimal workout factory: one exercise, `sets` completed sets of weight×reps,
 // logged on the given day offset (days before 2026-06-30).
-function workout(id: string, daysAgo: number, weight = 100, reps = 8, sets = 3): GeneratedWorkout {
+function workout(id: string, daysAgo: number, weight = 100, reps = 8, sets = 3): LoggedWorkout {
   const createdAt = new Date(Date.UTC(2026, 5, 30) - daysAgo * 24 * 60 * 60 * 1000).toISOString();
   return {
     id,
@@ -29,7 +29,7 @@ function workout(id: string, daysAgo: number, weight = 100, reps = 8, sets = 3):
     ],
     // Storage serializes createdAt as an ISO string at runtime (the app parses
     // with `new Date(...)` everywhere), so mirror that shape here.
-  } as unknown as GeneratedWorkout;
+  } as unknown as LoggedWorkout;
 }
 
 describe('attributeAchievements', () => {

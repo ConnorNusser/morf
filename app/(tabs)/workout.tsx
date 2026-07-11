@@ -16,7 +16,7 @@ import WorkoutNoteInput, {
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRestTimer } from "@/hooks/useRestTimer";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
-import { useWorkoutNoteSession } from "@/hooks/useWorkoutNoteSession";
+import { useWorkoutSession } from "@/hooks/useWorkoutSession";
 import {
   endLiveActivity,
   isLiveActivitySupported,
@@ -107,7 +107,7 @@ export default function WorkoutScreen() {
     getStartedRoutineChange,
     syncStartedRoutine,
 
-    noteText,
+    logText,
     elapsedTime,
     formatTime,
     resetWorkoutTimer,
@@ -123,7 +123,7 @@ export default function WorkoutScreen() {
     recentWorkouts,
     prefillWorkout,
     startEmptyWorkout,
-  } = useWorkoutNoteSession();
+  } = useWorkoutSession();
   const router = useRouter();
 
   // After the finish celebration is dismissed, land the user where the reward is:
@@ -914,7 +914,7 @@ export default function WorkoutScreen() {
       {/* Finish Modal (handles parsing, confirmation, and celebration) */}
       <WorkoutFinishModal
         visible={showFinishModal}
-        noteText={noteText}
+        logText={logText}
         prebuiltWorkout={finishWorkout}
         duration={elapsedTime}
         weightUnit={weightUnit}

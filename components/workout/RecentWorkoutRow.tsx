@@ -1,13 +1,13 @@
 import { Text, useInk } from '@/components/Themed';
 import { radius, space, track } from '@/lib/ui/tokens';
-import { getExercise } from '@/lib/workout/workouts';
-import { GeneratedWorkout } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { LoggedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface RecentWorkoutRowProps {
-  workout: GeneratedWorkout;
+  workout: LoggedWorkout;
   onPress: () => void;
   /** Draw a hairline above the row (for all but the first in a list). */
   separator?: boolean;

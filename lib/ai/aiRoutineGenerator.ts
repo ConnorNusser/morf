@@ -1,6 +1,6 @@
 // AI routine generator — builds routines from proven program methodologies.
 
-import { CustomExercise, Equipment, GeneratedWorkout, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
+import { CustomExercise, Equipment, LoggedWorkout, Routine, RoutineExercise, RoutineSet, TrainingAdvancement, UserProfile } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -12,7 +12,7 @@ import {
 import { TrainingGoal } from './splitTemplates';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
-import { getAvailableWorkouts, getWorkoutsByEquipment, getWorkoutById, ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { getAvailableExercises, getExercisesByEquipment, getCatalogExercise, EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import { calculateStrengthPercentile, MALE_STANDARDS, FEMALE_STANDARDS } from '@/lib/data/strengthStandards';
 import { determineTrainingAdvancement, PROGRAMMING_RULES } from '@/lib/workout/trainingAdvancement';
 import { classifyEquipment } from '@/lib/workout/equipmentProfile';
@@ -224,7 +224,7 @@ class AIRoutineGeneratorService {
   ): { id: string; name: string } | null {
     const cleanName = name.toLowerCase().trim();
 
-    for (const exercise of ALL_WORKOUTS) {
+    for (const exercise of EXERCISE_CATALOG) {
       if (exercise.name.toLowerCase() === cleanName) {
         return { id: exercise.id, name: exercise.name };
       }
@@ -236,7 +236,7 @@ class AIRoutineGeneratorService {
       }
     }
 
-    for (const exercise of ALL_WORKOUTS) {
+    for (const exercise of EXERCISE_CATALOG) {
       if (exercise.name.toLowerCase().includes(cleanName) ||
           cleanName.includes(exercise.name.toLowerCase())) {
         return { id: exercise.id, name: exercise.name };
@@ -251,7 +251,7 @@ class AIRoutineGeneratorService {
     }
 
     const nameWithoutEquipment = cleanName.replace(/\s*\([^)]*\)\s*$/, '').trim();
-    for (const exercise of ALL_WORKOUTS) {
+    for (const exercise of EXERCISE_CATALOG) {
       const exerciseWithoutEquipment = exercise.name.toLowerCase().replace(/\s*\([^)]*\)\s*$/, '').trim();
       if (exerciseWithoutEquipment === nameWithoutEquipment) {
         return { id: exercise.id, name: exercise.name };
@@ -270,7 +270,7 @@ class AIRoutineGeneratorService {
 
   private buildPrompt(
     userProfile: UserProfile | null,
-    workoutHistory: GeneratedWorkout[],
+    workoutHistory: LoggedWorkout[],
     customExercises: CustomExercise[],
     options: GenerateRoutineOptions,
     refine?: { currentProgram: GeneratedRoutineProgram; instruction: string }
@@ -283,8 +283,8 @@ class AIRoutineGeneratorService {
     const strengthLevel = this.calculateStrengthLevel(workoutHistory, userProfile);
 
     const availableExercises = userEquipment.length > 0
-      ? getWorkoutsByEquipment(userEquipment, 100)
-      : getAvailableWorkouts(100);
+      ? getExercisesByEquipment(userEquipment, 100)
+      : getAvailableExercises(100);
     const exerciseNames = availableExercises.map(e => e.name);
     const customExerciseNames = customExercises.map(e => e.name);
     const allExerciseNames = [...exerciseNames, ...customExerciseNames];
@@ -300,7 +300,7 @@ class AIRoutineGeneratorService {
     }>();
 
     const idToName = new Map<string, string>();
-    for (const workout of ALL_WORKOUTS) {
+    for (const workout of EXERCISE_CATALOG) {
       idToName.set(workout.id, workout.name);
     }
     for (const custom of customExercises) {
@@ -411,7 +411,7 @@ class AIRoutineGeneratorService {
   }
 
   private calculateStrengthLevel(
-    workoutHistory: GeneratedWorkout[],
+    workoutHistory: LoggedWorkout[],
     userProfile: UserProfile | null
   ): string {
     if (!userProfile?.weight?.value || workoutHistory.length === 0) {

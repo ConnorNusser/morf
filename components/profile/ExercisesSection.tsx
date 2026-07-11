@@ -5,8 +5,8 @@ import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { useTheme } from '@/contexts/ThemeContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
-import { Equipment, UserLift, Workout } from '@/types';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
+import { Equipment, UserLift, Exercise } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -82,7 +82,7 @@ export default function ExercisesSection() {
   }, [userLifts]);
 
   const filteredExercises = useMemo(() => {
-    let result = ALL_WORKOUTS;
+    let result = EXERCISE_CATALOG;
 
     if (equipmentFilter !== 'all') {
       result = result.filter(ex => ex.equipment?.includes(equipmentFilter));
@@ -102,7 +102,7 @@ export default function ExercisesSection() {
     return result;
   }, [searchQuery, equipmentFilter]);
 
-  const renderExerciseItem = (exercise: Workout) => {
+  const renderExerciseItem = (exercise: Exercise) => {
     const liftRecord = getLiftRecordForExercise(exercise.id);
 
     return (
@@ -177,12 +177,12 @@ export default function ExercisesSection() {
               </Text>
               <View style={[styles.badge, { backgroundColor: tint(currentTheme.colors.primary) }]}>
                 <Text variant="meta" style={styles.badgeText}>
-                  {ALL_WORKOUTS.length}
+                  {EXERCISE_CATALOG.length}
                 </Text>
               </View>
             </View>
             <Text variant="meta" style={styles.subtitle}>
-              {ALL_WORKOUTS.length} built-in exercises
+              {EXERCISE_CATALOG.length} built-in exercises
             </Text>
           </View>
           <Ionicons

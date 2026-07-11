@@ -41,7 +41,7 @@ import { calculateOverallPercentile } from "@/lib/utils/utils";
 import {
   convertWeight,
   ExerciseWithMax,
-  GeneratedWorkout,
+  LoggedWorkout,
   UserProgress,
   WeightUnit,
 } from "@/types";
@@ -95,12 +95,12 @@ export default function HistoryScreen() {
   const [replayKey, setReplayKey] = useState(0);
   const [replayFrom, setReplayFrom] = useState<number | undefined>(undefined);
 
-  const [workouts, setWorkouts] = useState<GeneratedWorkout[]>([]);
+  const [workouts, setWorkouts] = useState<LoggedWorkout[]>([]);
   const [exerciseStats, setExerciseStats] = useState<ExerciseWithMax[]>([]);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
 
   const [selectedWorkout, setSelectedWorkout] =
-    useState<GeneratedWorkout | null>(null);
+    useState<LoggedWorkout | null>(null);
   const [selectedExercise, setSelectedExercise] =
     useState<ExerciseWithMax | null>(null);
   const [showMonthlyTrends, setShowMonthlyTrends] = useState(false);

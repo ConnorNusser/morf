@@ -1,4 +1,4 @@
-import { GeneratedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
+import { LoggedWorkout, WeightUnit, WorkoutExerciseSession, WorkoutSetCompletion } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { aiWorkoutGenerator } from '@/lib/ai/aiWorkoutGenerator';
 import { analyticsService } from '@/lib/services/analytics';
@@ -6,7 +6,7 @@ import { exerciseNameToId } from '@/lib/data/exerciseUtils';
 import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
 import { storageService } from '@/lib/storage/storage';
 import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
-import { getAvailableWorkouts, getWorkoutById, setCustomExerciseCache } from './workouts';
+import { getAvailableExercises, getCatalogExercise, setCustomExerciseCache } from './exerciseCatalog';
 
 export interface ParsedSet {
   weight: number;
@@ -56,7 +56,7 @@ interface AIParseResponse {
   confidence: number;
 }
 
-class WorkoutNoteParser {
+class WorkoutTextParser {
   private readonly GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
   private readonly genAI: GoogleGenerativeAI;
   private dbExerciseIds: Set<string> = new Set();
@@ -70,7 +70,7 @@ class WorkoutNoteParser {
 
   // IDs are generated algorithmically, so we only need the set of IDs that exist.
   private buildExerciseIdCache() {
-    const allExercises = getAvailableWorkouts(100);
+    const allExercises = getAvailableExercises(100);
     this.dbExerciseIds = new Set(allExercises.map(e => e.id));
   }
 
@@ -108,7 +108,7 @@ class WorkoutNoteParser {
     return null;
   }
 
-  async parseWorkoutNote(text: string, defaultUnit: WeightUnit = 'lbs'): Promise<ParsedWorkout> {
+  async parseWorkoutText(text: string, defaultUnit: WeightUnit = 'lbs'): Promise<ParsedWorkout> {
     if (!text.trim()) {
       return { exercises: [], confidence: 0, rawText: text };
     }
@@ -225,7 +225,7 @@ class WorkoutNoteParser {
 
     for (const ex of parsed.exercises) {
       const displayName = ex.matchedExerciseId
-        ? getWorkoutById(ex.matchedExerciseId)?.name || ex.name
+        ? getCatalogExercise(ex.matchedExerciseId)?.name || ex.name
         : ex.name;
 
       const normalizedName = displayName.toLowerCase().trim();
@@ -250,7 +250,7 @@ class WorkoutNoteParser {
   }
 
   // Auto-creates custom exercises for unmatched exercise names.
-  async toGeneratedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number, routineId?: string): Promise<GeneratedWorkout> {
+  async toLoggedWorkoutWithCustomExercises(parsed: ParsedWorkout, duration: number, routineId?: string): Promise<LoggedWorkout> {
     let newCustomExercisesCreated = false;
 
     const exercisesNeedingCreation: { ex: ParsedExercise; index: number }[] = [];
@@ -340,4 +340,4 @@ class WorkoutNoteParser {
 
 }
 
-export const workoutNoteParser = new WorkoutNoteParser();
+export const workoutTextParser = new WorkoutTextParser();

@@ -6,7 +6,7 @@ import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { formatFullDate as formatDate } from '@/lib/ui/formatters';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { storageService } from '@/lib/storage/storage';
 import {
   Achievement,
@@ -359,7 +359,7 @@ function BestsView({ stats }: { stats: CareerStats }) {
   const { currentTheme } = useTheme();
   if (!stats.heaviestSet && stats.biggestSessionVolume === 0) return null;
   const hs = stats.heaviestSet;
-  const heaviestName = hs ? cleanExerciseName(getWorkoutById(hs.exerciseId)?.name ?? 'Lift') : '';
+  const heaviestName = hs ? cleanExerciseName(getCatalogExercise(hs.exerciseId)?.name ?? 'Lift') : '';
   return (
     <View style={styles.section}>
       <SectionLabel>All-time bests</SectionLabel>

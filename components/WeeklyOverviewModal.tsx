@@ -24,8 +24,8 @@ import {
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from '@/lib/workout/weeklyGoal';
-import { getExercise } from '@/lib/workout/workouts';
-import { GeneratedWorkout, TrackingType } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { LoggedWorkout, TrackingType } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -35,12 +35,12 @@ interface WeeklyOverviewModalProps {
   visible: boolean;
   onClose: () => void;
   invocationType: 'day' | 'week' | 'volume' | 'time';
-  workouts: GeneratedWorkout[];
+  workouts: LoggedWorkout[];
   selectedDate?: Date;
   weekStartDate?: Date;
   weekEndDate?: Date;
   /** Full workout history — enables this-week Personal Records detection. */
-  allWorkouts?: GeneratedWorkout[];
+  allWorkouts?: LoggedWorkout[];
   onWeeklyGoalChange?: (goal: number) => void;
 }
 

@@ -9,7 +9,7 @@ import { getPercentileColor, getTierColor } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { space } from '@/lib/ui/tokens';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -31,7 +31,7 @@ export default function WorkoutStatsCard({ stats, delay = 0 }: WorkoutStatsCardP
 
   const { play: playForwardMinimal } = useSound('forwardMinimal');
 
-  const workout = getWorkoutById(workoutId);
+  const workout = getCatalogExercise(workoutId);
   const accentColor = getPercentileColor(percentileRanking);
   const band = getTierBandProgress(percentileRanking);
 

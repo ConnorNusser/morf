@@ -1,6 +1,6 @@
-import { CustomExercise, ExerciseHistoryEntry, ExerciseWithMax, GeneratedWorkout, WeightUnit, convertWeight } from '@/types';
+import { CustomExercise, ExerciseHistoryEntry, ExerciseWithMax, LoggedWorkout, WeightUnit, convertWeight } from '@/types';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 
 // Behaviour change vs the old inline loadExerciseStats: a set at weight <= 0 is NO LONGER
 // discarded, so a calisthenics workout yields bodyweight rows instead of EMPTY stats.
@@ -16,7 +16,7 @@ interface Accum {
 // Fold workout history into per-exercise rows. Bodyweight lifts (every set weight 0) kept,
 // tagged `metric: 'bodyweight'`. Comparison in lbs; display numbers converted last.
 export function buildExerciseStats(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   customExercises: CustomExercise[],
   weightUnit: WeightUnit
 ): ExerciseWithMax[] {
@@ -76,7 +76,7 @@ export function buildExerciseStats(
 
   const stats: ExerciseWithMax[] = [];
 
-  for (const workout of ALL_WORKOUTS) {
+  for (const workout of EXERCISE_CATALOG) {
     const data = map[workout.id];
     if (data && data.history.length > 0) {
       stats.push(rowFor(workout.id, workout.name, false, data));

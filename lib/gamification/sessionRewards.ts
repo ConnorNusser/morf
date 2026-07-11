@@ -1,6 +1,6 @@
 // Session rewards = diff between a snapshot taken before a workout and one taken after.
 // One pure computeSessionRewards() feeds every surface so they never drift.
-import { GeneratedWorkout, WeightUnit } from '@/types';
+import { LoggedWorkout, WeightUnit } from '@/types';
 import { Achievement, computeAchievements } from './achievements';
 import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
@@ -24,7 +24,7 @@ export interface RewardContext {
 }
 
 // Build the snapshot from a history slice; careerData reuses this so fields never drift.
-export function buildRewardSnapshot(history: GeneratedWorkout[], ctx: RewardContext): RewardSnapshot {
+export function buildRewardSnapshot(history: LoggedWorkout[], ctx: RewardContext): RewardSnapshot {
   const stats = computeCareerStats(history, ctx.unit, ctx.now);
   const prsLbs = computeMainLiftPRs(history, 'lbs');
   const milestones = computeStrengthMilestones(prsLbs, ctx.bodyWeightLbs);
