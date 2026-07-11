@@ -58,47 +58,28 @@ export function HistoryIcon({ size = 24, color = '#000000' }: IconProps) {
 }
 
 export function RoutinesIcon({ size = 24, color = '#000000' }: IconProps) {
-  // The up-next cycle: routines rotate through a ring of days.
+  // The up-next ring: a segmented cycle of days with the current-day node.
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M 8 18 A 8 8 0 0 1 16 5 M 12 5 h 4 v 4"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      <Path
-        d="M 16 6 A 8 8 0 0 1 8 19 M 12 19 h -4 v -4"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
+      <Path d="M14.41 4.37A8 8 0 0 1 19.81 13.73" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+      <Path d="M17.41 17.9A8 8 0 0 1 6.59 17.9" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+      <Path d="M4.19 13.73A8 8 0 0 1 9.59 4.37" stroke={color} strokeWidth="2" strokeLinecap="round" fill="none" />
+      <Circle cx="12" cy="4" r="1.8" fill={color} />
     </Svg>
   );
 }
 
-export function ProfileBadgeIcon({ size = 24, color = '#000000' }: IconProps) {
-  // Person inside the hex badge — the identity mark, bookending the hex-plus.
+export function MorfMarkIcon({ size = 24, color = '#000000' }: IconProps) {
+  // The brand M (monoline take on the app icon's letterform) — profile is your
+  // Morf identity. Slightly heavier stroke so the letter carries at tab size.
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path
-        d="M12 2L21 7V17L12 22L3 17V7Z"
+        d="M4 20V5L12 14.5L20 5V20"
         stroke={color}
-        strokeWidth="2"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
-        fill="none"
-      />
-      <Circle cx="12" cy="9.5" r="2.5" stroke={color} strokeWidth="2" fill="none" />
-      <Path
-        d="M8 17c0-2.2 1.8-4 4-4s4 1.8 4 4"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
         fill="none"
       />
     </Svg>
