@@ -9,7 +9,7 @@ import { calculateAllRoutines } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
 import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { type } from '@/lib/ui/typography';
-import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -39,7 +39,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
   const { userProfile } = useUser();
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<LoggedWorkout[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedRoutineId, setExpandedRoutineId] = useState<string | null>(null);
 

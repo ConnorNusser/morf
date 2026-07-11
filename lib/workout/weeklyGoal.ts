@@ -1,6 +1,6 @@
 // Weekly training-goal signal for the home dashboard. Pure + clock-injectable.
 // Week starts Monday; index 0 = Monday … 6 = Sunday.
-import { GeneratedWorkout, convertWeight } from '@/types';
+import { LoggedWorkout, convertWeight } from '@/types';
 import { dateKey, weekStart as mondayOf } from '@/lib/utils/utils';
 
 export const DEFAULT_WEEKLY_GOAL = 4;
@@ -12,12 +12,12 @@ export interface WeekProgress {
   goal: number;
   metGoal: boolean;
   trainedDays: boolean[]; // length 7, index 0 = Monday … 6 = Sunday
-  workoutsByDay: GeneratedWorkout[][]; // length 7, workouts logged on each day
+  workoutsByDay: LoggedWorkout[][]; // length 7, workouts logged on each day
   weekStart: Date;
 }
 
 export function getWeekProgress(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   goal: number = DEFAULT_WEEKLY_GOAL,
   now: Date = new Date()
 ): WeekProgress {
@@ -30,7 +30,7 @@ export function getWeekProgress(
     dayKeys.push(dateKey(day));
   }
 
-  const workoutsByDay: GeneratedWorkout[][] = dayKeys.map(() => []);
+  const workoutsByDay: LoggedWorkout[][] = dayKeys.map(() => []);
   for (const w of workouts) {
     const idx = dayKeys.indexOf(dateKey(new Date(w.createdAt)));
     if (idx >= 0) workoutsByDay[idx].push(w);
@@ -56,7 +56,7 @@ export interface WeeklyLoad {
   deltaPct: number | null; // % volume change vs last week; null if no prior data
 }
 
-function workoutLoad(workout: GeneratedWorkout): { volumeLbs: number; sets: number } {
+function workoutLoad(workout: LoggedWorkout): { volumeLbs: number; sets: number } {
   let volumeLbs = 0;
   let sets = 0;
   for (const exercise of workout.exercises || []) {
@@ -70,7 +70,7 @@ function workoutLoad(workout: GeneratedWorkout): { volumeLbs: number; sets: numb
 }
 
 export function getWeeklyLoad(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   now: Date = new Date()
 ): WeeklyLoad {
   const thisWeekStart = mondayOf(now);

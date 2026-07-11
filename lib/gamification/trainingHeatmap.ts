@@ -1,8 +1,8 @@
 // GitHub-style training-consistency heatmap. Pure + clock-injectable. Columns are Monday-start
 // weeks; each cell is a day flagged trained with a relative-volume intensity (0..1).
-import { GeneratedWorkout } from '@/types';
+import { LoggedWorkout } from '@/types';
 import { dateKey, weekStart } from '@/lib/utils/utils';
-import { getExercise } from '@/lib/workout/workouts';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 
 // A day's dominant split == the dashboard's Push/Pull/Legs categories, so colors match the app.
@@ -49,7 +49,7 @@ export function heatLevel(intensity: number): number {
 }
 
 export function computeTrainingHeatmap(
-  workouts: GeneratedWorkout[],
+  workouts: LoggedWorkout[],
   weeks = 12,
   now: Date = new Date(),
 ): TrainingHeatmap {

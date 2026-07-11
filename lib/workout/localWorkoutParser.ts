@@ -1,6 +1,6 @@
 // Offline, forgiving workout-note tokenizer; the AI parser is reserved for ambiguous lines. Matching is name-based with an equipment default.
-import type { ParsedExercise, ParsedSet, ParsedWorkout } from '@/lib/workout/workoutNoteParser';
-import { getAvailableWorkouts } from '@/lib/workout/workouts';
+import type { ParsedExercise, ParsedSet, ParsedWorkout } from '@/lib/workout/workoutTextParser';
+import { getAvailableExercises } from '@/lib/workout/exerciseCatalog';
 import { WeightUnit } from '@/types';
 
 function normalize(s: string): string {
@@ -34,7 +34,7 @@ interface IndexedExercise {
 let exerciseIndex: IndexedExercise[] | null = null;
 function getIndex(): IndexedExercise[] {
   if (!exerciseIndex) {
-    exerciseIndex = getAvailableWorkouts(500).map(e => ({
+    exerciseIndex = getAvailableExercises(500).map(e => ({
       id: e.id,
       name: e.name,
       base: normalize(e.name),

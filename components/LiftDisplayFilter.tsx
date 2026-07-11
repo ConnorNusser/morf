@@ -5,7 +5,7 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { storageService } from '@/lib/storage/storage';
 import { space } from '@/lib/ui/tokens';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -108,7 +108,7 @@ export default function LiftDisplayFilter({ availableLifts, onFiltersChanged }: 
           contentContainerStyle={styles.filterListContent}
         >
           {availableLifts.map((lift) => {
-            const workout = getWorkoutById(lift.workoutId);
+            const workout = getCatalogExercise(lift.workoutId);
             const isHidden = filters.hiddenLiftIds.includes(lift.workoutId);
 
             return (

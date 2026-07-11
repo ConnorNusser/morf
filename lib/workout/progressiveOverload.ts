@@ -3,7 +3,7 @@
 import {
   CalculatedRoutineExercise,
   ExerciseRecord,
-  GeneratedWorkout,
+  LoggedWorkout,
   Routine,
   RoutineExercise,
   RoutineSet,
@@ -14,7 +14,7 @@ import {
 import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
 import { LastPerformance, LoggedSet, nextPrescription, loadIncrement, resolveWorkingSet, NextPrescription } from './progression';
-import { getWorkoutById } from './workouts';
+import { getCatalogExercise } from './exerciseCatalog';
 
 /** The coach's-notebook anchor: this routine's own column in the log. */
 export interface RoutineAnchor extends LastPerformance {
@@ -38,7 +38,7 @@ export interface RoutineAnchor extends LastPerformance {
 export function getRoutineAnchor(
   routineId: string,
   exerciseId: string,
-  history: GeneratedWorkout[],
+  history: LoggedWorkout[],
   occurrence = 0,
 ): RoutineAnchor | null {
   const sessions = history
@@ -102,7 +102,7 @@ function calculateRoutineExerciseWeights(
   // Prefer stored name, fall back to lookup for legacy routines.
   let exerciseName = exercise.exerciseName;
   if (!exerciseName) {
-    exerciseName = getWorkoutById(exercise.exerciseId)?.name || exercise.exerciseId;
+    exerciseName = getCatalogExercise(exercise.exerciseId)?.name || exercise.exerciseId;
   }
 
   if (!exercise?.exerciseId) {
@@ -209,7 +209,7 @@ export function calculateRoutine(
   routine: Routine,
   records: Record<string, ExerciseRecord>,
   weightUnit: WeightUnit,
-  history: GeneratedWorkout[] = []
+  history: LoggedWorkout[] = []
 ): CalculatedRoutine {
   const exercises = routine?.exercises || [];
   // Same exercise in two slots (top sets + backoff sets): the nth slot reads
@@ -234,7 +234,7 @@ export function calculateAllRoutines(
   routines: Routine[],
   records: Record<string, ExerciseRecord>,
   weightUnit: WeightUnit,
-  history: GeneratedWorkout[] = []
+  history: LoggedWorkout[] = []
 ): CalculatedRoutine[] {
   if (!routines || !Array.isArray(routines)) return [];
   return routines.map(routine => calculateRoutine(routine, records, weightUnit, history));

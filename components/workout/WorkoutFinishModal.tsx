@@ -19,8 +19,8 @@ import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, track, trend } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { calculateOverallPercentile, calculateWorkoutStats, convertWeightToLbs, formatDistance, formatDuration, formatSet, WorkoutStats } from '@/lib/utils/utils';
-import { ParsedWorkout, workoutNoteParser } from '@/lib/workout/workoutNoteParser';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { ParsedWorkout } from '@/lib/workout/workoutTextParser';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { convertWeight, UserProfile, UserProgress, WeightUnit } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -46,8 +46,9 @@ type ModalState = 'parsing' | 'confirmation' | 'celebration';
 
 interface WorkoutFinishModalProps {
   visible: boolean;
-  noteText: string;
-  prebuiltWorkout?: ParsedWorkout | null; // structured draft → skip the AI parse
+  logText: string;
+  // The structured draft IS the workout — the only input this modal accepts.
+  prebuiltWorkout: ParsedWorkout;
   duration?: number; // in seconds (optional for preview mode)
   weightUnit?: WeightUnit;
   onSave?: (parsedWorkout: ParsedWorkout) => Promise<void>;
@@ -82,7 +83,7 @@ const PixelHourglass = () => {
 
 const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   visible,
-  noteText,
+  logText,
   prebuiltWorkout,
   duration = 0,
   weightUnit = 'lbs',
@@ -110,7 +111,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
   const [savedTitle, setSavedTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    if (visible && noteText.trim()) {
+    if (visible && logText.trim()) {
       setModalState('parsing');
       setParsedWorkout(null);
       setError(null);
@@ -121,9 +122,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       const parseWorkout = async () => {
         try {
-          // A structured draft is already the workout; only parse raw text when there's no draft.
           const [parsed, lifts, profile] = await Promise.all([
-            prebuiltWorkout ?? workoutNoteParser.parseWorkoutNote(noteText),
+            prebuiltWorkout,
             userService.getAllFeaturedLifts(),
             userService.getUserProfileOrDefault(),
           ]);
@@ -139,7 +139,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       parseWorkout();
     }
-  }, [visible, noteText, prebuiltWorkout]);
+  }, [visible, logText, prebuiltWorkout]);
 
   const handleSave = useCallback(async () => {
     if (!parsedWorkout || !onSave) return;
@@ -415,7 +415,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
             <ScrollView style={styles.exercisesList}contentContainerStyle={styles.exercisesContent} showsVerticalScrollIndicator={false}>
               {displayExercises.map((exercise, index) => {
                 const exerciseInfo = exercise.matchedExerciseId
-                  ? getWorkoutById(exercise.matchedExerciseId)
+                  ? getCatalogExercise(exercise.matchedExerciseId)
                   : null;
 
                 const best1RM = exercise.sets ? Math.max(

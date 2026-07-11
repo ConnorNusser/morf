@@ -12,8 +12,8 @@ import {
 } from '@/lib/data/strengthStandards';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
-import { getExercise } from '@/lib/workout/workouts';
-import { Gender, GeneratedWorkout, StrengthStandard, WeightUnit, convertWeight, isMainLift } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { Gender, LoggedWorkout, StrengthStandard, WeightUnit, convertWeight, isMainLift } from '@/types';
 
 export interface LiftProgressPoint {
   weight: number; // display unit; 0 = bodyweight
@@ -162,7 +162,7 @@ function rankScore(tier: LiftTier | undefined, points: LiftProgressPoint[]): num
 
 // `months` caps recent months-with-data per lift. Result RANKED, not merely recent.
 export function buildLiftProgressions(
-  history: GeneratedWorkout[],
+  history: LoggedWorkout[],
   liftIds: string[],
   unit: WeightUnit,
   months = 4,

@@ -11,7 +11,7 @@ import { calculatePPLBreakdown, MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCatego
 import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
 import { feedService, FeedComment, toggleLikeFor } from '@/lib/services/feedService';
 import { formatVolumeNumber, formatSet } from '@/lib/utils/utils';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
@@ -228,7 +228,7 @@ export default function WorkoutThreadModal({
     if (!workout) return result;
 
     workout.exercises.forEach(exercise => {
-      const exerciseInfo = ALL_WORKOUTS.find(
+      const exerciseInfo = EXERCISE_CATALOG.find(
         w => w.name.toLowerCase() === exercise.name.toLowerCase()
       );
       if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {

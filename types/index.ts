@@ -173,7 +173,7 @@ export interface TrainingAdvancementResult {
 
 // ===== WORKOUT TYPES =====
 
-export interface Workout {
+export interface Exercise {
   id: string;
   name: string;
   category: WorkoutCategory;
@@ -336,7 +336,7 @@ export interface CalculatedRoutine extends Omit<Routine, 'exercises'> {
 }
 
 // Simplified workout using existing types
-export interface GeneratedWorkout {
+export interface LoggedWorkout {
   id: string;
   title: string;
   description: string;
@@ -354,7 +354,7 @@ export interface WorkoutContext {
   userProfile: UserProfile;
   userProgress: UserProgress[];
   availableEquipment: Equipment[];
-  workoutHistory: GeneratedWorkout[];
+  workoutHistory: LoggedWorkout[];
   customExercises?: CustomExercise[];
   preferences: {
     duration?: number;
@@ -365,8 +365,8 @@ export interface WorkoutContext {
 
 // ===== STORAGE TYPES =====
 
-// Custom user-created exercise (same structure as Workout but user-created)
-export interface CustomExercise extends Workout {
+// Custom user-created exercise (same structure as Exercise but user-created)
+export interface CustomExercise extends Exercise {
   isCustom: true;       // Override to always be true
   createdAt: Date;      // When the user created this exercise
 }

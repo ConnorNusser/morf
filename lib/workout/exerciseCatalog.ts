@@ -4,7 +4,7 @@ import {
   MuscleGroup,
   ThemeLevel,
   UserProgress,
-  Workout,
+  Exercise,
   WorkoutCategory,
 } from '@/types';
 import exercisesData from '@/lib/data/exercises.json';
@@ -12,14 +12,14 @@ import { storageService } from '@/lib/storage/storage';
 import { getThemeRequiredPercentile } from '@/lib/storage/userProfile';
 
 export {
-  Equipment, MuscleGroup, UserProgress, Workout, WorkoutCategory
+  Equipment, MuscleGroup, UserProgress, Exercise, WorkoutCategory
 };
 
-export const ALL_WORKOUTS: Workout[] = exercisesData as Workout[];
+export const EXERCISE_CATALOG: Exercise[] = exercisesData as Exercise[];
 
-export const MAIN_LIFTS: Workout[] = ALL_WORKOUTS.filter(workout => workout.isMainLift);
+export const MAIN_LIFTS: Exercise[] = EXERCISE_CATALOG.filter(workout => workout.isMainLift);
 
-export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
+export const getAvailableExercises = (userPercentile: number): Exercise[] => {
   const getUserThemeLevel = (percentile: number): ThemeLevel => {
     if (percentile >= getThemeRequiredPercentile('god')) return 'god';
     if (percentile >= getThemeRequiredPercentile('advanced')) return 'advanced';
@@ -42,24 +42,24 @@ export const getAvailableWorkouts = (userPercentile: number): Workout[] => {
 
   const userThemeOrder = themeOrder[userThemeLevel];
 
-  return ALL_WORKOUTS.filter(workout =>
+  return EXERCISE_CATALOG.filter(workout =>
     themeOrder[workout.themeLevel] <= userThemeOrder
   );
 };
 
-export const getWorkoutsByEquipment = (
+export const getExercisesByEquipment = (
   equipment: Equipment[],
   userPercentile: number
-): Workout[] => {
-  const availableWorkouts = getAvailableWorkouts(userPercentile);
+): Exercise[] => {
+  const availableWorkouts = getAvailableExercises(userPercentile);
   return availableWorkouts.filter(workout =>
     workout.equipment.some(eq => equipment.includes(eq))
   );
 };
 
 // The subset of exercise fields every resolver returns.
-export type ExerciseInfo = Pick<Workout, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'>;
-const pickInfo = (w: Workout | CustomExercise): ExerciseInfo => ({
+export type ExerciseInfo = Pick<Exercise, 'id' | 'name' | 'description' | 'category' | 'primaryMuscles' | 'equipment' | 'trackingType'>;
+const pickInfo = (w: Exercise | CustomExercise): ExerciseInfo => ({
   id: w.id,
   name: w.name,
   description: w.description,
@@ -79,9 +79,9 @@ export function setCustomExerciseCache(list: CustomExercise[]): void {
 // Catalog-only lookup. Also the canonical "is this a standard / rankable lift?"
 // predicate (leaderboards, strength radar, backend sync) — deliberately blind to
 // custom exercises. For display info, prefer getExercise().
-export const getWorkoutById = (exerciseId: string): ExerciseInfo | null => {
+export const getCatalogExercise = (exerciseId: string): ExerciseInfo | null => {
   if (!exerciseId) return null;
-  const w = ALL_WORKOUTS.find(x => x.id === exerciseId);
+  const w = EXERCISE_CATALOG.find(x => x.id === exerciseId);
   return w ? pickInfo(w) : null;
 };
 
@@ -90,13 +90,13 @@ export const getWorkoutById = (exerciseId: string): ExerciseInfo | null => {
 export const getExercise = (exerciseId: string): ExerciseInfo | null => {
   if (!exerciseId) return null;
   const custom = customById.get(exerciseId);
-  return getWorkoutById(exerciseId) ?? (custom ? pickInfo(custom) : null);
+  return getCatalogExercise(exerciseId) ?? (custom ? pickInfo(custom) : null);
 };
 
 // Async catalog+custom lookup that reads storage directly — for background/service
 // code outside React that can't rely on the mirrored cache being hydrated.
 export const getExerciseById = async (exerciseId: string): Promise<ExerciseInfo | null> => {
-  const builtIn = getWorkoutById(exerciseId);
+  const builtIn = getCatalogExercise(exerciseId);
   if (builtIn) return builtIn;
   try {
     const customExercises = await storageService.getCustomExercises();

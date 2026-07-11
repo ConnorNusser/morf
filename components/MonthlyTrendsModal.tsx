@@ -9,8 +9,8 @@ import { useSound } from '@/hooks/useSound';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { formatCompact, formatMinutes as formatTime, calculateWorkoutStats, combineWorkoutStats, formatDistance, formatDuration, WorkoutStats } from '@/lib/utils/utils';
-import { getExercise } from '@/lib/workout/workouts';
-import { GeneratedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { LoggedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
 import {
@@ -52,7 +52,7 @@ const PPL_LABELS: Record<PPLCategory, string> = {
 interface MonthlyTrendsModalProps {
   visible: boolean;
   onClose: () => void;
-  workoutHistory: GeneratedWorkout[];
+  workoutHistory: LoggedWorkout[];
 }
 
 interface MonthData {

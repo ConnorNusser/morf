@@ -8,15 +8,15 @@ import { useWorkoutLaunch } from '@/contexts/WorkoutLaunchContext';
 import { radius, screenGutter, space } from '@/lib/ui/tokens';
 import { lineHeightFor, type as typeScale } from '@/lib/ui/typography';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { getExercise } from '@/lib/workout/workouts';
-import { GeneratedWorkout } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { LoggedWorkout } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Image, ScrollView, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 
 interface RecentWorkoutsProps {
-  workouts: GeneratedWorkout[];
-  onPick: (w: GeneratedWorkout) => void;
+  workouts: LoggedWorkout[];
+  onPick: (w: LoggedWorkout) => void;
   onQuickStart: () => void;
   onGenerate: () => void;
   onImport: () => void;
@@ -25,7 +25,7 @@ interface RecentWorkoutsProps {
   bottomInset?: number;
 }
 
-function exerciseNames(w: GeneratedWorkout): string[] {
+function exerciseNames(w: LoggedWorkout): string[] {
   return (w.exercises || []).map(e => getExercise(e.id)?.name || e.id);
 }
 

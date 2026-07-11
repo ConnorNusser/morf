@@ -22,8 +22,8 @@ import {
 } from "@/lib/workout/pendingRoutine";
 import { calculateRoutine } from "@/lib/workout/progressiveOverload";
 import { getStreakState } from "@/lib/workout/retentionSignals";
-import { getExercise } from "@/lib/workout/workouts";
-import { CalculatedRoutine, GeneratedWorkout } from "@/types";
+import { getExercise } from "@/lib/workout/exerciseCatalog";
+import { CalculatedRoutine, LoggedWorkout } from "@/types";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -68,7 +68,7 @@ export default function TodayCard() {
   const [loading, setLoading] = useState(true);
   const [showOverview, setShowOverview] = useState(false);
   const [adviceDismissed, setAdviceDismissed] = useState(false);
-  const [recent, setRecent] = useState<GeneratedWorkout[]>([]);
+  const [recent, setRecent] = useState<LoggedWorkout[]>([]);
 
   const weightUnit = userProfile?.weightUnitPreference || "lbs";
 
@@ -167,7 +167,7 @@ export default function TodayCard() {
   }, [launch, router]);
 
   const repeatWorkout = useCallback(
-    (w: GeneratedWorkout) => {
+    (w: LoggedWorkout) => {
       launch({
         routineName: w.title || "Repeat Workout",
         exercises: (w.exercises || []).map((e) =>

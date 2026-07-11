@@ -6,7 +6,7 @@
 
 import { Equipment, MuscleGroup, TrainingAdvancement } from '@/types';
 import { TrainingGoal } from '@/lib/ai/splitTemplates';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 import type { GeneratedRoutineDay, GeneratedRoutineProgram } from '@/lib/ai/aiRoutineGenerator';
 import {
   PROGRAMS,
@@ -37,7 +37,7 @@ interface ResolvedExercise {
   isCompound: boolean;
 }
 
-const WORKOUT_BY_ID = new Map(ALL_WORKOUTS.map(w => [w.id, w]));
+const WORKOUT_BY_ID = new Map(EXERCISE_CATALOG.map(w => [w.id, w]));
 
 // Slots grouped by target muscle — used to backfill days that come up short.
 const SLOTS_BY_TARGET: Partial<Record<MuscleGroup, ExerciseSlot[]>> = (() => {

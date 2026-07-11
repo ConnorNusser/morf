@@ -8,7 +8,7 @@
 import { WeightUnit, ExerciseRecord, convertWeight, isFeaturedLift } from '@/types';
 import { roundWeight } from '@/lib/utils/utils';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { getWorkoutById } from './workouts';
+import { getCatalogExercise } from './exerciseCatalog';
 
 /** A rep range for a working set: hit `floor`+ to hold, hit `ceiling` to earn load. */
 export interface RepRange {
@@ -39,7 +39,7 @@ const MAX_DROP = 0.25; // never cut more than 25% in a single session
 
 /** Plate increment for one load step — bigger for compounds, smaller for isolations. */
 export function loadIncrement(exerciseId: string, unit: WeightUnit): number {
-  const exercise = getWorkoutById(exerciseId);
+  const exercise = getCatalogExercise(exerciseId);
   const isCompound = exercise?.category === 'compound';
   const muscles = exercise?.primaryMuscles ?? [];
   const isBigCompound = isCompound && (muscles.includes('legs') || muscles.includes('glutes') || muscles.includes('back'));

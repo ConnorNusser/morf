@@ -8,18 +8,18 @@ import { screenGutter, space, tint } from "@/lib/ui/tokens";
 import { lineHeightFor, type } from "@/lib/ui/typography";
 import { formatMinutes } from "@/lib/utils/utils";
 import playHapticFeedback from "@/lib/utils/haptic";
-import { getExercise } from "@/lib/workout/workouts";
-import { convertWeight, GeneratedWorkout, WeightUnit } from "@/types";
+import { getExercise } from "@/lib/workout/exerciseCatalog";
+import { convertWeight, LoggedWorkout, WeightUnit } from "@/types";
 import * as Clipboard from "expo-clipboard";
 import React, { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface WorkoutDetailModalProps {
-  workout: GeneratedWorkout | null;
+  workout: LoggedWorkout | null;
   weightUnit: WeightUnit;
   prDays: Map<string, Set<string>>;
   onClose: () => void;
-  onDelete: (workout: GeneratedWorkout) => void;
+  onDelete: (workout: LoggedWorkout) => void;
 }
 
 const getExerciseName = (id: string, info?: { name?: string } | null): string =>

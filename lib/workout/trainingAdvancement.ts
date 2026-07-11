@@ -1,7 +1,7 @@
 // Determines training level (percentile > training years > beginner default), which controls programming strictness for fatigue management.
 
 import {
-  GeneratedWorkout,
+  LoggedWorkout,
   TrainingAdvancement,
   TrainingAdvancementResult,
   UserProfile,
@@ -15,10 +15,10 @@ import {
 } from '@/lib/data/strengthStandards';
 import { analyticsService } from '@/lib/services/analytics';
 import { bestCompletedSet, completedWorkingSets } from './setStats';
-import { getWorkoutById } from './workouts';
+import { getCatalogExercise } from './exerciseCatalog';
 
 export function determineTrainingAdvancement(
-  workoutHistory: GeneratedWorkout[],
+  workoutHistory: LoggedWorkout[],
   userProfile: UserProfile | null
 ): TrainingAdvancementResult {
 
@@ -57,7 +57,7 @@ export function determineTrainingAdvancement(
 }
 
 function calculatePercentiles(
-  workoutHistory: GeneratedWorkout[],
+  workoutHistory: LoggedWorkout[],
   userProfile: UserProfile
 ): number[] {
   const gender = userProfile.gender || 'male';
@@ -177,7 +177,7 @@ function isHeavyRoutineExercise(ex: ValidatableExercise): boolean {
 // Classify a lift as squat/hinge for the same-day fatigue check. Matches keywords against the
 // display name, catalog name, or id; separators may be spaces or hyphens. null = not a lower squat/hinge.
 function classifyLowerPattern(exerciseId: string, exerciseName?: string): 'squat' | 'hinge' | null {
-  const name = (exerciseName || getWorkoutById(exerciseId)?.name || exerciseId).toLowerCase();
+  const name = (exerciseName || getCatalogExercise(exerciseId)?.name || exerciseId).toLowerCase();
   if (/(romanian|rdl|deadlift|good[-\s]*morning|hip[-\s]*thrust|swing|back[-\s]*extension|hyperextension)/.test(name)) return 'hinge';
   if (/(squat|leg[-\s]*press|hack|lunge|split[-\s]*squat|step.?up)/.test(name)) return 'squat';
   return null;

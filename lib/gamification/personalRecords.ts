@@ -1,7 +1,7 @@
 // Personal records for the featured lifts — best estimated 1RM per lift with the set + date. Pure.
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { getExercise } from '@/lib/workout/workouts';
-import { ALL_FEATURED_SECONDARY_LIFTS, ALL_MAIN_LIFTS, convertWeight, GeneratedWorkout, WeightUnit } from '@/types';
+import { getExercise } from '@/lib/workout/exerciseCatalog';
+import { ALL_FEATURED_SECONDARY_LIFTS, ALL_MAIN_LIFTS, convertWeight, LoggedWorkout, WeightUnit } from '@/types';
 
 export interface LiftPR {
   exerciseId: string;
@@ -19,15 +19,15 @@ export interface LiftPR {
 // the loop celebrating outward before inward.
 const FEATURED_LIFT_IDS: readonly string[] = [...ALL_MAIN_LIFTS, ...ALL_FEATURED_SECONDARY_LIFTS];
 
-export function computeMainLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit): LiftPR[] {
+export function computeMainLiftPRs(workouts: LoggedWorkout[], unit: WeightUnit): LiftPR[] {
   return computeLiftPRs(workouts, unit, ALL_MAIN_LIFTS);
 }
 
-export function computeFeaturedLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit): LiftPR[] {
+export function computeFeaturedLiftPRs(workouts: LoggedWorkout[], unit: WeightUnit): LiftPR[] {
   return computeLiftPRs(workouts, unit, FEATURED_LIFT_IDS);
 }
 
-function computeLiftPRs(workouts: GeneratedWorkout[], unit: WeightUnit, liftIds: readonly string[]): LiftPR[] {
+function computeLiftPRs(workouts: LoggedWorkout[], unit: WeightUnit, liftIds: readonly string[]): LiftPR[] {
   const best = new Map<string, { e1rm: number; weight: number; reps: number; date: Date }>();
 
   for (const workout of workouts) {

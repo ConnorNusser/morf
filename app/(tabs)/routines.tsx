@@ -12,10 +12,10 @@ import { setPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { getUpNextRoutine, isDayCompletedThisCycle } from '@/lib/workout/activeRoutine';
 import { calculateAllRoutines, getExerciseAdherenceStatus, type AdherenceStatus } from '@/lib/workout/progressiveOverload';
 import { loadExerciseRecords } from '@/lib/workout/exerciseRecordsStore';
-import { getWorkoutById } from '@/lib/workout/workouts';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { layout } from '@/lib/ui/styles';
 import { styles } from '@/lib/ui/notesScreenStyles';
-import { CalculatedRoutine, ExerciseRecord, GeneratedWorkout, Program, Routine, WeightUnit } from '@/types';
+import { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Program, Routine, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -34,7 +34,7 @@ const getMuscleGroups = (routine: CalculatedRoutine): string[] => {
   const muscleCounts: Record<string, number> = {};
 
   for (const exercise of routine.exercises || []) {
-    const workoutInfo = getWorkoutById(exercise.exerciseId);
+    const workoutInfo = getCatalogExercise(exercise.exerciseId);
     if (workoutInfo?.primaryMuscles) {
       for (const muscle of workoutInfo.primaryMuscles) {
         const normalized = muscle.toLowerCase();
@@ -60,7 +60,7 @@ export default function NotesScreen() {
   // Global per-exercise records — seed prescriptions for slots with no history of their own.
   const [exerciseRecords, setExerciseRecords] = useState<Record<string, ExerciseRecord>>({});
   // Workout history — each routine's prescription anchors to its own last session in here.
-  const [workoutHistory, setWorkoutHistory] = useState<GeneratedWorkout[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<LoggedWorkout[]>([]);
   const [showRoutineEditor, setShowRoutineEditor] = useState(false);
   const [showRoutineGenerator, setShowRoutineGenerator] = useState(false);
   const [showRoutineProgress, setShowRoutineProgress] = useState(false);

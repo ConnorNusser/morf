@@ -1,4 +1,4 @@
-import { CustomExercise, Equipment, GeneratedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
+import { CustomExercise, Equipment, LoggedWorkout, MuscleGroup, TrackingType, UserProfile, WorkoutCategory } from '@/types';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { analyticsService } from '@/lib/services/analytics';
 import { parseGeminiJson } from './geminiJson';
@@ -7,7 +7,7 @@ import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt
 import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
 import { storageService } from '@/lib/storage/storage';
 import { userService } from '@/lib/services/userService';
-import { getAvailableWorkouts, getWorkoutById, getWorkoutsByEquipment } from '@/lib/workout/workouts';
+import { getAvailableExercises, getCatalogExercise, getExercisesByEquipment } from '@/lib/workout/exerciseCatalog';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
 
 interface GenerateWorkoutOptions {
@@ -15,7 +15,7 @@ interface GenerateWorkoutOptions {
   customRequest?: string;
 }
 
-interface AIGeneratedWorkoutNote {
+interface AILoggedWorkoutNote {
   title: string;
   noteText: string;
   exercises: {
@@ -57,7 +57,7 @@ class AIWorkoutGeneratorService {
   }
 
   /** Generates note-style text that can be pasted into the notes input. */
-  async generateWorkoutNote(options: GenerateWorkoutOptions = {}): Promise<AIGeneratedWorkoutNote> {
+  async generateWorkoutNote(options: GenerateWorkoutOptions = {}): Promise<AILoggedWorkoutNote> {
     const userProfile = await userService.getRealUserProfile();
     const workoutHistory = await storageService.getWorkoutHistory();
     const customExercises = await storageService.getCustomExercises();
@@ -126,8 +126,8 @@ class AIWorkoutGeneratorService {
 
     // 100 percentile = all theme levels.
     const availableExercises = userEquipment.length > 0
-      ? getWorkoutsByEquipment(userEquipment, 100)
-      : getAvailableWorkouts(100);
+      ? getExercisesByEquipment(userEquipment, 100)
+      : getAvailableExercises(100);
     const exerciseNames = availableExercises.map(e => e.name);
     // Custom exercises are always included (not equipment-specific).
     const customExerciseNames = customExercises.map(e => e.name);
@@ -181,7 +181,7 @@ class AIWorkoutGeneratorService {
 
   private buildPrompt(
     userProfile: UserProfile | null,
-    workoutHistory: GeneratedWorkout[],
+    workoutHistory: LoggedWorkout[],
     customExercises: CustomExercise[],
     options: GenerateWorkoutOptions
   ): string {
@@ -191,8 +191,8 @@ class AIWorkoutGeneratorService {
 
     // 100 percentile = all theme levels.
     const availableExercises = userEquipment.length > 0
-      ? getWorkoutsByEquipment(userEquipment, 100)
-      : getAvailableWorkouts(100);
+      ? getExercisesByEquipment(userEquipment, 100)
+      : getAvailableExercises(100);
     const exerciseNames = availableExercises.map(e => e.name);
 
     // Custom exercises are always included (not equipment-specific).
@@ -204,7 +204,7 @@ class AIWorkoutGeneratorService {
     const recentWorkouts = workoutHistory.slice(-5);
     const recentExercises = recentWorkouts.flatMap(w =>
       w.exercises.map(ex => {
-        const info = getWorkoutById(ex.id);
+        const info = getCatalogExercise(ex.id);
         const customEx = !info ? customExercises.find(c => c.id === ex.id) : null;
         const bestSet = ex.completedSets?.reduce((best, current) => {
           return (current.weight > best.weight) ? current : best;
@@ -238,7 +238,7 @@ class AIWorkoutGeneratorService {
     });
   }
 
-  private async callAI(prompt: string, customRequest?: string): Promise<AIGeneratedWorkoutNote> {
+  private async callAI(prompt: string, customRequest?: string): Promise<AILoggedWorkoutNote> {
     const startTime = Date.now();
 
     const model = this.genAI.getGenerativeModel({
@@ -271,7 +271,7 @@ class AIWorkoutGeneratorService {
   private generateFallbackWorkout(
     userProfile: UserProfile | null,
     options: GenerateWorkoutOptions
-  ): AIGeneratedWorkoutNote {
+  ): AILoggedWorkoutNote {
     const weightUnit = userProfile?.weightUnitPreference || 'lbs';
     const isMale = userProfile?.gender !== 'female';
 

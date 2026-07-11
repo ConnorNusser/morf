@@ -1,11 +1,11 @@
 import { buildSessionRecaps } from '@/lib/history/sessionRecap';
 import { OneRMCalculator } from '@/lib/data/strengthStandards';
-import { GeneratedWorkout } from '@/types';
+import { LoggedWorkout } from '@/types';
 
 type Ex = { id: string; weight: number; reps: number; sets?: number };
 
 // Multi-exercise workout factory (ISO createdAt, mirroring storage's shape).
-function workout(id: string, daysAgo: number, exs: Ex[]): GeneratedWorkout {
+function workout(id: string, daysAgo: number, exs: Ex[]): LoggedWorkout {
   const createdAt = new Date(Date.UTC(2026, 5, 30) - daysAgo * 24 * 60 * 60 * 1000).toISOString();
   return {
     id,
@@ -27,7 +27,7 @@ function workout(id: string, daysAgo: number, exs: Ex[]): GeneratedWorkout {
         completed: true,
       })),
     })),
-  } as unknown as GeneratedWorkout;
+  } as unknown as LoggedWorkout;
 }
 
 describe('buildSessionRecaps — compact-row payload', () => {

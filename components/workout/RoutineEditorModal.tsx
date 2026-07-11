@@ -7,8 +7,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { type } from '@/lib/ui/typography';
-import { ALL_WORKOUTS } from '@/lib/workout/workouts';
-import { CustomExercise, Routine, RoutineExercise, RoutineSet, Workout } from '@/types';
+import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
+import { CustomExercise, Routine, RoutineExercise, RoutineSet, Exercise } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -35,7 +35,7 @@ interface RoutineEditorModalProps {
 
 interface ExercisePickerProps {
   visible: boolean;
-  onSelect: (exercises: Workout[]) => void;
+  onSelect: (exercises: Exercise[]) => void;
   onClose: () => void;
   excludeIds?: string[];
   customExercises?: CustomExercise[];
@@ -61,8 +61,8 @@ const ExercisePicker: React.FC<ExercisePickerProps> = ({
   }, [visible]);
 
   const allExercises = useMemo(() => {
-    const combined: Workout[] = [
-      ...ALL_WORKOUTS,
+    const combined: Exercise[] = [
+      ...EXERCISE_CATALOG,
       ...customExercises.map(ce => ({
         ...ce,
         isCustom: true as const,
@@ -207,7 +207,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     }
   }, [visible, routine]);
 
-  const handleAddExercises = useCallback((workouts: Workout[]) => {
+  const handleAddExercises = useCallback((workouts: Exercise[]) => {
     const newExercises: RoutineExercise[] = workouts.map(workout => ({
       exerciseId: workout.id,
       exerciseName: workout.name,
@@ -323,7 +323,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   const getExerciseName = useCallback((exercise: RoutineExercise) => {
     if (exercise.exerciseName) return exercise.exerciseName;
-    const workout = ALL_WORKOUTS.find(w => w.id === exercise.exerciseId);
+    const workout = EXERCISE_CATALOG.find(w => w.id === exercise.exerciseId);
     return workout?.name || exercise.exerciseId;
   }, []);
 
