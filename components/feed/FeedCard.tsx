@@ -88,7 +88,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(workout)} activeOpacity={0.7}>
-          <UserAvatar uri={workout.profile_picture_url} size={44} />
+          <UserAvatar uri={workout.profile_picture_url} username={workout.username} size={44} />
           <View>
             <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}

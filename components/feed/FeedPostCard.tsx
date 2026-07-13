@@ -157,7 +157,7 @@ function FeedPostCard({
       >
         <View style={styles.header}>
           <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
-            <UserAvatar uri={post.profile_picture_url} size={44} />
+            <UserAvatar uri={post.profile_picture_url} username={post.username} size={44} />
             <View>
               <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}

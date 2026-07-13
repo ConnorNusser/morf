@@ -95,7 +95,7 @@ function CommentItem({
         onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
         activeOpacity={0.7}
       >
-        <UserAvatar uri={comment.profile_picture_url} size={36} />
+        <UserAvatar uri={comment.profile_picture_url} username={comment.username} size={36} />
       </TouchableOpacity>
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
