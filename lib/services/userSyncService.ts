@@ -13,6 +13,7 @@ import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
 import { LeagueMemberAggregates, LeaguePrAggregate } from '@/lib/leagues/types';
+import { LeagueEvent } from '@/lib/leagues/story';
 
 // Overall strength snapshot used by the feed to color/annotate author names.
 export interface UserStrengthSummary {
@@ -941,6 +942,56 @@ class UserSyncService {
       }));
     } catch (error) {
       console.error('Error getting league week:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Chronological league events (sessions + PRs) for the Week Story view.
+   * Empty when the backend or the RPC is unavailable — callers fall back to
+   * the plain ladder.
+   */
+  async getLeagueEvents(weekStart: Date, weekEnd: Date): Promise<LeagueEvent[]> {
+    if (!supabase) return [];
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase.rpc('get_league_events', {
+        p_user_id: user.id,
+        p_week_start: weekStart.toISOString(),
+        p_week_end: weekEnd.toISOString(),
+      });
+
+      if (error) {
+        console.error('Error getting league events:', error);
+        return [];
+      }
+
+      return (data || []).map((row: {
+        user_id: string;
+        username: string;
+        profile_picture_url: string | null;
+        is_friend: boolean;
+        kind: 'session' | 'pr';
+        occurred_at: string;
+        exercise_id: string | null;
+        gain_pct: number | null;
+        title: string | null;
+      }) => ({
+        userId: row.user_id,
+        username: row.username,
+        profilePictureUrl: row.profile_picture_url ?? null,
+        isFriend: !!row.is_friend,
+        kind: row.kind,
+        occurredAt: row.occurred_at,
+        exerciseId: row.exercise_id ?? undefined,
+        gainPct: row.gain_pct ?? undefined,
+        title: row.title ?? undefined,
+      }));
+    } catch (error) {
+      console.error('Error getting league events:', error);
       return [];
     }
   }

@@ -80,9 +80,16 @@ reachable from inside the league view).
   so the card reads as progress even when losing.
 - Tap → League view.
 
-**2. League view (`LeagueBoard`)** — modal following the structural patterns of
-`components/profile/LeaderboardModal.tsx` (bottom-pinned You bar, gap-to-next,
-`SegmentedTabs`), but a new component under `components/home/league/`.
+**2. League view (`LeagueBoard`)** — modal under `components/home/league/`.
+
+> **Amendment (2026-07-13):** the default lens is the **Week Story** — the
+> week's raw events (every session and PR, from `get_league_events`, migration
+> 012) replayed chronologically through the scoring rules by
+> `lib/leagues/story.ts`, so each moment carries the points it earned, goal
+> bonuses land as their own beat, and *sole* lead changes are called out on the
+> event that caused them. A one-line standings strip sits pinned above the
+> story; tapping it (or the events RPC being unavailable) opens the ranked
+> ladder described below.
 
 - **Ranked list of active users only** (≥1 session this week), sorted by
   points desc, ties share rank (`rankByValue` semantics). At current scale the

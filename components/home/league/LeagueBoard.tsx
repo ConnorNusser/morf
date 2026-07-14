@@ -17,10 +17,12 @@ import {
   leagueWinner,
   weekBounds,
 } from '@/lib/leagues/scoring';
+import { buildWeekStory, LeagueEvent, StoryDay, StoryMoment } from '@/lib/leagues/story';
 import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
+import { dateKey } from '@/lib/utils/utils';
 import { RemoteUser } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -38,7 +40,6 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
-  banner: require('@/assets/achievements/banner.png'),
   flame: require('@/assets/achievements/flame.png'),
   barbell: require('@/assets/achievements/barbell.png'),
   laurel: require('@/assets/achievements/laurel.png'),
@@ -63,10 +64,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const [tab, setTab] = useState<BoardTab>('week');
   const [isLoading, setIsLoading] = useState(false);
   const [standings, setStandings] = useState<LeagueStandings | null>(null);
+  const [events, setEvents] = useState<LeagueEvent[]>([]);
   const [champion, setChampion] = useState<LeagueStanding | null>(null);
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showLadder, setShowLadder] = useState(false);
   const [showAllTime, setShowAllTime] = useState(false);
   const [showSocial, setShowSocial] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -79,19 +82,22 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       const prevStart = new Date(start);
       prevStart.setDate(prevStart.getDate() - 7);
 
-      const [me, friends, rows, prevRows] = await Promise.all([
+      const [me, friends, rows, weekEvents, prevRows] = await Promise.all([
         userSyncService.getCurrentUser(),
         userSyncService.getFriends(),
         userSyncService.getLeagueWeek(start, end),
+        userSyncService.getLeagueEvents(start, end),
         userSyncService.getLeagueWeek(prevStart, start),
       ]);
       setMyUser(me);
       if (!me) {
         setStandings(null);
+        setEvents([]);
         return;
       }
 
       setStandings(buildStandings(rows, friends, me.id));
+      setEvents(weekEvents);
       setChampion(leagueWinner(buildStandings(prevRows, [], me.id)));
 
       // Record any freshly-closed weeks so league achievements can unlock.
@@ -107,6 +113,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     if (visible) {
       setTab('week');
       setExpandedId(null);
+      setShowLadder(false);
       loadLeague();
     }
   }, [visible, loadLeague]);
@@ -118,21 +125,24 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
+  const story = useMemo(() => buildWeekStory(events), [events]);
+  const todayKey = dateKey(new Date());
+  const storyHasToday = story.some(d => d.dayKey === todayKey);
 
-  const handleUserPress = (row: LeagueStanding) => {
+  const handleUserPress = (userId: string, username: string, profilePictureUrl: string | null) => {
     setSelectedUser({
-      id: row.userId,
+      id: userId,
       device_id: '',
-      username: row.username,
-      profile_picture_url: row.profilePictureUrl ?? undefined,
+      username,
+      profile_picture_url: profilePictureUrl ?? undefined,
     });
   };
 
-  const renderAvatar = (row: LeagueStanding, size: number) => {
-    if (row.profilePictureUrl) {
+  const renderAvatar = (username: string, profilePictureUrl: string | null, size: number) => {
+    if (profilePictureUrl) {
       return (
         <Image
-          source={{ uri: row.profilePictureUrl }}
+          source={{ uri: profilePictureUrl }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
         />
       );
@@ -145,14 +155,136 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         ]}
       >
         <Text variant="meta" weight="semiBold">
-          {row.username ? row.username.charAt(0).toUpperCase() : '?'}
+          {username ? username.charAt(0).toUpperCase() : '?'}
         </Text>
       </RNView>
     );
   };
 
-  // Days trained as pips — the same visual grammar as the home "THIS WEEK"
-  // dot row, so the board reads as Morf, not as a dashboard.
+  // ——— The standings strip: always visible, one line, taps open the ladder ———
+
+  const renderStrip = () => {
+    if (active.length === 0) return null;
+    return (
+      <TouchableOpacity onPress={() => setShowLadder(!showLadder)} activeOpacity={0.7}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.strip}
+        >
+          {active.map((row, index) => {
+            const isYou = myUser != null && row.userId === myUser.id;
+            return (
+              <RNView key={row.userId} style={styles.stripEntry}>
+                <Text variant="meta" weight="bold" tone={index === 0 ? 'primary' : 'faint'}>
+                  {row.rank}
+                </Text>
+                <Text
+                  variant="meta"
+                  weight={isYou ? 'bold' : 'medium'}
+                  tone={isYou || row.isFriend || index === 0 ? 'primary' : 'secondary'}
+                  numberOfLines={1}
+                  style={isYou ? { color: currentTheme.colors.primary } : undefined}
+                >
+                  {isYou ? 'you' : row.username}
+                </Text>
+                <Text variant="meta" weight="semiBold" tone="muted">
+                  {row.points}
+                </Text>
+                {index < active.length - 1 && (
+                  <Text variant="meta" tone="ghost">·</Text>
+                )}
+              </RNView>
+            );
+          })}
+        </ScrollView>
+      </TouchableOpacity>
+    );
+  };
+
+  // ——— The story ———
+
+  const renderMoment = (moment: StoryMoment, index: number) => {
+    const { event } = moment;
+    const isYou = myUser != null && event.userId === myUser.id;
+    const name = isYou ? 'You' : event.username;
+    const isPR = event.kind === 'pr';
+
+    return (
+      <Animated.View
+        key={`${event.userId}-${event.occurredAt}-${event.kind}-${event.exerciseId ?? ''}`}
+        entering={FadeInDown.duration(200).delay(Math.min(index, 10) * 25)}
+      >
+        <TouchableOpacity
+          style={styles.momentRow}
+          onPress={() => handleUserPress(event.userId, event.username, event.profilePictureUrl)}
+          activeOpacity={0.7}
+        >
+          {renderAvatar(event.username, event.profilePictureUrl, 22)}
+          <RNView style={styles.momentBody}>
+            <Text variant="body" tone={isYou || event.isFriend ? 'primary' : 'secondary'} numberOfLines={2}>
+              <Text variant="body" weight="semiBold" tone={isYou || event.isFriend ? 'primary' : 'secondary'}>
+                {name}
+              </Text>
+              {isPR
+                ? <> PR&apos;d {liftName(event.exerciseId ?? '')} <Text variant="body" weight="semiBold" style={{ color: GOLD }}>+{(event.gainPct ?? 0).toFixed(1)}%</Text></>
+                : <> trained{event.title ? ` · ${event.title}` : ''}</>}
+            </Text>
+            {moment.bonusPoints > 0 && (
+              <RNView style={styles.leadLine}>
+                <Image source={EMBLEMS.laurel} style={styles.momentEmblem} />
+                <Text variant="meta" weight="semiBold" tone="secondary">
+                  {SCORING.goalBonusDays}-day week <Text variant="meta" weight="semiBold" tone="primary">+{moment.bonusPoints}</Text>
+                </Text>
+              </RNView>
+            )}
+            {moment.tookLead && (
+              <RNView style={styles.leadLine}>
+                <Image source={EMBLEMS.trophy} style={styles.momentEmblem} />
+                <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
+                  took the lead
+                </Text>
+              </RNView>
+            )}
+          </RNView>
+          {moment.points > 0 && (
+            <Text variant="body" weight="semiBold" style={isPR ? { color: GOLD } : undefined} tone={isPR ? undefined : 'primary'}>
+              +{moment.points}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderStory = () => (
+    <RNView style={styles.story}>
+      {story.map(day => (
+        <RNView key={day.dayKey} style={styles.storyDay}>
+          <SectionLabel>{day.label}</SectionLabel>
+          {day.moments.map(renderMoment)}
+        </RNView>
+      ))}
+
+      {/* Today's open move — the story always ends with what you'd earn. */}
+      {!storyHasToday && (
+        <RNView style={styles.storyDay}>
+          <SectionLabel>Today</SectionLabel>
+        </RNView>
+      )}
+      {nextPointsLine && (
+        <RNView style={styles.momentRow}>
+          <Image source={EMBLEMS.sword} style={styles.nextEmblem} />
+          <Text variant="body" tone="secondary" style={styles.momentBody}>
+            {nextPointsLine}
+          </Text>
+        </RNView>
+      )}
+    </RNView>
+  );
+
+  // ——— The ladder (strip tap / fallback when events are unavailable) ———
+
   const renderWeekPips = (row: LeagueStanding) => {
     const filled = Math.min(row.breakdown.activeDays, 7);
     return (
@@ -177,8 +309,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // One line per point source, pixel emblem + reason + points earned.
-  // Gold marks PR lines; everything else stays on the primary stroke.
   const renderReceipt = (row: LeagueStanding) => {
     const countedPRs = row.prs.slice(0, SCORING.prCap);
     const lines: { key: string; emblem: keyof typeof EMBLEMS; gold?: boolean; label: string; pts: number }[] = [];
@@ -266,8 +396,11 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             </Text>
           </RNView>
 
-          <TouchableOpacity onPress={() => handleUserPress(row)} activeOpacity={0.7}>
-            {renderAvatar(row, isHero ? 44 : 32)}
+          <TouchableOpacity
+            onPress={() => handleUserPress(row.userId, row.username, row.profilePictureUrl)}
+            activeOpacity={0.7}
+          >
+            {renderAvatar(row.username, row.profilePictureUrl, isHero ? 44 : 32)}
           </TouchableOpacity>
 
           <RNView style={styles.userInfo}>
@@ -275,8 +408,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               <Text
                 variant={isHero ? 'emphasis' : 'body'}
                 weight={isHero || isYou ? 'semiBold' : 'medium'}
-                // Ink hierarchy instead of badges: people you know read bright,
-                // strangers recede.
                 tone={isYou || row.isFriend || isHero ? 'primary' : 'secondary'}
                 numberOfLines={1}
                 style={styles.usernameText}
@@ -300,12 +431,10 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // The distance between rungs, written into the rank gutter — the ladder
-  // literally shows what it costs to climb one place.
-  const renderGap = (row: LeagueStanding, index: number) => {
+  const renderGap = (row: LeagueStanding) => {
     if (row.gapToAhead == null || row.gapToAhead <= 0) return null;
     return (
-      <RNView key={`gap-${row.userId}`} style={styles.gapRow}>
+      <RNView style={styles.gapRow}>
         <RNView style={styles.rankCell}>
           <Text variant="meta" weight="semiBold" tone="ghost">
             ▲{row.gapToAhead}
@@ -315,6 +444,30 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       </RNView>
     );
   };
+
+  const renderLadder = () => (
+    <RNView style={styles.list}>
+      {champion && (
+        <RNView style={styles.championLine}>
+          <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
+          <Text variant="meta" tone="muted">
+            Last week: <Text variant="meta" weight="semiBold" tone="primary">{champion.username}</Text>
+          </Text>
+        </RNView>
+      )}
+      {active.map((row, index) => (
+        <React.Fragment key={row.userId}>
+          {index > 0 && renderGap(row)}
+          {renderRow(row, index)}
+        </React.Fragment>
+      ))}
+      {standings != null && standings.restingFriends.length > 0 && (
+        <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
+          Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
+        </Text>
+      )}
+    </RNView>
+  );
 
   // The legend that answers "why": every way to score, emblem + rule + points.
   const renderRules = () => (
@@ -339,13 +492,18 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const nextPointsLine = useMemo(() => {
     if (!me) return null;
     const hints: string[] = [];
-    if (me.breakdown.activeDays < SCORING.activeDayCap) hints.push(`Train tomorrow +${SCORING.pointsPerActiveDay}`);
+    const trainedToday = story.some(
+      d => d.dayKey === todayKey && d.moments.some(m => m.event.kind === 'session' && myUser != null && m.event.userId === myUser.id),
+    );
+    if (!trainedToday && me.breakdown.activeDays < SCORING.activeDayCap) {
+      hints.push(`Train today +${SCORING.pointsPerActiveDay}`);
+    }
     if (me.breakdown.prCount < SCORING.prCap) hints.push(`PR a lift +${SCORING.pointsPerPR}`);
     if (me.breakdown.goalBonus === 0 && me.breakdown.activeDays < SCORING.goalBonusDays) {
       hints.push(`${SCORING.goalBonusDays - me.breakdown.activeDays} more ${SCORING.goalBonusDays - me.breakdown.activeDays === 1 ? 'day' : 'days'} for +${SCORING.goalBonus}`);
     }
     return hints.slice(0, 2).join(' · ') || null;
-  }, [me]);
+  }, [me, story, todayKey, myUser]);
 
   const renderWeekBoard = () => {
     if (isLoading) {
@@ -374,39 +532,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
     return (
       <View style={styles.list}>
-        {champion && (
-          <RNView style={styles.championLine}>
-            <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
-            <Text variant="meta" tone="muted">
-              Last week: <Text variant="meta" weight="semiBold" tone="primary">{champion.username}</Text>
-            </Text>
-          </RNView>
-        )}
-
-        {active.map((row, index) => (
-          <React.Fragment key={row.userId}>
-            {index > 0 && renderGap(row, index)}
-            {renderRow(row, index)}
-          </React.Fragment>
-        ))}
-
-        {standings != null && standings.restingFriends.length > 0 && (
-          <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
-            Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
-          </Text>
-        )}
-
-        {me != null && (
-          <RNView style={styles.personalPanel}>
-            <SectionLabel>Your week</SectionLabel>
-            {renderReceipt(me)}
-            {nextPointsLine && (
-              <Text variant="meta" tone="faint" style={styles.nextLine}>
-                Next: {nextPointsLine}
-              </Text>
-            )}
-          </RNView>
-        )}
+        {/* Story is the default lens; the ladder opens from the strip, and is
+            the fallback when the events RPC isn't available. */}
+        {showLadder || story.length === 0 ? renderLadder() : renderStory()}
 
         <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
           <SectionLabel style={styles.rulesToggleLabel}>
@@ -453,38 +581,11 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           />
         </View>
 
+        {!isLoading && renderStrip()}
+
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {renderWeekBoard()}
         </ScrollView>
-
-        {me != null && me.rank != null && active.length >= 2 && !isLoading && (
-          <RNView
-            style={[
-              styles.youBar,
-              { backgroundColor: currentTheme.colors.surface, borderTopColor: currentTheme.colors.border },
-            ]}
-          >
-            <Text variant="body" weight="semiBold" tone="primary" style={styles.youRank}>
-              #{me.rank}
-            </Text>
-            <RNView style={styles.userInfo}>
-              <Text variant="body" weight="semiBold" tone="primary">You</Text>
-              {me.rank === 1 ? (
-                <Text variant="meta" tone="secondary">Top of the board</Text>
-              ) : me.gapToAhead != null ? (
-                <Text variant="meta" tone="secondary" numberOfLines={1}>
-                  {me.gapToAhead === 0
-                    ? `Tied with @${active[active.findIndex(s => s.userId === me.userId) - 1]?.username}`
-                    : `${me.gapToAhead} pts to pass @${active[active.findIndex(s => s.userId === me.userId) - 1]?.username}`}
-                </Text>
-              ) : null}
-            </RNView>
-            <Text variant="body" weight="semiBold" tone="primary">
-              {me.points}
-              <Text variant="meta" weight="regular" tone="muted"> pts</Text>
-            </Text>
-          </RNView>
-        )}
 
         {/* All-time boards keep living in the leaderboard modal, stacked above. */}
         <LeaderboardModal
@@ -530,21 +631,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
     paddingTop: space.lg,
   },
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingHorizontal: screenGutter,
+    paddingVertical: space.md,
+  },
+  stripEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: screenGutter,
-    paddingTop: space.lg,
     paddingBottom: space.section,
   },
   list: {
+    gap: space.xs,
+  },
+  story: {
+    gap: space.lg,
+    paddingTop: space.sm,
+  },
+  storyDay: {
+    gap: space.xs,
+  },
+  momentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.sm,
+  },
+  momentBody: {
+    flex: 1,
+    gap: 3,
+  },
+  momentEmblem: {
+    width: 14,
+    height: 14,
+  },
+  nextEmblem: {
+    width: 22,
+    height: 22,
+  },
+  leadLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.xs,
   },
   championLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
+    paddingTop: space.sm,
     paddingBottom: space.sm,
   },
   entryRow: {
@@ -638,6 +781,7 @@ const styles = StyleSheet.create({
   },
   rulesToggle: {
     paddingVertical: space.sm,
+    marginTop: space.lg,
   },
   rulesToggleLabel: {
     marginBottom: 0,
@@ -645,24 +789,6 @@ const styles = StyleSheet.create({
   restingLine: {
     paddingTop: space.md,
     paddingBottom: space.sm,
-  },
-  nextLine: {
-    marginLeft: 36 + space.md,
-    paddingLeft: space.md,
-  },
-  personalPanel: {
-    marginTop: space.section,
-  },
-  youBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingHorizontal: screenGutter,
-    paddingVertical: space.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  youRank: {
-    minWidth: 36,
   },
   avatarPlaceholder: {
     alignItems: 'center',
