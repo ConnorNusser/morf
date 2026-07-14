@@ -2,7 +2,7 @@
   "expo": {
     "name": "Morf",
     "slug": "morfai",
-    "version": "1.6.1",
+    "version": "1.6.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "morfai",
@@ -23,9 +23,7 @@
         "NSPhotoLibraryAddUsageDescription": "Morf saves your workout recap cards to your photo library when you tap Save."
       },
       "entitlements": {
-        "com.apple.security.application-groups": [
-          "group.com.vanquil.morfai"
-        ]
+        "com.apple.security.application-groups": ["group.com.vanquil.morfai"]
       }
     },
     "android": {
