@@ -2,8 +2,11 @@ import Button from "@/components/Button";
 import { useAlert } from "@/components/CustomAlert";
 import IconButton from "@/components/IconButton";
 import RestBar from "@/components/workout/RestBar";
+import RestTimerSheet from "@/components/workout/RestTimerSheet";
+import WorkoutClockSheet from "@/components/workout/WorkoutClockSheet";
 import { Text, useInk, View } from "@/components/Themed";
 import EditableWorkout from "@/components/workout/EditableWorkout";
+import HoldTimer from "@/components/workout/HoldTimer";
 import NumberPad from "@/components/workout/NumberPad";
 import PlanBuilderModal from "@/components/workout/PlanBuilderModal";
 import PredictiveCard from "@/components/workout/PredictiveCard";
@@ -115,6 +118,9 @@ export default function WorkoutScreen() {
 
     logText,
     elapsedTime,
+    isPaused,
+    pauseWorkout,
+    resumeWorkout,
     formatTime,
     resetWorkoutTimer,
     showFinishModal,
@@ -413,7 +419,18 @@ export default function WorkoutScreen() {
   const [editing, setEditing] = useState<{
     key: string;
     index: number;
-    field: "weight" | "reps";
+    field: "weight" | "reps" | "duration";
+  } | null>(null);
+  // Full-screen rest sheet (tap the pill or the rest bar while resting).
+  const [showRestSheet, setShowRestSheet] = useState(false);
+  // Full-screen workout clock (tap the pill while not resting) — owns
+  // pause/resume/rest/restart so the header stays clean.
+  const [showClockSheet, setShowClockSheet] = useState(false);
+  // Full-screen hold timer target (timed exercises: dead hang, plank…).
+  const [holdTarget, setHoldTarget] = useState<{
+    key: string;
+    index: number;
+    name: string;
   } | null>(null);
   // Snapshot of the exercise's sets when editing began, plus the in-progress
   // weight/reps — so each keystroke recomputes the live target cascade from the
@@ -428,7 +445,7 @@ export default function WorkoutScreen() {
     reps: 0,
   });
   const openNumberPad = useCallback(
-    (key: string, index: number, field: "weight" | "reps") => {
+    (key: string, index: number, field: "weight" | "reps" | "duration") => {
       Keyboard.dismiss();
       playHapticFeedback("light", false);
       // Snapshot once per set (weight → Next → reps keeps the same origin); tapping a
@@ -451,7 +468,11 @@ export default function WorkoutScreen() {
   // target cascade, recomputed from the open-time snapshot so following sets that
   // still match the original "drag" along as you type (customized rows stay put).
   const handlePadLiveChange = useCallback(
-    (key: string, index: number, field: "weight" | "reps", n: number) => {
+    (key: string, index: number, field: "weight" | "reps" | "duration", n: number) => {
+      if (field === "duration") {
+        editSet(key, index, { duration: Math.max(0, Math.round(n)) });
+        return;
+      }
       const o = editOrigin.current;
       if (!o || o.key !== key || o.index !== index) return;
       liveEdit.current = { ...liveEdit.current, [field]: n };
@@ -463,7 +484,7 @@ export default function WorkoutScreen() {
         liveEdit.current.reps,
       );
     },
-    [applyLiveSet],
+    [applyLiveSet, editSet],
   );
 
   // Hevy-style rep mirroring: when a set's weight settles, tie its reps to the set
@@ -529,12 +550,12 @@ export default function WorkoutScreen() {
   );
 
   // Tapping the header clock starts a rest when none is running (the rest bar
-  // appears on its own); while resting it's purely a readout.
+  // appears on its own); while paused it resumes; while resting it's a readout.
   const handleTimerTap = useCallback(() => {
-    if (isResting) return;
     playHapticFeedback("light", false);
-    startRestTimer(DEFAULT_REST_SECONDS);
-  }, [isResting, startRestTimer]);
+    if (isResting) setShowRestSheet(true);
+    else setShowClockSheet(true);
+  }, [isResting]);
 
   // Restart-workout-timer moved out of the rest UI: long-press the header clock.
   const handleTimerLongPress = useCallback(() => {
@@ -639,9 +660,9 @@ export default function WorkoutScreen() {
                   ]}
                 >
                   <Ionicons
-                    name={isResting ? "hourglass-outline" : "time-outline"}
+                    name={isResting ? "hourglass-outline" : isPaused ? "pause" : "time-outline"}
                     size={16}
-                    color={isResting ? "#fff" : currentTheme.colors.accent}
+                    color={isResting ? "#fff" : isPaused ? "#F59E0B" : currentTheme.colors.accent}
                   />
                   <Text
                     variant="emphasis"
@@ -661,6 +682,21 @@ export default function WorkoutScreen() {
                       REST
                     </Text>
                   )}
+                  {!isResting && isPaused && (
+                    <Text
+                      variant="meta"
+                      weight="semiBold"
+                      style={[styles.restLabel, { color: "#F59E0B" }]}
+                    >
+                      PAUSED
+                    </Text>
+                  )}
+                  {/* The pill opens a sheet — say so. */}
+                  <Ionicons
+                    name="chevron-down"
+                    size={12}
+                    color={isResting ? "rgba(255,255,255,0.8)" : ink.faint}
+                  />
                 </RNView>
               </TouchableOpacity>
             ) : (
@@ -713,13 +749,15 @@ export default function WorkoutScreen() {
 
         {/* Rest bar — appears on its own while a rest is running */}
         {isResting && hasWorkoutStarted && (
-          <RestBar
-            remaining={restRemaining}
-            duration={restDuration}
-            formatted={formattedRestTime}
-            onAdjust={addRestTime}
-            onSkip={handleSkipRest}
-          />
+          <TouchableOpacity activeOpacity={0.85} onPress={() => setShowRestSheet(true)}>
+            <RestBar
+              remaining={restRemaining}
+              duration={restDuration}
+              formatted={formattedRestTime}
+              onAdjust={addRestTime}
+              onSkip={handleSkipRest}
+            />
+          </TouchableOpacity>
         )}
 
         {/* Workout (fills) — the editable source of truth, with one empty state */}
@@ -729,6 +767,10 @@ export default function WorkoutScreen() {
             weightUnit={weightUnit}
             onEditField={openNumberPad}
             activeField={editing}
+            onStartHold={(key, index) => {
+              const name = draft.find((e) => e.key === key)?.name ?? "Hold";
+              setHoldTarget({ key, index, name });
+            }}
             onAddSet={addSetTo}
             onAddWarmupSet={addWarmupSetTo}
             onRemoveSet={removeSetFrom}
@@ -951,6 +993,52 @@ export default function WorkoutScreen() {
         onImport={handleRoutineImport}
       />
 
+      {/* Full-screen workout clock — pause/resume, rest, restart in one place */}
+      <WorkoutClockSheet
+        visible={showClockSheet && hasWorkoutStarted && !isResting}
+        formatted={formatTime(elapsedTime)}
+        isPaused={isPaused}
+        onPause={pauseWorkout}
+        onResume={resumeWorkout}
+        onStartRest={() => startRestTimer(DEFAULT_REST_SECONDS)}
+        onRestart={() => {
+          setShowClockSheet(false);
+          handleTimerLongPress();
+        }}
+        onClose={() => setShowClockSheet(false)}
+      />
+
+      {/* Full-screen rest countdown — swipe down (pageSheet) or chevron to dismiss */}
+      <RestTimerSheet
+        visible={showRestSheet && isResting}
+        formatted={formattedRestTime}
+        remaining={restRemaining}
+        duration={restDuration}
+        onAdjust={addRestTime}
+        onSkip={handleSkipRest}
+        onClose={() => setShowRestSheet(false)}
+      />
+
+      {/* Full-screen count-up for timed holds; Stop logs duration + checks off */}
+      <HoldTimer
+        visible={holdTarget != null}
+        exerciseName={holdTarget?.name ?? ""}
+        setNumber={(holdTarget?.index ?? 0) + 1}
+        onStop={(seconds) => {
+          if (holdTarget) {
+            editSet(holdTarget.key, holdTarget.index, {
+              duration: seconds,
+              done: true,
+            });
+            startRestTimer(DEFAULT_REST_SECONDS, {
+              exerciseName: holdTarget.name,
+            });
+          }
+          setHoldTarget(null);
+        }}
+        onCancel={() => setHoldTarget(null)}
+      />
+
       {/* Custom number pad for editing a set's weight / reps */}
       {(() => {
         if (!editing) return null;
@@ -959,24 +1047,33 @@ export default function WorkoutScreen() {
         ];
         if (!set) return null;
         const isWeight = editing.field === "weight";
+        const isDuration = editing.field === "duration";
         return (
           <NumberPad
             visible
             seedKey={`${editing.key}-${editing.index}-${editing.field}`}
-            label={isWeight ? "Weight" : "Reps"}
-            unit={isWeight ? weightUnit : undefined}
-            value={isWeight ? set.weight : set.reps}
+            label={isDuration ? "Seconds" : isWeight ? "Weight" : "Reps"}
+            unit={isDuration ? "sec" : isWeight ? weightUnit : undefined}
+            value={isDuration ? (set.duration ?? 0) : isWeight ? set.weight : set.reps}
             allowDecimal={isWeight}
             increments={
-              isWeight
-                ? weightUnit === "kg"
-                  ? [-5, -2.5, 2.5, 5]
-                  : [-10, -5, 5, 10]
-                : [-1, 1, 2, 5]
+              isDuration
+                ? [-15, -5, 5, 15]
+                : isWeight
+                  ? weightUnit === "kg"
+                    ? [-5, -2.5, 2.5, 5]
+                    : [-10, -5, 5, 10]
+                  : [-1, 1, 2, 5]
             }
             hasNext={isWeight}
             onChange={(n) =>
-              editSet(editing.key, editing.index, { [editing.field]: n })
+              editSet(
+                editing.key,
+                editing.index,
+                editing.field === "duration"
+                  ? { duration: Math.max(0, Math.round(n)) }
+                  : { [editing.field]: n },
+              )
             }
             onLiveChange={(n) =>
               handlePadLiveChange(editing.key, editing.index, editing.field, n)

@@ -10,6 +10,8 @@ export interface DraftSet {
   weight: number;
   reps: number;
   unit: WeightUnit;
+  /** Hold/carry length in seconds — set on trackingType 'timed' exercises. */
+  duration?: number;
   done?: boolean; // checked off (green row)
   // Recorded role — survives save so nothing downstream has to guess it.
   isWarmup?: boolean;
@@ -56,7 +58,7 @@ export function mergeParsed(draft: WorkoutDraft, parsed: ParsedExercise[], opts:
   const next: WorkoutDraft = draft.map(e => ({ ...e, sets: [...e.sets] }));
   for (const pex of parsed) {
     const name = displayName(pex);
-    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, done: opts.done, isWarmup: s.isWarmup }));
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, duration: s.duration, done: opts.done, isWarmup: s.isWarmup }));
     const existing = next.find(e => isSameExercise(e, { exerciseId: pex.matchedExerciseId, name }));
     if (existing) {
       existing.sets.push(...sets);
@@ -91,7 +93,7 @@ export function buildDraft(
 ): WorkoutDraft {
   return parsed.exercises.map(pex => {
     const name = displayName(pex);
-    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, isWarmup: s.isWarmup }));
+    const sets: DraftSet[] = pex.sets.map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, duration: s.duration, isWarmup: s.isWarmup }));
     return {
       key: nextKey(),
       name,
@@ -106,6 +108,8 @@ export function draftToLogText(draft: WorkoutDraft): string {
   return draft
     .map(ex => {
       const tokens = ex.sets.map(s => {
+        // Timed holds round-trip as "90s" — localWorkoutParser reads it back.
+        if (s.duration != null && s.duration > 0) return `${s.duration}s`;
         const unit = s.unit === 'kg' ? 'kg' : '';
         return s.weight > 0 ? `${s.weight}${unit}x${s.reps}` : `x${s.reps}`;
       });
@@ -130,7 +134,7 @@ export function draftToParsedWorkout(draft: WorkoutDraft): ParsedWorkout {
       sets: ex.sets
         .filter(s => s.done === true)
         // Role stamped true/false on every saved set; absent = legacy session.
-        .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, completed: true, isWarmup: s.isWarmup === true })),
+        .map(s => ({ weight: s.weight, reps: s.reps, unit: s.unit, duration: s.duration, completed: true, isWarmup: s.isWarmup === true })),
     }))
     .filter(ex => ex.sets.length > 0);
   return { exercises, confidence: 1, rawText: draftToLogText(draft) };
@@ -147,6 +151,11 @@ export function totalVolume(draft: WorkoutDraft, unit: WeightUnit = 'lbs'): numb
       }, 0),
     0,
   );
+}
+
+/** True when the exercise logs holds (duration), not weight × reps. */
+export function isTimedDraftExercise(ex: Pick<DraftExercise, 'exerciseId'>): boolean {
+  return ex.exerciseId != null && getCatalogExercise(ex.exerciseId)?.trackingType === 'timed';
 }
 
 /** Add a named exercise with no sets, pre-filling from the best reference

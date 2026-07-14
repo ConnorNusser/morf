@@ -203,6 +203,14 @@ function parseSegment(
   const s = seg.trim();
   if (!s) return [];
 
+  // Timed holds: "1:30", "90s", "90 sec", "2 min" → duration in seconds.
+  let t = s.match(/^(\d+):([0-5]\d)$/);
+  if (t) return [{ weight: 0, reps: 1, unit: carry.unit, duration: parseInt(t[1], 10) * 60 + parseInt(t[2], 10) }];
+  t = s.match(/^(\d+(?:\.\d+)?)\s*(?:s|secs?|seconds?)$/i);
+  if (t) return [{ weight: 0, reps: 1, unit: carry.unit, duration: Math.round(parseFloat(t[1])) }];
+  t = s.match(/^(\d+(?:\.\d+)?)\s*(?:m|mins?|minutes?)$/i);
+  if (t) return [{ weight: 0, reps: 1, unit: carry.unit, duration: Math.round(parseFloat(t[1]) * 60) }];
+
   // weight (unit?) x reps (x sets?) — global, so "135x8 135x8" and "135x8x3" both expand to multiple sets.
   const xMatches = [...s.matchAll(/(\d+(?:\.\d+)?)\s*(kg|lbs?|#)?\s*[x×]\s*(\d+)(?:\s*[x×]\s*(\d+))?/gi)];
   if (xMatches.length > 0) {

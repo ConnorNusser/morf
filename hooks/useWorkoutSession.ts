@@ -8,6 +8,7 @@ import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile, formatDuration} from '@/lib/utils/utils';
 import { e1rmLbs } from '@/lib/data/strengthStandards';
+import { beginOvertakeWatch } from '@/lib/leagues/overtakeWatch';
 import { getExercise, getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { ParsedWorkout, workoutTextParser } from '@/lib/workout/workoutTextParser';
 import {
@@ -32,6 +33,7 @@ import {
 import { getLastSetsFor } from '@/lib/workout/autofill';
 import { matchExerciseByName } from '@/lib/workout/localWorkoutParser';
 import { updateExerciseRecords } from '@/lib/workout/progression';
+import { pausedSpanSeconds, sessionElapsedSeconds } from '@/lib/workout/sessionClock';
 import { CalculatedRoutine, CustomExercise, FEATURED_SECONDARY_LIFTS, LoggedWorkout, isMainLift, UserLift, WeightUnit } from '@/types';
 import { getPendingRepeatWorkout, getPendingRoutine } from '@/lib/workout/pendingRoutine';
 import { useFocusEffect } from 'expo-router';
@@ -74,6 +76,9 @@ export interface UseWorkoutSessionReturn {
   workoutStartTime: Date | null;
   formatTime: (seconds: number) => string;
   resetWorkoutTimer: () => void;
+  isPaused: boolean;
+  pauseWorkout: () => void;
+  resumeWorkout: () => void;
 
   showFinishModal: boolean;
   setShowFinishModal: (show: boolean) => void;
@@ -106,6 +111,10 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
   const [manuallyStarted, setManuallyStarted] = useState(false);
   const [workoutStartTime, setWorkoutStartTime] = useState<Date | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  // Pause accounting: pausedAt freezes the clock; pausedTotalSeconds accumulates
+  // completed pause spans (both persisted, so a paused session survives restarts).
+  const [pausedAt, setPausedAt] = useState<Date | null>(null);
+  const [pausedTotalSeconds, setPausedTotalSeconds] = useState(0);
 
   const logText = useMemo(() => draftToLogText(draft), [draft]);
 
@@ -294,10 +303,11 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     if (ok) setComposerText('');
   }, [commitText, composerText]);
 
-  const calculateElapsedTime = useCallback((startTime: Date | null): number => {
-    if (!startTime) return 0;
-    return Math.floor((Date.now() - startTime.getTime()) / 1000);
-  }, []);
+  const calculateElapsedTime = useCallback(
+    (startTime: Date | null, paused: Date | null = pausedAt, pausedTotal: number = pausedTotalSeconds): number =>
+      sessionElapsedSeconds(startTime, new Date(), paused, pausedTotal),
+    [pausedAt, pausedTotalSeconds],
+  );
 
   const restoreSession = useCallback((s: NonNullable<Awaited<ReturnType<typeof storageService.getNoteSession>>>) => {
     const savedDraft = s.draft as WorkoutDraft | null;
@@ -305,7 +315,9 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     else if (s.noteText) loadDraftFromText(s.noteText); // legacy sessions persisted text only
     setManuallyStarted(s.manuallyStarted);
     setWorkoutStartTime(s.startTime);
-    setElapsedTime(calculateElapsedTime(s.startTime));
+    setPausedAt(s.pausedAt);
+    setPausedTotalSeconds(s.pausedTotalSeconds);
+    setElapsedTime(calculateElapsedTime(s.startTime, s.pausedAt, s.pausedTotalSeconds));
     if (s.routineId) setStartedRoutineId(s.routineId);
   }, [loadDraftFromText, calculateElapsedTime]);
 
@@ -348,8 +360,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
 
   // Debounced persist: per-keystroke edits would otherwise write AsyncStorage every
   // render and lag typing. Latest snapshot held in a ref, flushed on unmount.
-  const sessionSnapshot = useRef({ logText, draft, manuallyStarted, workoutStartTime, startedRoutineId });
-  sessionSnapshot.current = { logText, draft, manuallyStarted, workoutStartTime, startedRoutineId };
+  const sessionSnapshot = useRef({ logText, draft, manuallyStarted, workoutStartTime, startedRoutineId, pausedAt, pausedTotalSeconds });
+  sessionSnapshot.current = { logText, draft, manuallyStarted, workoutStartTime, startedRoutineId, pausedAt, pausedTotalSeconds };
   const persistSession = useCallback(async () => {
     const snap = sessionSnapshot.current;
     const active = snap.draft.length > 0 || snap.manuallyStarted;
@@ -360,6 +372,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
         manuallyStarted: snap.manuallyStarted,
         startTime: snap.workoutStartTime,
         routineId: snap.startedRoutineId,
+        pausedAt: snap.pausedAt,
+        pausedTotalSeconds: snap.pausedTotalSeconds,
       });
     } else if (!active) {
       await storageService.clearNoteSession();
@@ -372,7 +386,7 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => { persistSession(); }, 400);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [logText, draft, manuallyStarted, workoutStartTime, startedRoutineId, isSessionLoaded, persistSession]);
+  }, [logText, draft, manuallyStarted, workoutStartTime, startedRoutineId, pausedAt, pausedTotalSeconds, isSessionLoaded, persistSession]);
 
   // Flush the pending save on unmount so leaving the tab mid-edit isn't lost.
   useEffect(() => () => { persistSession(); }, [persistSession]);
@@ -393,13 +407,14 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     if (!workoutStartTime) return;
 
     setElapsedTime(calculateElapsedTime(workoutStartTime));
+    if (pausedAt) return; // frozen — nothing to tick
 
     const interval = setInterval(() => {
       setElapsedTime(calculateElapsedTime(workoutStartTime));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [workoutStartTime, calculateElapsedTime]);
+  }, [workoutStartTime, pausedAt, calculateElapsedTime]);
 
   useFocusEffect(
     useCallback(() => {
@@ -541,22 +556,29 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
       }
     }
 
+    // Capture the pre-sync league board so overtake pushes can diff against it.
+    const settleOvertakeWatch = beginOvertakeWatch();
+
     // Sync lifts to Supabase for leaderboard (excluding custom exercises).
     const liftsToSyncFiltered = liftsToSync.filter(lift => getCatalogExercise(lift.id) !== null);
-    if (liftsToSyncFiltered.length > 0) {
-      userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
-        console.error('Error syncing lifts to Supabase:', err);
-      });
-    }
+    const liftsSyncPromise = liftsToSyncFiltered.length > 0
+      ? userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
+          console.error('Error syncing lifts to Supabase:', err);
+        })
+      : Promise.resolve();
 
     // Percentile sync covers ALL the user's lifts, not just this workout.
     userSyncService.calculateAndSyncPercentiles().catch(err => {
       console.error('Error syncing percentile data:', err);
     });
 
-    userSyncService.syncWorkout(generatedWorkout, elapsedTime, prCount).catch(err => {
+    const workoutSyncPromise = userSyncService.syncWorkout(generatedWorkout, elapsedTime, prCount).catch(err => {
       console.error('Error syncing workout to Supabase:', err);
     });
+
+    // League overtakes: re-fetch standings once this session is on the server,
+    // push to friends the user just moved past (fire and forget).
+    settleOvertakeWatch(Promise.allSettled([liftsSyncPromise, workoutSyncPromise]));
 
     refreshProfile().catch(err => {
       console.error('Error refreshing profile:', err);
@@ -604,6 +626,8 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     setComposerText('');
     setManuallyStarted(false);
     setWorkoutStartTime(null);
+    setPausedAt(null);
+    setPausedTotalSeconds(0);
     setElapsedTime(0);
     setStartedRoutineId(null);
     await storageService.clearNoteSession();
@@ -621,8 +645,21 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
 
   const discardWorkout = resetSession;
 
+  const pauseWorkout = useCallback(() => {
+    if (!workoutStartTime || pausedAt) return;
+    setPausedAt(new Date());
+  }, [workoutStartTime, pausedAt]);
+
+  const resumeWorkout = useCallback(() => {
+    if (!pausedAt) return;
+    setPausedTotalSeconds(t => t + pausedSpanSeconds(pausedAt, new Date()));
+    setPausedAt(null);
+  }, [pausedAt]);
+
   const resetWorkoutTimer = useCallback(() => {
     setWorkoutStartTime(new Date());
+    setPausedAt(null);
+    setPausedTotalSeconds(0);
     setElapsedTime(0);
   }, []);
 
@@ -721,6 +758,9 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
     workoutStartTime,
     formatTime,
     resetWorkoutTimer,
+    isPaused: pausedAt != null,
+    pauseWorkout,
+    resumeWorkout,
 
     showFinishModal,
     setShowFinishModal,

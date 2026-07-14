@@ -589,7 +589,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       ]}
                     >
                       <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
-                        {user.username.charAt(0).toUpperCase()}
+                        {user.username.slice(-2).toUpperCase()}
                       </Text>
                     </View>
                   )}
@@ -1039,7 +1039,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
               {lifts.length === 0 && (
                 <EmptyState
-                  icon="barbell-outline"
+                  art={require('@/assets/achievements/barbell.png')}
                   title="No lifts yet"
                   subtitle={`@${user.username} hasn't logged any tracked lifts.`}
                 />

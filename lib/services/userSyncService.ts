@@ -12,6 +12,7 @@ import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } 
 import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
+import { LeagueMemberAggregates, LeagueTopLift } from '@/lib/leagues/types';
 
 // Overall strength snapshot used by the feed to color/annotate author names.
 export interface UserStrengthSummary {
@@ -892,6 +893,55 @@ class UserSyncService {
       return data || [];
     } catch (error) {
       console.error('Error fetching historical lifts:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Weekly-league aggregates for the viewer's week window (docs/leagues-v1-spec.md):
+   * every user active in the window + the viewer, raw and unscored — scoring is
+   * lib/leagues/scoring.ts. Empty when the backend (or the RPC) is unavailable.
+   */
+  async getLeagueWeek(weekStart: Date, weekEnd: Date): Promise<LeagueMemberAggregates[]> {
+    if (!supabase) return [];
+
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase.rpc('get_league_week', {
+        p_user_id: user.id,
+        p_week_start: weekStart.toISOString(),
+        p_week_end: weekEnd.toISOString(),
+      });
+
+      if (error) {
+        console.error('Error getting league week:', error);
+        return [];
+      }
+
+      return (data || []).map((row: {
+        user_id: string;
+        username: string;
+        profile_picture_url: string | null;
+        sessions: number;
+        active_days: number;
+        volume_lbs: number | null;
+        top_lifts: LeagueTopLift[] | null;
+        is_friend: boolean;
+      }) => ({
+        user_id: row.user_id,
+        username: row.username,
+        profile_picture_url: row.profile_picture_url ?? null,
+        sessions: row.sessions ?? 0,
+        active_days: row.active_days ?? 0,
+        // Pre-014 RPC shapes degrade to zero volume / no lifts.
+        volume_lbs: Number(row.volume_lbs ?? 0),
+        top_lifts: Array.isArray(row.top_lifts) ? row.top_lifts : [],
+        is_friend: !!row.is_friend,
+      }));
+    } catch (error) {
+      console.error('Error getting league week:', error);
       return [];
     }
   }

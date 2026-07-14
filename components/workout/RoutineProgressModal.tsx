@@ -594,7 +594,7 @@ export default function RoutineProgressModal({
         {routineProgressList.length === 0 ? (
           <View style={styles.emptyWrap}>
             <EmptyState
-              art={require('@/assets/images/sl/flex.png')}
+              art={require('@/assets/achievements/strength.png')}
               title="No progress yet"
               subtitle="Complete workouts to track your gains"
             />

@@ -3,6 +3,7 @@ import { useAlert } from '@/components/CustomAlert';
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, View, useInk } from '@/components/Themed';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { analyticsService } from '@/lib/services/analytics';
 import { layout } from '@/lib/ui/styles';
@@ -382,18 +383,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   const renderSearchResult = ({ item }: { item: RemoteUser }) => (
     <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
       <View style={styles.userInfo}>
-        {item.profile_picture_url ? (
-          <Image
-            source={{ uri: item.profile_picture_url }}
-            style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}
-          />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}>
-            <Text variant="body" weight="semiBold" style={styles.avatarText}>
-              {item.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <UserAvatar uri={item.profile_picture_url} username={item.username} size={36} />
         <Text variant="body" weight="medium" tone="primary" style={styles.username}>
           @{item.username}
         </Text>
@@ -419,18 +409,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
         onPress={() => handleViewUserProfile(item.user)}
         activeOpacity={0.7}
       >
-        {item.user.profile_picture_url ? (
-          <Image
-            source={{ uri: item.user.profile_picture_url }}
-            style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}
-          />
-        ) : (
-          <View style={[styles.avatar, { backgroundColor: tint(currentTheme.colors.primary) }]}>
-            <Text variant="body" weight="semiBold" style={styles.avatarText}>
-              {item.user.username.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
+        <UserAvatar uri={item.user.profile_picture_url} username={item.user.username} size={36} />
         <Text variant="body" weight="medium" tone="primary" style={styles.username}>
           @{item.user.username}
         </Text>
@@ -489,11 +468,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                           style={styles.profilePictureImage}
                         />
                       ) : (
-                        <View style={[styles.profilePicturePlaceholder, { backgroundColor: tint(currentTheme.colors.primary) }]}>
-                          <Text variant="header" weight="semiBold" style={styles.profilePicturePlaceholderText}>
-                            {username ? username.charAt(0).toUpperCase() : '?'}
-                          </Text>
-                        </View>
+                        <UserAvatar uri={null} username={username} size={100} />
                       )}
                       <View style={[styles.profilePictureEditBadge, { backgroundColor: currentTheme.colors.primary }]}>
                         <Ionicons name="camera" size={14} color="#FFFFFF" />

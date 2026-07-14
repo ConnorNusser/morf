@@ -4,6 +4,8 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
+import { storageService } from '@/lib/storage/storage';
+import { dateKey, formatCompact } from '@/lib/utils/utils';
 
 // How notifications present while the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -335,6 +337,49 @@ class NotificationService {
     } catch (error) {
       console.error('Error notifying post comment:', error);
       return false;
+    }
+  }
+
+  /**
+   * Push-only: tell friends the viewer just moved ahead of them on the weekly
+   * league (docs/leagues-v1-spec.md). Friend-scoped by construction — callers
+   * pass ids from detectOvertakes, which only returns friends. Rate-limited to
+   * one push per friend per local day via LEAGUE_OVERTAKES_SENT markers.
+   */
+  async notifyLeagueOvertakes(
+    overtaken: { userId: string; points: number }[],
+    myUsername: string,
+    myPoints: number,
+    daysLeft: number
+  ): Promise<void> {
+    if (overtaken.length === 0) return;
+
+    try {
+      const today = dateKey(new Date());
+      const sent = await storageService.getLeagueOvertakesSent();
+      const fresh = overtaken.filter(o => !sent.includes(`${o.userId}:${today}`));
+      if (fresh.length === 0) return;
+
+      const dayWord = daysLeft === 1 ? 'day' : 'days';
+      await Promise.all(
+        fresh.map(async o => {
+          const tokens = await this.getUserPushTokens(o.userId);
+          if (tokens.length === 0) return;
+          await this.sendPushNotifications(
+            tokens,
+            `${myUsername} just passed you in the weekly league`,
+            `${formatCompact(myPoints)} pts to your ${formatCompact(o.points)}. ${daysLeft} ${dayWord} left this week.`,
+            { type: 'league_overtake' }
+          );
+        })
+      );
+
+      await storageService.setLeagueOvertakesSent([
+        ...sent,
+        ...fresh.map(o => `${o.userId}:${today}`),
+      ]);
+    } catch (error) {
+      console.error('Error sending league overtake pushes:', error);
     }
   }
 

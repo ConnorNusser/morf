@@ -74,7 +74,7 @@ const PixelHourglass = () => {
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${rotate.value}deg` }] }));
   return (
     <Animated.Image
-      source={require('@/assets/images/sl/hourglass.png')}
+      source={require('@/assets/achievements/hourglass.png')}
       style={[styles.hourglass, style]}
       resizeMode="contain"
     />
