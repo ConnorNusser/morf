@@ -3,8 +3,6 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionLabel from '@/components/ui/SectionLabel';
-import SegmentedTabs from '@/components/ui/SegmentedTabs';
-import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TIER_COLORS } from '@/lib/data/strengthStandards';
@@ -47,8 +45,6 @@ const EMBLEMS = {
 // docs/league-visual-goal.md — do not add hues.
 const GOLD = TIER_COLORS.S;
 
-type BoardTab = 'week' | 'alltime';
-
 interface LeagueBoardProps {
   visible: boolean;
   onClose: () => void;
@@ -69,14 +65,12 @@ const hexPoints = (size: number): string => {
 export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
-  const [tab, setTab] = useState<BoardTab>('week');
   const [isLoading, setIsLoading] = useState(false);
   const [standings, setStandings] = useState<LeagueStandings | null>(null);
   const [champion, setChampion] = useState<LeagueStanding | null>(null);
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showAllTime, setShowAllTime] = useState(false);
   const [showRules, setShowRules] = useState(false);
 
   const loadLeague = useCallback(async () => {
@@ -116,7 +110,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   useEffect(() => {
     if (visible) {
-      setTab('week');
       loadLeague();
     }
   }, [visible, loadLeague]);
@@ -440,35 +433,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           <IconButton icon="close" onPress={onClose} />
         </View>
 
-        <View style={styles.controls}>
-          <SegmentedTabs
-            tabs={[
-              { key: 'week', label: 'This week' },
-              { key: 'alltime', label: 'All-time' },
-            ]}
-            active={tab}
-            onChange={key => {
-              if (key === 'alltime') {
-                setShowAllTime(true);
-              } else {
-                setTab('week');
-              }
-            }}
-          />
-        </View>
-
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {renderWeekBoard()}
         </ScrollView>
-
-        {/* All-time boards keep living in the leaderboard modal, stacked above. */}
-        <LeaderboardModal
-          visible={showAllTime}
-          onClose={() => {
-            setShowAllTime(false);
-            setTab('week');
-          }}
-        />
 
         <UserProfileModal
           visible={selectedUser !== null}
@@ -498,10 +465,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     alignItems: 'center',
     gap: 2,
-  },
-  controls: {
-    paddingHorizontal: screenGutter,
-    paddingTop: space.lg,
   },
   scrollView: {
     flex: 1,

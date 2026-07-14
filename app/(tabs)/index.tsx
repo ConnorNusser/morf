@@ -3,12 +3,14 @@ import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
 import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
+import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { View } from "@/components/Themed";
+import NavRow from "@/components/ui/NavRow";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import UnlockNotificationModal, {
   NotificationType,
@@ -53,6 +55,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [feedRefreshTrigger] = useState(0);
   const [showLeague, setShowLeague] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
@@ -269,12 +272,23 @@ export default function HomeScreen() {
         <View style={layout.flex1} />
 
         <LeagueCard onPress={() => setShowLeague(true)} />
+
+        <NavRow
+          label="All-Time Leaderboards"
+          variant="card"
+          onPress={() => setShowLeaderboard(true)}
+        />
       </ScrollView>
       </ScreenBackground>
 
       <LeagueBoard
         visible={showLeague}
         onClose={() => setShowLeague(false)}
+      />
+
+      <LeaderboardModal
+        visible={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
       />
 
       <CareerModal
