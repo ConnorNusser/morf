@@ -2,6 +2,8 @@ import Button from "@/components/Button";
 import { useAlert } from "@/components/CustomAlert";
 import IconButton from "@/components/IconButton";
 import RestBar from "@/components/workout/RestBar";
+import RestTimerSheet from "@/components/workout/RestTimerSheet";
+import WorkoutClockSheet from "@/components/workout/WorkoutClockSheet";
 import { Text, useInk, View } from "@/components/Themed";
 import EditableWorkout from "@/components/workout/EditableWorkout";
 import HoldTimer from "@/components/workout/HoldTimer";
@@ -419,6 +421,11 @@ export default function WorkoutScreen() {
     index: number;
     field: "weight" | "reps" | "duration";
   } | null>(null);
+  // Full-screen rest sheet (tap the pill or the rest bar while resting).
+  const [showRestSheet, setShowRestSheet] = useState(false);
+  // Full-screen workout clock (tap the pill while not resting) — owns
+  // pause/resume/rest/restart so the header stays clean.
+  const [showClockSheet, setShowClockSheet] = useState(false);
   // Full-screen hold timer target (timed exercises: dead hang, plank…).
   const [holdTarget, setHoldTarget] = useState<{
     key: string;
@@ -545,14 +552,10 @@ export default function WorkoutScreen() {
   // Tapping the header clock starts a rest when none is running (the rest bar
   // appears on its own); while paused it resumes; while resting it's a readout.
   const handleTimerTap = useCallback(() => {
-    if (isResting) return;
     playHapticFeedback("light", false);
-    if (isPaused) {
-      resumeWorkout();
-      return;
-    }
-    startRestTimer(DEFAULT_REST_SECONDS);
-  }, [isResting, isPaused, resumeWorkout, startRestTimer]);
+    if (isResting) setShowRestSheet(true);
+    else setShowClockSheet(true);
+  }, [isResting]);
 
   // Restart-workout-timer moved out of the rest UI: long-press the header clock.
   const handleTimerLongPress = useCallback(() => {
@@ -624,33 +627,15 @@ export default function WorkoutScreen() {
         <View style={styles.header}>
           <View style={[styles.headerSide, { alignItems: "flex-start" }]}>
             {hasWorkoutStarted && (
-              <RNView style={styles.headerLeftRow}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={handleDiscard}
-                  hitSlop={8}
-                >
-                  <Text variant="body" tone="secondary">
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  hitSlop={8}
-                  onPress={() => {
-                    playHapticFeedback("light", false);
-                    if (isPaused) resumeWorkout();
-                    else pauseWorkout();
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={isPaused ? "Resume workout" : "Pause workout"}
-                >
-                  <Ionicons
-                    name={isPaused ? "play-circle-outline" : "pause-circle-outline"}
-                    size={24}
-                    color={isPaused ? currentTheme.colors.primary : ink.secondary}
-                  />
-                </TouchableOpacity>
-              </RNView>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleDiscard}
+                hitSlop={8}
+              >
+                <Text variant="body" tone="secondary">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
 
@@ -758,13 +743,15 @@ export default function WorkoutScreen() {
 
         {/* Rest bar — appears on its own while a rest is running */}
         {isResting && hasWorkoutStarted && (
-          <RestBar
-            remaining={restRemaining}
-            duration={restDuration}
-            formatted={formattedRestTime}
-            onAdjust={addRestTime}
-            onSkip={handleSkipRest}
-          />
+          <TouchableOpacity activeOpacity={0.85} onPress={() => setShowRestSheet(true)}>
+            <RestBar
+              remaining={restRemaining}
+              duration={restDuration}
+              formatted={formattedRestTime}
+              onAdjust={addRestTime}
+              onSkip={handleSkipRest}
+            />
+          </TouchableOpacity>
         )}
 
         {/* Workout (fills) — the editable source of truth, with one empty state */}
@@ -1000,6 +987,32 @@ export default function WorkoutScreen() {
         onImport={handleRoutineImport}
       />
 
+      {/* Full-screen workout clock — pause/resume, rest, restart in one place */}
+      <WorkoutClockSheet
+        visible={showClockSheet && hasWorkoutStarted && !isResting}
+        formatted={formatTime(elapsedTime)}
+        isPaused={isPaused}
+        onPause={pauseWorkout}
+        onResume={resumeWorkout}
+        onStartRest={() => startRestTimer(DEFAULT_REST_SECONDS)}
+        onRestart={() => {
+          setShowClockSheet(false);
+          handleTimerLongPress();
+        }}
+        onClose={() => setShowClockSheet(false)}
+      />
+
+      {/* Full-screen rest countdown — swipe down (pageSheet) or chevron to dismiss */}
+      <RestTimerSheet
+        visible={showRestSheet && isResting}
+        formatted={formattedRestTime}
+        remaining={restRemaining}
+        duration={restDuration}
+        onAdjust={addRestTime}
+        onSkip={handleSkipRest}
+        onClose={() => setShowRestSheet(false)}
+      />
+
       {/* Full-screen count-up for timed holds; Stop logs duration + checks off */}
       <HoldTimer
         visible={holdTarget != null}
@@ -1167,11 +1180,6 @@ const styles = StyleSheet.create({
   headerSide: {
     width: 88,
     justifyContent: "center",
-  },
-  headerLeftRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space.md,
   },
   cancelButton: {
     height: 40,
