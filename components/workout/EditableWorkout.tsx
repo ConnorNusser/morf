@@ -7,7 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { danger, radius, screenGutter, space, tint, track, trend } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { DraftExercise, DraftSet, WorkoutDraft, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
+import { DraftExercise, DraftSet, WorkoutDraft, isTimedDraftExercise, totalSets, totalVolume } from '@/lib/workout/workoutDraft';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
@@ -18,8 +18,9 @@ const DONE_GREEN = trend.up;
 interface EditableWorkoutProps {
   draft: WorkoutDraft;
   weightUnit: WeightUnit;
-  onEditField: (key: string, index: number, field: 'weight' | 'reps') => void;
-  activeField?: { key: string; index: number; field: 'weight' | 'reps' } | null;
+  onEditField: (key: string, index: number, field: 'weight' | 'reps' | 'duration') => void;
+  activeField?: { key: string; index: number; field: 'weight' | 'reps' | 'duration' } | null;
+  onStartHold?: (key: string, index: number) => void;
   onAddSet: (key: string) => void;
   onAddWarmupSet?: (key: string) => void;
   onRemoveSet: (key: string, index: number) => void;
@@ -34,8 +35,37 @@ interface EditableWorkoutProps {
 }
 
 function fmtPrev(set: DraftSet): string {
+  if (set.duration != null && set.duration > 0) return fmtHold(set.duration);
   const w = Number.isInteger(set.weight) ? String(set.weight) : String(parseFloat(set.weight.toFixed(2)));
   return set.weight > 0 ? `${w}×${set.reps}` : `×${set.reps}`; // bodyweight: ×12 (app-wide compact convention)
+}
+
+/** m:ss for hold durations. */
+function fmtHold(seconds: number): string {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/** Duration cell for timed exercises — spans the weight+reps columns. */
+function TimeField({ seconds, active, onPress, theme }: {
+  seconds: number;
+  active: boolean;
+  onPress: () => void;
+  theme: ReturnType<typeof useTheme>['currentTheme'];
+}) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.field,
+        styles.timeField,
+        { borderBottomColor: active ? theme.colors.primary : theme.colors.border },
+        active && { backgroundColor: tint(theme.colors.primary) },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <Text variant="emphasis" tone="primary" style={styles.timeText}>{fmtHold(seconds)}</Text>
+    </TouchableOpacity>
+  );
 }
 
 // Opens the custom number pad on tap (no OS keyboard); cell geometry is a named exception (spreadsheet grid).
@@ -87,7 +117,7 @@ function MenuRow({ icon, label, onPress, disabled, destructive }: {
   );
 }
 
-function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onOpenMenu, previous }: {
+function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAddSet, onRemoveSet, onToggleDone, onOpenMenu, onStartHold, previous }: {
   exercise: DraftExercise;
   previous: DraftSet[] | null;
   onOpenMenu: (key: string) => void;
@@ -95,6 +125,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   const { currentTheme } = useTheme();
   const ink = useInk();
   const hasPrev = !!previous && previous.length > 0;
+  const timed = isTimedDraftExercise(exercise);
 
   return (
     <RNView style={styles.section}>
@@ -117,8 +148,14 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
 
       <RNView style={styles.colHeader}>
         <RNView style={styles.checkCol} />
-        <Text variant="meta" tone="muted" style={styles.colLabelCol}>{weightUnit}</Text>
-        <Text variant="meta" tone="muted" style={styles.colLabelCol}>reps</Text>
+        {timed ? (
+          <Text variant="meta" tone="muted" style={[styles.colLabelCol, styles.timeCol]}>time</Text>
+        ) : (
+          <>
+            <Text variant="meta" tone="muted" style={styles.colLabelCol}>{weightUnit}</Text>
+            <Text variant="meta" tone="muted" style={styles.colLabelCol}>reps</Text>
+          </>
+        )}
         <RNView style={styles.prevCol}>
           {hasPrev && <Text variant="meta" tone="muted" style={styles.prevHeaderLabel}>prev</Text>}
         </RNView>
@@ -139,18 +176,42 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
                 >
                   <Ionicons name={set.done ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={set.done ? DONE_GREEN : ink.ghost} />
                 </TouchableOpacity>
-                <NumberField
-                  value={set.weight}
-                  active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
-                  onPress={() => onEditField(exercise.key, i, 'weight')}
-                  theme={currentTheme}
-                />
-                <NumberField
-                  value={set.reps}
-                  active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'reps'}
-                  onPress={() => onEditField(exercise.key, i, 'reps')}
-                  theme={currentTheme}
-                />
+                {timed ? (
+                  <>
+                    <TimeField
+                      seconds={set.duration ?? 0}
+                      active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'duration'}
+                      onPress={() => onEditField(exercise.key, i, 'duration')}
+                      theme={currentTheme}
+                    />
+                    {onStartHold && !set.done && (
+                      <TouchableOpacity
+                        hitSlop={6}
+                        style={[styles.holdBtn, { backgroundColor: tint(currentTheme.colors.primary) }]}
+                        onPress={() => { playHapticFeedback('medium', false); onStartHold(exercise.key, i); }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Start hold timer for set ${i + 1}`}
+                      >
+                        <Ionicons name="play" size={14} color={currentTheme.colors.primary} />
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <NumberField
+                      value={set.weight}
+                      active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'weight'}
+                      onPress={() => onEditField(exercise.key, i, 'weight')}
+                      theme={currentTheme}
+                    />
+                    <NumberField
+                      value={set.reps}
+                      active={activeField?.key === exercise.key && activeField.index === i && activeField.field === 'reps'}
+                      onPress={() => onEditField(exercise.key, i, 'reps')}
+                      theme={currentTheme}
+                    />
+                  </>
+                )}
                 <RNView style={styles.prevCol}>
                   {set.isWarmup ? (
                     <Text variant="meta" tone="muted" numberOfLines={1} style={styles.warmupLabel}>warmup</Text>
@@ -181,7 +242,7 @@ function ExerciseSection({ exercise, weightUnit, onEditField, activeField, onAdd
   );
 }
 
-export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onAddWarmupSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, onMoveExerciseToEdge, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
+export default function EditableWorkout({ draft, weightUnit, onEditField, activeField, onAddSet, onAddWarmupSet, onRemoveSet, onToggleDone, onRemoveExercise, onMoveExercise, onMoveExerciseToEdge, onStartHold, getPreviousSets, onScrollBeginDrag, bottomInset }: EditableWorkoutProps) {
   const ink = useInk();
   // Which exercise's options sheet is open (by key so draft updates never go stale).
   const [menuKey, setMenuKey] = useState<string | null>(null);
@@ -219,6 +280,7 @@ export default function EditableWorkout({ draft, weightUnit, onEditField, active
             onAddSet={onAddSet}
             onRemoveSet={onRemoveSet}
             onToggleDone={onToggleDone}
+            onStartHold={onStartHold}
             onOpenMenu={setMenuKey}
           />
         ))}
@@ -344,6 +406,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   field: { width: FIELD_W, alignItems: 'center', borderBottomWidth: 1, borderRadius: radius.badge, paddingVertical: space.xs },
+  timeField: { width: FIELD_W * 2 + ROW_GAP },
+  timeCol: { width: FIELD_W * 2 + ROW_GAP },
+  timeText: { fontVariant: ['tabular-nums'] },
+  holdBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   addSet: { flexDirection: 'row', alignItems: 'center', gap: space.xs, paddingVertical: space.md },
 });
