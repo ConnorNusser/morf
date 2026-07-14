@@ -62,7 +62,7 @@ export default function RecentWorkouts({ workouts, onPick, onQuickStart, onGener
       <ScrollView style={styles.scroll} contentContainerStyle={styles.emptyContent} keyboardShouldPersistTaps="always" onScrollBeginDrag={onScrollBeginDrag}>
         <RNView style={styles.emptyHero}>
           <Image
-            source={require('@/assets/images/sl/barbell.png')}
+            source={require('@/assets/achievements/barbell.png')}
             style={styles.emptyArt}
             resizeMode="contain"
           />

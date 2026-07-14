@@ -183,7 +183,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
           {messages.length === 0 && (
             <RNView style={styles.welcomeContainer}>
               <Image
-                source={require('@/assets/images/sl/scroll.png')}
+                source={require('@/assets/achievements/scroll.png')}
                 style={styles.welcomeArt}
                 resizeMode="contain"
               />
