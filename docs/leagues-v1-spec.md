@@ -82,7 +82,17 @@ reachable from inside the league view).
 
 **2. League view (`LeagueBoard`)** — modal under `components/home/league/`.
 
-> **Amendment 3 (2026-07-14, current):** real-value scoring + recap rows.
+> **Amendment 4 (2026-07-14, current): Spotify/WHOOP redesign.** Header is a
+> plain left title; hero = WHOOP-grammar panel (SVG rank ring showing your
+> share of the leader, WEEKLY POINTS label, count-up numeral, volume·PRs·days
+> and gap lines); champion is a surface chip with their points; standings are
+> Spotify chart rows (rank, avatar, name, volume·days·PRs sub-line, points
+> over a relative share bar); recaps are WHOOP stat-grid cards (Volume /
+> Volume pts / Days / PR pts) + tier-badged PR and top-lift lines. Motion is a
+> new M3-Expressive-based system (emphasized-decelerate entrances ~350ms,
+> standard-damped ring spring, UI-thread count-up) — no gradients, no glows.
+>
+> **Amendment 3 (2026-07-14):** real-value scoring + recap rows.
 > Points are reality-scaled: **+1 per lb of weekly volume** and **PR = the
 > lift's week-best e1RM × 50** (a 600 lb pull pays 30K; serious lifters PR
 > rarely but get paid). No caps, no bonuses. Migration 014 replaces

@@ -59,3 +59,8 @@ conformance polishes, it never improves.
   component, fix belongs in components/TierBadge.tsx, not here.
 - The contrast auditor needs the occlusion filter (elementFromPoint) or the
   home screen behind the modal pollutes the table.
+- 2026-07-14 (pass 2, 4-0-1): reanimated `Keyframe` entrances break flow layout
+  on react-native-web (siblings overlap) — use shared-value wrappers
+  (FadeSlideIn) for anything the loop must render. Redesign pass: WHOOP hero
+  (ring + numeral) + Spotify chart rows beat decorated-list layouts on
+  focus/character/space simultaneously — data-forward structure IS the flair.

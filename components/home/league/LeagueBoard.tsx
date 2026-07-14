@@ -31,19 +31,59 @@ import {
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown, LinearTransition, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedProps,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 
-// League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+// Motion system (M3 Expressive, m3.material.io/styles/motion): physics springs
+// in two schemes — EXPRESSIVE (low damping, visible settle) for the one hero
+// moment, STANDARD (critically damped) for utilitarian movement — plus the
+// emphasized-decelerate curve for spatial entrances (~350ms "fast" token).
+const SPRING_STANDARD = { damping: 26, stiffness: 320 } as const;
+const EMPHASIZED_DECEL = Easing.bezier(0.05, 0.7, 0.1, 1);
+
+/** Spatial entrance on the emphasized-decelerate curve (web-safe, no Keyframe). */
+function FadeSlideIn({
+  delay = 0,
+  distance = 10,
+  style,
+  children,
+}: {
+  delay?: number;
+  distance?: number;
+  style?: object;
+  children: React.ReactNode;
+}) {
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withDelay(delay, withTiming(1, { duration: 350, easing: EMPHASIZED_DECEL }));
+  }, [delay, progress]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: progress.value,
+    transform: [{ translateY: (1 - progress.value) * distance }],
+  }));
+  return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
+}
+
+// League iconography stays in the pixel emblem set, used sparingly (spec).
 const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
-  plate: require('@/assets/achievements/plate.png'),
-  barbell: require('@/assets/achievements/barbell.png'),
 };
 
-// Primary = your identity; gold = glory (leader, PRs, champion). Lift rows may
-// additionally carry their tier color — docs/league-visual-goal.md.
+// One accent (theme primary) + gold strictly for PR/champion; tier colors live
+// in TierBadge chips only. No gradients, no glows — type carries the weight.
 const GOLD = TIER_COLORS.S;
 
 interface LeagueBoardProps {
@@ -54,60 +94,76 @@ interface LeagueBoardProps {
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 const pts = (value: number) => formatCompact(value);
 
-/** Number that counts up to its value — points feel earned, not printed. */
-function useCountUp(target: number, duration = 420): number {
+/** UI-thread count-up on the emphasized-decelerate curve (hero numeral only). */
+function useCountUp(target: number, duration = 600): number {
+  const progress = useSharedValue(0);
   const [display, setDisplay] = useState(0);
-  const fromRef = React.useRef(0);
   useEffect(() => {
-    const from = fromRef.current;
-    if (from === target) {
-      setDisplay(target);
-      return;
-    }
-    const startedAt = Date.now();
-    let raf: number;
-    const tick = () => {
-      const t = Math.min(1, (Date.now() - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - t, 4);
-      setDisplay(Math.round(from + (target - from) * eased));
-      if (t < 1) {
-        raf = requestAnimationFrame(tick);
-      } else {
-        fromRef.current = target;
-      }
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
+    progress.value = 0;
+    progress.value = withDelay(80, withTiming(target, { duration, easing: EMPHASIZED_DECEL }));
+  }, [target, duration, progress]);
+  useAnimatedReaction(
+    () => Math.round(progress.value),
+    (value, previous) => {
+      if (value !== previous) runOnJS(setDisplay)(value);
+    },
+  );
   return display;
 }
 
-/** Gold bar that sweeps to its fill — the chase reads as motion, not state. */
-function ChaseBar({ pct, trackColor }: { pct: number; trackColor: string }) {
-  const fill = useSharedValue(0);
+/** WHOOP-style ring: your share of the leader's total, rank in the center. */
+function RankRing({
+  pct,
+  rank,
+  color,
+  trackColor,
+  size = 96,
+}: {
+  pct: number;
+  rank: number | null;
+  color: string;
+  trackColor: string;
+  size?: number;
+}) {
+  const strokeWidth = 7;
+  const r = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * r;
+  const progress = useSharedValue(0);
   useEffect(() => {
-    fill.value = withSpring(pct, { damping: 16, stiffness: 140 });
-  }, [pct, fill]);
-  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value}%` }));
-  return (
-    <RNView style={[styles.chaseTrack, { backgroundColor: trackColor }]}>
-      <Animated.View style={[styles.chaseFill, { backgroundColor: GOLD }, fillStyle]} />
-    </RNView>
-  );
-}
+    progress.value = withSpring(pct, SPRING_STANDARD);
+  }, [pct, progress]);
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - Math.min(progress.value, 100) / 100),
+  }));
 
-/** Row points, counting up on entry — the leader's reads as a power level. */
-function CountUpPoints({ value, hero, glowColor }: { value: number; hero: boolean; glowColor: string }) {
-  const display = useCountUp(value);
   return (
-    <Text
-      variant={hero ? 'statHero' : 'body'}
-      weight={hero ? 'bold' : 'medium'}
-      tone="primary"
-      style={[styles.tabularNums, hero && { textShadowColor: glowColor, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }]}
-    >
-      {pts(display)}
-    </Text>
+    <RNView style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={trackColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <AnimatedCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${circumference}`}
+          animatedProps={animatedProps}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </Svg>
+      <Text variant="title" weight="bold" tone="primary">
+        {rank != null ? `#${rank}` : '—'}
+      </Text>
+    </RNView>
   );
 }
 
@@ -142,11 +198,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         return;
       }
 
-      const built = buildStandings(rows, friends, me.id);
-      setStandings(built);
+      setStandings(buildStandings(rows, friends, me.id));
       setChampion(leagueWinner(buildStandings(prevRows, [], me.id)));
-      // Your own recap is one glance away by default.
-      setExpandedId(built.me?.rank != null ? me.id : null);
+      setExpandedId(null);
 
       // Record any freshly-closed weeks so league achievements can unlock.
       recordClosedWeeks(now);
@@ -168,6 +222,8 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
+  const leaderPoints = active[0]?.points ?? 0;
+  const heroPoints = useCountUp(me?.points ?? 0);
 
   const openProfile = (row: LeagueStanding) => {
     setSelectedUser({
@@ -201,67 +257,100 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // ——— The recap: where every point came from, in real units ———
+  // ——— Hero: your week compressed into one numeral + the ring (WHOOP grammar) ———
 
-  const renderRecap = (row: LeagueStanding) => {
-    const isYou = myUser != null && row.userId === myUser.id;
-    const prs = row.topLifts.filter(lift => lift.is_pr);
-    const leaderPoints = active[0]?.points ?? 0;
-    const chase = isYou && row.rank !== 1 && row.rank != null && leaderPoints > 0
-      ? { pct: Math.min(100, Math.round((row.points / leaderPoints) * 100)), gap: leaderPoints - row.points }
-      : null;
+  const renderHero = () => {
+    if (!me) return null;
+    const pct = me.rank === 1 ? 100 : leaderPoints > 0 ? (me.points / leaderPoints) * 100 : 0;
+    const gap = leaderPoints - me.points;
 
     return (
-      <RNView style={[styles.recap, { borderLeftColor: ink.hairline }]}>
-        {/* Volume — a pound is a point. */}
-        {row.breakdown.volumePoints > 0 && (
-          <RNView style={styles.recapLine}>
-            <Image source={EMBLEMS.plate} style={styles.recapEmblem} />
-            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.recapLabel}>
-              Lifted {formatVolume(row.breakdown.volumeLbs, 'lbs')} over {row.breakdown.activeDays} {row.breakdown.activeDays === 1 ? 'day' : 'days'}
-            </Text>
-            <Text variant="meta" weight="semiBold" tone="primary">
-              +{pts(row.breakdown.volumePoints)}
-            </Text>
-          </RNView>
-        )}
+      <FadeSlideIn distance={6} style={styles.hero}>
+        <RankRing
+          pct={pct}
+          rank={me.rank}
+          color={currentTheme.colors.primary}
+          trackColor={ink.ghost}
+        />
+        <RNView style={styles.heroBody}>
+          <SectionLabel style={styles.heroLabel}>Weekly points</SectionLabel>
+          <Text variant="header" weight="bold" tone="primary" style={styles.tabularNums}>
+            {pts(heroPoints)}
+          </Text>
+          <Text variant="meta" tone="secondary" numberOfLines={1}>
+            {formatVolume(me.breakdown.volumeLbs, 'lbs')}
+            {me.breakdown.prCount > 0 ? ` · ${me.breakdown.prCount} PR${me.breakdown.prCount === 1 ? '' : 's'}` : ''}
+            {` · ${me.breakdown.activeDays} ${me.breakdown.activeDays === 1 ? 'day' : 'days'}`}
+          </Text>
+          <Text variant="meta" tone="muted" numberOfLines={1}>
+            {me.rank === 1
+              ? active.length > 1
+                ? `Leading by ${pts(me.points - (active[1]?.points ?? 0))}`
+                : 'Top of the board'
+              : me.rank != null
+              ? `${pts(gap)} behind ${active[0]?.username}`
+              : 'Log a session to enter'}
+          </Text>
+        </RNView>
+      </FadeSlideIn>
+    );
+  };
 
-        {/* PRs — the lift's e1RM × 50, tier-colored. */}
-        {prs.map(lift => (
-          <RNView key={`pr-${lift.exercise_id}`} style={styles.recapLine}>
-            <Image source={EMBLEMS.barbell} style={styles.recapEmblem} />
-            <RNView style={[styles.recapLabel, styles.liftLabel]}>
-              {lift.strength_tier != null && (
-                <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
-              )}
-              <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
-                PR — {liftName(lift.exercise_id)} ×{SCORING.prMultiplier}
+  // ——— Recap: WHOOP stat grid + the lifts that made the week ———
+
+  const renderRecap = (row: LeagueStanding) => {
+    const prs = row.topLifts.filter(lift => lift.is_pr);
+
+    return (
+      <FadeSlideIn
+        distance={6}
+        style={[styles.recapCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+      >
+        <RNView style={styles.statGrid}>
+          {[
+            { label: 'Volume', value: formatVolume(row.breakdown.volumeLbs, 'lbs') },
+            { label: 'Volume pts', value: `+${pts(row.breakdown.volumePoints)}` },
+            { label: 'Days', value: String(row.breakdown.activeDays) },
+            { label: 'PR pts', value: row.breakdown.prPoints > 0 ? `+${pts(row.breakdown.prPoints)}` : '0' },
+          ].map(cell => (
+            <RNView key={cell.label} style={styles.statCell}>
+              <Text variant="emphasis" weight="bold" tone="primary" style={styles.tabularNums}>
+                {cell.value}
               </Text>
+              <SectionLabel style={styles.statLabel}>{cell.label}</SectionLabel>
             </RNView>
+          ))}
+        </RNView>
+
+        {prs.map(lift => (
+          <RNView key={`pr-${lift.exercise_id}`} style={styles.liftLine}>
+            {lift.strength_tier != null && (
+              <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
+            )}
+            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
+              PR — {liftName(lift.exercise_id)} · {Math.round(lift.week_best)} lbs
+            </Text>
             <Text variant="meta" weight="bold" style={{ color: GOLD }}>
               +{pts(prPoints(lift))}
             </Text>
           </RNView>
         ))}
 
-        {/* Top lifts of the week — the recap half: what they actually moved. */}
         {row.topLifts.length > 0 && (
           <RNView style={styles.topLifts}>
-            <SectionLabel style={styles.topLiftsLabel}>Top lifts</SectionLabel>
+            <SectionLabel style={styles.statLabel}>Top lifts</SectionLabel>
             {row.topLifts.slice(0, 4).map(lift => (
-              <RNView key={lift.exercise_id} style={styles.recapLine}>
-                <RNView style={[styles.recapLabel, styles.liftLabel]}>
-                  {lift.strength_tier != null && (
-                    <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
-                  )}
-                  <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
-                    {liftName(lift.exercise_id)}
-                  </Text>
-                  {lift.is_pr && (
-                    <Text variant="meta" weight="bold" style={{ color: GOLD }}>PR</Text>
-                  )}
-                </RNView>
-                <Text variant="meta" weight="semiBold" tone="primary">
+              <RNView key={lift.exercise_id} style={styles.liftLine}>
+                {lift.strength_tier != null && (
+                  <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
+                )}
+                <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
+                  {liftName(lift.exercise_id)}
+                </Text>
+                {lift.is_pr && (
+                  <Text variant="meta" weight="bold" style={{ color: GOLD }}>PR</Text>
+                )}
+                <Text variant="meta" weight="semiBold" tone="primary" style={styles.tabularNums}>
                   {Math.round(lift.week_best)} lbs
                 </Text>
               </RNView>
@@ -270,67 +359,46 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         )}
 
         {row.points === 0 && (
-          <Text variant="meta" tone="faint">No points yet this week.</Text>
+          <Text variant="meta" tone="muted">No points yet this week.</Text>
         )}
-
-        {/* The chase — XP-bar to the leader. */}
-        {chase && (
-          <RNView style={styles.chaseBlock}>
-            <ChaseBar pct={chase.pct} trackColor={ink.hairline} />
-            <Text variant="meta" tone="secondary">
-              <Text variant="meta" weight="bold" style={{ color: GOLD }}>{pts(chase.gap)} pts</Text> to catch {active[0]?.username}
-            </Text>
-          </RNView>
-        )}
-
-      </RNView>
+      </FadeSlideIn>
     );
   };
 
-  // ——— Rows ———
+  // ——— Standings: Spotify chart rows — rank, identity, metric, relative bar ———
 
   const renderRow = (row: LeagueStanding, index: number) => {
-    const isHero = index === 0;
     const isYou = myUser != null && row.userId === myUser.id;
     const isChampion = champion != null && row.userId === champion.userId;
     const isExpanded = expandedId === row.userId;
+    const sharePct = leaderPoints > 0 ? Math.max(3, Math.round((row.points / leaderPoints) * 100)) : 0;
 
     return (
-      <Animated.View key={row.userId} layout={LinearTransition.springify().damping(18).stiffness(250)} entering={FadeInDown.springify().damping(16).stiffness(220).delay(Math.min(index, 12) * 20)}>
+      <FadeSlideIn key={row.userId} delay={Math.min(index, 10) * 30}>
         <TouchableOpacity
-          style={[styles.entryRow, isHero && styles.heroRow, !isHero && { borderTopColor: ink.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}
+          style={styles.entryRow}
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
-          activeOpacity={0.7}
+          activeOpacity={0.6}
         >
-          {isHero && (
-            <LinearGradient
-              colors={[tint(currentTheme.colors.primary), 'transparent']}
-              start={{ x: 0, y: 1 }}
-              end={{ x: 0.9, y: 0 }}
-              style={[StyleSheet.absoluteFill, styles.heroAura]}
-            />
-          )}
-          <RNView style={styles.rankCell}>
-            <Text
-              variant={isHero ? 'statHero' : 'body'}
-              weight={isHero ? 'bold' : index < 3 ? 'semiBold' : 'regular'}
-              tone={isHero ? undefined : index < 3 ? 'primary' : 'secondary'}
-              style={isHero ? { color: GOLD } : undefined}
-            >
-              {row.rank}
-            </Text>
-          </RNView>
+          <Text
+            variant="body"
+            weight={index === 0 ? 'bold' : 'medium'}
+            tone={index === 0 ? 'primary' : 'secondary'}
+            style={[styles.rankCell, styles.tabularNums]}
+          >
+            {row.rank}
+          </Text>
 
           <TouchableOpacity onPress={() => openProfile(row)} activeOpacity={0.7}>
-            {renderAvatar(row, isHero ? 44 : 32)}
+            {renderAvatar(row, 40)}
           </TouchableOpacity>
 
           <RNView style={styles.userInfo}>
             <RNView style={styles.usernameRow}>
               <Text
-                variant={isHero ? 'emphasis' : 'body'}
-                weight={isHero || isYou ? 'semiBold' : 'medium'}
-                tone={isYou || row.isFriend || isHero ? 'primary' : 'secondary'}
+                variant="body"
+                weight={isYou || index === 0 ? 'semiBold' : 'medium'}
+                tone={isYou || row.isFriend || index === 0 ? 'primary' : 'secondary'}
                 numberOfLines={1}
                 style={styles.usernameText}
               >
@@ -339,27 +407,30 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               {isChampion && <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />}
               {isYou && <Text variant="meta" tone="muted">you</Text>}
             </RNView>
-            <Text variant="meta" tone="secondary" numberOfLines={1}>
+            <Text variant="meta" tone="muted" numberOfLines={1}>
               {formatVolume(row.breakdown.volumeLbs, 'lbs')}
+              {` · ${row.breakdown.activeDays}d`}
               {row.breakdown.prCount > 0 && (
                 <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
-                  {`  ·  ${row.breakdown.prCount} PR${row.breakdown.prCount === 1 ? '' : 's'}`}
+                  {` · ${row.breakdown.prCount} PR${row.breakdown.prCount === 1 ? '' : 's'}`}
                 </Text>
               )}
             </Text>
           </RNView>
 
           <RNView style={styles.valueCell}>
-            <CountUpPoints value={row.points} hero={isHero} glowColor={currentTheme.colors.primary} />
-            <Text variant="meta" weight="regular" tone="muted">pts</Text>
+            <Text variant="body" weight="semiBold" tone="primary" style={styles.tabularNums}>
+              {pts(row.points)}
+            </Text>
+            <RNView style={[styles.shareTrack, { backgroundColor: ink.ghost }]}>
+              <RNView
+                style={[styles.shareFill, { width: `${sharePct}%`, backgroundColor: currentTheme.colors.primary }]}
+              />
+            </RNView>
           </RNView>
         </TouchableOpacity>
-        {isExpanded && (
-          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(260)}>
-            {renderRecap(row)}
-          </Animated.View>
-        )}
-      </Animated.View>
+        {isExpanded && renderRecap(row)}
+      </FadeSlideIn>
     );
   };
 
@@ -367,13 +438,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const renderRules = () => (
     <RNView style={styles.rules}>
       {[
-        { emblem: 'plate' as const, rule: 'Every pound you lift', pts: '+1', cap: 'weight × reps, all week' },
-        { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `×${SCORING.prMultiplier}`, cap: 'its e1RM × 50 — a 600 lb pull pays 30K' },
+        { rule: 'Every pound you lift', pts: '+1', cap: 'weight × reps, all week' },
+        { rule: 'PR any lift', pts: `×${SCORING.prMultiplier}`, cap: 'its e1RM × 50 — a 600 lb pull pays 30K', gold: true },
       ].map(r => (
-        <RNView key={r.rule} style={styles.recapLine}>
-          <Image source={EMBLEMS[r.emblem]} style={styles.recapEmblem} />
-          <Text variant="meta" tone="secondary" style={styles.recapLabel}>
-            {r.rule} <Text variant="meta" tone="faint">· {r.cap}</Text>
+        <RNView key={r.rule} style={styles.liftLine}>
+          <Text variant="meta" tone="secondary" style={styles.liftText}>
+            {r.rule} <Text variant="meta" tone="muted">· {r.cap}</Text>
           </Text>
           <Text variant="meta" weight="semiBold" style={r.gold ? { color: GOLD } : undefined}>{r.pts}</Text>
         </RNView>
@@ -408,25 +478,31 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
     return (
       <View style={styles.list}>
+        {renderHero()}
+
         {champion && (
-          <RNView style={styles.championLine}>
+          <RNView style={[styles.championChip, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
             <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
-            <Text variant="meta" tone="muted">
-              Last week&apos;s champion: <Text variant="meta" weight="bold" style={{ color: GOLD }}>{champion.username}</Text>
+            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
+              Last week — <Text variant="meta" weight="bold" style={{ color: GOLD }}>{champion.username}</Text>
+            </Text>
+            <Text variant="meta" weight="semiBold" tone="secondary" style={styles.tabularNums}>
+              {pts(champion.points)} pts
             </Text>
           </RNView>
         )}
 
+        <SectionLabel style={styles.standingsLabel}>This week</SectionLabel>
         {active.map(renderRow)}
 
         {standings != null && standings.restingFriends.length > 0 && (
-          <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
+          <Text variant="meta" tone="muted" numberOfLines={2} style={styles.restingLine}>
             Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
           </Text>
         )}
 
         <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
-          <SectionLabel style={styles.rulesToggleLabel}>
+          <SectionLabel style={styles.statLabel}>
             {showRules ? 'Hide scoring' : 'How scoring works'}
           </SectionLabel>
         </TouchableOpacity>
@@ -439,25 +515,18 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
         <View style={styles.header}>
-          <View style={styles.headerSpacer} />
+          <RNView>
+            <Text variant="heading" weight="bold" tone="primary">
+              Weekly League
+            </Text>
+            <Text variant="meta" tone="muted">
+              Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+            </Text>
+          </RNView>
           <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <Animated.View entering={FadeInDown.duration(260)} style={styles.titleBlock}>
-            <Text variant="screenTitle" weight="bold" tone="primary">
-              Weekly League
-            </Text>
-            <LinearGradient
-              colors={[currentTheme.colors.primary, 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.titleBeam}
-            />
-            <Text variant="meta" tone="muted">
-              Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
-            </Text>
-          </Animated.View>
           {renderWeekBoard()}
         </ScrollView>
 
@@ -477,46 +546,52 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingHorizontal: screenGutter,
-    paddingTop: space.sm,
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  titleBlock: {
-    alignItems: 'flex-start',
-    gap: space.sm,
-    paddingTop: space.sm,
-    paddingBottom: space.section,
-  },
-  titleBeam: {
-    width: 72,
-    height: 3,
-    borderRadius: 2,
-  },
-  heroAura: {
-    borderRadius: radius.card,
-  },
-  tabularNums: {
-    fontVariant: ['tabular-nums'],
+    paddingTop: space.md,
+    paddingBottom: space.sm,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: screenGutter,
+    paddingTop: space.md,
     paddingBottom: space.section,
   },
   list: {
     gap: space.xs,
   },
-  championLine: {
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xl,
+    paddingVertical: space.lg,
+  },
+  heroBody: {
+    flex: 1,
+    gap: 3,
+  },
+  heroLabel: {
+    marginBottom: 0,
+  },
+  tabularNums: {
+    fontVariant: ['tabular-nums'],
+  },
+  championChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-    paddingBottom: space.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.card,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    marginBottom: space.md,
+  },
+  standingsLabel: {
+    marginBottom: 0,
+    paddingBottom: space.xs,
   },
   entryRow: {
     flexDirection: 'row',
@@ -524,15 +599,8 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
     gap: space.md,
   },
-  heroRow: {
-    paddingVertical: space.lg,
-    paddingHorizontal: space.sm,
-    marginHorizontal: -space.sm,
-    overflow: 'hidden',
-  },
   rankCell: {
-    width: 36,
-    alignItems: 'center',
+    width: 24,
   },
   userInfo: {
     flex: 1,
@@ -547,57 +615,52 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   inlineEmblem: {
-    width: 16,
-    height: 16,
-  },
-  valueCell: {
-    alignItems: 'flex-end',
-  },
-  recap: {
-    marginLeft: 36 + space.md,
-    paddingLeft: space.md,
-    paddingBottom: space.lg,
-    gap: space.sm,
-    borderLeftWidth: StyleSheet.hairlineWidth,
-  },
-  recapLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  recapEmblem: {
     width: 14,
     height: 14,
   },
-  recapLabel: {
-    flex: 1,
+  valueCell: {
+    alignItems: 'flex-end',
+    gap: 5,
   },
-  liftLabel: {
+  shareTrack: {
+    width: 56,
+    height: 3,
+    borderRadius: 1.5,
+    overflow: 'hidden',
+  },
+  shareFill: {
+    height: '100%',
+    borderRadius: 1.5,
+  },
+  recapCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.card,
+    padding: space.lg,
+    gap: space.md,
+    marginBottom: space.sm,
+  },
+  statGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: space.lg,
+  },
+  statCell: {
+    width: '50%',
+    gap: 2,
+  },
+  statLabel: {
+    marginBottom: 0,
+  },
+  liftLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
   },
   liftText: {
-    flexShrink: 1,
+    flex: 1,
   },
   topLifts: {
-    marginTop: space.sm,
     gap: space.sm,
-  },
-  topLiftsLabel: {
-    marginBottom: 0,
-  },
-  chaseBlock: {
-    gap: space.xs,
-    marginTop: space.sm,
-  },
-  chaseTrack: {
-    height: 8,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  chaseFill: {
-    height: '100%',
   },
   rules: {
     gap: space.sm,
@@ -606,9 +669,6 @@ const styles = StyleSheet.create({
   rulesToggle: {
     paddingVertical: space.sm,
     marginTop: space.lg,
-  },
-  rulesToggleLabel: {
-    marginBottom: 0,
   },
   restingLine: {
     paddingTop: space.md,
