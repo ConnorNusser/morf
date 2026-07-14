@@ -691,6 +691,12 @@ export default function WorkoutScreen() {
                       PAUSED
                     </Text>
                   )}
+                  {/* The pill opens a sheet — say so. */}
+                  <Ionicons
+                    name="chevron-down"
+                    size={12}
+                    color={isResting ? "rgba(255,255,255,0.8)" : ink.faint}
+                  />
                 </RNView>
               </TouchableOpacity>
             ) : (

@@ -926,10 +926,8 @@ export default function WorkoutCompleteScreen({
         entering={FadeIn.delay(700)}
         style={[styles.buttonContainer, { paddingBottom: Math.max(insets.bottom, space.lg) }]}
       >
-        {/* One mini action per destination, each tailored to how that platform
-            is used; the chevron dismisses (the app's close grammar). */}
-        <MiniAction icon="chevron-down" label="Done" onPress={onDone} />
-        <RNView style={styles.actionSpacer} />
+        {/* Share destinations lead; Done sits on the right — the terminal
+            action lives where thumbs expect to end the flow. */}
         <MiniAction icon="logo-instagram" label="Story" onPress={handleInstagram} />
         <MiniAction icon="logo-twitter" label="Post" onPress={handlePost} />
         <MiniAction
@@ -943,6 +941,8 @@ export default function WorkoutCompleteScreen({
           onPress={handleSave}
           accent
         />
+        <RNView style={styles.actionSpacer} />
+        <MiniAction icon="chevron-down" label="Done" onPress={onDone} />
       </Animated.View>
 
       <CareerModal visible={showAllAchievements} onClose={() => setShowAllAchievements(false)} />
