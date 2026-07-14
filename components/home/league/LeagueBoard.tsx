@@ -105,7 +105,7 @@ function Collapse({ open, children }: { open: boolean; children: React.ReactNode
 /** Micro-label for on-card use — one ink step brighter than SectionLabel. */
 function CardLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Text variant="meta" tone="secondary" weight="bold" style={styles.capsLabel}>
+    <Text variant="meta" tone="secondary" weight="medium" style={styles.capsLabel}>
       {children}
     </Text>
   );
@@ -359,7 +359,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             { label: 'PR pts', value: row.breakdown.prPoints > 0 ? `+${pts(row.breakdown.prPoints)}` : '0' },
           ].map(cell => (
             <RNView key={cell.label} style={styles.statCell}>
-              <Text variant="emphasis" weight="bold" tone="primary" style={styles.tabularNums}>
+              <Text variant="emphasis" weight="semiBold" tone="primary" style={styles.tabularNums}>
                 {cell.value}
               </Text>
               <CardLabel>{cell.label}</CardLabel>

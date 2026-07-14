@@ -62,9 +62,6 @@ export default function TierBadge({
 
   const displayTier = tier ?? (percentile !== undefined ? getStrengthTier(percentile) : 'C');
   const tierColor = getTierColor(displayTier);
-  // The letter lightens toward white so it clears WCAG against the tint fill
-  // on any dark surface; the chip's hue still carries the tier.
-  const letterColor = lightenToward(tierColor, 0.5);
   const baseTier = getBaseTier(displayTier);
 
   const sizeStyles = SIZE_STYLES[size];
@@ -85,7 +82,7 @@ export default function TierBadge({
 
   if (variant === 'text') {
     const textContent = (
-      <Text style={[sizeStyles.text, { color: letterColor }]}>
+      <Text style={[sizeStyles.text, { color: tierColor }]}>
         {displayTier}
       </Text>
     );
@@ -118,7 +115,7 @@ export default function TierBadge({
         style={[
           styles.text,
           sizeStyles.text,
-          { color: letterColor }
+          { color: tierColor }
         ]}
       >
         {displayTier}
@@ -135,14 +132,6 @@ export default function TierBadge({
   }
 
   return badgeContent;
-}
-
-/** Mix a #rrggbb color toward white by `amount` (0..1). */
-function lightenToward(hex: string, amount: number): string {
-  const n = parseInt(hex.replace('#', ''), 16);
-  if (Number.isNaN(n)) return hex;
-  const mix = (c: number) => Math.round(c + (255 - c) * amount);
-  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
 const SIZE_STYLES = {
