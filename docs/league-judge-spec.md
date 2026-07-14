@@ -47,6 +47,14 @@ conformance polishes, it never improves.
 
 ## Learnings
 
+- 2026-07-14 (pass 6, staff-crit): judge the EDGE-CASE screenshot, not the rich
+  fixture — a no-PR week collapsed points/lbs/bar into one number three times
+  and the rich mock never showed it. Sub-lines must never re-encode the metric
+  column beside them. Affordances must be visible before the tap (caret).
+  Surface boxes imply tappability — flat unless interactive. An element that
+  exists only in an edge case (empty gold channel) should become that state's
+  call to action, not silently vanish.
+
 - 2026-07-14 (pass 5): gauges are measurements, not objects — an underdamped
   spring on the rank ring (damping ratio 0.73) overshoots and swings back,
   reading as error ("swooping"). Springs are for spatial movement only; data
