@@ -272,7 +272,9 @@ function RankRing({
   size?: number;
 }) {
   const strokeWidth = 7;
-  const r = (size - strokeWidth) / 2;
+  const TIP_R = strokeWidth / 2 + 2;
+  // Inset the ring by the tip dot's overhang so it never clips the canvas.
+  const r = (size - strokeWidth) / 2 - (TIP_R - strokeWidth / 2) - 1;
   const circumference = 2 * Math.PI * r;
   const progress = useSharedValue(0);
   useEffect(() => {
@@ -284,32 +286,24 @@ function RankRing({
     strokeDashoffset: circumference * (1 - Math.min(progress.value, 100) / 100),
   }));
 
-  // Same specular sheen as the bars: a short bright arc travelling the fill.
-  const SHEEN_LEN = 22;
-  const sheen = useSharedValue(0);
+  // The arc's leading edge carries a bright tip dot (the ring's "now" marker)
+  // that breathes gently — ambient life without the loading-spinner read an
+  // orbiting arc gives a circle.
+  const pulse = useSharedValue(0);
   useEffect(() => {
-    sheen.value = withRepeat(
-      withDelay(900, withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) })),
+    pulse.value = withRepeat(
+      withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
       -1,
-      false,
+      true,
     );
-  }, [sheen]);
-  const sheenProps = useAnimatedProps(() => {
-    const fillLen = (circumference * Math.min(progress.value, 100)) / 100;
-    const travel = Math.max(fillLen - SHEEN_LEN, 0);
-    return {
-      strokeDashoffset: -(sheen.value * travel),
-      opacity: fillLen > SHEEN_LEN * 1.5 ? 1 : 0,
-    };
-  });
-
-  // The arc's leading edge carries a bright tip dot (the ring's "now" marker).
+  }, [pulse]);
   const tipProps = useAnimatedProps(() => {
     const angle = (Math.PI / 180) * ((Math.min(progress.value, 100) / 100) * 360 - 90);
     return {
       cx: size / 2 + r * Math.cos(angle),
       cy: size / 2 + r * Math.sin(angle),
-      opacity: progress.value > 2 ? 1 : 0,
+      r: TIP_R * (1 + pulse.value * 0.25),
+      opacity: progress.value > 2 ? 0.75 + pulse.value * 0.25 : 0,
     };
   });
 
@@ -337,19 +331,6 @@ function RankRing({
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
         <AnimatedCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="rgba(255,255,255,0.22)"
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${SHEEN_LEN} ${circumference}`}
-          animatedProps={sheenProps}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-        <AnimatedCircle
-          r={strokeWidth / 2 + 2}
           fill="#FFFFFF"
           animatedProps={tipProps}
         />
