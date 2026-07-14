@@ -554,11 +554,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
                   key={f.user.id}
                   style={[styles.restingChip, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
                 >
-                  {f.user.profile_picture_url ? (
-                    <Image source={{ uri: f.user.profile_picture_url }} style={styles.restingAvatar} />
-                  ) : (
-                    <RNView style={[styles.restingAvatar, { backgroundColor: tint(currentTheme.colors.primary) }]} />
-                  )}
+                  <UserAvatar uri={f.user.profile_picture_url} username={f.user.username} size={20} />
                   <Text variant="meta" tone="secondary">{f.user.username}</Text>
                 </RNView>
               ))}
@@ -772,11 +768,6 @@ const styles = StyleSheet.create({
     paddingVertical: space.xs,
     paddingHorizontal: space.md,
   },
-  restingAvatar: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-  },
   collapse: {
     overflow: 'hidden',
   },
@@ -797,9 +788,5 @@ const styles = StyleSheet.create({
   capsLabel: {
     letterSpacing: track.caps,
     textTransform: 'uppercase',
-  },
-  avatarPlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

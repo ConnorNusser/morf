@@ -1,5 +1,6 @@
 import TierRing from "@/components/gamification/TierRing";
 import { Text, useInk } from "@/components/Themed";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
 import { radius, space, tint, track } from "@/lib/ui/tokens";
@@ -24,6 +25,7 @@ interface DashboardHeaderProps {
   /** Shows an avatar button on the right that opens the viewer's own profile (feed mode). */
   onProfilePress?: () => void;
   profileImageUrl?: string;
+  profileUsername?: string;
 }
 
 export default function DashboardHeader({
@@ -34,6 +36,7 @@ export default function DashboardHeader({
   title,
   onProfilePress,
   profileImageUrl,
+  profileUsername,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -103,18 +106,7 @@ export default function DashboardHeader({
                 activeOpacity={0.7}
                 accessibilityLabel="View your profile"
               >
-                {profileImageUrl ? (
-                  <Image
-                    source={{ uri: profileImageUrl }}
-                    style={styles.profileAvatar}
-                  />
-                ) : (
-                  <Ionicons
-                    name="person-circle-outline"
-                    size={34}
-                    color={ink.secondary}
-                  />
-                )}
+                <UserAvatar uri={profileImageUrl} username={profileUsername} size={34} />
               </TouchableOpacity>
             )}
           </View>

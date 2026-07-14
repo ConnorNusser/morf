@@ -221,6 +221,7 @@ export default function HomeScreen() {
                 currentUser ? () => setSelectedUser(currentUser) : undefined
               }
               profileImageUrl={currentUser?.profile_picture_url}
+              profileUsername={currentUser?.username}
             />
           </View>
           <FeedView

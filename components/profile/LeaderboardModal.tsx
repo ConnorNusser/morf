@@ -4,6 +4,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import TierBadge from '@/components/TierBadge';
 import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
+import UserAvatar from '@/components/ui/UserAvatar';
 import SegmentedTabs from '@/components/ui/SegmentedTabs';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor, StrengthTier, StrengthTierBase, TIER_COLORS } from '@/lib/data/strengthStandards';
@@ -286,27 +287,9 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     return null;
   }, [rows, myUser, myStanding]);
 
-  const renderAvatar = (user: RemoteUser, size: number) => {
-    if (user.profile_picture_url) {
-      return (
-        <Image
-          source={{ uri: user.profile_picture_url }}
-          style={{ width: size, height: size, borderRadius: size / 2 }}
-        />
-      );
-    }
-    const initial = user.username ? user.username.charAt(0).toUpperCase() : '?';
-    return (
-      <RNView
-        style={[
-          styles.avatarPlaceholder,
-          { width: size, height: size, borderRadius: size / 2, backgroundColor: tint(currentTheme.colors.primary) },
-        ]}
-      >
-        <Text variant="meta" weight="semiBold">{initial}</Text>
-      </RNView>
-    );
-  };
+  const renderAvatar = (user: RemoteUser, size: number) => (
+    <UserAvatar uri={user.profile_picture_url} username={user.username} size={size} />
+  );
 
   const renderMovement = (delta: number | null) => {
     if (delta == null || delta === 0) return null;

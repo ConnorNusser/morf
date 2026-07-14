@@ -589,7 +589,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       ]}
                     >
                       <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
-                        {user.username.charAt(0).toUpperCase()}
+                        {user.username.slice(-2).toUpperCase()}
                       </Text>
                     </View>
                   )}
