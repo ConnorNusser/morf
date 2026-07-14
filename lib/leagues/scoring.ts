@@ -23,8 +23,10 @@ export function scoreMember(agg: LeagueMemberAggregates): ScoreBreakdown {
   // Defensive sort — the RPC orders by gain desc, but caps must not depend on it.
   const prs = [...agg.prs].sort((a, b) => b.gain_pct - a.gain_pct);
 
-  const activeDayPoints =
-    Math.min(agg.active_days, SCORING.activeDayCap) * SCORING.pointsPerActiveDay;
+  const volumePoints = Math.min(
+    Math.round(Math.max(agg.volume_lbs, 0) / SCORING.lbsPerPoint),
+    SCORING.volumePointsCap,
+  );
   const prPoints = Math.min(prs.length, SCORING.prCap) * SCORING.pointsPerPR;
   const gainPoints = prs
     .slice(0, SCORING.gainBonusLifts)
@@ -36,11 +38,12 @@ export function scoreMember(agg: LeagueMemberAggregates): ScoreBreakdown {
   const goalBonus = agg.active_days >= SCORING.goalBonusDays ? SCORING.goalBonus : 0;
 
   return {
-    activeDayPoints,
+    volumePoints,
     prPoints,
     gainPoints,
     goalBonus,
-    total: activeDayPoints + prPoints + gainPoints + goalBonus,
+    total: volumePoints + prPoints + gainPoints + goalBonus,
+    volumeLbs: Math.max(agg.volume_lbs, 0),
     activeDays: agg.active_days,
     prCount: prs.length,
     bestGainPct: prs.length ? prs[0].gain_pct : null,

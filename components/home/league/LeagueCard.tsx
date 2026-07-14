@@ -4,6 +4,7 @@ import { buildStandings, weekBounds } from '@/lib/leagues/scoring';
 import { LeagueStanding } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, space } from '@/lib/ui/tokens';
+import { formatVolume } from '@/lib/utils/utils';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -92,7 +93,7 @@ export default function LeagueCard({ onPress }: LeagueCardProps) {
         </Text>
         {onBoard && (
           <Text variant="meta" tone="faint" numberOfLines={1}>
-            {`${me.breakdown.activeDays} active ${me.breakdown.activeDays === 1 ? 'day' : 'days'}`}
+            {`${formatVolume(me.breakdown.volumeLbs, 'lbs')} lifted`}
             {me.breakdown.prCount > 0 ? ` · ${me.breakdown.prCount} PR${me.breakdown.prCount === 1 ? '' : 's'}` : ''}
           </Text>
         )}

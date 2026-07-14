@@ -82,6 +82,14 @@ reachable from inside the league view).
 
 **2. League view (`LeagueBoard`)** — modal under `components/home/league/`.
 
+> **Amendment 2 (2026-07-13, later):** scoring's effort axis is now **volume**
+> (+1 per 1,000 lbs lifted, capped 60/week — migration 013 adds volume to both
+> RPCs) instead of flat per-day points, and the default lens is the **Hex
+> Arena**: members as hex badges in podium arrangement (leader 128, contenders
+> 92, field 68, resting friends ghosted), tap a hex for its receipt. The
+> "Add friends" row was removed. The Week Story below remains implemented
+> (story.ts + events RPC) but is not currently rendered.
+>
 > **Amendment (2026-07-13):** the default lens is the **Week Story** — the
 > week's raw events (every session and PR, from `get_league_events`, migration
 > 012) replayed chronologically through the scoring rules by

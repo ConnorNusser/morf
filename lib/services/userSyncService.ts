@@ -927,6 +927,7 @@ class UserSyncService {
         profile_picture_url: string | null;
         sessions: number;
         active_days: number;
+        volume_lbs: number | null;
         prs: LeaguePrAggregate[] | null;
         new_lifts: number;
         is_friend: boolean;
@@ -936,6 +937,8 @@ class UserSyncService {
         profile_picture_url: row.profile_picture_url ?? null,
         sessions: row.sessions ?? 0,
         active_days: row.active_days ?? 0,
+        // Pre-013 RPC has no volume column — degrade to 0 volume points.
+        volume_lbs: Number(row.volume_lbs ?? 0),
         prs: Array.isArray(row.prs) ? row.prs : [],
         new_lifts: row.new_lifts ?? 0,
         is_friend: !!row.is_friend,
@@ -979,6 +982,7 @@ class UserSyncService {
         exercise_id: string | null;
         gain_pct: number | null;
         title: string | null;
+        volume_lbs: number | null;
       }) => ({
         userId: row.user_id,
         username: row.username,
@@ -989,6 +993,7 @@ class UserSyncService {
         exerciseId: row.exercise_id ?? undefined,
         gainPct: row.gain_pct ?? undefined,
         title: row.title ?? undefined,
+        volumeLbs: row.volume_lbs ?? undefined,
       }));
     } catch (error) {
       console.error('Error getting league events:', error);

@@ -16,6 +16,8 @@ export interface LeagueEvent {
   exerciseId?: string;
   gainPct?: number;
   title?: string;
+  /** session only — Σ weight×reps in lbs. */
+  volumeLbs?: number;
 }
 
 export interface StoryMoment {
@@ -45,6 +47,7 @@ const dayLabelFor = (date: Date, now: Date): string =>
 /** Minimal per-user tally the replay scores against. */
 interface Tally {
   dayKeys: Set<string>;
+  volumeLbs: number;
   prs: LeaguePrAggregate[];
 }
 
@@ -55,6 +58,7 @@ const scoreTally = (tally: Tally): { total: number; goalBonus: number } => {
     profile_picture_url: null,
     sessions: tally.dayKeys.size,
     active_days: tally.dayKeys.size,
+    volume_lbs: tally.volumeLbs,
     prs: tally.prs,
     new_lifts: 0,
     is_friend: false,
@@ -63,9 +67,8 @@ const scoreTally = (tally: Tally): { total: number; goalBonus: number } => {
 };
 
 /**
- * Chronological replay of the week. Second sessions on an already-trained day
- * are dropped (no points, no narrative). Leads are sole leads — a tie doesn't
- * "take" anything.
+ * Chronological replay of the week. Every session counts (volume points), and
+ * leads are sole leads — a tie doesn't "take" anything.
  */
 export function buildWeekStory(events: LeagueEvent[], now: Date = new Date()): StoryDay[] {
   const ordered = [...events].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
@@ -78,7 +81,7 @@ export function buildWeekStory(events: LeagueEvent[], now: Date = new Date()): S
   const tallyFor = (userId: string): Tally => {
     let tally = tallies.get(userId);
     if (!tally) {
-      tally = { dayKeys: new Set(), prs: [] };
+      tally = { dayKeys: new Set(), volumeLbs: 0, prs: [] };
       tallies.set(userId, tally);
     }
     return tally;
@@ -90,8 +93,9 @@ export function buildWeekStory(events: LeagueEvent[], now: Date = new Date()): S
     const tally = tallyFor(event.userId);
 
     if (event.kind === 'session') {
-      if (tally.dayKeys.has(dayKeyValue)) continue; // same-day repeat: no story
+      // Every session moves iron — same-day repeats keep earning volume points.
       tally.dayKeys.add(dayKeyValue);
+      tally.volumeLbs += Math.max(event.volumeLbs ?? 0, 0);
     } else {
       tally.prs.push({
         exercise_id: event.exerciseId ?? '',

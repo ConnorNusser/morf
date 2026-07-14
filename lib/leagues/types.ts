@@ -7,10 +7,10 @@ export const LEAGUE_ENABLED = true;
 // All point values in one place. These are product-tuning knobs, not derived
 // numbers — change them here and nowhere else.
 export const SCORING = {
-  /** Points per distinct day trained this week. */
-  pointsPerActiveDay: 10,
-  /** Days that score — attainable for most of the board, two-a-days don't grind. */
-  activeDayCap: 4,
+  /** Effort scores by iron moved: one point per this many lbs lifted. */
+  lbsPerPoint: 1000,
+  /** Weekly ceiling on volume points, so sheer gym-hours can't run away. */
+  volumePointsCap: 60,
   /** Points per exercise PR'd this week (prior best required — new lifts score 0). */
   pointsPerPR: 15,
   /** PRs that score in a week. */
@@ -45,18 +45,21 @@ export interface LeagueMemberAggregates {
   profile_picture_url: string | null;
   sessions: number;
   active_days: number;
+  /** Σ weight×reps for the week — user_workouts.total_volume is always lbs. */
+  volume_lbs: number;
   prs: LeaguePrAggregate[];
   new_lifts: number;
   is_friend: boolean;
 }
 
 export interface ScoreBreakdown {
-  activeDayPoints: number;
+  volumePoints: number;
   prPoints: number;
   gainPoints: number;
   goalBonus: number;
   total: number;
-  /** Uncapped inputs, for display ("5 days · 2 PRs"). */
+  /** Uncapped inputs, for display ("12.4K lbs · 2 PRs"). */
+  volumeLbs: number;
   activeDays: number;
   prCount: number;
   bestGainPct: number | null;

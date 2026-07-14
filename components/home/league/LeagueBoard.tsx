@@ -2,12 +2,10 @@ import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
 import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
-import NavRow from '@/components/ui/NavRow';
 import SectionLabel from '@/components/ui/SectionLabel';
 import SegmentedTabs from '@/components/ui/SegmentedTabs';
 import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
-import SocialModal from '@/components/profile/SocialModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { TIER_COLORS } from '@/lib/data/strengthStandards';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
@@ -17,12 +15,11 @@ import {
   leagueWinner,
   weekBounds,
 } from '@/lib/leagues/scoring';
-import { buildWeekStory, LeagueEvent, StoryDay, StoryMoment } from '@/lib/leagues/story';
 import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { screenGutter, space, tint } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
-import { dateKey } from '@/lib/utils/utils';
+import { formatVolume } from '@/lib/utils/utils';
 import { RemoteUser } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -35,12 +32,13 @@ import {
   View as RNView,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import Svg, { Polygon } from 'react-native-svg';
 
 // League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
 const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
-  flame: require('@/assets/achievements/flame.png'),
+  plate: require('@/assets/achievements/plate.png'),
   barbell: require('@/assets/achievements/barbell.png'),
   laurel: require('@/assets/achievements/laurel.png'),
 };
@@ -58,20 +56,27 @@ interface LeagueBoardProps {
 
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 
+/** Pointy-top hexagon vertices inside a size×size box, inset for the stroke. */
+const hexPoints = (size: number): string => {
+  const c = size / 2;
+  const r = size / 2 - 2;
+  return Array.from({ length: 6 }, (_, i) => {
+    const angle = (Math.PI / 180) * (60 * i - 90);
+    return `${(c + r * Math.cos(angle)).toFixed(2)},${(c + r * Math.sin(angle)).toFixed(2)}`;
+  }).join(' ');
+};
+
 export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const [tab, setTab] = useState<BoardTab>('week');
   const [isLoading, setIsLoading] = useState(false);
   const [standings, setStandings] = useState<LeagueStandings | null>(null);
-  const [events, setEvents] = useState<LeagueEvent[]>([]);
   const [champion, setChampion] = useState<LeagueStanding | null>(null);
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showLadder, setShowLadder] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAllTime, setShowAllTime] = useState(false);
-  const [showSocial, setShowSocial] = useState(false);
   const [showRules, setShowRules] = useState(false);
 
   const loadLeague = useCallback(async () => {
@@ -82,23 +87,23 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       const prevStart = new Date(start);
       prevStart.setDate(prevStart.getDate() - 7);
 
-      const [me, friends, rows, weekEvents, prevRows] = await Promise.all([
+      const [me, friends, rows, prevRows] = await Promise.all([
         userSyncService.getCurrentUser(),
         userSyncService.getFriends(),
         userSyncService.getLeagueWeek(start, end),
-        userSyncService.getLeagueEvents(start, end),
         userSyncService.getLeagueWeek(prevStart, start),
       ]);
       setMyUser(me);
       if (!me) {
         setStandings(null);
-        setEvents([]);
         return;
       }
 
-      setStandings(buildStandings(rows, friends, me.id));
-      setEvents(weekEvents);
+      const built = buildStandings(rows, friends, me.id);
+      setStandings(built);
       setChampion(leagueWinner(buildStandings(prevRows, [], me.id)));
+      // The viewer's own hex starts selected so their receipt is one glance away.
+      setSelectedId(built.me?.rank != null ? me.id : built.active[0]?.userId ?? null);
 
       // Record any freshly-closed weeks so league achievements can unlock.
       recordClosedWeeks(now);
@@ -112,8 +117,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   useEffect(() => {
     if (visible) {
       setTab('week');
-      setExpandedId(null);
-      setShowLadder(false);
       loadLeague();
     }
   }, [visible, loadLeague]);
@@ -125,24 +128,22 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
-  const story = useMemo(() => buildWeekStory(events), [events]);
-  const todayKey = dateKey(new Date());
-  const storyHasToday = story.some(d => d.dayKey === todayKey);
+  const selected = active.find(s => s.userId === selectedId) ?? null;
 
-  const handleUserPress = (userId: string, username: string, profilePictureUrl: string | null) => {
+  const openProfile = (row: LeagueStanding) => {
     setSelectedUser({
-      id: userId,
+      id: row.userId,
       device_id: '',
-      username,
-      profile_picture_url: profilePictureUrl ?? undefined,
+      username: row.username,
+      profile_picture_url: row.profilePictureUrl ?? undefined,
     });
   };
 
-  const renderAvatar = (username: string, profilePictureUrl: string | null, size: number) => {
-    if (profilePictureUrl) {
+  const renderAvatar = (row: LeagueStanding, size: number) => {
+    if (row.profilePictureUrl) {
       return (
         <Image
-          source={{ uri: profilePictureUrl }}
+          source={{ uri: row.profilePictureUrl }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
         />
       );
@@ -155,170 +156,130 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         ]}
       >
         <Text variant="meta" weight="semiBold">
-          {username ? username.charAt(0).toUpperCase() : '?'}
+          {row.username ? row.username.charAt(0).toUpperCase() : '?'}
         </Text>
       </RNView>
     );
   };
 
-  // ——— The standings strip: always visible, one line, taps open the ladder ———
+  // ——— Hexes ———
 
-  const renderStrip = () => {
-    if (active.length === 0) return null;
+  const renderHex = (row: LeagueStanding, size: number, ghosted = false) => {
+    const isYou = myUser != null && row.userId === myUser.id;
+    const isSelected = selectedId === row.userId;
+    const isChampion = champion != null && row.userId === champion.userId;
+    const stroke = isYou || isSelected ? currentTheme.colors.primary : ink.faint;
+    const avatarSize = Math.round(size * 0.38);
+
     return (
-      <TouchableOpacity onPress={() => setShowLadder(!showLadder)} activeOpacity={0.7}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.strip}
+      <TouchableOpacity
+        key={row.userId}
+        style={[styles.hexCell, ghosted && styles.ghosted]}
+        onPress={() => setSelectedId(isSelected ? null : row.userId)}
+        activeOpacity={0.7}
+      >
+        <RNView style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+          <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+            <Polygon
+              points={hexPoints(size)}
+              fill={isYou ? tint(currentTheme.colors.primary) : 'none'}
+              stroke={stroke}
+              strokeWidth={isYou || isSelected ? 2 : 1}
+            />
+          </Svg>
+          {renderAvatar(row, avatarSize)}
+          <Text
+            variant={size >= 100 ? 'emphasis' : 'meta'}
+            weight="bold"
+            tone="primary"
+            style={styles.hexPoints}
+          >
+            {row.points}
+          </Text>
+          {isChampion && <Image source={EMBLEMS.trophy} style={styles.hexTrophy} />}
+        </RNView>
+        <Text
+          variant="meta"
+          weight={isYou ? 'bold' : 'medium'}
+          tone={isYou || row.isFriend ? 'primary' : 'secondary'}
+          numberOfLines={1}
+          style={styles.hexName}
         >
-          {active.map((row, index) => {
-            const isYou = myUser != null && row.userId === myUser.id;
-            return (
-              <RNView key={row.userId} style={styles.stripEntry}>
-                <Text variant="meta" weight="bold" tone={index === 0 ? 'primary' : 'faint'}>
-                  {row.rank}
-                </Text>
-                <Text
-                  variant="meta"
-                  weight={isYou ? 'bold' : 'medium'}
-                  tone={isYou || row.isFriend || index === 0 ? 'primary' : 'secondary'}
-                  numberOfLines={1}
-                  style={isYou ? { color: currentTheme.colors.primary } : undefined}
-                >
-                  {isYou ? 'you' : row.username}
-                </Text>
-                <Text variant="meta" weight="semiBold" tone="muted">
-                  {row.points}
-                </Text>
-                {index < active.length - 1 && (
-                  <Text variant="meta" tone="ghost">·</Text>
-                )}
-              </RNView>
-            );
-          })}
-        </ScrollView>
+          {isYou ? 'you' : row.username}
+        </Text>
+        {row.breakdown.prCount > 0 && !ghosted && (
+          <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
+            {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
+          </Text>
+        )}
       </TouchableOpacity>
     );
   };
 
-  // ——— The story ———
-
-  const renderMoment = (moment: StoryMoment, index: number) => {
-    const { event } = moment;
-    const isYou = myUser != null && event.userId === myUser.id;
-    const name = isYou ? 'You' : event.username;
-    const isPR = event.kind === 'pr';
+  const renderArena = () => {
+    const [leader, ...rest] = active;
+    const contenders = rest.slice(0, 2);
+    const field = rest.slice(2);
+    const resting = standings?.restingFriends ?? [];
 
     return (
-      <Animated.View
-        key={`${event.userId}-${event.occurredAt}-${event.kind}-${event.exerciseId ?? ''}`}
-        entering={FadeInDown.duration(200).delay(Math.min(index, 10) * 25)}
-      >
-        <TouchableOpacity
-          style={styles.momentRow}
-          onPress={() => handleUserPress(event.userId, event.username, event.profilePictureUrl)}
-          activeOpacity={0.7}
-        >
-          {renderAvatar(event.username, event.profilePictureUrl, 22)}
-          <RNView style={styles.momentBody}>
-            <Text variant="body" tone={isYou || event.isFriend ? 'primary' : 'secondary'} numberOfLines={2}>
-              <Text variant="body" weight="semiBold" tone={isYou || event.isFriend ? 'primary' : 'secondary'}>
-                {name}
-              </Text>
-              {isPR
-                ? <> PR&apos;d {liftName(event.exerciseId ?? '')} <Text variant="body" weight="semiBold" style={{ color: GOLD }}>+{(event.gainPct ?? 0).toFixed(1)}%</Text></>
-                : <> trained{event.title ? ` · ${event.title}` : ''}</>}
-            </Text>
-            {moment.bonusPoints > 0 && (
-              <RNView style={styles.leadLine}>
-                <Image source={EMBLEMS.laurel} style={styles.momentEmblem} />
-                <Text variant="meta" weight="semiBold" tone="secondary">
-                  {SCORING.goalBonusDays}-day week <Text variant="meta" weight="semiBold" tone="primary">+{moment.bonusPoints}</Text>
-                </Text>
-              </RNView>
-            )}
-            {moment.tookLead && (
-              <RNView style={styles.leadLine}>
-                <Image source={EMBLEMS.trophy} style={styles.momentEmblem} />
-                <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
-                  took the lead
-                </Text>
-              </RNView>
-            )}
+      <RNView style={styles.arena}>
+        <Animated.View entering={FadeInDown.duration(240)} style={styles.arenaRow}>
+          {leader && renderHex(leader, 128)}
+        </Animated.View>
+        {contenders.length > 0 && (
+          <Animated.View entering={FadeInDown.duration(240).delay(60)} style={styles.arenaRow}>
+            {contenders.map(row => renderHex(row, 92))}
+          </Animated.View>
+        )}
+        {field.length > 0 && (
+          <Animated.View entering={FadeInDown.duration(240).delay(120)} style={[styles.arenaRow, styles.arenaWrap]}>
+            {field.map(row => renderHex(row, 68))}
+          </Animated.View>
+        )}
+        {resting.length > 0 && (
+          <RNView style={styles.restingBlock}>
+            <SectionLabel style={styles.restingLabel}>Resting</SectionLabel>
+            <RNView style={[styles.arenaRow, styles.arenaWrap]}>
+              {resting.map(f =>
+                renderHex(
+                  {
+                    userId: f.user.id,
+                    username: f.user.username,
+                    profilePictureUrl: f.user.profile_picture_url ?? null,
+                    isFriend: true,
+                    rank: null,
+                    points: 0,
+                    prs: [],
+                    gapToAhead: null,
+                    breakdown: {
+                      volumePoints: 0, prPoints: 0, gainPoints: 0, goalBonus: 0,
+                      total: 0, volumeLbs: 0, activeDays: 0, prCount: 0, bestGainPct: null,
+                    },
+                  },
+                  48,
+                  true,
+                ),
+              )}
+            </RNView>
           </RNView>
-          {moment.points > 0 && (
-            <Text variant="body" weight="semiBold" style={isPR ? { color: GOLD } : undefined} tone={isPR ? undefined : 'primary'}>
-              +{moment.points}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-
-  const renderStory = () => (
-    <RNView style={styles.story}>
-      {story.map(day => (
-        <RNView key={day.dayKey} style={styles.storyDay}>
-          <SectionLabel>{day.label}</SectionLabel>
-          {day.moments.map(renderMoment)}
-        </RNView>
-      ))}
-
-      {/* Today's open move — the story always ends with what you'd earn. */}
-      {!storyHasToday && (
-        <RNView style={styles.storyDay}>
-          <SectionLabel>Today</SectionLabel>
-        </RNView>
-      )}
-      {nextPointsLine && (
-        <RNView style={styles.momentRow}>
-          <Image source={EMBLEMS.sword} style={styles.nextEmblem} />
-          <Text variant="body" tone="secondary" style={styles.momentBody}>
-            {nextPointsLine}
-          </Text>
-        </RNView>
-      )}
-    </RNView>
-  );
-
-  // ——— The ladder (strip tap / fallback when events are unavailable) ———
-
-  const renderWeekPips = (row: LeagueStanding) => {
-    const filled = Math.min(row.breakdown.activeDays, 7);
-    return (
-      <RNView style={styles.pipsRow}>
-        <RNView style={styles.pips}>
-          {Array.from({ length: 7 }, (_, i) => (
-            <RNView
-              key={i}
-              style={[
-                styles.pip,
-                { backgroundColor: i < filled ? currentTheme.colors.primary : ink.hairline },
-              ]}
-            />
-          ))}
-        </RNView>
-        {row.breakdown.prCount > 0 && (
-          <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
-            {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
-          </Text>
         )}
       </RNView>
     );
   };
 
+  // ——— Receipt for the selected hex ———
+
   const renderReceipt = (row: LeagueStanding) => {
     const countedPRs = row.prs.slice(0, SCORING.prCap);
     const lines: { key: string; emblem: keyof typeof EMBLEMS; gold?: boolean; label: string; pts: number }[] = [];
 
-    if (row.breakdown.activeDayPoints > 0) {
+    if (row.breakdown.volumePoints > 0) {
       lines.push({
-        key: 'days',
-        emblem: 'flame',
-        label: `Trained ${row.breakdown.activeDays} ${row.breakdown.activeDays === 1 ? 'day' : 'days'}${row.breakdown.activeDays > SCORING.activeDayCap ? ` (${SCORING.activeDayCap} score)` : ''}`,
-        pts: row.breakdown.activeDayPoints,
+        key: 'volume',
+        emblem: 'plate',
+        label: `Lifted ${formatVolume(row.breakdown.volumeLbs, 'lbs')} over ${row.breakdown.activeDays} ${row.breakdown.activeDays === 1 ? 'day' : 'days'}`,
+        pts: row.breakdown.volumePoints,
       });
     }
     countedPRs.forEach((pr, i) => {
@@ -341,141 +302,43 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       });
     }
 
-    if (lines.length === 0) {
-      return (
-        <Text variant="meta" tone="faint" style={styles.receiptEmpty}>
-          No points yet this week.
-        </Text>
-      );
-    }
-
-    return (
-      <RNView style={[styles.receipt, { borderLeftColor: ink.hairline }]}>
-        {lines.map(line => (
-          <RNView key={line.key} style={styles.receiptLine}>
-            <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
-            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.receiptLabel}>
-              {line.label}
-            </Text>
-            <Text variant="meta" weight="semiBold" style={line.gold ? { color: GOLD } : undefined}>
-              +{line.pts}
-            </Text>
-          </RNView>
-        ))}
-      </RNView>
-    );
-  };
-
-  const renderRow = (row: LeagueStanding, index: number) => {
-    const isHero = index === 0;
     const isYou = myUser != null && row.userId === myUser.id;
-    const isChampion = champion != null && row.userId === champion.userId;
-    const isExpanded = expandedId === row.userId;
 
     return (
-      <Animated.View key={row.userId} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
-        <TouchableOpacity
-          style={[
-            styles.entryRow,
-            isHero && styles.heroRow,
-            isYou && [styles.youRow, {
-              backgroundColor: tint(currentTheme.colors.primary),
-              borderLeftColor: currentTheme.colors.primary,
-            }],
-          ]}
-          onPress={() => setExpandedId(isExpanded ? null : row.userId)}
-          activeOpacity={0.7}
-        >
-          <RNView style={styles.rankCell}>
-            <Text
-              variant={isHero ? 'statHero' : 'body'}
-              weight={isHero ? 'bold' : index < 3 ? 'semiBold' : 'regular'}
-              tone={index < 3 ? 'primary' : 'faint'}
-            >
-              {row.rank}
-            </Text>
-          </RNView>
-
-          <TouchableOpacity
-            onPress={() => handleUserPress(row.userId, row.username, row.profilePictureUrl)}
-            activeOpacity={0.7}
-          >
-            {renderAvatar(row.username, row.profilePictureUrl, isHero ? 44 : 32)}
-          </TouchableOpacity>
-
-          <RNView style={styles.userInfo}>
-            <RNView style={styles.usernameRow}>
-              <Text
-                variant={isHero ? 'emphasis' : 'body'}
-                weight={isHero || isYou ? 'semiBold' : 'medium'}
-                tone={isYou || row.isFriend || isHero ? 'primary' : 'secondary'}
-                numberOfLines={1}
-                style={styles.usernameText}
-              >
-                {row.username}
-              </Text>
-              {isChampion && <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />}
-            </RNView>
-            {renderWeekPips(row)}
-          </RNView>
-
-          <RNView style={styles.valueCell}>
-            <Text variant={isHero ? 'statHero' : 'body'} weight={isHero ? 'bold' : 'medium'} tone="primary">
-              {row.points}
-            </Text>
-            {isHero && <Text variant="meta" weight="regular" tone="faint">pts</Text>}
-          </RNView>
+      <RNView style={styles.receiptPanel}>
+        <TouchableOpacity style={styles.receiptHeader} onPress={() => openProfile(row)} activeOpacity={0.7}>
+          <SectionLabel style={styles.receiptTitle}>
+            {isYou ? 'Your week' : `${row.username}'s week`}
+          </SectionLabel>
         </TouchableOpacity>
-        {isExpanded && renderReceipt(row)}
-      </Animated.View>
-    );
-  };
-
-  const renderGap = (row: LeagueStanding) => {
-    if (row.gapToAhead == null || row.gapToAhead <= 0) return null;
-    return (
-      <RNView style={styles.gapRow}>
-        <RNView style={styles.rankCell}>
-          <Text variant="meta" weight="semiBold" tone="ghost">
-            ▲{row.gapToAhead}
-          </Text>
-        </RNView>
-        <RNView style={[styles.gapRule, { backgroundColor: ink.hairline }]} />
+        {lines.length === 0 ? (
+          <Text variant="meta" tone="faint">No points yet this week.</Text>
+        ) : (
+          <RNView style={[styles.receipt, { borderLeftColor: ink.hairline }]}>
+            {lines.map(line => (
+              <RNView key={line.key} style={styles.receiptLine}>
+                <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
+                <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.receiptLabel}>
+                  {line.label}
+                </Text>
+                <Text variant="meta" weight="semiBold" style={line.gold ? { color: GOLD } : undefined}>
+                  +{line.pts}
+                </Text>
+              </RNView>
+            ))}
+          </RNView>
+        )}
       </RNView>
     );
   };
-
-  const renderLadder = () => (
-    <RNView style={styles.list}>
-      {champion && (
-        <RNView style={styles.championLine}>
-          <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
-          <Text variant="meta" tone="muted">
-            Last week: <Text variant="meta" weight="semiBold" tone="primary">{champion.username}</Text>
-          </Text>
-        </RNView>
-      )}
-      {active.map((row, index) => (
-        <React.Fragment key={row.userId}>
-          {index > 0 && renderGap(row)}
-          {renderRow(row, index)}
-        </React.Fragment>
-      ))}
-      {standings != null && standings.restingFriends.length > 0 && (
-        <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
-          Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
-        </Text>
-      )}
-    </RNView>
-  );
 
   // The legend that answers "why": every way to score, emblem + rule + points.
   const renderRules = () => (
     <RNView style={styles.rules}>
       {[
-        { emblem: 'flame' as const, rule: 'Train a day', pts: `+${SCORING.pointsPerActiveDay}`, cap: `up to ${SCORING.activeDayCap} days` },
+        { emblem: 'plate' as const, rule: `Every ${formatVolume(SCORING.lbsPerPoint, 'lbs')} lifted`, pts: '+1', cap: `up to ${SCORING.volumePointsCap}/week` },
         { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap}, bigger gain = bigger bonus` },
-        { emblem: 'laurel' as const, rule: `Hit ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
+        { emblem: 'laurel' as const, rule: `Train ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
       ].map(r => (
         <RNView key={r.rule} style={styles.receiptLine}>
           <Image source={EMBLEMS[r.emblem]} style={styles.receiptEmblem} />
@@ -492,18 +355,15 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const nextPointsLine = useMemo(() => {
     if (!me) return null;
     const hints: string[] = [];
-    const trainedToday = story.some(
-      d => d.dayKey === todayKey && d.moments.some(m => m.event.kind === 'session' && myUser != null && m.event.userId === myUser.id),
-    );
-    if (!trainedToday && me.breakdown.activeDays < SCORING.activeDayCap) {
-      hints.push(`Train today +${SCORING.pointsPerActiveDay}`);
+    if (me.breakdown.volumePoints < SCORING.volumePointsCap) {
+      hints.push(`+1 per ${formatVolume(SCORING.lbsPerPoint, 'lbs')} lifted`);
     }
     if (me.breakdown.prCount < SCORING.prCap) hints.push(`PR a lift +${SCORING.pointsPerPR}`);
     if (me.breakdown.goalBonus === 0 && me.breakdown.activeDays < SCORING.goalBonusDays) {
       hints.push(`${SCORING.goalBonusDays - me.breakdown.activeDays} more ${SCORING.goalBonusDays - me.breakdown.activeDays === 1 ? 'day' : 'days'} for +${SCORING.goalBonus}`);
     }
     return hints.slice(0, 2).join(' · ') || null;
-  }, [me, story, todayKey, myUser]);
+  }, [me]);
 
   const renderWeekBoard = () => {
     if (isLoading) {
@@ -532,9 +392,27 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
     return (
       <View style={styles.list}>
-        {/* Story is the default lens; the ladder opens from the strip, and is
-            the fallback when the events RPC isn't available. */}
-        {showLadder || story.length === 0 ? renderLadder() : renderStory()}
+        {champion && (
+          <RNView style={styles.championLine}>
+            <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
+            <Text variant="meta" tone="muted">
+              Last week: <Text variant="meta" weight="semiBold" tone="primary">{champion.username}</Text>
+            </Text>
+          </RNView>
+        )}
+
+        {renderArena()}
+
+        {selected && renderReceipt(selected)}
+
+        {nextPointsLine && (
+          <RNView style={styles.nextRow}>
+            <Image source={EMBLEMS.sword} style={styles.nextEmblem} />
+            <Text variant="meta" tone="secondary" style={styles.receiptLabel}>
+              Next: {nextPointsLine}
+            </Text>
+          </RNView>
+        )}
 
         <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
           <SectionLabel style={styles.rulesToggleLabel}>
@@ -542,8 +420,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </SectionLabel>
         </TouchableOpacity>
         {showRules && renderRules()}
-
-        <NavRow label="Add friends" variant="plain" onPress={() => setShowSocial(true)} />
       </View>
     );
   };
@@ -581,8 +457,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           />
         </View>
 
-        {!isLoading && renderStrip()}
-
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {renderWeekBoard()}
         </ScrollView>
@@ -595,8 +469,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             setTab('week');
           }}
         />
-
-        <SocialModal visible={showSocial} onClose={() => setShowSocial(false)} />
 
         <UserProfileModal
           visible={selectedUser !== null}
@@ -631,18 +503,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
     paddingTop: space.lg,
   },
-  strip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingHorizontal: screenGutter,
-    paddingVertical: space.md,
-  },
-  stripEntry: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-  },
   scrollView: {
     flex: 1,
   },
@@ -653,115 +513,65 @@ const styles = StyleSheet.create({
   list: {
     gap: space.xs,
   },
-  story: {
-    gap: space.lg,
-    paddingTop: space.sm,
-  },
-  storyDay: {
-    gap: space.xs,
-  },
-  momentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.sm,
-  },
-  momentBody: {
-    flex: 1,
-    gap: 3,
-  },
-  momentEmblem: {
-    width: 14,
-    height: 14,
-  },
-  nextEmblem: {
-    width: 22,
-    height: 22,
-  },
-  leadLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.xs,
-  },
   championLine: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: space.sm,
-    paddingTop: space.sm,
-    paddingBottom: space.sm,
+    paddingTop: space.md,
   },
-  entryRow: {
+  arena: {
+    gap: space.lg,
+    paddingTop: space.lg,
+  },
+  arenaRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
+    gap: space.section,
+  },
+  arenaWrap: {
+    flexWrap: 'wrap',
+    gap: space.lg,
+  },
+  hexCell: {
     alignItems: 'center',
-    paddingVertical: space.md,
-    gap: space.md,
+    gap: 2,
   },
-  heroRow: {
-    paddingVertical: space.lg,
+  ghosted: {
+    opacity: 0.45,
   },
-  youRow: {
-    borderLeftWidth: 2,
-    borderRadius: radius.badge,
-    paddingLeft: space.sm,
-    marginLeft: -space.sm,
+  hexPoints: {
+    marginTop: 2,
   },
-  rankCell: {
-    width: 36,
-    alignItems: 'center',
+  hexTrophy: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 18,
+    height: 18,
   },
-  userInfo: {
-    flex: 1,
-    gap: 6,
-  },
-  usernameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  usernameText: {
-    flexShrink: 1,
+  hexName: {
+    maxWidth: 110,
+    marginTop: space.xs,
   },
   inlineEmblem: {
     width: 16,
     height: 16,
   },
-  pipsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
+  receiptPanel: {
+    marginTop: space.section,
+    gap: space.xs,
   },
-  pips: {
-    flexDirection: 'row',
-    gap: 5,
+  receiptHeader: {
+    alignSelf: 'flex-start',
   },
-  pip: {
-    width: 8,
-    height: 8,
-    borderRadius: 1,
-  },
-  valueCell: {
-    alignItems: 'flex-end',
-  },
-  gapRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-  },
-  gapRule: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
+  receiptTitle: {
+    marginBottom: 0,
   },
   receipt: {
-    marginLeft: 36 + space.md,
     paddingLeft: space.md,
-    paddingBottom: space.md,
     gap: space.sm,
     borderLeftWidth: 2,
-  },
-  receiptEmpty: {
-    marginLeft: 36 + space.md,
-    paddingLeft: space.md,
-    paddingBottom: space.md,
   },
   receiptLine: {
     flexDirection: 'row',
@@ -775,6 +585,16 @@ const styles = StyleSheet.create({
   receiptLabel: {
     flex: 1,
   },
+  nextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    marginTop: space.lg,
+  },
+  nextEmblem: {
+    width: 18,
+    height: 18,
+  },
   rules: {
     gap: space.sm,
     paddingBottom: space.md,
@@ -786,9 +606,13 @@ const styles = StyleSheet.create({
   rulesToggleLabel: {
     marginBottom: 0,
   },
-  restingLine: {
-    paddingTop: space.md,
-    paddingBottom: space.sm,
+  restingBlock: {
+    marginTop: space.sm,
+    gap: space.xs,
+  },
+  restingLabel: {
+    textAlign: 'center',
+    marginBottom: 0,
   },
   avatarPlaceholder: {
     alignItems: 'center',

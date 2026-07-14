@@ -4,7 +4,7 @@ import { SCORING } from '@/lib/leagues/types';
 // Week of Mon 2026-07-06; "now" is Sunday so no TODAY collisions unless asked.
 const NOW = new Date(2026, 6, 12, 12, 0);
 
-const session = (userId: string, iso: string, title = 'Workout'): LeagueEvent => ({
+const session = (userId: string, iso: string, volumeLbs = 10_000, title = 'Workout'): LeagueEvent => ({
   userId,
   username: userId,
   profilePictureUrl: null,
@@ -12,6 +12,7 @@ const session = (userId: string, iso: string, title = 'Workout'): LeagueEvent =>
   kind: 'session',
   occurredAt: iso,
   title,
+  volumeLbs,
 });
 
 const pr = (userId: string, iso: string, exerciseId: string, gainPct: number): LeagueEvent => ({
@@ -26,11 +27,11 @@ const pr = (userId: string, iso: string, exerciseId: string, gainPct: number): L
 });
 
 describe('buildWeekStory', () => {
-  it('scores a session day and groups by local day with weekday labels', () => {
-    const days = buildWeekStory([session('a', '2026-07-06T17:00:00')], NOW);
+  it('scores a session by its volume and groups by local day', () => {
+    const days = buildWeekStory([session('a', '2026-07-06T17:00:00', 12_400)], NOW);
     expect(days).toHaveLength(1);
     expect(days[0].label).toBe('MON');
-    expect(days[0].moments[0].points).toBe(SCORING.pointsPerActiveDay);
+    expect(days[0].moments[0].points).toBe(12);
   });
 
   it('labels the current day TODAY', () => {
@@ -38,12 +39,14 @@ describe('buildWeekStory', () => {
     expect(days[0].label).toBe('TODAY');
   });
 
-  it('drops same-day repeat sessions from the story', () => {
+  it('same-day repeat sessions keep earning volume points', () => {
     const days = buildWeekStory(
-      [session('a', '2026-07-06T08:00:00'), session('a', '2026-07-06T18:00:00')],
+      [session('a', '2026-07-06T08:00:00', 8_000), session('a', '2026-07-06T18:00:00', 5_000)],
       NOW,
     );
-    expect(days[0].moments).toHaveLength(1);
+    expect(days[0].moments).toHaveLength(2);
+    expect(days[0].moments[0].points).toBe(8);
+    expect(days[0].moments[1].points).toBe(5); // 13 total, rounding split per event
   });
 
   it('a PR carries base points plus its gain bonus', () => {
@@ -52,14 +55,14 @@ describe('buildWeekStory', () => {
   });
 
   it('capped events still appear but earn zero', () => {
-    const sessions = Array.from({ length: 6 }, (_, i) =>
+    // 7 × 10k lbs; volume cap (60) bites on day 7.
+    const sessions = Array.from({ length: 7 }, (_, i) =>
       session('a', `2026-07-${String(6 + i).padStart(2, '0')}T10:00:00`),
     );
     const days = buildWeekStory(sessions, NOW);
     const points = days.map(d => d.moments[0].points);
-    // The goal bonus is split out as its own beat; days 5-6 pass the cap.
-    expect(points).toEqual([10, 10, 10, 10, 0, 0]);
-    expect(days.map(d => d.moments[0].bonusPoints)).toEqual([0, 0, SCORING.goalBonus, 0, 0, 0]);
+    expect(points).toEqual([10, 10, 10, 10, 10, 10, 0]);
+    expect(days.map(d => d.moments[0].bonusPoints)).toEqual([0, 0, SCORING.goalBonus, 0, 0, 0, 0]);
   });
 
   it('detects a sole lead change on the event that caused it', () => {

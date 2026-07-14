@@ -24,6 +24,7 @@ const member = (overrides: Partial<LeagueMemberAggregates>): LeagueMemberAggrega
   profile_picture_url: null,
   sessions: 0,
   active_days: 0,
+  volume_lbs: 0,
   prs: [],
   new_lifts: 0,
   is_friend: false,
@@ -40,7 +41,8 @@ const pr = (gain_pct: number, exercise_id = `e${gain_pct}`) => ({
 const friend = (id: string, username = id): Friend =>
   ({ id: `f-${id}`, user: { id, username } as Friend['user'], created_at: new Date(0) }) as Friend;
 
-// A standings input where points are driven purely by active_days (10 pts each).
+// A standings input where points are driven purely by volume: each "day" is
+// 10,000 lbs → 10 pts, so ladder expectations stay easy to eyeball.
 const boardOf = (days: Record<string, number>, friends: string[] = []) =>
   Object.entries(days).map(([id, activeDays]) =>
     member({
@@ -48,15 +50,17 @@ const boardOf = (days: Record<string, number>, friends: string[] = []) =>
       username: id,
       sessions: activeDays,
       active_days: activeDays,
+      volume_lbs: activeDays * 10 * SCORING.lbsPerPoint,
       is_friend: friends.includes(id),
     }),
   );
 
 describe('scoreMember', () => {
-  it('caps active days', () => {
-    const b = scoreMember(member({ sessions: 6, active_days: 6 }));
-    expect(b.activeDayPoints).toBe(SCORING.activeDayCap * SCORING.pointsPerActiveDay);
-    expect(b.activeDays).toBe(6); // uncapped for display
+  it('volume points scale with lbs and cap out', () => {
+    const b = scoreMember(member({ volume_lbs: 12_400 }));
+    expect(b.volumePoints).toBe(12);
+    expect(b.volumeLbs).toBe(12_400); // uncapped for display
+    expect(scoreMember(member({ volume_lbs: 999_999 })).volumePoints).toBe(SCORING.volumePointsCap);
   });
 
   it('caps PR count and gain bonus lifts, clamps gain %', () => {
@@ -73,7 +77,7 @@ describe('scoreMember', () => {
     expect(shuffled.gainPoints).toBe(20 + 18);
   });
 
-  it('goal bonus lands at exactly the threshold', () => {
+  it('goal bonus lands at exactly the day threshold', () => {
     expect(scoreMember(member({ active_days: 2 })).goalBonus).toBe(0);
     expect(scoreMember(member({ active_days: SCORING.goalBonusDays })).goalBonus).toBe(
       SCORING.goalBonus,
