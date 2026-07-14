@@ -39,7 +39,6 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withDelay,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
@@ -50,7 +49,6 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 // in two schemes — EXPRESSIVE (low damping, visible settle) for the one hero
 // moment, STANDARD (critically damped) for utilitarian movement — plus the
 // emphasized-decelerate curve for spatial entrances (~350ms "fast" token).
-const SPRING_STANDARD = { damping: 26, stiffness: 320 } as const;
 const EMPHASIZED_DECEL = Easing.bezier(0.05, 0.7, 0.1, 1);
 
 /** Spatial entrance on the emphasized-decelerate curve (web-safe, no Keyframe). */
@@ -168,7 +166,9 @@ function RankRing({
   const circumference = 2 * Math.PI * r;
   const progress = useSharedValue(0);
   useEffect(() => {
-    progress.value = withSpring(pct, SPRING_STANDARD);
+    // A gauge is a measurement, not an object in motion: one decelerating
+    // sweep, no overshoot (an underdamped spring here reads as error).
+    progress.value = withTiming(pct, { duration: 700, easing: EMPHASIZED_DECEL });
   }, [pct, progress]);
   const animatedProps = useAnimatedProps(() => ({
     strokeDashoffset: circumference * (1 - Math.min(progress.value, 100) / 100),
@@ -431,6 +431,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
           activeOpacity={0.6}
         >
+        <RNView style={styles.entryContent}>
           <Text
             variant="body"
             weight={index < 3 ? 'bold' : 'medium'}
@@ -469,16 +470,23 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             </Text>
           </RNView>
 
-          <RNView style={styles.valueCell}>
-            <Text variant="body" weight="semiBold" tone="primary" style={styles.tabularNums}>
-              {pts(row.points)}
-            </Text>
-            <RNView style={[styles.shareTrack, { backgroundColor: ink.ghost }]}>
-              <RNView
-                style={[styles.shareFill, { width: `${sharePct}%`, backgroundColor: currentTheme.colors.primary }]}
-              />
-            </RNView>
+          <Text variant="body" weight="semiBold" tone="primary" style={styles.tabularNums}>
+            {pts(row.points)}
+          </Text>
+        </RNView>
+
+        {/* Standing AND composition in one stroke: width = share of the
+            leader; primary = volume points, gold = PR points. */}
+        <RNView style={[styles.rowBarTrack, { backgroundColor: ink.ghost }]}>
+          <RNView style={[styles.rowBar, { width: `${sharePct}%` }]}>
+            {row.breakdown.volumePoints > 0 && (
+              <RNView style={{ flex: row.breakdown.volumePoints, backgroundColor: currentTheme.colors.primary }} />
+            )}
+            {row.breakdown.prPoints > 0 && (
+              <RNView style={{ flex: row.breakdown.prPoints, backgroundColor: GOLD }} />
+            )}
           </RNView>
+        </RNView>
         </TouchableOpacity>
         <Collapse open={isExpanded}>{renderRecap(row)}</Collapse>
       </FadeSlideIn>
@@ -674,9 +682,12 @@ const styles = StyleSheet.create({
     paddingBottom: space.xs,
   },
   entryRow: {
+    paddingVertical: space.md,
+    gap: space.sm,
+  },
+  entryContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: space.md,
     gap: space.md,
   },
   rankCell: {
@@ -698,19 +709,16 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
   },
-  valueCell: {
-    alignItems: 'flex-end',
-    gap: 5,
-  },
-  shareTrack: {
-    width: 56,
+  rowBarTrack: {
     height: 3,
     borderRadius: 1.5,
     overflow: 'hidden',
   },
-  shareFill: {
+  rowBar: {
+    flexDirection: 'row',
     height: '100%',
     borderRadius: 1.5,
+    overflow: 'hidden',
   },
   recapCard: {
     borderWidth: StyleSheet.hairlineWidth,

@@ -47,6 +47,13 @@ conformance polishes, it never improves.
 
 ## Learnings
 
+- 2026-07-14 (pass 5): gauges are measurements, not objects — an underdamped
+  spring on the rank ring (damping ratio 0.73) overshoots and swings back,
+  reading as error ("swooping"). Springs are for spatial movement only; data
+  sweeps get one emphasized-decelerate timing curve. A progress bar must earn
+  its pixels: share-of-leader alone duplicated the points column; width ×
+  composition (volume vs PR split) made it the densest element on the row.
+
 - 2026-07-13: style-conformance judging ("matches the house style") converges
   on a tasteful list and stalls — judge *improvement*, not conformance.
 - 2026-07-14: `ink.hairline` (8% text) is invisible as a row divider on the
