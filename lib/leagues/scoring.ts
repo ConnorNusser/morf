@@ -70,6 +70,7 @@ export function buildStandings(
     gap: number | null,
   ): LeagueStanding => ({
     userId: row.user_id,
+    sessions: row.sessions,
     username: row.username,
     profilePictureUrl: row.profile_picture_url,
     isFriend: row.is_friend,

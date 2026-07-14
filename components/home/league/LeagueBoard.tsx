@@ -17,7 +17,7 @@ import {
 } from '@/lib/leagues/scoring';
 import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { formatCompact, formatVolume } from '@/lib/utils/utils';
 import { RemoteUser } from '@/types';
@@ -75,6 +75,44 @@ function FadeSlideIn({
   }));
   return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
 }
+
+/** Height-animated disclosure: expanding pushes siblings smoothly (no snap). */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  const height = useSharedValue(0);
+  const measured = useSharedValue(0);
+  useEffect(() => {
+    height.value = withTiming(open ? measured.value : 0, { duration: 300, easing: EMPHASIZED_DECEL });
+  }, [open, height, measured]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    height: height.value,
+    opacity: measured.value > 0 ? Math.min(1, height.value / measured.value) : 0,
+  }));
+  return (
+    <Animated.View style={[styles.collapse, animatedStyle]}>
+      <RNView
+        style={styles.collapseInner}
+        onLayout={e => {
+          measured.value = e.nativeEvent.layout.height;
+          if (open) height.value = withTiming(e.nativeEvent.layout.height, { duration: 300, easing: EMPHASIZED_DECEL });
+        }}
+      >
+        {children}
+      </RNView>
+    </Animated.View>
+  );
+}
+
+/** Micro-label for on-card use — one ink step brighter than SectionLabel. */
+function CardLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text variant="meta" tone="secondary" weight="bold" style={styles.capsLabel}>
+      {children}
+    </Text>
+  );
+}
+
+// Medal semantics for the top three rank digits.
+const MEDALS = ['#F5C84C', '#AFB6C2', '#C9884A'];
 
 // League iconography stays in the pixel emblem set, used sparingly (spec).
 const EMBLEMS = {
@@ -274,13 +312,19 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         />
         <RNView style={styles.heroBody}>
           <SectionLabel style={styles.heroLabel}>Weekly points</SectionLabel>
-          <Text variant="header" weight="bold" tone="primary" style={styles.tabularNums}>
-            {pts(heroPoints)}
-          </Text>
+          <RNView>
+            <Text variant="header" weight="bold" tone="primary" style={[styles.tabularNums, styles.ghostNumeral]}>
+              {pts(me.points)}
+            </Text>
+            <Text variant="header" weight="bold" tone="primary" style={[styles.tabularNums, StyleSheet.absoluteFill]}>
+              {pts(heroPoints)}
+            </Text>
+          </RNView>
           <Text variant="meta" tone="secondary" numberOfLines={1}>
             {formatVolume(me.breakdown.volumeLbs, 'lbs')}
             {me.breakdown.prCount > 0 ? ` · ${me.breakdown.prCount} PR${me.breakdown.prCount === 1 ? '' : 's'}` : ''}
             {` · ${me.breakdown.activeDays} ${me.breakdown.activeDays === 1 ? 'day' : 'days'}`}
+            {me.sessions > me.breakdown.activeDays ? ` · ${me.sessions} sessions` : ''}
           </Text>
           <Text variant="meta" tone="muted" numberOfLines={1}>
             {me.rank === 1
@@ -302,8 +346,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const prs = row.topLifts.filter(lift => lift.is_pr);
 
     return (
-      <FadeSlideIn
-        distance={6}
+      <RNView
         style={[styles.recapCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
       >
         <RNView style={styles.statGrid}>
@@ -311,34 +354,42 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             { label: 'Volume', value: formatVolume(row.breakdown.volumeLbs, 'lbs') },
             { label: 'Volume pts', value: `+${pts(row.breakdown.volumePoints)}` },
             { label: 'Days', value: String(row.breakdown.activeDays) },
+            { label: 'Sessions', value: String(row.sessions) },
+            { label: 'Best lift', value: row.topLifts[0] ? `${Math.round(row.topLifts[0].week_best)} lbs` : '—' },
             { label: 'PR pts', value: row.breakdown.prPoints > 0 ? `+${pts(row.breakdown.prPoints)}` : '0' },
           ].map(cell => (
             <RNView key={cell.label} style={styles.statCell}>
               <Text variant="emphasis" weight="bold" tone="primary" style={styles.tabularNums}>
                 {cell.value}
               </Text>
-              <SectionLabel style={styles.statLabel}>{cell.label}</SectionLabel>
+              <CardLabel>{cell.label}</CardLabel>
             </RNView>
           ))}
         </RNView>
 
         {prs.map(lift => (
-          <RNView key={`pr-${lift.exercise_id}`} style={styles.liftLine}>
-            {lift.strength_tier != null && (
-              <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
-            )}
-            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
-              PR — {liftName(lift.exercise_id)} · {Math.round(lift.week_best)} lbs
-            </Text>
-            <Text variant="meta" weight="bold" style={{ color: GOLD }}>
-              +{pts(prPoints(lift))}
+          <RNView key={`pr-${lift.exercise_id}`} style={styles.prBlock}>
+            <RNView style={styles.liftLine}>
+              {lift.strength_tier != null && (
+                <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
+              )}
+              <Text variant="meta" weight="semiBold" tone="primary" numberOfLines={1} style={styles.liftText}>
+                PR — {liftName(lift.exercise_id)}
+              </Text>
+              <Text variant="meta" weight="bold" style={{ color: GOLD }}>
+                +{pts(prPoints(lift))}
+              </Text>
+            </RNView>
+            <Text variant="meta" tone="secondary" style={styles.prDetail}>
+              {lift.prior_best != null ? `${Math.round(lift.prior_best)} → ` : ''}{Math.round(lift.week_best)} lbs
+              {lift.gain_pct != null ? ` · +${lift.gain_pct.toFixed(1)}%` : ''}
             </Text>
           </RNView>
         ))}
 
         {row.topLifts.length > 0 && (
           <RNView style={styles.topLifts}>
-            <SectionLabel style={styles.statLabel}>Top lifts</SectionLabel>
+            <CardLabel>Top lifts</CardLabel>
             {row.topLifts.slice(0, 4).map(lift => (
               <RNView key={lift.exercise_id} style={styles.liftLine}>
                 {lift.strength_tier != null && (
@@ -361,7 +412,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         {row.points === 0 && (
           <Text variant="meta" tone="muted">No points yet this week.</Text>
         )}
-      </FadeSlideIn>
+      </RNView>
     );
   };
 
@@ -382,9 +433,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         >
           <Text
             variant="body"
-            weight={index === 0 ? 'bold' : 'medium'}
-            tone={index === 0 ? 'primary' : 'secondary'}
-            style={[styles.rankCell, styles.tabularNums]}
+            weight={index < 3 ? 'bold' : 'medium'}
+            tone={index < 3 ? undefined : 'secondary'}
+            style={[styles.rankCell, styles.tabularNums, index < 3 && { color: MEDALS[index] }]}
           >
             {row.rank}
           </Text>
@@ -429,7 +480,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             </RNView>
           </RNView>
         </TouchableOpacity>
-        {isExpanded && renderRecap(row)}
+        <Collapse open={isExpanded}>{renderRecap(row)}</Collapse>
       </FadeSlideIn>
     );
   };
@@ -483,6 +534,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         {champion && (
           <RNView style={[styles.championChip, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
             <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
+            {renderAvatar(champion, 20)}
             <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
               Last week — <Text variant="meta" weight="bold" style={{ color: GOLD }}>{champion.username}</Text>
             </Text>
@@ -496,9 +548,24 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         {active.map(renderRow)}
 
         {standings != null && standings.restingFriends.length > 0 && (
-          <Text variant="meta" tone="muted" numberOfLines={2} style={styles.restingLine}>
-            Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
-          </Text>
+          <RNView style={styles.restingBlock}>
+            <SectionLabel style={styles.statLabel}>Resting</SectionLabel>
+            <RNView style={styles.restingChips}>
+              {standings.restingFriends.map(f => (
+                <RNView
+                  key={f.user.id}
+                  style={[styles.restingChip, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                >
+                  {f.user.profile_picture_url ? (
+                    <Image source={{ uri: f.user.profile_picture_url }} style={styles.restingAvatar} />
+                  ) : (
+                    <RNView style={[styles.restingAvatar, { backgroundColor: tint(currentTheme.colors.primary) }]} />
+                  )}
+                  <Text variant="meta" tone="secondary">{f.user.username}</Text>
+                </RNView>
+              ))}
+            </RNView>
+          </RNView>
         )}
 
         <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
@@ -519,9 +586,22 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             <Text variant="heading" weight="bold" tone="primary">
               Weekly League
             </Text>
-            <Text variant="meta" tone="muted">
-              Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
-            </Text>
+            <RNView style={styles.weekMetaRow}>
+              <RNView style={styles.weekDots}>
+                {Array.from({ length: 7 }, (_, i) => (
+                  <RNView
+                    key={i}
+                    style={[
+                      styles.weekDot,
+                      { backgroundColor: i <= (new Date().getDay() + 6) % 7 ? currentTheme.colors.primary : ink.ghost },
+                    ]}
+                  />
+                ))}
+              </RNView>
+              <Text variant="meta" tone="muted">
+                {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+              </Text>
+            </RNView>
           </RNView>
           <IconButton icon="close" onPress={onClose} />
         </View>
@@ -670,8 +750,64 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     marginTop: space.lg,
   },
-  restingLine: {
-    paddingTop: space.md,
+  restingBlock: {
+    paddingTop: space.lg,
+    gap: space.sm,
+  },
+  restingChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  restingChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.pill,
+    paddingVertical: space.xs,
+    paddingHorizontal: space.md,
+  },
+  restingAvatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  collapse: {
+    overflow: 'hidden',
+  },
+  collapseInner: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+  },
+  ghostNumeral: {
+    opacity: 0,
+  },
+  weekMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    paddingTop: 3,
+  },
+  weekDots: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  weekDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 1.5,
+  },
+  prBlock: {
+    gap: 2,
+  },
+  prDetail: {
+    paddingLeft: 26,
+  },
+  capsLabel: {
+    letterSpacing: track.caps,
+    textTransform: 'uppercase',
   },
   avatarPlaceholder: {
     alignItems: 'center',

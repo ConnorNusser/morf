@@ -52,6 +52,7 @@ export interface ScoreBreakdown {
 
 export interface LeagueStanding {
   userId: string;
+  sessions: number;
   username: string;
   profilePictureUrl: string | null;
   isFriend: boolean;

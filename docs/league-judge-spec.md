@@ -64,3 +64,9 @@ conformance polishes, it never improves.
   (FadeSlideIn) for anything the loop must render. Redesign pass: WHOOP hero
   (ring + numeral) + Spotify chart rows beat decorated-list layouts on
   focus/character/space simultaneously — data-forward structure IS the flair.
+- 2026-07-14 (pass 3, 4-0-1): count-up "funk" was width reflow — reserve the
+  numeral's final width with an invisible ghost and animate an absolute
+  overlay. Expand snap needs a measured-height Collapse (animated height
+  pushes siblings smoothly); {cond && <View>} always snaps. On-card (surface)
+  text needs one ink step brighter than on-background text — muted drops to
+  3.2 on surface. TierBadge letters now lighten toward white (fixed app-wide).
