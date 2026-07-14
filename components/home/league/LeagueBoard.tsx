@@ -31,6 +31,7 @@ import {
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, FadeIn, FadeInDown, LinearTransition, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 // League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
@@ -95,15 +96,15 @@ function ChaseBar({ pct, trackColor }: { pct: number; trackColor: string }) {
   );
 }
 
-/** Row points, counting up on entry (gold glow for the leader). */
-function CountUpPoints({ value, hero }: { value: number; hero: boolean }) {
+/** Row points, counting up on entry — the leader's reads as a power level. */
+function CountUpPoints({ value, hero, glowColor }: { value: number; hero: boolean; glowColor: string }) {
   const display = useCountUp(value);
   return (
     <Text
       variant={hero ? 'statHero' : 'body'}
       weight={hero ? 'bold' : 'medium'}
-      tone={hero ? undefined : 'primary'}
-      style={hero ? styles.glowGold : undefined}
+      tone="primary"
+      style={[styles.tabularNums, hero && { textShadowColor: glowColor, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12 }]}
     >
       {pts(display)}
     </Text>
@@ -302,10 +303,18 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     return (
       <Animated.View key={row.userId} layout={LinearTransition.duration(220)} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
         <TouchableOpacity
-          style={[styles.entryRow, isHero && styles.heroRow]}
+          style={[styles.entryRow, isHero && styles.heroRow, !isHero && { borderTopColor: ink.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
           activeOpacity={0.7}
         >
+          {isHero && (
+            <LinearGradient
+              colors={[tint(currentTheme.colors.primary), 'transparent']}
+              start={{ x: 0, y: 1 }}
+              end={{ x: 0.9, y: 0 }}
+              style={[StyleSheet.absoluteFill, styles.heroAura]}
+            />
+          )}
           <RNView style={styles.rankCell}>
             <Text
               variant={isHero ? 'statHero' : 'body'}
@@ -344,7 +353,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
 
           <RNView style={styles.valueCell}>
-            <CountUpPoints value={row.points} hero={isHero} />
+            <CountUpPoints value={row.points} hero={isHero} glowColor={currentTheme.colors.primary} />
             <Text variant="meta" weight="regular" tone="faint">pts</Text>
           </RNView>
         </TouchableOpacity>
@@ -442,6 +451,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             <Text variant="screenTitle" weight="bold" tone="primary">
               Weekly League
             </Text>
+            <LinearGradient
+              colors={[currentTheme.colors.primary, 'transparent']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.titleBeam}
+            />
             <Text variant="meta" tone="faint">
               Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
             </Text>
@@ -474,16 +489,21 @@ const styles = StyleSheet.create({
     width: 40,
   },
   titleBlock: {
-    alignItems: 'center',
-    gap: 2,
+    alignItems: 'flex-start',
+    gap: space.sm,
     paddingTop: space.sm,
     paddingBottom: space.section,
   },
-  glowGold: {
-    color: '#F5C84C',
-    textShadowColor: '#F59E0B',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
+  titleBeam: {
+    width: 72,
+    height: 3,
+    borderRadius: 2,
+  },
+  heroAura: {
+    borderRadius: radius.card,
+  },
+  tabularNums: {
+    fontVariant: ['tabular-nums'],
   },
   scrollView: {
     flex: 1,
@@ -498,7 +518,6 @@ const styles = StyleSheet.create({
   championLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: space.sm,
     paddingBottom: space.md,
   },
@@ -510,6 +529,9 @@ const styles = StyleSheet.create({
   },
   heroRow: {
     paddingVertical: space.lg,
+    paddingHorizontal: space.sm,
+    marginHorizontal: -space.sm,
+    overflow: 'hidden',
   },
   rankCell: {
     width: 36,
