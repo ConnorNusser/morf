@@ -32,7 +32,7 @@ import {
   View as RNView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { Easing, FadeIn, FadeInDown, LinearTransition, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown, LinearTransition, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 // League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
 const EMBLEMS = {
@@ -55,7 +55,7 @@ const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ??
 const pts = (value: number) => formatCompact(value);
 
 /** Number that counts up to its value — points feel earned, not printed. */
-function useCountUp(target: number, duration = 750): number {
+function useCountUp(target: number, duration = 420): number {
   const [display, setDisplay] = useState(0);
   const fromRef = React.useRef(0);
   useEffect(() => {
@@ -68,7 +68,7 @@ function useCountUp(target: number, duration = 750): number {
     let raf: number;
     const tick = () => {
       const t = Math.min(1, (Date.now() - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
+      const eased = 1 - Math.pow(1 - t, 4);
       setDisplay(Math.round(from + (target - from) * eased));
       if (t < 1) {
         raf = requestAnimationFrame(tick);
@@ -86,7 +86,7 @@ function useCountUp(target: number, duration = 750): number {
 function ChaseBar({ pct, trackColor }: { pct: number; trackColor: string }) {
   const fill = useSharedValue(0);
   useEffect(() => {
-    fill.value = withTiming(pct, { duration: 800, easing: Easing.out(Easing.cubic) });
+    fill.value = withSpring(pct, { damping: 16, stiffness: 140 });
   }, [pct, fill]);
   const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value}%` }));
   return (
@@ -283,11 +283,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
         )}
 
-        <TouchableOpacity onPress={() => openProfile(row)} activeOpacity={0.7}>
-          <Text variant="meta" weight="semiBold" tone="faint">
-            View profile
-          </Text>
-        </TouchableOpacity>
       </RNView>
     );
   };
@@ -301,7 +296,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const isExpanded = expandedId === row.userId;
 
     return (
-      <Animated.View key={row.userId} layout={LinearTransition.duration(220)} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
+      <Animated.View key={row.userId} layout={LinearTransition.springify().damping(18).stiffness(250)} entering={FadeInDown.springify().damping(16).stiffness(220).delay(Math.min(index, 12) * 20)}>
         <TouchableOpacity
           style={[styles.entryRow, isHero && styles.heroRow, !isHero && { borderTopColor: ink.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
@@ -319,14 +314,16 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             <Text
               variant={isHero ? 'statHero' : 'body'}
               weight={isHero ? 'bold' : index < 3 ? 'semiBold' : 'regular'}
-              tone={isHero ? undefined : index < 3 ? 'primary' : 'faint'}
+              tone={isHero ? undefined : index < 3 ? 'primary' : 'secondary'}
               style={isHero ? { color: GOLD } : undefined}
             >
               {row.rank}
             </Text>
           </RNView>
 
-          {renderAvatar(row, isHero ? 44 : 32)}
+          <TouchableOpacity onPress={() => openProfile(row)} activeOpacity={0.7}>
+            {renderAvatar(row, isHero ? 44 : 32)}
+          </TouchableOpacity>
 
           <RNView style={styles.userInfo}>
             <RNView style={styles.usernameRow}>
@@ -340,9 +337,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
                 {row.username}
               </Text>
               {isChampion && <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />}
-              {isYou && <Text variant="meta" tone="faint">you</Text>}
+              {isYou && <Text variant="meta" tone="muted">you</Text>}
             </RNView>
-            <Text variant="meta" tone="muted" numberOfLines={1}>
+            <Text variant="meta" tone="secondary" numberOfLines={1}>
               {formatVolume(row.breakdown.volumeLbs, 'lbs')}
               {row.breakdown.prCount > 0 && (
                 <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
@@ -354,11 +351,11 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
           <RNView style={styles.valueCell}>
             <CountUpPoints value={row.points} hero={isHero} glowColor={currentTheme.colors.primary} />
-            <Text variant="meta" weight="regular" tone="faint">pts</Text>
+            <Text variant="meta" weight="regular" tone="muted">pts</Text>
           </RNView>
         </TouchableOpacity>
         {isExpanded && (
-          <Animated.View entering={FadeIn.duration(180)}>
+          <Animated.View entering={FadeInDown.springify().damping(18).stiffness(260)}>
             {renderRecap(row)}
           </Animated.View>
         )}
@@ -457,7 +454,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               end={{ x: 1, y: 0 }}
               style={styles.titleBeam}
             />
-            <Text variant="meta" tone="faint">
+            <Text variant="meta" tone="muted">
               Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
             </Text>
           </Animated.View>

@@ -92,7 +92,7 @@ export default function LeagueCard({ onPress }: LeagueCardProps) {
             : 'Log a session to put a score on the board'}
         </Text>
         {onBoard && (
-          <Text variant="meta" tone="faint" numberOfLines={1}>
+          <Text variant="meta" tone="muted" numberOfLines={1}>
             {`${formatVolume(me.breakdown.volumeLbs, 'lbs')} lifted`}
             {me.breakdown.prCount > 0 ? ` · ${me.breakdown.prCount} PR${me.breakdown.prCount === 1 ? '' : 's'}` : ''}
           </Text>
