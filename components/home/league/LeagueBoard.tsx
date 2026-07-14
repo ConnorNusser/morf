@@ -37,6 +37,7 @@ import Animated, {
   Easing,
   runOnJS,
   withRepeat,
+  withSpring,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -75,6 +76,32 @@ function FadeSlideIn({
     transform: [{ translateY: (1 - progress.value) * distance }],
   }));
   return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
+}
+
+/** Press feedback: a quick spring scale — interaction lands within a frame. */
+function PressableScale({
+  onPress,
+  style,
+  children,
+}: {
+  onPress: () => void;
+  style?: object;
+  children: React.ReactNode;
+}) {
+  const pressed = useSharedValue(0);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: 1 - pressed.value * 0.02 }],
+  }));
+  return (
+    <TouchableOpacity
+      onPressIn={() => { pressed.value = withTiming(1, { duration: 80 }); }}
+      onPressOut={() => { pressed.value = withSpring(0, { damping: 14, stiffness: 400 }); }}
+      onPress={onPress}
+      activeOpacity={1}
+    >
+      <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>
+    </TouchableOpacity>
+  );
 }
 
 /** Height-animated disclosure: expanding pushes siblings smoothly (no snap). */
@@ -232,12 +259,14 @@ function CompositionBar({
 function RankRing({
   pct,
   rank,
+  field,
   color,
   trackColor,
   size = 96,
 }: {
   pct: number;
   rank: number | null;
+  field: number;
   color: string;
   trackColor: string;
   size?: number;
@@ -271,6 +300,16 @@ function RankRing({
     return {
       strokeDashoffset: -(sheen.value * travel),
       opacity: fillLen > SHEEN_LEN * 1.5 ? 1 : 0,
+    };
+  });
+
+  // The arc's leading edge carries a bright tip dot (the ring's "now" marker).
+  const tipProps = useAnimatedProps(() => {
+    const angle = (Math.PI / 180) * ((Math.min(progress.value, 100) / 100) * 360 - 90);
+    return {
+      cx: size / 2 + r * Math.cos(angle),
+      cy: size / 2 + r * Math.sin(angle),
+      opacity: progress.value > 2 ? 1 : 0,
     };
   });
 
@@ -309,10 +348,20 @@ function RankRing({
           animatedProps={sheenProps}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
+        <AnimatedCircle
+          r={strokeWidth / 2 + 2}
+          fill="#FFFFFF"
+          animatedProps={tipProps}
+        />
       </Svg>
-      <Text variant="title" weight="bold" tone="primary">
-        {rank != null ? `#${rank}` : '—'}
-      </Text>
+      <RNView style={styles.ringCenter}>
+        <Text variant="title" weight="bold" tone="primary">
+          {rank != null ? `#${rank}` : '—'}
+        </Text>
+        {rank != null && field > 1 && (
+          <Text variant="meta" tone="muted">of {field}</Text>
+        )}
+      </RNView>
     </RNView>
   );
 }
@@ -393,11 +442,17 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const gap = leaderPoints - me.points;
     const heroColor = rankTierColors(me.rank, active.length);
 
+    const leader = active[0];
     return (
-      <FadeSlideIn distance={6} style={styles.hero}>
+      <FadeSlideIn distance={6}>
+        <PressableScale
+          onPress={() => me.rank != null && setExpandedId(expandedId === me.userId ? null : me.userId)}
+          style={styles.hero}
+        >
         <RankRing
           pct={pct}
           rank={me.rank}
+          field={active.length}
           color={heroColor?.pure ?? currentTheme.colors.primary}
           trackColor={ink.ghost}
         />
@@ -416,15 +471,26 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               {pts(heroPoints)}
             </Text>
           </RNView>
-          <Text variant="meta" tone="secondary" numberOfLines={1}>
-            {me.rank === 1
-              ? active.length > 1
-                ? `Leading by ${pts(me.points - (active[1]?.points ?? 0))}`
-                : 'Top of the board'
-              : me.rank != null
-              ? `${pts(gap)} behind ${active[0]?.username}`
-              : 'Log a session to enter'}
-          </Text>
+          {me.rank === 1 || me.rank == null || !leader ? (
+            <Text variant="meta" tone="secondary" numberOfLines={1}>
+              {me.rank === 1
+                ? active.length > 1
+                  ? `Leading by ${pts(me.points - (active[1]?.points ?? 0))}`
+                  : 'Top of the board'
+                : 'Log a session to enter'}
+            </Text>
+          ) : (
+            <TouchableOpacity
+              style={styles.rivalLine}
+              onPress={() => setExpandedId(expandedId === leader.userId ? null : leader.userId)}
+              activeOpacity={0.7}
+            >
+              <UserAvatar uri={leader.profilePictureUrl} username={leader.username} size={16} />
+              <Text variant="meta" tone="secondary" numberOfLines={1}>
+                {pts(gap)} behind {leader.username}
+              </Text>
+            </TouchableOpacity>
+          )}
           <Text variant="meta" tone="muted" numberOfLines={1}>
             {formatVolume(me.breakdown.volumeLbs, 'lbs')}
             {me.breakdown.prCount > 0 ? ` · ${me.breakdown.prCount} PR${me.breakdown.prCount === 1 ? '' : 's'}` : ''}
@@ -432,6 +498,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             {me.breakdown.activeDays !== me.sessions ? ` · ${me.breakdown.activeDays}d` : ''}
           </Text>
         </RNView>
+        </PressableScale>
       </FadeSlideIn>
     );
   };
@@ -782,6 +849,14 @@ const styles = StyleSheet.create({
   heroBody: {
     flex: 1,
     gap: 3,
+  },
+  ringCenter: {
+    alignItems: 'center',
+  },
+  rivalLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
   },
   heroLabel: {
     marginBottom: 0,
