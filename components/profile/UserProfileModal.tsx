@@ -1039,7 +1039,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
 
               {lifts.length === 0 && (
                 <EmptyState
-                  icon="barbell-outline"
+                  art={require('@/assets/images/sl/barbell.png')}
                   title="No lifts yet"
                   subtitle={`@${user.username} hasn't logged any tracked lifts.`}
                 />

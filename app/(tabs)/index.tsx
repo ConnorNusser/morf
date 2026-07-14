@@ -1,14 +1,14 @@
 import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
+import LeagueBoard from "@/components/home/league/LeagueBoard";
+import LeagueCard from "@/components/home/league/LeagueCard";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
-import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
 import StrengthProgressOverlay from "@/components/StrengthProgressOverlay";
 import { View } from "@/components/Themed";
-import NavRow from "@/components/ui/NavRow";
 import ScreenBackground from "@/components/ui/ScreenBackground";
 import UnlockNotificationModal, {
   NotificationType,
@@ -44,7 +44,7 @@ export default function HomeScreen() {
   const { currentTheme, setThemeLevel } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
-  const { feed: feedParam } = useLocalSearchParams<{ feed?: string }>();
+  const { feed: feedParam, league: leagueParam } = useLocalSearchParams<{ feed?: string; league?: string }>();
   const [viewMode, setViewMode] = useState<ViewMode>("home");
   const [pendingProgress, setPendingProgress] =
     useState<PendingStrengthProgress | null>(null);
@@ -52,7 +52,7 @@ export default function HomeScreen() {
     useState<NotificationType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [feedRefreshTrigger] = useState(0);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showLeague, setShowLeague] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
@@ -165,6 +165,16 @@ export default function HomeScreen() {
     }, [feedParam, router]),
   );
 
+  // League deep link (?league=1) — overtake pushes land here.
+  useFocusEffect(
+    useCallback(() => {
+      if (!leagueParam) return;
+      setViewMode("home");
+      setShowLeague(true);
+      router.setParams({ league: "" });
+    }, [leagueParam, router]),
+  );
+
   if (isLoading) {
     return (
       <ScreenBackground>
@@ -229,7 +239,7 @@ export default function HomeScreen() {
     <>
       {/* Scroll when content is tall (so the last card is never sliced);
           flexGrow fills the viewport when it's short so the flex spacer can
-          pin View Leaderboards to the bottom instead of leaving dead space. */}
+          pin the league card to the bottom instead of leaving dead space. */}
       <ScreenBackground>
       <ScrollView
         style={layout.flex1}
@@ -238,7 +248,7 @@ export default function HomeScreen() {
           styles.homeContent,
           {
             paddingTop: contentTopPadding,
-            // Clear the floating tab bar so the last card (View Leaderboards)
+            // Clear the floating tab bar so the last card (the league card)
             // isn't sliced — matches the scrollBottom clearance used elsewhere.
             paddingBottom: scrollBottom,
           },
@@ -258,18 +268,13 @@ export default function HomeScreen() {
         {/* Absorbs leftover height; collapses to zero once content scrolls. */}
         <View style={layout.flex1} />
 
-        <NavRow
-          label="View Leaderboards"
-          icon="trophy-outline"
-          variant="card"
-          onPress={() => setShowLeaderboard(true)}
-        />
+        <LeagueCard onPress={() => setShowLeague(true)} />
       </ScrollView>
       </ScreenBackground>
 
-      <LeaderboardModal
-        visible={showLeaderboard}
-        onClose={() => setShowLeaderboard(false)}
+      <LeagueBoard
+        visible={showLeague}
+        onClose={() => setShowLeague(false)}
       />
 
       <CareerModal

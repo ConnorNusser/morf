@@ -550,7 +550,7 @@ export default function HistoryScreen() {
                   </View>
                 ) : (
                   <EmptyState
-                    icon="search-outline"
+                    art={require("@/assets/images/sl/magnifier.png")}
                     title={`No matches for "${exerciseSearch.trim()}"`}
                   />
                 )}

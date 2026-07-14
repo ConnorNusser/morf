@@ -31,6 +31,12 @@ const src = {
   plateAdamant: require('@/assets/achievements/plate-adamant.png'),
   plateDragon: require('@/assets/achievements/plate-dragon.png'),
   rock: require('@/assets/achievements/rock.png'),
+  banner: require('@/assets/achievements/banner.png'),
+  podium: require('@/assets/achievements/podium.png'),
+  crown: require('@/assets/achievements/crown.png'),
+  laurel: require('@/assets/achievements/laurel.png'),
+  throne: require('@/assets/achievements/throne.png'),
+  championbelt: require('@/assets/achievements/championbelt.png'),
   scroll: require('@/assets/achievements/scroll.png'),
   skull: require('@/assets/achievements/skull.png'),
   steelhelm: require('@/assets/achievements/steelhelm.png'),
@@ -120,6 +126,14 @@ export const ACHIEVEMENT_EMBLEMS: Record<string, ImageSourcePropType> = {
   'turkey-burn': src.flame,
   'gym-on-christmas': src.moneysack,
   'leap-of-faith': src.lightning,
+
+  // Weekly league (lib/gamification/leagueAchievements.ts)
+  'league-first': src.banner,
+  'league-podium': src.podium,
+  'league-win-1': src.crown,
+  'league-win-3': src.laurel,
+  'league-win-10': src.throne,
+  'league-streak-3': src.championbelt,
 };
 
 // Bodyweight-ratio milestones use dynamic ids (`bw-<liftId>-<ratio>`); resolve by lift family.

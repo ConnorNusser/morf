@@ -407,7 +407,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
   const renderEmpty = () => (
     <EmptyState
-      icon={filter === 'friends' ? 'people-outline' : filter === 'country' ? 'flag-outline' : 'trophy-outline'}
+      art={require('@/assets/images/sl/trophy.png')}
       title={filter === 'friends' && !hasFriends ? 'No friends yet' : 'No entries yet'}
       subtitle={
         filter === 'friends' && !hasFriends

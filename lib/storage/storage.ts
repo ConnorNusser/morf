@@ -1,4 +1,5 @@
 import { CustomExercise, ExerciseRecord, LoggedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
+import { LeagueWeekResult } from '@/lib/leagues/results';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { BackgroundGradientId, getBackgroundGradient } from '@/lib/ui/backgroundGradients';
@@ -38,6 +39,8 @@ export const STORAGE_KEYS = {
   CYCLE_STARTED_AT: 'cycle_started_at',
   EXERCISE_RECORDS: 'exercise_records',
   REVIEW_PROMPT_STATE: 'review_prompt_state',
+  LEAGUE_WEEK_RESULTS: 'league_week_results',
+  LEAGUE_OVERTAKES_SENT: 'league_overtakes_sent',
 } as const;
 
 export interface PendingStrengthProgress {
@@ -749,6 +752,48 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE_ADVICE_DISMISSED, String(timestamp));
     } catch (error) {
       console.error('Error saving routine advice flag:', error);
+    }
+  }
+
+  // Closed-week league finishes — append-only via lib/leagues/results.mergeResult;
+  // league achievements compute from this (not derivable from workout history).
+  async getLeagueWeekResults(): Promise<LeagueWeekResult[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.LEAGUE_WEEK_RESULTS);
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error loading league week results:', error);
+      return [];
+    }
+  }
+
+  async saveLeagueWeekResults(results: LeagueWeekResult[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LEAGUE_WEEK_RESULTS, JSON.stringify(results));
+    } catch (error) {
+      console.error('Error saving league week results:', error);
+    }
+  }
+
+  // "{friendId}:{dateKey}" markers — one overtake push per friend per day.
+  async getLeagueOvertakesSent(): Promise<string[]> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.LEAGUE_OVERTAKES_SENT);
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.error('Error loading league overtake markers:', error);
+      return [];
+    }
+  }
+
+  async setLeagueOvertakesSent(markers: string[]): Promise<void> {
+    try {
+      // Markers are day-scoped; keep the tail so the key can't grow unbounded.
+      await AsyncStorage.setItem(STORAGE_KEYS.LEAGUE_OVERTAKES_SENT, JSON.stringify(markers.slice(-200)));
+    } catch (error) {
+      console.error('Error saving league overtake markers:', error);
     }
   }
 

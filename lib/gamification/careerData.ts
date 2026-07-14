@@ -29,13 +29,14 @@ export interface CareerData {
 }
 
 export async function loadCareerData(): Promise<CareerData> {
-  const [history, profile, lifts, filters, seen, chosenIconId] = await Promise.all([
+  const [history, profile, lifts, filters, seen, chosenIconId, leagueResults] = await Promise.all([
     storageService.getWorkoutHistory(),
     userService.getUserProfileOrDefault(),
     userService.getAllFeaturedLifts(),
     storageService.getLiftDisplayFilters(),
     storageService.getSeenAchievements(),
     storageService.getProfileIconId(),
+    storageService.getLeagueWeekResults(),
   ]);
 
   const unit = profile.weightUnitPreference || 'lbs';
@@ -52,6 +53,7 @@ export async function loadCareerData(): Promise<CareerData> {
     unit,
     overall,
     bodyWeightLbs,
+    leagueResults,
   });
 
   const timeline = computeTierTimeline(

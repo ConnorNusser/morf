@@ -143,6 +143,8 @@ export default function RootLayout() {
         // Retention reminders deep-link to the Routines tab ("Up Next" routine).
         if (data?.kind === "retention") {
           router.push("/(tabs)/routines");
+        } else if (data?.type === "league_overtake") {
+          router.push("/(tabs)?league=1");
         } else if (
           data?.type === "friend_pr" ||
           data?.type === "post_like" ||

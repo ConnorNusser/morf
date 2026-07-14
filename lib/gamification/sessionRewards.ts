@@ -1,9 +1,11 @@
 // Session rewards = diff between a snapshot taken before a workout and one taken after.
 // One pure computeSessionRewards() feeds every surface so they never drift.
 import { LoggedWorkout, WeightUnit } from '@/types';
+import { LeagueWeekResult } from '@/lib/leagues/results';
 import { Achievement, computeAchievements } from './achievements';
 import { computeBehavioralSignals } from './behavioralSignals';
 import { computeCareerStats } from './careerStats';
+import { computeLeagueAchievements } from './leagueAchievements';
 import { computeNicheAchievements } from './nicheAchievements';
 import { computeFeaturedLiftPRs, computeMainLiftPRs, LiftPR } from './personalRecords';
 import { computeStrengthFeats } from './strengthFeats';
@@ -21,6 +23,9 @@ export interface RewardContext {
   overall: number; // overall strength percentile (for tier achievements)
   bodyWeightLbs: number; // for bodyweight-ratio milestones
   now?: Date;
+  // Closed-week league finishes (lib/leagues/results storage) — the one achievement
+  // input not derivable from history. Omitted → league achievements show locked.
+  leagueResults?: LeagueWeekResult[];
 }
 
 // Build the snapshot from a history slice; careerData reuses this so fields never drift.
@@ -30,7 +35,8 @@ export function buildRewardSnapshot(history: LoggedWorkout[], ctx: RewardContext
   const milestones = computeStrengthMilestones(prsLbs, ctx.bodyWeightLbs);
   const feats = computeStrengthFeats(prsLbs);
   const niche = computeNicheAchievements(computeBehavioralSignals(history));
-  const achievements = [...computeAchievements(stats, ctx.overall), ...niche, ...feats, ...milestones];
+  const league = computeLeagueAchievements(ctx.leagueResults ?? []);
+  const achievements = [...computeAchievements(stats, ctx.overall), ...niche, ...feats, ...milestones, ...league];
   return {
     stats,
     achievements,

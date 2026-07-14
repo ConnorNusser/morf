@@ -8,6 +8,7 @@ import { userService } from '@/lib/services/userService';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { calculateOverallPercentile, formatDuration} from '@/lib/utils/utils';
 import { e1rmLbs } from '@/lib/data/strengthStandards';
+import { beginOvertakeWatch } from '@/lib/leagues/overtakeWatch';
 import { getExercise, getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { ParsedWorkout, workoutTextParser } from '@/lib/workout/workoutTextParser';
 import {
@@ -541,22 +542,29 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
       }
     }
 
+    // Capture the pre-sync league board so overtake pushes can diff against it.
+    const settleOvertakeWatch = beginOvertakeWatch();
+
     // Sync lifts to Supabase for leaderboard (excluding custom exercises).
     const liftsToSyncFiltered = liftsToSync.filter(lift => getCatalogExercise(lift.id) !== null);
-    if (liftsToSyncFiltered.length > 0) {
-      userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
-        console.error('Error syncing lifts to Supabase:', err);
-      });
-    }
+    const liftsSyncPromise = liftsToSyncFiltered.length > 0
+      ? userSyncService.syncLifts(liftsToSyncFiltered).catch(err => {
+          console.error('Error syncing lifts to Supabase:', err);
+        })
+      : Promise.resolve();
 
     // Percentile sync covers ALL the user's lifts, not just this workout.
     userSyncService.calculateAndSyncPercentiles().catch(err => {
       console.error('Error syncing percentile data:', err);
     });
 
-    userSyncService.syncWorkout(generatedWorkout, elapsedTime, prCount).catch(err => {
+    const workoutSyncPromise = userSyncService.syncWorkout(generatedWorkout, elapsedTime, prCount).catch(err => {
       console.error('Error syncing workout to Supabase:', err);
     });
+
+    // League overtakes: re-fetch standings once this session is on the server,
+    // push to friends the user just moved past (fire and forget).
+    settleOvertakeWatch(Promise.allSettled([liftsSyncPromise, workoutSyncPromise]));
 
     refreshProfile().catch(err => {
       console.error('Error refreshing profile:', err);
