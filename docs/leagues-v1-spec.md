@@ -1,9 +1,18 @@
-# Leagues v1 — "This Week" friends league
+# Leagues v1 — "This Week" league
 
-Spec for the first shippable slice of the rivalry initiative: a weekly, friends-only
-league scored on **recent effort and personal progress**, replacing the stale
-all-time friends leaderboard as the competitive surface. Seasons, campaigns, and
-promotion tiers are explicitly v2+ (see Non-goals).
+Spec for the first shippable slice of the rivalry initiative: a weekly league of
+**all recently-active users**, scored on recent effort and personal progress,
+replacing the stale all-time leaderboard as the competitive surface. Seasons,
+campaigns, promotion tiers, and cohort partitioning are explicitly v2+ (see
+Non-goals).
+
+Scope decision (2026-07-13): at current scale (~210 users, ~5–7 weekly actives,
+7 users with any friend) a friends-only league renders an empty state for 97%
+of users, and there aren't enough actives to fill random cohorts. So v1 is one
+global board of everyone active this week — it's automatically populated for
+every user, needs no partitioning math, and friends get badged within it.
+Friend-aware cohorts / stranger-fill ("ghost challengers") become relevant only
+past ~30+ weekly actives; revisit then.
 
 ## Why (one paragraph of context)
 
@@ -33,8 +42,11 @@ report from 2026-07-13 (see PR description).
 
 ### The league
 
-- **Your friends are the league.** Cohort = the viewer + their `friends` rows
-  (the table is bidirectional; no join/lobby mechanics, no league entity).
+- **Everyone active this week is the league.** Cohort = the viewer + every user
+  with ≥1 `user_workouts` row in the window (no league entity, no join/lobby
+  mechanics, no partitioning). Friends are badged in the list, not separated.
+- The RPC caps membership at the top 100 by sessions as a payload guard —
+  irrelevant at current scale, prevents surprise later.
 - Scoring resets every Monday. There is no carryover, promotion, or season
   aggregation in v1.
 
@@ -55,26 +67,29 @@ reachable from inside the league view).
 `components/profile/LeaderboardModal.tsx` (bottom-pinned You bar, gap-to-next,
 `SegmentedTabs`), but a new component under `components/home/league/`.
 
-- **Ranked list of active members only** (≥1 session this week), sorted by
-  points desc, ties share rank (`rankByValue` semantics). With typical friend
-  counts (≤10) the full list shows; there is **no last-place styling** — no
-  arrows-down, no red, the bottom row renders identically to the middle.
-- **Resting row**: members with 0 sessions this week collapse into a single
-  footer row ("Resting this week: Sam, Priya") — visible, not ranked, not
-  shamed. This is what kills the stale feel: inactive friends stop occupying
-  board positions.
-- **Per-row**: avatar, username, points, and a compact breakdown strip
-  (days • PRs • best gain %) so scores are legible, not a black box.
+- **Ranked list of active users only** (≥1 session this week), sorted by
+  points desc, ties share rank (`rankByValue` semantics). At current scale the
+  full list shows; there is **no last-place styling** — no arrows-down, no red,
+  the bottom row renders identically to the middle. Inactive users simply
+  aren't on the board — that's what kills the stale feel.
+- **Resting friends row**: the viewer's friends with 0 sessions this week
+  collapse into a single footer row ("Resting this week: Sam, Priya") —
+  visible, not ranked, not shamed. Strangers with 0 sessions don't appear at
+  all.
+- **Per-row**: avatar, username, points, a friend badge when the row is one of
+  the viewer's friends, and a compact breakdown strip (days • PRs • best
+  gain %) so scores are legible, not a black box.
 - **You bar** (bottom-pinned): rank, points, gap-to-ahead in points.
 - **Personal panel** below the board: your points breakdown by source and a
   week-over-week comparison ("last week: 87 pts, 3 days"), the competence
   feedback the research says must accompany rank.
 - **Tabs**: `This week` (default) | `All-time` — the all-time tab embeds the
-  existing friends leaderboard content so "who's strongest ever" stays
-  answerable but stops being the default lens.
-- **Empty/edge states**: 0 friends → invite CTA (reuse friend-search flow);
-  <2 active members → board renders with a "Challenge your crew" nudge row
-  instead of a competition frame.
+  existing leaderboard content (global/country/friends scopes) so "who's
+  strongest ever" stays answerable but stops being the default lens.
+- **Empty/edge states**: <2 active users app-wide (viewer included) → board
+  renders the viewer's own week + a "Set the pace" nudge instead of a
+  competition frame. A friend-invite CTA sits in the board footer regardless —
+  growing the graph is the point of the rivalry direction.
 
 ### Scoring
 
@@ -109,8 +124,12 @@ One notification type in v1: **overtake**.
   standings; any friend whose rank they just passed gets a push:
   `⚔️ {username} just passed you in the weekly league` /
   `{points} pts vs your {theirPoints}. {daysLeft} days left this week.`
+- **Friends only.** The board contains strangers, but overtake pushes fire only
+  between friends — pushing "X passed you" to a stranger is spam, and the token
+  path we're reusing is friend-scoped anyway. Strangers experience the league
+  passively (board position), friends get the rivalry loop.
 - Delivery reuses the existing direct-token path in `notificationService`
-  (`getFriendPushTokens`-style lookup filtered to the overtaken user ids +
+  (`getFriendPushTokens`-style lookup filtered to the overtaken friend ids +
   `sendPushNotifications`, exactly as `notifyFriendsOfPR` does after its RPC).
 - **Rate limit**: max one overtake push per (pair, day), guarded client-side via
   a storage key (`league_overtake_sent:{friendId}:{dateKey}`) under
@@ -140,12 +159,17 @@ returns table (
   sessions int,          -- user_workouts rows in window
   active_days int,       -- distinct calendar days (UTC date of created_at) in window
   prs jsonb,             -- [{exercise_id, week_best, prior_best, gain_pct}] for PR'd exercises, gain desc, limit 8
-  new_lifts int          -- exercises lifted in-window with no prior history
+  new_lifts int,         -- exercises lifted in-window with no prior history
+  is_friend boolean      -- row user is a friend of p_user_id (drives badge + push scoping)
 ) language sql stable as $$
   with members as (
     select p_user_id as user_id
     union
-    select friend_id from friends where user_id = p_user_id
+    select user_id from user_workouts
+    where created_at >= p_week_start and created_at < p_week_end
+    group by user_id
+    order by count(*) desc
+    limit 100
   ),
   -- per member+exercise: best in window vs best before window, from user_lifts
   ...
@@ -154,8 +178,10 @@ $$;
 
 Implementation notes:
 
-- Members CTE = self + `friends.friend_id where user_id = p_user_id` (the table
-  is bidirectional, one direction suffices).
+- Members CTE = self + every user with a `user_workouts` row in the window
+  (top 100 by session count as a payload guard). `is_friend` is a left join
+  against `friends where user_id = p_user_id` — the table is bidirectional,
+  one direction suffices.
 - `prs` compares `max(estimated_1rm)` in `[p_week_start, p_week_end)` vs before
   `p_week_start` per `(user_id, exercise_id)` over append-only `user_lifts`,
   keeps rows where a prior best exists and is beaten, orders by `gain_pct`
@@ -163,9 +189,9 @@ Implementation notes:
   UI). `active_days` counts distinct `date(created_at)` from `user_workouts`.
 - Grant execute to `anon` like the existing RPCs; everything is keyed off the
   passed `p_user_id` (no auth in this app — trust-the-client, same posture as
-  `get_friend_leaderboard`). Standings are spoofable; acceptable at friends
-  scale, disqualifying for anything global/prized — do not reuse this for a
-  public board.
+  `get_friend_leaderboard`). Standings are spoofable — same posture as the
+  existing global boards, acceptable while nothing is prized. Revisit before
+  attaching any reward to a league finish.
 - No local Supabase CLI workflow — apply manually against the project, and
   sanity-check the query plan on `user_lifts` (it has ~5k-row fetches today;
   the per-exercise max aggregation should use the existing composite index or
@@ -188,15 +214,18 @@ lib/leagues/
   types.ts      // LeagueMemberAggregates (mirrors RPC row), LeagueStanding,
                 // ScoreBreakdown, SCORING constants
   scoring.ts    // scoreMember(agg: LeagueMemberAggregates): ScoreBreakdown
-                // buildStandings(rows, myUserId, now): { active: LeagueStanding[],
-                //   resting: LeagueMember[], me: LeagueStanding | null }
+                // buildStandings(rows, friends, myUserId, now): {
+                //   active: LeagueStanding[], restingFriends: Friend[],
+                //   me: LeagueStanding | null }
                 // detectOvertakes(before: LeagueStanding[], after: LeagueStanding[],
-                //   myUserId): string[]   // user_ids I just passed
+                //   myUserId): string[]   // friend user_ids I just passed
 ```
 
 - `buildStandings` sorts by points with `rankByValue` tie semantics
-  (`lib/gamification/leaderboardInsights.ts`), splits active vs resting, and
-  computes gap-to-ahead via `gapToAhead`.
+  (`lib/gamification/leaderboardInsights.ts`) and computes gap-to-ahead via
+  `gapToAhead`. `restingFriends` = the viewer's friends (from the existing
+  `userSyncService.getFriends()`) absent from the active rows — the RPC only
+  returns users who trained this week.
 - Week bounds come from the existing `weekStart` util; all functions take
   `now: Date` injected (clock-injectable like `weeklyGoal.ts`).
 
@@ -211,10 +240,11 @@ Service layer:
 UI (`components/home/league/`):
 
 - `LeagueCard.tsx` — Home card (rank, points, rival gap line, competence cue).
-- `LeagueBoard.tsx` — the modal view (tabs, ranked list, resting row, You bar,
-  personal panel). Reuses `SegmentedTabs`, `Divider`, `EmptyState`, Themed
-  `<Text variant tone>` per `docs/ui-conventions.md`; the All-time tab hosts the
-  existing friends leaderboard content.
+- `LeagueBoard.tsx` — the modal view (tabs, ranked list with friend badges,
+  resting-friends row, You bar, personal panel). Reuses `SegmentedTabs`,
+  `Divider`, `EmptyState`, Themed `<Text variant tone>` per
+  `docs/ui-conventions.md`; the All-time tab hosts the existing leaderboard
+  content.
 - Wiring in `app/(tabs)/index.tsx`: card placement where the leaderboard entry
   sits today, `?league=1` param handling mirroring `?feed=1`.
 - Post-workout hook: after `syncWorkout` succeeds, fire the standings re-fetch +
@@ -227,10 +257,13 @@ Pure-function coverage, node env:
 - `scoreMember`: caps (5 active days → 40 pts; 6 PRs → 4 counted; gain bonus
   top-2 only, 10% clamp), goal bonus at exactly 3 days, zero week, first-time
   exercises score 0.
-- `buildStandings`: tie ranks, active/resting split, me-not-in-friends edge,
-  empty league.
-- `detectOvertakes`: pass one friend, pass multiple in one workout, no
-  self-notify, no notify when already ahead, Monday zero-state.
+- `buildStandings`: tie ranks, resting-friends derivation (friend absent from
+  active rows), stranger vs friend badge flag, empty league, viewer inactive
+  (self is always in the RPC rows, so `me` is non-null with 0 points but is
+  excluded from the ranked actives).
+- `detectOvertakes`: pass one friend, pass multiple in one workout, strangers
+  passed → not returned, no self-notify, no notify when already ahead, Monday
+  zero-state.
 - Week bounds: session at Sunday 23:59 vs Monday 00:00 local.
 
 ## Rollout
@@ -250,8 +283,7 @@ Pure-function coverage, node env:
 2. **Does the Home card fully replace the leaderboard card**, or sit alongside
    it for a release? Spec assumes replace (all-time lives inside the league
    view).
-3. **Overtake push copy/emoji** — current draft is ⚔️; matches the rivalry
-   framing but says nothing about who it's from being a friend vs rando (fine
-   while leagues are friends-only).
+3. **Overtake push copy/emoji** — current draft is ⚔️; pushes are friend-only
+   so the sender is always someone you know.
 4. **Should `new_lifts` earn a token 5 pts (capped)** to reward exploration, or
    stay 0 to keep the anti-gaming stance? Spec says 0.
