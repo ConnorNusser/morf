@@ -50,6 +50,23 @@ report from 2026-07-13 (see PR description).
 - Scoring resets every Monday. There is no carryover, promotion, or season
   aggregation in v1.
 
+### Iconography & tone
+
+- **No emojis anywhere** — not in UI copy, not in push notification copy.
+- **No Ionicons on league surfaces.** The icon language is the existing pixel
+  achievement emblems (`assets/achievements/*.png` via
+  `lib/gamification/achievementEmblems.ts` / `emblemFor`) — they're already the
+  most distinctive art in the app and they make the league read as part of the
+  gamification world rather than another settings-grade list. Immediate uses:
+  `trophy` for the reigning champion marker, `sword` for the rival line,
+  `flame` for active-day dots in breakdowns.
+- If a spot needs an emblem that doesn't exist (e.g. a crown or laurel for
+  multi-week champions), generate it through the established pixel pipeline
+  (Gemini → ImageMagick, same style as the existing set) rather than reaching
+  for any icon font. v1 should need zero or near-zero new art.
+- Tone: the league is a game, and copy can be playful ("Set the pace", "N days
+  left") — but flat and dry per the app voice, never exclamation-mark hype.
+
 ### Surfaces
 
 **1. Home card (`LeagueCard`)** — replaces the current leaderboard entry point
@@ -79,6 +96,9 @@ reachable from inside the league view).
 - **Per-row**: avatar, username, points, a friend badge when the row is one of
   the viewer's friends, and a compact breakdown strip (days • PRs • best
   gain %) so scores are legible, not a black box.
+- **Reigning champion**: last week's winner carries the pixel `trophy` emblem
+  next to their name all week (board + a "Last week: {username}" line in the
+  header). Winning has to be visible to be worth chasing.
 - **You bar** (bottom-pinned): rank, points, gap-to-ahead in points.
 - **Personal panel** below the board: your points breakdown by source and a
   week-over-week comparison ("last week: 87 pts, 3 days"), the competence
@@ -122,8 +142,9 @@ One notification type in v1: **overtake**.
 
 - After the finisher's `syncWorkout` completes, their client re-fetches league
   standings; any friend whose rank they just passed gets a push:
-  `⚔️ {username} just passed you in the weekly league` /
-  `{points} pts vs your {theirPoints}. {daysLeft} days left this week.`
+  `{username} just passed you in the weekly league` /
+  `{points} pts to your {theirPoints}. {daysLeft} days left this week.`
+  (No emoji — see Iconography & tone.)
 - **Friends only.** The board contains strangers, but overtake pushes fire only
   between friends — pushing "X passed you" to a stranger is spam, and the token
   path we're reusing is friend-scoped anyway. Strangers experience the league
@@ -138,6 +159,38 @@ One notification type in v1: **overtake**.
   pattern as `/(tabs)?feed=1`, e.g. `/(tabs)?league=1`).
 - Weekly kickoff/wrap-up notifications are deferred to v2 (they want the season
   layer to say anything meaningful).
+
+### League achievements
+
+League finishes feed the existing achievements system so wins accumulate into
+permanent trophies. New defs in `lib/gamification/leagueAchievements.ts`
+(same `Achievement` shape, merged at the call sites alongside
+`computeNicheAchievements`):
+
+| id | title | condition | rarity | emblem |
+| --- | --- | --- | --- | --- |
+| `league-first` | Contender | finish a league week with ≥1 active day | common | `sword` |
+| `league-podium` | On the Board | finish top 3 | common | `bronzetrophy` |
+| `league-win-1` | Champion | win a weekly league | rare | `trophy` |
+| `league-win-3` | Back for More | 3 weekly wins | epic | `ornatetrophy` |
+| `league-win-10` | Dynasty | 10 weekly wins | legendary | `cape` |
+| `league-streak-3` | Undisputed | win 3 consecutive weeks | epic | `partyhat` |
+
+- **Wins only count with ≥3 active participants** — you can't be champion of a
+  league of one (or of you plus one inactive friend). Podiums require ≥4.
+- Emblem mapping reuses existing pixel assets — zero new art for v1. If a
+  dedicated crown/laurel gets generated later, remap `league-win-*` then.
+- **Architecture wrinkle (deliberate exception):** every other achievement is a
+  pure function of local history, but a league finish depends on *other users'*
+  server data, so it can't be recomputed locally. When the client first loads
+  the league surface after a week closes, it fetches the previous week's
+  standings from the RPC, derives the user's final `{weekStart, rank, points,
+  activeParticipants}`, and appends it to a local `LeagueWeekResult[]` under a
+  new `STORAGE_KEYS` entry (`league_week_results`). Achievements compute from
+  that stored array. One snapshot per week, written once, never mutated —
+  append-only like `user_lifts`, so the no-drifting-counters spirit survives.
+- Missed weeks (app not opened for a while): backfill up to 4 prior weeks on
+  the same load — the RPC recomputes any window from append-only history.
 
 ## Backend
 
@@ -219,6 +272,9 @@ lib/leagues/
                 //   me: LeagueStanding | null }
                 // detectOvertakes(before: LeagueStanding[], after: LeagueStanding[],
                 //   myUserId): string[]   // friend user_ids I just passed
+  results.ts    // LeagueWeekResult, resultFromStandings(standings, myUserId, weekStart),
+                // weeksNeedingSnapshot(stored, now)  — drives the close-of-week
+                // snapshot + ≤4-week backfill; persistence via storageService
 ```
 
 - `buildStandings` sorts by points with `rankByValue` tie semantics
@@ -265,6 +321,10 @@ Pure-function coverage, node env:
   passed → not returned, no self-notify, no notify when already ahead, Monday
   zero-state.
 - Week bounds: session at Sunday 23:59 vs Monday 00:00 local.
+- `leagueAchievements` + `results`: win requires ≥3 active participants and
+  rank 1; podium requires ≥4; consecutive-win streak across stored results with
+  a gap week breaking it; `weeksNeedingSnapshot` backfill cap at 4; snapshot
+  idempotence (same week never recorded twice).
 
 ## Rollout
 
@@ -272,7 +332,8 @@ Pure-function coverage, node env:
   `lib/leagues/types.ts`) so the branch can merge dark if needed — no flag
   infra exists in main, keep it a constant.
 - Ship order within this branch: migration → `lib/leagues` + tests → service
-  wrappers → board UI → card + wiring → overtake push.
+  wrappers → board UI → card + wiring → overtake push → week snapshots +
+  league achievements.
 - Watch one full Monday–Sunday cycle with real friends before building v2
   (seasons, rotating campaign formats, collective squad goal, kickoff/wrap-up
   notifications, percentile-delta scoring refinement).
@@ -283,7 +344,7 @@ Pure-function coverage, node env:
 2. **Does the Home card fully replace the leaderboard card**, or sit alongside
    it for a release? Spec assumes replace (all-time lives inside the league
    view).
-3. **Overtake push copy/emoji** — current draft is ⚔️; pushes are friend-only
-   so the sender is always someone you know.
+3. **Overtake push copy** — "{username} just passed you in the weekly league";
+   pushes are friend-only so the sender is always someone you know.
 4. **Should `new_lifts` earn a token 5 pts (capped)** to reward exploration, or
    stay 0 to keep the anti-gaming stance? Spec says 0.
