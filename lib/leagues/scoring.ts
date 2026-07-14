@@ -78,6 +78,7 @@ export function buildStandings(
     rank: ranks[row.user_id],
     points: breakdown.total,
     breakdown,
+    prs: [...row.prs].sort((a, b) => b.gain_pct - a.gain_pct),
     gapToAhead: gapToAhead(active, index, entry => entry.breakdown.total),
   }));
 
@@ -93,6 +94,7 @@ export function buildStandings(
         rank: null,
         points: mine.breakdown.total,
         breakdown: mine.breakdown,
+        prs: [...mine.row.prs].sort((a, b) => b.gain_pct - a.gain_pct),
         gapToAhead: null,
       };
     }

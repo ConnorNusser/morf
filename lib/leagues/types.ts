@@ -71,6 +71,8 @@ export interface LeagueStanding {
   rank: number | null;
   points: number;
   breakdown: ScoreBreakdown;
+  /** PR'd lifts, gain desc — feeds the per-row point receipt. */
+  prs: LeaguePrAggregate[];
   /** Points to the member directly ahead; null for #1 or unranked. */
   gapToAhead: number | null;
 }

@@ -4,11 +4,11 @@ import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
 import NavRow from '@/components/ui/NavRow';
 import SegmentedTabs from '@/components/ui/SegmentedTabs';
-import StatStrip from '@/components/ui/StatStrip';
 import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import SocialModal from '@/components/profile/SocialModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { TIER_COLORS } from '@/lib/data/strengthStandards';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
 import {
   buildStandings,
@@ -16,9 +16,10 @@ import {
   leagueWinner,
   weekBounds,
 } from '@/lib/leagues/scoring';
-import { LeagueStanding } from '@/lib/leagues/types';
+import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
+import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { RemoteUser } from '@/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -38,7 +39,21 @@ const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
   banner: require('@/assets/achievements/banner.png'),
+  flame: require('@/assets/achievements/flame.png'),
+  barbell: require('@/assets/achievements/barbell.png'),
+  lightning: require('@/assets/achievements/lightning.png'),
+  laurel: require('@/assets/achievements/laurel.png'),
 };
+
+// Point sources borrow the tier palette so the colors already mean something
+// in-app: gold = the big win (PRs), purple = magnitude (gain), blue = showing
+// up (days), green = the consistency capstone.
+const SOURCE_COLORS = {
+  days: TIER_COLORS.B,
+  prs: TIER_COLORS.S,
+  gain: TIER_COLORS.A,
+  bonus: TIER_COLORS.C,
+} as const;
 
 type BoardTab = 'week' | 'alltime';
 
@@ -46,6 +61,8 @@ interface LeagueBoardProps {
   visible: boolean;
   onClose: () => void;
 }
+
+const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 
 export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
@@ -56,8 +73,10 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const [champion, setChampion] = useState<LeagueStanding | null>(null);
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAllTime, setShowAllTime] = useState(false);
   const [showSocial, setShowSocial] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   const loadLeague = useCallback(async () => {
     setIsLoading(true);
@@ -94,6 +113,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   useEffect(() => {
     if (visible) {
       setTab('week');
+      setExpandedId(null);
       loadLeague();
     }
   }, [visible, loadLeague]);
@@ -105,6 +125,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
+  const maxPoints = active[0]?.points || 0;
 
   const handleUserPress = (row: LeagueStanding) => {
     setSelectedUser({
@@ -138,33 +159,102 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // "3 days · 2 PRs · +6.2%" — makes points legible instead of a black box.
-  const breakdownLine = (row: LeagueStanding) => {
-    const parts = [`${row.breakdown.activeDays}d`];
-    if (row.breakdown.prCount > 0) {
-      parts.push(`${row.breakdown.prCount} PR${row.breakdown.prCount === 1 ? '' : 's'}`);
+  // The row's identity: WHERE the points came from, as a color-stacked bar
+  // scaled against the leader. Legible at a glance, exact in the receipt.
+  const renderSourceBar = (row: LeagueStanding) => {
+    if (row.points <= 0 || maxPoints <= 0) return null;
+    const widthPct = Math.max(6, Math.round((row.points / maxPoints) * 100));
+    const segments = [
+      { key: 'days', value: row.breakdown.activeDayPoints, color: SOURCE_COLORS.days },
+      { key: 'prs', value: row.breakdown.prPoints, color: SOURCE_COLORS.prs },
+      { key: 'gain', value: row.breakdown.gainPoints, color: SOURCE_COLORS.gain },
+      { key: 'bonus', value: row.breakdown.goalBonus, color: SOURCE_COLORS.bonus },
+    ].filter(s => s.value > 0);
+    return (
+      <RNView style={[styles.sourceBar, { width: `${widthPct}%` }]}>
+        {segments.map(s => (
+          <RNView key={s.key} style={{ flex: s.value, backgroundColor: s.color }} />
+        ))}
+      </RNView>
+    );
+  };
+
+  // One line per point source, pixel emblem + reason + points earned.
+  const renderReceipt = (row: LeagueStanding) => {
+    const countedPRs = row.prs.slice(0, SCORING.prCap);
+    const lines: { key: string; emblem: keyof typeof EMBLEMS; color: string; label: string; pts: number }[] = [];
+
+    if (row.breakdown.activeDayPoints > 0) {
+      lines.push({
+        key: 'days',
+        emblem: 'flame',
+        color: SOURCE_COLORS.days,
+        label: `Trained ${row.breakdown.activeDays} ${row.breakdown.activeDays === 1 ? 'day' : 'days'}${row.breakdown.activeDays > SCORING.activeDayCap ? ` (${SCORING.activeDayCap} score)` : ''}`,
+        pts: row.breakdown.activeDayPoints,
+      });
     }
-    if (row.breakdown.bestGainPct != null && row.breakdown.bestGainPct > 0) {
-      parts.push(`+${row.breakdown.bestGainPct.toFixed(1)}%`);
+    countedPRs.forEach((pr, i) => {
+      lines.push({
+        key: `pr-${pr.exercise_id}`,
+        emblem: 'barbell',
+        color: SOURCE_COLORS.prs,
+        label: `PR — ${liftName(pr.exercise_id)} +${pr.gain_pct.toFixed(1)}%`,
+        pts: SCORING.pointsPerPR + (i < SCORING.gainBonusLifts
+          ? Math.round(SCORING.gainBonusPerPct * Math.min(Math.max(pr.gain_pct, 0), SCORING.gainPctCap))
+          : 0),
+      });
+    });
+    if (row.breakdown.goalBonus > 0) {
+      lines.push({
+        key: 'bonus',
+        emblem: 'laurel',
+        color: SOURCE_COLORS.bonus,
+        label: `${SCORING.goalBonusDays}-day week`,
+        pts: row.breakdown.goalBonus,
+      });
     }
-    return parts.join(' · ');
+
+    if (lines.length === 0) {
+      return (
+        <Text variant="meta" tone="faint" style={styles.receiptEmpty}>
+          No points yet this week.
+        </Text>
+      );
+    }
+
+    return (
+      <RNView style={styles.receipt}>
+        {lines.map(line => (
+          <RNView key={line.key} style={styles.receiptLine}>
+            <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
+            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.receiptLabel}>
+              {line.label}
+            </Text>
+            <Text variant="meta" weight="semiBold" style={{ color: line.color }}>
+              +{line.pts}
+            </Text>
+          </RNView>
+        ))}
+      </RNView>
+    );
   };
 
   const renderRow = (row: LeagueStanding, index: number) => {
     const isHero = index === 0;
     const isYou = myUser != null && row.userId === myUser.id;
     const isChampion = champion != null && row.userId === champion.userId;
+    const isExpanded = expandedId === row.userId;
 
     return (
       <Animated.View key={row.userId} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
         <TouchableOpacity
           style={[styles.entryRow, isHero && styles.heroRow]}
-          onPress={() => handleUserPress(row)}
+          onPress={() => setExpandedId(isExpanded ? null : row.userId)}
           activeOpacity={0.7}
         >
           {isHero && (
             <LinearGradient
-              colors={[tint(currentTheme.colors.primary), 'transparent']}
+              colors={[tint(SOURCE_COLORS.prs), 'transparent']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[StyleSheet.absoluteFill, styles.rowRound]}
@@ -181,7 +271,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             </Text>
           </RNView>
 
-          {renderAvatar(row, isHero ? 44 : 32)}
+          <TouchableOpacity onPress={() => handleUserPress(row)} activeOpacity={0.7}>
+            {renderAvatar(row, isHero ? 44 : 32)}
+          </TouchableOpacity>
 
           <RNView style={styles.userInfo}>
             <RNView style={styles.usernameRow}>
@@ -198,9 +290,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               {row.isFriend && !isYou && <Image source={EMBLEMS.banner} style={styles.inlineEmblem} />}
               {isYou && <Text variant="meta" tone="faint">you</Text>}
             </RNView>
-            <Text variant="meta" tone="muted" numberOfLines={1}>
-              {breakdownLine(row)}
-            </Text>
+            {renderSourceBar(row)}
           </RNView>
 
           <RNView style={styles.valueCell}>
@@ -208,11 +298,49 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               {row.points}
               <Text variant="meta" weight="regular" tone="muted"> pts</Text>
             </Text>
+            {row.breakdown.prCount > 0 && (
+              <Text variant="meta" weight="semiBold" style={{ color: SOURCE_COLORS.prs }}>
+                {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
+              </Text>
+            )}
           </RNView>
         </TouchableOpacity>
+        {isExpanded && renderReceipt(row)}
       </Animated.View>
     );
   };
+
+  // The legend that answers "why": every way to score, emblem + rule + points.
+  const renderRules = () => (
+    <RNView style={[styles.rules, { borderColor: ink.hairline }]}>
+      {[
+        { emblem: 'flame' as const, color: SOURCE_COLORS.days, rule: 'Train a day', pts: `+${SCORING.pointsPerActiveDay}`, cap: `up to ${SCORING.activeDayCap} days` },
+        { emblem: 'barbell' as const, color: SOURCE_COLORS.prs, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap} PRs` },
+        { emblem: 'lightning' as const, color: SOURCE_COLORS.gain, rule: 'Bigger gains, bigger bonus', pts: `+${SCORING.gainBonusPerPct}/%`, cap: `top ${SCORING.gainBonusLifts} lifts, ${SCORING.gainPctCap}% cap` },
+        { emblem: 'laurel' as const, color: SOURCE_COLORS.bonus, rule: `Hit ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
+      ].map(r => (
+        <RNView key={r.rule} style={styles.receiptLine}>
+          <Image source={EMBLEMS[r.emblem]} style={styles.receiptEmblem} />
+          <Text variant="meta" tone="secondary" style={styles.receiptLabel}>
+            {r.rule} <Text variant="meta" tone="faint">· {r.cap}</Text>
+          </Text>
+          <Text variant="meta" weight="semiBold" style={{ color: r.color }}>{r.pts}</Text>
+        </RNView>
+      ))}
+    </RNView>
+  );
+
+  // What I'd earn next — turns the rules into a to-do list.
+  const nextPointsLine = useMemo(() => {
+    if (!me) return null;
+    const hints: string[] = [];
+    if (me.breakdown.activeDays < SCORING.activeDayCap) hints.push(`Train tomorrow +${SCORING.pointsPerActiveDay}`);
+    if (me.breakdown.prCount < SCORING.prCap) hints.push(`PR a lift +${SCORING.pointsPerPR}`);
+    if (me.breakdown.goalBonus === 0 && me.breakdown.activeDays < SCORING.goalBonusDays) {
+      hints.push(`${SCORING.goalBonusDays - me.breakdown.activeDays} more ${SCORING.goalBonusDays - me.breakdown.activeDays === 1 ? 'day' : 'days'} for +${SCORING.goalBonus}`);
+    }
+    return hints.slice(0, 2).join(' · ') || null;
+  }, [me]);
 
   const renderWeekBoard = () => {
     if (isLoading) {
@@ -228,11 +356,14 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     // Fewer than two people training this week — no race to frame.
     if (active.length < 2) {
       return (
-        <EmptyState
-          art={EMBLEMS.sword}
-          title="Set the pace"
-          subtitle="Nobody has taken this week yet. Log a session and put a score on the board."
-        />
+        <View style={styles.list}>
+          <EmptyState
+            art={EMBLEMS.sword}
+            title="Set the pace"
+            subtitle="Nobody has taken this week yet. Log a session and put a score on the board."
+          />
+          {renderRules()}
+        </View>
       );
     }
 
@@ -262,16 +393,24 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             <Text variant="meta" weight="semiBold" tone="muted" style={styles.personalLabel}>
               YOUR WEEK
             </Text>
-            <StatStrip
-              items={[
-                { value: me.breakdown.activeDays, label: 'days' },
-                { value: me.breakdown.prCount, label: 'PRs' },
-                { value: me.breakdown.gainPoints + me.breakdown.prPoints, label: 'PR pts' },
-                { value: me.breakdown.goalBonus, label: 'bonus' },
-              ]}
-            />
+            {renderReceipt(me)}
+            {nextPointsLine && (
+              <RNView style={styles.receiptLine}>
+                <Image source={EMBLEMS.lightning} style={styles.receiptEmblem} />
+                <Text variant="meta" tone="faint" style={styles.receiptLabel}>
+                  Next: {nextPointsLine}
+                </Text>
+              </RNView>
+            )}
           </RNView>
         )}
+
+        <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7}>
+          <Text variant="meta" weight="semiBold" tone="muted" style={styles.rulesToggle}>
+            {showRules ? 'HIDE SCORING' : 'HOW SCORING WORKS'}
+          </Text>
+        </TouchableOpacity>
+        {showRules && renderRules()}
 
         <NavRow label="Add friends" variant="card" onPress={() => setShowSocial(true)} />
       </View>
@@ -426,6 +565,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flex: 1,
+    gap: 5,
   },
   usernameRow: {
     flexDirection: 'row',
@@ -439,8 +579,48 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
   },
+  sourceBar: {
+    flexDirection: 'row',
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
   valueCell: {
     alignItems: 'flex-end',
+    gap: 2,
+  },
+  receipt: {
+    paddingLeft: 32 + space.md + space.md,
+    paddingRight: space.md,
+    paddingBottom: space.md,
+    gap: space.sm,
+  },
+  receiptEmpty: {
+    paddingLeft: 32 + space.md + space.md,
+    paddingBottom: space.md,
+  },
+  receiptLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  receiptEmblem: {
+    width: 14,
+    height: 14,
+  },
+  receiptLabel: {
+    flex: 1,
+  },
+  rules: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radius.card,
+    padding: space.md,
+    gap: space.sm,
+    marginTop: space.sm,
+  },
+  rulesToggle: {
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
   },
   restingRow: {
     marginTop: space.md,
