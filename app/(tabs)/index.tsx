@@ -55,6 +55,7 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [feedRefreshTrigger] = useState(0);
   const [showLeague, setShowLeague] = useState(false);
+  const [leagueExpandTarget, setLeagueExpandTarget] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
@@ -272,7 +273,12 @@ export default function HomeScreen() {
         {/* Absorbs leftover height; collapses to zero once content scrolls. */}
         <View style={layout.flex1} />
 
-        <LeagueCard onPress={() => setShowLeague(true)} />
+        <LeagueCard
+          onOpen={(expandUserId) => {
+            setLeagueExpandTarget(expandUserId ?? null);
+            setShowLeague(true);
+          }}
+        />
 
         <NavRow
           label="All-Time Leaderboards"
@@ -284,7 +290,11 @@ export default function HomeScreen() {
 
       <LeagueBoard
         visible={showLeague}
-        onClose={() => setShowLeague(false)}
+        onClose={() => {
+          setShowLeague(false);
+          setLeagueExpandTarget(null);
+        }}
+        initialExpandedUserId={leagueExpandTarget}
       />
 
       <LeaderboardModal

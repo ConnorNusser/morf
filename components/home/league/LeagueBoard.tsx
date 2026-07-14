@@ -5,9 +5,23 @@ import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionLabel from '@/components/ui/SectionLabel';
 import UserAvatar from '@/components/ui/UserAvatar';
+import {
+  Collapse,
+  CompositionBar,
+  FadeSlideIn,
+  GOLD,
+  PressableScale,
+  RankRing,
+  pts,
+  rankTierColors,
+  useCountUp,
+} from '@/components/home/league/leagueVisuals';
+import LeagueAchievementsModal from '@/components/home/league/LeagueAchievementsModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getStrengthTier, getTierColor, StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { upForGrabs } from '@/lib/gamification/leagueAchievements';
+import { LeagueWeekResult } from '@/lib/leagues/results';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
 import {
   buildStandings,
@@ -20,7 +34,7 @@ import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, screenGutter, space, tint, track } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
-import { formatCompact, formatVolume } from '@/lib/utils/utils';
+import { formatVolume } from '@/lib/utils/utils';
 import { RemoteUser } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -32,103 +46,6 @@ import {
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  Easing,
-  runOnJS,
-  withRepeat,
-  withSpring,
-  useAnimatedProps,
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withTiming,
-} from 'react-native-reanimated';
-import Svg, { Circle } from 'react-native-svg';
-
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-// Motion system (M3 Expressive, m3.material.io/styles/motion): physics springs
-// in two schemes — EXPRESSIVE (low damping, visible settle) for the one hero
-// moment, STANDARD (critically damped) for utilitarian movement — plus the
-// emphasized-decelerate curve for spatial entrances (~350ms "fast" token).
-const EMPHASIZED_DECEL = Easing.bezier(0.05, 0.7, 0.1, 1);
-
-/** Spatial entrance on the emphasized-decelerate curve (web-safe, no Keyframe). */
-function FadeSlideIn({
-  delay = 0,
-  distance = 10,
-  style,
-  children,
-}: {
-  delay?: number;
-  distance?: number;
-  style?: object;
-  children: React.ReactNode;
-}) {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withDelay(delay, withTiming(1, { duration: 350, easing: EMPHASIZED_DECEL }));
-  }, [delay, progress]);
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: progress.value,
-    transform: [{ translateY: (1 - progress.value) * distance }],
-  }));
-  return <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>;
-}
-
-/** Press feedback: a quick spring scale — interaction lands within a frame. */
-function PressableScale({
-  onPress,
-  style,
-  children,
-}: {
-  onPress: () => void;
-  style?: object;
-  children: React.ReactNode;
-}) {
-  const pressed = useSharedValue(0);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 - pressed.value * 0.02 }],
-  }));
-  return (
-    <TouchableOpacity
-      onPressIn={() => { pressed.value = withTiming(1, { duration: 80 }); }}
-      onPressOut={() => { pressed.value = withSpring(0, { damping: 14, stiffness: 400 }); }}
-      onPress={onPress}
-      activeOpacity={1}
-    >
-      <Animated.View style={[style, animatedStyle]}>{children}</Animated.View>
-    </TouchableOpacity>
-  );
-}
-
-/** Height-animated disclosure: expanding pushes siblings smoothly (no snap). */
-function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
-  const height = useSharedValue(0);
-  const measured = useSharedValue(0);
-  useEffect(() => {
-    height.value = withTiming(open ? measured.value : 0, { duration: 300, easing: EMPHASIZED_DECEL });
-  }, [open, height, measured]);
-  const animatedStyle = useAnimatedStyle(() => ({
-    height: height.value,
-    opacity: measured.value > 0 ? Math.min(1, height.value / measured.value) : 0,
-  }));
-  return (
-    <Animated.View style={[styles.collapse, animatedStyle]}>
-      <RNView
-        style={styles.collapseInner}
-        onLayout={e => {
-          measured.value = e.nativeEvent.layout.height;
-          if (open) height.value = withTiming(e.nativeEvent.layout.height, { duration: 300, easing: EMPHASIZED_DECEL });
-        }}
-      >
-        {children}
-      </RNView>
-    </Animated.View>
-  );
-}
 
 /** Micro-label for on-card use — one ink step brighter than SectionLabel. */
 function CardLabel({ children }: { children: React.ReactNode }) {
@@ -145,40 +62,14 @@ const EMBLEMS = {
   sword: require('@/assets/achievements/sword.png'),
 };
 
-// One accent (theme primary) + gold strictly for PR/champion; tier colors live
-// in TierBadge chips only. No gradients, no glows — type carries the weight.
-const GOLD = TIER_COLORS.S;
-
 interface LeagueBoardProps {
   visible: boolean;
   onClose: () => void;
+  /** Member whose recap opens on load (defaults to the viewer). */
+  initialExpandedUserId?: string | null;
 }
 
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
-const pts = (value: number) => formatCompact(value);
-
-/**
- * Rank mapped through the tier ladder, relative to the field: 1st of N sits at
- * the 100th percentile (S gold), last at the 0th (E gray). Points wear this.
- */
-const rankTierColors = (
-  rank: number | null,
-  field: number,
-): { pure: string; text: string } | null => {
-  if (rank == null || field < 2) return null;
-  const percentile = ((field - rank) / (field - 1)) * 100;
-  const pure = getTierColor(getStrengthTier(percentile));
-  // Text variant lifts toward white so numerals clear contrast on the
-  // near-black canvas; strokes and fills use the pure hue.
-  return { pure, text: lightenForText(pure) };
-};
-
-const lightenForText = (hex: string, amount = 0.35): string => {
-  const n = parseInt(hex.replace('#', ''), 16);
-  if (Number.isNaN(n)) return hex;
-  const mix = (c: number) => Math.round(c + (255 - c) * amount);
-  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
-};
 
 /** The member's color for the week: the tier of their best lift (null = untinted). */
 const weekTierColor = (row: LeagueStanding): string | null => {
@@ -186,168 +77,7 @@ const weekTierColor = (row: LeagueStanding): string | null => {
   return tier ? getTierColor(tier as StrengthTier) : null;
 };
 
-/** UI-thread count-up on the emphasized-decelerate curve (hero numeral only). */
-function useCountUp(target: number, duration = 600): number {
-  const progress = useSharedValue(0);
-  const [display, setDisplay] = useState(0);
-  useEffect(() => {
-    progress.value = 0;
-    progress.value = withDelay(80, withTiming(target, { duration, easing: EMPHASIZED_DECEL }));
-  }, [target, duration, progress]);
-  useAnimatedReaction(
-    () => Math.round(progress.value),
-    (value, previous) => {
-      if (value !== previous) runOnJS(setDisplay)(value);
-    },
-  );
-  return display;
-}
-
-/**
- * Share-of-leader × composition bar with a slow specular sweep across the
- * fill — the board's one piece of ambient motion (it reads as "live").
- */
-function CompositionBar({
-  sharePct,
-  volumePoints,
-  prPoints,
-  accent,
-  trackColor,
-}: {
-  sharePct: number;
-  volumePoints: number;
-  prPoints: number;
-  accent: string;
-  trackColor: string;
-}) {
-  const [trackW, setTrackW] = useState(0);
-  const sweep = useSharedValue(0);
-  useEffect(() => {
-    sweep.value = withRepeat(
-      withDelay(900, withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) })),
-      -1,
-      false,
-    );
-  }, [sweep]);
-  const fillW = (trackW * Math.min(100, Math.max(sharePct, 0.5))) / 100;
-  const sweepStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: -48 + sweep.value * (fillW + 96) }],
-  }));
-
-  return (
-    <RNView
-      style={[styles.rowBarTrack, { backgroundColor: trackColor }]}
-      onLayout={e => setTrackW(e.nativeEvent.layout.width)}
-    >
-      <RNView style={[styles.rowBar, { width: fillW }]}>
-        {volumePoints > 0 && <RNView style={{ flex: volumePoints, backgroundColor: accent }} />}
-        {prPoints > 0 && <RNView style={{ flex: prPoints, backgroundColor: GOLD }} />}
-        <Animated.View pointerEvents="none" style={[styles.sweepBand, sweepStyle]}>
-          <LinearGradient
-            colors={['transparent', 'rgba(255,255,255,0.18)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.sweepFill}
-          />
-        </Animated.View>
-      </RNView>
-    </RNView>
-  );
-}
-
-/** WHOOP-style ring: your share of the leader's total, rank in the center. */
-function RankRing({
-  pct,
-  rank,
-  field,
-  color,
-  trackColor,
-  size = 96,
-}: {
-  pct: number;
-  rank: number | null;
-  field: number;
-  color: string;
-  trackColor: string;
-  size?: number;
-}) {
-  const strokeWidth = 7;
-  const TIP_R = strokeWidth / 2 + 2;
-  // Inset the ring by the tip dot's overhang so it never clips the canvas.
-  const r = (size - strokeWidth) / 2 - (TIP_R - strokeWidth / 2) - 1;
-  const circumference = 2 * Math.PI * r;
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    // A gauge is a measurement, not an object in motion: one decelerating
-    // sweep, no overshoot (an underdamped spring here reads as error).
-    progress.value = withTiming(pct, { duration: 700, easing: EMPHASIZED_DECEL });
-  }, [pct, progress]);
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: circumference * (1 - Math.min(progress.value, 100) / 100),
-  }));
-
-  // The arc's leading edge carries a bright tip dot (the ring's "now" marker)
-  // that breathes gently — ambient life without the loading-spinner read an
-  // orbiting arc gives a circle.
-  const pulse = useSharedValue(0);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
-    );
-  }, [pulse]);
-  const tipProps = useAnimatedProps(() => {
-    const angle = (Math.PI / 180) * ((Math.min(progress.value, 100) / 100) * 360 - 90);
-    return {
-      cx: size / 2 + r * Math.cos(angle),
-      cy: size / 2 + r * Math.sin(angle),
-      r: TIP_R * (1 + pulse.value * 0.25),
-      opacity: progress.value > 2 ? 0.75 + pulse.value * 0.25 : 0,
-    };
-  });
-
-  return (
-    <RNView style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={trackColor}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        <AnimatedCircle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${circumference}`}
-          animatedProps={animatedProps}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-        <AnimatedCircle
-          fill="#FFFFFF"
-          animatedProps={tipProps}
-        />
-      </Svg>
-      <RNView style={styles.ringCenter}>
-        <Text variant="title" weight="bold" tone="primary">
-          {rank != null ? `#${rank}` : '—'}
-        </Text>
-        {rank != null && field > 1 && (
-          <Text variant="meta" tone="muted">of {field}</Text>
-        )}
-      </RNView>
-    </RNView>
-  );
-}
-
-export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
+export default function LeagueBoard({ visible, onClose, initialExpandedUserId }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const [isLoading, setIsLoading] = useState(false);
@@ -357,6 +87,8 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
+  const [leagueResults, setLeagueResults] = useState<LeagueWeekResult[]>([]);
 
   const loadLeague = useCallback(async () => {
     setIsLoading(true);
@@ -381,16 +113,20 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       const built = buildStandings(rows, friends, me.id);
       setStandings(built);
       setChampion(leagueWinner(buildStandings(prevRows, [], me.id)));
-      setExpandedId(built.me?.rank != null ? me.id : null);
+      const target = initialExpandedUserId
+        && built.active.some(a => a.userId === initialExpandedUserId)
+        ? initialExpandedUserId
+        : built.me?.rank != null ? me.id : null;
+      setExpandedId(target);
 
       // Record any freshly-closed weeks so league achievements can unlock.
-      recordClosedWeeks(now);
+      setLeagueResults(await recordClosedWeeks(now));
     } catch (error) {
       console.error('Error loading league:', error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [initialExpandedUserId]);
 
   useEffect(() => {
     if (visible) loadLeague();
@@ -405,6 +141,10 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const active = standings?.active ?? [];
   const leaderPoints = active[0]?.points ?? 0;
   const heroPoints = useCountUp(me?.points ?? 0);
+  const grabs = useMemo(
+    () => upForGrabs(leagueResults, me?.rank ?? null, active.length),
+    [leagueResults, me?.rank, active.length],
+  );
 
   const openProfile = (row: LeagueStanding) => {
     setSelectedUser({
@@ -657,6 +397,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           prPoints={row.breakdown.prPoints}
           accent={rankColor?.pure ?? currentTheme.colors.primary}
           trackColor={ink.ghost}
+          style={styles.rowBarInset}
         />
         </TouchableOpacity>
         <Collapse open={isExpanded}>{renderRecap(row)}</Collapse>
@@ -750,6 +491,23 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
         )}
 
+        <TouchableOpacity
+          style={styles.achievementsRow}
+          onPress={() => setShowAchievements(true)}
+          activeOpacity={0.7}
+        >
+          <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
+          <RNView style={styles.achievementsBody}>
+            <Text variant="body" weight="semiBold" tone="primary">Achievements</Text>
+            {grabs && (
+              <Text variant="meta" tone="secondary" numberOfLines={1}>
+                <Text variant="meta" weight="bold" style={{ color: GOLD }}>{grabs.title}</Text> up for grabs · {grabs.hint}
+              </Text>
+            )}
+          </RNView>
+          <Text variant="meta" tone="muted">▸</Text>
+        </TouchableOpacity>
+
         {active.length <= 5 ? (
           <RNView style={styles.rulesToggle}>
             <SectionLabel style={styles.statLabel}>Scoring</SectionLabel>
@@ -787,6 +545,13 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {renderWeekBoard()}
         </ScrollView>
+
+        <LeagueAchievementsModal
+          visible={showAchievements}
+          onClose={() => setShowAchievements(false)}
+          results={leagueResults}
+          upForGrabsId={grabs?.id}
+        />
 
         <UserProfileModal
           visible={selectedUser !== null}
@@ -884,6 +649,9 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
+  rowBarInset: {
+    marginLeft: 24 + space.md + 40 + space.md,
+  },
   avatarRing: {
     width: 42,
     height: 42,
@@ -962,6 +730,17 @@ const styles = StyleSheet.create({
   rulesToggle: {
     paddingVertical: space.sm,
     marginTop: space.lg,
+  },
+  achievementsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.md,
+    marginTop: space.lg,
+  },
+  achievementsBody: {
+    flex: 1,
+    gap: 2,
   },
   restingBlock: {
     paddingTop: space.lg,

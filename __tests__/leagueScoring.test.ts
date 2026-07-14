@@ -16,7 +16,7 @@ import {
   weeksNeedingSnapshot,
 } from '@/lib/leagues/results';
 import { LeagueMemberAggregates, LeagueTopLift, SCORING } from '@/lib/leagues/types';
-import { computeLeagueAchievements } from '@/lib/gamification/leagueAchievements';
+import { computeLeagueAchievements, upForGrabs } from '@/lib/gamification/leagueAchievements';
 import { Friend } from '@/types';
 
 const member = (overrides: Partial<LeagueMemberAggregates>): LeagueMemberAggregates => ({
@@ -244,6 +244,18 @@ describe('computeLeagueAchievements', () => {
     expect(byId['league-win-1'].unlocked).toBe(true);
     expect(byId['league-win-3'].unlocked).toBe(false);
     expect(byId['league-win-10'].progress).toBeCloseTo(0.1);
+  });
+
+  it('upForGrabs targets the week you are actually playing for', () => {
+    const NOW = new Date(2026, 6, 15); // week of Mon Jul 13
+    // Never finished a week → Contender.
+    expect(upForGrabs([], 2, 4, NOW)?.id).toBe('league-first');
+    // Holding #1 with a real field and no wins → Champion.
+    expect(upForGrabs([win('2026-07-06')] .map(r => ({ ...r, rank: 2 })), 1, 3, NOW)?.id).toBe('league-win-1');
+    // Two straight wins and holding #1 → Undisputed beats the win ladder.
+    expect(upForGrabs([win('2026-06-29'), win('2026-07-06')], 1, 3, NOW)?.id).toBe('league-streak-3');
+    // Top-3 with a 4-field and no podiums yet → On the Board.
+    expect(upForGrabs([{ weekStartKey: '2026-07-06', rank: 5, points: 10, activeParticipants: 5 }], 3, 4, NOW)?.id).toBe('league-podium');
   });
 
   it('three consecutive wins unlock Undisputed', () => {
