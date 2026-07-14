@@ -83,7 +83,9 @@ export default function LeagueCard({ onPress }: LeagueCardProps) {
         </Text>
         <Text variant="meta" tone="secondary" numberOfLines={1}>
           {onBoard && rival
-            ? rival.ahead
+            ? rival.gap === 0
+              ? `Tied with ${rival.username}`
+              : rival.ahead
               ? `${rival.gap} pts behind ${rival.username}`
               : `${rival.gap} pts ahead of ${rival.username}`
             : 'Log a session to put a score on the board'}

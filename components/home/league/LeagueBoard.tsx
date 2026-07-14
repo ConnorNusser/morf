@@ -331,7 +331,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
                 <Text variant="meta" tone="secondary">Top of the board</Text>
               ) : me.gapToAhead != null ? (
                 <Text variant="meta" tone="secondary" numberOfLines={1}>
-                  {`${me.gapToAhead} pts to pass @${active[active.findIndex(s => s.userId === me.userId) - 1]?.username}`}
+                  {me.gapToAhead === 0
+                    ? `Tied with @${active[active.findIndex(s => s.userId === me.userId) - 1]?.username}`
+                    : `${me.gapToAhead} pts to pass @${active[active.findIndex(s => s.userId === me.userId) - 1]?.username}`}
                 </Text>
               ) : null}
             </RNView>
