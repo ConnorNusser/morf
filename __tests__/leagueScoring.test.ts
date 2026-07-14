@@ -2,6 +2,7 @@ import {
   buildStandings,
   detectOvertakes,
   leagueWinner,
+  prPoints,
   scoreMember,
   weekBounds,
 } from '@/lib/leagues/scoring';
@@ -14,7 +15,7 @@ import {
   resultFromStandings,
   weeksNeedingSnapshot,
 } from '@/lib/leagues/results';
-import { LeagueMemberAggregates, SCORING } from '@/lib/leagues/types';
+import { LeagueMemberAggregates, LeagueTopLift, SCORING } from '@/lib/leagues/types';
 import { computeLeagueAchievements } from '@/lib/gamification/leagueAchievements';
 import { Friend } from '@/types';
 
@@ -25,24 +26,25 @@ const member = (overrides: Partial<LeagueMemberAggregates>): LeagueMemberAggrega
   sessions: 0,
   active_days: 0,
   volume_lbs: 0,
-  prs: [],
-  new_lifts: 0,
+  top_lifts: [],
   is_friend: false,
   ...overrides,
 });
 
-const pr = (gain_pct: number, exercise_id = `e${gain_pct}`) => ({
+const lift = (week_best: number, is_pr: boolean, exercise_id = `e${week_best}`): LeagueTopLift => ({
   exercise_id,
-  week_best: 100 + gain_pct,
-  prior_best: 100,
-  gain_pct,
+  week_best,
+  prior_best: is_pr ? week_best - 10 : null,
+  gain_pct: is_pr ? 3.0 : null,
+  strength_tier: 'B',
+  is_pr,
 });
 
 const friend = (id: string, username = id): Friend =>
   ({ id: `f-${id}`, user: { id, username } as Friend['user'], created_at: new Date(0) }) as Friend;
 
 // A standings input where points are driven purely by volume: each "day" is
-// 10,000 lbs → 10 pts, so ladder expectations stay easy to eyeball.
+// 10,000 lbs → 10,000 pts, so ladder expectations stay easy to eyeball.
 const boardOf = (days: Record<string, number>, friends: string[] = []) =>
   Object.entries(days).map(([id, activeDays]) =>
     member({
@@ -50,47 +52,34 @@ const boardOf = (days: Record<string, number>, friends: string[] = []) =>
       username: id,
       sessions: activeDays,
       active_days: activeDays,
-      volume_lbs: activeDays * 10 * SCORING.lbsPerPoint,
+      volume_lbs: activeDays * 10_000,
       is_friend: friends.includes(id),
     }),
   );
 
 describe('scoreMember', () => {
-  it('volume points scale with lbs and cap out', () => {
-    const b = scoreMember(member({ volume_lbs: 12_400 }));
-    expect(b.volumePoints).toBe(12);
-    expect(b.volumeLbs).toBe(12_400); // uncapped for display
-    expect(scoreMember(member({ volume_lbs: 999_999 })).volumePoints).toBe(SCORING.volumePointsCap);
+  it('a pound is a point', () => {
+    const b = scoreMember(member({ volume_lbs: 312_400 }));
+    expect(b.volumePoints).toBe(312_400);
+    expect(b.total).toBe(312_400);
+    expect(scoreMember(member({ volume_lbs: -5 })).volumePoints).toBe(0);
   });
 
-  it('caps PR count and gain bonus lifts, clamps gain %', () => {
-    const b = scoreMember(member({ prs: [pr(25), pr(8), pr(4), pr(3), pr(2), pr(1)] }));
-    expect(b.prPoints).toBe(SCORING.prCap * SCORING.pointsPerPR);
-    // top-2 gains: 25 → clamped to 10 (20 pts) + 8 (16 pts)
-    expect(b.gainPoints).toBe(20 + 16);
-    expect(b.prCount).toBe(6);
-    expect(b.bestGainPct).toBe(25);
+  it('a PR pays its e1RM × the multiplier', () => {
+    expect(prPoints(lift(600, true))).toBe(600 * SCORING.prMultiplier);
+    expect(prPoints(lift(600, false))).toBe(0);
+    const b = scoreMember(member({ top_lifts: [lift(600, true), lift(405, true), lift(500, false)] }));
+    expect(b.prPoints).toBe((600 + 405) * SCORING.prMultiplier);
+    expect(b.prCount).toBe(2);
   });
 
-  it('gain caps use the largest gains regardless of RPC order', () => {
-    const shuffled = scoreMember(member({ prs: [pr(1), pr(9), pr(25)] }));
-    expect(shuffled.gainPoints).toBe(20 + 18);
-  });
-
-  it('goal bonus lands at exactly the day threshold', () => {
-    expect(scoreMember(member({ active_days: 2 })).goalBonus).toBe(0);
-    expect(scoreMember(member({ active_days: SCORING.goalBonusDays })).goalBonus).toBe(
-      SCORING.goalBonus,
-    );
+  it('volume and PRs stack into the total', () => {
+    const b = scoreMember(member({ volume_lbs: 27_800, top_lifts: [lift(405, true)] }));
+    expect(b.total).toBe(27_800 + 405 * SCORING.prMultiplier);
   });
 
   it('a zero week scores zero', () => {
     expect(scoreMember(member({})).total).toBe(0);
-  });
-
-  it('negative gain never subtracts', () => {
-    const b = scoreMember(member({ prs: [{ ...pr(5), gain_pct: -3 }] }));
-    expect(b.gainPoints).toBe(0);
   });
 });
 
@@ -99,7 +88,7 @@ describe('buildStandings', () => {
     const rows = boardOf({ me: 3, a: 3, b: 1 });
     const { active } = buildStandings(rows, [], 'me');
     expect(active.map(s => s.rank)).toEqual([1, 1, 3]);
-    expect(active[2].gapToAhead).toBe(20 + SCORING.goalBonus);
+    expect(active[2].gapToAhead).toBe(20_000);
   });
 
   it('excludes zero-session users from the board but keeps me non-null', () => {
@@ -117,11 +106,10 @@ describe('buildStandings', () => {
     expect(restingFriends.map(f => f.user.id)).toEqual(['sam']);
   });
 
-  it('flags friends vs strangers on rows', () => {
-    const rows = boardOf({ alex: 1, rando: 1 }, ['alex']);
-    const { active } = buildStandings(rows, [friend('alex')], 'me');
-    expect(active.find(s => s.userId === 'alex')!.isFriend).toBe(true);
-    expect(active.find(s => s.userId === 'rando')!.isFriend).toBe(false);
+  it('sorts each member top lifts by week best', () => {
+    const rows = [member({ user_id: 'me', sessions: 1, top_lifts: [lift(225, false), lift(405, true)] })];
+    const { active } = buildStandings(rows, [], 'me');
+    expect(active[0].topLifts.map(l => l.week_best)).toEqual([405, 225]);
   });
 
   it('handles an empty league', () => {

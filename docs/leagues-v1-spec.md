@@ -82,6 +82,17 @@ reachable from inside the league view).
 
 **2. League view (`LeagueBoard`)** — modal under `components/home/league/`.
 
+> **Amendment 3 (2026-07-14, current):** real-value scoring + recap rows.
+> Points are reality-scaled: **+1 per lb of weekly volume** and **PR = the
+> lift's week-best e1RM × 50** (a 600 lb pull pays 30K; serious lifters PR
+> rarely but get paid). No caps, no bonuses. Migration 014 replaces
+> get_league_week: `top_lifts` jsonb (best e1RM per exercise, ≤6, with
+> `strength_tier` + `is_pr`) replaces the PR-only list. The view returns to
+> clickable rows (hexes retired): each row expands into a week recap —
+> volume line, gold PR lines (×50), a tier-badged TOP LIFTS list, and the
+> gold chase bar on your own row. The torch banner stays; flash otherwise
+> toned down. The Week Story module was deleted (git history has it).
+>
 > **Amendment 2 (2026-07-13, later):** scoring's effort axis is now **volume**
 > (+1 per 1,000 lbs lifted, capped 60/week — migration 013 adds volume to both
 > RPCs) instead of flat per-day points, and the default lens is the **Hex

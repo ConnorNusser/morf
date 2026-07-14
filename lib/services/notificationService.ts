@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { storageService } from '@/lib/storage/storage';
-import { dateKey } from '@/lib/utils/utils';
+import { dateKey, formatCompact } from '@/lib/utils/utils';
 
 // How notifications present while the app is foregrounded.
 Notifications.setNotificationHandler({
@@ -368,7 +368,7 @@ class NotificationService {
           await this.sendPushNotifications(
             tokens,
             `${myUsername} just passed you in the weekly league`,
-            `${myPoints} pts to your ${o.points}. ${daysLeft} ${dayWord} left this week.`,
+            `${formatCompact(myPoints)} pts to your ${formatCompact(o.points)}. ${daysLeft} ${dayWord} left this week.`,
             { type: 'league_overtake' }
           );
         })

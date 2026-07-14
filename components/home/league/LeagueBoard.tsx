@@ -1,23 +1,25 @@
 import IconButton from '@/components/IconButton';
 import SkeletonCard from '@/components/SkeletonCard';
+import TierBadge from '@/components/TierBadge';
 import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionLabel from '@/components/ui/SectionLabel';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { TIER_COLORS } from '@/lib/data/strengthStandards';
+import { StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
 import {
   buildStandings,
   LeagueStandings,
   leagueWinner,
+  prPoints,
   weekBounds,
 } from '@/lib/leagues/scoring';
 import { LeagueStanding, SCORING } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
-import { screenGutter, space, tint } from '@/lib/ui/tokens';
+import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
-import { formatVolume } from '@/lib/utils/utils';
+import { formatCompact, formatVolume } from '@/lib/utils/utils';
 import { RemoteUser } from '@/types';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -30,21 +32,19 @@ import {
   View as RNView,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import Svg, { Polygon } from 'react-native-svg';
 
-// League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
 const LEAGUE_HEADER = require('@/assets/images/league-header.png');
 
+// League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
 const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
   plate: require('@/assets/achievements/plate.png'),
   barbell: require('@/assets/achievements/barbell.png'),
-  laurel: require('@/assets/achievements/laurel.png'),
 };
 
-// One neon stroke (theme primary); gold is reserved for PR/champion moments.
-// docs/league-visual-goal.md — do not add hues.
+// Primary = your identity; gold = glory (leader, PRs, champion). Lift rows may
+// additionally carry their tier color — docs/league-visual-goal.md.
 const GOLD = TIER_COLORS.S;
 
 interface LeagueBoardProps {
@@ -53,16 +53,7 @@ interface LeagueBoardProps {
 }
 
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
-
-/** Pointy-top hexagon vertices inside a size×size box, inset for the stroke. */
-const hexPoints = (size: number): string => {
-  const c = size / 2;
-  const r = size / 2 - 2;
-  return Array.from({ length: 6 }, (_, i) => {
-    const angle = (Math.PI / 180) * (60 * i - 90);
-    return `${(c + r * Math.cos(angle)).toFixed(2)},${(c + r * Math.sin(angle)).toFixed(2)}`;
-  }).join(' ');
-};
+const pts = (value: number) => formatCompact(value);
 
 export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
@@ -72,7 +63,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const [champion, setChampion] = useState<LeagueStanding | null>(null);
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showRules, setShowRules] = useState(false);
 
   const loadLeague = useCallback(async () => {
@@ -98,8 +89,8 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       const built = buildStandings(rows, friends, me.id);
       setStandings(built);
       setChampion(leagueWinner(buildStandings(prevRows, [], me.id)));
-      // The viewer's own hex starts selected so their receipt is one glance away.
-      setSelectedId(built.me?.rank != null ? me.id : built.active[0]?.userId ?? null);
+      // Your own recap is one glance away by default.
+      setExpandedId(built.me?.rank != null ? me.id : null);
 
       // Record any freshly-closed weeks so league achievements can unlock.
       recordClosedWeeks(now);
@@ -111,9 +102,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   }, []);
 
   useEffect(() => {
-    if (visible) {
-      loadLeague();
-    }
+    if (visible) loadLeague();
   }, [visible, loadLeague]);
 
   const daysLeft = useMemo(() => {
@@ -123,7 +112,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
-  const selected = active.find(s => s.userId === selectedId) ?? null;
 
   const openProfile = (row: LeagueStanding) => {
     setSelectedUser({
@@ -157,206 +145,185 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // ——— Hexes ———
+  // ——— The recap: where every point came from, in real units ———
 
-  const renderHex = (row: LeagueStanding, size: number, ghosted = false) => {
+  const renderRecap = (row: LeagueStanding) => {
     const isYou = myUser != null && row.userId === myUser.id;
-    const isSelected = selectedId === row.userId;
-    const isChampion = champion != null && row.userId === champion.userId;
-    const isLeader = !ghosted && active[0]?.userId === row.userId;
-    const stroke = isLeader ? GOLD : isYou || isSelected ? currentTheme.colors.primary : ink.faint;
-    const avatarSize = Math.round(size * 0.38);
-
-    return (
-      <TouchableOpacity
-        key={row.userId}
-        style={[styles.hexCell, ghosted && styles.ghosted]}
-        onPress={() => setSelectedId(isSelected ? null : row.userId)}
-        activeOpacity={0.7}
-      >
-        <RNView style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-          <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-            <Polygon
-              points={hexPoints(size)}
-              fill={isLeader ? tint(GOLD) : isYou ? tint(currentTheme.colors.primary) : 'none'}
-              stroke={stroke}
-              strokeWidth={isLeader ? 3 : isYou || isSelected ? 2 : 1}
-            />
-            {isLeader && (
-              <Polygon points={hexPoints(size - 10)} fill="none" stroke={GOLD} strokeWidth={1} opacity={0.5} x={5} y={5} />
-            )}
-          </Svg>
-          {renderAvatar(row, avatarSize)}
-          <Text
-            variant={size >= 100 ? 'emphasis' : 'meta'}
-            weight="bold"
-            tone={isLeader ? undefined : 'primary'}
-            style={[styles.hexPoints, isLeader && styles.glowGold]}
-          >
-            {row.points}
-          </Text>
-          {isChampion && <Image source={EMBLEMS.trophy} style={styles.hexTrophy} />}
-        </RNView>
-        <Text
-          variant="meta"
-          weight={isYou ? 'bold' : 'medium'}
-          tone={isYou || row.isFriend ? 'primary' : 'secondary'}
-          numberOfLines={1}
-          style={styles.hexName}
-        >
-          {isYou ? 'you' : row.username}
-        </Text>
-        {row.breakdown.prCount > 0 && !ghosted && (
-          <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
-            {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
-          </Text>
-        )}
-      </TouchableOpacity>
-    );
-  };
-
-  const renderArena = () => {
-    const [leader, ...rest] = active;
-    const contenders = rest.slice(0, 2);
-    const field = rest.slice(2);
-    const resting = standings?.restingFriends ?? [];
-
-    return (
-      <RNView style={styles.arena}>
-        <Animated.View entering={FadeInDown.duration(240)} style={styles.arenaRow}>
-          {leader && renderHex(leader, 128)}
-        </Animated.View>
-        {contenders.length > 0 && (
-          <Animated.View entering={FadeInDown.duration(240).delay(60)} style={styles.arenaRow}>
-            {contenders.map(row => renderHex(row, 92))}
-          </Animated.View>
-        )}
-        {field.length > 0 && (
-          <Animated.View entering={FadeInDown.duration(240).delay(120)} style={[styles.arenaRow, styles.arenaWrap]}>
-            {field.map(row => renderHex(row, 68))}
-          </Animated.View>
-        )}
-        {resting.length > 0 && (
-          <RNView style={styles.restingBlock}>
-            <SectionLabel style={styles.restingLabel}>Resting</SectionLabel>
-            <RNView style={[styles.arenaRow, styles.arenaWrap]}>
-              {resting.map(f =>
-                renderHex(
-                  {
-                    userId: f.user.id,
-                    username: f.user.username,
-                    profilePictureUrl: f.user.profile_picture_url ?? null,
-                    isFriend: true,
-                    rank: null,
-                    points: 0,
-                    prs: [],
-                    gapToAhead: null,
-                    breakdown: {
-                      volumePoints: 0, prPoints: 0, gainPoints: 0, goalBonus: 0,
-                      total: 0, volumeLbs: 0, activeDays: 0, prCount: 0, bestGainPct: null,
-                    },
-                  },
-                  48,
-                  true,
-                ),
-              )}
-            </RNView>
-          </RNView>
-        )}
-      </RNView>
-    );
-  };
-
-  // ——— Receipt for the selected hex ———
-
-  const renderReceipt = (row: LeagueStanding) => {
-    const countedPRs = row.prs.slice(0, SCORING.prCap);
-    const lines: { key: string; emblem: keyof typeof EMBLEMS; gold?: boolean; label: string; pts: number }[] = [];
-
-    if (row.breakdown.volumePoints > 0) {
-      lines.push({
-        key: 'volume',
-        emblem: 'plate',
-        label: `Lifted ${formatVolume(row.breakdown.volumeLbs, 'lbs')} over ${row.breakdown.activeDays} ${row.breakdown.activeDays === 1 ? 'day' : 'days'}`,
-        pts: row.breakdown.volumePoints,
-      });
-    }
-    countedPRs.forEach((pr, i) => {
-      lines.push({
-        key: `pr-${pr.exercise_id}`,
-        emblem: 'barbell',
-        gold: true,
-        label: `PR — ${liftName(pr.exercise_id)} +${pr.gain_pct.toFixed(1)}%`,
-        pts: SCORING.pointsPerPR + (i < SCORING.gainBonusLifts
-          ? Math.round(SCORING.gainBonusPerPct * Math.min(Math.max(pr.gain_pct, 0), SCORING.gainPctCap))
-          : 0),
-      });
-    });
-    if (row.breakdown.goalBonus > 0) {
-      lines.push({
-        key: 'bonus',
-        emblem: 'laurel',
-        label: `${SCORING.goalBonusDays}-day week`,
-        pts: row.breakdown.goalBonus,
-      });
-    }
-
-    const isYou = myUser != null && row.userId === myUser.id;
-
+    const prs = row.topLifts.filter(lift => lift.is_pr);
     const leaderPoints = active[0]?.points ?? 0;
-    const chase = isYou && me != null && me.rank !== 1 && leaderPoints > 0
-      ? { pct: Math.min(100, Math.round((me.points / leaderPoints) * 100)), gap: leaderPoints - me.points }
+    const chase = isYou && row.rank !== 1 && row.rank != null && leaderPoints > 0
+      ? { pct: Math.min(100, Math.round((row.points / leaderPoints) * 100)), gap: leaderPoints - row.points }
       : null;
 
     return (
-      <RNView style={[styles.stonePanel, { backgroundColor: currentTheme.colors.surface, borderColor: GOLD }]}>
-        <TouchableOpacity style={styles.receiptHeader} onPress={() => openProfile(row)} activeOpacity={0.7}>
-          <SectionLabel style={[styles.receiptTitle, { color: GOLD }]}>
-            {isYou ? 'Your week' : `${row.username}'s week`}
-          </SectionLabel>
-        </TouchableOpacity>
-        {lines.length === 0 ? (
-          <Text variant="meta" tone="faint">No points yet this week.</Text>
-        ) : (
-          <RNView style={styles.receipt}>
-            {lines.map(line => (
-              <RNView key={line.key} style={styles.receiptLine}>
-                <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
-                <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.receiptLabel}>
-                  {line.label}
-                </Text>
-                <Text variant="meta" weight="semiBold" style={line.gold ? { color: GOLD } : undefined}>
-                  +{line.pts}
+      <RNView style={styles.recap}>
+        {/* Volume — a pound is a point. */}
+        {row.breakdown.volumePoints > 0 && (
+          <RNView style={styles.recapLine}>
+            <Image source={EMBLEMS.plate} style={styles.recapEmblem} />
+            <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.recapLabel}>
+              Lifted {formatVolume(row.breakdown.volumeLbs, 'lbs')} over {row.breakdown.activeDays} {row.breakdown.activeDays === 1 ? 'day' : 'days'}
+            </Text>
+            <Text variant="meta" weight="semiBold" tone="primary">
+              +{pts(row.breakdown.volumePoints)}
+            </Text>
+          </RNView>
+        )}
+
+        {/* PRs — the lift's e1RM × 50, tier-colored. */}
+        {prs.map(lift => (
+          <RNView key={`pr-${lift.exercise_id}`} style={styles.recapLine}>
+            <Image source={EMBLEMS.barbell} style={styles.recapEmblem} />
+            <RNView style={[styles.recapLabel, styles.liftLabel]}>
+              {lift.strength_tier != null && (
+                <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
+              )}
+              <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
+                PR — {liftName(lift.exercise_id)} ×{SCORING.prMultiplier}
+              </Text>
+            </RNView>
+            <Text variant="meta" weight="bold" style={{ color: GOLD }}>
+              +{pts(prPoints(lift))}
+            </Text>
+          </RNView>
+        ))}
+
+        {/* Top lifts of the week — the recap half: what they actually moved. */}
+        {row.topLifts.length > 0 && (
+          <RNView style={styles.topLifts}>
+            <SectionLabel style={styles.topLiftsLabel}>Top lifts</SectionLabel>
+            {row.topLifts.slice(0, 4).map(lift => (
+              <RNView key={lift.exercise_id} style={styles.recapLine}>
+                <RNView style={[styles.recapLabel, styles.liftLabel]}>
+                  {lift.strength_tier != null && (
+                    <TierBadge tier={lift.strength_tier as StrengthTier} size="tiny" bordered={false} showTooltip={false} />
+                  )}
+                  <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.liftText}>
+                    {liftName(lift.exercise_id)}
+                  </Text>
+                  {lift.is_pr && (
+                    <Text variant="meta" weight="bold" style={{ color: GOLD }}>PR</Text>
+                  )}
+                </RNView>
+                <Text variant="meta" weight="semiBold" tone="primary">
+                  {Math.round(lift.week_best)} lbs
                 </Text>
               </RNView>
             ))}
           </RNView>
         )}
+
+        {row.points === 0 && (
+          <Text variant="meta" tone="faint">No points yet this week.</Text>
+        )}
+
+        {/* The chase — XP-bar to the leader. */}
         {chase && (
           <RNView style={styles.chaseBlock}>
             <RNView style={[styles.chaseTrack, { backgroundColor: ink.hairline }]}>
               <RNView style={[styles.chaseFill, { width: `${chase.pct}%`, backgroundColor: GOLD }]} />
             </RNView>
             <Text variant="meta" tone="secondary">
-              <Text variant="meta" weight="bold" style={{ color: GOLD }}>{chase.gap} pts</Text> to catch {active[0]?.username}
+              <Text variant="meta" weight="bold" style={{ color: GOLD }}>{pts(chase.gap)} pts</Text> to catch {active[0]?.username}
             </Text>
           </RNView>
         )}
+
+        <TouchableOpacity onPress={() => openProfile(row)} activeOpacity={0.7}>
+          <Text variant="meta" weight="semiBold" tone="faint">
+            View profile
+          </Text>
+        </TouchableOpacity>
       </RNView>
     );
   };
 
-  // The legend that answers "why": every way to score, emblem + rule + points.
+  // ——— Rows ———
+
+  const renderRow = (row: LeagueStanding, index: number) => {
+    const isHero = index === 0;
+    const isYou = myUser != null && row.userId === myUser.id;
+    const isChampion = champion != null && row.userId === champion.userId;
+    const isExpanded = expandedId === row.userId;
+
+    return (
+      <Animated.View key={row.userId} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
+        <TouchableOpacity
+          style={[
+            styles.entryRow,
+            isHero && styles.heroRow,
+            isYou && [styles.youRow, {
+              backgroundColor: tint(currentTheme.colors.primary),
+              borderLeftColor: currentTheme.colors.primary,
+            }],
+          ]}
+          onPress={() => setExpandedId(isExpanded ? null : row.userId)}
+          activeOpacity={0.7}
+        >
+          <RNView style={styles.rankCell}>
+            <Text
+              variant={isHero ? 'statHero' : 'body'}
+              weight={isHero ? 'bold' : index < 3 ? 'semiBold' : 'regular'}
+              tone={isHero ? undefined : index < 3 ? 'primary' : 'faint'}
+              style={isHero ? { color: GOLD } : undefined}
+            >
+              {row.rank}
+            </Text>
+          </RNView>
+
+          {renderAvatar(row, isHero ? 44 : 32)}
+
+          <RNView style={styles.userInfo}>
+            <RNView style={styles.usernameRow}>
+              <Text
+                variant={isHero ? 'emphasis' : 'body'}
+                weight={isHero || isYou ? 'semiBold' : 'medium'}
+                tone={isYou || row.isFriend || isHero ? 'primary' : 'secondary'}
+                numberOfLines={1}
+                style={styles.usernameText}
+              >
+                {row.username}
+              </Text>
+              {isChampion && <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />}
+              {isYou && <Text variant="meta" tone="faint">you</Text>}
+            </RNView>
+            <Text variant="meta" tone="muted" numberOfLines={1}>
+              {formatVolume(row.breakdown.volumeLbs, 'lbs')}
+              {row.breakdown.prCount > 0 && (
+                <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
+                  {`  ·  ${row.breakdown.prCount} PR${row.breakdown.prCount === 1 ? '' : 's'}`}
+                </Text>
+              )}
+            </Text>
+          </RNView>
+
+          <RNView style={styles.valueCell}>
+            <Text
+              variant={isHero ? 'statHero' : 'body'}
+              weight={isHero ? 'bold' : 'medium'}
+              tone={isHero ? undefined : 'primary'}
+              style={isHero ? styles.glowGold : undefined}
+            >
+              {pts(row.points)}
+            </Text>
+            <Text variant="meta" weight="regular" tone="faint">pts</Text>
+          </RNView>
+        </TouchableOpacity>
+        {isExpanded && renderRecap(row)}
+      </Animated.View>
+    );
+  };
+
+  // The legend that answers "why": every way to score, in real units.
   const renderRules = () => (
-    <RNView style={[styles.rules, styles.stonePanel, { backgroundColor: currentTheme.colors.surface, borderColor: GOLD }]}>
+    <RNView style={styles.rules}>
       {[
-        { emblem: 'plate' as const, rule: `Every ${formatVolume(SCORING.lbsPerPoint, 'lbs')} lifted`, pts: '+1', cap: `up to ${SCORING.volumePointsCap}/week` },
-        { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap}, bigger gain = bigger bonus` },
-        { emblem: 'laurel' as const, rule: `Train ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
+        { emblem: 'plate' as const, rule: 'Every pound you lift', pts: '+1', cap: 'weight × reps, all week' },
+        { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `×${SCORING.prMultiplier}`, cap: 'its e1RM × 50 — a 600 lb pull pays 30K' },
       ].map(r => (
-        <RNView key={r.rule} style={styles.receiptLine}>
-          <Image source={EMBLEMS[r.emblem]} style={styles.receiptEmblem} />
-          <Text variant="meta" tone="secondary" style={styles.receiptLabel}>
+        <RNView key={r.rule} style={styles.recapLine}>
+          <Image source={EMBLEMS[r.emblem]} style={styles.recapEmblem} />
+          <Text variant="meta" tone="secondary" style={styles.recapLabel}>
             {r.rule} <Text variant="meta" tone="faint">· {r.cap}</Text>
           </Text>
           <Text variant="meta" weight="semiBold" style={r.gold ? { color: GOLD } : undefined}>{r.pts}</Text>
@@ -364,20 +331,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       ))}
     </RNView>
   );
-
-  // What I'd earn next — turns the rules into a to-do list.
-  const nextPointsLine = useMemo(() => {
-    if (!me) return null;
-    const hints: string[] = [];
-    if (me.breakdown.volumePoints < SCORING.volumePointsCap) {
-      hints.push(`+1 per ${formatVolume(SCORING.lbsPerPoint, 'lbs')} lifted`);
-    }
-    if (me.breakdown.prCount < SCORING.prCap) hints.push(`PR a lift +${SCORING.pointsPerPR}`);
-    if (me.breakdown.goalBonus === 0 && me.breakdown.activeDays < SCORING.goalBonusDays) {
-      hints.push(`${SCORING.goalBonusDays - me.breakdown.activeDays} more ${SCORING.goalBonusDays - me.breakdown.activeDays === 1 ? 'day' : 'days'} for +${SCORING.goalBonus}`);
-    }
-    return hints.slice(0, 2).join(' · ') || null;
-  }, [me]);
 
   const renderWeekBoard = () => {
     if (isLoading) {
@@ -415,17 +368,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
         )}
 
-        {renderArena()}
+        {active.map(renderRow)}
 
-        {selected && renderReceipt(selected)}
-
-        {nextPointsLine && (
-          <RNView style={styles.nextRow}>
-            <Image source={EMBLEMS.sword} style={styles.nextEmblem} />
-            <Text variant="meta" tone="secondary" style={styles.receiptLabel}>
-              Next: {nextPointsLine}
-            </Text>
-          </RNView>
+        {standings != null && standings.restingFriends.length > 0 && (
+          <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
+            Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
+          </Text>
         )}
 
         <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
@@ -491,7 +439,7 @@ const styles = StyleSheet.create({
   },
   banner: {
     width: '100%',
-    height: 170,
+    height: 150,
   },
   bannerTextWrap: {
     position: 'absolute',
@@ -518,24 +466,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 10,
   },
-  stonePanel: {
-    borderWidth: 1,
-    borderRadius: 6,
-    padding: space.md,
-    gap: space.sm,
-  },
-  chaseBlock: {
-    gap: space.xs,
-    marginTop: space.xs,
-  },
-  chaseTrack: {
-    height: 8,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  chaseFill: {
-    height: '100%',
-  },
   scrollView: {
     flex: 1,
   },
@@ -551,84 +481,96 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.sm,
-    paddingTop: space.md,
+    paddingBottom: space.md,
   },
-  arena: {
-    gap: space.lg,
-    paddingTop: space.lg,
-  },
-  arenaRow: {
+  entryRow: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: space.section,
-  },
-  arenaWrap: {
-    flexWrap: 'wrap',
-    gap: space.lg,
-  },
-  hexCell: {
     alignItems: 'center',
-    gap: 2,
+    paddingVertical: space.md,
+    gap: space.md,
   },
-  ghosted: {
-    opacity: 0.45,
+  heroRow: {
+    paddingVertical: space.lg,
   },
-  hexPoints: {
-    marginTop: 2,
+  youRow: {
+    borderLeftWidth: 2,
+    borderRadius: radius.badge,
+    paddingLeft: space.sm,
+    marginLeft: -space.sm,
   },
-  hexTrophy: {
-    position: 'absolute',
-    top: 2,
-    right: 2,
-    width: 18,
-    height: 18,
+  rankCell: {
+    width: 36,
+    alignItems: 'center',
   },
-  hexName: {
-    maxWidth: 110,
-    marginTop: space.xs,
+  userInfo: {
+    flex: 1,
+    gap: 3,
+  },
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  usernameText: {
+    flexShrink: 1,
   },
   inlineEmblem: {
     width: 16,
     height: 16,
   },
-  receiptPanel: {
-    marginTop: space.section,
-    gap: space.xs,
+  valueCell: {
+    alignItems: 'flex-end',
   },
-  receiptHeader: {
-    alignSelf: 'flex-start',
-  },
-  receiptTitle: {
-    marginBottom: 0,
-  },
-  receipt: {
+  recap: {
+    marginLeft: 36 + space.md,
+    paddingLeft: space.md,
+    paddingBottom: space.lg,
     gap: space.sm,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(245, 158, 11, 0.35)',
   },
-  receiptLine: {
+  recapLine: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
   },
-  receiptEmblem: {
+  recapEmblem: {
     width: 14,
     height: 14,
   },
-  receiptLabel: {
+  recapLabel: {
     flex: 1,
   },
-  nextRow: {
+  liftLabel: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-    marginTop: space.lg,
   },
-  nextEmblem: {
-    width: 18,
-    height: 18,
+  liftText: {
+    flexShrink: 1,
+  },
+  topLifts: {
+    marginTop: space.sm,
+    gap: space.sm,
+  },
+  topLiftsLabel: {
+    marginBottom: 0,
+  },
+  chaseBlock: {
+    gap: space.xs,
+    marginTop: space.sm,
+  },
+  chaseTrack: {
+    height: 8,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  chaseFill: {
+    height: '100%',
   },
   rules: {
     gap: space.sm,
-    paddingBottom: space.md,
+    paddingVertical: space.md,
   },
   rulesToggle: {
     paddingVertical: space.sm,
@@ -637,13 +579,8 @@ const styles = StyleSheet.create({
   rulesToggleLabel: {
     marginBottom: 0,
   },
-  restingBlock: {
-    marginTop: space.sm,
-    gap: space.xs,
-  },
-  restingLabel: {
-    textAlign: 'center',
-    marginBottom: 0,
+  restingLine: {
+    paddingTop: space.md,
   },
   avatarPlaceholder: {
     alignItems: 'center',

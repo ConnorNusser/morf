@@ -4,7 +4,7 @@ import { buildStandings, weekBounds } from '@/lib/leagues/scoring';
 import { LeagueStanding } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, space } from '@/lib/ui/tokens';
-import { formatVolume } from '@/lib/utils/utils';
+import { formatCompact, formatVolume } from '@/lib/utils/utils';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -87,8 +87,8 @@ export default function LeagueCard({ onPress }: LeagueCardProps) {
             ? rival.gap === 0
               ? `Tied with ${rival.username}`
               : rival.ahead
-              ? `${rival.gap} pts behind ${rival.username}`
-              : `${rival.gap} pts ahead of ${rival.username}`
+              ? `${formatCompact(rival.gap)} pts behind ${rival.username}`
+              : `${formatCompact(rival.gap)} pts ahead of ${rival.username}`
             : 'Log a session to put a score on the board'}
         </Text>
         {onBoard && (
@@ -100,7 +100,7 @@ export default function LeagueCard({ onPress }: LeagueCardProps) {
       </RNView>
       {onBoard && (
         <Text variant="emphasis" weight="bold" tone="primary">
-          {me.points}
+          {formatCompact(me.points)}
           <Text variant="meta" weight="regular" tone="muted"> pts</Text>
         </Text>
       )}

@@ -12,8 +12,7 @@ import { feedService, WorkoutExerciseSummary, WorkoutFeedData, WorkoutSummary } 
 import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
-import { LeagueMemberAggregates, LeaguePrAggregate } from '@/lib/leagues/types';
-import { LeagueEvent } from '@/lib/leagues/story';
+import { LeagueMemberAggregates, LeagueTopLift } from '@/lib/leagues/types';
 
 // Overall strength snapshot used by the feed to color/annotate author names.
 export interface UserStrengthSummary {
@@ -928,8 +927,7 @@ class UserSyncService {
         sessions: number;
         active_days: number;
         volume_lbs: number | null;
-        prs: LeaguePrAggregate[] | null;
-        new_lifts: number;
+        top_lifts: LeagueTopLift[] | null;
         is_friend: boolean;
       }) => ({
         user_id: row.user_id,
@@ -937,66 +935,13 @@ class UserSyncService {
         profile_picture_url: row.profile_picture_url ?? null,
         sessions: row.sessions ?? 0,
         active_days: row.active_days ?? 0,
-        // Pre-013 RPC has no volume column — degrade to 0 volume points.
+        // Pre-014 RPC shapes degrade to zero volume / no lifts.
         volume_lbs: Number(row.volume_lbs ?? 0),
-        prs: Array.isArray(row.prs) ? row.prs : [],
-        new_lifts: row.new_lifts ?? 0,
+        top_lifts: Array.isArray(row.top_lifts) ? row.top_lifts : [],
         is_friend: !!row.is_friend,
       }));
     } catch (error) {
       console.error('Error getting league week:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Chronological league events (sessions + PRs) for the Week Story view.
-   * Empty when the backend or the RPC is unavailable — callers fall back to
-   * the plain ladder.
-   */
-  async getLeagueEvents(weekStart: Date, weekEnd: Date): Promise<LeagueEvent[]> {
-    if (!supabase) return [];
-
-    try {
-      const user = await this.getCurrentUser();
-      if (!user) return [];
-
-      const { data, error } = await supabase.rpc('get_league_events', {
-        p_user_id: user.id,
-        p_week_start: weekStart.toISOString(),
-        p_week_end: weekEnd.toISOString(),
-      });
-
-      if (error) {
-        console.error('Error getting league events:', error);
-        return [];
-      }
-
-      return (data || []).map((row: {
-        user_id: string;
-        username: string;
-        profile_picture_url: string | null;
-        is_friend: boolean;
-        kind: 'session' | 'pr';
-        occurred_at: string;
-        exercise_id: string | null;
-        gain_pct: number | null;
-        title: string | null;
-        volume_lbs: number | null;
-      }) => ({
-        userId: row.user_id,
-        username: row.username,
-        profilePictureUrl: row.profile_picture_url ?? null,
-        isFriend: !!row.is_friend,
-        kind: row.kind,
-        occurredAt: row.occurred_at,
-        exerciseId: row.exercise_id ?? undefined,
-        gainPct: row.gain_pct ?? undefined,
-        title: row.title ?? undefined,
-        volumeLbs: row.volume_lbs ?? undefined,
-      }));
-    } catch (error) {
-      console.error('Error getting league events:', error);
       return [];
     }
   }

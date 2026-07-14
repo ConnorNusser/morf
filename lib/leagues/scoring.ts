@@ -7,6 +7,7 @@ import { weekStart } from '@/lib/utils/utils';
 import {
   LeagueMemberAggregates,
   LeagueStanding,
+  LeagueTopLift,
   SCORING,
   ScoreBreakdown,
 } from './types';
@@ -19,41 +20,30 @@ export function weekBounds(now: Date = new Date()): { start: Date; end: Date } {
   return { start, end };
 }
 
-export function scoreMember(agg: LeagueMemberAggregates): ScoreBreakdown {
-  // Defensive sort — the RPC orders by gain desc, but caps must not depend on it.
-  const prs = [...agg.prs].sort((a, b) => b.gain_pct - a.gain_pct);
+/** What a single PR pays: the PR'd lift's week-best e1RM × the multiplier. */
+export function prPoints(lift: LeagueTopLift): number {
+  return lift.is_pr ? Math.round(Math.max(lift.week_best, 0) * SCORING.prMultiplier) : 0;
+}
 
-  const volumePoints = Math.min(
-    Math.round(Math.max(agg.volume_lbs, 0) / SCORING.lbsPerPoint),
-    SCORING.volumePointsCap,
-  );
-  const prPoints = Math.min(prs.length, SCORING.prCap) * SCORING.pointsPerPR;
-  const gainPoints = prs
-    .slice(0, SCORING.gainBonusLifts)
-    .reduce(
-      (sum, pr) =>
-        sum + Math.round(SCORING.gainBonusPerPct * Math.min(Math.max(pr.gain_pct, 0), SCORING.gainPctCap)),
-      0,
-    );
-  const goalBonus = agg.active_days >= SCORING.goalBonusDays ? SCORING.goalBonus : 0;
+export function scoreMember(agg: LeagueMemberAggregates): ScoreBreakdown {
+  const volumePoints = Math.round(Math.max(agg.volume_lbs, 0) * SCORING.pointsPerLb);
+  const prs = agg.top_lifts.filter(lift => lift.is_pr);
+  const totalPrPoints = prs.reduce((sum, lift) => sum + prPoints(lift), 0);
 
   return {
     volumePoints,
-    prPoints,
-    gainPoints,
-    goalBonus,
-    total: volumePoints + prPoints + gainPoints + goalBonus,
+    prPoints: totalPrPoints,
+    total: volumePoints + totalPrPoints,
     volumeLbs: Math.max(agg.volume_lbs, 0),
     activeDays: agg.active_days,
     prCount: prs.length,
-    bestGainPct: prs.length ? prs[0].gain_pct : null,
   };
 }
 
 export interface LeagueStandings {
   /** Members who trained this week, sorted by points desc, ranked. */
   active: LeagueStanding[];
-  /** The viewer's friends with no session this week (footer row, unranked). */
+  /** The viewer's friends with no session this week (footer, unranked). */
   restingFriends: Friend[];
   /** The viewer — always present when their row is in the RPC result. */
   me: LeagueStanding | null;
@@ -73,34 +63,36 @@ export function buildStandings(
     Object.fromEntries(active.map(({ row, breakdown }) => [row.user_id, breakdown.total])),
   );
 
-  const standings: LeagueStanding[] = active.map(({ row, breakdown }, index) => ({
+  const toStanding = (
+    row: LeagueMemberAggregates,
+    breakdown: ScoreBreakdown,
+    rank: number | null,
+    gap: number | null,
+  ): LeagueStanding => ({
     userId: row.user_id,
     username: row.username,
     profilePictureUrl: row.profile_picture_url,
     isFriend: row.is_friend,
-    rank: ranks[row.user_id],
+    rank,
     points: breakdown.total,
     breakdown,
-    prs: [...row.prs].sort((a, b) => b.gain_pct - a.gain_pct),
-    gapToAhead: gapToAhead(active, index, entry => entry.breakdown.total),
-  }));
+    topLifts: [...row.top_lifts].sort((a, b) => b.week_best - a.week_best),
+    gapToAhead: gap,
+  });
+
+  const standings: LeagueStanding[] = active.map(({ row, breakdown }, index) =>
+    toStanding(
+      row,
+      breakdown,
+      ranks[row.user_id],
+      gapToAhead(active, index, entry => entry.breakdown.total),
+    ),
+  );
 
   let me = standings.find(s => s.userId === myUserId) ?? null;
   if (!me) {
     const mine = scored.find(({ row }) => row.user_id === myUserId);
-    if (mine) {
-      me = {
-        userId: mine.row.user_id,
-        username: mine.row.username,
-        profilePictureUrl: mine.row.profile_picture_url,
-        isFriend: false,
-        rank: null,
-        points: mine.breakdown.total,
-        breakdown: mine.breakdown,
-        prs: [...mine.row.prs].sort((a, b) => b.gain_pct - a.gain_pct),
-        gapToAhead: null,
-      };
-    }
+    if (mine) me = toStanding(mine.row, mine.breakdown, null, null);
   }
 
   const activeIds = new Set(standings.map(s => s.userId));
