@@ -134,12 +134,16 @@ const pts = (value: number) => formatCompact(value);
  * Rank mapped through the tier ladder, relative to the field: 1st of N sits at
  * the 100th percentile (S gold), last at the 0th (E gray). Points wear this.
  */
-const rankTierColor = (rank: number | null, field: number): string | null => {
+const rankTierColors = (
+  rank: number | null,
+  field: number,
+): { pure: string; text: string } | null => {
   if (rank == null || field < 2) return null;
   const percentile = ((field - rank) / (field - 1)) * 100;
-  // Text variant of the tier hue: lifted toward white so numerals clear
-  // contrast on the near-black canvas (badge chips keep the pure colors).
-  return lightenForText(getTierColor(getStrengthTier(percentile)));
+  const pure = getTierColor(getStrengthTier(percentile));
+  // Text variant lifts toward white so numerals clear contrast on the
+  // near-black canvas; strokes and fills use the pure hue.
+  return { pure, text: lightenForText(pure) };
 };
 
 const lightenForText = (hex: string, amount = 0.35): string => {
@@ -251,6 +255,25 @@ function RankRing({
     strokeDashoffset: circumference * (1 - Math.min(progress.value, 100) / 100),
   }));
 
+  // Same specular sheen as the bars: a short bright arc travelling the fill.
+  const SHEEN_LEN = 22;
+  const sheen = useSharedValue(0);
+  useEffect(() => {
+    sheen.value = withRepeat(
+      withDelay(900, withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) })),
+      -1,
+      false,
+    );
+  }, [sheen]);
+  const sheenProps = useAnimatedProps(() => {
+    const fillLen = (circumference * Math.min(progress.value, 100)) / 100;
+    const travel = Math.max(fillLen - SHEEN_LEN, 0);
+    return {
+      strokeDashoffset: -(sheen.value * travel),
+      opacity: fillLen > SHEEN_LEN * 1.5 ? 1 : 0,
+    };
+  });
+
   return (
     <RNView style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
@@ -272,6 +295,18 @@ function RankRing({
           fill="none"
           strokeDasharray={`${circumference}`}
           animatedProps={animatedProps}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+        <AnimatedCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke="rgba(255,255,255,0.22)"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
+          strokeDasharray={`${SHEEN_LEN} ${circumference}`}
+          animatedProps={sheenProps}
           transform={`rotate(-90 ${size / 2} ${size / 2})`}
         />
       </Svg>
@@ -356,14 +391,14 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     if (!me) return null;
     const pct = me.rank === 1 ? 100 : leaderPoints > 0 ? (me.points / leaderPoints) * 100 : 0;
     const gap = leaderPoints - me.points;
-    const heroColor = rankTierColor(me.rank, active.length);
+    const heroColor = rankTierColors(me.rank, active.length);
 
     return (
       <FadeSlideIn distance={6} style={styles.hero}>
         <RankRing
           pct={pct}
           rank={me.rank}
-          color={weekTierColor(me) ?? currentTheme.colors.primary}
+          color={heroColor?.pure ?? currentTheme.colors.primary}
           trackColor={ink.ghost}
         />
         <RNView style={styles.heroBody}>
@@ -376,7 +411,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               variant="header"
               weight="bold"
               tone={heroColor ? undefined : 'primary'}
-              style={[styles.tabularNums, StyleSheet.absoluteFill, heroColor != null && { color: heroColor }]}
+              style={[styles.tabularNums, StyleSheet.absoluteFill, heroColor != null && { color: heroColor.text }]}
             >
               {pts(heroPoints)}
             </Text>
@@ -494,7 +529,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const isChampion = champion != null && row.userId === champion.userId;
     const isExpanded = expandedId === row.userId;
     const sharePct = leaderPoints > 0 ? (row.points / leaderPoints) * 100 : 0;
-    const rankColor = rankTierColor(row.rank, active.length);
+    const rankColor = rankTierColors(row.rank, active.length);
 
     return (
       <FadeSlideIn key={row.userId} delay={Math.min(index, 10) * 30}>
@@ -558,7 +593,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
               variant="body"
               weight="semiBold"
               tone={rankColor ? undefined : 'primary'}
-              style={[styles.tabularNums, rankColor != null && { color: rankColor }]}
+              style={[styles.tabularNums, rankColor != null && { color: rankColor.text }]}
             >
               {pts(row.points)}
             </Text>
@@ -572,7 +607,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           sharePct={sharePct}
           volumePoints={row.breakdown.volumePoints}
           prPoints={row.breakdown.prPoints}
-          accent={currentTheme.colors.primary}
+          accent={rankColor?.pure ?? currentTheme.colors.primary}
           trackColor={ink.ghost}
         />
         </TouchableOpacity>
