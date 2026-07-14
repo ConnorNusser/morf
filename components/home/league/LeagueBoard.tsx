@@ -3,6 +3,7 @@ import SkeletonCard from '@/components/SkeletonCard';
 import { Text, useInk, View } from '@/components/Themed';
 import EmptyState from '@/components/ui/EmptyState';
 import NavRow from '@/components/ui/NavRow';
+import SectionLabel from '@/components/ui/SectionLabel';
 import SegmentedTabs from '@/components/ui/SegmentedTabs';
 import LeaderboardModal from '@/components/profile/LeaderboardModal';
 import UserProfileModal from '@/components/profile/UserProfileModal';
@@ -21,7 +22,6 @@ import { userSyncService } from '@/lib/services/userSyncService';
 import { radius, screenGutter, space, tint } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { RemoteUser } from '@/types';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -41,19 +41,12 @@ const EMBLEMS = {
   banner: require('@/assets/achievements/banner.png'),
   flame: require('@/assets/achievements/flame.png'),
   barbell: require('@/assets/achievements/barbell.png'),
-  lightning: require('@/assets/achievements/lightning.png'),
   laurel: require('@/assets/achievements/laurel.png'),
 };
 
-// Point sources borrow the tier palette so the colors already mean something
-// in-app: gold = the big win (PRs), purple = magnitude (gain), blue = showing
-// up (days), green = the consistency capstone.
-const SOURCE_COLORS = {
-  days: TIER_COLORS.B,
-  prs: TIER_COLORS.S,
-  gain: TIER_COLORS.A,
-  bonus: TIER_COLORS.C,
-} as const;
+// One neon stroke (theme primary); gold is reserved for PR/champion moments.
+// docs/league-visual-goal.md — do not add hues.
+const GOLD = TIER_COLORS.S;
 
 type BoardTab = 'week' | 'alltime';
 
@@ -125,7 +118,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
   const me = standings?.me ?? null;
   const active = standings?.active ?? [];
-  const maxPoints = active[0]?.points || 0;
 
   const handleUserPress = (row: LeagueStanding) => {
     setSelectedUser({
@@ -159,36 +151,42 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
-  // The row's identity: WHERE the points came from, as a color-stacked bar
-  // scaled against the leader. Legible at a glance, exact in the receipt.
-  const renderSourceBar = (row: LeagueStanding) => {
-    if (row.points <= 0 || maxPoints <= 0) return null;
-    const widthPct = Math.max(6, Math.round((row.points / maxPoints) * 100));
-    const segments = [
-      { key: 'days', value: row.breakdown.activeDayPoints, color: SOURCE_COLORS.days },
-      { key: 'prs', value: row.breakdown.prPoints, color: SOURCE_COLORS.prs },
-      { key: 'gain', value: row.breakdown.gainPoints, color: SOURCE_COLORS.gain },
-      { key: 'bonus', value: row.breakdown.goalBonus, color: SOURCE_COLORS.bonus },
-    ].filter(s => s.value > 0);
+  // Days trained as pips — the same visual grammar as the home "THIS WEEK"
+  // dot row, so the board reads as Morf, not as a dashboard.
+  const renderWeekPips = (row: LeagueStanding) => {
+    const filled = Math.min(row.breakdown.activeDays, 7);
     return (
-      <RNView style={[styles.sourceBar, { width: `${widthPct}%` }]}>
-        {segments.map(s => (
-          <RNView key={s.key} style={{ flex: s.value, backgroundColor: s.color }} />
-        ))}
+      <RNView style={styles.pipsRow}>
+        <RNView style={styles.pips}>
+          {Array.from({ length: 7 }, (_, i) => (
+            <RNView
+              key={i}
+              style={[
+                styles.pip,
+                { backgroundColor: i < filled ? currentTheme.colors.primary : ink.hairline },
+              ]}
+            />
+          ))}
+        </RNView>
+        {row.breakdown.prCount > 0 && (
+          <Text variant="meta" weight="semiBold" style={{ color: GOLD }}>
+            {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
+          </Text>
+        )}
       </RNView>
     );
   };
 
   // One line per point source, pixel emblem + reason + points earned.
+  // Gold marks PR lines; everything else stays on the primary stroke.
   const renderReceipt = (row: LeagueStanding) => {
     const countedPRs = row.prs.slice(0, SCORING.prCap);
-    const lines: { key: string; emblem: keyof typeof EMBLEMS; color: string; label: string; pts: number }[] = [];
+    const lines: { key: string; emblem: keyof typeof EMBLEMS; gold?: boolean; label: string; pts: number }[] = [];
 
     if (row.breakdown.activeDayPoints > 0) {
       lines.push({
         key: 'days',
         emblem: 'flame',
-        color: SOURCE_COLORS.days,
         label: `Trained ${row.breakdown.activeDays} ${row.breakdown.activeDays === 1 ? 'day' : 'days'}${row.breakdown.activeDays > SCORING.activeDayCap ? ` (${SCORING.activeDayCap} score)` : ''}`,
         pts: row.breakdown.activeDayPoints,
       });
@@ -197,7 +195,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       lines.push({
         key: `pr-${pr.exercise_id}`,
         emblem: 'barbell',
-        color: SOURCE_COLORS.prs,
+        gold: true,
         label: `PR — ${liftName(pr.exercise_id)} +${pr.gain_pct.toFixed(1)}%`,
         pts: SCORING.pointsPerPR + (i < SCORING.gainBonusLifts
           ? Math.round(SCORING.gainBonusPerPct * Math.min(Math.max(pr.gain_pct, 0), SCORING.gainPctCap))
@@ -208,7 +206,6 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       lines.push({
         key: 'bonus',
         emblem: 'laurel',
-        color: SOURCE_COLORS.bonus,
         label: `${SCORING.goalBonusDays}-day week`,
         pts: row.breakdown.goalBonus,
       });
@@ -223,14 +220,14 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     }
 
     return (
-      <RNView style={styles.receipt}>
+      <RNView style={[styles.receipt, { borderLeftColor: ink.hairline }]}>
         {lines.map(line => (
           <RNView key={line.key} style={styles.receiptLine}>
             <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
             <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.receiptLabel}>
               {line.label}
             </Text>
-            <Text variant="meta" weight="semiBold" style={{ color: line.color }}>
+            <Text variant="meta" weight="semiBold" style={line.gold ? { color: GOLD } : undefined}>
               +{line.pts}
             </Text>
           </RNView>
@@ -248,24 +245,22 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     return (
       <Animated.View key={row.userId} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
         <TouchableOpacity
-          style={[styles.entryRow, isHero && styles.heroRow]}
+          style={[
+            styles.entryRow,
+            isHero && styles.heroRow,
+            isYou && [styles.youRow, {
+              backgroundColor: tint(currentTheme.colors.primary),
+              borderLeftColor: currentTheme.colors.primary,
+            }],
+          ]}
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
           activeOpacity={0.7}
         >
-          {isHero && (
-            <LinearGradient
-              colors={[tint(SOURCE_COLORS.prs), 'transparent']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[StyleSheet.absoluteFill, styles.rowRound]}
-            />
-          )}
-
           <RNView style={styles.rankCell}>
             <Text
-              variant={isHero ? 'emphasis' : 'body'}
-              weight={index < 3 ? 'semiBold' : 'regular'}
-              tone={index < 3 ? 'primary' : 'muted'}
+              variant={isHero ? 'statHero' : 'body'}
+              weight={isHero ? 'bold' : index < 3 ? 'semiBold' : 'regular'}
+              tone={index < 3 ? 'primary' : 'faint'}
             >
               {row.rank}
             </Text>
@@ -278,31 +273,26 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           <RNView style={styles.userInfo}>
             <RNView style={styles.usernameRow}>
               <Text
-                variant="body"
+                variant={isHero ? 'emphasis' : 'body'}
                 weight={isHero || isYou ? 'semiBold' : 'medium'}
-                tone="primary"
+                // Ink hierarchy instead of badges: people you know read bright,
+                // strangers recede.
+                tone={isYou || row.isFriend || isHero ? 'primary' : 'secondary'}
                 numberOfLines={1}
                 style={styles.usernameText}
               >
                 {row.username}
               </Text>
               {isChampion && <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />}
-              {row.isFriend && !isYou && <Image source={EMBLEMS.banner} style={styles.inlineEmblem} />}
-              {isYou && <Text variant="meta" tone="faint">you</Text>}
             </RNView>
-            {renderSourceBar(row)}
+            {renderWeekPips(row)}
           </RNView>
 
           <RNView style={styles.valueCell}>
-            <Text variant={isHero ? 'emphasis' : 'body'} weight={isHero ? 'semiBold' : 'medium'} tone="primary">
+            <Text variant={isHero ? 'statHero' : 'body'} weight={isHero ? 'bold' : 'medium'} tone="primary">
               {row.points}
-              <Text variant="meta" weight="regular" tone="muted"> pts</Text>
             </Text>
-            {row.breakdown.prCount > 0 && (
-              <Text variant="meta" weight="semiBold" style={{ color: SOURCE_COLORS.prs }}>
-                {row.breakdown.prCount} PR{row.breakdown.prCount === 1 ? '' : 's'}
-              </Text>
-            )}
+            {isHero && <Text variant="meta" weight="regular" tone="faint">pts</Text>}
           </RNView>
         </TouchableOpacity>
         {isExpanded && renderReceipt(row)}
@@ -310,21 +300,36 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     );
   };
 
+  // The distance between rungs, written into the rank gutter — the ladder
+  // literally shows what it costs to climb one place.
+  const renderGap = (row: LeagueStanding, index: number) => {
+    if (row.gapToAhead == null || row.gapToAhead <= 0) return null;
+    return (
+      <RNView key={`gap-${row.userId}`} style={styles.gapRow}>
+        <RNView style={styles.rankCell}>
+          <Text variant="meta" weight="semiBold" tone="ghost">
+            ▲{row.gapToAhead}
+          </Text>
+        </RNView>
+        <RNView style={[styles.gapRule, { backgroundColor: ink.hairline }]} />
+      </RNView>
+    );
+  };
+
   // The legend that answers "why": every way to score, emblem + rule + points.
   const renderRules = () => (
-    <RNView style={[styles.rules, { borderColor: ink.hairline }]}>
+    <RNView style={styles.rules}>
       {[
-        { emblem: 'flame' as const, color: SOURCE_COLORS.days, rule: 'Train a day', pts: `+${SCORING.pointsPerActiveDay}`, cap: `up to ${SCORING.activeDayCap} days` },
-        { emblem: 'barbell' as const, color: SOURCE_COLORS.prs, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap} PRs` },
-        { emblem: 'lightning' as const, color: SOURCE_COLORS.gain, rule: 'Bigger gains, bigger bonus', pts: `+${SCORING.gainBonusPerPct}/%`, cap: `top ${SCORING.gainBonusLifts} lifts, ${SCORING.gainPctCap}% cap` },
-        { emblem: 'laurel' as const, color: SOURCE_COLORS.bonus, rule: `Hit ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
+        { emblem: 'flame' as const, rule: 'Train a day', pts: `+${SCORING.pointsPerActiveDay}`, cap: `up to ${SCORING.activeDayCap} days` },
+        { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap}, bigger gain = bigger bonus` },
+        { emblem: 'laurel' as const, rule: `Hit ${SCORING.goalBonusDays} days`, pts: `+${SCORING.goalBonus}`, cap: 'once a week' },
       ].map(r => (
         <RNView key={r.rule} style={styles.receiptLine}>
           <Image source={EMBLEMS[r.emblem]} style={styles.receiptEmblem} />
           <Text variant="meta" tone="secondary" style={styles.receiptLabel}>
             {r.rule} <Text variant="meta" tone="faint">· {r.cap}</Text>
           </Text>
-          <Text variant="meta" weight="semiBold" style={{ color: r.color }}>{r.pts}</Text>
+          <Text variant="meta" weight="semiBold" style={r.gold ? { color: GOLD } : undefined}>{r.pts}</Text>
         </RNView>
       ))}
     </RNView>
@@ -378,41 +383,39 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
         )}
 
-        {active.map(renderRow)}
+        {active.map((row, index) => (
+          <React.Fragment key={row.userId}>
+            {index > 0 && renderGap(row, index)}
+            {renderRow(row, index)}
+          </React.Fragment>
+        ))}
 
         {standings != null && standings.restingFriends.length > 0 && (
-          <RNView style={[styles.restingRow, { borderTopColor: ink.hairline }]}>
-            <Text variant="meta" tone="faint" numberOfLines={2}>
-              Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
-            </Text>
-          </RNView>
+          <Text variant="meta" tone="faint" numberOfLines={2} style={styles.restingLine}>
+            Resting this week: {standings.restingFriends.map(f => f.user.username).join(', ')}
+          </Text>
         )}
 
         {me != null && (
           <RNView style={styles.personalPanel}>
-            <Text variant="meta" weight="semiBold" tone="muted" style={styles.personalLabel}>
-              YOUR WEEK
-            </Text>
+            <SectionLabel>Your week</SectionLabel>
             {renderReceipt(me)}
             {nextPointsLine && (
-              <RNView style={styles.receiptLine}>
-                <Image source={EMBLEMS.lightning} style={styles.receiptEmblem} />
-                <Text variant="meta" tone="faint" style={styles.receiptLabel}>
-                  Next: {nextPointsLine}
-                </Text>
-              </RNView>
+              <Text variant="meta" tone="faint" style={styles.nextLine}>
+                Next: {nextPointsLine}
+              </Text>
             )}
           </RNView>
         )}
 
-        <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7}>
-          <Text variant="meta" weight="semiBold" tone="muted" style={styles.rulesToggle}>
-            {showRules ? 'HIDE SCORING' : 'HOW SCORING WORKS'}
-          </Text>
+        <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
+          <SectionLabel style={styles.rulesToggleLabel}>
+            {showRules ? 'Hide scoring' : 'How scoring works'}
+          </SectionLabel>
         </TouchableOpacity>
         {showRules && renderRules()}
 
-        <NavRow label="Add friends" variant="card" onPress={() => setShowSocial(true)} />
+        <NavRow label="Add friends" variant="plain" onPress={() => setShowSocial(true)} />
       </View>
     );
   };
@@ -542,30 +545,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.sm,
-    paddingHorizontal: space.md,
     paddingBottom: space.sm,
   },
   entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: space.md,
-    paddingHorizontal: space.md,
     gap: space.md,
-    overflow: 'hidden',
   },
   heroRow: {
     paddingVertical: space.lg,
   },
-  rowRound: {
-    borderRadius: radius.card,
+  youRow: {
+    borderLeftWidth: 2,
+    borderRadius: radius.badge,
+    paddingLeft: space.sm,
+    marginLeft: -space.sm,
   },
   rankCell: {
-    width: 32,
+    width: 36,
     alignItems: 'center',
   },
   userInfo: {
     flex: 1,
-    gap: 5,
+    gap: 6,
   },
   usernameRow: {
     flexDirection: 'row',
@@ -579,24 +582,42 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
   },
-  sourceBar: {
+  pipsRow: {
     flexDirection: 'row',
-    height: 4,
-    borderRadius: 2,
-    overflow: 'hidden',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  pips: {
+    flexDirection: 'row',
+    gap: 5,
+  },
+  pip: {
+    width: 8,
+    height: 8,
+    borderRadius: 1,
   },
   valueCell: {
     alignItems: 'flex-end',
-    gap: 2,
+  },
+  gapRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  gapRule: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
   },
   receipt: {
-    paddingLeft: 32 + space.md + space.md,
-    paddingRight: space.md,
+    marginLeft: 36 + space.md,
+    paddingLeft: space.md,
     paddingBottom: space.md,
     gap: space.sm,
+    borderLeftWidth: 2,
   },
   receiptEmpty: {
-    paddingLeft: 32 + space.md + space.md,
+    marginLeft: 36 + space.md,
+    paddingLeft: space.md,
     paddingBottom: space.md,
   },
   receiptLine: {
@@ -612,28 +633,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   rules: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.card,
-    padding: space.md,
     gap: space.sm,
-    marginTop: space.sm,
+    paddingBottom: space.md,
   },
   rulesToggle: {
-    paddingHorizontal: space.md,
     paddingVertical: space.sm,
   },
-  restingRow: {
-    marginTop: space.md,
+  rulesToggleLabel: {
+    marginBottom: 0,
+  },
+  restingLine: {
     paddingTop: space.md,
-    paddingHorizontal: space.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingBottom: space.sm,
+  },
+  nextLine: {
+    marginLeft: 36 + space.md,
+    paddingLeft: space.md,
   },
   personalPanel: {
     marginTop: space.section,
-    gap: space.sm,
-  },
-  personalLabel: {
-    paddingHorizontal: space.md,
   },
   youBar: {
     flexDirection: 'row',
