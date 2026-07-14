@@ -2,6 +2,12 @@
 -- Adds week volume to get_league_week and per-session volume to
 -- get_league_events. user_workouts.total_volume is always lbs (setVolumeLbs
 -- client-side), so no unit conversion is needed.
+--
+-- Adding a column changes the functions' return shape, which CREATE OR REPLACE
+-- refuses — drop the old definitions first (clients degrade to empty boards
+-- for the instant between statements).
+DROP FUNCTION IF EXISTS get_league_week(uuid, timestamptz, timestamptz);
+DROP FUNCTION IF EXISTS get_league_events(uuid, timestamptz, timestamptz);
 
 CREATE OR REPLACE FUNCTION get_league_week(
   p_user_id uuid,
