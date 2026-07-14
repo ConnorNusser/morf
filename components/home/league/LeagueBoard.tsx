@@ -31,9 +31,7 @@ import {
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-
-const LEAGUE_HEADER = require('@/assets/images/league-header.png');
+import Animated, { Easing, FadeIn, FadeInDown, LinearTransition, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 // League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
 const EMBLEMS = {
@@ -54,6 +52,63 @@ interface LeagueBoardProps {
 
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 const pts = (value: number) => formatCompact(value);
+
+/** Number that counts up to its value — points feel earned, not printed. */
+function useCountUp(target: number, duration = 750): number {
+  const [display, setDisplay] = useState(0);
+  const fromRef = React.useRef(0);
+  useEffect(() => {
+    const from = fromRef.current;
+    if (from === target) {
+      setDisplay(target);
+      return;
+    }
+    const startedAt = Date.now();
+    let raf: number;
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(from + (target - from) * eased));
+      if (t < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        fromRef.current = target;
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration]);
+  return display;
+}
+
+/** Gold bar that sweeps to its fill — the chase reads as motion, not state. */
+function ChaseBar({ pct, trackColor }: { pct: number; trackColor: string }) {
+  const fill = useSharedValue(0);
+  useEffect(() => {
+    fill.value = withTiming(pct, { duration: 800, easing: Easing.out(Easing.cubic) });
+  }, [pct, fill]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value}%` }));
+  return (
+    <RNView style={[styles.chaseTrack, { backgroundColor: trackColor }]}>
+      <Animated.View style={[styles.chaseFill, { backgroundColor: GOLD }, fillStyle]} />
+    </RNView>
+  );
+}
+
+/** Row points, counting up on entry (gold glow for the leader). */
+function CountUpPoints({ value, hero }: { value: number; hero: boolean }) {
+  const display = useCountUp(value);
+  return (
+    <Text
+      variant={hero ? 'statHero' : 'body'}
+      weight={hero ? 'bold' : 'medium'}
+      tone={hero ? undefined : 'primary'}
+      style={hero ? styles.glowGold : undefined}
+    >
+      {pts(display)}
+    </Text>
+  );
+}
 
 export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   const { currentTheme } = useTheme();
@@ -156,7 +211,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
       : null;
 
     return (
-      <RNView style={styles.recap}>
+      <RNView style={[styles.recap, { borderLeftColor: ink.hairline }]}>
         {/* Volume — a pound is a point. */}
         {row.breakdown.volumePoints > 0 && (
           <RNView style={styles.recapLine}>
@@ -220,9 +275,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         {/* The chase — XP-bar to the leader. */}
         {chase && (
           <RNView style={styles.chaseBlock}>
-            <RNView style={[styles.chaseTrack, { backgroundColor: ink.hairline }]}>
-              <RNView style={[styles.chaseFill, { width: `${chase.pct}%`, backgroundColor: GOLD }]} />
-            </RNView>
+            <ChaseBar pct={chase.pct} trackColor={ink.hairline} />
             <Text variant="meta" tone="secondary">
               <Text variant="meta" weight="bold" style={{ color: GOLD }}>{pts(chase.gap)} pts</Text> to catch {active[0]?.username}
             </Text>
@@ -247,16 +300,9 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const isExpanded = expandedId === row.userId;
 
     return (
-      <Animated.View key={row.userId} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
+      <Animated.View key={row.userId} layout={LinearTransition.duration(220)} entering={FadeInDown.duration(220).delay(Math.min(index, 12) * 35)}>
         <TouchableOpacity
-          style={[
-            styles.entryRow,
-            isHero && styles.heroRow,
-            isYou && [styles.youRow, {
-              backgroundColor: tint(currentTheme.colors.primary),
-              borderLeftColor: currentTheme.colors.primary,
-            }],
-          ]}
+          style={[styles.entryRow, isHero && styles.heroRow]}
           onPress={() => setExpandedId(isExpanded ? null : row.userId)}
           activeOpacity={0.7}
         >
@@ -298,18 +344,15 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
 
           <RNView style={styles.valueCell}>
-            <Text
-              variant={isHero ? 'statHero' : 'body'}
-              weight={isHero ? 'bold' : 'medium'}
-              tone={isHero ? undefined : 'primary'}
-              style={isHero ? styles.glowGold : undefined}
-            >
-              {pts(row.points)}
-            </Text>
+            <CountUpPoints value={row.points} hero={isHero} />
             <Text variant="meta" weight="regular" tone="faint">pts</Text>
           </RNView>
         </TouchableOpacity>
-        {isExpanded && renderRecap(row)}
+        {isExpanded && (
+          <Animated.View entering={FadeIn.duration(180)}>
+            {renderRecap(row)}
+          </Animated.View>
+        )}
       </Animated.View>
     );
   };
@@ -395,17 +438,14 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          <RNView style={styles.bannerWrap}>
-            <Image source={LEAGUE_HEADER} style={styles.banner} resizeMode="contain" />
-            <RNView style={styles.bannerTextWrap}>
-              <Text variant="title" weight="bold" style={styles.bannerTitle}>
-                WEEKLY LEAGUE
-              </Text>
-              <Text variant="meta" weight="semiBold" style={styles.bannerSub}>
-                {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT
-              </Text>
-            </RNView>
-          </RNView>
+          <Animated.View entering={FadeInDown.duration(260)} style={styles.titleBlock}>
+            <Text variant="screenTitle" weight="bold" tone="primary">
+              Weekly League
+            </Text>
+            <Text variant="meta" tone="faint">
+              Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
+            </Text>
+          </Animated.View>
           {renderWeekBoard()}
         </ScrollView>
 
@@ -433,38 +473,17 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
-  bannerWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  banner: {
-    width: '100%',
-    height: 150,
-  },
-  bannerTextWrap: {
-    position: 'absolute',
+  titleBlock: {
     alignItems: 'center',
     gap: 2,
-  },
-  bannerTitle: {
-    color: '#F5C84C',
-    letterSpacing: 2,
-    textShadowColor: '#000',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  bannerSub: {
-    color: '#C7CBD4',
-    letterSpacing: 2,
-    textShadowColor: '#000',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 0,
+    paddingTop: space.sm,
+    paddingBottom: space.section,
   },
   glowGold: {
     color: '#F5C84C',
     textShadowColor: '#F59E0B',
     textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 10,
+    textShadowRadius: 6,
   },
   scrollView: {
     flex: 1,
@@ -491,12 +510,6 @@ const styles = StyleSheet.create({
   },
   heroRow: {
     paddingVertical: space.lg,
-  },
-  youRow: {
-    borderLeftWidth: 2,
-    borderRadius: radius.badge,
-    paddingLeft: space.sm,
-    marginLeft: -space.sm,
   },
   rankCell: {
     width: 36,
@@ -526,8 +539,7 @@ const styles = StyleSheet.create({
     paddingLeft: space.md,
     paddingBottom: space.lg,
     gap: space.sm,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(245, 158, 11, 0.35)',
+    borderLeftWidth: StyleSheet.hairlineWidth,
   },
   recapLine: {
     flexDirection: 'row',
