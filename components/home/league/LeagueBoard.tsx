@@ -20,6 +20,7 @@ import LeagueAchievementsModal from '@/components/home/league/LeagueAchievements
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
+import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { upForGrabs } from '@/lib/gamification/leagueAchievements';
 import { LeagueWeekResult } from '@/lib/leagues/results';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
@@ -491,38 +492,37 @@ export default function LeagueBoard({ visible, onClose, initialExpandedUserId }:
           </RNView>
         )}
 
-        <TouchableOpacity
-          style={styles.achievementsRow}
+        <PressableScale
           onPress={() => setShowAchievements(true)}
-          activeOpacity={0.7}
+          style={[styles.achievementsCard, { backgroundColor: currentTheme.colors.surface, borderColor: ink.hairline }]}
         >
-          <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
           <RNView style={styles.achievementsBody}>
-            <Text variant="body" weight="semiBold" tone="primary">Achievements</Text>
-            {grabs && (
-              <Text variant="meta" tone="secondary" numberOfLines={1}>
-                <Text variant="meta" weight="bold" style={{ color: GOLD }}>{grabs.title}</Text> up for grabs · {grabs.hint}
-              </Text>
+            <Text variant="meta" weight="semiBold" tone="muted">Achievements</Text>
+            {grabs ? (
+              <>
+                <Text variant="emphasis" weight="bold" style={{ color: GOLD }}>
+                  {grabs.title}
+                </Text>
+                <Text variant="meta" tone="secondary" numberOfLines={1}>
+                  up for grabs · {grabs.hint}
+                </Text>
+              </>
+            ) : (
+              <Text variant="emphasis" weight="bold" tone="primary">All earned</Text>
             )}
           </RNView>
-          <Text variant="meta" tone="muted">▸</Text>
-        </TouchableOpacity>
+          <Image
+            source={grabs ? emblemFor(grabs.id) : EMBLEMS.trophy}
+            style={styles.achievementsEmblem}
+          />
+        </PressableScale>
 
-        {active.length <= 5 ? (
-          <RNView style={styles.rulesToggle}>
-            <SectionLabel style={styles.statLabel}>Scoring</SectionLabel>
-            {renderRules()}
-          </RNView>
-        ) : (
-          <>
-            <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
-              <SectionLabel style={styles.statLabel}>
-                {showRules ? 'Scoring ▾' : 'Scoring ▸'}
-              </SectionLabel>
-            </TouchableOpacity>
-            {showRules && renderRules()}
-          </>
-        )}
+        <TouchableOpacity onPress={() => setShowRules(!showRules)} activeOpacity={0.7} style={styles.rulesToggle}>
+          <SectionLabel style={styles.statLabel}>
+            {showRules ? 'Scoring ▾' : 'Scoring ▸'}
+          </SectionLabel>
+        </TouchableOpacity>
+        <Collapse open={showRules}>{renderRules()}</Collapse>
       </View>
     );
   };
@@ -731,16 +731,22 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     marginTop: space.lg,
   },
-  achievementsRow: {
+  achievementsCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space.md,
-    paddingVertical: space.md,
+    gap: space.lg,
+    padding: space.lg,
+    borderRadius: radius.card,
+    borderWidth: StyleSheet.hairlineWidth,
     marginTop: space.lg,
   },
   achievementsBody: {
     flex: 1,
     gap: 2,
+  },
+  achievementsEmblem: {
+    width: 44,
+    height: 44,
   },
   restingBlock: {
     paddingTop: space.lg,
