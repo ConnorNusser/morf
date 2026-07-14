@@ -6,11 +6,12 @@ import { useSound } from '@/hooks/useSound';
 import { useUser } from '@/contexts/UserContext';
 import playHapticFeedback from '@/lib/utils/haptic';
 import { getPercentileColor, getTierColor } from '@/lib/data/strengthStandards';
+import { gradeE1rm } from '@/lib/history/liftProgress';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { space } from '@/lib/ui/tokens';
 import { convertWeightForPreference, getPercentileSuffix } from '@/lib/utils/utils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
-import { FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
+import { convertWeight, FeaturedLiftType, isFeaturedLift, UserProgress } from '@/types';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -34,6 +35,18 @@ export default function WorkoutStatsCard({ stats, delay = 0 }: WorkoutStatsCardP
   const workout = getCatalogExercise(workoutId);
   const accentColor = getPercentileColor(percentileRanking);
   const band = getTierBandProgress(percentileRanking);
+
+  // Lifters think in weight, not percentile points: show the lbs/kg still
+  // to lift for the next tier when the profile can grade it (bodyweight +
+  // gender known); otherwise fall back to the percentile phrasing.
+  const grade =
+    userProfile?.weight && userProfile.gender
+      ? gradeE1rm(workoutId, personalRecord, weightUnit, {
+          bodyweightLbs: convertWeight(userProfile.weight.value, userProfile.weight.unit, 'lbs'),
+          gender: userProfile.gender,
+          age: userProfile.age,
+        })
+      : undefined;
 
   // Sweep the fill from 0 on mount so post-workout arrival (remount) animates instead of snapping.
   const fill = useRef(new Animated.Value(0)).current;
@@ -94,7 +107,21 @@ export default function WorkoutStatsCard({ stats, delay = 0 }: WorkoutStatsCardP
             />
           </View>
 
-          {band.nextTier && (
+          {grade?.nextTier && grade.gapWeight != null ? (
+            <View style={styles.nextRow}>
+              <Text variant="meta" tone="muted">
+                +{grade.gapWeight} {weightUnit}
+                {' to '}
+                <Text
+                  variant="meta"
+                  weight="semiBold"
+                  style={{ color: getTierColor(grade.nextTier) }}
+                >
+                  {grade.nextTier}
+                </Text>
+              </Text>
+            </View>
+          ) : band.nextTier ? (
             <View style={styles.nextRow}>
               <Text variant="meta" tone="muted">
                 {band.toNext}
@@ -108,7 +135,7 @@ export default function WorkoutStatsCard({ stats, delay = 0 }: WorkoutStatsCardP
                 </Text>
               </Text>
             </View>
-          )}
+          ) : null}
         </Card>
       </TouchableOpacity>
 
