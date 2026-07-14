@@ -47,6 +47,13 @@ conformance polishes, it never improves.
 
 ## Learnings
 
+- 2026-07-14 (pass 8): points wear rank-relative tier colors (rank mapped to a
+  field percentile through the tier ladder) — TEXT uses hues lifted ~35%
+  toward white (pure tier hues measure 2.9:1 as numerals; chips stay pure per
+  the standing exception). One ambient-motion element allowed: the bar's slow
+  specular sweep (user-directed; the moving gradient is the exception to the
+  no-gradient rule — it's motion, not surface decoration).
+
 - 2026-07-14 (pass 6, staff-crit): judge the EDGE-CASE screenshot, not the rich
   fixture — a no-PR week collapsed points/lbs/bar into one number three times
   and the rich mock never showed it. Sub-lines must never re-encode the metric

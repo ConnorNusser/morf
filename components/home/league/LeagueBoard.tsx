@@ -7,7 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import UserAvatar from '@/components/ui/UserAvatar';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { getTierColor, StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { getStrengthTier, getTierColor, StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
 import {
   buildStandings,
@@ -32,9 +32,11 @@ import {
   TouchableOpacity,
   View as RNView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   Easing,
   runOnJS,
+  withRepeat,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -128,6 +130,25 @@ interface LeagueBoardProps {
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 const pts = (value: number) => formatCompact(value);
 
+/**
+ * Rank mapped through the tier ladder, relative to the field: 1st of N sits at
+ * the 100th percentile (S gold), last at the 0th (E gray). Points wear this.
+ */
+const rankTierColor = (rank: number | null, field: number): string | null => {
+  if (rank == null || field < 2) return null;
+  const percentile = ((field - rank) / (field - 1)) * 100;
+  // Text variant of the tier hue: lifted toward white so numerals clear
+  // contrast on the near-black canvas (badge chips keep the pure colors).
+  return lightenForText(getTierColor(getStrengthTier(percentile)));
+};
+
+const lightenForText = (hex: string, amount = 0.35): string => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  if (Number.isNaN(n)) return hex;
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+};
+
 /** The member's color for the week: the tier of their best lift (null = untinted). */
 const weekTierColor = (row: LeagueStanding): string | null => {
   const tier = row.topLifts[0]?.strength_tier;
@@ -149,6 +170,58 @@ function useCountUp(target: number, duration = 600): number {
     },
   );
   return display;
+}
+
+/**
+ * Share-of-leader × composition bar with a slow specular sweep across the
+ * fill — the board's one piece of ambient motion (it reads as "live").
+ */
+function CompositionBar({
+  sharePct,
+  volumePoints,
+  prPoints,
+  accent,
+  trackColor,
+}: {
+  sharePct: number;
+  volumePoints: number;
+  prPoints: number;
+  accent: string;
+  trackColor: string;
+}) {
+  const [trackW, setTrackW] = useState(0);
+  const sweep = useSharedValue(0);
+  useEffect(() => {
+    sweep.value = withRepeat(
+      withDelay(900, withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.quad) })),
+      -1,
+      false,
+    );
+  }, [sweep]);
+  const fillW = (trackW * Math.min(100, Math.max(sharePct, 0.5))) / 100;
+  const sweepStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: -48 + sweep.value * (fillW + 96) }],
+  }));
+
+  return (
+    <RNView
+      style={[styles.rowBarTrack, { backgroundColor: trackColor }]}
+      onLayout={e => setTrackW(e.nativeEvent.layout.width)}
+    >
+      <RNView style={[styles.rowBar, { width: fillW }]}>
+        {volumePoints > 0 && <RNView style={{ flex: volumePoints, backgroundColor: accent }} />}
+        {prPoints > 0 && <RNView style={{ flex: prPoints, backgroundColor: GOLD }} />}
+        <Animated.View pointerEvents="none" style={[styles.sweepBand, sweepStyle]}>
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.18)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.sweepFill}
+          />
+        </Animated.View>
+      </RNView>
+    </RNView>
+  );
 }
 
 /** WHOOP-style ring: your share of the leader's total, rank in the center. */
@@ -283,6 +356,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     if (!me) return null;
     const pct = me.rank === 1 ? 100 : leaderPoints > 0 ? (me.points / leaderPoints) * 100 : 0;
     const gap = leaderPoints - me.points;
+    const heroColor = rankTierColor(me.rank, active.length);
 
     return (
       <FadeSlideIn distance={6} style={styles.hero}>
@@ -298,7 +372,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             <Text variant="header" weight="bold" tone="primary" style={[styles.tabularNums, styles.ghostNumeral]}>
               {pts(me.points)}
             </Text>
-            <Text variant="header" weight="bold" tone="primary" style={[styles.tabularNums, StyleSheet.absoluteFill]}>
+            <Text
+              variant="header"
+              weight="bold"
+              tone={heroColor ? undefined : 'primary'}
+              style={[styles.tabularNums, StyleSheet.absoluteFill, heroColor != null && { color: heroColor }]}
+            >
               {pts(heroPoints)}
             </Text>
           </RNView>
@@ -415,6 +494,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const isChampion = champion != null && row.userId === champion.userId;
     const isExpanded = expandedId === row.userId;
     const sharePct = leaderPoints > 0 ? (row.points / leaderPoints) * 100 : 0;
+    const rankColor = rankTierColor(row.rank, active.length);
 
     return (
       <FadeSlideIn key={row.userId} delay={Math.min(index, 10) * 30}>
@@ -474,7 +554,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </RNView>
 
           <RNView style={styles.valueCell}>
-            <Text variant="body" weight="semiBold" tone="primary" style={styles.tabularNums}>
+            <Text
+              variant="body"
+              weight="semiBold"
+              tone={rankColor ? undefined : 'primary'}
+              style={[styles.tabularNums, rankColor != null && { color: rankColor }]}
+            >
               {pts(row.points)}
             </Text>
             <Text variant="meta" tone="muted">{isExpanded ? '▾' : '▸'}</Text>
@@ -483,16 +568,13 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
         {/* Standing AND composition in one stroke: width = share of the
             leader; primary = volume points, gold = PR points. */}
-        <RNView style={[styles.rowBarTrack, { backgroundColor: ink.ghost }]}>
-          <RNView style={[styles.rowBar, { width: `${Math.round(Math.min(100, Math.max(sharePct, 0.5)))}%` as const }]}>
-            {row.breakdown.volumePoints > 0 && (
-              <RNView style={{ flex: row.breakdown.volumePoints, backgroundColor: currentTheme.colors.primary }} />
-            )}
-            {row.breakdown.prPoints > 0 && (
-              <RNView style={{ flex: row.breakdown.prPoints, backgroundColor: GOLD }} />
-            )}
-          </RNView>
-        </RNView>
+        <CompositionBar
+          sharePct={sharePct}
+          volumePoints={row.breakdown.volumePoints}
+          prPoints={row.breakdown.prPoints}
+          accent={currentTheme.colors.primary}
+          trackColor={ink.ghost}
+        />
         </TouchableOpacity>
         <Collapse open={isExpanded}>{renderRecap(row)}</Collapse>
       </FadeSlideIn>
@@ -732,16 +814,25 @@ const styles = StyleSheet.create({
     height: 14,
   },
   rowBarTrack: {
-    height: 3,
-    borderRadius: 1.5,
+    height: 5,
+    borderRadius: 2.5,
     overflow: 'hidden',
     marginLeft: 24 + space.md + 40 + space.md,
   },
   rowBar: {
     flexDirection: 'row',
     height: '100%',
-    borderRadius: 1.5,
+    borderRadius: 2.5,
     overflow: 'hidden',
+  },
+  sweepBand: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 48,
+  },
+  sweepFill: {
+    flex: 1,
   },
   recapCard: {
     borderWidth: StyleSheet.hairlineWidth,
