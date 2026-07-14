@@ -7,9 +7,11 @@ should be recognizably Morf at a squint.
 
 ## Rules (score a candidate against these)
 
-1. **One neon stroke.** Theme `primary` is the only saturated accent on the
-   screen. Gold (`TIER_COLORS.S`) appears only on PR/champion moments. Nothing
-   else gets a hue. A screenshot with 3+ accent colors fails.
+1. **One neon stroke, plus championship gold.** Theme `primary` is the only
+   saturated accent for *your* identity; gold (`TIER_COLORS.S`) is the
+   celebration color — leader, PRs, champion, chase bar, panel trim. (Amended
+   2026-07-13: Connor asked for OSRS-Leagues flash — gold is deliberately
+   loud on this surface; no third hue, ever.)
 2. **Flat.** Rows sit on the page — no card fills, borders, or gradient washes.
    The one exception is selection semantics per `docs/flat-contrast.md`: the
    viewer's own row may carry a `primary` tint + rule. Separation comes from

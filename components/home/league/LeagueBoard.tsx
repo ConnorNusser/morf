@@ -33,6 +33,8 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import Svg, { Polygon } from 'react-native-svg';
 
 // League iconography is the pixel emblem set — no Ionicons, no emoji (spec).
+const LEAGUE_HEADER = require('@/assets/images/league-header.png');
+
 const EMBLEMS = {
   trophy: require('@/assets/achievements/trophy.png'),
   sword: require('@/assets/achievements/sword.png'),
@@ -161,7 +163,8 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
     const isYou = myUser != null && row.userId === myUser.id;
     const isSelected = selectedId === row.userId;
     const isChampion = champion != null && row.userId === champion.userId;
-    const stroke = isYou || isSelected ? currentTheme.colors.primary : ink.faint;
+    const isLeader = !ghosted && active[0]?.userId === row.userId;
+    const stroke = isLeader ? GOLD : isYou || isSelected ? currentTheme.colors.primary : ink.faint;
     const avatarSize = Math.round(size * 0.38);
 
     return (
@@ -175,17 +178,20 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
             <Polygon
               points={hexPoints(size)}
-              fill={isYou ? tint(currentTheme.colors.primary) : 'none'}
+              fill={isLeader ? tint(GOLD) : isYou ? tint(currentTheme.colors.primary) : 'none'}
               stroke={stroke}
-              strokeWidth={isYou || isSelected ? 2 : 1}
+              strokeWidth={isLeader ? 3 : isYou || isSelected ? 2 : 1}
             />
+            {isLeader && (
+              <Polygon points={hexPoints(size - 10)} fill="none" stroke={GOLD} strokeWidth={1} opacity={0.5} x={5} y={5} />
+            )}
           </Svg>
           {renderAvatar(row, avatarSize)}
           <Text
             variant={size >= 100 ? 'emphasis' : 'meta'}
             weight="bold"
-            tone="primary"
-            style={styles.hexPoints}
+            tone={isLeader ? undefined : 'primary'}
+            style={[styles.hexPoints, isLeader && styles.glowGold]}
           >
             {row.points}
           </Text>
@@ -297,17 +303,22 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
 
     const isYou = myUser != null && row.userId === myUser.id;
 
+    const leaderPoints = active[0]?.points ?? 0;
+    const chase = isYou && me != null && me.rank !== 1 && leaderPoints > 0
+      ? { pct: Math.min(100, Math.round((me.points / leaderPoints) * 100)), gap: leaderPoints - me.points }
+      : null;
+
     return (
-      <RNView style={styles.receiptPanel}>
+      <RNView style={[styles.stonePanel, { backgroundColor: currentTheme.colors.surface, borderColor: GOLD }]}>
         <TouchableOpacity style={styles.receiptHeader} onPress={() => openProfile(row)} activeOpacity={0.7}>
-          <SectionLabel style={styles.receiptTitle}>
+          <SectionLabel style={[styles.receiptTitle, { color: GOLD }]}>
             {isYou ? 'Your week' : `${row.username}'s week`}
           </SectionLabel>
         </TouchableOpacity>
         {lines.length === 0 ? (
           <Text variant="meta" tone="faint">No points yet this week.</Text>
         ) : (
-          <RNView style={[styles.receipt, { borderLeftColor: ink.hairline }]}>
+          <RNView style={styles.receipt}>
             {lines.map(line => (
               <RNView key={line.key} style={styles.receiptLine}>
                 <Image source={EMBLEMS[line.emblem]} style={styles.receiptEmblem} />
@@ -321,13 +332,23 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
             ))}
           </RNView>
         )}
+        {chase && (
+          <RNView style={styles.chaseBlock}>
+            <RNView style={[styles.chaseTrack, { backgroundColor: ink.hairline }]}>
+              <RNView style={[styles.chaseFill, { width: `${chase.pct}%`, backgroundColor: GOLD }]} />
+            </RNView>
+            <Text variant="meta" tone="secondary">
+              <Text variant="meta" weight="bold" style={{ color: GOLD }}>{chase.gap} pts</Text> to catch {active[0]?.username}
+            </Text>
+          </RNView>
+        )}
       </RNView>
     );
   };
 
   // The legend that answers "why": every way to score, emblem + rule + points.
   const renderRules = () => (
-    <RNView style={styles.rules}>
+    <RNView style={[styles.rules, styles.stonePanel, { backgroundColor: currentTheme.colors.surface, borderColor: GOLD }]}>
       {[
         { emblem: 'plate' as const, rule: `Every ${formatVolume(SCORING.lbsPerPoint, 'lbs')} lifted`, pts: '+1', cap: `up to ${SCORING.volumePointsCap}/week` },
         { emblem: 'barbell' as const, gold: true, rule: 'PR any lift', pts: `+${SCORING.pointsPerPR}`, cap: `up to ${SCORING.prCap}, bigger gain = bigger bonus` },
@@ -389,7 +410,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           <RNView style={styles.championLine}>
             <Image source={EMBLEMS.trophy} style={styles.inlineEmblem} />
             <Text variant="meta" tone="muted">
-              Last week: <Text variant="meta" weight="semiBold" tone="primary">{champion.username}</Text>
+              Last week&apos;s champion: <Text variant="meta" weight="bold" style={{ color: GOLD }}>{champion.username}</Text>
             </Text>
           </RNView>
         )}
@@ -420,20 +441,23 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen">
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
-        <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
+        <View style={styles.header}>
           <View style={styles.headerSpacer} />
-          <RNView style={styles.headerTitle}>
-            <Text variant="emphasis" weight="semiBold" tone="primary">
-              Weekly League
-            </Text>
-            <Text variant="meta" tone="faint">
-              Resets Monday · {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
-            </Text>
-          </RNView>
           <IconButton icon="close" onPress={onClose} />
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <RNView style={styles.bannerWrap}>
+            <Image source={LEAGUE_HEADER} style={styles.banner} resizeMode="contain" />
+            <RNView style={styles.bannerTextWrap}>
+              <Text variant="title" weight="bold" style={styles.bannerTitle}>
+                WEEKLY LEAGUE
+              </Text>
+              <Text variant="meta" weight="semiBold" style={styles.bannerSub}>
+                {daysLeft} {daysLeft === 1 ? 'DAY' : 'DAYS'} LEFT
+              </Text>
+            </RNView>
+          </RNView>
           {renderWeekBoard()}
         </ScrollView>
 
@@ -456,15 +480,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: screenGutter,
-    paddingVertical: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingTop: space.sm,
   },
   headerSpacer: {
     width: 40,
   },
-  headerTitle: {
+  bannerWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  banner: {
+    width: '100%',
+    height: 170,
+  },
+  bannerTextWrap: {
+    position: 'absolute',
     alignItems: 'center',
     gap: 2,
+  },
+  bannerTitle: {
+    color: '#F5C84C',
+    letterSpacing: 2,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 0,
+  },
+  bannerSub: {
+    color: '#C7CBD4',
+    letterSpacing: 2,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 0,
+  },
+  glowGold: {
+    color: '#F5C84C',
+    textShadowColor: '#F59E0B',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
+  },
+  stonePanel: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: space.md,
+    gap: space.sm,
+  },
+  chaseBlock: {
+    gap: space.xs,
+    marginTop: space.xs,
+  },
+  chaseTrack: {
+    height: 8,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  chaseFill: {
+    height: '100%',
   },
   scrollView: {
     flex: 1,
@@ -532,9 +602,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   receipt: {
-    paddingLeft: space.md,
     gap: space.sm,
-    borderLeftWidth: 2,
   },
   receiptLine: {
     flexDirection: 'row',
