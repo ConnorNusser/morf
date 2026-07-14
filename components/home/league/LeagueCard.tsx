@@ -2,7 +2,6 @@ import { Text, useInk } from '@/components/Themed';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
-  CompositionBar,
   PressableScale,
   RankRing,
   pts,
@@ -16,7 +15,6 @@ import { LeagueStanding } from '@/lib/leagues/types';
 import { userSyncService } from '@/lib/services/userSyncService';
 import { storageService } from '@/lib/storage/storage';
 import { radius, space } from '@/lib/ui/tokens';
-import { formatVolume } from '@/lib/utils/utils';
 import { useFocusEffect } from '@react-navigation/native';
 import React, { useCallback, useState } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
@@ -26,7 +24,10 @@ interface LeagueCardProps {
   onOpen: (expandUserId?: string) => void;
 }
 
-/** Home entry point: the board's hero grammar at card scale, fully tappable. */
+/**
+ * Home entry point: rank ring, one big rank-colored number, the rival line,
+ * and the achievement this week can earn as a large emblem. Nothing else.
+ */
 export default function LeagueCard({ onOpen }: LeagueCardProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -74,76 +75,57 @@ export default function LeagueCard({ onOpen }: LeagueCardProps) {
       onPress={() => onOpen(onBoard ? me!.userId : undefined)}
       style={[styles.card, { backgroundColor: currentTheme.colors.surface, borderColor: ink.hairline }]}
     >
-      <RNView style={styles.topRow}>
-        <RankRing
-          pct={isLeading ? 100 : sharePct}
-          rank={onBoard ? me!.rank : null}
-          field={fieldSize}
-          color={rankColor?.pure ?? currentTheme.colors.primary}
-          trackColor={ink.ghost}
-          size={48}
-        />
-        <RNView style={styles.body}>
-          <Text variant="body" weight="semiBold" tone="primary">
-            Weekly League
-          </Text>
-          {onBoard && leader != null && !isLeading ? (
-            <TouchableOpacity
-              style={styles.rivalLine}
-              onPress={() => onOpen(leader.userId)}
-              activeOpacity={0.7}
-            >
-              <UserAvatar uri={leader.profilePictureUrl} username={leader.username} size={14} />
-              <Text variant="meta" tone="secondary" numberOfLines={1}>
-                {pts(rivalGap!)} behind {leader.username}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <Text variant="meta" tone="secondary" numberOfLines={1}>
-              {isLeading
-                ? fieldSize > 1
-                  ? 'Leading the week'
-                  : 'Top of the board'
-                : 'Log a session to put a score on the board'}
-            </Text>
-          )}
-          {onBoard && (
-            <Text variant="meta" tone="muted" numberOfLines={1}>
-              {`${formatVolume(me!.breakdown.volumeLbs, 'lbs')} lifted`}
-              {me!.breakdown.prCount > 0 ? ` · ${me!.breakdown.prCount} PR${me!.breakdown.prCount === 1 ? '' : 's'}` : ''}
-            </Text>
-          )}
-          {grabs && (
-            <RNView style={styles.grabsLine}>
-              <Image source={emblemFor(grabs.id)} style={styles.grabsEmblem} />
-              <Text variant="meta" tone="secondary" numberOfLines={1} style={styles.grabsText}>
-                <Text variant="meta" weight="semiBold" tone="primary">{grabs.title}</Text> · {grabs.hint}
-              </Text>
-            </RNView>
-          )}
-        </RNView>
-        {onBoard && (
-          <Text
-            variant="emphasis"
-            weight="bold"
-            tone={rankColor ? undefined : 'primary'}
-            style={[styles.tabularNums, rankColor != null && { color: rankColor.text }]}
+      <RankRing
+        pct={isLeading ? 100 : sharePct}
+        rank={onBoard ? me!.rank : null}
+        field={fieldSize}
+        color={rankColor?.pure ?? currentTheme.colors.primary}
+        trackColor={ink.ghost}
+        size={52}
+      />
+
+      <RNView style={styles.body}>
+        <Text variant="meta" weight="semiBold" tone="muted">
+          Weekly League
+        </Text>
+        <Text
+          variant="statHero"
+          weight="bold"
+          tone={rankColor ? undefined : 'primary'}
+          style={[styles.tabularNums, rankColor != null && { color: rankColor.text }]}
+        >
+          {onBoard ? pts(cardPoints) : '—'}
+          {onBoard && <Text variant="meta" weight="regular" tone="muted"> pts</Text>}
+        </Text>
+        {onBoard && leader != null && !isLeading ? (
+          <TouchableOpacity
+            style={styles.rivalLine}
+            onPress={() => onOpen(leader.userId)}
+            activeOpacity={0.7}
           >
-            {pts(cardPoints)}
-            <Text variant="meta" weight="regular" tone="muted"> pts</Text>
+            <UserAvatar uri={leader.profilePictureUrl} username={leader.username} size={14} />
+            <Text variant="meta" tone="secondary" numberOfLines={1}>
+              {pts(rivalGap!)} behind {leader.username}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <Text variant="meta" tone="secondary" numberOfLines={1}>
+            {isLeading
+              ? fieldSize > 1
+                ? 'Leading the week'
+                : 'Top of the board'
+              : 'Log a session to put a score on the board'}
           </Text>
         )}
       </RNView>
 
-      {onBoard && (
-        <CompositionBar
-          sharePct={sharePct}
-          volumePoints={me!.breakdown.volumePoints}
-          prPoints={me!.breakdown.prPoints}
-          accent={rankColor?.pure ?? currentTheme.colors.primary}
-          trackColor={ink.ghost}
-          height={4}
-        />
+      {grabs && (
+        <RNView style={styles.grabsBlock}>
+          <Image source={emblemFor(grabs.id)} style={styles.grabsEmblem} />
+          <Text variant="meta" weight="semiBold" tone="secondary" numberOfLines={1}>
+            {grabs.title}
+          </Text>
+        </RNView>
       )}
     </PressableScale>
   );
@@ -151,15 +133,12 @@ export default function LeagueCard({ onOpen }: LeagueCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: space.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.lg,
     padding: space.lg,
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
   },
   body: {
     flex: 1,
@@ -170,18 +149,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.xs,
   },
-  grabsLine: {
-    flexDirection: 'row',
+  grabsBlock: {
     alignItems: 'center',
     gap: space.xs,
-    marginTop: 2,
+    maxWidth: 96,
   },
   grabsEmblem: {
-    width: 14,
-    height: 14,
-  },
-  grabsText: {
-    flexShrink: 1,
+    width: 44,
+    height: 44,
   },
   tabularNums: {
     fontVariant: ['tabular-nums'],
