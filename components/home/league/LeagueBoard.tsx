@@ -7,7 +7,7 @@ import SectionLabel from '@/components/ui/SectionLabel';
 import UserAvatar from '@/components/ui/UserAvatar';
 import UserProfileModal from '@/components/profile/UserProfileModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { getTierColor, StrengthTier, TIER_COLORS } from '@/lib/data/strengthStandards';
 import { recordClosedWeeks } from '@/lib/leagues/recordClosedWeeks';
 import {
   buildStandings,
@@ -127,6 +127,12 @@ interface LeagueBoardProps {
 
 const liftName = (exerciseId: string) => getCatalogExercise(exerciseId)?.name ?? exerciseId;
 const pts = (value: number) => formatCompact(value);
+
+/** The member's color for the week: the tier of their best lift (null = untinted). */
+const weekTierColor = (row: LeagueStanding): string | null => {
+  const tier = row.topLifts[0]?.strength_tier;
+  return tier ? getTierColor(tier as StrengthTier) : null;
+};
 
 /** UI-thread count-up on the emphasized-decelerate curve (hero numeral only). */
 function useCountUp(target: number, duration = 600): number {
@@ -283,7 +289,7 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         <RankRing
           pct={pct}
           rank={me.rank}
-          color={currentTheme.colors.primary}
+          color={weekTierColor(me) ?? currentTheme.colors.primary}
           trackColor={ink.ghost}
         />
         <RNView style={styles.heroBody}>
@@ -328,14 +334,19 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
         <RNView style={styles.statGrid}>
           {[
             { label: 'Volume', value: formatVolume(row.breakdown.volumeLbs, 'lbs') },
-            { label: 'Volume pts', value: `+${pts(row.breakdown.volumePoints)}` },
+            { label: 'Volume pts', value: `+${pts(row.breakdown.volumePoints)}`, color: currentTheme.colors.primary },
             { label: 'Days', value: String(row.breakdown.activeDays) },
             { label: 'Sessions', value: String(row.sessions) },
-            { label: 'Best lift', value: row.topLifts[0] ? `${Math.round(row.topLifts[0].week_best)} lbs` : '—' },
-            { label: 'PR pts', value: row.breakdown.prPoints > 0 ? `+${pts(row.breakdown.prPoints)}` : '0' },
+            { label: 'Best lift', value: row.topLifts[0] ? `${Math.round(row.topLifts[0].week_best)} lbs` : '—', color: weekTierColor(row) ?? undefined },
+            { label: 'PR pts', value: row.breakdown.prPoints > 0 ? `+${pts(row.breakdown.prPoints)}` : '0', color: row.breakdown.prPoints > 0 ? GOLD : undefined },
           ].map(cell => (
             <RNView key={cell.label} style={styles.statCell}>
-              <Text variant="emphasis" weight="semiBold" tone="primary" style={styles.tabularNums}>
+              <Text
+                variant="emphasis"
+                weight="semiBold"
+                tone={cell.color ? undefined : 'primary'}
+                style={[styles.tabularNums, cell.color != null && { color: cell.color }]}
+              >
                 {cell.value}
               </Text>
               <CardLabel>{cell.label}</CardLabel>
@@ -377,7 +388,12 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
                 {lift.is_pr && (
                   <Text variant="meta" weight="bold" style={{ color: GOLD }}>PR</Text>
                 )}
-                <Text variant="meta" weight="semiBold" tone="primary" style={styles.tabularNums}>
+                <Text
+                  variant="meta"
+                  weight="semiBold"
+                  tone={lift.strength_tier ? undefined : 'primary'}
+                  style={[styles.tabularNums, lift.strength_tier != null && { color: getTierColor(lift.strength_tier as StrengthTier) }]}
+                >
                   {Math.round(lift.week_best)} lbs
                 </Text>
               </RNView>
@@ -418,7 +434,14 @@ export default function LeagueBoard({ visible, onClose }: LeagueBoardProps) {
           </Text>
 
           <TouchableOpacity onPress={() => openProfile(row)} activeOpacity={0.7}>
-            <UserAvatar uri={row.profilePictureUrl} username={row.username} size={40} />
+            <RNView
+              style={[
+                styles.avatarRing,
+                { borderColor: weekTierColor(row) ?? 'transparent' },
+              ]}
+            >
+              <UserAvatar uri={row.profilePictureUrl} username={row.username} size={36} />
+            </RNView>
           </TouchableOpacity>
 
           <RNView style={styles.userInfo}>
@@ -687,6 +710,14 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
     gap: 3,
+  },
+  avatarRing: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   usernameRow: {
     flexDirection: 'row',
