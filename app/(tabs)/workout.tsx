@@ -370,6 +370,7 @@ export default function WorkoutScreen() {
       toggleSetDone(key, index);
       if (becomingDone) {
         startRestTimer(DEFAULT_REST_SECONDS, { exerciseName: ex?.name });
+        setShowRestSheet(true);
       }
     },
     [draft, toggleSetDone, startRestTimer],
@@ -1033,6 +1034,7 @@ export default function WorkoutScreen() {
             startRestTimer(DEFAULT_REST_SECONDS, {
               exerciseName: holdTarget.name,
             });
+            setShowRestSheet(true);
           }
           setHoldTarget(null);
         }}

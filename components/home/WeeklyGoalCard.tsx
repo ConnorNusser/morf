@@ -2,11 +2,7 @@ import { Text, useInk } from "@/components/Themed";
 import SectionLabel from "@/components/ui/SectionLabel";
 import WeeklyOverviewModal from "@/components/WeeklyOverviewModal";
 import { useTheme } from "@/contexts/ThemeContext";
-import {
-  MUSCLE_TO_PPL,
-  PPL_COLORS,
-  PPLCategory,
-} from "@/lib/data/pplCategories";
+import { dominantPPL, PPL_COLORS } from "@/lib/data/pplCategories";
 import { storageService } from "@/lib/storage/storage";
 import { space, trend } from "@/lib/ui/tokens";
 import { formatVolume } from "@/lib/utils/utils";
@@ -17,7 +13,6 @@ import {
   WEEKLY_GOAL_MAX,
   WEEKLY_GOAL_MIN,
 } from "@/lib/workout/weeklyGoal";
-import { getCatalogExercise } from "@/lib/workout/exerciseCatalog";
 import { LoggedWorkout, WeightUnit } from "@/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
@@ -25,22 +20,6 @@ import React, { useCallback, useMemo, useState } from "react";
 import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const DAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"]; // Monday-start
-
-// Dominant Push/Pull/Legs category for a day, by majority of each exercise's primary muscle.
-function dominantPPL(workouts: LoggedWorkout[]): PPLCategory | null {
-  const counts: Record<PPLCategory, number> = { push: 0, pull: 0, legs: 0 };
-  for (const workout of workouts) {
-    for (const exercise of workout.exercises || []) {
-      const muscle = getCatalogExercise(exercise.id)?.primaryMuscles?.[0];
-      const category = muscle ? MUSCLE_TO_PPL[muscle] : undefined;
-      if (category) counts[category]++;
-    }
-  }
-  if (counts.push + counts.pull + counts.legs === 0) return null;
-  return (["push", "pull", "legs"] as PPLCategory[]).reduce((best, c) =>
-    counts[c] > counts[best] ? c : best,
-  );
-}
 
 // The same gold as a "legendary" Career badge, so a met goal reads as the same kind of win.
 const GOAL_MET_COLOR = "#F59E0B";
