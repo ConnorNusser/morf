@@ -25,7 +25,7 @@ export interface LeagueTopLift {
   prior_best: number | null; // best e1RM before the window (null = first time)
   gain_pct: number | null;
   strength_tier: string | null; // stored tier of the lift row, when known
-  is_pr: boolean; // beat an existing pre-week best
+  is_pr: boolean; // beat the pre-week best, or first time the lift was ever logged
 }
 
 /** One row of get_league_week — raw server aggregates, unscored. */
