@@ -830,9 +830,47 @@ export default function WorkoutCompleteScreen({
             Workout Complete
           </Animated.Text>
           {winsLine && (
-            <Animated.Text entering={FadeIn.delay(250)} style={styles.subtitle}>
+            <Animated.Text
+              entering={FadeIn.delay(250)}
+              style={[styles.subtitle, prs.length > 0 && styles.subtitleWin]}
+            >
               {winsLine}
             </Animated.Text>
+          )}
+
+          {/* ---- The session's PRs lead: one large gold number per lift ---- */}
+          {prs.length > 0 && (
+            <Animated.View entering={FadeIn.delay(300)} style={styles.prHaul}>
+              {prs.map((pr, index) => (
+                <View
+                  key={pr.exerciseId || index}
+                  style={[styles.prHaulRow, index > 0 && styles.prHaulRowRule]}
+                >
+                  <View style={styles.flex}>
+                    <Text variant="meta" weight="bold" style={styles.cardLabel} numberOfLines={1}>
+                      {shortName(pr.exerciseName).toUpperCase()}
+                    </Text>
+                    <View style={styles.progressValueRow}>
+                      <AnimatedCounter
+                        value={pr.newPR}
+                        delay={400 + index * 150}
+                        duration={1000}
+                        style={styles.prHaulValue}
+                      />
+                      <Text variant="body" style={styles.prUnit}>
+                        {weightUnit} 1RM
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.prValueCluster}>
+                    <Text variant="emphasis" weight="bold" style={pr.improvement > 0 ? styles.improvementText : styles.cardHeroGold}>
+                      {pr.improvement > 0 ? `+${pr.improvement}` : 'First PR'}
+                    </Text>
+                    {pr.percentile != null && <TierBadge percentile={pr.percentile} size="small" showTooltip={false} />}
+                  </View>
+                </View>
+              ))}
+            </Animated.View>
           )}
 
           {/* ---- Shareable recap card ---- */}
@@ -985,6 +1023,32 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.6)',
     textAlign: 'center',
     marginBottom: space.section,
+  },
+
+  subtitleWin: {
+    color: '#FFD700',
+    fontWeight: '600',
+  },
+  prHaul: {
+    width: '100%',
+    marginBottom: space.section,
+  },
+  prHaulRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    paddingVertical: space.md,
+  },
+  prHaulRowRule: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: CARD_HAIRLINE,
+  },
+  prHaulValue: {
+    fontSize: type.header,
+    fontWeight: '800',
+    color: '#FFD700',
+    letterSpacing: track.display,
+    fontVariant: ['tabular-nums'],
   },
 
   cardWrap: {

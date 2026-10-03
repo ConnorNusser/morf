@@ -1,9 +1,10 @@
-import DashboardHeader, { HeaderStats } from "@/components/DashboardHeader";
+import DashboardHeader from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
 import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
+import RankHero from "@/components/home/RankHero";
 import TodayCard from "@/components/home/TodayCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import UserProfileModal from "@/components/profile/UserProfileModal";
@@ -17,8 +18,6 @@ import UnlockNotificationModal, {
 } from "@/components/UnlockNotificationModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
-import { getStrengthTier } from "@/lib/data/strengthStandards";
-import { getTierBandProgress } from "@/lib/gamification/tierTimeline";
 import { userService } from "@/lib/services/userService";
 import { userSyncService } from "@/lib/services/userSyncService";
 import {
@@ -59,7 +58,7 @@ export default function HomeScreen() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
-  const [lifetimeStats, setLifetimeStats] = useState<HeaderStats | null>(null);
+  const [overallPercentile, setOverallPercentile] = useState(0);
   // The viewer's own backend user, for the feed header's profile button.
   const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
 
@@ -95,10 +94,7 @@ export default function HomeScreen() {
           )
         : 0;
 
-      setLifetimeStats({
-        tier: getStrengthTier(overall),
-        tierProgress: getTierBandProgress(overall).progress,
-      });
+      setOverallPercentile(overall);
 
       setIsLoading(false);
     } catch (error) {
@@ -263,8 +259,11 @@ export default function HomeScreen() {
         <DashboardHeader
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
-          stats={lifetimeStats ?? undefined}
-          onTierPress={() => setShowCareer(true)}
+        />
+
+        <RankHero
+          percentile={overallPercentile}
+          onPress={() => setShowCareer(true)}
         />
 
         <WeeklyGoalCard />
