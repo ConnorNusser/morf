@@ -146,8 +146,7 @@ export function totalVolume(draft: WorkoutDraft, unit: WeightUnit = 'lbs'): numb
     (sum, e) =>
       sum +
       e.sets.reduce((s, set) => {
-        const w = set.unit === unit ? set.weight : convertWeight(set.weight, set.unit, unit);
-        return s + w * set.reps;
+        return s + convertWeight(set.weight, set.unit, unit) * set.reps;
       }, 0),
     0,
   );

@@ -10,7 +10,7 @@ import {
   UserProgress
 } from '@/types';
 import { storageService } from '@/lib/storage/storage';
-import { calculateStrengthPercentile, getStrengthLevelName, OneRMCalculator } from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, getStrengthTier, OneRMCalculator } from '@/lib/data/strengthStandards';
 import { userSyncService } from './userSyncService';
 import { convertWeightToLbs } from '@/lib/utils/utils';
 class UserService {
@@ -52,7 +52,7 @@ class UserService {
       personalRecord: pr,
       lastUpdated: record?.bestE1RMAt ?? record?.updatedAt ?? new Date(),
       percentileRanking: Math.round(percentile),
-      strengthLevel: getStrengthLevelName(percentile),
+      strengthLevel: getStrengthTier(percentile),
     };
   }
 
@@ -148,7 +148,7 @@ class UserService {
         personalRecord: e1rm,
         lastUpdated: lift.dateRecorded,
         percentileRanking: Math.round(percentile),
-        strengthLevel: getStrengthLevelName(percentile),
+        strengthLevel: getStrengthTier(percentile),
       };
     });
   }
@@ -169,7 +169,7 @@ class UserService {
       lifts.push({
         parentId: w.id,
         id: liftId,
-        weight: best.unit === 'lbs' ? best.weight : convertWeightToLbs(best.weight, best.unit),
+        weight: convertWeightToLbs(best.weight, best.unit),
         reps: best.reps,
         unit: 'lbs',
         dateRecorded: new Date(w.createdAt),

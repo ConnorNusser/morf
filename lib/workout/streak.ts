@@ -4,12 +4,7 @@
 // Week math steps with setDate (not ms arithmetic) to stay DST-correct; `now` is
 // injectable for tests.
 import { LoggedWorkout } from '@/types';
-import { dateKey, weekStart } from '@/lib/utils/utils';
-
-function parseDayKey(key: string): Date {
-  const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
+import { dateKey, sortedDayTimestamps, weekStart } from '@/lib/utils/utils';
 
 export interface WeekStreak {
   current: number; // consecutive trained weeks ending this week (or last, if this week is empty so far)
@@ -56,7 +51,7 @@ export function getWeekStreak(workouts: LoggedWorkout[], now: Date = new Date())
   }
 
   // Longest run: walk every week from the earliest trained week to this week.
-  const earliest = parseDayKey([...weekKeys].sort()[0]);
+  const earliest = sortedDayTimestamps(weekKeys)[0];
   let longest = 0;
   let run = 0;
   for (const cur = new Date(earliest); cur.getTime() <= thisWeek.getTime(); cur.setDate(cur.getDate() + 7)) {

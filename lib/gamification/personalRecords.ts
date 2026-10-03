@@ -39,7 +39,7 @@ function computeLiftPRs(workouts: LoggedWorkout[], unit: WeightUnit, liftIds: re
       if (!liftIds.includes(exercise.id)) continue;
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
-        const weight = set.unit === unit ? set.weight : convertWeight(set.weight, set.unit, unit);
+        const weight = convertWeight(set.weight, set.unit, unit);
         const e1rm = OneRMCalculator.estimate(weight, set.reps);
         const prev = best.get(exercise.id);
         if (!prev || e1rm > prev.e1rm) {

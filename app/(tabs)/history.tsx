@@ -20,7 +20,7 @@ import { useCustomExercises } from "@/contexts/CustomExercisesContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
 import { PPL_COLORS } from "@/lib/data/pplCategories";
-import { getStrengthLevelName } from "@/lib/data/strengthStandards";
+import { getStrengthTier } from "@/lib/data/strengthStandards";
 import { computeMainLiftPRs } from "@/lib/gamification/personalRecords";
 import { computeStrengthFeats } from "@/lib/gamification/strengthFeats";
 import { attributeAchievements } from "@/lib/history/achievementAttribution";
@@ -229,7 +229,7 @@ export default function HistoryScreen() {
     const pct = pcts.length ? calculateOverallPercentile(pcts) : 0;
     return {
       overallPercentile: pct,
-      strengthLevel: pct > 0 ? getStrengthLevelName(pct) : "E-",
+      strengthLevel: pct > 0 ? getStrengthTier(pct) : "E-",
       improvementTrend: "improving" as const,
     };
   }, [userProgress]);

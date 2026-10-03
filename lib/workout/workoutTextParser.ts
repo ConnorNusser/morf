@@ -7,7 +7,7 @@ import { setVolumeLbs } from '@/lib/utils/utils';
 import { buildWorkoutNoteParsingPrompt } from '@/lib/ai/prompts/workoutNoteParsing.prompt';
 import { storageService } from '@/lib/storage/storage';
 import { parseWorkoutTextLocal } from '@/lib/workout/localWorkoutParser';
-import { getAvailableExercises, getCatalogExercise, setCustomExerciseCache } from './exerciseCatalog';
+import { getAvailableExercises, setCustomExerciseCache } from './exerciseCatalog';
 
 export interface ParsedSet {
   weight: number;
@@ -219,35 +219,6 @@ class WorkoutTextParser {
       }
     }
     return local;
-  }
-
-  toSummary(parsed: ParsedWorkout): ParsedExerciseSummary[] {
-    const consolidatedMap = new Map<string, ParsedExerciseSummary>();
-
-    for (const ex of parsed.exercises) {
-      const displayName = ex.matchedExerciseId
-        ? getCatalogExercise(ex.matchedExerciseId)?.name || ex.name
-        : ex.name;
-
-      const normalizedName = displayName.toLowerCase().trim();
-
-      if (consolidatedMap.has(normalizedName)) {
-        const existing = consolidatedMap.get(normalizedName)!;
-        existing.sets = [...existing.sets, ...ex.sets];
-        existing.setCount = existing.sets.length;
-      } else {
-        consolidatedMap.set(normalizedName, {
-          name: displayName,
-          setCount: ex.sets.length,
-          sets: [...ex.sets],
-          matchedExerciseId: ex.matchedExerciseId,
-          isCustom: ex.isCustom,
-          trackingType: ex.trackingType,
-        });
-      }
-    }
-
-    return Array.from(consolidatedMap.values());
   }
 
   // Auto-creates custom exercises for unmatched exercise names.

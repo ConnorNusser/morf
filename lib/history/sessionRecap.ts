@@ -4,7 +4,7 @@ import { dayKeyOf, e1rmLbs } from '@/components/history/liftSeries';
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
 import { buildExerciseStats } from '@/lib/history/exerciseStats';
 import { gradeE1rm, LiftGrading, TierGrade } from '@/lib/history/liftProgress';
-import { calculateWorkoutStats } from '@/lib/utils/utils';
+import { DAY_MS, calculateWorkoutStats } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { convertWeight, CustomExercise, LoggedWorkout, MuscleGroup, TrackingType, WeightUnit } from '@/types';
 
@@ -51,7 +51,6 @@ export interface SessionRecap {
 const shortName = (s: string) => s.replace(/\s*\([^)]*\)\s*$/, '').trim();
 
 const COMEBACK_MIN_DAYS = 7;
-const DAY_MS = 86400000;
 
 // Primary muscles, ordered by sets hitting them.
 function sessionMuscles(workout: LoggedWorkout): MuscleGroup[] {

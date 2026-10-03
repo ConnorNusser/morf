@@ -97,7 +97,7 @@ export function gradeE1rm(
   const standards = grading.gender === 'female' ? FEMALE_STANDARDS[id] : MALE_STANDARDS[id];
   if (!standards || e1rmInLbs <= 0) return undefined;
 
-  const toDisplay = (lbs: number) => Math.round(unit === 'lbs' ? lbs : convertWeight(lbs, 'lbs', unit));
+  const toDisplay = (lbs: number) => Math.round(convertWeight(lbs, 'lbs', unit));
 
   const percentile = calculateStrengthPercentile(e1rmInLbs, grading.bodyweightLbs, grading.gender, id, grading.age);
   const tier = getStrengthTier(percentile);
@@ -126,8 +126,8 @@ function gradeLift(id: string, recent: { set: Raw }[], unit: WeightUnit, grading
   const latest = recent[recent.length - 1]?.set;
   if (!latest || latest.weight <= 0) return undefined;
 
-  const toLbs = (s: Raw) => (s.unit === 'lbs' ? s.weight : convertWeight(s.weight, s.unit, 'lbs'));
-  const toDisplay = (lbs: number) => Math.round(unit === 'lbs' ? lbs : convertWeight(lbs, 'lbs', unit));
+  const toLbs = (s: Raw) => convertWeight(s.weight, s.unit, 'lbs');
+  const toDisplay = (lbs: number) => Math.round(convertWeight(lbs, 'lbs', unit));
 
   const grade = gradeE1rm(id, OneRMCalculator.estimate(toLbs(latest), latest.reps), unit, grading);
   if (!grade) return undefined;

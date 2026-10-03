@@ -74,10 +74,3 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     hasRewards: newAchievements.length > 0 || newPRs.length > 0,
   };
 }
-
-// Format a PR delta, e.g. "+15 lbs" or "New PR" for a first-ever lift.
-export function formatPRDelta(pr: SessionPR): string {
-  if (pr.previous === null) return 'New PR';
-  const delta = Math.round(pr.lift.estimatedOneRM - pr.previous);
-  return `+${delta} ${pr.lift.unit}`;
-}

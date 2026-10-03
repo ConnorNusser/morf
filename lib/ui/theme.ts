@@ -215,23 +215,6 @@ export const themes: Record<ThemeLevel, Theme> = {
   },
 };
 
-export const getNextTheme = (currentTheme: ThemeLevel): ThemeLevel => {
-  // Only progression themes are ordered; beginner variants stay at same level
-  const themeOrder: ThemeLevel[] = [
-    "beginner",
-    "intermediate",
-    "advanced",
-    "elite",
-    "god",
-  ];
-
-  const normalizedTheme = currentTheme.startsWith("beginner")
-    ? "beginner"
-    : currentTheme;
-  const currentIndex = themeOrder.indexOf(normalizedTheme);
-  return themeOrder[Math.min(currentIndex + 1, themeOrder.length - 1)];
-};
-
 export const isSeasonalThemeAvailable = (theme: ThemeLevel): boolean => {
   const now = new Date();
   const month = now.getMonth(); // 0-11

@@ -23,7 +23,7 @@ export function buildExerciseStats(
   const map: Record<string, Accum> = {};
 
   const addEntry = (id: string, weight: number, reps: number, date: Date, unit: WeightUnit) => {
-    const weightInLbs = unit === 'kg' ? convertWeight(weight, 'kg', 'lbs') : weight;
+    const weightInLbs = convertWeight(weight, unit, 'lbs');
     // 0-weight set has no meaningful 1RM; leave maxOneRM at 0 so the row reads bodyweight.
     const oneRM = weight > 0 ? OneRMCalculator.estimate(weightInLbs, reps) : 0;
 

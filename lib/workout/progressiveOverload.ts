@@ -11,7 +11,7 @@ import {
   convertWeight,
   CalculatedRoutine
 } from '@/types';
-import { roundWeight } from '@/lib/utils/utils';
+import { DAY_MS, roundWeight } from '@/lib/utils/utils';
 import { epleyFactor } from '@/lib/data/strengthStandards';
 import { LastPerformance, LoggedSet, nextPrescription, loadIncrement, resolveWorkingSet, NextPrescription } from './progression';
 import { getCatalogExercise } from './exerciseCatalog';
@@ -55,7 +55,7 @@ const WARMUP_RAMP_STEP = 0.15;
 const WARMUP_MIN_FRACTION = 0.3;
 
 // Anchors older than this with a fresher record reseed (layoffs).
-const ANCHOR_STALE_MS = 56 * 24 * 60 * 60 * 1000; // 8 weeks
+const ANCHOR_STALE_MS = 56 * DAY_MS; // 8 weeks
 
 /** Re-express a performed set at a different rep count via the Epley ratio
  *  (weight × (1 + reps/30) is unit-free, so no damped-e1RM/percentage-table

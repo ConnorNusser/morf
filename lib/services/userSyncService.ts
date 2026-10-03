@@ -4,7 +4,7 @@ import { supabase } from './supabase';
 import { analyticsService } from './analytics';
 import { geoService } from './geoService';
 import { LoggedWorkout, RemoteUser, RemoteUserData, Friend, LeaderboardEntry, UserLift, MuscleGroupPercentiles, TopContribution, OverallLeaderboardEntry, UserPercentileData, isFeaturedLift, WeightUnit} from '@/types';
-import { calculateStrengthPercentile, getStrengthLevelName, getStrengthTier, OneRMCalculator, StrengthTier, e1rmLbs} from '@/lib/data/strengthStandards';
+import { calculateStrengthPercentile, getStrengthTier, OneRMCalculator, StrengthTier, e1rmLbs} from '@/lib/data/strengthStandards';
 import { roundedAverage as toAvg, calculateOverallPercentile, convertWeightToLbs, formatBestSet, setVolumeLbs} from '@/lib/utils/utils';
 import { userService } from './userService';
 import { getCatalogExercise, getExerciseById, EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
@@ -631,7 +631,7 @@ class UserSyncService {
       }
 
       const overallPercentile = calculateOverallPercentile(nonZeroPercentiles);
-      const strengthLevel = getStrengthLevelName(overallPercentile);
+      const strengthLevel = getStrengthTier(overallPercentile);
 
       const muscleGroups = ['chest', 'back', 'shoulders', 'arms', 'legs', 'glutes'] as const;
       const liftToMuscles: Record<string, string[]> = {};

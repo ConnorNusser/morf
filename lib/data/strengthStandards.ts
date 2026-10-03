@@ -857,11 +857,6 @@ export function getPercentileColor(percentile: number): string {
   return getTierColor(getStrengthTier(percentile));
 }
 
-// Legacy alias → returns tier
-export function getStrengthLevelName(percentile: number): string {
-  return getStrengthTier(percentile);
-}
-
 // Radar-chart tier thresholds (base tiers only)
 export const RADAR_TIER_THRESHOLDS: { label: StrengthTierBase; threshold: number }[] = [
   { label: 'E', threshold: 0 },

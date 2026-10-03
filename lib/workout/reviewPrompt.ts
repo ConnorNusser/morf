@@ -5,6 +5,7 @@
 // post-workout celebration screen (never mid-workout), only once the user is
 // invested, only after a session that earned something, and never twice in a
 // stretch. iOS additionally hard-caps the native sheet at 3 shows per year.
+import { DAY_MS } from '@/lib/utils/utils';
 
 export interface ReviewPromptState {
   lastAskedAt: string | null; // ISO date of the last time we requested the sheet
@@ -29,7 +30,7 @@ export function shouldRequestReview(state: ReviewPromptState, ctx: ReviewContext
   if (ctx.totalWorkouts < MIN_WORKOUTS) return false;
   if (!ctx.hadWin) return false;
   if (state.lastAskedAt) {
-    const days = (ctx.now.getTime() - new Date(state.lastAskedAt).getTime()) / 86400000;
+    const days = (ctx.now.getTime() - new Date(state.lastAskedAt).getTime()) / DAY_MS;
     if (days < MIN_DAYS_BETWEEN_ASKS) return false;
   }
   return true;
