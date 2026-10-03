@@ -4,6 +4,7 @@
 // the diff is empty and nobody gets pushed.
 import { notificationService } from '@/lib/services/notificationService';
 import { userSyncService } from '@/lib/services/userSyncService';
+import { DAY_MS } from '@/lib/utils/utils';
 import { buildStandings, detectOvertakes, weekBounds } from './scoring';
 
 /**
@@ -35,7 +36,7 @@ export function beginOvertakeWatch(now: Date = new Date()): (synced: Promise<unk
           .map(id => after.active.find(s => s.userId === id))
           .filter(s => s != null)
           .map(s => ({ userId: s!.userId, points: s!.points }));
-        const daysLeft = Math.max(1, Math.ceil((end.getTime() - Date.now()) / (24 * 60 * 60 * 1000)));
+        const daysLeft = Math.max(1, Math.ceil((end.getTime() - Date.now()) / DAY_MS));
 
         await notificationService.notifyLeagueOvertakes(
           overtaken,

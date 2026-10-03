@@ -1,6 +1,6 @@
 // Lifetime "career" stats derived purely from workout history. Pure + clock-injectable.
 import { LoggedWorkout, WeightUnit, convertWeight } from '@/types';
-import { dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
+import { DAY_MS, dateKey, sortedDayTimestamps } from '@/lib/utils/utils';
 import { getWeekStreak } from '@/lib/workout/streak';
 
 export interface HeaviestSet {
@@ -31,7 +31,6 @@ function longestConsecutive(dayKeys: Set<string>): number {
   if (dayKeys.size === 0) return 0;
   const days = sortedDayTimestamps(dayKeys);
 
-  const DAY_MS = 24 * 60 * 60 * 1000;
   let longest = 1;
   let run = 1;
   for (let i = 1; i < days.length; i++) {
@@ -65,7 +64,7 @@ export function computeCareerStats(
     for (const exercise of workout.exercises || []) {
       for (const set of exercise.completedSets || []) {
         if (!set.completed) continue;
-        const weight = set.unit === unit ? set.weight : convertWeight(set.weight, set.unit, unit);
+        const weight = convertWeight(set.weight, set.unit, unit);
         totalSets += 1;
         totalReps += set.reps;
         const vol = weight * set.reps;
@@ -84,7 +83,7 @@ export function computeCareerStats(
   const week = getWeekStreak(workouts, now);
 
   const daysSinceStart = firstWorkoutAt
-    ? Math.max(1, Math.floor((now.getTime() - firstWorkoutAt.getTime()) / (24 * 60 * 60 * 1000)) + 1)
+    ? Math.max(1, Math.floor((now.getTime() - firstWorkoutAt.getTime()) / DAY_MS) + 1)
     : 0;
 
   return {

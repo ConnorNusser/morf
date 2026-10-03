@@ -29,7 +29,7 @@ export async function loadExerciseRecords(
   const legacy = [...(legacyProfile?.lifts ?? []), ...(legacyProfile?.secondaryLifts ?? [])];
   for (const lift of legacy) {
     if (lift.weight <= 0) continue;
-    const lbs = lift.unit === 'lbs' ? lift.weight : convertWeightToLbs(lift.weight, lift.unit);
+    const lbs = convertWeightToLbs(lift.weight, lift.unit);
     const e1rm = OneRMCalculator.estimate(lbs, lift.reps);
     const rec = records[lift.id];
     if (!rec) {

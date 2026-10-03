@@ -1,6 +1,7 @@
 // Pure helpers behind the retention reminders. `now` is injectable for tests.
 import { LoggedWorkout } from '@/types';
 import { getWeekStreak } from '@/lib/workout/streak';
+import { DAY_MS } from '@/lib/utils/utils';
 
 export interface StreakState {
   current: number; // consecutive trained *weeks* — see lib/workout/streak.ts
@@ -25,7 +26,7 @@ export function getDaysSinceLastWorkout(workouts: LoggedWorkout[], now: Date = n
   // Count calendar days between local midnights so "yesterday evening → this
   // morning" reads as 1 day, not 0.
   const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  return Math.round((startOfDay(now.getTime()) - startOfDay(latest)) / 86_400_000);
+  return Math.round((startOfDay(now.getTime()) - startOfDay(latest)) / DAY_MS);
 }
 
 export interface HabitDay {

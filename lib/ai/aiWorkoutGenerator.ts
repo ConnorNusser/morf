@@ -6,6 +6,7 @@ import { buildCustomExercisePrompt } from './prompts/customExercise.prompt';
 import { buildWorkoutGenerationPrompt } from './prompts/workoutGeneration.prompt';
 import { buildWorkoutRefinementPrompt } from './prompts/workoutRefinement.prompt';
 import { storageService } from '@/lib/storage/storage';
+import { roundWeight } from '@/lib/utils/utils';
 import { userService } from '@/lib/services/userService';
 import { getAvailableExercises, getCatalogExercise, getExercisesByEquipment } from '@/lib/workout/exerciseCatalog';
 import { ALL_EQUIPMENT, formatEquipmentList } from '@/lib/workout/equipment';
@@ -282,12 +283,12 @@ class AIWorkoutGeneratorService {
 
     if (weightUnit === 'kg') {
       baseWeights = {
-        squat: Math.round(baseWeights.squat * 1 / LBS_PER_KG / 2.5) * 2.5,
-        bench: Math.round(baseWeights.bench * 1 / LBS_PER_KG / 2.5) * 2.5,
-        row: Math.round(baseWeights.row * 1 / LBS_PER_KG / 2.5) * 2.5,
-        press: Math.round(baseWeights.press * 1 / LBS_PER_KG / 2.5) * 2.5,
-        curl: Math.round(baseWeights.curl * 1 / LBS_PER_KG / 2.5) * 2.5,
-        extension: Math.round(baseWeights.extension * 1 / LBS_PER_KG / 2.5) * 2.5,
+        squat: roundWeight(baseWeights.squat / LBS_PER_KG, 'kg'),
+        bench: roundWeight(baseWeights.bench / LBS_PER_KG, 'kg'),
+        row: roundWeight(baseWeights.row / LBS_PER_KG, 'kg'),
+        press: roundWeight(baseWeights.press / LBS_PER_KG, 'kg'),
+        curl: roundWeight(baseWeights.curl / LBS_PER_KG, 'kg'),
+        extension: roundWeight(baseWeights.extension / LBS_PER_KG, 'kg'),
       };
     }
 

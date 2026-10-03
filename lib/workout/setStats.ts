@@ -1,6 +1,6 @@
 // Shared helpers for picking the "best" completed set out of a workout exercise.
 import { WeightUnit, convertWeight } from '@/types';
-import { OneRMCalculator } from '@/lib/data/strengthStandards';
+import { e1rmLbs } from '@/lib/data/strengthStandards';
 
 interface SetLike {
   weight: number;
@@ -33,9 +33,7 @@ export function bestCompletedSet(
   by: 'e1rm' | 'weight' = 'e1rm'
 ): CompletedSet | null {
   if (sets.length === 0) return null;
-  const score = (s: CompletedSet): number => {
-    const lbs = convertWeight(s.weight, s.unit, 'lbs');
-    return by === 'e1rm' ? OneRMCalculator.estimate(lbs, s.reps) : lbs;
-  };
+  const score = (s: CompletedSet): number =>
+    by === 'e1rm' ? e1rmLbs(s.weight, s.reps, s.unit) : convertWeight(s.weight, s.unit, 'lbs');
   return sets.reduce((best, s) => (score(s) > score(best) ? s : best));
 }

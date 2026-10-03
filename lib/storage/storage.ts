@@ -1,5 +1,6 @@
 import { CustomExercise, ExerciseRecord, LoggedWorkout, LiftDisplayFilters, Program, Routine, UserProfile } from '@/types';
 import { LeagueWeekResult } from '@/lib/leagues/results';
+import { DAY_MS } from '@/lib/utils/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeLevel } from '@/lib/ui/theme';
 import { BackgroundGradientId, getBackgroundGradient } from '@/lib/ui/backgroundGradients';
@@ -318,15 +319,6 @@ class StorageService {
     }
   }
 
-  async getCurrentRoutine(): Promise<Routine | null> {
-    const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_ROUTINE);
-    return data ? JSON.parse(data) : null;
-  };
-
-  async setCurrentRoutine(routine: Routine): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_ROUTINE, JSON.stringify(routine));
-  };
-
   async getRoutines(): Promise<Routine[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINES);
@@ -462,11 +454,6 @@ class StorageService {
       console.error('Error loading exercise records:', error);
       return {};
     }
-  }
-
-  async getExerciseRecord(exerciseId: string): Promise<ExerciseRecord | null> {
-    const records = await this.getExerciseRecords();
-    return records[exerciseId] ?? null;
   }
 
   async saveExerciseRecords(records: Record<string, ExerciseRecord>): Promise<void> {
@@ -893,7 +880,7 @@ class StorageService {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_STRENGTH_PROGRESS);
       if (data) {
         const progress = JSON.parse(data) as PendingStrengthProgress;
-        if (Date.now() - progress.timestamp < 24 * 60 * 60 * 1000) {
+        if (Date.now() - progress.timestamp < DAY_MS) {
           return progress;
         }
         await this.clearPendingStrengthProgress();

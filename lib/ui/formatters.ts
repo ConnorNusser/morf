@@ -1,11 +1,12 @@
 // Formatting utilities for dates, durations, and display values.
+import { DAY_MS } from '@/lib/utils/utils';
 
 export const formatRelativeTime = (date: Date): string => {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / (1000 * 60));
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(diffMs / DAY_MS);
   const diffWeeks = Math.floor(diffDays / 7);
 
   if (diffMins < 1) return 'just now';
@@ -30,7 +31,7 @@ export const formatRelativeDate = (date: Date): string => {
   // "Yesterday", matching the dateKey bucketing used everywhere else.
   const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const d = new Date(date);
-  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / DAY_MS);
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';

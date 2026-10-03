@@ -1,6 +1,6 @@
 // Derived behavioral signals for niche achievements, computed purely from workout history.
 import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
-import { dateKey, sortedDayTimestamps, weekStart } from '@/lib/utils/utils';
+import { DAY_MS, dateKey, sortedDayTimestamps, weekStart } from '@/lib/utils/utils';
 import { getExercise } from '@/lib/workout/exerciseCatalog';
 import { LoggedWorkout } from '@/types';
 
@@ -23,8 +23,6 @@ export interface BehavioralSignals {
   trainedChristmas: boolean; // Dec 25
   trainedLeapDay: boolean; // Feb 29
 }
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Monday-start week key, so "weekend pair" groups Sat+Sun of the same week.
 function weekKey(d: Date): string {

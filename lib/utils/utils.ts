@@ -1,7 +1,7 @@
 import { LBS_PER_KG, WeightUnit, TrackingType, LoggedWorkout } from "@/types";
 import { trend } from "@/lib/ui/tokens";
 
-const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
+export const convertWeightToLbs = (weight: number, unit: WeightUnit): number => {
   if (unit === 'kg') {
     return Math.round(weight * LBS_PER_KG);
   }
@@ -63,6 +63,8 @@ export const formatCompact = (value: number, opts: { suffix?: string } = {}): st
   return `${Math.round(value)}${suffix}`;
 };
 
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
 /** Local-date key "YYYY-MM-DD" (not UTC) — used as a per-day bucketing key. */
 export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -110,8 +112,6 @@ export function getProgressionColor(
     default: return neutralColor;
   }
 }
-
-export { convertWeightToLbs };
 
 // Format seconds to MM:SS or H:MM:SS.
 export const formatDuration = (seconds: number): string => {
@@ -318,53 +318,6 @@ export const calculateWorkoutStats = (
     hasWeightedExercises,
     hasCardioExercises,
   };
-};
-
-export interface FormatStatsLineOptions {
-  unit?: WeightUnit;
-  showSetCount?: boolean;
-  includeExerciseCount?: number; // if set, prefix with "N exercises · "
-}
-
-export const formatWorkoutStatsLine = (
-  stats: WorkoutStats,
-  options: FormatStatsLineOptions = {}
-): string => {
-  const { unit = 'lbs', showSetCount = true, includeExerciseCount } = options;
-  const parts: string[] = [];
-
-  if (includeExerciseCount !== undefined && includeExerciseCount > 0) {
-    parts.push(`${includeExerciseCount} exercises`);
-  }
-
-  if (stats.hasCardioExercises && !stats.hasWeightedExercises) {
-    if (stats.totalCardioDurationSeconds > 0) {
-      parts.push(formatDuration(stats.totalCardioDurationSeconds));
-    }
-    if (stats.totalDistanceMeters > 0) {
-      parts.push(formatDistance(stats.totalDistanceMeters));
-    }
-    return parts.length > 0 ? parts.join(' · ') : '—';
-  }
-
-  if (showSetCount && stats.totalSets > 0) {
-    parts.push(`${stats.totalSets} sets`);
-  }
-
-  if (stats.hasWeightedExercises && stats.totalVolumeLbs > 0) {
-    parts.push(formatVolume(stats.totalVolumeLbs, unit));
-  }
-
-  if (stats.hasCardioExercises) {
-    if (stats.totalDistanceMeters > 0) {
-      parts.push(formatDistance(stats.totalDistanceMeters));
-    }
-    if (stats.totalCardioDurationSeconds > 0) {
-      parts.push(`${formatDuration(stats.totalCardioDurationSeconds)} cardio`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : '—';
 };
 
 export const combineWorkoutStats = (statsList: WorkoutStats[]): WorkoutStats => {

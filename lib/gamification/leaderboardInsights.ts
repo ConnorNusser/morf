@@ -1,4 +1,5 @@
 import { getBaseTier, StrengthTier, StrengthTierBase } from '@/lib/data/strengthStandards';
+import { DAY_MS } from '@/lib/utils/utils';
 
 /**
  * Pure leaderboard analytics: 90-day movement (rank / 1RM / percentile),
@@ -126,6 +127,6 @@ export function groupByTierBand<T>(
 
 /** ISO date (YYYY-MM-DD) `days` days before `now` — cutoff key for history lookups. */
 export function cutoffDateISO(now: Date, days: number): string {
-  const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(now.getTime() - days * DAY_MS);
   return cutoff.toISOString().split('T')[0];
 }
