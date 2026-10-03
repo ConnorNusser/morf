@@ -1,5 +1,7 @@
+import { useAlert } from '@/components/CustomAlert';
 import { FeedWorkout } from '@/components/feed/FeedCard';
 import { FeedComment, feedService, toggleLikeFor } from '@/lib/services/feedService';
+import { containsProfanity } from '@/lib/utils/moderation';
 import { RefObject, useRef, useState } from 'react';
 import { Keyboard, ScrollView } from 'react-native';
 
@@ -11,13 +13,15 @@ interface UseWorkoutThreadCommentsParams {
 }
 
 // Composer state plus the add / delete / like comment handlers for a workout
-// thread. Each handler waits for the server, then pushes the updated workout up.
+// thread. Each handler waits for the server, then pushes the updated workout up,
+// or tells the user when the action did not go through.
 export function useWorkoutThreadComments({
   workout,
   currentUserId,
   onWorkoutUpdated,
   scrollViewRef,
 }: UseWorkoutThreadCommentsParams) {
+  const { showAlert } = useAlert();
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -51,7 +55,8 @@ export function useWorkoutThreadComments({
 
     Keyboard.dismiss();
     setIsSubmitting(true);
-    const newComment = await feedService.addComment(workout.id, commentText.trim());
+    const trimmedComment = commentText.trim();
+    const newComment = await feedService.addComment(workout.id, trimmedComment);
     setIsSubmitting(false);
 
     if (newComment) {
@@ -60,6 +65,15 @@ export function useWorkoutThreadComments({
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
+    } else {
+      // The service rejects profanity with the same null as a network failure.
+      showAlert({
+        title: 'Comment Not Posted',
+        message: containsProfanity(trimmedComment)
+          ? 'Your comment contains language that is not allowed. Please edit it and try again.'
+          : 'Could not post your comment. Please try again.',
+        type: 'error',
+      });
     }
   };
 
@@ -68,6 +82,8 @@ export function useWorkoutThreadComments({
     const success = await feedService.deleteComment(workout.id, commentId);
     if (success) {
       applyCommentUpdate(workout, current => current.filter(c => c.id !== commentId));
+    } else {
+      showAlert({ title: 'Error', message: 'Could not delete the comment. Please try again.', type: 'error' });
     }
   };
 
@@ -81,6 +97,8 @@ export function useWorkoutThreadComments({
         const commentLikes = toggleLikeFor(c.likes, currentUserId);
         return { ...c, likes: commentLikes };
       }));
+    } else {
+      showAlert({ title: 'Error', message: 'Could not update your like. Please try again.', type: 'error' });
     }
   };
 
