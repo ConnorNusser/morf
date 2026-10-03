@@ -1,4 +1,4 @@
-import { MUSCLE_TO_PPL, PPLCategory } from '@/lib/data/pplCategories';
+import { pplForExercise, PPLCategory } from '@/lib/data/pplCategories';
 import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
 
 export interface PPLExerciseEntry {
@@ -6,7 +6,7 @@ export interface PPLExerciseEntry {
   sets: number;
 }
 
-/** Catalog exercises bucketed by the PPL category of their first primary muscle. */
+/** Catalog exercises bucketed by PPL category, classified like calculatePPLBreakdown. */
 export function groupExercisesByPPL(
   exercises: { name: string; sets: number }[],
 ): Record<PPLCategory, PPLExerciseEntry[]> {
@@ -20,15 +20,12 @@ export function groupExercisesByPPL(
     const exerciseInfo = EXERCISE_CATALOG.find(
       w => w.name.toLowerCase() === exercise.name.toLowerCase()
     );
-    if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {
-      const primaryMuscle = exerciseInfo.primaryMuscles[0];
-      const pplCategory = MUSCLE_TO_PPL[primaryMuscle];
-      if (pplCategory) {
-        result[pplCategory].push({
-          name: exercise.name,
-          sets: exercise.sets,
-        });
-      }
+    const pplCategory = pplForExercise(exerciseInfo);
+    if (pplCategory) {
+      result[pplCategory].push({
+        name: exercise.name,
+        sets: exercise.sets,
+      });
     }
   });
 
