@@ -7,6 +7,15 @@ import type { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Routine, Routine
 
 const BENCH = 'bench-press-barbell';
 
+// Fixtures are dated around 2026-06-30 and anchor staleness reads Date.now(),
+// so pin the clock — otherwise every anchor ages past the 8-week cutoff.
+beforeAll(() => {
+  jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] }).setSystemTime(new Date('2026-07-01T12:00:00Z'));
+});
+afterAll(() => {
+  jest.useRealTimers();
+});
+
 const day = (id: string, name: string, reps: number, exerciseId = BENCH): Routine =>
   ({
     id,

@@ -395,10 +395,16 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
   useEffect(() => {
     if (!isSessionLoaded) return;
 
+    // Pause accounting belongs to one start time — a fresh/cleared clock must
+    // not inherit the previous one's paused spans.
     if (logText.length > 0 && !workoutStartTime) {
       setWorkoutStartTime(new Date());
+      setPausedAt(null);
+      setPausedTotalSeconds(0);
     } else if (logText.length === 0 && workoutStartTime && !manuallyStarted) {
       setWorkoutStartTime(null);
+      setPausedAt(null);
+      setPausedTotalSeconds(0);
       setElapsedTime(0);
     }
   }, [logText, workoutStartTime, isSessionLoaded, manuallyStarted]);
