@@ -22,6 +22,7 @@ export function getLastSetsFor(
         weight: s.unit === unit ? s.weight : roundWeight(convertWeight(s.weight, s.unit, unit), unit),
         reps: s.reps,
         unit,
+        duration: s.duration, // timed holds: "prev" and autofill show last time
       }));
     if (sets.length > 0) return sets;
   }

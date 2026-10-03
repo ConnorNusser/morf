@@ -449,7 +449,15 @@ class UserSyncService {
         };
       });
 
-      const { error } = await supabase.from('user_lifts').insert(liftRecords);
+      // workout_id lets deleteWorkout remove a deleted session's lifts (016).
+      // Until that migration is applied the column is unknown — retry without
+      // it so lifts keep syncing.
+      let { error } = await supabase
+        .from('user_lifts')
+        .insert(liftRecords.map((record, i) => ({ ...record, workout_id: lifts[i].parentId })));
+      if (error && (error.code === 'PGRST204' || error.code === '42703')) {
+        ({ error } = await supabase.from('user_lifts').insert(liftRecords));
+      }
 
       if (error) {
         console.error('Error syncing lifts:', error);
@@ -1304,6 +1312,17 @@ class UserSyncService {
       if (error) {
         console.error('Error deleting workout:', error);
         return false;
+      }
+
+      // The session's lifts go with it — otherwise a deleted (e.g. mistyped)
+      // set keeps paying league PR points and stands as the all-time best.
+      // Best-effort: pre-016 the column doesn't exist and this just logs.
+      const { error: liftsError } = await supabase
+        .from('user_lifts')
+        .delete()
+        .eq('workout_id', workoutId);
+      if (liftsError) {
+        console.error('Error deleting workout lifts:', liftsError);
       }
       return true;
     } catch (error) {
