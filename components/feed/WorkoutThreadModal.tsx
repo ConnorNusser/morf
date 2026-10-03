@@ -15,7 +15,7 @@ import { calculatePPLBreakdown, PPLCategory } from '@/lib/data/pplCategories';
 import { groupExercisesByPPL, PPLExerciseEntry } from '@/lib/data/pplExerciseGroups';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -64,6 +64,12 @@ export default function WorkoutThreadModal({
   const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set());
   const [pplModalVisible, setPplModalVisible] = useState(false);
   const [selectedPplCategory, setSelectedPplCategory] = useState<PPLCategory | null>(null);
+
+  // Expanded rows are keyed by index, so they must not carry over to another workout.
+  const workoutId = workout?.id;
+  useEffect(() => {
+    setExpandedExercises(new Set());
+  }, [workoutId]);
 
   const toggleExerciseExpanded = (index: number) => {
     playHapticFeedback('light', false);
