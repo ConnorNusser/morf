@@ -1,162 +1,31 @@
 import IconButton from '@/components/IconButton';
 import { useLikePop } from '@/hooks/useLikePop';
 import { Text, View } from '@/components/Themed';
-import TierBadge from '@/components/TierBadge';
-import Badge from '@/components/ui/Badge';
-import UserAvatar from '@/components/ui/UserAvatar';
+import PplExercisesModal from '@/components/feed/workoutThread/PplExercisesModal';
+import WorkoutCommentComposer from '@/components/feed/workoutThread/WorkoutCommentComposer';
+import WorkoutCommentList from '@/components/feed/workoutThread/WorkoutCommentList';
+import WorkoutExerciseList from '@/components/feed/workoutThread/WorkoutExerciseList';
+import WorkoutThreadActions from '@/components/feed/workoutThread/WorkoutThreadActions';
+import WorkoutThreadSummary from '@/components/feed/workoutThread/WorkoutThreadSummary';
+import { useWorkoutThreadComments } from '@/components/feed/workoutThread/useWorkoutThreadComments';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePauseVideosWhileOpen } from '@/contexts/VideoPlayerContext';
-import { formatDurationWords, formatRelativeTime } from '@/lib/ui/formatters';
 import playHapticFeedback from '@/lib/utils/haptic';
-import { calculatePPLBreakdown, MUSCLE_TO_PPL, PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
-import { getStrengthTier, StrengthTier } from '@/lib/data/strengthStandards';
-import { feedService, FeedComment, toggleLikeFor } from '@/lib/services/feedService';
-import { formatVolumeNumber, formatSet } from '@/lib/utils/utils';
-import { EXERCISE_CATALOG } from '@/lib/workout/exerciseCatalog';
+import { calculatePPLBreakdown, PPLCategory } from '@/lib/data/pplCategories';
+import { groupExercisesByPPL, PPLExerciseEntry } from '@/lib/data/pplExerciseGroups';
+import { StrengthTier } from '@/lib/data/strengthStandards';
 import { WeightUnit } from '@/types';
-import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
-  TouchableOpacity,
   View as RNView,
 } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { FeedWorkout } from './FeedCard';
-
-interface WorkoutCommentItemProps {
-  comment: FeedComment;
-  currentUserId: string | null;
-  isAuthor: boolean;
-  onDelete: (commentId: string) => void;
-  onLike: (commentId: string) => void;
-  onUserPress: (userId: string, username: string, profilePictureUrl?: string) => void;
-}
-
-function WorkoutCommentItem({
-  comment,
-  currentUserId,
-  isAuthor,
-  onDelete,
-  onLike,
-  onUserPress,
-}: WorkoutCommentItemProps) {
-  const { currentTheme } = useTheme();
-  const swipeableRef = useRef<Swipeable>(null);
-
-  const likes = comment.likes || [];
-  const likeCount = likes.length;
-  const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
-
-  const commentLikeScale = useSharedValue(1);
-  const commentLikeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: commentLikeScale.value }],
-  }));
-
-  const handleLike = () => {
-    playHapticFeedback('light', false);
-    commentLikeScale.value = withSequence(
-      withTiming(1.3, { duration: 100 }),
-      withSpring(1, { damping: 12, stiffness: 200 })
-    );
-    onLike(comment.id);
-  };
-
-  const handleDelete = () => {
-    playHapticFeedback('medium', false);
-    swipeableRef.current?.close();
-    onDelete(comment.id);
-  };
-
-  const renderRightActions = () => {
-    if (!isAuthor) return null;
-    return (
-      <TouchableOpacity
-        style={[styles.commentDeleteAction, { backgroundColor: '#EF4444' }]}
-        onPress={handleDelete}
-      >
-        <Ionicons name="trash-outline" size={20} color="#fff" />
-      </TouchableOpacity>
-    );
-  };
-
-  const commentContent = (
-    <View style={[styles.commentItem, { backgroundColor: currentTheme.colors.background }]}>
-      <TouchableOpacity
-        onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
-        activeOpacity={0.7}
-      >
-        <UserAvatar uri={comment.profile_picture_url} username={comment.username} size={32} />
-      </TouchableOpacity>
-      <View style={styles.commentContent}>
-        <View style={styles.commentHeader}>
-          <TouchableOpacity
-            onPress={() => onUserPress(comment.user_id, comment.username, comment.profile_picture_url)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.commentUsername, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-              @{comment.username}
-            </Text>
-          </TouchableOpacity>
-          <Text style={[styles.commentTime, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
-            {formatRelativeTime(new Date(comment.created_at))}
-          </Text>
-        </View>
-        <Text style={[styles.commentText, { color: currentTheme.colors.text, fontWeight: '400' }]}>
-          {comment.text}
-        </Text>
-      </View>
-      <TouchableOpacity
-        style={styles.commentLikeButton}
-        onPress={handleLike}
-        activeOpacity={0.6}
-      >
-        <Animated.View style={commentLikeAnimatedStyle}>
-          <Ionicons
-            name={userHasLiked ? 'heart' : 'heart-outline'}
-            size={22}
-            color={userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '40'}
-          />
-        </Animated.View>
-        {likeCount > 0 && (
-          <Text style={[
-            styles.commentLikeCount,
-            {
-              color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '50',
-              fontWeight: '500'
-            }
-          ]}>
-            {likeCount}
-          </Text>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-
-  if (isAuthor) {
-    return (
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={renderRightActions}
-        overshootRight={false}
-        friction={2}
-      >
-        {commentContent}
-      </Swipeable>
-    );
-  }
-
-  return commentContent;
-}
 
 interface WorkoutThreadModalProps {
   visible: boolean;
@@ -182,12 +51,19 @@ export default function WorkoutThreadModal({
   const { currentTheme } = useTheme();
   const insets = useSafeAreaInsets();
   usePauseVideosWhileOpen(visible);
-  const [commentText, setCommentText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const {
+    commentText,
+    setCommentText,
+    isSubmitting,
+    comments,
+    handleSubmitComment,
+    handleDeleteComment,
+    handleLikeComment,
+  } = useWorkoutThreadComments({ workout, currentUserId, onWorkoutUpdated, scrollViewRef });
   const [expandedExercises, setExpandedExercises] = useState<Set<number>>(new Set());
   const [pplModalVisible, setPplModalVisible] = useState(false);
   const [selectedPplCategory, setSelectedPplCategory] = useState<PPLCategory | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
 
   const toggleExerciseExpanded = (index: number) => {
     playHapticFeedback('light', false);
@@ -210,32 +86,9 @@ export default function WorkoutThreadModal({
     return calculatePPLBreakdown(workout.exercises);
   }, [workout]);
 
-  const pplExercises = useMemo((): Record<PPLCategory, { name: string; sets: number }[]> => {
-    const result: Record<PPLCategory, { name: string; sets: number }[]> = {
-      push: [],
-      pull: [],
-      legs: [],
-    };
-
-    if (!workout) return result;
-
-    workout.exercises.forEach(exercise => {
-      const exerciseInfo = EXERCISE_CATALOG.find(
-        w => w.name.toLowerCase() === exercise.name.toLowerCase()
-      );
-      if (exerciseInfo && exerciseInfo.primaryMuscles.length > 0) {
-        const primaryMuscle = exerciseInfo.primaryMuscles[0];
-        const pplCategory = MUSCLE_TO_PPL[primaryMuscle];
-        if (pplCategory) {
-          result[pplCategory].push({
-            name: exercise.name,
-            sets: exercise.sets,
-          });
-        }
-      }
-    });
-
-    return result;
+  const pplExercises = useMemo((): Record<PPLCategory, PPLExerciseEntry[]> => {
+    if (!workout) return { push: [], pull: [], legs: [] };
+    return groupExercisesByPPL(workout.exercises);
   }, [workout]);
 
   const handlePplChipPress = (category: PPLCategory) => {
@@ -271,60 +124,6 @@ export default function WorkoutThreadModal({
   const likeCount = likes.length;
   const userHasLiked = currentUserId ? likes.some(l => l.user_id === currentUserId) : false;
 
-  const comments = feedData?.comments || [];
-
-  const handleSubmitComment = async () => {
-    if (!commentText.trim() || isSubmitting) return;
-
-    Keyboard.dismiss();
-    setIsSubmitting(true);
-    const newComment = await feedService.addComment(workout.id, commentText.trim());
-    setIsSubmitting(false);
-
-    if (newComment) {
-      setCommentText('');
-      const updatedComments = [...comments, newComment];
-      const updatedWorkout: FeedWorkout = {
-        ...workout,
-        feed_data: { ...feedData, comments: updatedComments },
-      };
-      onWorkoutUpdated?.(updatedWorkout);
-      setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    const success = await feedService.deleteComment(workout.id, commentId);
-    if (success) {
-      const updatedComments = comments.filter(c => c.id !== commentId);
-      const updatedWorkout: FeedWorkout = {
-        ...workout,
-        feed_data: { ...feedData, comments: updatedComments },
-      };
-      onWorkoutUpdated?.(updatedWorkout);
-    }
-  };
-
-  const handleLikeComment = async (commentId: string) => {
-    const success = await feedService.toggleWorkoutCommentLike(workout.id, commentId);
-    if (success) {
-      const updatedComments = comments.map(c => {
-        if (c.id !== commentId) return c;
-
-        const commentLikes = toggleLikeFor(c.likes, currentUserId);
-        return { ...c, likes: commentLikes };
-      });
-
-      const updatedWorkout: FeedWorkout = {
-        ...workout,
-        feed_data: { ...feedData, comments: updatedComments },
-      };
-      onWorkoutUpdated?.(updatedWorkout);
-    }
-  };
-
   return (
     <Modal
       visible={visible}
@@ -357,322 +156,55 @@ export default function WorkoutThreadModal({
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
           >
-          <View style={styles.userRow}>
-            <TouchableOpacity
-              onPress={() => handleUserTap(workout.user_id, workout.username, workout.profile_picture_url)}
-              activeOpacity={0.7}
-              style={styles.userTapArea}
-            >
-              <UserAvatar uri={workout.profile_picture_url} username={workout.username} size={44} />
-              <View style={styles.userInfo}>
-                <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-                  @{workout.username}
-                </Text>
-                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-                  {formatRelativeTime(workout.created_at)}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            {strengthLevel && (
-              <TierBadge tier={strengthLevel} size="small" />
-            )}
-          </View>
+            <WorkoutThreadSummary
+              workout={workout}
+              weightUnit={weightUnit}
+              hasPRs={hasPRs}
+              strengthLevel={strengthLevel}
+              pplBreakdown={pplBreakdown}
+              onUserPress={handleUserTap}
+              onPplChipPress={handlePplChipPress}
+            />
 
-          <View style={[styles.statsGrid, { backgroundColor: currentTheme.colors.surface }]}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
-                {workout.exercise_count}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-                exercises
-              </Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
-                {formatDurationWords(workout.duration_seconds)}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-                duration
-              </Text>
-            </View>
-            <View style={[styles.statDivider, { backgroundColor: currentTheme.colors.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
-                {formatVolumeNumber(workout.total_volume, weightUnit)}
-              </Text>
-              <Text style={[styles.statLabel, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-                {weightUnit}
-              </Text>
-            </View>
-          </View>
+            <WorkoutExerciseList
+              exercises={workout.exercises}
+              expandedExercises={expandedExercises}
+              onToggleExercise={toggleExerciseExpanded}
+            />
 
-          {(hasPRs || pplBreakdown.total > 0) && (
-            <View style={styles.tagsRow}>
-              {hasPRs && (
-                <Badge
-                  variant="solid"
-                  label={feedData?.pr_count === 1 ? 'New PR' : `${feedData?.pr_count} PRs`}
-                />
-              )}
-              {(['push', 'pull', 'legs'] as const)
-                .filter(category => pplBreakdown.counts[category] > 0)
-                .map(category => (
-                  <TouchableOpacity
-                    key={category}
-                    style={[styles.pplChip, { backgroundColor: PPL_COLORS[category] + '20' }]}
-                    onPress={() => handlePplChipPress(category)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[category] }]} />
-                    <Text style={[styles.pplChipText, { color: currentTheme.colors.text, fontWeight: '500' }]}>
-                      {PPL_LABELS[category]}
-                    </Text>
-                    <Text style={[styles.pplChipCount, { color: PPL_COLORS[category], fontWeight: '700' }]}>
-                      {pplBreakdown.counts[category]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-            </View>
-          )}
+            <WorkoutThreadActions
+              userHasLiked={userHasLiked}
+              likeCount={likeCount}
+              commentCount={comments.length}
+              likeAnimatedStyle={likeAnimatedStyle}
+              onLike={handleLike}
+            />
 
-          <View style={styles.exerciseList}>
-            {workout.exercises.map((ex, i) => {
-              const isExpanded = expandedExercises.has(i);
-              const hasDetailedSets = ex.allSets && ex.allSets.length > 0;
-
-              return (
-                <View key={i}>
-                  <TouchableOpacity
-                    activeOpacity={hasDetailedSets ? 0.7 : 1}
-                    onPress={() => hasDetailedSets && toggleExerciseExpanded(i)}
-                    style={[
-                      styles.exerciseRow,
-                      !isExpanded && i < workout.exercises.length - 1 && { borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }
-                    ]}
-                  >
-                    <View style={styles.exerciseNameContainer}>
-                      {hasDetailedSets && (
-                        <Ionicons
-                          name={isExpanded ? 'chevron-down' : 'chevron-forward'}
-                          size={16}
-                          color={currentTheme.colors.text + '50'}
-                          style={{ marginRight: 6 }}
-                        />
-                      )}
-                      <Text style={[styles.exerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
-                        {ex.name}
-                      </Text>
-                      {ex.percentile && ex.percentile > 0 && (
-                        <TierBadge tier={getStrengthTier(ex.percentile)} size="tiny" showTooltip={false} />
-                      )}
-                    </View>
-                    <View style={styles.exerciseRight}>
-                      <Text style={[styles.exerciseSets, { color: currentTheme.colors.text + '70', fontWeight: '400' }]}>
-                        {ex.bestSet}
-                      </Text>
-                      {hasDetailedSets && (
-                        <Text style={[styles.setCount, { color: currentTheme.colors.text + '40', fontWeight: '400' }]}>
-                          {ex.sets} sets
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-
-                  {isExpanded && hasDetailedSets && (
-                    <View style={[styles.setsExpanded, { backgroundColor: currentTheme.colors.surface + '50' }]}>
-                      {ex.allSets!.map((set, setIndex) => (
-                        <View
-                          key={setIndex}
-                          style={[
-                            styles.setRow,
-                            setIndex < ex.allSets!.length - 1 && { borderBottomColor: currentTheme.colors.border + '30', borderBottomWidth: StyleSheet.hairlineWidth }
-                          ]}
-                        >
-                          <Text style={[styles.setNumber, { color: currentTheme.colors.text + '50', fontWeight: '500' }]}>
-                            Set {set.setNumber}
-                          </Text>
-                          <View style={styles.setDetails}>
-                            <Text style={[styles.setWeight, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-                              {formatSet(set, { trackingType: ex.trackingType, showUnit: true })}
-                            </Text>
-                            {set.isPersonalRecord && (
-                              <View style={[styles.prBadge, { backgroundColor: currentTheme.colors.primary + '20' }]}>
-                                <Text style={[styles.prBadgeText, { color: currentTheme.colors.primary, fontWeight: '600' }]}>
-                                  Best
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  {isExpanded && i < workout.exercises.length - 1 && (
-                    <View style={{ borderBottomColor: currentTheme.colors.border, borderBottomWidth: StyleSheet.hairlineWidth }} />
-                  )}
-                </View>
-              );
-            })}
-          </View>
-
-          <View style={[styles.actionsRow, { borderColor: currentTheme.colors.border }]}>
-            <View style={styles.actionsLeft}>
-              <TouchableOpacity
-                style={[
-                  styles.likeButton,
-                  userHasLiked && { backgroundColor: currentTheme.colors.primary + '15' }
-                ]}
-                onPress={handleLike}
-                activeOpacity={0.6}
-              >
-                <Animated.View style={likeAnimatedStyle}>
-                  <Ionicons
-                    name={userHasLiked ? 'heart' : 'heart-outline'}
-                    size={22}
-                    color={userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70'}
-                  />
-                </Animated.View>
-                {likeCount > 0 && (
-                  <Text style={[styles.likeCount, { color: userHasLiked ? currentTheme.colors.primary : currentTheme.colors.text + '70', fontWeight: '500' }]}>
-                    {likeCount}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.commentCount}>
-              <Ionicons name="chatbubble-outline" size={18} color={currentTheme.colors.text + '60'} />
-              <Text style={[styles.commentCountText, { color: currentTheme.colors.text + '60', fontWeight: '500' }]}>
-                {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.commentsSection}>
-            <Text style={[styles.commentsTitle, { color: currentTheme.colors.text, fontWeight: '600' }]}>
-              Comments {comments.length > 0 && `(${comments.length})`}
-            </Text>
-
-            {comments.length === 0 ? (
-              <Text style={[styles.noComments, { color: currentTheme.colors.text + '50', fontWeight: '400' }]}>
-                No comments yet. Be the first!
-              </Text>
-            ) : (
-              <View style={styles.commentsList}>
-                {comments.map(comment => (
-                  <WorkoutCommentItem
-                    key={comment.id}
-                    comment={comment}
-                    currentUserId={currentUserId}
-                    isAuthor={comment.user_id === currentUserId}
-                    onDelete={handleDeleteComment}
-                    onLike={handleLikeComment}
-                    onUserPress={handleUserTap}
-                  />
-                ))}
-              </View>
-            )}
-          </View>
+            <WorkoutCommentList
+              comments={comments}
+              currentUserId={currentUserId}
+              onDelete={handleDeleteComment}
+              onLike={handleLikeComment}
+              onUserPress={handleUserTap}
+            />
           </ScrollView>
 
-          <View style={[styles.inputContainer, { backgroundColor: currentTheme.colors.background }]}>
-            <RNView style={[styles.inputWrapper, { backgroundColor: currentTheme.colors.surface }]}>
-              <TextInput
-                style={[
-                  styles.input,
-                  {
-                    color: currentTheme.colors.text,
-                  }
-                ]}
-                placeholder="Add a comment..."
-                placeholderTextColor={currentTheme.colors.text + '40'}
-                value={commentText}
-                onChangeText={setCommentText}
-                multiline
-                maxLength={500}
-                editable={!isSubmitting}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
-                  {
-                    backgroundColor: commentText.trim() && !isSubmitting
-                      ? currentTheme.colors.primary
-                      : 'transparent',
-                  }
-                ]}
-                onPress={handleSubmitComment}
-                disabled={!commentText.trim() || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color={currentTheme.colors.primary} />
-                ) : (
-                  <Ionicons
-                    name="arrow-up-circle"
-                    size={28}
-                    color={commentText.trim() ? '#fff' : currentTheme.colors.text + '30'}
-                  />
-                )}
-              </TouchableOpacity>
-            </RNView>
-          </View>
+          <WorkoutCommentComposer
+            commentText={commentText}
+            onChangeText={setCommentText}
+            isSubmitting={isSubmitting}
+            onSubmit={handleSubmitComment}
+          />
 
         </KeyboardAvoidingView>
       </View>
 
-      <Modal
+      <PplExercisesModal
         visible={pplModalVisible}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={handleClosePplModal}
-      >
-        <View style={[styles.pplModalContainer, { backgroundColor: currentTheme.colors.background }]}>
-          <View style={[styles.pplModalHeader, { borderBottomColor: currentTheme.colors.border }]}>
-            <View style={styles.pplModalCloseButton} />
-            <View style={styles.pplModalTitleContainer}>
-              {selectedPplCategory && (
-                <View style={[styles.pplModalTitleChip, { backgroundColor: PPL_COLORS[selectedPplCategory] + '20' }]}>
-                  <View style={[styles.pplDot, { backgroundColor: PPL_COLORS[selectedPplCategory] }]} />
-                  <Text variant="emphasis" tone="primary" weight="semiBold">
-                    {PPL_LABELS[selectedPplCategory]}
-                  </Text>
-                </View>
-              )}
-            </View>
-            <IconButton icon="close" onPress={handleClosePplModal} />
-          </View>
-
-          <ScrollView style={styles.pplModalContent} contentContainerStyle={styles.pplModalContentContainer}>
-            {selectedPplCategory && (
-              <>
-                <Text style={[styles.pplModalExerciseCount, { color: currentTheme.colors.text + '99', fontWeight: '400' }]}>
-                  {pplExercises[selectedPplCategory].length} exercise{pplExercises[selectedPplCategory].length !== 1 ? 's' : ''}
-                </Text>
-
-                <View style={styles.pplModalExerciseList}>
-                  {pplExercises[selectedPplCategory].map((exercise, index) => (
-                    <View
-                      key={index}
-                      style={[styles.pplModalExerciseRow, { borderBottomColor: currentTheme.colors.border }]}
-                    >
-                      <Text style={[styles.pplModalExerciseName, { color: currentTheme.colors.text, fontWeight: '500' }]}>
-                        {exercise.name}
-                      </Text>
-                      <View style={[styles.pplModalSetsBadge, { backgroundColor: selectedPplCategory ? PPL_COLORS[selectedPplCategory] + '15' : currentTheme.colors.primary + '15' }]}>
-                        <Text style={[styles.pplModalSetsText, { color: selectedPplCategory ? PPL_COLORS[selectedPplCategory] : currentTheme.colors.primary, fontWeight: '600' }]}>
-                          {exercise.sets} sets
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </>
-            )}
-          </ScrollView>
-        </View>
-      </Modal>
+        onClose={handleClosePplModal}
+        selectedPplCategory={selectedPplCategory}
+        pplExercises={pplExercises}
+      />
     </Modal>
   );
 }
@@ -702,311 +234,5 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 24,
     gap: 20,
-  },
-  userRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  userTapArea: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  userInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  username: {
-    fontSize: 15,
-  },
-  time: {
-    fontSize: 13,
-    marginTop: 2,
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 16,
-    borderRadius: 12,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 20,
-  },
-  statLabel: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 32,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  likeCount: {
-    fontSize: 14,
-  },
-  actionsLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  commentCount: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  commentCountText: {
-    fontSize: 14,
-  },
-  pplChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  pplDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  pplChipText: {
-    fontSize: 13,
-  },
-  pplChipCount: {
-    fontSize: 14,
-  },
-  exerciseList: {
-    gap: 0,
-  },
-  exerciseRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  exerciseNameContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  exerciseName: {
-    fontSize: 15,
-  },
-  exerciseSets: {
-    fontSize: 14,
-  },
-  exerciseRight: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  setCount: {
-    fontSize: 11,
-  },
-  setsExpanded: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginHorizontal: -4,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  setRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  setNumber: {
-    fontSize: 13,
-    width: 50,
-  },
-  setDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  setWeight: {
-    fontSize: 14,
-  },
-  prBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginLeft: 8,
-  },
-  prBadgeText: {
-    fontSize: 10,
-  },
-  commentsSection: {
-    gap: 12,
-  },
-  commentsTitle: {
-    fontSize: 16,
-  },
-  noComments: {
-    fontSize: 14,
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  commentsList: {
-    gap: 16,
-  },
-  commentItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  commentContent: {
-    flex: 1,
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  commentUsername: {
-    fontSize: 13,
-  },
-  commentTime: {
-    fontSize: 11,
-  },
-  commentText: {
-    fontSize: 14,
-    marginTop: 2,
-    lineHeight: 20,
-  },
-  commentLikeButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 8,
-    paddingTop: 8,
-    minWidth: 36,
-    gap: 2,
-  },
-  commentLikeCount: {
-    fontSize: 12,
-  },
-  commentDeleteAction: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 70,
-    marginLeft: 8,
-    borderRadius: 8,
-  },
-  inputContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    paddingBottom: 8,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    maxHeight: 100,
-    paddingVertical: 8,
-  },
-  sendButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pplModalContainer: {
-    flex: 1,
-  },
-  pplModalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  pplModalCloseButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pplModalTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  pplModalTitleChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 8,
-  },
-  pplModalContent: {
-    flex: 1,
-  },
-  pplModalContentContainer: {
-    padding: 16,
-  },
-  pplModalExerciseCount: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  pplModalExerciseList: {
-    gap: 0,
-  },
-  pplModalExerciseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  pplModalExerciseName: {
-    fontSize: 15,
-    lineHeight: 20,
-    flex: 1,
-  },
-  pplModalSetsBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginLeft: 12,
-  },
-  pplModalSetsText: {
-    fontSize: 13,
   },
 });
