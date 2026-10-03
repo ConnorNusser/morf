@@ -7,6 +7,15 @@ import type { CalculatedRoutine, ExerciseRecord, LoggedWorkout, Routine, Routine
 
 const BENCH = 'bench-press-barbell';
 
+// Fixtures are dated around 2026-06-30 and the anchor goes stale after 8 weeks
+// of wall-clock time, so pin "now" next to them.
+beforeAll(() => {
+  jest.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 6, 10));
+});
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 const day = (id: string, name: string, reps: number, exerciseId = BENCH): Routine =>
   ({
     id,
