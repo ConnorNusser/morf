@@ -1,8 +1,8 @@
-// Swiss "vertical poster" strength headline, shared by the Home top section and
-// the Profile hero: a side column with the caps label running down a hairline,
-// the tier letter as display type, the percentile as a large outlined numeral,
-// then a 2px progress hairline with the band's endpoints. Flat — the tier color
-// is the only color.
+// Strength headline, "gentle color blocks": shared by Home, Profile and Career.
+// A tier-tinted block holds the tier letter; beside it, a percentile block (a
+// soft rounded ring filled to your percentile around the number) and a "Next"
+// block; under them, a soft progress block through the current tier band.
+// Rounded, low-contrast surfaces — the tier color is the only hue.
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getStrengthTier, getTierColor, TIER_THRESHOLDS } from '@/lib/data/strengthStandards';
@@ -11,20 +11,20 @@ import { readableInkOn } from '@/lib/ui/contrast';
 import { space, track } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
 import { getPercentileSuffix } from '@/lib/utils/utils';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Svg, { Text as SvgText } from 'react-native-svg';
+import Svg, { Circle } from 'react-native-svg';
 
 interface Props {
   percentile: number; // 0 = unranked
-  /** Display size of the tier letter; the outlined percentile scales from it. */
+  /** Tier letter size; the blocks scale around it. */
   letterSize?: number;
 }
 
-const SIDE = 28;
-const LABEL_W = 220;
+export const BLOCK_RADIUS = 22;
 
-export default function StrengthHeadline({ percentile, letterSize = 150 }: Props) {
+export default function StrengthHeadline({ percentile, letterSize = 112 }: Props) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const ranked = percentile > 0;
@@ -32,109 +32,125 @@ export default function StrengthHeadline({ percentile, letterSize = 150 }: Props
   const foil = tierFoil(percentile);
   const tier = ranked ? getStrengthTier(percentile) : null;
   const band = getTierBandProgress(percentile);
-  const color = ranked ? (dark ? foil.light : getTierColor(tier!)) : ink.faint;
+  const soft = ranked ? (dark ? foil.light : getTierColor(tier!)) : ink.faint;
+  const deep = ranked ? getTierColor(tier!) : ink.faint;
 
   const idx = tier ? TIER_THRESHOLDS.findIndex(t => t.label === tier) : -1;
   const floor = idx >= 0 ? TIER_THRESHOLDS[idx].threshold : 0;
+  const blockH = Math.round(letterSize * 1.8);
+  const block = { backgroundColor: ink.hairline, borderRadius: BLOCK_RADIUS };
 
-  // Outlined numeral (react-native-svg: RN Text can't stroke).
-  const numSize = Math.round(letterSize * 0.7);
-  const numText = ranked ? String(percentile) : '—';
-  const numW = Math.ceil(numSize * 0.64 * numText.length) + 4;
+  // The soft percentile ring.
+  const ring = Math.round((blockH - space.sm) / 2 - space.md * 2 - 2);
+  const sw = 6;
+  const r = (ring - sw) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = ranked ? Math.max(0.02, percentile / 100) : 0;
 
   return (
     <View style={styles.wrap}>
-      {/* Side column: the label runs down a hairline (poster spine). */}
-      <View style={[styles.side, { borderRightColor: ink.hairline }]}>
-        <Text
-          variant="meta"
-          weight="semiBold"
-          tone="faint"
-          numberOfLines={1}
-          style={[styles.caps, styles.spine]}
-        >
-          Overall strength
-        </Text>
-      </View>
-
-      <View style={styles.main}>
-        {/* The tier letter is the screen's display glyph — a named exception to the type scale. */}
-        <Text
-          style={[styles.letter, { color, fontSize: letterSize, lineHeight: Math.round(letterSize * 1.02), marginBottom: -letterSize * 0.12, letterSpacing: -letterSize * 0.06 }]}
-          numberOfLines={1}
-        >
-          {tier ?? '—'}
-        </Text>
-
-        <View style={styles.numRow}>
-          <Svg width={numW} height={numSize * 0.82} accessibilityLabel={ranked ? `${percentile} percentile` : 'Unranked'}>
-            {/* Stroke wide, then fill with the background on top: only the outer
-                half of the stroke shows, hiding the font's overlapping contours. */}
-            <SvgText
-              x={1.5}
-              y={numSize * 0.76}
-              fontSize={numSize}
-              fontWeight="900"
-              letterSpacing={-numSize * 0.05}
-              fill="none"
-              stroke={ink.secondary}
-              strokeWidth={3}
-              strokeLinejoin="round"
-            >
-              {numText}
-            </SvgText>
-            <SvgText
-              x={1.5}
-              y={numSize * 0.76}
-              fontSize={numSize}
-              fontWeight="900"
-              letterSpacing={-numSize * 0.05}
-              fill={currentTheme.colors.background}
-            >
-              {numText}
-            </SvgText>
-          </Svg>
-          <View style={styles.numLabel}>
-            {ranked ? <Text variant="body" weight="bold" tone="primary">{getPercentileSuffix(percentile)}</Text> : null}
-            <Text variant="meta" tone="muted">{ranked ? 'percentile' : 'Log a ranked lift'}</Text>
-          </View>
+      <View style={[styles.grid, { height: blockH }]}>
+        {/* Tier block: tinted with the tier color. */}
+        <View style={[styles.tierBlock, { borderRadius: BLOCK_RADIUS, backgroundColor: soft + '29' }]}>
+          <Text variant="meta" weight="semiBold" tone="secondary" style={styles.caps}>Overall strength</Text>
+          {/* The tier letter is the screen's display glyph — a named exception to the type scale. */}
+          <Text
+            style={[styles.letter, { color: soft, fontSize: letterSize, lineHeight: Math.round(letterSize * 1.02), letterSpacing: -letterSize * 0.05 }]}
+            numberOfLines={1}
+          >
+            {tier ?? '—'}
+          </Text>
         </View>
 
-        <View style={[styles.track, { backgroundColor: ink.hairline }]}>
-          <View style={[styles.fill, { width: `${Math.max(1, (ranked ? band.progress : 0) * 100)}%`, backgroundColor: color }]} />
+        <View style={styles.side}>
+          {/* Percentile: number inside a soft rounded ring filled to the percentile. */}
+          <View style={[styles.small, styles.pctBlock, block]}>
+            <View style={styles.ringRow}>
+              <View style={{ width: ring, height: ring }}>
+                <Svg width={ring} height={ring} style={StyleSheet.absoluteFill}>
+                  <Circle cx={ring / 2} cy={ring / 2} r={r} stroke={ink.ghost} strokeWidth={sw} fill="none" />
+                  {ranked ? (
+                    <Circle
+                      cx={ring / 2}
+                      cy={ring / 2}
+                      r={r}
+                      stroke={soft}
+                      strokeWidth={sw}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeDasharray={`${c * pct} ${c}`}
+                      transform={`rotate(-90 ${ring / 2} ${ring / 2})`}
+                    />
+                  ) : null}
+                </Svg>
+                <View style={styles.ringCenter}>
+                  <Text variant="title" weight="bold" tone="primary" style={styles.tabular}>
+                    {ranked ? percentile : '—'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.pctText}>
+                <Text variant="meta" weight="semiBold" tone="muted" style={styles.caps}>Pct</Text>
+                {ranked ? <Text variant="body" weight="semiBold" tone="secondary">{getPercentileSuffix(percentile)}</Text> : null}
+              </View>
+            </View>
+          </View>
+
+          {/* Next tier. */}
+          <View style={[styles.small, block]}>
+            <Text variant="meta" weight="semiBold" tone="muted" style={styles.caps} numberOfLines={1}>
+              {ranked && band.nextTier ? `Next · ${band.nextTier}` : 'Next'}
+            </Text>
+            <Text variant="heading" weight="bold" tone="primary" style={styles.tabular}>
+              {!ranked ? '—' : band.nextTier ? band.toNext : 'Top'}
+              {ranked && band.nextTier ? <Text variant="meta" weight="medium" tone="muted"> pct</Text> : null}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Soft progress block through the current band. */}
+      <View style={[styles.progressBlock, block]}>
+        <View style={[styles.track, { backgroundColor: ink.ghost }]}>
+          <LinearGradient
+            colors={[deep, soft]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={[styles.fill, { width: `${Math.max(3, (ranked ? band.progress : 0) * 100)}%` }]}
+          />
         </View>
         {ranked ? (
           <View style={styles.scale}>
             <Text variant="meta" tone="faint" style={styles.tabular}>{tier} {floor}</Text>
-            <Text variant="meta" tone="muted">{band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Top tier'}</Text>
+            <Text variant="meta" tone="muted" style={styles.tabular}>you · {percentile}</Text>
             {band.nextTier ? (
               <Text variant="meta" tone="faint" style={styles.tabular}>{band.nextTier} {percentile + band.toNext}</Text>
             ) : <View />}
           </View>
-        ) : null}
+        ) : (
+          <Text variant="meta" tone="muted" style={styles.unranked}>Log a ranked lift to get a tier</Text>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row' },
-  side: { width: SIDE, borderRightWidth: StyleSheet.hairlineWidth, marginRight: space.lg },
+  wrap: { gap: space.sm },
+  grid: { flexDirection: 'row', gap: space.sm },
+  tierBlock: { flex: 1.4, padding: space.lg, justifyContent: 'space-between' },
+  side: { flex: 1, gap: space.sm },
+  small: { flex: 1, padding: space.md, justifyContent: 'space-between' },
   caps: { letterSpacing: track.caps, textTransform: 'uppercase' },
-  // Rotated 90° about its center, then shifted so it reads top-down from the column's top-left.
-  spine: {
-    position: 'absolute',
-    width: LABEL_W,
-    left: -LABEL_W / 2 + SIDE / 2 - 2,
-    top: LABEL_W / 2 - SIDE / 2,
-    transform: [{ rotate: '90deg' }],
-  },
-  main: { flex: 1, minWidth: 0 },
-  letter: { fontWeight: '900', includeFontPadding: false },
-  numRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space.sm, marginTop: space.md },
-  numLabel: { paddingBottom: space.xs },
+  letter: { fontWeight: '800', includeFontPadding: false },
+  pctBlock: { justifyContent: 'center' },
+  ringRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  pctText: { gap: 2 },
+  ringCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   tabular: { fontVariant: ['tabular-nums'] },
-  track: { height: 2, marginTop: space.lg, overflow: 'hidden' },
-  fill: { height: 2 },
+  progressBlock: { paddingHorizontal: space.lg, paddingVertical: space.md },
+  track: { height: 6, borderRadius: 999, overflow: 'hidden' },
+  fill: { height: 6, borderRadius: 999 },
   scale: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.sm },
+  unranked: { marginTop: space.sm },
 });

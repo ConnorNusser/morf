@@ -37,7 +37,6 @@ import { getPercentileSuffix } from '@/lib/utils/utils';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import BodyGraph from '@/components/gamification/BodyGraph';
-import CamoPicker from '@/components/gamification/CamoPicker';
 import MuscleDetailSheet from '@/components/gamification/MuscleDetailSheet';
 import EmptyState from '@/components/ui/EmptyState';
 import { useTrainRegion } from '@/hooks/useTrainRegion';
@@ -142,7 +141,6 @@ export default function CareerModal({ visible, onClose }: Props) {
             <NextGoal achievements={data.achievements} />
             <RecentAchievementsView achievements={data.achievements} unlockedAt={data.achievementUnlockedAt} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
-            <CamoPicker level={data.level.level} percentile={data.overall} />
             <View style={styles.bottomSpacer} />
           </ScrollView>
         )}
@@ -170,7 +168,7 @@ function CareerHero({
   // line with a neutral XP hairline. Lives inside the share ViewShot.
   return (
     <View style={styles.heroSwiss}>
-      <StrengthHeadline percentile={overall} letterSize={150} />
+      <StrengthHeadline percentile={overall} letterSize={112} />
       <View style={[styles.heroLevelLine, { borderTopColor: ink.hairline }]}>
         <RankMark level={level.level} progress={level.progress} />
         <Text variant="meta" tone="muted" style={styles.heroTabular}>

@@ -56,7 +56,7 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
         {level ? <RankMark level={level.level} progress={level.progress} /> : null}
       </View>
       <View style={[styles.rule, { backgroundColor: ink.hairline }]} />
-      <StrengthHeadline percentile={tier ? overallPercentile : 0} letterSize={150} />
+      <StrengthHeadline percentile={tier ? overallPercentile : 0} letterSize={112} />
     </View>
   );
 }

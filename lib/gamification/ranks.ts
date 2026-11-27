@@ -1,42 +1,25 @@
-// Competitive rank ladder for the account level, drawn anime-style by
-// RankEmblem. Nine metal tiers from Bronze to Challenger; the six lower tiers
-// split into three divisions (III → II → I, I being the top of the tier), the
-// three master tiers don't. Pure data + math.
+// Level rank ladder, themed exactly like overall strength: the six letter
+// tiers E → S, each split into three steps (−, plain, +), in the same tier
+// colors. One visual language for "your grade" across the app — strength is a
+// percentile grade, level is an effort grade, both read "C+".
 //
-//   Tier         Levels  Divisions (III / II / I)
-//   Bronze       1–9     1–3 / 4–6 / 7–9
-//   Silver       10–19   10–12 / 13–15 / 16–19
-//   Gold         20–29   20–22 / 23–25 / 26–29
-//   Platinum     30–39   30–32 / 33–35 / 36–39
-//   Emerald      40–49   40–42 / 43–45 / 46–49
-//   Diamond      50–59   50–52 / 53–55 / 56–59
-//   Master       60–69   —
-//   Grandmaster  70–79   —
-//   Challenger   80+     —
+//   Tier  Levels   Steps (− / · / +)
+//   E     1–9      1–3 / 4–6 / 7–9
+//   D     10–19    10–12 / 13–15 / 16–19
+//   C     20–34    20–24 / 25–29 / 30–34
+//   B     35–49    35–39 / 40–44 / 45–49
+//   A     50–69    50–56 / 57–62 / 63–69
+//   S     70+      70–79 / 80–89 / 90+
 //
-// Division rule: divisions start at the tier's first level, +3 and +6. Bronze
-// (9 levels) splits 3/3/3; the 10-level tiers split 3/3/4, so Division I, the
-// gate to the next metal, is the longest climb.
-//
-// A "rank" is one rung of the ladder: a division, or a whole master tier (21
-// rungs in all). Colors are per TIER and BLEND across the whole tier toward the
-// next tier's palette, so Gold I already leans into Platinum.
+// A "rank" is one rung (18 in all). Colors are per tier (TIER_COLORS) and blend
+// toward the next tier across the tier, like the strength wash.
 
 export type HexColor = string;
 export type Gradient = [HexColor, HexColor]; // [light/start, deep/end]
 
-export type TierId =
-  | 'bronze'
-  | 'silver'
-  | 'gold'
-  | 'platinum'
-  | 'emerald'
-  | 'diamond'
-  | 'master'
-  | 'grandmaster'
-  | 'challenger';
+export type TierId = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
-export type Division = 'III' | 'II' | 'I';
+export type Division = '-' | '' | '+';
 
 // Crest silhouette; each tier keeps everything below it and adds a piece.
 // 1 Bronze shield · 2 + side blades · 3 + crown point · 4 + layered plates ·
@@ -81,27 +64,24 @@ export interface Rank {
   color: HexColor; // = gradient[1]: text/accent on light surfaces
 }
 
-export const DIVISIONS: Division[] = ['III', 'II', 'I'];
-export const DIVISION_SPAN = 3; // divisions start at tier min, +3, +6
-export const TIER_SPAN = 10;
+export const DIVISIONS: Division[] = ['-', '', '+'];
+export const DIVISION_SPAN = 3; // legacy constant; steps now split each tier's span in thirds
+export const TIER_SPAN = 10; // legacy constant; tiers carry explicit minLevels
 
 // Prismatic accent stops for Challenger's aura.
 export const PRISMATIC_STOPS: HexColor[] = ['#FFE27A', '#FF8BD1', '#9C8BFF', '#6FE3FF', '#FFE27A'];
 
-type TierDef = { id: TierId; name: string; gradient: Gradient; shine: HexColor };
+type TierDef = { id: TierId; name: string; minLevel: number; gradient: Gradient; shine: HexColor };
 
-// Light stops are bright enough to read as text on dark surfaces, deep stops
-// dark enough to read on light ones; `shine` is the metal's highlight.
+// [light, deep]: the light stop reads on dark grounds, the deep stop is the
+// tier's canonical color (TIER_COLORS in strengthStandards).
 const TIER_DEFS: TierDef[] = [
-  { id: 'bronze', name: 'Bronze', gradient: ['#F0B48A', '#94562C'], shine: '#FFE2CB' },
-  { id: 'silver', name: 'Silver', gradient: ['#DCE4EC', '#66788C'], shine: '#FFFFFF' },
-  { id: 'gold', name: 'Gold', gradient: ['#FFD96A', '#A97508'], shine: '#FFF5C8' },
-  { id: 'platinum', name: 'Platinum', gradient: ['#A2EEE2', '#1C8580'], shine: '#E9FFFB' },
-  { id: 'emerald', name: 'Emerald', gradient: ['#7FE8A4', '#14854A'], shine: '#DCFFE8' },
-  { id: 'diamond', name: 'Diamond', gradient: ['#BCD3FF', '#5560DA'], shine: '#F1F6FF' },
-  { id: 'master', name: 'Master', gradient: ['#D7AAFF', '#8336C9'], shine: '#F4E7FF' },
-  { id: 'grandmaster', name: 'Grandmaster', gradient: ['#FF8F9C', '#BC1F3D'], shine: '#FFE1E5' },
-  { id: 'challenger', name: 'Challenger', gradient: ['#FFE58C', '#C2860C'], shine: '#FFFBE8' },
+  { id: 'E', name: 'E', minLevel: 1, gradient: ['#C9CDD3', '#808080'], shine: '#F1F2F4' },
+  { id: 'D', name: 'D', minLevel: 10, gradient: ['#C9CDD3', '#808080'], shine: '#F1F2F4' },
+  { id: 'C', name: 'C', minLevel: 20, gradient: ['#5FD394', '#2E8B57'], shine: '#DCFFE8' },
+  { id: 'B', name: 'B', minLevel: 35, gradient: ['#7C9CFF', '#3558C0'], shine: '#E6ECFF' },
+  { id: 'A', name: 'A', minLevel: 50, gradient: ['#D08BFF', '#9932CC'], shine: '#F4E7FF' },
+  { id: 'S', name: 'S', minLevel: 70, gradient: ['#FFE45C', '#C9A227'], shine: '#FFF8D6' },
 ];
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
@@ -131,9 +111,9 @@ export const TIERS: Tier[] = TIER_DEFS.map((d, index) => ({
   id: d.id,
   name: d.name,
   index,
-  minLevel: index === 0 ? 1 : index * TIER_SPAN,
-  hasDivisions: index < 6,
-  gradient: [muteMetal(d.gradient[0]), muteMetal(d.gradient[1])] as Gradient,
+  minLevel: d.minLevel,
+  hasDivisions: true,
+  gradient: d.gradient,
   shine: d.shine,
 }));
 
@@ -152,7 +132,8 @@ export function mixHex(a: HexColor, b: HexColor, t: number): HexColor {
 
 // Levels a tier spans for blending: Bronze 9 (1–9), the rest 10.
 function tierSpan(t: Tier): number {
-  return t.index === 0 ? TIER_SPAN - 1 : TIER_SPAN;
+  const next = TIERS[t.index + 1];
+  return next ? next.minLevel - t.minLevel : 30;
 }
 
 function blendT(t: Tier, level: number, progressWithinLevel: number): number {
@@ -183,8 +164,9 @@ function emblemFor(tierIndex: number, divisionIndex: number | null): EmblemSpec 
 }
 
 export function tierForLevel(level: number): Tier {
-  const idx = Math.min(TIERS.length - 1, Math.floor(safeLevel(level) / TIER_SPAN));
-  return TIERS[idx];
+  const lv = safeLevel(level);
+  for (let i = TIERS.length - 1; i > 0; i--) if (lv >= TIERS[i].minLevel) return TIERS[i];
+  return TIERS[0];
 }
 
 export const RANKS: Rank[] = TIERS.flatMap(t => {
@@ -192,15 +174,15 @@ export const RANKS: Rank[] = TIERS.flatMap(t => {
     ? DIVISIONS.map((division, i) => ({
         division,
         divisionIndex: i,
-        minLevel: t.minLevel + i * DIVISION_SPAN, // Bronze: 1, 4, 7 · Silver: 10, 13, 16
+        minLevel: t.minLevel + Math.round((i * tierSpan(t)) / 3), // E: 1, 4, 7 · C: 20, 25, 30
       }))
     : [{ division: null, divisionIndex: null, minLevel: t.minLevel }];
   return rungs.map(r => ({ tier: t, ...r }));
 }).map(({ tier, division, divisionIndex, minLevel }, index) => {
   const gradient = blendedGradient(tier, minLevel, 0);
   return {
-    id: division ? `${tier.id}-${DIVISIONS.length - divisionIndex!}` : tier.id,
-    name: division ? `${tier.name} ${division}` : tier.name,
+    id: `${tier.id}${division === '-' ? '-minus' : division === '+' ? '-plus' : ''}`,
+    name: `${tier.name}${division ?? ''}`,
     tier: tier.id,
     tierName: tier.name,
     tierIndex: tier.index,
@@ -233,15 +215,13 @@ export function nextTier(level: number): Tier | null {
 // Steps inside the current tier for the pips: 3 divisions on divided tiers,
 // 10 levels on master tiers (Challenger is open-ended; its pips cap at full).
 export function rankStepCount(level: number): number {
-  return tierForLevel(level).hasDivisions ? DIVISIONS.length : TIER_SPAN;
+  return DIVISIONS.length;
 }
 
 // 1-based position inside the tier: division ordinal (III = 1, II = 2, I = 3),
 // or level within a master tier (1–10).
 export function rankStep(level: number): number {
-  const t = tierForLevel(level);
-  if (t.hasDivisions) return rankForLevel(level).emblem.pips;
-  return Math.min(TIER_SPAN, safeLevel(level) - t.minLevel + 1);
+  return rankForLevel(level).emblem.pips;
 }
 
 // True when going from `before` to `after` reached a higher rung: a new
@@ -284,12 +264,12 @@ export function rankAccentForLevel(level: number, dark: boolean, progressWithinL
 
 // ---- Copy ----
 
-// "an Emerald II", "a Gold III".
+// "an E+", "a C".
 export function withArticle(name: string): string {
-  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
+  return `${/^[aefhilmnorsx]/i.test(name) ? 'an' : 'a'} ${name}`;
 }
 
-// Banner line on a rank change: "Promoted to Gold II".
+// Banner line on a rank change: "Ranked up to C+".
 export function rankUpLine(rank: Pick<Rank, 'name'>): string {
-  return `Promoted to ${rank.name}`;
+  return `Ranked up to ${rank.name}`;
 }

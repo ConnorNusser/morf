@@ -25,17 +25,21 @@ export interface Theme {
 }
 
 export const themes: Record<ThemeLevel, Theme> = {
-  // E Tier Light
+  // Tier themes take their tier's color (TIER_COLORS in strengthStandards):
+  // E gray, C green, B blue, A purple, S gold. On dark grounds the primary is
+  // the tier's light shade so links and pills stay readable. Every theme is
+  // dark — the light grounds fought the tier colors and the Swiss style.
+  // E Tier (warm charcoal)
   beginner: {
     name: "beginner",
     colors: {
-      background: "#F7F3E9",
-      text: "#2D3E2F",
-      primary: "#8B5A3C",
-      secondary: "#E8DCC6",
-      accent: "#7FB069",
-      surface: "#FFFFFF",
-      border: "#D4C4A8",
+      background: "#161616",
+      text: "#EDEDED",
+      primary: "#E4E4E7",
+      secondary: "#1F1F1F",
+      accent: "#A1A1AA",
+      surface: "#1F1F1F",
+      border: "#2C2C2C",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -52,9 +56,9 @@ export const themes: Record<ThemeLevel, Theme> = {
     colors: {
       background: "#121215",
       text: "#E4E4E7",
-      primary: "#1F6FEB",
+      primary: "#D4D4D8",
       secondary: "#18181B",
-      accent: "#D4D4D8",
+      accent: "#A1A1AA",
       surface: "#1C1C1F",
       border: "#27272A",
     },
@@ -71,13 +75,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   intermediate: {
     name: "intermediate",
     colors: {
-      background: "#EFEEF3",
-      text: "#1A1A1A",
-      primary: "#5856D6",
-      secondary: "#E5E4E9",
-      accent: "#34C759",
-      surface: "#FFFFFF",
-      border: "#D1D1D6",
+      background: "#0C1A12",
+      text: "#E8F2EC",
+      primary: "#5FD394",
+      secondary: "#13241A",
+      accent: "#2E8B57",
+      surface: "#13241A",
+      border: "#1F3A2A",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -92,13 +96,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   advanced: {
     name: "advanced",
     colors: {
-      background: "#0F172A",
-      text: "#F1F5F9",
-      primary: "#3B82F6",
-      secondary: "#1E293B",
-      accent: "#22D3EE",
-      surface: "#1E293B",
-      border: "#334155",
+      background: "#0D1324",
+      text: "#EEF2FF",
+      primary: "#7C9CFF",
+      secondary: "#161E36",
+      accent: "#3558C0",
+      surface: "#161E36",
+      border: "#26314F",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -113,13 +117,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   elite: {
     name: "elite",
     colors: {
-      background: "#13111C",
-      text: "#EEEEF0",
-      primary: "#A855F7",
-      secondary: "#1E1B2E",
-      accent: "#F472B6",
-      surface: "#221F2E",
-      border: "#2E2A3E",
+      background: "#140F1C",
+      text: "#F1ECF7",
+      primary: "#D08BFF",
+      secondary: "#1F1729",
+      accent: "#9932CC",
+      surface: "#1F1729",
+      border: "#2F2440",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -134,13 +138,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   god: {
     name: "god",
     colors: {
-      background: "#2C2724",
-      text: "#FAF6F1",
-      primary: "#C15F3C",
-      secondary: "#3D3632",
-      accent: "#E67D22",
-      surface: "#38322E",
-      border: "#4A433E",
+      background: "#17140C",
+      text: "#FAF6E8",
+      primary: "#FFD700",
+      secondary: "#221E12",
+      accent: "#FFE45C",
+      surface: "#221E12",
+      border: "#35301C",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -155,13 +159,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   share_warm: {
     name: "share_warm",
     colors: {
-      background: "#FDF4F5",
-      text: "#6B4C5A",
-      primary: "#E879A9",
-      secondary: "#FCE8EC",
+      background: "#1A1015",
+      text: "#FBEAF2",
+      primary: "#F472B6",
+      secondary: "#261820",
       accent: "#93C5FD",
-      surface: "#FFFFFF",
-      border: "#F5D0DC",
+      surface: "#261820",
+      border: "#3A2430",
     },
     fonts: {
       regular: "Raleway_400Regular",
