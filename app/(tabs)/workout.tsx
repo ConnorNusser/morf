@@ -38,7 +38,7 @@ import { layout } from "@/lib/ui/styles";
 import { radius, screenGutter, space, tint, track } from "@/lib/ui/tokens";
 import { lineHeightFor, type as typeScale } from "@/lib/ui/typography";
 import playHapticFeedback from "@/lib/utils/haptic";
-import { getPendingQuickStart } from "@/lib/workout/pendingRoutine";
+import { getPendingGenerate, getPendingQuickStart } from "@/lib/workout/pendingRoutine";
 import {
   draftToParsedWorkout,
   type DraftSet,
@@ -359,6 +359,17 @@ export default function WorkoutScreen() {
     }, [handleQuickStart]),
   );
 
+  // AI-generation hand-off (body graph "Train this"): open the plan builder
+  // with the request pre-submitted.
+  useFocusEffect(
+    useCallback(() => {
+      const request = getPendingGenerate();
+      if (!request) return;
+      setPlanRequest(request);
+      setShowPlanBuilder(true);
+    }, []),
+  );
+
   // Checking a set off (becoming done) auto-starts the rest countdown and surfaces
   // the full rest screen. Sets are never auto-appended — add more with the explicit
   // "Add set" button — so incomplete phantom sets can't pile up in history.
@@ -415,6 +426,8 @@ export default function WorkoutScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   }, [isResting]);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
+  // Request handed off from elsewhere (body graph "Train this"); auto-submitted.
+  const [planRequest, setPlanRequest] = useState("");
   const [showRoutineImport, setShowRoutineImport] = useState(false);
   // Which set field the custom number pad is editing.
   const [editing, setEditing] = useState<{
@@ -536,6 +549,7 @@ export default function WorkoutScreen() {
     (planText: string) => {
       loadDraftFromText(planText, { asTarget: true });
       setShowPlanBuilder(false);
+      setPlanRequest("");
     },
     [loadDraftFromText],
   );
@@ -984,7 +998,12 @@ export default function WorkoutScreen() {
       <PlanBuilderModal
         visible={showPlanBuilder}
         onComplete={handlePlanComplete}
-        onCancel={() => setShowPlanBuilder(false)}
+        onCancel={() => {
+          setShowPlanBuilder(false);
+          setPlanRequest("");
+        }}
+        initialRequest={planRequest}
+        autoSubmit={!!planRequest}
       />
 
       {/* Routine Import Modal */}

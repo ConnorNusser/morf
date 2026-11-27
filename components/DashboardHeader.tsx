@@ -1,12 +1,18 @@
+import { LevelPill } from "@/components/gamification/LevelRing";
 import TierRing from "@/components/gamification/TierRing";
 import { Text, useInk } from "@/components/Themed";
+import TierGlass from "@/components/ui/TierGlass";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
+import { LevelProgress } from "@/lib/gamification/levelCurve";
 import { radius, space, tint, track } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
+
+// Streak flame: warm orange in every theme (semantic, like trend colors).
+const STREAK_FLAME = "#FF8A3D";
 
 type ViewMode = "home" | "feed";
 
@@ -26,6 +32,15 @@ interface DashboardHeaderProps {
   onProfilePress?: () => void;
   profileImageUrl?: string;
   profileUsername?: string;
+  /** Account level; renders the XP pill between the view selector and the right items. */
+  level?: LevelProgress | null;
+  onLevelPress?: () => void;
+  /** XP accent for the pill (tier-complementary); defaults to the global accent. */
+  levelColor?: string;
+  /** Week streak; shows a flame chip on the right (Home, where level lives in the hero card). */
+  streakWeeks?: number;
+  /** Opens the streak / workout-map sheet. */
+  onStreakPress?: () => void;
 }
 
 export default function DashboardHeader({
@@ -37,6 +52,11 @@ export default function DashboardHeader({
   onProfilePress,
   profileImageUrl,
   profileUsername,
+  level,
+  onLevelPress,
+  levelColor,
+  streakWeeks,
+  onStreakPress,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -61,13 +81,10 @@ export default function DashboardHeader({
                 style={styles.logo}
               />
               <TouchableOpacity
-                style={[
-                  styles.viewSelector,
-                  { backgroundColor: currentTheme.colors.surface },
-                ]}
                 onPress={() => setShowDropdown(!showDropdown)}
                 activeOpacity={0.7}
               >
+                <TierGlass style={styles.viewSelector}>
                 <Text
                   variant="screenTitle"
                   tone="primary"
@@ -81,8 +98,33 @@ export default function DashboardHeader({
                   size={20}
                   color={currentTheme.colors.text}
                 />
+                </TierGlass>
               </TouchableOpacity>
             </View>
+
+            {level ? (
+              <View style={styles.levelSlot}>
+                <LevelPill level={level} onPress={onLevelPress} color={levelColor} />
+              </View>
+            ) : null}
+
+            {!level && streakWeeks != null ? (
+              <TouchableOpacity
+                style={styles.streakSlot}
+                onPress={onStreakPress}
+                disabled={!onStreakPress}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${streakWeeks} week training streak, open workout map`}
+              >
+                <TierGlass style={styles.streakChip}>
+                  <Ionicons name="flame" size={16} color={streakWeeks > 0 ? STREAK_FLAME : currentTheme.colors.text} />
+                  <Text variant="meta" tone="primary" weight="bold">
+                    {streakWeeks} wk
+                  </Text>
+                </TierGlass>
+              </TouchableOpacity>
+            ) : null}
 
             {stats?.tier != null && (
               <TouchableOpacity
@@ -233,6 +275,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
+  },
+  // Fills the gap between the selector and the right items; shrinks on SE widths.
+  streakSlot: {
+    marginLeft: "auto",
+  },
+  streakChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
+  },
+  levelSlot: {
+    marginLeft: "auto",
+    flexDirection: "row",
   },
   levelButton: {
     flexShrink: 0,

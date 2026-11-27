@@ -7,7 +7,8 @@
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
-import { radius, space, tint, track, trend } from '@/lib/ui/tokens';
+import { radius, space, tint, track, trend, xpAccent } from '@/lib/ui/tokens';
+import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
@@ -15,10 +16,16 @@ import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
+import MuscleTierUpRow from '@/components/workout/MuscleTierUpRow';
+import CamoUnlockRow from '@/components/workout/CamoUnlockRow';
 import CareerModal from '@/components/gamification/CareerModal';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
+import { LevelProgress } from '@/lib/gamification/levelCurve';
+import { formatXp, formatXpBreakdown, nextRankLine, upcomingTitle, xpBarSweep } from '@/lib/gamification/levelDisplay';
+import { isRankUp, rankAccentForLevel, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
+import RankEmblem from '@/components/gamification/RankEmblem';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import {
@@ -47,6 +54,7 @@ import Animated, {
   FadeIn,
   runOnJS,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withSequence,
@@ -285,6 +293,127 @@ const AnimatedCounter = ({
     </Text>
   );
 };
+
+// "+N XP" with the level bar sweeping from where the session started to where
+// it ended (wrapping through the end when a level was crossed), and the
+// newest workout's breakdown underneath.
+function XpGainCard({ rewards, accent }: { rewards: SessionRewards; accent: string }) {
+  const { xpGained, levelBefore, levelAfter, sessionXp, achievementXpGained } = rewards;
+  const sweep = xpBarSweep(levelBefore, levelAfter);
+  const breakdown = formatXpBreakdown(sessionXp, achievementXpGained);
+  const reduced = useReducedMotion();
+  const fill = useSharedValue(sweep.from);
+
+  useEffect(() => {
+    if (reduced) {
+      fill.value = sweep.to;
+      return;
+    }
+    const easeOut = Easing.out(Easing.cubic);
+    fill.value = sweep.wraps
+      ? withDelay(
+          400,
+          withSequence(
+            withTiming(1, { duration: 650, easing: Easing.in(Easing.quad) }),
+            withTiming(0, { duration: 0 }),
+            withTiming(sweep.to, { duration: 650, easing: easeOut }),
+          ),
+        )
+      : withDelay(400, withTiming(sweep.to, { duration: 1100, easing: easeOut }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mounts once rewards land
+  }, []);
+
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+
+  return (
+    <Animated.View entering={FadeIn.duration(400)} style={styles.xpCard}>
+      <View style={styles.progressHead}>
+        <View style={styles.progressValueRow}>
+          <Text variant="statHero" weight="bold" style={[styles.xpGain, { color: accent }]}>+</Text>
+          <AnimatedCounter value={xpGained} suffix=" XP" delay={300} duration={1100} style={[styles.xpGain, { color: accent }]} />
+        </View>
+        <Text variant="meta" weight="bold" style={styles.progressLabel}>
+          {sweep.wraps ? `LV ${levelBefore.level} → ${levelAfter.level}` : `LV ${levelAfter.level}`}
+        </Text>
+      </View>
+      <View style={styles.xpTrack}>
+        <Animated.View style={[styles.xpFill, { backgroundColor: accent }, fillStyle]} />
+      </View>
+      <View style={styles.xpCaptionRow}>
+        <Text variant="meta" style={styles.xpBreakdown} numberOfLines={2}>
+          {breakdown}
+        </Text>
+        <Text variant="meta" style={styles.progressValue}>
+          {formatXp(levelAfter.xpToNext)} to {levelAfter.level + 1}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
+// Only mounts when the session crossed a level. Crossing into a new rank is a
+// rank-up: the new crest springs in big with "Rank up! Now an Ace" in the
+// blended rank color. A plain level-up keeps the "LEVEL N" banner with the
+// crest beside it, and teases the next rank when it's within reach.
+function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after: LevelProgress; accent: string }) {
+  const rankUp = isRankUp(before.level, after.level);
+  const scale = useSharedValue(0.85);
+  const crest = useSharedValue(rankUp ? 0.2 : 1);
+  useEffect(() => {
+    scale.value = withSpring(1, { damping: 10, stiffness: 120 });
+    if (rankUp) crest.value = withDelay(250, withSpring(1, { damping: 7, stiffness: 140, mass: 0.8 }));
+    playHapticFeedback(rankUp ? 'success' : 'heavy', false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only pop + haptic
+  }, []);
+  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const crestStyle = useAnimatedStyle(() => ({ transform: [{ scale: crest.value }] }));
+  const next = upcomingTitle(after.level);
+  // Always-dark screen → the light stop of the blended rank gradient.
+  const color = rankUp ? rankAccentForLevel(after.level, true, after.progress) : accent;
+
+  if (rankUp) {
+    return (
+      <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: color, backgroundColor: tint(color) }, popStyle]}>
+        <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color }]}>
+          RANK UP
+        </Text>
+        <Animated.View style={crestStyle}>
+          <RankEmblem level={after.level} progress={after.progress} size={96} showPips pipTrackColor="rgba(255,255,255,0.15)" />
+        </Animated.View>
+        <Text variant="heading" weight="bold" style={[styles.levelUpNumber, styles.levelUpCenter]}>
+          {rankUpLine(rankForLevel(after.level))}
+        </Text>
+        <Text variant="body" weight="semiBold" style={{ color }}>
+          LEVEL {after.level}
+        </Text>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: accent, backgroundColor: tint(accent) }, popStyle]}>
+      <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color: accent }]}>
+        LEVEL UP
+      </Text>
+      <View style={styles.levelUpRow}>
+        <RankEmblem level={after.level} progress={after.progress} size={56} showPips pipTrackColor="rgba(255,255,255,0.15)" />
+        <View style={styles.levelUpText}>
+          <Text variant="header" weight="bold" style={[styles.levelUpNumber, { color: accent }]}>
+            LEVEL {after.level}
+          </Text>
+          <Text variant="body" weight="semiBold" style={styles.levelUpTitle}>
+            {after.title}
+          </Text>
+        </View>
+      </View>
+      {next && (
+        <Text variant="meta" style={styles.progressValue}>
+          {nextRankLine(next)}
+        </Text>
+      )}
+    </Animated.View>
+  );
+}
 
 // Percentile sweep: before → after with the tier color. RN Animated (not
 // reanimated) because `from` is dynamic and the pattern matches WorkoutStatsCard.
@@ -838,6 +967,13 @@ export default function WorkoutCompleteScreen({
             </Animated.Text>
           )}
 
+          {/* ---- Level: the banner only on a level-up, then the XP this session earned ---- */}
+          {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} accent={xpAccentForPercentile(overallAfter)} />}
+          {rewards?.leveledUp && (
+            <CamoUnlockRow beforeLevel={rewards.levelBefore.level} afterLevel={rewards.levelAfter.level} percentile={overallAfter} />
+          )}
+          {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} accent={xpAccentForPercentile(overallAfter)} />}
+
           {/* ---- The session's PRs lead: one large gold number per lift ---- */}
           {prs.length > 0 && (
             <Animated.View entering={FadeIn.delay(300)} style={styles.prHaul}>
@@ -872,6 +1008,9 @@ export default function WorkoutCompleteScreen({
               ))}
             </Animated.View>
           )}
+
+          {/* ---- Body graph: regions that ranked up this session ---- */}
+          {!!rewards?.regionTierUps.length && <MuscleTierUpRow tierUps={rewards.regionTierUps} />}
 
           {/* ---- Shareable recap card ---- */}
           <Animated.View entering={FadeIn.delay(350)} style={styles.cardWrap}>
@@ -1241,6 +1380,75 @@ const styles = StyleSheet.create({
   rewardsSection: {
     width: '100%',
     marginBottom: 28,
+  },
+
+  // XP / level (lime accent from lib/ui/tokens)
+  xpCard: {
+    width: '100%',
+    marginBottom: space.section,
+  },
+  xpGain: {
+    fontSize: type.statHero,
+    fontWeight: '800',
+    color: xpAccent,
+    letterSpacing: track.display,
+    fontVariant: ['tabular-nums'],
+  },
+  xpTrack: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  xpFill: {
+    height: '100%',
+    borderRadius: 5,
+    backgroundColor: xpAccent,
+  },
+  xpCaptionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: space.md,
+    marginTop: space.sm,
+  },
+  xpBreakdown: {
+    flex: 1,
+    color: 'rgba(255,255,255,0.6)',
+  },
+  levelUp: {
+    width: '100%',
+    alignItems: 'center',
+    gap: space.xs,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.lg,
+    marginBottom: space.section,
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: xpAccent,
+    backgroundColor: tint(xpAccent),
+  },
+  levelUpKicker: {
+    color: xpAccent,
+    letterSpacing: track.caps,
+  },
+  levelUpNumber: {
+    color: '#fff',
+    letterSpacing: track.display,
+  },
+  levelUpTitle: {
+    color: xpAccent,
+  },
+  levelUpCenter: {
+    textAlign: 'center',
+  },
+  levelUpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  levelUpText: {
+    alignItems: 'flex-start',
   },
   achList: {
     width: '100%',

@@ -53,6 +53,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     refreshProfile();
   }, [refreshProfile]);
 
+  // One-time backfill per app session so lifters who already have history show a
+  // level on the feed/Level board before their next workout. No-ops without a
+  // backend user or when the synced level is already current.
+  useEffect(() => {
+    userSyncService.syncLevel().catch(err => console.error('Error backfilling level:', err));
+  }, []);
+
   const value: UserContextType = useMemo(() => ({
     userProfile,
     isLoading,

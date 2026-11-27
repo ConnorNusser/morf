@@ -13,6 +13,15 @@ import { attributeAchievements } from '@/lib/history/achievementAttribution';
 import { storageService } from '@/lib/storage/storage';
 import { containsProfanity } from '@/lib/utils/moderation';
 import { LeagueMemberAggregates, LeagueTopLift } from '@/lib/leagues/types';
+import { loadLocalLevel } from '@/lib/gamification/localLevel';
+import {
+  LevelBoardRow,
+  levelUserDataPatch,
+  mergeUserData,
+  parseSyncedLevel,
+  patchIsNoop,
+  SyncedLevel,
+} from '@/lib/gamification/levelSocial';
 
 // Overall strength snapshot used by the feed to color/annotate author names.
 export interface UserStrengthSummary {
@@ -20,10 +29,30 @@ export interface UserStrengthSummary {
   percentile: number;
 }
 
+/** A Level-board row plus the profile bits the board renders. */
+export interface LevelLeaderboardEntry extends LevelBoardRow {
+  user: RemoteUser;
+}
+
+// Cap for the global/country Level board fetch (matches the other boards).
+export const LEVEL_BOARD_LIMIT = 50;
+
+/** Locally computed level as a user_data patch; null if history can't be read. */
+async function currentLevelPatch(): Promise<{ level: number; total_xp: number } | null> {
+  try {
+    return levelUserDataPatch(await loadLocalLevel());
+  } catch (error) {
+    console.error('Error computing local level:', error);
+    return null;
+  }
+}
+
 class UserSyncService {
   private currentUserId: string | null = null;
   // user_id → overall strength; null marks a confirmed "no percentile row yet".
   private strengthLevelCache = new Map<string, UserStrengthSummary | null>();
+  // user_id → synced level; null marks "no level in user_data yet".
+  private levelCache = new Map<string, SyncedLevel | null>();
 
   async syncUser(username: string): Promise<RemoteUser | null> {
     if (!supabase) return null;
@@ -152,9 +181,11 @@ class UserSyncService {
   }
 
   // Merges into the existing user_data jsonb so fields other callers own (e.g.
-  // the featured achievement) survive a profile save.
+  // the featured achievement) survive a profile save. Rides along the current
+  // level so profile saves also refresh it.
   async syncProfileData(profileData: RemoteUserData): Promise<boolean> {
-    return this.mergeUserData(profileData);
+    const levelPatch = await currentLevelPatch();
+    return this.mergeUserData({ ...profileData, ...(levelPatch ?? {}) });
   }
 
   /** The achievement badge on this user's public profile (null clears it). */
@@ -162,8 +193,34 @@ class UserSyncService {
     return this.mergeUserData({ featured_achievement_id: achievementId ?? undefined });
   }
 
+  /**
+   * Push the locally computed level/total XP into user_data (feed chip, Level
+   * board). Call after a workout is saved, and once per session as a backfill.
+   * Never creates a backend user — users who haven't synced anything yet stay
+   * off the server — and skips the write when the synced copy is already current.
+   */
+  async syncLevel(): Promise<boolean> {
+    if (!supabase) return false;
+    try {
+      const patch = await currentLevelPatch();
+      if (!patch) return false;
+      const user = await this.getCurrentUser();
+      if (!user) return false;
+      const ok = await this.mergeUserData(patch, { skipIfUnchanged: true });
+      // Keep the feed's own-author chip fresh without a refetch.
+      if (ok) this.levelCache.set(user.id, { level: patch.level, totalXp: patch.total_xp });
+      return ok;
+    } catch (error) {
+      console.error('Error syncing level:', error);
+      return false;
+    }
+  }
+
   /** Patch user_data without clobbering fields the patch doesn't mention. */
-  private async mergeUserData(patch: Partial<RemoteUserData>): Promise<boolean> {
+  private async mergeUserData(
+    patch: Partial<RemoteUserData>,
+    opts: { skipIfUnchanged?: boolean } = {},
+  ): Promise<boolean> {
     if (!supabase) return false;
     try {
       const user = await this.getOrCreateUser();
@@ -173,12 +230,9 @@ class UserSyncService {
         .select('user_data')
         .eq('id', this.currentUserId)
         .single();
-      const merged = { ...(data?.user_data ?? {}), ...patch };
-      // An explicit undefined means "clear this field".
-      for (const [k, v] of Object.entries(patch)) {
-        if (v === undefined) delete (merged as Record<string, unknown>)[k];
-      }
-      return this.updateUserField({ user_data: merged });
+      const existing = (data?.user_data ?? {}) as RemoteUserData;
+      if (opts.skipIfUnchanged && patchIsNoop(existing, patch)) return true;
+      return this.updateUserField({ user_data: mergeUserData(existing, patch) });
     } catch (error) {
       console.error('Error merging user data:', error);
       return false;
@@ -876,6 +930,116 @@ class UserSyncService {
     }
 
     return result;
+  }
+
+  /**
+   * Batch lookup of synced levels (users.user_data.level / total_xp) for the
+   * feed's "Lv N" chip. Same session cache shape as getUserStrengthLevels;
+   * users without a synced level are simply absent from the result.
+   */
+  async getUserLevels(userIds: string[]): Promise<Record<string, SyncedLevel>> {
+    const result: Record<string, SyncedLevel> = {};
+    const missing: string[] = [];
+
+    for (const id of new Set(userIds)) {
+      if (this.levelCache.has(id)) {
+        const cached = this.levelCache.get(id);
+        if (cached) result[id] = cached;
+      } else {
+        missing.push(id);
+      }
+    }
+
+    if (missing.length === 0 || !supabase) return result;
+
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, level:user_data->level, total_xp:user_data->total_xp')
+        .in('id', missing);
+
+      if (error) {
+        console.error('Error fetching user levels:', error);
+        return result;
+      }
+
+      for (const row of (data || []) as { id: string; level?: unknown; total_xp?: unknown }[]) {
+        const level = parseSyncedLevel(row);
+        this.levelCache.set(row.id, level);
+        if (level) result[row.id] = level;
+      }
+      for (const id of missing) {
+        if (!this.levelCache.has(id)) this.levelCache.set(id, null);
+      }
+    } catch (error) {
+      console.error('Error fetching user levels:', error);
+    }
+
+    return result;
+  }
+
+  /**
+   * Level board rows, unranked (rank with rankLevelBoard). Global/country is the
+   * top LEVEL_BOARD_LIMIT by synced level then XP; friends is every friend plus
+   * the viewer. Users with no synced level are omitted.
+   */
+  async getLevelLeaderboard(scope: 'friends' | 'global', countryCode?: string | null): Promise<LevelLeaderboardEntry[]> {
+    if (!supabase) return [];
+
+    try {
+      let query = supabase
+        .from('users')
+        .select('id, username, country_code, profile_picture_url, level:user_data->level, total_xp:user_data->total_xp')
+        .not('user_data->level', 'is', null);
+
+      if (scope === 'friends') {
+        const me = await this.getCurrentUser();
+        if (!me) return [];
+        const friends = await this.getFriends();
+        query = query.in('id', [me.id, ...friends.map(f => f.user.id)]);
+      } else {
+        query = query
+          .order('user_data->level', { ascending: false })
+          .order('user_data->total_xp', { ascending: false, nullsFirst: false })
+          .limit(LEVEL_BOARD_LIMIT);
+        if (countryCode) query = query.eq('country_code', countryCode);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error getting level leaderboard:', error);
+        return [];
+      }
+
+      const entries: LevelLeaderboardEntry[] = [];
+      for (const row of (data || []) as {
+        id: string;
+        username: string;
+        country_code?: string;
+        profile_picture_url?: string;
+        level?: unknown;
+        total_xp?: unknown;
+      }[]) {
+        const level = parseSyncedLevel(row);
+        if (!level) continue;
+        entries.push({
+          userId: row.id,
+          username: row.username,
+          ...level,
+          user: {
+            id: row.id,
+            device_id: '',
+            username: row.username,
+            country_code: row.country_code,
+            profile_picture_url: row.profile_picture_url,
+          },
+        });
+      }
+      return entries;
+    } catch (error) {
+      console.error('Error getting level leaderboard:', error);
+      return [];
+    }
   }
 
   /**

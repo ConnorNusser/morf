@@ -10,6 +10,12 @@ interface ThemeContextType {
   setThemeLevel: (level: ThemeLevel) => void;
   currentGradientId: BackgroundGradientId;
   setGradientId: (id: BackgroundGradientId) => void;
+  /** Lifter's overall percentile — drives the tier-following background wash. */
+  userPercentile: number;
+  setUserPercentile: (p: number) => void;
+  /** Background wash on/off (Profile → Themes). */
+  gradientEnabled: boolean;
+  setGradientEnabled: (on: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -20,6 +26,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
   const [currentGradientId, setCurrentGradientId] = useState<BackgroundGradientId>(DEFAULT_GRADIENT_ID);
+  const [userPercentile, setUserPercentileState] = useState(0);
+  const [gradientEnabled, setGradientEnabledState] = useState(true);
 
   useEffect(() => {
     const loadThemePreference = async () => {
@@ -30,6 +38,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const defaultTheme = getDefaultTheme();
         setCurrentThemeLevel(defaultTheme);
         await storageService.saveThemePreference(defaultTheme);
+      }
+      setUserPercentileState(await storageService.getLastOverallPercentile());
+      setGradientEnabledState(await storageService.getGradientEnabled());
+      // The wash now follows the lifter's tier; reset old manual picks once so
+      // everyone lands on it (they can still choose another unlocked one after).
+      if (await storageService.consumeGradientAutoMigration()) {
+        await storageService.saveGradientPreference('auto');
       }
       const savedGradient = await storageService.getGradientPreference();
       if (savedGradient) {
@@ -49,6 +64,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     await storageService.saveGradientPreference(id);
   }, []);
 
+  const setUserPercentile = useCallback((p: number) => {
+    const v = Math.max(0, Math.round(p));
+    setUserPercentileState(prev => (prev === v ? prev : v));
+    storageService.setLastOverallPercentile(v);
+  }, []);
+
+  const setGradientEnabled = useCallback((on: boolean) => {
+    setGradientEnabledState(on);
+    storageService.setGradientEnabled(on);
+  }, []);
+
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
   const value = useMemo(() => ({
@@ -58,7 +84,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeLevel,
     currentGradientId,
     setGradientId,
-  }), [currentTheme, currentThemeLevel, setThemeLevel, currentGradientId, setGradientId]);
+    userPercentile,
+    setUserPercentile,
+    gradientEnabled,
+    setGradientEnabled,
+  }), [currentTheme, currentThemeLevel, setThemeLevel, currentGradientId, setGradientId, userPercentile, setUserPercentile, gradientEnabled, setGradientEnabled]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

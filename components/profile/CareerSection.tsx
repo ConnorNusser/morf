@@ -3,6 +3,7 @@ import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
 import FlipCard from '@/components/gamification/FlipCard';
+import RankEmblem from '@/components/gamification/RankEmblem';
 import TierBadge from '@/components/TierBadge';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -68,7 +69,15 @@ export default function CareerSection() {
       <TouchableOpacity activeOpacity={0.9} onPress={open}>
         <Card style={styles.card} padding={panelPad}>
           <View style={styles.headerRow}>
-            <Text variant="heading" weight="bold" tone="primary">Career</Text>
+            <View style={styles.headerLeft}>
+              <RankEmblem level={data.level.level} progress={data.level.progress} size={40} />
+              <View>
+                <Text variant="heading" weight="bold" tone="primary">Career</Text>
+                <Text variant="meta" tone="muted" numberOfLines={1}>
+                  Level {data.level.level} · {data.level.title}
+                </Text>
+              </View>
+            </View>
             <View style={styles.headerRight}>
               {data.newIds.size > 0 && (
                 <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary }]}>
@@ -270,6 +279,7 @@ const styles = StyleSheet.create({
   card: { gap: space.lg },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexShrink: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: space.xs },
   newBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.badge, marginRight: space.xs },
 

@@ -1,11 +1,16 @@
 import DashboardHeader from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
+import LevelIntroModal from "@/components/gamification/LevelIntroModal";
 import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
-import RankHero from "@/components/home/RankHero";
+import HoloRankCard from "@/components/home/HoloRankCard";
+import StreakMapModal from "@/components/home/StreakMapModal";
+import { useBodyGraph } from "@/hooks/useBodyGraph";
+import { xpAccentForPercentile } from "@/lib/ui/tierFoil";
 import TodayCard from "@/components/home/TodayCard";
+import LaggingMuscleCard from "@/components/home/LaggingMuscleCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -18,6 +23,7 @@ import UnlockNotificationModal, {
 } from "@/components/UnlockNotificationModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
+import useLevel from "@/hooks/useLevel";
 import { userService } from "@/lib/services/userService";
 import { userSyncService } from "@/lib/services/userSyncService";
 import {
@@ -42,7 +48,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   // Clear the status bar/notch via real insets; content scrolls under it.
   const contentTopPadding = insets.top;
-  const { currentTheme, setThemeLevel } = useTheme();
+  const { currentTheme, setThemeLevel, setUserPercentile } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
   const { feed: feedParam, league: leagueParam } = useLocalSearchParams<{ feed?: string; league?: string }>();
@@ -57,10 +63,19 @@ export default function HomeScreen() {
   const [leagueExpandTarget, setLeagueExpandTarget] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
+  const [showStreakMap, setShowStreakMap] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [overallPercentile, setOverallPercentile] = useState(0);
   // The viewer's own backend user, for the feed header's profile button.
   const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
+  // Account level for the header pill (recomputed on focus) + the one-time intro.
+  const { level, stats: levelStats, intro: levelIntro, dismissIntro } = useLevel();
+
+  // Feed the tier-following background wash (ScreenBackground) app-wide.
+  useEffect(() => {
+    setUserPercentile(overallPercentile);
+  }, [overallPercentile, setUserPercentile]);
+  const bodyGraphData = useBodyGraph();
 
   useEffect(() => {
     const loadViewMode = async () => {
@@ -219,6 +234,9 @@ export default function HomeScreen() {
               }
               profileImageUrl={currentUser?.profile_picture_url}
               profileUsername={currentUser?.username}
+              level={level}
+              onLevelPress={() => setShowCareer(true)}
+              levelColor={xpAccentForPercentile(overallPercentile)}
             />
           </View>
           <FeedView
@@ -232,6 +250,9 @@ export default function HomeScreen() {
           onClose={() => setSelectedUser(null)}
           user={selectedUser}
         />
+
+        {/* The header level pill opens Career from the feed too. */}
+        <CareerModal visible={showCareer} onClose={() => setShowCareer(false)} />
       </>
     );
   }
@@ -259,15 +280,23 @@ export default function HomeScreen() {
         <DashboardHeader
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          streakWeeks={levelStats?.weekStreak}
+          onStreakPress={() => setShowStreakMap(true)}
         />
 
-        <RankHero
+        <HoloRankCard
           percentile={overallPercentile}
-          onPress={() => setShowCareer(true)}
+          level={level}
+          workouts={levelStats?.workouts ?? 0}
+          weekStreak={levelStats?.weekStreak ?? 0}
+          nextWorkoutXp={levelStats?.nextWorkoutXp ?? 0}
+          regions={bodyGraphData?.bodyGraph ?? null}
+          onOpenCareer={() => setShowCareer(true)}
         />
 
         <WeeklyGoalCard />
         <TodayCard />
+        <LaggingMuscleCard />
 
         {/* Absorbs leftover height; collapses to zero once content scrolls. */}
         <View style={layout.flex1} />
@@ -301,6 +330,7 @@ export default function HomeScreen() {
         onClose={() => setShowLeaderboard(false)}
       />
 
+      <StreakMapModal visible={showStreakMap} onClose={() => setShowStreakMap(false)} />
       <CareerModal
         visible={showCareer}
         onClose={() => {
@@ -328,6 +358,14 @@ export default function HomeScreen() {
         notificationType={unlockNotification}
         onDismiss={handleDismissUnlock}
         onActivate={handleActivateUnlock}
+      />
+
+      {/* One-time "You're Level N" for existing users; waits behind the unlock modal. */}
+      <LevelIntroModal
+        level={levelIntro}
+        visible={levelIntro !== null && unlockNotification === null && !pendingProgress}
+        onDismiss={dismissIntro}
+        onViewCareer={() => setShowCareer(true)}
       />
     </>
   );

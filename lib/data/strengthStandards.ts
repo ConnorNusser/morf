@@ -890,6 +890,14 @@ export const TIER_THRESHOLDS: { label: StrengthTier; threshold: number }[] = [
   { label: 'S++', threshold: 99 },
 ];
 
+// Lowest percentile of a tier letter (its "-" sub-tier): E 0, D 6, C 23, B 47, A 70, S 85.
+// Unlock gates (themes, background gradients) use this so "shows as C-" always
+// means "C unlocks are open".
+export function tierFloorPercentile(base: StrengthTierBase): number {
+  const label = base === 'E' ? 'E-' : `${base}-`;
+  return TIER_THRESHOLDS.find(t => t.label === label)?.threshold ?? 0;
+}
+
 export function getNextTierInfo(percentile: number): {
   current: StrengthTier;
   next: StrengthTier | null;

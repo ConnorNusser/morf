@@ -1,3 +1,4 @@
+import { tierFloorPercentile } from '@/lib/data/strengthStandards';
 import {
   Gender,
   HeightUnit,
@@ -40,23 +41,23 @@ export const THEME_CONFIG: Record<ThemeLevel, {
   },
   intermediate: {
     displayName: 'C Tier',
-    requiredPercentile: 25,
-    description: 'Requires 25th percentile',
+    requiredPercentile: tierFloorPercentile('C'),
+    description: `Requires ${tierFloorPercentile('C')}rd percentile`,
   },
   advanced: {
     displayName: 'B Tier',
-    requiredPercentile: 50,
-    description: 'Requires 50th percentile',
+    requiredPercentile: tierFloorPercentile('B'),
+    description: `Requires ${tierFloorPercentile('B')}th percentile`,
   },
   elite: {
     displayName: 'A Tier',
-    requiredPercentile: 75,
-    description: 'Requires 75th percentile',
+    requiredPercentile: tierFloorPercentile('A'),
+    description: `Requires ${tierFloorPercentile('A')}th percentile`,
   },
   god: {
     displayName: 'S Tier',
-    requiredPercentile: 90,
-    description: 'Requires 90th percentile',
+    requiredPercentile: tierFloorPercentile('S'),
+    description: `Requires ${tierFloorPercentile('S')}th percentile`,
   },
   share_warm: {
     displayName: 'Rose',

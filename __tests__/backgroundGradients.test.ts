@@ -1,6 +1,12 @@
-import { TIER_COLORS } from '@/lib/data/strengthStandards';
+import { getStrengthTier, TIER_COLORS, tierFloorPercentile } from '@/lib/data/strengthStandards';
 import {
   BACKGROUND_GRADIENTS,
+  resolveBackgroundGradient,
+  blendHex,
+  gradientForTier,
+  letterProgress,
+  MAX_BLEND,
+  resolveBackgroundColors,
   DEFAULT_GRADIENT_ID,
   getBackgroundGradient,
   isGradientUnlocked,
@@ -12,10 +18,10 @@ describe('background gradient catalog', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('starts with the None option and defaults to it', () => {
-    expect(BACKGROUND_GRADIENTS[0].id).toBe('none');
+  it('starts with the tier-following Auto option and defaults to it (wash always on)', () => {
+    expect(BACKGROUND_GRADIENTS[0].id).toBe('auto');
     expect(BACKGROUND_GRADIENTS[0].colors).toBeNull();
-    expect(DEFAULT_GRADIENT_ID).toBe('none');
+    expect(DEFAULT_GRADIENT_ID).toBe('auto');
   });
 
   it('is sorted by unlock tier (non-decreasing percentile)', () => {
@@ -25,16 +31,17 @@ describe('background gradient catalog', () => {
     }
   });
 
-  it('mirrors the theme tier ladder (0/25/50/75/90 all present)', () => {
-    const gates = new Set(BACKGROUND_GRADIENTS.map((g) => g.requiredPercentile));
-    for (const gate of [0, 25, 50, 75, 90]) {
-      expect(gates).toContain(gate);
+  it('gates each tier gradient at that tier letter\'s floor (E 0, C 23, B 47, A 70, S 85)', () => {
+    for (const g of BACKGROUND_GRADIENTS) {
+      if (!g.tier) continue;
+      expect(g.requiredPercentile).toBe(tierFloorPercentile(g.tier));
     }
+    expect(BACKGROUND_GRADIENTS.map((g) => g.requiredPercentile)).toEqual([0, 0, 23, 47, 70, 85]);
   });
 
   it('every gradient except none has two valid hex anchor colors', () => {
     for (const g of BACKGROUND_GRADIENTS) {
-      if (g.id === 'none') continue;
+      if (g.id === 'auto') continue;
       expect(g.colors).toHaveLength(2);
       for (const c of g.colors!) {
         expect(c).toMatch(/^#[0-9A-Fa-f]{6}$/);
@@ -44,7 +51,7 @@ describe('background gradient catalog', () => {
 
   it('anchors every gradient on its tier color from TIER_COLORS', () => {
     for (const g of BACKGROUND_GRADIENTS) {
-      if (g.id === 'none') continue;
+      if (g.id === 'auto') continue;
       expect(g.tier).not.toBeNull();
       expect(g.colors![0]).toBe(TIER_COLORS[g.tier!]);
     }
@@ -56,28 +63,90 @@ describe('getBackgroundGradient', () => {
     expect(getBackgroundGradient('legendary').id).toBe('legendary');
   });
 
-  it('falls back to none for unknown, legacy, null, or undefined ids', () => {
-    expect(getBackgroundGradient('earth').id).toBe('none'); // pre-rename id
-    expect(getBackgroundGradient('sparkle_legacy').id).toBe('none');
-    expect(getBackgroundGradient(null).id).toBe('none');
-    expect(getBackgroundGradient(undefined).id).toBe('none');
+  it('falls back to auto for unknown, legacy (incl. none), null, or undefined ids', () => {
+    expect(getBackgroundGradient('earth').id).toBe('auto'); // pre-rename id
+    expect(getBackgroundGradient('none').id).toBe('auto'); // the wash is forced on now
+    expect(getBackgroundGradient('sparkle_legacy').id).toBe('auto');
+    expect(getBackgroundGradient(null).id).toBe('auto');
+    expect(getBackgroundGradient(undefined).id).toBe('auto');
   });
 });
 
 describe('isGradientUnlocked', () => {
-  it('none and the E-tier gradient are available to everyone', () => {
-    expect(isGradientUnlocked('none', 0)).toBe(true);
+  it('auto and the E-tier gradient are available to everyone', () => {
+    expect(isGradientUnlocked('auto', 0)).toBe(true);
     expect(isGradientUnlocked('common', 0)).toBe(true);
   });
 
-  it('gates each tier at its percentile boundary', () => {
-    expect(isGradientUnlocked('uncommon', 24)).toBe(false);
-    expect(isGradientUnlocked('uncommon', 25)).toBe(true);
-    expect(isGradientUnlocked('rare', 49)).toBe(false);
-    expect(isGradientUnlocked('rare', 50)).toBe(true);
-    expect(isGradientUnlocked('epic', 74)).toBe(false);
-    expect(isGradientUnlocked('epic', 75)).toBe(true);
-    expect(isGradientUnlocked('legendary', 89)).toBe(false);
-    expect(isGradientUnlocked('legendary', 90)).toBe(true);
+  it('gates each tier at its tier floor, so showing as C- means C is unlocked', () => {
+    expect(isGradientUnlocked('uncommon', 22)).toBe(false);
+    expect(isGradientUnlocked('uncommon', 23)).toBe(true);
+    expect(isGradientUnlocked('uncommon', 24)).toBe(true); // regression: C- at 24th was locked
+    expect(isGradientUnlocked('rare', 46)).toBe(false);
+    expect(isGradientUnlocked('rare', 47)).toBe(true);
+    expect(isGradientUnlocked('epic', 69)).toBe(false);
+    expect(isGradientUnlocked('epic', 70)).toBe(true);
+    expect(isGradientUnlocked('legendary', 84)).toBe(false);
+    expect(isGradientUnlocked('legendary', 85)).toBe(true);
+  });
+});
+
+describe('resolveBackgroundGradient', () => {
+  it('auto follows the lifter\'s current tier', () => {
+    expect(resolveBackgroundGradient('auto', 0).id).toBe('common');
+    expect(resolveBackgroundGradient('auto', 10).id).toBe('common'); // D shares E's wash
+    expect(resolveBackgroundGradient('auto', 24).id).toBe('uncommon');
+    expect(resolveBackgroundGradient('auto', 60).id).toBe('rare');
+    expect(resolveBackgroundGradient('auto', 92).id).toBe('legendary');
+  });
+
+  it('legacy none resolves like auto, so the wash is always on', () => {
+    expect(resolveBackgroundGradient('none', 24).id).toBe('uncommon');
+  });
+
+  it('honors an explicit unlocked pick but not a locked one', () => {
+    expect(resolveBackgroundGradient('common', 92).id).toBe('common');
+    expect(resolveBackgroundGradient('legendary', 24).id).toBe('uncommon');
+  });
+
+  it('every tier letter lands on a gradient whose gate it passes', () => {
+    for (let p = 0; p <= 100; p++) {
+      const g = resolveBackgroundGradient('auto', p);
+      expect(isGradientUnlocked(g.id, p)).toBe(true);
+      if (p > 0 && g.tier && g.tier !== 'E') expect(g.tier).toBe(getStrengthTier(p).charAt(0));
+    }
+  });
+});
+
+describe('gradient blending', () => {
+  it('blendHex interpolates and clamps', () => {
+    expect(blendHex('#000000', '#FFFFFF', 0)).toBe('#000000');
+    expect(blendHex('#000000', '#FFFFFF', 1)).toBe('#FFFFFF');
+    expect(blendHex('#000000', '#FFFFFF', 0.5)).toBe('#808080');
+    expect(blendHex('#000000', '#FFFFFF', 2)).toBe('#FFFFFF');
+  });
+
+  it('letterProgress runs 0→1 across a tier letter', () => {
+    expect(letterProgress(23)).toBe(0); // C- floor
+    expect(letterProgress(35)).toBeCloseTo(0.5); // halfway C → B
+    expect(letterProgress(0)).toBe(0);
+    expect(letterProgress(99)).toBe(0); // S has nothing above
+  });
+
+  it('auto starts on the tier colors and eases toward the next tier, never past MAX_BLEND', () => {
+    const c = gradientForTier('C').colors!;
+    const b = gradientForTier('B').colors!;
+    expect(resolveBackgroundColors('auto', 23)).toEqual([c[0].toUpperCase(), c[1].toUpperCase()]);
+    const near = resolveBackgroundColors('auto', 46)!;
+    const capped = blendHex(c[0], b[0], MAX_BLEND);
+    expect(near[0]).not.toBe(c[0].toUpperCase());
+    // closer to the cap than to the start
+    const dist = (x: string, y: string) => Math.abs(parseInt(x.slice(1, 3), 16) - parseInt(y.slice(1, 3), 16));
+    expect(dist(near[0], capped)).toBeLessThan(dist(near[0], c[0]));
+  });
+
+  it('explicit picks and unranked are unblended', () => {
+    expect(resolveBackgroundColors('uncommon', 46)).toEqual(gradientForTier('C').colors);
+    expect(resolveBackgroundColors('auto', 0)).toEqual(gradientForTier('E').colors);
   });
 });

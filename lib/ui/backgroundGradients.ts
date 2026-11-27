@@ -4,10 +4,11 @@
 // color every tier badge/leaderboard band uses) fading to a lighter companion
 // shade, and named after the tier's rarity word.
 
-import { StrengthTierBase, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { getStrengthTier, StrengthTierBase, TIER_COLORS, tierFloorPercentile } from '@/lib/data/strengthStandards';
 
 export type BackgroundGradientId =
-  | 'none'
+  | 'auto' // follows the lifter's current tier (default; the wash is always on)
+  | 'none' // legacy: stored by older builds, now resolves like 'auto'
   | 'common'
   | 'uncommon'
   | 'rare'
@@ -26,17 +27,17 @@ export interface BackgroundGradient {
   colors: [string, string] | null;
 }
 
-export const DEFAULT_GRADIENT_ID: BackgroundGradientId = 'none';
+export const DEFAULT_GRADIENT_ID: BackgroundGradientId = 'auto';
 
-// Ordered by unlock tier — keep 'none' first and requiredPercentile non-decreasing.
+// Ordered by unlock tier — keep 'auto' first and requiredPercentile non-decreasing.
 export const BACKGROUND_GRADIENTS: BackgroundGradient[] = [
   {
-    id: 'none',
-    displayName: 'None',
+    id: 'auto',
+    displayName: 'My tier',
     tier: null,
     requiredPercentile: 0,
-    description: 'No gradient',
-    colors: null,
+    description: 'Follows your current tier',
+    colors: null, // resolved per lifter by resolveBackgroundGradient
   },
   {
     id: 'common',
@@ -50,43 +51,113 @@ export const BACKGROUND_GRADIENTS: BackgroundGradient[] = [
     id: 'uncommon',
     displayName: 'Uncommon',
     tier: 'C',
-    requiredPercentile: 25,
-    description: 'C Tier · Requires 25th percentile',
+    requiredPercentile: tierFloorPercentile('C'),
+    description: `C Tier · Requires ${ordinal(tierFloorPercentile('C'))} percentile`,
     colors: [TIER_COLORS.C, '#6FCF97'],
   },
   {
     id: 'rare',
     displayName: 'Rare',
     tier: 'B',
-    requiredPercentile: 50,
-    description: 'B Tier · Requires 50th percentile',
+    requiredPercentile: tierFloorPercentile('B'),
+    description: `B Tier · Requires ${ordinal(tierFloorPercentile('B'))} percentile`,
     colors: [TIER_COLORS.B, '#7EA4F2'],
   },
   {
     id: 'epic',
     displayName: 'Epic',
     tier: 'A',
-    requiredPercentile: 75,
-    description: 'A Tier · Requires 75th percentile',
+    requiredPercentile: tierFloorPercentile('A'),
+    description: `A Tier · Requires ${ordinal(tierFloorPercentile('A'))} percentile`,
     colors: [TIER_COLORS.A, '#D178FF'],
   },
   {
     id: 'legendary',
     displayName: 'Legendary',
     tier: 'S',
-    requiredPercentile: 90,
-    description: 'S Tier · Requires 90th percentile',
+    requiredPercentile: tierFloorPercentile('S'),
+    description: `S Tier · Requires ${ordinal(tierFloorPercentile('S'))} percentile`,
     colors: [TIER_COLORS.S, '#FF9F1C'],
   },
 ];
 
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 const byId = new Map(BACKGROUND_GRADIENTS.map((g) => [g.id, g]));
 
-/** Unknown/legacy stored ids fall back to 'none' so rendering never breaks. */
+/** Unknown/legacy stored ids (including 'none') fall back to 'auto' so the wash is always on. */
 export const getBackgroundGradient = (id: string | null | undefined): BackgroundGradient => {
-  return (id && byId.get(id as BackgroundGradientId)) || (byId.get('none') as BackgroundGradient);
+  return (id && byId.get(id as BackgroundGradientId)) || (byId.get('auto') as BackgroundGradient);
+};
+
+const BY_TIER: Partial<Record<StrengthTierBase, BackgroundGradient>> = {};
+for (const g of BACKGROUND_GRADIENTS) if (g.tier) BY_TIER[g.tier] = g;
+
+/** Gradient for a tier letter; D (no gradient of its own) shares E's. */
+export const gradientForTier = (base: StrengthTierBase | null): BackgroundGradient =>
+  (base && BY_TIER[base]) || BY_TIER.E!;
+
+/** The gradient actually painted: 'auto' (and legacy 'none') follow the lifter's tier;
+ * an explicit pick is honored only while it's still unlocked. */
+export const resolveBackgroundGradient = (id: string | null | undefined, userPercentile: number): BackgroundGradient => {
+  const base = userPercentile > 0 ? (getStrengthTier(userPercentile).charAt(0) as StrengthTierBase) : null;
+  const g = getBackgroundGradient(id);
+  if (g.id === 'auto' || !isGradientUnlocked(g.id, userPercentile)) return gradientForTier(base);
+  return g;
 };
 
 export const isGradientUnlocked = (id: BackgroundGradientId, userPercentile: number): boolean => {
   return userPercentile >= getBackgroundGradient(id).requiredPercentile;
 };
+
+// ---- Blending ------------------------------------------------------------
+// The 'auto' wash doesn't jump at tier boundaries: as you climb through a tier
+// letter it eases toward the next letter's colors, so a C+ lifter's screen is
+// already tinged with B's blue. The current tier stays dominant (max 55% mix).
+
+const LETTER_ORDER: StrengthTierBase[] = ['E', 'D', 'C', 'B', 'A', 'S'];
+export const MAX_BLEND = 0.55;
+
+function hexToRgb(hex: string): [number, number, number] {
+  const m = hex.replace('#', '');
+  return [0, 2, 4].map(i => parseInt(m.slice(i, i + 2), 16)) as [number, number, number];
+}
+
+export function blendHex(a: string, b: string, t: number): string {
+  const k = Math.max(0, Math.min(1, t));
+  const [ra, ga, ba] = hexToRgb(a);
+  const [rb, gb, bb] = hexToRgb(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * k).toString(16).padStart(2, '0');
+  return `#${c(ra, rb)}${c(ga, gb)}${c(ba, bb)}`.toUpperCase();
+}
+
+// 0..1 progress through the current tier *letter* (C- floor → B- floor).
+export function letterProgress(percentile: number): number {
+  if (percentile <= 0) return 0;
+  const base = getStrengthTier(percentile).charAt(0) as StrengthTierBase;
+  const i = LETTER_ORDER.indexOf(base);
+  const next = LETTER_ORDER[i + 1];
+  if (!next) return 0;
+  const lo = tierFloorPercentile(base);
+  const hi = tierFloorPercentile(next);
+  return Math.max(0, Math.min(1, (percentile - lo) / Math.max(1, hi - lo)));
+}
+
+/** Colors actually painted. 'auto' blends toward the next tier (eased);
+ * explicit picks paint their own colors unblended. */
+export function resolveBackgroundColors(id: string | null | undefined, userPercentile: number): [string, string] | null {
+  const g = resolveBackgroundGradient(id, userPercentile);
+  if (!g.colors) return null;
+  if (getBackgroundGradient(id).id !== 'auto' || userPercentile <= 0) return g.colors;
+  const base = getStrengthTier(userPercentile).charAt(0) as StrengthTierBase;
+  const next = LETTER_ORDER[LETTER_ORDER.indexOf(base) + 1];
+  const target = next ? gradientForTier(next).colors : null;
+  if (!target || target === g.colors) return g.colors;
+  const p = letterProgress(userPercentile);
+  const t = MAX_BLEND * p * p; // ease-in: identity holds early, blends near the top
+  return [blendHex(g.colors[0], target[0], t), blendHex(g.colors[1], target[1], t)];
+}

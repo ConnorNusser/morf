@@ -158,10 +158,11 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
 
       // Compute session rewards, best-effort — never let this block or fail the celebration.
       try {
-        const [afterHistory, afterLifts, profile] = await Promise.all([
+        const [afterHistory, afterLifts, profile, weeklyGoal] = await Promise.all([
           storageService.getWorkoutHistory(),
           userService.getAllFeaturedLifts(),
           userService.getUserProfileOrDefault(),
+          storageService.getWeeklyGoal(),
         ]);
         const unit = profile.weightUnitPreference || weightUnit;
         const bodyWeightLbs = profile.weight
@@ -173,10 +174,13 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const overallAfter = afterLifts.length
           ? calculateOverallPercentile(afterLifts.map(l => l.percentileRanking))
           : 0;
-        const before = buildRewardSnapshot(beforeHistory, { unit, overall: overallBefore, bodyWeightLbs });
-        const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, bodyWeightLbs });
+        const xpCtx = { bodyWeightLbs, weeklyGoal, gender: profile.gender, age: profile.age };
+        const before = buildRewardSnapshot(beforeHistory, { unit, overall: overallBefore, ...xpCtx });
+        const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, ...xpCtx });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
+        // The completion screen shows this level, so Home's one-time intro won't re-announce it.
+        storageService.setLastSeenLevel(after.level.level);
         setPercentileMove({ before: overallBefore, after: overallAfter });
         // The just-saved session (newest by createdAt) carries the generated title for the share card.
         const newest = afterHistory.reduce<(typeof afterHistory)[number] | null>(

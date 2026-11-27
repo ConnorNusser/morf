@@ -29,14 +29,20 @@ history (GeneratedWorkout[])
 | Achievements | `achievements.ts` (core), `strengthFeats.ts`, `strengthMilestones.ts`, `nicheAchievements.ts`, `behavioralSignals.ts` |
 | Achievement presentation | `achievementMeta.ts` (`achievementMeta(id)`), `achievementEmblems.ts` (`emblemFor(id)`), `rarity.ts` |
 | Tiers | `tierTimeline.ts` (`computeTierTimeline`, `getTierBandProgress(percentile)`) |
-| Per-session rewards | `sessionRewards.ts` (`buildRewardSnapshot` before/after → `computeSessionRewards` diff) |
-| Muscle / heatmap | `muscleMastery.ts`, `trainingHeatmap.ts` |
+| Per-session rewards | `sessionRewards.ts` (`buildRewardSnapshot` before/after → `computeSessionRewards` diff; includes `xpGained`, `leveledUp`, `regionTierUps`) |
+| XP / level | `xp.ts` (`computeXpLedger(history, ctx)` — retroactive, rules in `XP_RULES`), `levelCurve.ts` (`levelForXp`; next level costs 150 + 40·(L−1); `title` = rank name), `ranks.ts` (12 anime-style ranks, one per 5 levels: `rankForLevel`, `nextRank`, `rankStep`, `isRankUp`, blended `rankGradientForLevel`; rendered by `components/gamification/RankEmblem.tsx`) |
+| Level presentation | `levelDisplay.ts` (pill/breakdown copy, `xpBarSweep`, `decideLevelIntro` one-time intro gate; seen flag + `lastSeenLevel` in storage) |
+| Body graph | `bodyGraph.ts` (`computeBodyGraph` → 16 `RegionState`s: strength tier from rankable primary lifts, set-weighted; sets/week volume for every region; `findLaggingRegion`). Regions + exercise map live in `lib/data/bodyRegions.ts` / `exerciseRegions.ts` |
+| Body graph presentation | `bodyGraphDisplay.ts` (`regionFill`, `formatNextTierLine`, `setsBar`, `laggingLine`, `formatTierUp`, `trainRegionRequest`); `careerData.ts` `loadBodyGraphData()` is the light loader behind `hooks/useBodyGraph`. UI: `components/gamification/BodyGraph.tsx` (+ `bodyGraphPaths.ts`), `MuscleDetailSheet.tsx`, `MuscleTierUpRow.tsx`, `components/home/LaggingMuscleCard.tsx` |
+| Heatmap | `trainingHeatmap.ts` |
 | Profile icons | `profileIcons.ts` (unlocks gated by achievements) |
 
 ## Conventions
 
 - **Add an achievement** by extending the matching `compute…Achievements` function *and* registering copy/rarity in `achievementMeta.ts` (+ an emblem in `achievementEmblems.ts` if it has one). An achievement with no meta renders blank.
 - **Session rewards are diff-based**: snapshot state before a workout and after, then `computeSessionRewards(before, after)` surfaces what changed (new PRs, unlocks) — used by `WorkoutLaunchContext` for the post-workout celebration.
+- **Level is XP-driven, tier is percentile-driven** — two separate meters. XP only goes up; tier-up XP uses the fixed main-lift set so the dashboard's hidden-lift filter never changes XP.
+- **New catalog exercise → add it to `lib/data/exerciseRegions.ts`**; `__tests__/bodyGraph.test.ts` fails if any catalog id is missing or its primary regions don't roll up to its muscle groups.
 - **Tiers are percentile-driven**, not XP-driven — `getTierBandProgress(percentile)` maps a strength percentile to a tier band. Percentiles come from `lib/services` sync / `strengthStandards.ts`, not from this directory.
 - Weights are lbs internally in the compute functions (`computeStrengthFeats` takes `prsLbs`); convert for display at the edge.
 

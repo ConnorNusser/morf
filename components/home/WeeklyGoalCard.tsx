@@ -131,7 +131,7 @@ export default function WeeklyGoalCard() {
                         backgroundColor: dayColors[i],
                         borderColor: dayColors[i],
                       }
-                    : { borderColor: currentTheme.colors.border },
+                    : { borderColor: ink.faint }, // ink ramp, not the surface border, so empty days read over the tier wash
                 ]}
               />
               <Text variant="meta" tone="secondary">
