@@ -3,7 +3,7 @@ import AchievementModal, { AchievementModalItem } from '@/components/gamificatio
 import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import Badge from '@/components/ui/Badge';
-import UserAvatar from '@/components/ui/UserAvatar';
+import RankAvatar from '@/components/ui/RankAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import { achievementMeta } from '@/lib/gamification/achievementMeta';
@@ -40,10 +40,12 @@ interface FeedCardProps {
   overallStrength?: UserStrengthSummary;
   /** Author's synced level — a quiet "Lv N" chip after the percentile; omitted when unknown. */
   authorLevel?: number;
+  /** Animate the avatar's rank ring (the feed turns this off for offscreen rows). */
+  avatarAnimated?: boolean;
 }
 
 
-function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallStrength, authorLevel }: FeedCardProps) {
+function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallStrength, authorLevel, avatarAnimated }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -92,7 +94,7 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
     >
       <View style={styles.header}>
         <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(workout)} activeOpacity={0.7}>
-          <UserAvatar uri={workout.profile_picture_url} username={workout.username} size={44} />
+          <RankAvatar uri={workout.profile_picture_url} username={workout.username} size={44} level={authorLevel} animated={avatarAnimated} />
           <View>
             <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}

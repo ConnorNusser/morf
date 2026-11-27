@@ -38,24 +38,29 @@ describe('level curve', () => {
 
   it('reports progress through the current level', () => {
     const p = levelForXp(totalXpForLevel(23) + 660);
-    expect(p).toMatchObject({ level: 23, title: 'Elite', xpIntoLevel: 660, xpForNext: 1030, xpToNext: 370 });
+    expect(p).toMatchObject({ level: 23, title: 'Gold II', xpIntoLevel: 660, xpForNext: 1030, xpToNext: 370 });
     expect(p.progress).toBeCloseTo(660 / 1030);
   });
 
   it('treats zero, negative and fractional XP sanely', () => {
-    expect(levelForXp(0)).toMatchObject({ level: 1, title: 'Novice', progress: 0 });
+    expect(levelForXp(0)).toMatchObject({ level: 1, title: 'Bronze III', progress: 0 });
     expect(levelForXp(-50).level).toBe(1);
     expect(levelForXp(149.9).level).toBe(1);
   });
 
-  it('titles are rank names and change every 5 levels', () => {
-    expect(levelTitle(4)).toBe('Novice');
-    expect(levelTitle(5)).toBe('Initiate');
-    expect(levelTitle(49)).toBe('Mythic');
-    expect(levelTitle(50)).toBe('Ascendant');
-    expect(levelTitle(99)).toBe('Transcendent');
-    expect(nextLevelTitle(23)).toEqual({ minLevel: 25, title: 'Ace' });
-    expect(nextLevelTitle(54)).toEqual({ minLevel: 55, title: 'Transcendent' });
-    expect(nextLevelTitle(55)).toBeNull();
+  it('titles are rank names: tier + division, master tiers bare', () => {
+    expect(levelTitle(1)).toBe('Bronze III');
+    expect(levelTitle(4)).toBe('Bronze II');
+    expect(levelTitle(9)).toBe('Bronze I');
+    expect(levelTitle(10)).toBe('Silver III');
+    expect(levelTitle(26)).toBe('Gold I');
+    expect(levelTitle(49)).toBe('Emerald I');
+    expect(levelTitle(60)).toBe('Master');
+    expect(levelTitle(99)).toBe('Challenger');
+    expect(levelForXp(totalXpForLevel(23)).title).toBe('Gold II');
+    expect(nextLevelTitle(23)).toEqual({ minLevel: 26, title: 'Gold I' });
+    expect(nextLevelTitle(17)).toEqual({ minLevel: 20, title: 'Gold III' });
+    expect(nextLevelTitle(72)).toEqual({ minLevel: 80, title: 'Challenger' });
+    expect(nextLevelTitle(80)).toBeNull();
   });
 });

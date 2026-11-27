@@ -38,7 +38,7 @@ describe('levelPillParts', () => {
     const lp = levelForXp(totalXpForLevel(23) + 10);
     const p = levelPillParts(lp);
     expect(p.levelLabel).toBe('Lv 23');
-    expect(p.title).toBe('Elite');
+    expect(p.title).toBe('Gold II');
     expect(p.toNextLabel).toBe(`${formatXp(lp.xpToNext)} to 24`);
   });
 });
@@ -66,14 +66,16 @@ describe('formatXpBreakdown', () => {
 
 describe('upcomingTitle', () => {
   it('returns the next rank only when close', () => {
-    expect(upcomingTitle(27)).toEqual({ minLevel: 30, title: 'Champion' });
-    expect(upcomingTitle(21)).toEqual({ minLevel: 25, title: 'Ace' });
-    expect(upcomingTitle(21, 3)).toBeNull(); // 4 levels away
-    expect(upcomingTitle(60)).toBeNull(); // top rank
+    expect(upcomingTitle(27)).toEqual({ minLevel: 30, title: 'Platinum III' });
+    expect(upcomingTitle(21)).toEqual({ minLevel: 23, title: 'Gold II' });
+    expect(upcomingTitle(16, 3)).toBeNull(); // Gold III is 4 levels away
+    expect(upcomingTitle(62)).toBeNull(); // Grandmaster is 8 away
+    expect(upcomingTitle(62, 10)).toEqual({ minLevel: 70, title: 'Grandmaster' });
+    expect(upcomingTitle(85)).toBeNull(); // top rank
   });
 
   it('formats the next-rank line', () => {
-    expect(nextRankLine({ minLevel: 30, title: 'Champion' })).toBe('Next rank at 30: Champion');
+    expect(nextRankLine({ minLevel: 20, title: 'Gold III' })).toBe('Next rank at 20: Gold III');
   });
 });
 

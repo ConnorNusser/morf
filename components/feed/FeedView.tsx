@@ -9,10 +9,11 @@ import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
 import { userSyncService, UserStrengthSummary } from '@/lib/services/userSyncService';
 import { SyncedLevel } from '@/lib/gamification/levelSocial';
+import { loadLocalLevel } from '@/lib/gamification/localLevel';
 import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ViewToken } from 'react-native';
 import CreatePostModal from './CreatePostModal';
 import FeedCard, { FeedWorkout } from './FeedCard';
@@ -53,6 +54,12 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [currentUsername, setCurrentUsername] = useState<string>('');
   const [tierByUser, setTierByUser] = useState<Record<string, UserStrengthSummary>>({});
   const [levelByUser, setLevelByUser] = useState<Record<string, SyncedLevel>>({});
+  // Your own posts use the local level (fresher than the last sync).
+  const [ownLevel, setOwnLevel] = useState<number | null>(null);
+  // Rows with any pixel on screen: only these animate their rank avatar ring
+  // (rendered-but-offscreen rows in the FlatList window hold a static ring).
+  const [onScreenItems, setOnScreenItems] = useState<Set<string>>(new Set());
+  const isFocused = useIsFocused();
 
   // Overall tiers live in Supabase (user_percentiles), not the feed payload —
   // batch-fetch them per author BEFORE the cards render (awaited inside
@@ -74,14 +81,22 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     }
   }, []);
 
-  const viewabilityConfig = useMemo(() => ({
-    itemVisiblePercentThreshold: 80,
-  }), []);
-
-  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken[] }) => {
-    const visibleKeys = new Set(viewableItems.map(item => `${item.item.type}-${item.item.data.id}`));
-    setVisibleItems(visibleKeys);
-  }, []);
+  // Two viewability passes: 80% visible drives video autoplay; any pixel
+  // visible drives avatar-ring animation. Must be referentially stable.
+  const viewabilityConfigCallbackPairs = useRef([
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 80 },
+      onViewableItemsChanged: ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+        setVisibleItems(new Set(viewableItems.map(item => `${item.item.type}-${item.item.data.id}`)));
+      },
+    },
+    {
+      viewabilityConfig: { itemVisiblePercentThreshold: 0 },
+      onViewableItemsChanged: ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+        setOnScreenItems(new Set(viewableItems.map(item => `${item.item.type}-${item.item.data.id}`)));
+      },
+    },
+  ]).current;
 
   useFocusEffect(
     useCallback(() => {
@@ -103,11 +118,12 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
     }
 
     try {
-      const [workouts, posts, user, profile] = await Promise.all([
+      const [workouts, posts, user, profile, local] = await Promise.all([
         feedService.getGlobalWorkoutFeed(PAGE_SIZE, 0),
         feedService.getPosts(PAGE_SIZE, 0),
         userSyncService.getCurrentUser(),
         userService.getUserProfileOrDefault(),
+        loadLocalLevel().catch(() => null),
       ]);
 
       const combined: FeedItem[] = [
@@ -121,6 +137,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
       setFeedItems(combined);
       setCurrentUserId(user?.id || null);
+      setOwnLevel(local?.level ?? null);
       setCurrentUsername(user?.username || '');
       setWeightUnit(profile.weightUnitPreference || 'lbs');
       setHasMore(workouts.length >= PAGE_SIZE || posts.length >= PAGE_SIZE);
@@ -307,9 +324,15 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
 
   const keyExtractor = useCallback((item: FeedItem) => `${item.type}-${item.data.id}`, []);
 
+  const levelFor = useCallback(
+    (userId: string) => (userId === currentUserId && ownLevel != null ? ownLevel : levelByUser[userId]?.level),
+    [currentUserId, ownLevel, levelByUser],
+  );
+
   const renderItem = useCallback(({ item }: { item: FeedItem }) => {
     const itemKey = `${item.type}-${item.data.id}`;
     const isVisible = visibleItems.has(itemKey);
+    const avatarAnimated = isFocused && onScreenItems.has(itemKey);
 
     if (item.type === 'workout') {
       const workout = item.data;
@@ -323,7 +346,8 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           currentUserId={currentUserId}
           weightUnit={weightUnit}
           overallStrength={tierByUser[workout.user_id]}
-          authorLevel={levelByUser[workout.user_id]?.level}
+          authorLevel={levelFor(workout.user_id)}
+          avatarAnimated={avatarAnimated}
         />
       );
     } else {
@@ -337,11 +361,12 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           currentUserId={currentUserId}
           isVisible={isVisible}
           overallStrength={tierByUser[post.user_id]}
-          authorLevel={levelByUser[post.user_id]?.level}
+          authorLevel={levelFor(post.user_id)}
+          avatarAnimated={avatarAnimated}
         />
       );
     }
-  }, [visibleItems, currentUserId, weightUnit, tierByUser, levelByUser, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
+  }, [visibleItems, onScreenItems, isFocused, currentUserId, weightUnit, tierByUser, levelFor, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
@@ -386,8 +411,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
         ListFooterComponent={renderFooter}
         onEndReached={loadMore}
         onEndReachedThreshold={0.3}
-        viewabilityConfig={viewabilityConfig}
-        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}

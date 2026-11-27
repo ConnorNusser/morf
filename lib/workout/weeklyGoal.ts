@@ -56,7 +56,7 @@ export interface WeeklyLoad {
   deltaPct: number | null; // % volume change vs last week; null if no prior data
 }
 
-function workoutLoad(workout: LoggedWorkout): { volumeLbs: number; sets: number } {
+export function workoutLoad(workout: LoggedWorkout): { volumeLbs: number; sets: number } {
   let volumeLbs = 0;
   let sets = 0;
   for (const exercise of workout.exercises || []) {

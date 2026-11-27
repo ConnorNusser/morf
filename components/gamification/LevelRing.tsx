@@ -131,7 +131,7 @@ interface LevelPillProps {
   color?: string;
 }
 
-// Compact header pill: "[crest] Lv 23  Elite  370 to 24" over a thin XP bar. Flexes to
+// Compact header pill: "[crest] Lv 23  Gold II  370 to 24" over a thin XP bar. Flexes to
 // fill whatever width it's given; the title truncates first, and on very
 // narrow rows the "to next" label drops so the level + bar always fit.
 // Compact header badge: rank crest + level number on tier glass, sized to its

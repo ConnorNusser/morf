@@ -12,7 +12,7 @@ export function formatXp(n: number): string {
 
 export interface LevelPillParts {
   levelLabel: string; // "Lv 23"
-  title: string; // "Elite"
+  title: string; // "Gold II"
   toNextLabel: string; // "370 to 24"
 }
 
@@ -55,7 +55,7 @@ export function upcomingTitle(level: number, within = 5): LevelTitle | null {
   return next.minLevel - level <= within ? next : null;
 }
 
-// "Next rank at 30: Champion"
+// "Next rank at 20: Gold III"
 export function nextRankLine(next: LevelTitle): string {
   return `Next rank at ${next.minLevel}: ${next.title}`;
 }

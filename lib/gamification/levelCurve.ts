@@ -22,13 +22,13 @@ export interface LevelTitle {
   title: string;
 }
 
-// Titles are anime-style ranks (lib/gamification/ranks.ts): one every 5 levels.
+// Titles are competitive ranks (lib/gamification/ranks.ts): "Gold II", "Master".
 // These two stay as aliases so callers that only want copy needn't know ranks.
 export function levelTitle(level: number): string {
   return rankForLevel(level).name;
 }
 
-// Next rank above `level`, or null at the top.
+// Next rung above `level` (next division or tier), or null at Challenger.
 export function nextLevelTitle(level: number): LevelTitle | null {
   const next = nextRank(level);
   return next ? { minLevel: next.minLevel, title: next.name } : null;
@@ -36,7 +36,7 @@ export function nextLevelTitle(level: number): LevelTitle | null {
 
 export interface LevelProgress {
   level: number;
-  title: string; // rank name, e.g. "Elite"
+  title: string; // rank name, e.g. "Gold II" or "Master"
   totalXp: number;
   xpIntoLevel: number; // XP earned since reaching `level`
   xpForNext: number; // XP span of the current level

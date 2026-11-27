@@ -1,4 +1,5 @@
 import { buildRewardSnapshot, computeSessionRewards } from '@/lib/gamification/sessionRewards';
+import { isRankUp, isTierUp } from '@/lib/gamification/ranks';
 import { LoggedWorkout } from '@/types';
 
 const NOW = new Date(2026, 5, 30, 12);
@@ -37,6 +38,14 @@ describe('session rewards: XP, level and region tier-ups', () => {
     expect(r.levelBefore.level).toBe(1);
     expect(r.leveledUp).toBe(r.levelAfter.level > 1);
     expect(r.leveledUp).toBe(true);
+  });
+
+  it('carries rank titles on both snapshots for the rank-up banner', () => {
+    const r = computeSessionRewards(buildRewardSnapshot([], ctx), buildRewardSnapshot([workout('a', 0, 'bench-press-barbell', 135, 30)], ctx));
+    expect(r.levelBefore.title).toBe('Bronze III');
+    expect(r.levelAfter.title).toMatch(/^Bronze (III|II|I)$/);
+    expect(isRankUp(r.levelBefore.level, r.levelAfter.level)).toBe(r.levelAfter.level >= 4);
+    expect(isTierUp(r.levelBefore.level, r.levelAfter.level)).toBe(false);
   });
 
   it("exposes the new session's XP row and achievement XP for the breakdown", () => {
