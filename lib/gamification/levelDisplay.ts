@@ -12,7 +12,7 @@ export function formatXp(n: number): string {
 
 export interface LevelPillParts {
   levelLabel: string; // "Lv 23"
-  title: string; // "Iron"
+  title: string; // "Elite"
   toNextLabel: string; // "370 to 24"
 }
 
@@ -47,12 +47,17 @@ function trimMultiplier(m: number): string {
   return m.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
 }
 
-// The next title milestone, only when it's within `within` levels — "close
-// enough to be a carrot". Null at the top or when it's still far off.
+// The next rank, only when it's within `within` levels — "close enough
+// to be a carrot". Null at the top or when it's still far off.
 export function upcomingTitle(level: number, within = 5): LevelTitle | null {
   const next = nextLevelTitle(level);
   if (!next) return null;
   return next.minLevel - level <= within ? next : null;
+}
+
+// "Next rank at 30: Champion"
+export function nextRankLine(next: LevelTitle): string {
+  return `Next rank at ${next.minLevel}: ${next.title}`;
 }
 
 // How the XP bar should sweep on the completion screen. When the session

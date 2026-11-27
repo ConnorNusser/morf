@@ -4,6 +4,7 @@ import {
   formatXp,
   formatXpBreakdown,
   levelPillParts,
+  nextRankLine,
   upcomingTitle,
   xpBarSweep,
 } from '@/lib/gamification/levelDisplay';
@@ -37,7 +38,7 @@ describe('levelPillParts', () => {
     const lp = levelForXp(totalXpForLevel(23) + 10);
     const p = levelPillParts(lp);
     expect(p.levelLabel).toBe('Lv 23');
-    expect(p.title).toBe('Iron');
+    expect(p.title).toBe('Elite');
     expect(p.toNextLabel).toBe(`${formatXp(lp.xpToNext)} to 24`);
   });
 });
@@ -64,11 +65,15 @@ describe('formatXpBreakdown', () => {
 });
 
 describe('upcomingTitle', () => {
-  it('returns the next title only when close', () => {
-    expect(upcomingTitle(27)).toEqual({ minLevel: 30, title: 'Veteran' });
-    expect(upcomingTitle(21)).toBeNull(); // 9 levels away
-    expect(upcomingTitle(21, 10)).toEqual({ minLevel: 30, title: 'Veteran' });
-    expect(upcomingTitle(60)).toBeNull(); // top title
+  it('returns the next rank only when close', () => {
+    expect(upcomingTitle(27)).toEqual({ minLevel: 30, title: 'Champion' });
+    expect(upcomingTitle(21)).toEqual({ minLevel: 25, title: 'Ace' });
+    expect(upcomingTitle(21, 3)).toBeNull(); // 4 levels away
+    expect(upcomingTitle(60)).toBeNull(); // top rank
+  });
+
+  it('formats the next-rank line', () => {
+    expect(nextRankLine({ minLevel: 30, title: 'Champion' })).toBe('Next rank at 30: Champion');
   });
 });
 

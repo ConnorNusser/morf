@@ -38,22 +38,24 @@ describe('level curve', () => {
 
   it('reports progress through the current level', () => {
     const p = levelForXp(totalXpForLevel(23) + 660);
-    expect(p).toMatchObject({ level: 23, title: 'Iron', xpIntoLevel: 660, xpForNext: 1030, xpToNext: 370 });
+    expect(p).toMatchObject({ level: 23, title: 'Elite', xpIntoLevel: 660, xpForNext: 1030, xpToNext: 370 });
     expect(p.progress).toBeCloseTo(660 / 1030);
   });
 
   it('treats zero, negative and fractional XP sanely', () => {
-    expect(levelForXp(0)).toMatchObject({ level: 1, title: 'Rookie', progress: 0 });
+    expect(levelForXp(0)).toMatchObject({ level: 1, title: 'Novice', progress: 0 });
     expect(levelForXp(-50).level).toBe(1);
     expect(levelForXp(149.9).level).toBe(1);
   });
 
-  it('titles change at their thresholds', () => {
-    expect(levelTitle(4)).toBe('Rookie');
-    expect(levelTitle(5)).toBe('Regular');
-    expect(levelTitle(49)).toBe('Veteran');
-    expect(levelTitle(50)).toBe('Legend');
-    expect(nextLevelTitle(23)).toEqual({ minLevel: 30, title: 'Veteran' });
-    expect(nextLevelTitle(50)).toBeNull();
+  it('titles are rank names and change every 5 levels', () => {
+    expect(levelTitle(4)).toBe('Novice');
+    expect(levelTitle(5)).toBe('Initiate');
+    expect(levelTitle(49)).toBe('Mythic');
+    expect(levelTitle(50)).toBe('Ascendant');
+    expect(levelTitle(99)).toBe('Transcendent');
+    expect(nextLevelTitle(23)).toEqual({ minLevel: 25, title: 'Ace' });
+    expect(nextLevelTitle(54)).toEqual({ minLevel: 55, title: 'Transcendent' });
+    expect(nextLevelTitle(55)).toBeNull();
   });
 });

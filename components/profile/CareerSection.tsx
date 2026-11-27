@@ -3,8 +3,7 @@ import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
 import CareerModal from '@/components/gamification/CareerModal';
 import FlipCard from '@/components/gamification/FlipCard';
-import LevelRing from '@/components/gamification/LevelRing';
-import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
+import RankEmblem from '@/components/gamification/RankEmblem';
 import TierBadge from '@/components/TierBadge';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -71,7 +70,7 @@ export default function CareerSection() {
         <Card style={styles.card} padding={panelPad}>
           <View style={styles.headerRow}>
             <View style={styles.headerLeft}>
-              <LevelRing level={data.level.level} progress={data.level.progress} size={36} color={xpAccentForPercentile(data.overall)} />
+              <RankEmblem level={data.level.level} progress={data.level.progress} size={40} />
               <View>
                 <Text variant="heading" weight="bold" tone="primary">Career</Text>
                 <Text variant="meta" tone="muted" numberOfLines={1}>

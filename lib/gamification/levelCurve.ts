@@ -1,6 +1,7 @@
 // Account level curve: total XP → level. Pure data + math, no history access.
 // Cost of going from level L to L+1 is 150 + 40·(L−1), so early levels come in
 // a session or two and Level 50 takes ~1.7 years at a typical ~600 XP/week.
+import { nextRank, rankForLevel } from './ranks';
 
 export const LEVEL_BASE_COST = 150;
 export const LEVEL_COST_STEP = 40;
@@ -21,30 +22,21 @@ export interface LevelTitle {
   title: string;
 }
 
-// Ordered low → high. A title holds until the next one's minLevel.
-export const LEVEL_TITLES: LevelTitle[] = [
-  { minLevel: 1, title: 'Rookie' },
-  { minLevel: 5, title: 'Regular' },
-  { minLevel: 10, title: 'Grinder' },
-  { minLevel: 20, title: 'Iron' },
-  { minLevel: 30, title: 'Veteran' },
-  { minLevel: 50, title: 'Legend' },
-];
-
+// Titles are anime-style ranks (lib/gamification/ranks.ts): one every 5 levels.
+// These two stay as aliases so callers that only want copy needn't know ranks.
 export function levelTitle(level: number): string {
-  let title = LEVEL_TITLES[0].title;
-  for (const t of LEVEL_TITLES) if (level >= t.minLevel) title = t.title;
-  return title;
+  return rankForLevel(level).name;
 }
 
-// Next title milestone above `level`, or null at the top.
+// Next rank above `level`, or null at the top.
 export function nextLevelTitle(level: number): LevelTitle | null {
-  return LEVEL_TITLES.find(t => t.minLevel > level) ?? null;
+  const next = nextRank(level);
+  return next ? { minLevel: next.minLevel, title: next.name } : null;
 }
 
 export interface LevelProgress {
   level: number;
-  title: string;
+  title: string; // rank name, e.g. "Elite"
   totalXp: number;
   xpIntoLevel: number; // XP earned since reaching `level`
   xpForNext: number; // XP span of the current level
