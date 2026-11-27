@@ -4,7 +4,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { screenGutter, space } from '@/lib/ui/tokens';
 import React from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface ScreenModalProps {
   visible: boolean;
@@ -39,6 +39,8 @@ export default function ScreenModal({
   children,
 }: ScreenModalProps) {
   const { currentTheme } = useTheme();
+  // SafeAreaView doesn't inset inside a fullScreen Modal here, so pad from the insets.
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal
@@ -47,7 +49,7 @@ export default function ScreenModal({
       presentationStyle={presentation}
       onRequestClose={onRequestClose ?? onClose}
     >
-      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.colors.background }]}>
+      <View style={[styles.container, { backgroundColor: currentTheme.colors.background, paddingTop: presentation === 'fullScreen' ? insets.top : 0, paddingBottom: insets.bottom }]}>
         <View style={[styles.header, { borderBottomColor: currentTheme.colors.border }]}>
           {leftAction ?? <View style={styles.side} />}
           {title ? (
@@ -63,7 +65,7 @@ export default function ScreenModal({
           </View>
         </View>
         {children}
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

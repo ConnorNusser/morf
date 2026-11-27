@@ -1,12 +1,11 @@
 // The level journey: the whole letter-rank ladder (E- → S+) as one Swiss
 // timeline. Ranks you've passed are filled, your current rank is the large
 // badge with XP to the next rung, future ranks are faint with the level they
-// start at. Opened from the level pill in the Home header.
+// start at. Full-screen modal opened from the level pill in the Home header.
 import HexTierBadge from '@/components/gamification/HexTierBadge';
 import { Text, useInk } from '@/components/Themed';
-import BottomSheet from '@/components/ui/BottomSheet';
+import ScreenModal from '@/components/ui/ScreenModal';
 import ProgressHairline from '@/components/ui/ProgressHairline';
-import SectionLabel from '@/components/ui/SectionLabel';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { LevelProgress, totalXpForLevel } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
@@ -34,10 +33,8 @@ export default function LevelJourneySheet({ visible, onClose, level }: Props) {
   const [soft] = rankGradientForLevel(level.level, level.progress);
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} maxHeightRatio={0.85}>
+    <ScreenModal visible={visible} onClose={onClose} title="Level journey">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SectionLabel>Level journey</SectionLabel>
-
         <View style={styles.hero}>
           <HexTierBadge tier={current.name as StrengthTier} size={88} />
           <View style={styles.heroText}>
@@ -98,11 +95,8 @@ export default function LevelJourneySheet({ visible, onClose, level }: Props) {
             );
           })}
         </View>
-        <Text variant="meta" tone="muted" style={styles.note}>
-          Level comes from training (XP). Strength tier comes from your lifts. Both use the same E → S grades.
-        </Text>
       </ScrollView>
-    </BottomSheet>
+    </ScreenModal>
   );
 }
 
@@ -119,5 +113,4 @@ const styles = StyleSheet.create({
   steps: { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', gap: space.xs },
   step: { minWidth: 44, paddingVertical: 4, paddingHorizontal: space.sm, borderRadius: 999, borderWidth: 1, alignItems: 'center' },
   tabular: { fontVariant: ['tabular-nums'] },
-  note: { marginTop: space.lg },
 });
