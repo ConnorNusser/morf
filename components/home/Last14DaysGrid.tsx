@@ -2,7 +2,7 @@
 // split, most improved lift), each against the two weeks before. Math lives in
 // lib/history/last14Days.ts; "most improved" reuses recap14's noise-guarded
 // e1RM comparison and opens the lift's history. Tiles share the League card's surface, and every
-// accent is the lifter's tier XP shade so the grid sits in the screen's palette.
+// cells are flat and ruled; marks are neutral ink (tier hue is for strength).
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
@@ -22,13 +22,15 @@ import React, { useCallback, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface Props {
-  /** Tier accent (tierFoil(...).xp) so the tiles match the rank card + screen wash. */
-  accent: string;
+  /** Optional accent; defaults to neutral ink (Swiss color budget: hue is for strength only). */
+  accent?: string;
 }
 
 const SPLIT_ORDER: PPLCategory[] = ['push', 'pull', 'legs'];
 
-export default function Last14DaysGrid({ accent }: Props) {
+export default function Last14DaysGrid({ accent: accentProp }: Props) {
+  const inkTop = useInk();
+  const accent = accentProp ?? inkTop.primary;
   const { userProfile } = useUser();
   const unit: WeightUnit = userProfile?.weightUnitPreference || 'lbs';
   const { customExercises } = useCustomExercises();
@@ -153,7 +155,7 @@ function Tile({
   const { currentTheme } = useTheme();
   const ink = useInk();
   return (
-    <View style={[styles.tile, fill && styles.tileFill, { backgroundColor: currentTheme.colors.surface, borderColor: ink.hairline }]}>
+    <View style={[styles.tile, fill && styles.tileFill, { borderColor: ink.hairline }]}>
       <Text variant="meta" weight="semiBold" tone="muted">{label}</Text>
       {value != null && (
         <Text
@@ -242,15 +244,15 @@ const TILE_HEIGHT = 128;
 
 const styles = StyleSheet.create({
   section: { marginTop: space.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: space.sm },
+  // Swiss: two ruled columns, no filled tiles — each cell has a hairline above.
+  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   tileTouch: { width: '48.5%' },
   tileFill: { width: '100%' },
   tile: {
     width: '48.5%',
     height: TILE_HEIGHT,
-    padding: space.md,
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   value: { fontVariant: ['tabular-nums'] },
   tileBody: { flex: 1, justifyContent: 'flex-end', gap: 2 },
