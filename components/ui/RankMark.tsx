@@ -1,5 +1,5 @@
-// Swiss-minimal rank mark: a flat metal swatch, three division ticks and the
-// rank name in small caps. Replaces the shaded crest on the strength-first
+// Swiss-minimal rank mark: a flat tier-color swatch, three step ticks (−, ·, +)
+// and "RANK C+" in small caps. Replaces the shaded crest on the strength-first
 // surfaces so the rank reads as typography, not an illustration. The metal is
 // the muted ladder color (ranks.ts), so it never competes with the tier hue.
 import { Text, useInk } from '@/components/Themed';
@@ -26,7 +26,7 @@ export default function RankMark({ level, progress = 0, showLevel = true, compac
   const rank = rankForLevel(level);
   const [soft, deep] = rankGradientForLevel(level, progress);
   const metal = dark ? soft : deep;
-  const pips = rank.emblem.pips; // III = 1, II = 2, I = 3; 0 on master tiers
+  const pips = rank.emblem.pips; // − = 1, plain = 2, + = 3
 
   return (
     <View style={styles.row} accessibilityLabel={`${rank.name}, level ${level}`}>
@@ -42,7 +42,7 @@ export default function RankMark({ level, progress = 0, showLevel = true, compac
         <Text variant="body" weight="bold" tone="primary" style={styles.tabular} numberOfLines={1}>Lv {level}</Text>
       ) : (
       <Text variant="meta" weight="semiBold" tone="secondary" style={styles.caps} numberOfLines={1}>
-        {rank.name}
+        Rank {rank.name}
         {showLevel ? <Text variant="meta" tone="muted" style={styles.caps}> · Lv {level}</Text> : null}
       </Text>
       )}
