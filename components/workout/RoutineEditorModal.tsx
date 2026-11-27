@@ -361,7 +361,7 @@ const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             <SectionLabel style={styles.exercisesLabel}>Exercises</SectionLabel>
 
             {exercises.map((exercise, exerciseIndex) => (
-              <View key={`${exercise.exerciseId}-${exerciseIndex}`} style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface }]}>
+              <View key={`${exercise.exerciseId}-${exerciseIndex}`} style={[styles.exerciseCard]}>
                 <RNView style={styles.exerciseCardHeader}>
                   <Text variant="body" weight="medium" tone="primary" style={styles.exerciseCardName}>
                     {getExerciseName(exercise)}
@@ -526,9 +526,9 @@ const styles = StyleSheet.create({
     marginBottom: space.lg,
   },
   exerciseCard: {
-    borderRadius: radius.card,
-    padding: space.lg,
+    paddingVertical: space.lg,
     marginBottom: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   exerciseCardHeader: {
     flexDirection: 'row',

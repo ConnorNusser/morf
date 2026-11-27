@@ -1,3 +1,4 @@
+import SoftBar from '@/components/ui/SoftBar';
 import React, { useEffect, useState } from 'react';
 import { Dimensions, Modal, SafeAreaView, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { formatShortDate as formatDate } from '@/lib/ui/formatters';
@@ -358,11 +359,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                           {muscle.charAt(0).toUpperCase() + muscle.slice(1)}
                         </Text>
                         <View style={styles.categoryRight}>
-                          <View style={[styles.progressBar, { backgroundColor: currentTheme.colors.surface }]}>
-                            <View
-                              style={[styles.progressFill, { width: `${musclePercentile}%`, backgroundColor: muscleTierColor }]}
-                            />
-                          </View>
+                          <SoftBar progress={(musclePercentile) / 100} color={muscleTierColor} />
                           <Text style={[styles.categoryValue, { color: muscleTierColor, fontWeight: '600' }]}>
                             {musclePercentile}
                           </Text>
@@ -393,11 +390,7 @@ export default function StrengthHistoryModal({ visible, onClose }: StrengthHisto
                           {category.label}
                         </Text>
                         <View style={styles.categoryRight}>
-                          <View style={[styles.progressBar, { backgroundColor: currentTheme.colors.surface }]}>
-                            <View
-                              style={[styles.progressFill, { width: `${categoryPercentile}%`, backgroundColor: catTierColor }]}
-                            />
-                          </View>
+                          <SoftBar progress={(categoryPercentile) / 100} color={catTierColor} />
                           <Text style={[styles.categoryValue, { color: catTierColor, fontWeight: '600' }]}>
                             {categoryPercentile}
                           </Text>

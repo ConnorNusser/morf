@@ -286,7 +286,7 @@ export default function MonthlyTrendsModal({
               return (
                 <View
                   key={index}
-                  style={[styles.monthCard, { backgroundColor: currentTheme.colors.surface }]}
+                  style={[styles.monthCard]}
                 >
                   <View style={styles.monthHeader}>
                     <View>
@@ -465,9 +465,9 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   monthCard: {
-    borderRadius: radius.card,
-    padding: space.lg,
+    paddingVertical: space.lg,
     marginBottom: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   monthHeader: {
     flexDirection: 'row',

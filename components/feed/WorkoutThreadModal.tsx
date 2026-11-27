@@ -378,7 +378,7 @@ export default function WorkoutThreadModal({
             )}
           </View>
 
-          <View style={[styles.statsGrid, { backgroundColor: currentTheme.colors.surface }]}>
+          <View style={[styles.statsGrid]}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: currentTheme.colors.text, fontWeight: '700' }]}>
                 {workout.exercise_count}
@@ -728,7 +728,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   statItem: {
     alignItems: 'center',

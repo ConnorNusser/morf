@@ -1,3 +1,4 @@
+import SoftBar from '@/components/ui/SoftBar';
 import { AuroraSurface } from '@/components/history/AuroraSurface';
 import IconButton from '@/components/IconButton';
 import { Text, useInk } from '@/components/Themed';
@@ -341,9 +342,7 @@ export default function WeeklyOverviewModal({
   );
 
   const Bar = ({ pct, color }: { pct: number; color: string }) => (
-    <View style={[styles.barTrack, { backgroundColor: c.border }]}>
-      <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, pct))}%`, backgroundColor: color }]} />
-    </View>
+    <SoftBar progress={(Math.max(2, Math.min(100, pct))) / 100} color={color} />
   );
 
   const Empty = ({ title, subtitle }: { title: string; subtitle: string }) => (

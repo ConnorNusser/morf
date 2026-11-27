@@ -112,7 +112,6 @@ export default function ExercisesSection() {
         style={[
           styles.exerciseItem,
           {
-            backgroundColor: currentTheme.colors.surface,
             borderColor: currentTheme.colors.border,
           }
         ]}
@@ -299,7 +298,7 @@ export default function ExercisesSection() {
             keyboardShouldPersistTaps="handled"
           >
             {filteredExercises.length === 0 ? (
-              <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
+              <View style={[styles.emptyState]}>
                 <Ionicons
                   name="search-outline"
                   size={32}
@@ -422,10 +421,10 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    padding: 32,
-    borderRadius: radius.card,
+    paddingVertical: 32,
     gap: space.sm,
     marginTop: space.xl,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   emptyText: {
     marginTop: space.xs,
@@ -437,10 +436,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: space.lg,
+    paddingVertical: space.lg,
     marginBottom: space.md,
-    borderRadius: radius.card,
-    borderWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   exerciseInfo: {
     flex: 1,

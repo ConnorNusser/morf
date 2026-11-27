@@ -463,7 +463,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {TRAINING_GOALS.map((goal) => (
           <TouchableOpacity
             key={goal.id}
-            style={[styles.goalCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.goalCard, { borderColor: colors.border }]}
             onPress={() => handleGoalSelect(goal.id)}
             activeOpacity={0.7}
           >
@@ -535,7 +535,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       </View>
 
       {(selectedFocus.length > 0 || ignoredMuscles.length > 0) && (
-        <View style={[styles.bodyAreaSummary, { backgroundColor: colors.surface }]}>
+        <View style={[styles.bodyAreaSummary]}>
           {selectedFocus.length > 0 && (
             <Text variant="meta" weight="medium" style={{ color: colors.success }}>
               Focusing: {selectedFocus.map(f => f.charAt(0).toUpperCase() + f.slice(1)).join(', ')}
@@ -577,7 +577,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {EXPERIENCE_OPTIONS.map((option) => (
           <TouchableOpacity
             key={option.id}
-            style={[styles.experienceCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.experienceCard, { borderColor: colors.border }]}
             onPress={() => handleExperienceSelect(option.id)}
             activeOpacity={0.7}
           >
@@ -604,7 +604,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {[3, 4, 5, 6].map((days) => (
           <TouchableOpacity
             key={days}
-            style={[styles.dayCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.dayCard, { borderColor: colors.border }]}
             onPress={() => handleDaysSelect(days)}
             activeOpacity={0.7}
           >
@@ -628,7 +628,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         {DURATION_OPTIONS.map((option) => (
           <TouchableOpacity
             key={option.id}
-            style={[styles.durationCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            style={[styles.durationCard, { borderColor: colors.border }]}
             onPress={() => handleDurationSelect(option.id)}
             activeOpacity={0.7}
           >
@@ -840,7 +840,7 @@ const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
         <View style={[{ opacity: isRefining ? 0.4 : 1 }]}>
           {generatedProgram?.routines.map((day) => (
-            <View key={day.dayNumber} style={[styles.previewDayCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <View key={day.dayNumber} style={[styles.previewDayCard, { borderColor: colors.border }]}>
               <View style={styles.dayCardHeader}>
                 <Text variant="emphasis" tone="primary" weight="semiBold" style={styles.dayName}>{day.name}</Text>
                 {!!day.estimatedTime && (
@@ -1067,9 +1067,9 @@ const styles = StyleSheet.create({
   },
   bodyAreaSummary: {
     marginTop: space.xl,
-    padding: space.lg,
-    borderRadius: radius.card,
+    paddingVertical: space.lg,
     gap: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   bottomActions: {
     marginTop: 'auto',
@@ -1275,9 +1275,8 @@ const styles = StyleSheet.create({
     marginBottom: space.lg,
   },
   previewDayCard: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
     marginBottom: space.md,
   },
   dayCardHeader: {

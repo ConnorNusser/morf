@@ -116,7 +116,7 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
   if (loading) {
     return (
       <RNView style={styles.wrap}>
-        <RNView style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <RNView style={[styles.card, { borderColor: colors.border }]}>
           <RNView style={styles.body}>
             <Animated.View style={[styles.barWide, { backgroundColor: ink.ghost, opacity: pulse }]} />
             <Animated.View style={[styles.barNarrow, { backgroundColor: ink.ghost, opacity: pulse }]} />
@@ -134,7 +134,7 @@ export default function PredictiveCard({ text, weightUnit, onCommit }: Predictiv
       <TouchableOpacity
         activeOpacity={0.85}
         onPress={() => { playHapticFeedback('medium', false); onCommit(); }}
-        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        style={[styles.card, { borderColor: colors.border }]}
       >
         <RNView style={styles.body}>
           {lines.map((line, i) => (
@@ -157,10 +157,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.card,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     paddingVertical: space.md,
-    paddingHorizontal: space.lg,
     minHeight: 56,
   },
   body: { flex: 1, gap: space.xs, justifyContent: 'center' },

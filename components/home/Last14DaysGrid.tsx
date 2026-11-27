@@ -3,6 +3,7 @@
 // lib/history/last14Days.ts; "most improved" reuses recap14's noise-guarded
 // e1RM comparison and opens the lift's history. Tiles share the League card's surface, and every
 // cells are flat and ruled; marks are neutral ink (tier hue is for strength).
+import SoftBar from '@/components/ui/SoftBar';
 import { Text, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
@@ -230,9 +231,7 @@ function SplitBars({ split, accent }: { split: Record<PPLCategory, number>; acce
       {SPLIT_ORDER.map(k => (
         <View key={k} style={styles.splitRow}>
           <Text variant="meta" tone="secondary" style={styles.splitLabel}>{PPL_LABELS[k]}</Text>
-          <View style={[styles.splitTrack, { backgroundColor: ink.ghost }]}>
-            <View style={[styles.splitFill, { width: `${(split[k] / total) * 100}%`, backgroundColor: accent }]} />
-          </View>
+          <SoftBar progress={((split[k] / total) * 100) / 100} color={accent} />
           <Text variant="meta" tone="muted" style={styles.splitCount}>{split[k]}</Text>
         </View>
       ))}

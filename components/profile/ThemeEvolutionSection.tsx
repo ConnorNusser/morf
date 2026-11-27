@@ -103,7 +103,6 @@ export default function ThemeEvolutionSection() {
           {
             paddingHorizontal: space.lg,
             borderRadius: radius.card,
-            backgroundColor: currentTheme.colors.surface,
             borderWidth: 1,
             borderColor: currentTheme.colors.border,
           },
@@ -205,7 +204,6 @@ export default function ThemeEvolutionSection() {
             {
               paddingHorizontal: space.lg,
               borderRadius: radius.card,
-              backgroundColor: currentTheme.colors.surface,
               borderWidth: 1,
               borderColor: currentTheme.colors.border,
             },
