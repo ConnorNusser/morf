@@ -30,6 +30,7 @@ import AchievementModal, { AchievementModalItem } from '@/components/gamificatio
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import LevelRing from '@/components/gamification/LevelRing';
+import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import BodyGraph from '@/components/gamification/BodyGraph';
@@ -168,7 +169,7 @@ function CareerHero({
     <View style={styles.hero}>
       <View style={styles.heroRow}>
         <View style={styles.heroHalf}>
-          <LevelRing level={level.level} progress={level.progress} size={104} />
+          <LevelRing level={level.level} progress={level.progress} size={104} color={xpAccentForPercentile(overall)} />
           <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile} numberOfLines={1}>
             {level.title}
           </Text>

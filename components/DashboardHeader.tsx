@@ -10,6 +10,9 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
+// Streak flame: warm orange in every theme (semantic, like trend colors).
+const STREAK_FLAME = "#FF8A3D";
+
 type ViewMode = "home" | "feed";
 
 export interface HeaderStats {
@@ -31,6 +34,10 @@ interface DashboardHeaderProps {
   /** Account level; renders the XP pill between the view selector and the right items. */
   level?: LevelProgress | null;
   onLevelPress?: () => void;
+  /** XP accent for the pill (tier-complementary); defaults to the global accent. */
+  levelColor?: string;
+  /** Week streak; shows a flame chip on the right (Home, where level lives in the hero card). */
+  streakWeeks?: number;
 }
 
 export default function DashboardHeader({
@@ -44,6 +51,8 @@ export default function DashboardHeader({
   profileUsername,
   level,
   onLevelPress,
+  levelColor,
+  streakWeeks,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -93,7 +102,19 @@ export default function DashboardHeader({
 
             {level ? (
               <View style={styles.levelSlot}>
-                <LevelPill level={level} onPress={onLevelPress} />
+                <LevelPill level={level} onPress={onLevelPress} color={levelColor} />
+              </View>
+            ) : null}
+
+            {!level && streakWeeks != null && streakWeeks > 0 ? (
+              <View
+                style={[styles.streakChip, { backgroundColor: currentTheme.colors.surface }]}
+                accessibilityLabel={`${streakWeeks} week training streak`}
+              >
+                <Ionicons name="flame" size={16} color={STREAK_FLAME} />
+                <Text variant="meta" tone="primary" weight="bold">
+                  {streakWeeks} wk
+                </Text>
               </View>
             ) : null}
 
@@ -248,6 +269,15 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   // Fills the gap between the selector and the right items; shrinks on SE widths.
+  streakChip: {
+    marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.xs,
+    paddingHorizontal: space.md,
+    paddingVertical: space.sm,
+    borderRadius: radius.control,
+  },
   levelSlot: {
     flex: 1,
     minWidth: 0,

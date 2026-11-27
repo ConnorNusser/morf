@@ -8,6 +8,7 @@ import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space, tint, track, trend, xpAccent } from '@/lib/ui/tokens';
+import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
@@ -293,7 +294,7 @@ const AnimatedCounter = ({
 // "+N XP" with the level bar sweeping from where the session started to where
 // it ended (wrapping through the end when a level was crossed), and the
 // newest workout's breakdown underneath.
-function XpGainCard({ rewards }: { rewards: SessionRewards }) {
+function XpGainCard({ rewards, accent }: { rewards: SessionRewards; accent: string }) {
   const { xpGained, levelBefore, levelAfter, sessionXp, achievementXpGained } = rewards;
   const sweep = xpBarSweep(levelBefore, levelAfter);
   const breakdown = formatXpBreakdown(sessionXp, achievementXpGained);
@@ -325,15 +326,15 @@ function XpGainCard({ rewards }: { rewards: SessionRewards }) {
     <Animated.View entering={FadeIn.duration(400)} style={styles.xpCard}>
       <View style={styles.progressHead}>
         <View style={styles.progressValueRow}>
-          <Text variant="statHero" weight="bold" style={styles.xpGain}>+</Text>
-          <AnimatedCounter value={xpGained} suffix=" XP" delay={300} duration={1100} style={styles.xpGain} />
+          <Text variant="statHero" weight="bold" style={[styles.xpGain, { color: accent }]}>+</Text>
+          <AnimatedCounter value={xpGained} suffix=" XP" delay={300} duration={1100} style={[styles.xpGain, { color: accent }]} />
         </View>
         <Text variant="meta" weight="bold" style={styles.progressLabel}>
           {sweep.wraps ? `LV ${levelBefore.level} → ${levelAfter.level}` : `LV ${levelAfter.level}`}
         </Text>
       </View>
       <View style={styles.xpTrack}>
-        <Animated.View style={[styles.xpFill, fillStyle]} />
+        <Animated.View style={[styles.xpFill, { backgroundColor: accent }, fillStyle]} />
       </View>
       <View style={styles.xpCaptionRow}>
         <Text variant="meta" style={styles.xpBreakdown} numberOfLines={2}>
@@ -349,7 +350,7 @@ function XpGainCard({ rewards }: { rewards: SessionRewards }) {
 
 // Only mounts when the session crossed a level: "LEVEL N", the title (flagged
 // when it's new), and the next title when it's within reach.
-function LevelUpBanner({ before, after }: { before: LevelProgress; after: LevelProgress }) {
+function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after: LevelProgress; accent: string }) {
   const scale = useSharedValue(0.85);
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 120 });
@@ -361,11 +362,11 @@ function LevelUpBanner({ before, after }: { before: LevelProgress; after: LevelP
   const next = upcomingTitle(after.level);
 
   return (
-    <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, popStyle]}>
-      <Text variant="meta" weight="bold" style={styles.levelUpKicker}>
+    <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: accent, backgroundColor: tint(accent) }, popStyle]}>
+      <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color: accent }]}>
         LEVEL UP
       </Text>
-      <Text variant="header" weight="bold" style={styles.levelUpNumber}>
+      <Text variant="header" weight="bold" style={[styles.levelUpNumber, { color: accent }]}>
         LEVEL {after.level}
       </Text>
       <Text variant="body" weight="semiBold" style={styles.levelUpTitle}>
@@ -933,8 +934,8 @@ export default function WorkoutCompleteScreen({
           )}
 
           {/* ---- Level: the banner only on a level-up, then the XP this session earned ---- */}
-          {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} />}
-          {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} />}
+          {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} accent={xpAccentForPercentile(overallAfter)} />}
+          {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} accent={xpAccentForPercentile(overallAfter)} />}
 
           {/* ---- The session's PRs lead: one large gold number per lift ---- */}
           {prs.length > 0 && (

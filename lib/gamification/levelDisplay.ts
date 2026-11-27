@@ -2,7 +2,7 @@
 // banner, Career hero) plus the one-time "You're Level N" intro gate. Pure, so
 // the copy and gating are unit-testable without RN.
 import { LevelProgress, LevelTitle, nextLevelTitle } from './levelCurve';
-import { WorkoutXp } from './xp';
+import { WorkoutXp, XP_RULES, XpLedger } from './xp';
 
 // 18240 → "18,240" without relying on Intl (Hermes builds vary).
 export function formatXp(n: number): string {
@@ -105,4 +105,24 @@ export function decideLevelIntro(state: LevelIntroState, level: LevelProgress): 
   }
   // Show; lastSeenLevel is written when the intro is dismissed.
   return { showIntro: true, markIntroSeen: false, syncLastSeenLevel: null };
+}
+
+// Typical XP the next session will earn, for the striped "ghost" segment on the
+// hero's XP bar: the median of the last few sessions' streak-boosted workout XP
+// (goal/tier bonuses excluded — they're not every session), rounded to 5.
+// Falls back to a standard 18-set session for new users.
+export const DEFAULT_SESSION_SETS = 18;
+
+export function projectNextWorkoutXp(ledger: XpLedger, lookback = 5): number {
+  const recent = ledger.workouts.filter(w => w.base > 0).slice(-lookback);
+  const raw = recent.length
+    ? median(recent.map(w => (w.base + w.sets + w.prs) * w.multiplier))
+    : XP_RULES.workout + DEFAULT_SESSION_SETS * XP_RULES.perSet;
+  return Math.max(5, Math.round(raw / 5) * 5);
+}
+
+function median(xs: number[]): number {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }

@@ -5,7 +5,9 @@ import LevelIntroModal from "@/components/gamification/LevelIntroModal";
 import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
-import RankHero from "@/components/home/RankHero";
+import HoloRankCard from "@/components/home/HoloRankCard";
+import { useBodyGraph } from "@/hooks/useBodyGraph";
+import { xpAccentForPercentile } from "@/lib/ui/tierFoil";
 import TodayCard from "@/components/home/TodayCard";
 import LaggingMuscleCard from "@/components/home/LaggingMuscleCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
@@ -65,7 +67,8 @@ export default function HomeScreen() {
   // The viewer's own backend user, for the feed header's profile button.
   const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
   // Account level for the header pill (recomputed on focus) + the one-time intro.
-  const { level, intro: levelIntro, dismissIntro } = useLevel();
+  const { level, stats: levelStats, intro: levelIntro, dismissIntro } = useLevel();
+  const bodyGraphData = useBodyGraph();
 
   useEffect(() => {
     const loadViewMode = async () => {
@@ -226,6 +229,7 @@ export default function HomeScreen() {
               profileUsername={currentUser?.username}
               level={level}
               onLevelPress={() => setShowCareer(true)}
+              levelColor={xpAccentForPercentile(overallPercentile)}
             />
           </View>
           <FeedView
@@ -269,13 +273,17 @@ export default function HomeScreen() {
         <DashboardHeader
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
-          level={level}
-          onLevelPress={() => setShowCareer(true)}
+          streakWeeks={levelStats?.weekStreak}
         />
 
-        <RankHero
+        <HoloRankCard
           percentile={overallPercentile}
-          onPress={() => setShowCareer(true)}
+          level={level}
+          workouts={levelStats?.workouts ?? 0}
+          weekStreak={levelStats?.weekStreak ?? 0}
+          nextWorkoutXp={levelStats?.nextWorkoutXp ?? 0}
+          regions={bodyGraphData?.bodyGraph ?? null}
+          onOpenCareer={() => setShowCareer(true)}
         />
 
         <WeeklyGoalCard />

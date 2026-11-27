@@ -34,11 +34,13 @@ interface LevelRingProps {
   stroke?: number;
   /** Shows a small "LEVEL" caption above the number (rings ≥ 88 only). */
   showCaption?: boolean;
+  /** XP accent; pass xpAccentForPercentile(overall) to match the lifter's tier. */
+  color?: string;
 }
 
 // Account level inside an XP-progress ring. Mirrors TierRing: the arc sweeps
 // from empty to its value once data lands, honoring Reduce Motion.
-export default function LevelRing({ level, progress, size = 44, stroke, showCaption = true }: LevelRingProps) {
+export default function LevelRing({ level, progress, size = 44, stroke, showCaption = true, color }: LevelRingProps) {
   const ink = useInk();
   const sw = stroke ?? Math.max(3, Math.round(size / 14));
   const r = (size - sw) / 2;
@@ -72,7 +74,7 @@ export default function LevelRing({ level, progress, size = 44, stroke, showCapt
           cx={center}
           cy={center}
           r={r}
-          stroke={xpAccent}
+          stroke={color ?? xpAccent}
           strokeWidth={sw}
           fill="none"
           strokeLinecap="round"
@@ -98,12 +100,13 @@ export default function LevelRing({ level, progress, size = 44, stroke, showCapt
 interface LevelPillProps {
   level: LevelProgress;
   onPress?: () => void;
+  color?: string;
 }
 
 // Compact header pill: "Lv 23  Iron  370 to 24" over a thin XP bar. Flexes to
 // fill whatever width it's given; the title truncates first, and on very
 // narrow rows the "to next" label drops so the level + bar always fit.
-export function LevelPill({ level, onPress }: LevelPillProps) {
+export function LevelPill({ level, onPress, color }: LevelPillProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const parts = levelPillParts(level);
@@ -134,7 +137,7 @@ export function LevelPill({ level, onPress }: LevelPillProps) {
           </Text>
         )}
       </View>
-      <AnimatedBar progress={level.progress} color={xpAccent} trackColor={ink.hairline} height={3} delay={120} />
+      <AnimatedBar progress={level.progress} color={color ?? xpAccent} trackColor={ink.hairline} height={3} delay={120} />
     </TouchableOpacity>
   );
 }

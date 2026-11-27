@@ -1,41 +1,21 @@
-import { decideLevelIntro } from '@/lib/gamification/levelDisplay';
+import { decideLevelIntro, projectNextWorkoutXp } from '@/lib/gamification/levelDisplay';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
-import { buildRewardSnapshot } from '@/lib/gamification/sessionRewards';
-import { userService } from '@/lib/services/userService';
+import { loadLocalLevelSnapshot } from '@/lib/gamification/localLevel';
 import { storageService } from '@/lib/storage/storage';
-import { calculateOverallPercentile } from '@/lib/utils/utils';
-import { convertWeight } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useRef, useState } from 'react';
 
-// Account level for Home: recomputed from history on every focus (XP is never
-// stored). Inputs mirror loadCareerData so the header pill and Career agree —
-// achievement XP depends on the overall percentile and league results.
-async function loadLevel(): Promise<LevelProgress> {
-  const [history, profile, lifts, filters, leagueResults, weeklyGoal] = await Promise.all([
-    storageService.getWorkoutHistory(),
-    userService.getUserProfileOrDefault(),
-    userService.getAllFeaturedLifts(),
-    storageService.getLiftDisplayFilters(),
-    storageService.getLeagueWeekResults(),
-    storageService.getWeeklyGoal(),
-  ]);
-  const visible = lifts.filter(l => !filters.hiddenLiftIds.includes(l.workoutId));
-  const overall = visible.length ? calculateOverallPercentile(visible.map(l => l.percentileRanking)) : 0;
-  const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
-  return buildRewardSnapshot(history, {
-    unit: profile.weightUnitPreference || 'lbs',
-    overall,
-    bodyWeightLbs,
-    leagueResults,
-    weeklyGoal,
-    gender: profile.gender,
-    age: profile.age,
-  }).level;
+// Home's level + hero stats, recomputed from history on every focus (XP is
+// never stored). Uses the shared loader so Home, sync and leaderboard agree.
+export interface LevelHeroStats {
+  workouts: number;
+  weekStreak: number;
+  nextWorkoutXp: number; // projected XP for the next session (ghost segment)
 }
 
 export interface UseLevel {
   level: LevelProgress | null;
+  stats: LevelHeroStats | null;
   // Non-null while the one-time "You're Level N" intro should show.
   intro: LevelProgress | null;
   dismissIntro: () => void;
@@ -43,6 +23,7 @@ export interface UseLevel {
 
 export default function useLevel(): UseLevel {
   const [level, setLevel] = useState<LevelProgress | null>(null);
+  const [stats, setStats] = useState<LevelHeroStats | null>(null);
   const [intro, setIntro] = useState<LevelProgress | null>(null);
   const loading = useRef(false);
 
@@ -50,8 +31,14 @@ export default function useLevel(): UseLevel {
     if (loading.current) return;
     loading.current = true;
     try {
-      const lp = await loadLevel();
+      const { snapshot } = await loadLocalLevelSnapshot();
+      const lp = snapshot.level;
       setLevel(lp);
+      setStats({
+        workouts: snapshot.stats.totalWorkouts,
+        weekStreak: snapshot.stats.currentStreak,
+        nextWorkoutXp: projectNextWorkoutXp(snapshot.xp),
+      });
       const [introSeen, lastSeenLevel] = await Promise.all([
         storageService.hasSeenLevelIntro(),
         storageService.getLastSeenLevel(),
@@ -81,5 +68,5 @@ export default function useLevel(): UseLevel {
     setIntro(null);
   }, [intro]);
 
-  return { level, intro, dismissIntro };
+  return { level, stats, intro, dismissIntro };
 }
