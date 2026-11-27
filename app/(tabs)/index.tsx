@@ -6,6 +6,7 @@ import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import HoloRankCard from "@/components/home/HoloRankCard";
+import RecapPanel from "@/components/home/RecapPanel";
 import StreakMapModal from "@/components/home/StreakMapModal";
 import { useBodyGraph } from "@/hooks/useBodyGraph";
 import { xpAccentForPercentile } from "@/lib/ui/tierFoil";
@@ -313,6 +314,8 @@ export default function HomeScreen() {
           variant="card"
           onPress={() => setShowLeaderboard(true)}
         />
+
+        <RecapPanel />
       </ScrollView>
       </ScreenBackground>
 
