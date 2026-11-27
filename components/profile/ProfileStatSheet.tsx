@@ -69,17 +69,8 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.sheet, { backgroundColor: currentTheme.colors.surface, borderColor: ink.hairline }]}>
-        <View style={styles.row}>
-          <Text variant="body" weight="bold" tone="primary" style={styles.name}>Overall</Text>
-          <Text variant="meta" tone="muted" style={styles.value}>
-            {ranked ? `${overallPercentile}${getPercentileSuffix(overallPercentile)} pct` : '—'}
-          </Text>
-          <Text variant="emphasis" weight="bold" style={[styles.tier, { color: ranked ? tierColor(tier!) : ink.muted }]}>
-            {ranked ? tier : '—'}
-          </Text>
-          <View style={styles.chevronSlot} />
-        </View>
+      {/* Swiss table: hairline rows, no card. Overall lives in the headline above. */}
+      <View style={[styles.sheet, { borderTopColor: ink.hairline }]}>
 
         {lifts.map(l => (
           <TouchableOpacity
@@ -88,7 +79,7 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={`${shortName(getExercise(l.workoutId)?.name ?? l.workoutId)} history`}
-            style={[styles.row, { borderTopColor: ink.hairline, borderTopWidth: StyleSheet.hairlineWidth }]}
+            style={[styles.row, { borderBottomColor: ink.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
           >
             <Text variant="body" tone="primary" style={styles.name} numberOfLines={1}>
               {shortName(getExercise(l.workoutId)?.name ?? l.workoutId)}
@@ -104,11 +95,9 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
         ))}
       </View>
 
-      <Text variant="meta" tone="muted">
-        {ranked
-          ? `${band.nextTier ? `${band.toNext} percentile to ${band.nextTier}` : 'Top tier'}${lifts.length ? ' · tap a lift for its history' : ''}`
-          : 'Log a ranked lift to get a tier'}
-      </Text>
+      {lifts.length === 0 ? (
+        <Text variant="meta" tone="muted">Log a ranked lift to see it here</Text>
+      ) : null}
 
       <ExerciseHistoryModal exercise={selected} weightUnit={unit} onClose={() => setSelected(null)} />
     </View>
@@ -116,9 +105,9 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: space.sm, marginBottom: space.lg },
-  sheet: { borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: space.lg },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.md },
+  wrap: { gap: space.sm, marginTop: space.xl, marginBottom: space.lg },
+  sheet: { borderTopWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingVertical: space.lg },
   name: { flex: 1 },
   value: { minWidth: 72, textAlign: 'right', fontVariant: ['tabular-nums'] },
   tier: { minWidth: 40, textAlign: 'right' },

@@ -22,7 +22,7 @@ import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import { rankForLevel } from '@/lib/gamification/ranks';
-import HexTierBadge from '@/components/gamification/HexTierBadge';
+import StrengthHeadline from '@/components/ui/StrengthHeadline';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { radius, space, track } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
@@ -42,8 +42,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-// Style A: hex tier badge + percentile lead; level/rank is a one-line footnote.
-const CARD_HEIGHT = 168;
+// Swiss minimal: strength headline + one neutral level line.
+const CARD_HEIGHT = 226;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -97,58 +97,17 @@ export default function HoloRankCard(props: Props) {
   );
 }
 
-function Front({ percentile, level, nextWorkoutXp, camo }: Props & { camo: CardCamoSpec }) {
-  const foil = tierFoil(percentile);
-  const sheen = camoSheen(foil, camo);
+function Front({ percentile, level, nextWorkoutXp }: Props & { camo: CardCamoSpec }) {
   const ink = useInk();
-  const band = getTierBandProgress(percentile);
-  const ranked = foil.base !== null;
-  const [width, setWidth] = useState(0);
-  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
-
-  // Style A: the tier as an object (hex badge) leads, percentile + progress beside
-  // it. Level/rank sits under a rule as one neutral line with the small crest.
-  const nextLine = !ranked
-    ? 'Log a ranked lift'
-    : band.nextTier
-      ? `${band.toNext} to ${band.nextTier}`
-      : 'Top tier';
-
+  // Swiss minimal: flat, no card chrome. The strength headline leads; level/rank
+  // is one neutral line under a hairline. Tap still flips to the body graph.
   return (
-    <LinearGradient
-      colors={[foil.foil[0], foil.foil[1]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.card, { borderRadius: radius.card + 6, borderColor: foil.color + '59' }]}
-      onLayout={onLayout}
-    >
-      <CardCamo camo={camo} tierColor={foil.color} />
-      <Sheen mode={sheen.mode} ms={sheen.ms} restMs={sheen.restMs} stops={sheenStops(sheen.tint, sheen.intensity)} width={width} />
-
-      <View style={styles.row}>
-        {ranked ? (
-          <HexTierBadge tier={band.tier} size={88} />
-        ) : (
-          <View style={[styles.unranked, { borderColor: ink.ghost }]}>
-            <Text variant="statHero" weight="bold" tone="muted">—</Text>
-          </View>
-        )}
-        <View style={styles.identity}>
-          <Text variant="meta" weight="bold" tone="muted" style={styles.caps}>Overall strength</Text>
-          <Text variant="heading" weight="bold" tone="primary" numberOfLines={1}>
-            {ranked ? `${percentile}${getPercentileSuffix(percentile)} percentile` : 'Unranked'}
-          </Text>
-          <View style={[styles.track, { backgroundColor: ink.ghost }]}>
-            <View style={[styles.fill, { width: `${Math.max(2, (ranked ? band.progress : 0) * 100)}%`, backgroundColor: foil.color }]} />
-          </View>
-          <Text variant="meta" tone="muted" numberOfLines={1}>{nextLine}</Text>
-        </View>
-      </View>
-
+    <View style={styles.flat}>
+      <StrengthHeadline percentile={percentile} letterSize={96} />
       {level ? (
         <View style={[styles.footer, { borderTopColor: ink.hairline }]}>
           <View style={styles.rankLine}>
-            <RankEmblem level={level.level} progress={level.progress} size={20} />
+            <RankEmblem level={level.level} progress={level.progress} size={18} />
             <Text variant="meta" tone="secondary" numberOfLines={1}>
               Lv {level.level} · {rankForLevel(level.level).name}
             </Text>
@@ -156,7 +115,7 @@ function Front({ percentile, level, nextWorkoutXp, camo }: Props & { camo: CardC
           <Text variant="meta" tone="muted" numberOfLines={1}>+{nextWorkoutXp} XP next workout</Text>
         </View>
       ) : null}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -212,6 +171,7 @@ const styles = StyleSheet.create({
   // balance), like CareerModal's hero tier: beyond the type scale on purpose.
   caps: { letterSpacing: track.caps, textTransform: 'uppercase' },
   unranked: { width: 88, height: 88, borderRadius: radius.card, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  flat: { flex: 1, justifyContent: 'space-between', paddingTop: space.md },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginTop: space.md, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth },
   rankLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexShrink: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.lg },
