@@ -62,7 +62,9 @@ export default function LeagueCard({ onOpen }: LeagueCardProps) {
     }, [load]),
   );
 
-  const onBoard = me != null && me.rank != null && fieldSize >= 2;
+  // On the board as soon as you've trained this week, even alone — a solo week
+  // reads "Top of the board" instead of hiding your score.
+  const onBoard = me != null && me.rank != null && fieldSize >= 1;
   const rankColor = onBoard ? rankTierColors(me!.rank, fieldSize) : null;
   const leaderPoints = leader?.points ?? 0;
   const sharePct = onBoard && leaderPoints > 0 ? (me!.points / leaderPoints) * 100 : 0;
