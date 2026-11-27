@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { analyticsService } from './analytics';
-import { feedApi } from './feedApi';
+import { getFeedBackend } from './feedBackend';
 import { containsProfanity } from '@/lib/utils/moderation';
 
 export interface FeedLike {
@@ -135,7 +135,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return [];
 
-      return await feedApi.getWorkouts(user.id, limit, offset);
+      return await getFeedBackend().getWorkouts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching global workout feed:', error);
       throw error; // re-throw so the UI can surface the error
@@ -147,7 +147,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.toggleWorkoutLike(
+      return await getFeedBackend().toggleWorkoutLike(
         workoutId,
         user.id,
         user.username,
@@ -169,7 +169,7 @@ class FeedService {
         return null;
       }
 
-      return await feedApi.addWorkoutComment(
+      return await getFeedBackend().addWorkoutComment(
         workoutId,
         user.id,
         user.username,
@@ -187,7 +187,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.deleteWorkoutComment(workoutId, commentId, user.id);
+      return await getFeedBackend().deleteWorkoutComment(workoutId, commentId, user.id);
     } catch (error) {
       console.error('Error deleting comment:', error);
       return false;
@@ -199,7 +199,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.toggleWorkoutCommentLike(
+      return await getFeedBackend().toggleWorkoutCommentLike(
         workoutId,
         commentId,
         user.id,
@@ -226,7 +226,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.saveWorkout(user.id, workout, user.username, user.profile_picture_url, feedData);
+      return await getFeedBackend().saveWorkout(user.id, workout, user.username, user.profile_picture_url, feedData);
     } catch (error) {
       console.error('Error saving workout to feed:', error);
       return false;
@@ -246,7 +246,7 @@ class FeedService {
         return false;
       }
 
-      const result = await feedApi.createPost(
+      const result = await getFeedBackend().createPost(
         user.id,
         user.username,
         input.text,
@@ -266,7 +266,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return [];
 
-      return await feedApi.getPosts(user.id, limit, offset);
+      return await getFeedBackend().getPosts(user.id, limit, offset);
     } catch (error) {
       console.error('Error fetching posts:', error);
       throw error; // re-throw so the UI can surface the error
@@ -279,7 +279,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return { success: false, liked: false };
 
-      return await feedApi.togglePostLike(
+      return await getFeedBackend().togglePostLike(
         postId,
         user.id,
         user.username,
@@ -301,7 +301,7 @@ class FeedService {
         return null;
       }
 
-      return await feedApi.addPostComment(
+      return await getFeedBackend().addPostComment(
         postId,
         user.id,
         user.username,
@@ -319,7 +319,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.deletePostComment(postId, commentId, user.id);
+      return await getFeedBackend().deletePostComment(postId, commentId, user.id);
     } catch (error) {
       console.error('Error deleting post comment:', error);
       return false;
@@ -331,7 +331,7 @@ class FeedService {
       const user = await this.getCurrentUser();
       if (!user) return false;
 
-      return await feedApi.togglePostCommentLike(
+      return await getFeedBackend().togglePostCommentLike(
         postId,
         commentId,
         user.id,
