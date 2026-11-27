@@ -30,12 +30,12 @@ export const THEME_CONFIG: Record<ThemeLevel, {
   description: string;
 }> = {
   beginner: {
-    displayName: 'E Tier',
+    displayName: 'E Tier Charcoal',
     requiredPercentile: 0,
     description: 'Available to everyone',
   },
   beginner_dark: {
-    displayName: 'E Tier Dark',
+    displayName: 'E Tier',
     requiredPercentile: 0,
     description: 'Available to everyone',
   },

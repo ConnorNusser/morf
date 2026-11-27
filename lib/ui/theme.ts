@@ -27,18 +27,19 @@ export interface Theme {
 export const themes: Record<ThemeLevel, Theme> = {
   // Tier themes take their tier's color (TIER_COLORS in strengthStandards):
   // E gray, C green, B blue, A purple, S gold. On dark grounds the primary is
-  // the tier's light shade so links and pills stay readable.
-  // E Tier Light
+  // the tier's light shade so links and pills stay readable. Every theme is
+  // dark — the light grounds fought the tier colors and the Swiss style.
+  // E Tier (warm charcoal)
   beginner: {
     name: "beginner",
     colors: {
-      background: "#F4F4F5",
-      text: "#18181B",
-      primary: "#3F3F46",
-      secondary: "#E4E4E7",
-      accent: "#71717A",
-      surface: "#FFFFFF",
-      border: "#D4D4D8",
+      background: "#161616",
+      text: "#EDEDED",
+      primary: "#E4E4E7",
+      secondary: "#1F1F1F",
+      accent: "#A1A1AA",
+      surface: "#1F1F1F",
+      border: "#2C2C2C",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -74,13 +75,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   intermediate: {
     name: "intermediate",
     colors: {
-      background: "#EEF3EF",
-      text: "#13201A",
-      primary: "#1F7A4A",
-      secondary: "#E1EAE3",
+      background: "#0C1A12",
+      text: "#E8F2EC",
+      primary: "#5FD394",
+      secondary: "#13241A",
       accent: "#2E8B57",
-      surface: "#FFFFFF",
-      border: "#CFDDD3",
+      surface: "#13241A",
+      border: "#1F3A2A",
     },
     fonts: {
       regular: "Raleway_400Regular",
@@ -158,13 +159,13 @@ export const themes: Record<ThemeLevel, Theme> = {
   share_warm: {
     name: "share_warm",
     colors: {
-      background: "#FDF4F5",
-      text: "#6B4C5A",
-      primary: "#E879A9",
-      secondary: "#FCE8EC",
+      background: "#1A1015",
+      text: "#FBEAF2",
+      primary: "#F472B6",
+      secondary: "#261820",
       accent: "#93C5FD",
-      surface: "#FFFFFF",
-      border: "#F5D0DC",
+      surface: "#261820",
+      border: "#3A2430",
     },
     fonts: {
       regular: "Raleway_400Regular",
