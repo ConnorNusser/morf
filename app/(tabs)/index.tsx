@@ -7,7 +7,7 @@ import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import HoloRankCard from "@/components/home/HoloRankCard";
 import Last14DaysGrid from "@/components/home/Last14DaysGrid";
-import StreakMapModal from "@/components/home/StreakMapModal";
+import LevelJourneySheet from "@/components/gamification/LevelJourneySheet";
 import { useBodyGraph } from "@/hooks/useBodyGraph";
 import { xpAccentForPercentile } from "@/lib/ui/tierFoil";
 import TodayCard from "@/components/home/TodayCard";
@@ -64,7 +64,8 @@ export default function HomeScreen() {
   const [leagueExpandTarget, setLeagueExpandTarget] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
-  const [showStreakMap, setShowStreakMap] = useState(false);
+  // Header level pill → the level journey (replaces the streak chip for now).
+  const [showJourney, setShowJourney] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [overallPercentile, setOverallPercentile] = useState(0);
   // The viewer's own backend user, for the feed header's profile button.
@@ -281,8 +282,8 @@ export default function HomeScreen() {
         <DashboardHeader
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
-          streakWeeks={levelStats?.weekStreak}
-          onStreakPress={() => setShowStreakMap(true)}
+          level={level}
+          onLevelPress={() => setShowJourney(true)}
         />
 
         <HoloRankCard
@@ -335,7 +336,7 @@ export default function HomeScreen() {
         onClose={() => setShowLeaderboard(false)}
       />
 
-      <StreakMapModal visible={showStreakMap} onClose={() => setShowStreakMap(false)} />
+      <LevelJourneySheet visible={showJourney} onClose={() => setShowJourney(false)} level={level} />
       <CareerModal
         visible={showCareer}
         onClose={() => {
