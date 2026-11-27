@@ -113,3 +113,51 @@ export const resolveBackgroundGradient = (id: string | null | undefined, userPer
 export const isGradientUnlocked = (id: BackgroundGradientId, userPercentile: number): boolean => {
   return userPercentile >= getBackgroundGradient(id).requiredPercentile;
 };
+
+// ---- Blending ------------------------------------------------------------
+// The 'auto' wash doesn't jump at tier boundaries: as you climb through a tier
+// letter it eases toward the next letter's colors, so a C+ lifter's screen is
+// already tinged with B's blue. The current tier stays dominant (max 55% mix).
+
+const LETTER_ORDER: StrengthTierBase[] = ['E', 'D', 'C', 'B', 'A', 'S'];
+export const MAX_BLEND = 0.55;
+
+function hexToRgb(hex: string): [number, number, number] {
+  const m = hex.replace('#', '');
+  return [0, 2, 4].map(i => parseInt(m.slice(i, i + 2), 16)) as [number, number, number];
+}
+
+export function blendHex(a: string, b: string, t: number): string {
+  const k = Math.max(0, Math.min(1, t));
+  const [ra, ga, ba] = hexToRgb(a);
+  const [rb, gb, bb] = hexToRgb(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * k).toString(16).padStart(2, '0');
+  return `#${c(ra, rb)}${c(ga, gb)}${c(ba, bb)}`.toUpperCase();
+}
+
+// 0..1 progress through the current tier *letter* (C- floor → B- floor).
+export function letterProgress(percentile: number): number {
+  if (percentile <= 0) return 0;
+  const base = getStrengthTier(percentile).charAt(0) as StrengthTierBase;
+  const i = LETTER_ORDER.indexOf(base);
+  const next = LETTER_ORDER[i + 1];
+  if (!next) return 0;
+  const lo = tierFloorPercentile(base);
+  const hi = tierFloorPercentile(next);
+  return Math.max(0, Math.min(1, (percentile - lo) / Math.max(1, hi - lo)));
+}
+
+/** Colors actually painted. 'auto' blends toward the next tier (eased);
+ * explicit picks paint their own colors unblended. */
+export function resolveBackgroundColors(id: string | null | undefined, userPercentile: number): [string, string] | null {
+  const g = resolveBackgroundGradient(id, userPercentile);
+  if (!g.colors) return null;
+  if (getBackgroundGradient(id).id !== 'auto' || userPercentile <= 0) return g.colors;
+  const base = getStrengthTier(userPercentile).charAt(0) as StrengthTierBase;
+  const next = LETTER_ORDER[LETTER_ORDER.indexOf(base) + 1];
+  const target = next ? gradientForTier(next).colors : null;
+  if (!target || target === g.colors) return g.colors;
+  const p = letterProgress(userPercentile);
+  const t = MAX_BLEND * p * p; // ease-in: identity holds early, blends near the top
+  return [blendHex(g.colors[0], target[0], t), blendHex(g.colors[1], target[1], t)];
+}

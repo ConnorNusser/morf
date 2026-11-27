@@ -24,10 +24,10 @@ import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, Share, StyleSheet, TouchableOpacity } from 'react-native';
+import { Image, Share, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 
 export default function ThemeEvolutionSection() {
-  const { currentTheme, currentThemeLevel, themes, setThemeLevel, currentGradientId, setGradientId } = useTheme();
+  const { currentTheme, currentThemeLevel, themes, setThemeLevel, currentGradientId, setGradientId, gradientEnabled, setGradientEnabled } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -348,9 +348,21 @@ export default function ThemeEvolutionSection() {
               Background Gradients
             </Text>
             <Text variant="meta" tone="secondary" style={styles.subsectionDescription}>
-              A color wash behind every screen — unlocks by tier
+              A color wash behind every screen. My tier follows your rank and blends toward the next one.
             </Text>
-            <View style={styles.themeGrid}>
+            <View style={styles.toggleRow}>
+              <Text variant="body" tone="primary" weight="medium">Show background gradient</Text>
+              <Switch
+                value={gradientEnabled}
+                onValueChange={on => {
+                  playHapticFeedback('light', false);
+                  setGradientEnabled(on);
+                }}
+                trackColor={{ true: currentTheme.colors.primary, false: currentTheme.colors.border }}
+                accessibilityLabel="Show background gradient"
+              />
+            </View>
+            <View style={[styles.themeGrid, !gradientEnabled && styles.dimmed]} pointerEvents={gradientEnabled ? 'auto' : 'none'}>
               {BACKGROUND_GRADIENTS.map(renderGradientCard)}
             </View>
           </View>
@@ -400,6 +412,15 @@ export default function ThemeEvolutionSection() {
 }
 
 const styles = StyleSheet.create({
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: space.md,
+  },
+  dimmed: {
+    opacity: 0.4,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

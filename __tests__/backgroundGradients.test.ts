@@ -2,6 +2,11 @@ import { getStrengthTier, TIER_COLORS, tierFloorPercentile } from '@/lib/data/st
 import {
   BACKGROUND_GRADIENTS,
   resolveBackgroundGradient,
+  blendHex,
+  gradientForTier,
+  letterProgress,
+  MAX_BLEND,
+  resolveBackgroundColors,
   DEFAULT_GRADIENT_ID,
   getBackgroundGradient,
   isGradientUnlocked,
@@ -110,5 +115,38 @@ describe('resolveBackgroundGradient', () => {
       expect(isGradientUnlocked(g.id, p)).toBe(true);
       if (p > 0 && g.tier && g.tier !== 'E') expect(g.tier).toBe(getStrengthTier(p).charAt(0));
     }
+  });
+});
+
+describe('gradient blending', () => {
+  it('blendHex interpolates and clamps', () => {
+    expect(blendHex('#000000', '#FFFFFF', 0)).toBe('#000000');
+    expect(blendHex('#000000', '#FFFFFF', 1)).toBe('#FFFFFF');
+    expect(blendHex('#000000', '#FFFFFF', 0.5)).toBe('#808080');
+    expect(blendHex('#000000', '#FFFFFF', 2)).toBe('#FFFFFF');
+  });
+
+  it('letterProgress runs 0→1 across a tier letter', () => {
+    expect(letterProgress(23)).toBe(0); // C- floor
+    expect(letterProgress(35)).toBeCloseTo(0.5); // halfway C → B
+    expect(letterProgress(0)).toBe(0);
+    expect(letterProgress(99)).toBe(0); // S has nothing above
+  });
+
+  it('auto starts on the tier colors and eases toward the next tier, never past MAX_BLEND', () => {
+    const c = gradientForTier('C').colors!;
+    const b = gradientForTier('B').colors!;
+    expect(resolveBackgroundColors('auto', 23)).toEqual([c[0].toUpperCase(), c[1].toUpperCase()]);
+    const near = resolveBackgroundColors('auto', 46)!;
+    const capped = blendHex(c[0], b[0], MAX_BLEND);
+    expect(near[0]).not.toBe(c[0].toUpperCase());
+    // closer to the cap than to the start
+    const dist = (x: string, y: string) => Math.abs(parseInt(x.slice(1, 3), 16) - parseInt(y.slice(1, 3), 16));
+    expect(dist(near[0], capped)).toBeLessThan(dist(near[0], c[0]));
+  });
+
+  it('explicit picks and unranked are unblended', () => {
+    expect(resolveBackgroundColors('uncommon', 46)).toEqual(gradientForTier('C').colors);
+    expect(resolveBackgroundColors('auto', 0)).toEqual(gradientForTier('E').colors);
   });
 });

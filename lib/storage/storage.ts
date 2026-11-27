@@ -49,6 +49,7 @@ export const STORAGE_KEYS = {
   LAST_OVERALL_PERCENTILE: 'last_overall_percentile',
   // One-time reset of saved gradient picks to 'auto' when the wash became tier-following.
   GRADIENT_AUTO_MIGRATED: 'gradient_auto_migrated_v1',
+  BACKGROUND_GRADIENT_ENABLED: 'background_gradient_enabled',
 } as const;
 
 export interface PendingStrengthProgress {
@@ -943,6 +944,24 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_SEEN_LEVEL, String(Math.max(1, Math.floor(level))));
     } catch (error) {
       console.error('Error saving last seen level:', error);
+    }
+  }
+
+  // Background wash on/off (default on).
+  async getGradientEnabled(): Promise<boolean> {
+    try {
+      return (await AsyncStorage.getItem(STORAGE_KEYS.BACKGROUND_GRADIENT_ENABLED)) !== '0';
+    } catch (error) {
+      console.error('Error loading gradient toggle:', error);
+      return true;
+    }
+  }
+
+  async setGradientEnabled(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.BACKGROUND_GRADIENT_ENABLED, enabled ? '1' : '0');
+    } catch (error) {
+      console.error('Error saving gradient toggle:', error);
     }
   }
 

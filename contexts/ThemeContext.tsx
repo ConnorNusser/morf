@@ -13,6 +13,9 @@ interface ThemeContextType {
   /** Lifter's overall percentile — drives the tier-following background wash. */
   userPercentile: number;
   setUserPercentile: (p: number) => void;
+  /** Background wash on/off (Profile → Themes). */
+  gradientEnabled: boolean;
+  setGradientEnabled: (on: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -24,6 +27,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentThemeLevel, setCurrentThemeLevel] = useState<ThemeLevel>(getDefaultTheme());
   const [currentGradientId, setCurrentGradientId] = useState<BackgroundGradientId>(DEFAULT_GRADIENT_ID);
   const [userPercentile, setUserPercentileState] = useState(0);
+  const [gradientEnabled, setGradientEnabledState] = useState(true);
 
   useEffect(() => {
     const loadThemePreference = async () => {
@@ -36,6 +40,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         await storageService.saveThemePreference(defaultTheme);
       }
       setUserPercentileState(await storageService.getLastOverallPercentile());
+      setGradientEnabledState(await storageService.getGradientEnabled());
       // The wash now follows the lifter's tier; reset old manual picks once so
       // everyone lands on it (they can still choose another unlocked one after).
       if (await storageService.consumeGradientAutoMigration()) {
@@ -65,6 +70,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     storageService.setLastOverallPercentile(v);
   }, []);
 
+  const setGradientEnabled = useCallback((on: boolean) => {
+    setGradientEnabledState(on);
+    storageService.setGradientEnabled(on);
+  }, []);
+
   const currentTheme = themes[currentThemeLevel] || themes.beginner;
 
   const value = useMemo(() => ({
@@ -76,7 +86,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setGradientId,
     userPercentile,
     setUserPercentile,
-  }), [currentTheme, currentThemeLevel, setThemeLevel, currentGradientId, setGradientId, userPercentile, setUserPercentile]);
+    gradientEnabled,
+    setGradientEnabled,
+  }), [currentTheme, currentThemeLevel, setThemeLevel, currentGradientId, setGradientId, userPercentile, setUserPercentile, gradientEnabled, setGradientEnabled]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
