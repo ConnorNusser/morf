@@ -47,7 +47,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   // Clear the status bar/notch via real insets; content scrolls under it.
   const contentTopPadding = insets.top;
-  const { currentTheme, setThemeLevel } = useTheme();
+  const { currentTheme, setThemeLevel, setUserPercentile } = useTheme();
   const { userProfile } = useUser();
   const router = useRouter();
   const { feed: feedParam, league: leagueParam } = useLocalSearchParams<{ feed?: string; league?: string }>();
@@ -68,6 +68,11 @@ export default function HomeScreen() {
   const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
   // Account level for the header pill (recomputed on focus) + the one-time intro.
   const { level, stats: levelStats, intro: levelIntro, dismissIntro } = useLevel();
+
+  // Feed the tier-following background wash (ScreenBackground) app-wide.
+  useEffect(() => {
+    setUserPercentile(overallPercentile);
+  }, [overallPercentile, setUserPercentile]);
   const bodyGraphData = useBodyGraph();
 
   useEffect(() => {

@@ -1,15 +1,16 @@
 import { TIER_COLORS } from '@/lib/data/strengthStandards';
 import { hexAlpha, tierFoil, xpAccentForPercentile } from '@/lib/ui/tierFoil';
+import { gradientForTier } from '@/lib/ui/backgroundGradients';
 import { projectNextWorkoutXp } from '@/lib/gamification/levelDisplay';
 import { XpLedger, WorkoutXp } from '@/lib/gamification/xp';
 
 describe('tierFoil', () => {
-  it('maps each tier letter to its complementary XP accent', () => {
-    expect(xpAccentForPercentile(30)).toBe('#FF6F91'); // C → rose
-    expect(xpAccentForPercentile(60)).toBe('#FFB23F'); // B → amber
-    expect(xpAccentForPercentile(78)).toBe('#B6F03C'); // A → lime
-    expect(xpAccentForPercentile(95)).toBe('#3DDCFF'); // S → cyan
-    expect(xpAccentForPercentile(0)).toBe('#FF4FA3'); // unranked → brand pink
+  it('uses the tier gradient\'s secondary shade as the XP accent', () => {
+    expect(xpAccentForPercentile(30)).toBe(gradientForTier('C').colors![1]);
+    expect(xpAccentForPercentile(60)).toBe(gradientForTier('B').colors![1]);
+    expect(xpAccentForPercentile(78)).toBe(gradientForTier('A').colors![1]);
+    expect(xpAccentForPercentile(95)).toBe(gradientForTier('S').colors![1]);
+    expect(xpAccentForPercentile(0)).toBe(gradientForTier('E').colors![1]);
   });
 
   it('never uses a tier hue as an XP accent', () => {

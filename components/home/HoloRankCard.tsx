@@ -3,11 +3,14 @@
 // card's power stat, with a tier-complementary XP bar and a striped ghost segment
 // for what the next workout will add. Tap flips to a mini body graph.
 //
-// Always-dark surface (like WorkoutCompleteScreen): the foil reads the same in
-// every theme, so text colors are white-alpha here by design.
+// Translucent: the card is a light tier tint over the screen's tier gradient
+// (ScreenBackground), so it blends into the page instead of sitting on it.
+// Text uses the theme's ink ramp; only the tier letter and XP carry color.
 import BodyGraph from '@/components/gamification/BodyGraph';
 import FlipCard from '@/components/gamification/FlipCard';
-import { Text } from '@/components/Themed';
+import { Text, useInk } from '@/components/Themed';
+import { useTheme } from '@/contexts/ThemeContext';
+import { readableInkOn } from '@/lib/ui/contrast';
 import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
@@ -30,11 +33,13 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const WHITE = '#FFFFFF';
-const SUB = 'rgba(255,255,255,0.72)';
-const FAINT = 'rgba(255,255,255,0.5)';
-const TRACK = 'rgba(255,255,255,0.14)';
 const CARD_HEIGHT = 236;
+
+// Dark theme → the bright tier tint reads best; light theme → the saturated hue.
+function useIsDarkTheme(): boolean {
+  const { currentTheme } = useTheme();
+  return readableInkOn(currentTheme.colors.background) === '#FFFFFF';
+}
 
 interface Props {
   percentile: number; // overall strength percentile, 0 = unranked
@@ -60,7 +65,7 @@ export default function HoloRankCard(props: Props) {
       back={
         <LinearGradient colors={[foil.foil[0], foil.foil[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, frame]}>
           <View style={styles.backHead}>
-            <Text variant="meta" weight="semiBold" style={{ color: SUB }}>Your body</Text>
+            <Text variant="meta" weight="semiBold" tone="secondary">Your body</Text>
             <TouchableOpacity onPress={props.onOpenCareer} hitSlop={10} style={styles.careerLink} accessibilityRole="button">
               <Text variant="meta" weight="semiBold" style={{ color: foil.xp }}>Open Career</Text>
               <Ionicons name="chevron-forward" size={14} color={foil.xp} />
@@ -68,12 +73,12 @@ export default function HoloRankCard(props: Props) {
           </View>
           <View style={styles.backBody}>
             {props.regions && props.regions.length > 0 ? (
-              <BodyGraph regions={props.regions} compact view="both" surface="dark" />
+              <BodyGraph regions={props.regions} compact view="both" />
             ) : (
-              <Text variant="meta" style={{ color: FAINT }}>Add your bodyweight to see your body graph</Text>
+              <Text variant="meta" tone="muted">Add your bodyweight to see your body graph</Text>
             )}
           </View>
-          <Text variant="meta" style={[styles.hint, { color: FAINT }]}>Tap to flip back</Text>
+          <Text variant="meta" tone="faint" style={styles.hint}>Tap to flip back</Text>
         </LinearGradient>
       }
     />
@@ -82,6 +87,9 @@ export default function HoloRankCard(props: Props) {
 
 function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props) {
   const foil = tierFoil(percentile);
+  const ink = useInk();
+  const dark = useIsDarkTheme();
+  const letter = dark ? foil.light : foil.color;
   const band = getTierBandProgress(percentile);
   const ranked = foil.base !== null;
   const [width, setWidth] = useState(0);
@@ -103,11 +111,11 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
 
       <View style={styles.top}>
         <View style={styles.flex}>
-          <Text variant="meta" weight="semiBold" style={{ color: SUB }}>Strength rank</Text>
-          <Text style={[styles.tier, { color: foil.light }]} numberOfLines={1} adjustsFontSizeToFit>
+          <Text variant="meta" weight="semiBold" tone="secondary">Strength rank</Text>
+          <Text style={[styles.tier, { color: letter }]} numberOfLines={1} adjustsFontSizeToFit>
             {ranked ? band.tier : '—'}
           </Text>
-          <Text variant="meta" style={{ color: SUB }} numberOfLines={1}>
+          <Text variant="meta" tone="secondary" numberOfLines={1}>
             {ranked
               ? band.nextTier
                 ? `${band.toNext} to ${band.nextTier}`
@@ -117,24 +125,24 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
         </View>
         {level && (
           <View style={styles.levelCol}>
-            <Text variant="meta" weight="semiBold" style={{ color: SUB }}>LEVEL</Text>
+            <Text variant="meta" weight="semiBold" tone="secondary">LEVEL</Text>
             <Text style={[styles.levelNum, { color: foil.xp }]}>{level.level}</Text>
-            <Text variant="meta" style={{ color: SUB }} numberOfLines={1}>{level.title}</Text>
+            <Text variant="meta" tone="secondary" numberOfLines={1}>{level.title}</Text>
           </View>
         )}
       </View>
 
       {level && (
         <>
-          <View style={[styles.track, { backgroundColor: TRACK }]}>
+          <View style={[styles.track, { backgroundColor: ink.ghost }]}>
             <View style={[styles.fill, { width: `${Math.max(2, progress * 100)}%`, backgroundColor: foil.xp }]} />
             {ghost > 0 && (
               <View style={[styles.ghost, { left: `${progress * 100}%`, width: `${ghost * 100}%`, backgroundColor: foil.xpSoft }]} />
             )}
           </View>
           <View style={styles.xpRow}>
-            <Text variant="meta" style={{ color: SUB }}>{formatXp(level.xpToNext)} XP to Lv {level.level + 1}</Text>
-            <Text variant="meta" style={{ color: SUB }}>
+            <Text variant="meta" tone="secondary">{formatXp(level.xpToNext)} XP to Lv {level.level + 1}</Text>
+            <Text variant="meta" tone="secondary">
               <Text variant="meta" weight="bold" style={{ color: foil.xp }}>+{nextWorkoutXp}</Text> next workout
             </Text>
           </View>
@@ -151,10 +159,11 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
 }
 
 function Stat({ value, label }: { value: string; label: string }) {
+  const ink = useInk();
   return (
-    <View style={styles.stat}>
-      <Text variant="emphasis" weight="bold" style={{ color: WHITE }} numberOfLines={1}>{value}</Text>
-      <Text variant="meta" style={{ color: FAINT }}>{label}</Text>
+    <View style={[styles.stat, { backgroundColor: ink.ghost }]}>
+      <Text variant="emphasis" weight="bold" tone="primary" numberOfLines={1}>{value}</Text>
+      <Text variant="meta" tone="muted">{label}</Text>
     </View>
   );
 }
@@ -208,7 +217,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: space.sm,
     borderRadius: radius.control,
-    backgroundColor: 'rgba(0,0,0,0.28)',
   },
   sheen: { position: 'absolute', top: -CARD_HEIGHT, bottom: -CARD_HEIGHT },
   backHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

@@ -1,8 +1,10 @@
 // Tier-driven visuals for the holo rank card and every XP surface.
 // Each tier letter gets (a) a foil treatment that escalates with rarity and
-// (b) an XP accent that complements its hue, so the level bar always contrasts
-// with the card it sits on and the whole hero shifts color as you rank up.
+// (b) an XP accent: the tier's *secondary* shade — the same companion color the
+// tier's background gradient fades to — so card, XP bar and screen wash read as
+// one palette, and the whole hero shifts color as you rank up.
 import { getStrengthTier, StrengthTierBase, TIER_COLORS } from '@/lib/data/strengthStandards';
+import { gradientForTier } from './backgroundGradients';
 
 export type SheenMode = 'none' | 'once' | 'loop';
 
@@ -10,24 +12,19 @@ export interface TierFoil {
   base: StrengthTierBase | null; // null = unranked
   color: string; // tier hue (card edge + glow)
   light: string; // lightened tier hue for the big letter
-  foil: [string, string]; // card gradient: tier-tinted top-left → near-black
+  foil: [string, string]; // translucent card tint: tier wash top-left → nearly clear
   sheen: SheenMode; // light sweep across the card
   sheenMs: number; // sweep duration (loop tiers)
   edgeOpacity: number; // 0..1 border strength
-  xp: string; // complementary XP accent (bars, level number, "+N XP")
+  xp: string; // tier-secondary XP accent (bars, level number, "+N XP")
   xpSoft: string; // translucent XP for the ghost segment
 }
 
-// Complements: C green → rose, B blue → amber, A purple → lime, S gold → cyan.
-// D/E are gray, so they borrow Morf's pink to stay lively without faking rarity.
-const XP_BY_TIER: Record<StrengthTierBase, string> = {
-  S: '#3DDCFF',
-  A: '#B6F03C',
-  B: '#FFB23F',
-  C: '#FF6F91',
-  D: '#FF4FA3',
-  E: '#FF4FA3',
-};
+// XP = the tier gradient's companion shade (C mint, B periwinkle, A orchid,
+// S amber, D/E silver). One source of truth with the background wash.
+function secondaryFor(base: StrengthTierBase | null): string {
+  return gradientForTier(base).colors![1];
+}
 
 const LIGHT_BY_TIER: Record<StrengthTierBase, string> = {
   S: '#FFE45C',
@@ -48,10 +45,8 @@ const SHEEN_BY_TIER: Record<StrengthTierBase, { sheen: SheenMode; ms: number; ed
   S: { sheen: 'loop', ms: 2800, edge: 0.95 },
 };
 
-const UNRANKED_XP = '#FF4FA3';
-
 export function xpAccentForTier(base: StrengthTierBase | null): string {
-  return base ? XP_BY_TIER[base] : UNRANKED_XP;
+  return secondaryFor(base);
 }
 
 export function tierBaseForPercentile(percentile: number): StrengthTierBase | null {
@@ -78,22 +73,22 @@ export function tierFoil(percentile: number): TierFoil {
       base: null,
       color: '#5B626C',
       light: '#C9CDD3',
-      foil: ['#2A2F37', '#15181E'],
+      foil: [hexAlpha('#808080', 0.16), hexAlpha('#808080', 0.04)],
       sheen: 'none',
       sheenMs: 0,
       edgeOpacity: 0.25,
-      xp: UNRANKED_XP,
-      xpSoft: hexAlpha(UNRANKED_XP, 0.35),
+      xp: secondaryFor(null),
+      xpSoft: hexAlpha(secondaryFor(null), 0.35),
     };
   }
   const color = TIER_COLORS[base];
   const s = SHEEN_BY_TIER[base];
-  const xp = XP_BY_TIER[base];
+  const xp = secondaryFor(base);
   return {
     base,
     color,
     light: LIGHT_BY_TIER[base],
-    foil: [hexAlpha(color, 0.55), '#15181E'],
+    foil: [hexAlpha(color, 0.24), hexAlpha(color, 0.05)],
     sheen: s.sheen,
     sheenMs: s.ms,
     edgeOpacity: s.edge,

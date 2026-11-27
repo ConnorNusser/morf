@@ -1,5 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { getBackgroundGradient } from '@/lib/ui/backgroundGradients';
+import { resolveBackgroundGradient } from '@/lib/ui/backgroundGradients';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { ReactNode } from 'react';
 import { StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
@@ -10,12 +10,13 @@ interface ScreenBackgroundProps {
 }
 
 // Screen-root wrapper: paints the theme background plus the user's selected
-// tier gradient (a wash fading from the top) behind the screen's content.
+// tier gradient (a wash fading from the top; follows the lifter's tier by default) behind the screen's content.
 // Every tab screen roots in this so the gradient shows app-wide; children
 // keep their own layout and must not repaint an opaque background.
 export default function ScreenBackground({ children, style }: ScreenBackgroundProps) {
-  const { currentTheme, currentGradientId } = useTheme();
-  const gradient = getBackgroundGradient(currentGradientId);
+  const { currentTheme, currentGradientId, userPercentile } = useTheme();
+  // Always on: 'auto' follows the lifter's tier; an explicit unlocked pick wins.
+  const gradient = resolveBackgroundGradient(currentGradientId, userPercentile);
 
   return (
     <View style={[styles.root, { backgroundColor: currentTheme.colors.background }, style]}>
