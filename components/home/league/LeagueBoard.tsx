@@ -238,7 +238,7 @@ export default function LeagueBoard({ visible, onClose, initialExpandedUserId }:
 
     return (
       <RNView
-        style={[styles.recapCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+        style={[styles.recapCard, { borderColor: currentTheme.colors.border }]}
       >
         <RNView style={styles.statGrid}>
           {[
@@ -501,7 +501,7 @@ export default function LeagueBoard({ visible, onClose, initialExpandedUserId }:
 
         <PressableScale
           onPress={() => setShowAchievements(true)}
-          style={[styles.achievementsCard, { backgroundColor: currentTheme.colors.surface, borderColor: ink.hairline }]}
+          style={[styles.achievementsCard, { borderColor: ink.hairline }]}
         >
           <RNView style={styles.achievementsBody}>
             <Text variant="meta" weight="semiBold" tone="muted">Achievements</Text>
@@ -701,9 +701,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   recapCard: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.card,
-    padding: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
     gap: space.md,
     marginBottom: space.sm,
   },
@@ -742,9 +741,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.lg,
-    padding: space.lg,
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     marginTop: space.lg,
   },
   achievementsBody: {

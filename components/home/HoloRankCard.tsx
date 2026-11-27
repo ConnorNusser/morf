@@ -26,8 +26,8 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// Swiss minimal: strength headline + one neutral level line.
-const CARD_HEIGHT = 316;
+// Overall strength only (the History card); level lives in the header pill.
+const CARD_HEIGHT = 218;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -86,12 +86,6 @@ function Front({ percentile, level, nextWorkoutXp }: Props) {
   return (
     <View style={styles.flat}>
       <StrengthHeadline percentile={percentile} letterSize={100} />
-      {level ? (
-        <View style={[styles.footer, { borderTopColor: ink.hairline }]}>
-          <RankMark level={level.level} progress={level.progress} />
-          <Text variant="meta" tone="muted" numberOfLines={1}>+{nextWorkoutXp} XP next workout</Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -106,7 +100,7 @@ const styles = StyleSheet.create({
   // balance), like CareerModal's hero tier: beyond the type scale on purpose.
   caps: { letterSpacing: track.caps, textTransform: 'uppercase' },
   unranked: { width: 88, height: 88, borderRadius: radius.card, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  flat: { flex: 1, justifyContent: 'space-between', paddingTop: space.md },
+  flat: { flex: 1 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginTop: space.md, paddingTop: space.md, borderTopWidth: StyleSheet.hairlineWidth },
   rankLine: { flexDirection: 'row', alignItems: 'center', gap: space.xs, flexShrink: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.lg },

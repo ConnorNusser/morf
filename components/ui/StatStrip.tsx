@@ -1,4 +1,5 @@
-import { Text, useInk } from "@/components/Themed";
+import { useInk } from "@/components/Themed";
+import Stat from "@/components/ui/Stat";
 import { space } from "@/lib/ui/tokens";
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
@@ -24,20 +25,7 @@ function StatStrip({ items, style }: StatStripProps) {
       {items.map((item, i) => (
         <React.Fragment key={item.label}>
           {i > 0 && <View style={[styles.divider, { backgroundColor: ink.hairline }]} />}
-          <View style={styles.item}>
-            <Text
-              variant="emphasis"
-              tone={item.accent ? undefined : "primary"}
-              weight="bold"
-              numberOfLines={1}
-              style={styles.value}
-            >
-              {item.value}
-            </Text>
-            <Text variant="meta" tone="muted" style={styles.label} numberOfLines={1}>
-              {item.label}
-            </Text>
-          </View>
+          <Stat value={item.value} label={item.label} size="sm" style={styles.item} />
         </React.Fragment>
       ))}
     </View>

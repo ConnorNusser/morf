@@ -144,7 +144,7 @@ const RoutineImportModal: React.FC<RoutineImportModalProps> = ({
             filteredRoutines.map((routine) => {
               const isExpanded = expandedRoutineId === routine.id;
               return (
-                <RNView key={routine.id} style={[styles.routineCard, { backgroundColor: currentTheme.colors.surface }]}>
+                <RNView key={routine.id} style={[styles.routineCard]}>
                   <TouchableOpacity
                     style={styles.routineHeader}
                     onPress={() => toggleExpanded(routine.id)}
@@ -272,9 +272,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: screenGutter,
   },
   routineCard: {
-    borderRadius: radius.card,
-    padding: space.lg,
+    paddingVertical: space.lg,
     marginBottom: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   routineHeader: {
     flexDirection: 'row',

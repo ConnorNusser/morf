@@ -219,7 +219,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           Best set each month
         </Text>
 
-        <View style={[styles.monthlyCard, { backgroundColor: currentTheme.colors.surface }]}>
+        <View style={[styles.monthlyCard]}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthlyRow}>
             {monthlyPoints.map((p, i) => {
               const isLatest = i === latestIdx;
@@ -259,7 +259,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           Lift History
         </Text>
         
-        <View style={[styles.historyCard, { backgroundColor: currentTheme.colors.surface }]}>
+        <View style={[styles.historyCard]}>
           {/* TODO: reverse the order of the lifts */}
           {originalLiftData.slice().reverse().map((lift, index) => {
             const estimatedOneRM = OneRMCalculator.estimate(lift.weight, lift.reps);
@@ -321,7 +321,7 @@ export default function LiftProgressionModal({ visible, onClose, liftId, workout
           const gain1Y = Math.round((convertedPrediction1Y - convertedCurrent) * 100) / 100;
           
           return (
-            <View key={index} style={[styles.predictionCard, { backgroundColor: currentTheme.colors.surface }]}>
+            <View key={index} style={[styles.predictionCard]}>
               <View style={styles.predictionHeader}>
                 <Text style={[styles.predictionTitle, { color: currentTheme.colors.text }]}>
                   {model.name}
@@ -546,9 +546,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   predictionCard: {
-    padding: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
     marginBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   predictionHeader: {
     marginBottom: 12,
@@ -605,9 +605,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   monthlyCard: {
-    padding: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
     marginTop: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   monthlyRow: {
     flexDirection: 'row',
@@ -633,9 +633,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   historyCard: {
-    padding: 16,
-    borderRadius: 8,
+    paddingVertical: 16,
     marginTop: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   historyItem: {
     flexDirection: 'row',

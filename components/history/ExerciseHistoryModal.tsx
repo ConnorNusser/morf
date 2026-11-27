@@ -1,3 +1,4 @@
+import SoftBar from '@/components/ui/SoftBar';
 import IconButton from '@/components/IconButton';
 import { Text, View, useInk } from '@/components/Themed';
 import SectionLabel from '@/components/ui/SectionLabel';
@@ -160,7 +161,7 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
               return (
                 <View
                   key={session.dayKey}
-                  style={[styles.sessionCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                  style={[styles.sessionCard, { borderColor: currentTheme.colors.border }]}
                 >
                   <View style={styles.sessionTop}>
                     <View style={styles.sessionDateRow}>
@@ -184,9 +185,7 @@ function ExerciseHistoryModal({ exercise, weightUnit, onClose }: ExerciseHistory
                     </Text>
                   </View>
 
-                  <View style={[styles.barTrack, { backgroundColor: ink.hairline }]}>
-                    <View style={[styles.barFill, { width: `${barPct * 100}%`, backgroundColor: session.isPR ? currentTheme.colors.primary : withAlpha(currentTheme.colors.primary, 'secondary') }]} />
-                  </View>
+                  <SoftBar progress={(barPct * 100) / 100} color={session.isPR ? currentTheme.colors.primary : withAlpha(currentTheme.colors.primary, 'secondary')} />
 
                   <View style={styles.sessionSets}>
                     {session.sets.map((set, i) => (
@@ -251,9 +250,8 @@ const styles = StyleSheet.create({
     paddingVertical: space.xl,
   },
   sessionCard: {
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
     marginBottom: space.md,
   },
   sessionTop: {

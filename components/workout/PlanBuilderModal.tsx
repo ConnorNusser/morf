@@ -249,7 +249,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
 
           {currentPlan && (
             <TouchableOpacity
-              style={[styles.planCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+              style={[styles.planCard, { borderColor: currentTheme.colors.border }]}
               onPress={() => setIsPlanExpanded(!isPlanExpanded)}
               activeOpacity={0.8}
             >
@@ -431,9 +431,8 @@ const styles = StyleSheet.create({
     maxWidth: '85%',
   },
   planCard: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
     marginTop: space.sm,
   },
   planHeader: {

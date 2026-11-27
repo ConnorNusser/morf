@@ -381,7 +381,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   };
 
   const renderSearchResult = ({ item }: { item: RemoteUser }) => (
-    <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
+    <View style={[styles.userRow]}>
       <View style={styles.userInfo}>
         <UserAvatar uri={item.profile_picture_url} username={item.username} size={36} />
         <Text variant="body" weight="medium" tone="primary" style={styles.username}>
@@ -403,7 +403,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
   );
 
   const renderFriend = ({ item }: { item: Friend }) => (
-    <View style={[styles.userRow, { backgroundColor: currentTheme.colors.surface }]}>
+    <View style={[styles.userRow]}>
       <TouchableOpacity
         style={styles.userInfo}
         onPress={() => handleViewUserProfile(item.user)}
@@ -722,7 +722,7 @@ export default function SocialModal({ visible, onClose }: SocialModalProps) {
                       ))}
                     </View>
                   ) : friends.length === 0 ? (
-                    <View style={[styles.emptyState, { backgroundColor: currentTheme.colors.surface }]}>
+                    <View style={[styles.emptyState]}>
                       <Ionicons name="people-outline" size={32} color={ink.faint} />
                       <Text variant="meta" tone="muted" style={styles.emptyText}>
                         No friends yet. Search above to add friends!
@@ -854,8 +854,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: space.md,
-    borderRadius: radius.card,
+    paddingVertical: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   userInfo: {
     flexDirection: 'row',
@@ -886,10 +886,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyState: {
-    padding: space.section,
-    borderRadius: radius.card,
+    paddingVertical: space.section,
     alignItems: 'center',
     gap: space.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   emptyText: {
     textAlign: 'center',

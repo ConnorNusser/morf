@@ -1,3 +1,4 @@
+import SoftBar from '@/components/ui/SoftBar';
 import AnimatedBar from '@/components/AnimatedBar';
 import AnimatedCount from '@/components/AnimatedCount';
 import Card from '@/components/Card';
@@ -172,11 +173,7 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
                     <Text variant="meta" weight="semiBold" tone="primary" style={styles.nextLabel} numberOfLines={1}>
                       NEXT · {nextUp.title}
                     </Text>
-                    <View style={[styles.nextTrack, { backgroundColor: ink.hairline }]}>
-                      <View
-                        style={[styles.nextFill, { backgroundColor: currentTheme.colors.primary, width: `${Math.round(nextUp.progress * 100)}%` }]}
-                      />
-                    </View>
+                    <SoftBar progress={(Math.round(nextUp.progress * 100)) / 100} color={currentTheme.colors.primary} />
                   </View>
                   <Text variant="meta" weight="bold" tone="muted">
                     {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}

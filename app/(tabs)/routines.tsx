@@ -773,7 +773,7 @@ export default function NotesScreen() {
           </>
         ) : (
           <RNView style={styles.emptyState}>
-            <RNView style={[styles.emptyIcon, { backgroundColor: currentTheme.colors.surface }]}>
+            <RNView style={[styles.emptyIcon]}>
               <Image
                 source={require('@/assets/achievements/scroll.png')}
                 style={{ width: 40, height: 40 }}

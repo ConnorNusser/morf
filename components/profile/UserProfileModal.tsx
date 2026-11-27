@@ -640,7 +640,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               )}
 
               {sparkHistory.length >= 2 && tierColor && (
-                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.card]}>
                   <View style={styles.cardHeader}>
                     <Text variant="body" weight="semiBold" tone="primary">
                       Strength Journey
@@ -657,7 +657,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                 </View>
               )}
 
-              <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+              <View style={[styles.card]}>
                 <View style={styles.cardHeader}>
                   <Text variant="body" weight="semiBold" tone="primary">
                     1000lb Club
@@ -756,7 +756,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               />
 
               {liftComparison && (
-                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.card]}>
                   <View style={styles.comparisonHeader}>
                     <Text variant="body" weight="semiBold" tone="primary">
                       You vs @{user.username}
@@ -889,7 +889,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               )}
 
               {showcase && showcase.rarest.length > 0 && (
-                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.card]}>
                   <View style={styles.cardHeader}>
                     <Text variant="body" weight="semiBold" tone="primary">
                       Rarest Achievements
@@ -922,7 +922,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               )}
 
               {otherLifts.length > 0 && (
-                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.card]}>
                   <Text variant="body" weight="semiBold" tone="primary">
                     Top Lifts
                   </Text>
@@ -969,7 +969,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
               )}
 
               {recentWorkouts.length > 0 && (
-                <View style={[styles.card, { backgroundColor: currentTheme.colors.surface }]}>
+                <View style={[styles.card]}>
                   <Text variant="body" weight="semiBold" tone="primary">
                     Recent Workouts
                   </Text>
@@ -1202,9 +1202,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    borderRadius: radius.card,
-    padding: space.lg,
+    paddingVertical: space.lg,
     gap: space.md,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   cardHeader: {
     flexDirection: 'row',

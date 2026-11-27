@@ -338,7 +338,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         </View>
 
         <>
-            <View style={[styles.statsContainer,{ backgroundColor: currentTheme.colors.surface }]}>
+            <View style={[styles.statsContainer]}>
               <View style={styles.statsRow}>
                 <View style={styles.statItem}>
                   <Text variant="statHero" weight="bold" tone="primary" style={styles.statValue}>
@@ -436,7 +436,7 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
                 return (
                   <View
                     key={index}
-                    style={[styles.exerciseCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}
+                    style={[styles.exerciseCard, { borderColor: currentTheme.colors.border }]}
                   >
                     <View style={styles.exerciseHeader}>
                       <View style={styles.exerciseNameContainer}>
@@ -594,8 +594,8 @@ const styles = StyleSheet.create({
   statsContainer: {
     marginHorizontal: space.lg,
     marginTop: space.lg,
-    borderRadius: radius.card,
     paddingVertical: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth
   },
   statsRow: {
     flexDirection: 'row',
@@ -629,9 +629,8 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   exerciseCard: {
-    borderRadius: radius.card,
-    borderWidth: 1,
-    padding: space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingVertical: space.lg,
     marginBottom: space.md,
   },
   exerciseHeader: {

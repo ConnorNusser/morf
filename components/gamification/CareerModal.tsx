@@ -1,3 +1,4 @@
+import SoftBar from '@/components/ui/SoftBar';
 import StrengthHeadline from '@/components/ui/StrengthHeadline';
 import RankMark from '@/components/ui/RankMark';
 import ProgressHairline from '@/components/ui/ProgressHairline';
@@ -264,7 +265,7 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
   const { nextUp } = summarizeAchievements(achievements);
   if (!nextUp) return null;
   const accent = currentTheme.colors.primary;
-  const frame = { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border };
+  const frame = { borderColor: currentTheme.colors.border };
   const nextEmblem = emblemFor(nextUp.id);
   return (
     <FlipCard
@@ -284,9 +285,7 @@ function NextGoal({ achievements }: { achievements: Achievement[] }) {
             <Text variant="body" tone="primary" weight="semiBold" style={styles.nextTitle} numberOfLines={1}>
               {nextUp.title}
             </Text>
-            <View style={[styles.nextTrack, { backgroundColor: currentTheme.colors.border }]}>
-              <View style={[styles.nextFill, { backgroundColor: accent, width: `${Math.round(nextUp.progress * 100)}%` }]} />
-            </View>
+            <SoftBar progress={(Math.round(nextUp.progress * 100)) / 100} color={accent} />
           </View>
           <Text variant="meta" tone="muted" weight="bold">
             {formatCompact(nextUp.current)}/{formatCompact(nextUp.target)}
@@ -375,7 +374,7 @@ function BestsView({ stats }: { stats: CareerStats }) {
       <SectionLabel>All-time bests</SectionLabel>
       <View style={styles.bestsRow}>
         {hs && (
-          <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+          <View style={[styles.bestTile, { borderColor: currentTheme.colors.border }]}>
             <Text variant="emphasis" tone="primary" weight="bold">
               {hs.weight} {stats.unit} × {hs.reps}
             </Text>
@@ -385,7 +384,7 @@ function BestsView({ stats }: { stats: CareerStats }) {
           </View>
         )}
         {stats.biggestSessionVolume > 0 && (
-          <View style={[styles.bestTile, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+          <View style={[styles.bestTile, { borderColor: currentTheme.colors.border }]}>
             <Text variant="emphasis" tone="primary" weight="bold">
               {formatCompact(stats.biggestSessionVolume)} {stats.unit}
             </Text>
@@ -404,7 +403,7 @@ function PersonalRecordsView({ prs }: { prs: LiftPR[] }) {
   return (
     <View style={styles.section}>
       <SectionLabel>Personal records</SectionLabel>
-      <View style={[styles.prCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
+      <View style={[styles.prCard, { borderColor: currentTheme.colors.border }]}>
         {prs.map((pr, i) => (
           <View
             key={pr.exerciseId}
@@ -838,7 +837,7 @@ function AchievementTile({ achievement, isNew, onPress }: { achievement: Achieve
     ? { backgroundColor: withAlpha(r, 'hairline'), borderColor: isNew ? r : withAlpha(r, 'faint'), borderWidth: isNew ? 2 : 1 }
     : almost
       ? { backgroundColor: withAlpha(r, 'hairline'), borderColor: withAlpha(r, 'muted'), borderWidth: 1 }
-      : { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border, borderWidth: 1 };
+      : { borderColor: currentTheme.colors.border, borderWidth: 1 };
 
   // The tile face: badge, title, and an unmistakable status (check / % / lock).
   const front = (
@@ -891,9 +890,7 @@ function AchievementTile({ achievement, isNew, onPress }: { achievement: Achieve
         </Text>
       )}
       {!achievement.unlocked && !display.masked && (
-        <View style={[styles.achTrack, { backgroundColor: currentTheme.colors.border }]}>
-          <View style={[styles.achFill, { backgroundColor: r, width: `${pct}%` }]} />
-        </View>
+        <SoftBar progress={(pct) / 100} color={r} />
       )}
     </View>
   );
@@ -1000,10 +997,10 @@ const styles = StyleSheet.create({
   comparison: { textAlign: 'center', marginTop: space.md, fontStyle: 'italic' },
 
   bestsRow: { flexDirection: 'row', gap: space.md },
-  bestTile: { flex: 1, borderRadius: radius.card, borderWidth: 1, padding: space.lg },
+  bestTile: { flex: 1, borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: space.lg },
   bestLabel: { marginTop: space.xs },
 
-  prCard: { borderRadius: radius.card, borderWidth: 1, paddingHorizontal: space.lg },
+  prCard: { borderBottomWidth: StyleSheet.hairlineWidth,},
   prRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space.md },
   prLeft: { flex: 1, marginRight: space.md },
   prSub: { marginTop: space.xs },
