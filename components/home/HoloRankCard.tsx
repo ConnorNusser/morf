@@ -104,7 +104,7 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
       style={[styles.card, { borderRadius: radius.card + 6 }]}
       onLayout={onLayout}
     >
-      <Sheen mode={foil.sheen} ms={foil.sheenMs} width={width} />
+      <Sheen mode={foil.sheen} ms={foil.sheenMs} restMs={foil.sheenRestMs} width={width} />
 
       <View style={styles.top}>
         <View style={styles.flex}>
@@ -167,7 +167,7 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 // Diagonal light sweep. 'once' plays on mount; 'loop' repeats with a rest
 // between passes. Off under Reduce Motion.
-function Sheen({ mode, ms, width }: { mode: 'none' | 'once' | 'loop'; ms: number; width: number }) {
+function Sheen({ mode, ms, restMs, width }: { mode: 'none' | 'once' | 'loop'; ms: number; restMs: number; width: number }) {
   const reduced = useReducedMotion();
   const x = useSharedValue(-1);
 
@@ -178,15 +178,15 @@ function Sheen({ mode, ms, width }: { mode: 'none' | 'once' | 'loop'; ms: number
     x.value =
       mode === 'once'
         ? withDelay(500, pass)
-        : withRepeat(withSequence(withDelay(1800, pass), withTiming(-1, { duration: 0 })), -1);
-  }, [mode, ms, width, reduced, x]);
+        : withRepeat(withSequence(withDelay(restMs, pass), withTiming(-1, { duration: 0 })), -1);
+  }, [mode, ms, restMs, width, reduced, x]);
 
   const style = useAnimatedStyle(() => ({ transform: [{ translateX: x.value * width }, { rotate: '18deg' }] }));
   if (mode === 'none' || reduced || width === 0) return null;
   return (
     <Animated.View pointerEvents="none" style={[styles.sheen, { width: width * 0.6, left: width * 0.2 }, style]}>
       <LinearGradient
-        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.16)', 'rgba(255,255,255,0)']}
+        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={StyleSheet.absoluteFill}

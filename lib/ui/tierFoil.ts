@@ -12,9 +12,10 @@ export interface TierFoil {
   base: StrengthTierBase | null; // null = unranked
   color: string; // tier hue (card edge + glow)
   light: string; // lightened tier hue for the big letter
-  foil: [string, string]; // translucent card tint: tier wash top-left → nearly clear
+  foil: [string, string]; // barely-there tint: the card blends into the screen wash
   sheen: SheenMode; // light sweep across the card
-  sheenMs: number; // sweep duration (loop tiers)
+  sheenMs: number; // sweep duration
+  sheenRestMs: number; // pause between sweeps (shorter = rarer tier)
   xp: string; // tier-secondary XP accent (bars, level number, "+N XP")
   xpSoft: string; // translucent XP for the ghost segment
 }
@@ -34,14 +35,15 @@ const LIGHT_BY_TIER: Record<StrengthTierBase, string> = {
   E: '#C9CDD3',
 };
 
-// Rarity escalation: matte → one sweep → shimmer → fast gold shimmer.
-const SHEEN_BY_TIER: Record<StrengthTierBase, { sheen: SheenMode; ms: number }> = {
-  E: { sheen: 'none', ms: 0 },
-  D: { sheen: 'none', ms: 0 },
-  C: { sheen: 'once', ms: 1600 },
-  B: { sheen: 'once', ms: 1400 },
-  A: { sheen: 'loop', ms: 4200 },
-  S: { sheen: 'loop', ms: 2800 },
+// Rarity escalation by sweep cadence: D/E matte, then the sweep comes faster
+// and more often as the tier rises (C lazy → S rapid gold glint).
+const SHEEN_BY_TIER: Record<StrengthTierBase, { sheen: SheenMode; ms: number; rest: number }> = {
+  E: { sheen: 'none', ms: 0, rest: 0 },
+  D: { sheen: 'none', ms: 0, rest: 0 },
+  C: { sheen: 'loop', ms: 1900, rest: 4200 },
+  B: { sheen: 'loop', ms: 1700, rest: 3400 },
+  A: { sheen: 'loop', ms: 1500, rest: 2500 },
+  S: { sheen: 'loop', ms: 1200, rest: 1600 },
 };
 
 export function xpAccentForTier(base: StrengthTierBase | null): string {
@@ -72,9 +74,10 @@ export function tierFoil(percentile: number): TierFoil {
       base: null,
       color: '#5B626C',
       light: '#C9CDD3',
-      foil: [hexAlpha('#808080', 0.16), hexAlpha('#808080', 0.04)],
+      foil: [hexAlpha('#808080', 0.06), hexAlpha('#808080', 0)],
       sheen: 'none',
       sheenMs: 0,
+      sheenRestMs: 0,
       xp: secondaryFor(null),
       xpSoft: hexAlpha(secondaryFor(null), 0.35),
     };
@@ -86,9 +89,10 @@ export function tierFoil(percentile: number): TierFoil {
     base,
     color,
     light: LIGHT_BY_TIER[base],
-    foil: [hexAlpha(color, 0.24), hexAlpha(color, 0.05)],
+    foil: [hexAlpha(color, 0.08), hexAlpha(color, 0)],
     sheen: s.sheen,
     sheenMs: s.ms,
+    sheenRestMs: s.rest,
     xp,
     xpSoft: hexAlpha(xp, 0.35),
   };
