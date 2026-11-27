@@ -2,8 +2,10 @@ import LevelRing from '@/components/gamification/LevelRing';
 import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
-import { formatXp, upcomingTitle } from '@/lib/gamification/levelDisplay';
-import { radius, space, xpAccent } from '@/lib/ui/tokens';
+import { formatXp, nextRankLine, upcomingTitle } from '@/lib/gamification/levelDisplay';
+import { rankAccentForLevel, withArticle } from '@/lib/gamification/ranks';
+import { readableInkOn } from '@/lib/ui/contrast';
+import { radius, space } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
@@ -30,6 +32,8 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
 
   if (!show || !level) return null;
   const next = upcomingTitle(level.level, 10);
+  const dark = readableInkOn(currentTheme.colors.surface) === '#FFFFFF';
+  const accent = rankAccentForLevel(level.level, dark, level.progress);
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onDismiss}>
@@ -43,14 +47,14 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
               <Text variant="meta" weight="bold" tone="muted" style={styles.kicker}>
                 INTRODUCING LEVELS
               </Text>
-              <LevelRing level={level.level} progress={level.progress} size={112} />
+              <LevelRing level={level.level} progress={level.progress} size={112} emblem="inside" color={accent} />
               <Text variant="heading" weight="bold" tone="primary" style={styles.center}>
-                {"You're Level "}
-                {level.level}
-                <Text variant="heading" weight="bold" style={{ color: xpAccent }}>
-                  {' · '}
-                  {level.title}
+                {"You're "}
+                <Text variant="heading" weight="bold" style={{ color: accent }}>
+                  {withArticle(level.title)}
                 </Text>
+                {' · Level '}
+                {level.level}
               </Text>
               <Text variant="meta" tone="secondary" style={styles.center}>
                 Every workout you&apos;ve logged counted: {formatXp(level.totalXp)} XP earned so far.
@@ -59,7 +63,7 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
               </Text>
               {next && (
                 <Text variant="meta" tone="muted" style={styles.center}>
-                  New title at {next.minLevel}: {next.title}
+                  {nextRankLine(next)}
                 </Text>
               )}
               <View style={styles.actions}>

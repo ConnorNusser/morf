@@ -171,9 +171,9 @@ function CareerHero({
     <View style={styles.hero}>
       <View style={styles.heroRow}>
         <View style={styles.heroHalf}>
-          <LevelRing level={level.level} progress={level.progress} size={104} color={xpAccentForPercentile(overall)} />
+          <LevelRing level={level.level} progress={level.progress} size={104} color={xpAccentForPercentile(overall)} emblem="inside" />
           <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile} numberOfLines={1}>
-            {level.title}
+            Level {level.level} · {level.title}
           </Text>
           <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
             {formatXp(level.xpToNext)} XP to {level.level + 1}

@@ -14,6 +14,7 @@ import CardCamo from '@/components/home/CardCamo';
 import useEquippedCamo from '@/hooks/useEquippedCamo';
 import { CardCamo as CardCamoSpec, camoSheen } from '@/lib/gamification/cardCamos';
 import { sheenStops } from '@/lib/ui/camoPatterns';
+import RankEmblem from '@/components/gamification/RankEmblem';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { readableInkOn } from '@/lib/ui/contrast';
@@ -21,6 +22,7 @@ import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
+import { rankAccentForLevel } from '@/lib/gamification/ranks';
 import { radius, space } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
 import { getPercentileSuffix } from '@/lib/utils/utils';
@@ -133,9 +135,12 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
         </View>
         {level && (
           <View style={styles.levelCol}>
-            <Text variant="meta" weight="semiBold" tone="secondary">LEVEL</Text>
-            <Text style={[styles.levelNum, { color: foil.xp }]}>{level.level}</Text>
-            <Text variant="meta" tone="secondary" numberOfLines={1}>{level.title}</Text>
+            <RankEmblem level={level.level} progress={level.progress} size={48} showPips />
+            <View style={styles.levelNumRow}>
+              <Text variant="meta" weight="semiBold" tone="secondary">LV</Text>
+              <Text style={[styles.levelNum, { color: rankAccentForLevel(level.level, dark, level.progress) }]}>{level.level}</Text>
+            </View>
+            <Text variant="meta" weight="semiBold" tone="secondary" numberOfLines={1}>{level.title}</Text>
           </View>
         )}
       </View>
@@ -226,8 +231,10 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   // Display glyph, like CareerModal's hero tier: beyond the type scale on purpose.
   tier: { fontSize: 64, lineHeight: 70, fontWeight: '800' },
-  levelCol: { alignItems: 'flex-end', minWidth: 72 },
-  levelNum: { fontSize: 40, lineHeight: 46, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  // Crest, then the number in the blended rank color, then the rank name.
+  levelCol: { alignItems: 'center', minWidth: 72 },
+  levelNumRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
+  levelNum: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
   track: { height: space.sm, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.md },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.pill },
   ghost: { position: 'absolute', top: 0, bottom: 0, borderTopRightRadius: radius.pill, borderBottomRightRadius: radius.pill },

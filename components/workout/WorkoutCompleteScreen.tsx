@@ -23,7 +23,9 @@ import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
-import { formatXp, formatXpBreakdown, upcomingTitle, xpBarSweep } from '@/lib/gamification/levelDisplay';
+import { formatXp, formatXpBreakdown, nextRankLine, upcomingTitle, xpBarSweep } from '@/lib/gamification/levelDisplay';
+import { isRankUp, rankAccentForLevel, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
+import RankEmblem from '@/components/gamification/RankEmblem';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import {
@@ -349,33 +351,64 @@ function XpGainCard({ rewards, accent }: { rewards: SessionRewards; accent: stri
   );
 }
 
-// Only mounts when the session crossed a level: "LEVEL N", the title (flagged
-// when it's new), and the next title when it's within reach.
+// Only mounts when the session crossed a level. Crossing into a new rank is a
+// rank-up: the new crest springs in big with "Rank up! Now an Ace" in the
+// blended rank color. A plain level-up keeps the "LEVEL N" banner with the
+// crest beside it, and teases the next rank when it's within reach.
 function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after: LevelProgress; accent: string }) {
+  const rankUp = isRankUp(before.level, after.level);
   const scale = useSharedValue(0.85);
+  const crest = useSharedValue(rankUp ? 0.2 : 1);
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 120 });
-    playHapticFeedback('heavy', false);
+    if (rankUp) crest.value = withDelay(250, withSpring(1, { damping: 7, stiffness: 140, mass: 0.8 }));
+    playHapticFeedback(rankUp ? 'success' : 'heavy', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only pop + haptic
   }, []);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const newTitle = after.title !== before.title;
+  const crestStyle = useAnimatedStyle(() => ({ transform: [{ scale: crest.value }] }));
   const next = upcomingTitle(after.level);
+  // Always-dark screen → the light stop of the blended rank gradient.
+  const color = rankUp ? rankAccentForLevel(after.level, true, after.progress) : accent;
+
+  if (rankUp) {
+    return (
+      <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: color, backgroundColor: tint(color) }, popStyle]}>
+        <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color }]}>
+          RANK UP
+        </Text>
+        <Animated.View style={crestStyle}>
+          <RankEmblem level={after.level} progress={after.progress} size={96} showPips pipTrackColor="rgba(255,255,255,0.15)" />
+        </Animated.View>
+        <Text variant="heading" weight="bold" style={[styles.levelUpNumber, styles.levelUpCenter]}>
+          {rankUpLine(rankForLevel(after.level))}
+        </Text>
+        <Text variant="body" weight="semiBold" style={{ color }}>
+          LEVEL {after.level}
+        </Text>
+      </Animated.View>
+    );
+  }
 
   return (
     <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: accent, backgroundColor: tint(accent) }, popStyle]}>
       <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color: accent }]}>
         LEVEL UP
       </Text>
-      <Text variant="header" weight="bold" style={[styles.levelUpNumber, { color: accent }]}>
-        LEVEL {after.level}
-      </Text>
-      <Text variant="body" weight="semiBold" style={styles.levelUpTitle}>
-        {newTitle ? `New title: ${after.title}` : after.title}
-      </Text>
+      <View style={styles.levelUpRow}>
+        <RankEmblem level={after.level} progress={after.progress} size={56} showPips pipTrackColor="rgba(255,255,255,0.15)" />
+        <View style={styles.levelUpText}>
+          <Text variant="header" weight="bold" style={[styles.levelUpNumber, { color: accent }]}>
+            LEVEL {after.level}
+          </Text>
+          <Text variant="body" weight="semiBold" style={styles.levelUpTitle}>
+            {after.title}
+          </Text>
+        </View>
+      </View>
       {next && (
         <Text variant="meta" style={styles.progressValue}>
-          New title at {next.minLevel}: {next.title}
+          {nextRankLine(next)}
         </Text>
       )}
     </Animated.View>
@@ -1405,6 +1438,17 @@ const styles = StyleSheet.create({
   },
   levelUpTitle: {
     color: xpAccent,
+  },
+  levelUpCenter: {
+    textAlign: 'center',
+  },
+  levelUpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  levelUpText: {
+    alignItems: 'flex-start',
   },
   achList: {
     width: '100%',
