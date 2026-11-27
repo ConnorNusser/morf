@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { deviceService } from './deviceService';
+import { FEATURE_FLAGS } from '@/lib/config/featureFlags';
 
 const FEED_API_URL = 'https://feed.morf.fyi';
 
@@ -105,26 +106,37 @@ class AnalyticsService {
     }
   }
 
-  /** Logs to the self-hosted server, not Supabase. */
+  /** Logs to Supabase `app_logs`, or the self-hosted server when FEATURE_FLAGS.supabaseFeed is off. */
   async log(entry: LogEntry): Promise<void> {
     try {
       const deviceId = await this.getDeviceId();
       const username = await this.getUsername();
+      const row = {
+        device_id: deviceId,
+        username: username,
+        level: entry.level,
+        category: entry.category,
+        event: entry.event,
+        message: entry.message ?? null,
+        context: entry.context ?? null,
+      };
+
+      if (FEATURE_FLAGS.supabaseFeed) {
+        if (!supabase) return;
+        const { error } = await supabase.from('app_logs').insert(row);
+        if (error) {
+          // console only — logging this via log() would recurse
+          console.error('Error logging to Supabase:', error.message);
+        }
+        return;
+      }
 
       const response = await fetch(`${FEED_API_URL}/api/logs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          device_id: deviceId,
-          username: username,
-          level: entry.level,
-          category: entry.category,
-          event: entry.event,
-          message: entry.message ?? null,
-          context: entry.context ?? null,
-        }),
+        body: JSON.stringify(row),
       });
 
       if (!response.ok) {
