@@ -13,11 +13,13 @@ import { calculatePPLBreakdown, PPL_COLORS, PPL_LABELS } from '@/lib/data/pplCat
 import { getStrengthTier, getTierColor, StrengthTier } from '@/lib/data/strengthStandards';
 import { WorkoutSummary } from '@/lib/services/feedService';
 import { UserStrengthSummary } from '@/lib/services/userSyncService';
+import { space } from '@/lib/ui/tokens';
 import { formatDistance, formatDuration as formatCardioDuration, formatVolume } from '@/lib/utils/utils';
 import { WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
+import LevelChip from './LevelChip';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
 export type FeedWorkout = WorkoutSummary & {
@@ -36,10 +38,12 @@ interface FeedCardProps {
   weightUnit?: WeightUnit;
   /** Author's overall strength — colors the username and shows their percentile. */
   overallStrength?: UserStrengthSummary;
+  /** Author's synced level — a quiet "Lv N" chip after the percentile; omitted when unknown. */
+  authorLevel?: number;
 }
 
 
-function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallStrength }: FeedCardProps) {
+function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUserId, weightUnit = 'lbs', overallStrength, authorLevel }: FeedCardProps) {
   const { currentTheme } = useTheme();
   const feedData = workout.feed_data;
   const hasPRs = (feedData?.pr_count ?? 0) > 0;
@@ -93,17 +97,20 @@ function FeedCard({ workout, onPress, onUserPress, onLike, onComment, currentUse
             <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
               @{workout.username}
             </Text>
-            <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-              {formatRelativeTime(workout.created_at)}
-              {overallStrength && (
-                <>
-                  {' · '}
-                  <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
-                    {overallStrength.percentile}%
-                  </Text>
-                </>
-              )}
-            </Text>
+            <RNView style={styles.metaRow}>
+              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                {formatRelativeTime(workout.created_at)}
+                {overallStrength && (
+                  <>
+                    {' · '}
+                    <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
+                      {overallStrength.percentile}%
+                    </Text>
+                  </>
+                )}
+              </Text>
+              <LevelChip level={authorLevel} />
+            </RNView>
           </View>
         </TouchableOpacity>
 
@@ -276,6 +283,11 @@ const styles = StyleSheet.create({
   percentile: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
   },
   time: {
     fontSize: 13,

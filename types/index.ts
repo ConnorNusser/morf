@@ -455,6 +455,10 @@ export interface RemoteUserData {
   discord_username?: string;
   /** Achievement the user chose to show on their profile (badge id). */
   featured_achievement_id?: string;
+  /** Account level, computed locally from history and synced for display (feed chip, Level board). */
+  level?: number;
+  /** Lifetime XP behind `level` — the Level board's tiebreak. */
+  total_xp?: number;
 }
 
 // Remote user from Supabase

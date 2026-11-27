@@ -9,6 +9,7 @@ import playHapticFeedback from '@/lib/utils/haptic';
 import { getTierColor } from '@/lib/data/strengthStandards';
 import { FeedPost } from '@/lib/services/feedService';
 import { UserStrengthSummary } from '@/lib/services/userSyncService';
+import { space } from '@/lib/ui/tokens';
 import { Ionicons } from '@expo/vector-icons';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useState, useEffect } from 'react';
@@ -19,8 +20,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  View as RNView,
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import LevelChip from './LevelChip';
 import FullScreenImageViewer from './FullScreenImageViewer';
 import FullScreenVideoViewer from './FullScreenVideoViewer';
 
@@ -36,6 +39,8 @@ interface FeedPostCardProps {
   isVisible?: boolean;
   /** Author's overall strength — colors the username and shows their percentile. */
   overallStrength?: UserStrengthSummary;
+  /** Author's synced level — a quiet "Lv N" chip after the percentile; omitted when unknown. */
+  authorLevel?: number;
 }
 
 function FeedPostCard({
@@ -46,6 +51,7 @@ function FeedPostCard({
   currentUserId,
   isVisible = false,
   overallStrength,
+  authorLevel,
 }: FeedPostCardProps) {
   const { currentTheme } = useTheme();
   const { registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches } = useVideoPlayerContext();
@@ -162,17 +168,20 @@ function FeedPostCard({
               <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}
               </Text>
-              <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
-                {formatRelativeTime(post.created_at)}
-                {overallStrength && (
-                  <>
-                    {' · '}
-                    <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
-                      {overallStrength.percentile}%
-                    </Text>
-                  </>
-                )}
-              </Text>
+              <RNView style={styles.metaRow}>
+                <Text style={[styles.time, { color: currentTheme.colors.text + '60', fontWeight: '400' }]}>
+                  {formatRelativeTime(post.created_at)}
+                  {overallStrength && (
+                    <>
+                      {' · '}
+                      <Text style={[styles.percentile, { color: getTierColor(overallStrength.tier) }]}>
+                        {overallStrength.percentile}%
+                      </Text>
+                    </>
+                  )}
+                </Text>
+                <LevelChip level={authorLevel} />
+              </RNView>
             </View>
           </TouchableOpacity>
         </View>
@@ -371,6 +380,11 @@ const styles = StyleSheet.create({
   percentile: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
   },
   time: {
     fontSize: 13,

@@ -582,6 +582,11 @@ export function useWorkoutSession(): UseWorkoutSessionReturn {
       console.error('Error syncing workout to Supabase:', err);
     });
 
+    // Level/XP into user_data (feed chip, Level board). History is already saved above.
+    userSyncService.syncLevel().catch(err => {
+      console.error('Error syncing level:', err);
+    });
+
     // League overtakes: re-fetch standings once this session is on the server,
     // push to friends the user just moved past (fire and forget).
     settleOvertakeWatch(Promise.allSettled([liftsSyncPromise, workoutSyncPromise]));

@@ -15,9 +15,11 @@ import {
   liftMovement,
   percentileAsOf,
 } from '@/lib/gamification/leaderboardInsights';
+import { levelPlacement, LevelPlacement, rankLevelBoard, SyncedLevel } from '@/lib/gamification/levelSocial';
+import { loadLocalLevel } from '@/lib/gamification/localLevel';
 import { getCountryFlag, geoService } from '@/lib/services/geoService';
 import { supabase } from '@/lib/services/supabase';
-import { userSyncService } from '@/lib/services/userSyncService';
+import { LEVEL_BOARD_LIMIT, LevelLeaderboardEntry, userSyncService } from '@/lib/services/userSyncService';
 import { storageService } from '@/lib/storage/storage';
 import { radius, screenGutter, space, tint, track, trend } from '@/lib/ui/tokens';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
@@ -44,6 +46,10 @@ const FEATURED_EXERCISES: string[] = [
   'hip-thrust-barbell',
 ];
 
+// Pseudo-exercise ids for the non-lift boards in the chip row.
+const OVERALL_BOARD = 'overall';
+const LEVEL_BOARD = 'level';
+
 // Window for the ▲/▼ movement indicators (rank, 1RM, percentile).
 const DELTA_DAYS = 90;
 
@@ -52,8 +58,10 @@ type LeaderboardFilter = 'friends' | 'country' | 'global';
 /** Both board types normalized to one renderable row. */
 interface BoardRow {
   user: RemoteUser;
-  /** estimated 1RM (lift boards) or overall percentile. */
+  /** estimated 1RM (lift boards), overall percentile, or level. */
   value: number;
+  /** Level board only: lifetime XP (the tiebreak, and the "to pass" gap). */
+  totalXp?: number;
   tier?: StrengthTier;
   /** 90-day change in `value`; null = no data old enough. */
   delta: number | null;
@@ -81,6 +89,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   const [myUser, setMyUser] = useState<RemoteUser | null>(null);
   // Own standing fetched separately so the You bar works below the top 50.
   const [myStanding, setMyStanding] = useState<{ rank: number; value: number } | null>(null);
+  // Level board: the viewer's locally computed level (truth, fresher than the synced copy).
+  const [myLevel, setMyLevel] = useState<SyncedLevel | null>(null);
   // Exercise ids the user has a record for (drives the exercise chip list).
   const [trackedRecordIds, setTrackedRecordIds] = useState<string[]>([]);
 
@@ -88,7 +98,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     if (visible) storageService.getExerciseRecords().then(r => setTrackedRecordIds(Object.keys(r)));
   }, [visible]);
 
-  const isOverallSelected = selectedExercise === 'overall';
+  const isOverallSelected = selectedExercise === OVERALL_BOARD;
+  const isLevelSelected = selectedExercise === LEVEL_BOARD;
 
   const getTrackedExerciseIds = useCallback(() => {
     const trackedIds = new Set(trackedRecordIds.filter(id => getCatalogExercise(id) !== null));
@@ -101,7 +112,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
       }
     });
 
-    return ['overall', ...orderedIds];
+    return [OVERALL_BOARD, LEVEL_BOARD, ...orderedIds];
   }, [trackedRecordIds]);
 
   const loadLeaderboard = useCallback(async () => {
@@ -121,6 +132,29 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
       const now = new Date();
       const cutoffDate = cutoffDateISO(now, DELTA_DAYS);
       const cutoffIso = new Date(now.getTime() - DELTA_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+      if (isLevelSelected) {
+        const [entries, local] = await Promise.all([
+          userSyncService.getLevelLeaderboard(filter === 'friends' ? 'friends' : 'global', countryFilter),
+          loadLocalLevel().catch(() => null),
+        ]);
+        // Swap in the viewer's local level; Friends is a complete board, so the
+        // viewer is added even before their first sync. Top-N boards never insert.
+        const mine: LevelLeaderboardEntry | null = local && me
+          ? { userId: me.id, username: me.username, user: me, ...local }
+          : null;
+        const ranked = rankLevelBoard(entries, mine, { insertMe: filter === 'friends' });
+        setRows(ranked.map(entry => ({
+          user: entry.user,
+          value: entry.level,
+          totalXp: entry.totalXp,
+          delta: null,
+          rankDelta: null,
+        })));
+        setMyLevel(local);
+        setMyStanding(null);
+        return;
+      }
 
       if (isOverallSelected) {
         const data = filter === 'friends'
@@ -229,7 +263,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     } finally {
       setIsLoading(false);
     }
-  }, [filter, selectedExercise, isOverallSelected, getTrackedExerciseIds]);
+  }, [filter, selectedExercise, isOverallSelected, isLevelSelected, getTrackedExerciseIds]);
 
   useEffect(() => {
     if (visible) {
@@ -238,7 +272,8 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
   }, [visible, loadLeaderboard]);
 
   const getExerciseName = (id: string) => {
-    if (id === 'overall') return 'Overall';
+    if (id === OVERALL_BOARD) return 'Overall';
+    if (id === LEVEL_BOARD) return 'Level';
     const workout = getCatalogExercise(id);
     return workout?.name || id;
   };
@@ -265,11 +300,21 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
     [rows, isOverallSelected],
   );
   const maxValue = rows[0]?.value || 0;
-  const unitSuffix = isOverallSelected ? '%' : ' lbs';
+  const unitSuffix = isOverallSelected ? '%' : isLevelSelected ? '' : ' lbs';
 
   // The viewer's line at the bottom: in-list position wins (it knows who's ahead);
   // the fetched standing covers ranks below the visible top 50.
-  const you = useMemo(() => {
+  const you = useMemo((): { rank: number | null; value: number; gap: number | null; aheadName: string | null } | null => {
+    if (isLevelSelected) {
+      // Always the local level; rank comes from where it lands on the loaded board.
+      if (!myLevel || rows.length === 0) return null;
+      const placement: LevelPlacement = levelPlacement(
+        rows.map(r => ({ userId: r.user.id, username: r.user.username, level: r.value, totalXp: r.totalXp ?? 0 })),
+        { userId: myUser?.id ?? '', ...myLevel },
+        filter === 'friends' ? undefined : LEVEL_BOARD_LIMIT,
+      );
+      return { rank: placement.rank, value: myLevel.level, gap: placement.xpToPass, aheadName: placement.aheadName };
+    }
     if (!myUser) return null;
     const index = rows.findIndex(r => r.user.id === myUser.id);
     if (index >= 0) {
@@ -285,7 +330,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
       return { rank: myStanding.rank, value: myStanding.value, gap: null, aheadName: null };
     }
     return null;
-  }, [rows, myUser, myStanding]);
+  }, [rows, myUser, myStanding, isLevelSelected, myLevel, filter]);
 
   const renderAvatar = (user: RemoteUser, size: number) => (
     <UserAvatar uri={user.profile_picture_url} username={user.username} size={size} />
@@ -365,6 +410,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
 
           <RNView style={styles.valueCell}>
             <Text variant={isHero ? 'emphasis' : 'body'} weight={isHero ? 'semiBold' : 'medium'} tone="primary">
+              {isLevelSelected && <Text variant="meta" weight="regular" tone="muted">Lv </Text>}
               {row.value}
               <Text variant="meta" weight="regular" tone="muted">{unitSuffix}</Text>
             </Text>
@@ -462,7 +508,7 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
             activeOpacity={0.8}
           >
             <Text variant="body" weight="semiBold" tone="primary" style={styles.youRank}>
-              #{you.rank}
+              {you.rank != null ? `#${you.rank}` : `${LEVEL_BOARD_LIMIT}+`}
             </Text>
             {myUser && renderAvatar(myUser, 28)}
             <RNView style={styles.userInfo}>
@@ -471,11 +517,14 @@ export default function LeaderboardModal({ visible, onClose }: LeaderboardModalP
                 <Text variant="meta" tone="secondary">Top of the board</Text>
               ) : you.gap != null && you.aheadName ? (
                 <Text variant="meta" tone="secondary" numberOfLines={1}>
-                  {`+${Math.max(1, Math.ceil(you.gap))}${unitSuffix} to pass @${you.aheadName}`}
+                  {isLevelSelected
+                    ? `+${you.gap} XP to pass @${you.aheadName}`
+                    : `+${Math.max(1, Math.ceil(you.gap))}${unitSuffix} to pass @${you.aheadName}`}
                 </Text>
               ) : null}
             </RNView>
             <Text variant="body" weight="semiBold" tone="primary">
+              {isLevelSelected && <Text variant="meta" weight="regular" tone="muted">Lv </Text>}
               {you.value}
               <Text variant="meta" weight="regular" tone="muted">{unitSuffix}</Text>
             </Text>

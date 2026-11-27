@@ -8,6 +8,7 @@ import { feedService, FeedPost, toggleLikeFor } from '@/lib/services/feedService
 import { notificationService } from '@/lib/services/notificationService';
 import { userService } from '@/lib/services/userService';
 import { userSyncService, UserStrengthSummary } from '@/lib/services/userSyncService';
+import { SyncedLevel } from '@/lib/gamification/levelSocial';
 import { RemoteUser, WeightUnit } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -51,6 +52,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
   const [currentUsername, setCurrentUsername] = useState<string>('');
   const [tierByUser, setTierByUser] = useState<Record<string, UserStrengthSummary>>({});
+  const [levelByUser, setLevelByUser] = useState<Record<string, SyncedLevel>>({});
 
   // Overall tiers live in Supabase (user_percentiles), not the feed payload —
   // batch-fetch them per author BEFORE the cards render (awaited inside
@@ -59,9 +61,16 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
   const fetchTiersFor = useCallback(async (items: FeedItem[]) => {
     const ids = Array.from(new Set(items.map(item => item.data.user_id).filter(Boolean)));
     if (ids.length === 0) return;
-    const tiers = await userSyncService.getUserStrengthLevels(ids);
+    // Levels ride the same batch (users.user_data, same session cache shape).
+    const [tiers, levels] = await Promise.all([
+      userSyncService.getUserStrengthLevels(ids),
+      userSyncService.getUserLevels(ids),
+    ]);
     if (Object.keys(tiers).length > 0) {
       setTierByUser(prev => ({ ...prev, ...tiers }));
+    }
+    if (Object.keys(levels).length > 0) {
+      setLevelByUser(prev => ({ ...prev, ...levels }));
     }
   }, []);
 
@@ -314,6 +323,7 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           currentUserId={currentUserId}
           weightUnit={weightUnit}
           overallStrength={tierByUser[workout.user_id]}
+          authorLevel={levelByUser[workout.user_id]?.level}
         />
       );
     } else {
@@ -327,10 +337,11 @@ export default function FeedView({ onUserPress, refreshTrigger }: FeedViewProps)
           currentUserId={currentUserId}
           isVisible={isVisible}
           overallStrength={tierByUser[post.user_id]}
+          authorLevel={levelByUser[post.user_id]?.level}
         />
       );
     }
-  }, [visibleItems, currentUserId, weightUnit, tierByUser, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
+  }, [visibleItems, currentUserId, weightUnit, tierByUser, levelByUser, onWorkoutPress, onWorkoutUserPress, onWorkoutLike, onPostUserPress, onPostLikePress, onPostComment]);
 
   const renderFooter = () => {
     if (!isLoadingMore) return null;
