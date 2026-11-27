@@ -1,6 +1,7 @@
 import DashboardHeader from "@/components/DashboardHeader";
 import { FeedView } from "@/components/feed";
 import CareerModal from "@/components/gamification/CareerModal";
+import LevelIntroModal from "@/components/gamification/LevelIntroModal";
 import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
@@ -18,6 +19,7 @@ import UnlockNotificationModal, {
 } from "@/components/UnlockNotificationModal";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUser } from "@/contexts/UserContext";
+import useLevel from "@/hooks/useLevel";
 import { userService } from "@/lib/services/userService";
 import { userSyncService } from "@/lib/services/userSyncService";
 import {
@@ -61,6 +63,8 @@ export default function HomeScreen() {
   const [overallPercentile, setOverallPercentile] = useState(0);
   // The viewer's own backend user, for the feed header's profile button.
   const [currentUser, setCurrentUser] = useState<RemoteUser | null>(null);
+  // Account level for the header pill (recomputed on focus) + the one-time intro.
+  const { level, intro: levelIntro, dismissIntro } = useLevel();
 
   useEffect(() => {
     const loadViewMode = async () => {
@@ -219,6 +223,8 @@ export default function HomeScreen() {
               }
               profileImageUrl={currentUser?.profile_picture_url}
               profileUsername={currentUser?.username}
+              level={level}
+              onLevelPress={() => setShowCareer(true)}
             />
           </View>
           <FeedView
@@ -232,6 +238,9 @@ export default function HomeScreen() {
           onClose={() => setSelectedUser(null)}
           user={selectedUser}
         />
+
+        {/* The header level pill opens Career from the feed too. */}
+        <CareerModal visible={showCareer} onClose={() => setShowCareer(false)} />
       </>
     );
   }
@@ -259,6 +268,8 @@ export default function HomeScreen() {
         <DashboardHeader
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          level={level}
+          onLevelPress={() => setShowCareer(true)}
         />
 
         <RankHero
@@ -328,6 +339,14 @@ export default function HomeScreen() {
         notificationType={unlockNotification}
         onDismiss={handleDismissUnlock}
         onActivate={handleActivateUnlock}
+      />
+
+      {/* One-time "You're Level N" for existing users; waits behind the unlock modal. */}
+      <LevelIntroModal
+        level={levelIntro}
+        visible={levelIntro !== null && unlockNotification === null && !pendingProgress}
+        onDismiss={dismissIntro}
+        onViewCareer={() => setShowCareer(true)}
       />
     </>
   );

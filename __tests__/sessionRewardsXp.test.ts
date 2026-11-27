@@ -39,6 +39,24 @@ describe('session rewards: XP, level and region tier-ups', () => {
     expect(r.leveledUp).toBe(true);
   });
 
+  it("exposes the new session's XP row and achievement XP for the breakdown", () => {
+    const before = [workout('a', 3, 'bench-press-barbell', 135)];
+    const after = [...before, workout('b', 0, 'bench-press-barbell', 155)];
+    const r = computeSessionRewards(buildRewardSnapshot(before, ctx), buildRewardSnapshot(after, ctx));
+    expect(r.sessionXp?.workoutId).toBe('b');
+    expect(r.sessionXp?.base).toBe(50);
+    expect(r.sessionXp?.prCount).toBe(1);
+    expect(r.achievementXpGained).toBeGreaterThanOrEqual(0);
+    expect(r.sessionXp!.total + r.achievementXpGained).toBe(r.xpGained);
+  });
+
+  it('has no session row when no workout was added', () => {
+    const h = [workout('a', 0, 'bench-press-barbell', 135)];
+    const r = computeSessionRewards(buildRewardSnapshot(h, ctx), buildRewardSnapshot(h, ctx));
+    expect(r.sessionXp).toBeUndefined();
+    expect(r.xpGained).toBe(0);
+  });
+
   it('lists newly ranked and promoted regions', () => {
     const before = [workout('a', 3, 'bench-press-barbell', 135)];
     const after = [...before, workout('b', 0, 'bench-press-barbell', 275), workout('c', 0, 'squat-barbell', 225)];

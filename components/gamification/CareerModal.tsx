@@ -31,6 +31,9 @@ import AchievementBadge from '@/components/gamification/AchievementBadge';
 import AchievementModal, { AchievementModalItem } from '@/components/gamification/AchievementModal';
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
+import LevelRing from '@/components/gamification/LevelRing';
+import { LevelProgress } from '@/lib/gamification/levelCurve';
+import { formatXp } from '@/lib/gamification/levelDisplay';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -114,7 +117,7 @@ export default function CareerModal({ visible, onClose }: Props) {
             )}
             <ViewShot ref={shareRef} options={{ format: 'png', quality: 1 }}>
               <View style={[styles.shareCard, { backgroundColor: currentTheme.colors.background }]}>
-                <TierHero overall={data.overall} tier={data.tier} />
+                <CareerHero overall={data.overall} tier={data.tier} level={data.level} workouts={data.stats.totalWorkouts} />
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
@@ -139,36 +142,61 @@ export default function CareerModal({ visible, onClose }: Props) {
   );
 }
 
-// ---- Hero: current tier + overall percentile + progress to next ----
-function TierHero({ overall, tier }: { overall: number; tier: StrengthTier }) {
+// ---- Hero: account level (XP ring) beside the strength tier, then a level-history line ----
+// Lives inside the ViewShot share card, so both meters land in the shared image.
+function CareerHero({
+  overall,
+  tier,
+  level,
+  workouts,
+}: {
+  overall: number;
+  tier: StrengthTier;
+  level: LevelProgress;
+  workouts: number;
+}) {
   const { currentTheme } = useTheme();
   const color = getTierColor(tier);
   const band = getTierBandProgress(overall);
 
   return (
     <View style={styles.hero}>
-      <Text style={[styles.heroTier, { color }]}>{tier}</Text>
-      <Text variant="title" tone="primary" weight="semiBold" style={styles.heroPercentile}>
-        {overall}
-        <Text variant="meta" tone="muted" weight="regular"> percentile</Text>
-      </Text>
-      {overall > 0 && (
-        <Text variant="meta" tone="muted" style={styles.heroRank}>
-          Stronger than {overall}% of lifters
-        </Text>
-      )}
-      {band.nextTier ? (
-        <View style={styles.heroProgressWrap}>
-          <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
-            <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
-          </View>
-          <Text variant="meta" tone="muted" style={styles.heroNext}>
-            {band.toNext} to {band.nextTier}
+      <View style={styles.heroRow}>
+        <View style={styles.heroHalf}>
+          <LevelRing level={level.level} progress={level.progress} size={104} />
+          <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile} numberOfLines={1}>
+            {level.title}
+          </Text>
+          <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
+            {formatXp(level.xpToNext)} XP to {level.level + 1}
           </Text>
         </View>
-      ) : (
-        <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
-      )}
+
+        <View style={[styles.heroRule, { backgroundColor: currentTheme.colors.border }]} />
+
+        <View style={styles.heroHalf}>
+          <Text style={[styles.heroTier, { color }]} numberOfLines={1} adjustsFontSizeToFit>{tier}</Text>
+          <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile}>
+            {overall}
+            <Text variant="meta" tone="muted" weight="regular"> percentile</Text>
+          </Text>
+          {band.nextTier ? (
+            <View style={styles.heroProgressWrap}>
+              <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
+                <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
+              </View>
+              <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
+                {band.toNext} to {band.nextTier}
+              </Text>
+            </View>
+          ) : (
+            <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
+          )}
+        </View>
+      </View>
+      <Text variant="meta" tone="muted" style={styles.heroHistory}>
+        {formatXp(workouts)} {workouts === 1 ? 'workout' : 'workouts'} · {formatXp(level.totalXp)} XP total
+      </Text>
     </View>
   );
 }
@@ -929,8 +957,11 @@ const styles = StyleSheet.create({
   // exception to the type scale, kept at 72.
   heroTier: { fontSize: 72, fontWeight: '800', lineHeight: 78 },
   heroPercentile: { marginTop: space.xs },
-  heroRank: { marginTop: space.xs },
-  heroProgressWrap: { width: '70%', marginTop: space.lg, alignItems: 'center' },
+  heroRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
+  heroHalf: { flex: 1, alignItems: 'center' },
+  heroRule: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: space.sm },
+  heroHistory: { marginTop: space.lg },
+  heroProgressWrap: { width: '70%', marginTop: space.md, alignItems: 'center' },
   heroTrack: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { marginTop: space.sm },

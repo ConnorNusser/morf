@@ -179,6 +179,8 @@ const WorkoutFinishModal: React.FC<WorkoutFinishModalProps> = ({
         const after = buildRewardSnapshot(afterHistory, { unit, overall: overallAfter, ...xpCtx });
         const rewards = computeSessionRewards(before, after);
         setSessionRewards(rewards);
+        // The completion screen shows this level, so Home's one-time intro won't re-announce it.
+        storageService.setLastSeenLevel(after.level.level);
         setPercentileMove({ before: overallBefore, after: overallAfter });
         // The just-saved session (newest by createdAt) carries the generated title for the share card.
         const newest = afterHistory.reduce<(typeof afterHistory)[number] | null>(
