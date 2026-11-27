@@ -6,6 +6,7 @@ import LeagueBoard from "@/components/home/league/LeagueBoard";
 import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import HoloRankCard from "@/components/home/HoloRankCard";
+import StreakMapModal from "@/components/home/StreakMapModal";
 import { useBodyGraph } from "@/hooks/useBodyGraph";
 import { xpAccentForPercentile } from "@/lib/ui/tierFoil";
 import TodayCard from "@/components/home/TodayCard";
@@ -62,6 +63,7 @@ export default function HomeScreen() {
   const [leagueExpandTarget, setLeagueExpandTarget] = useState<string | null>(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCareer, setShowCareer] = useState(false);
+  const [showStreakMap, setShowStreakMap] = useState(false);
   const [selectedUser, setSelectedUser] = useState<RemoteUser | null>(null);
   const [overallPercentile, setOverallPercentile] = useState(0);
   // The viewer's own backend user, for the feed header's profile button.
@@ -279,6 +281,7 @@ export default function HomeScreen() {
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
           streakWeeks={levelStats?.weekStreak}
+          onStreakPress={() => setShowStreakMap(true)}
         />
 
         <HoloRankCard
@@ -327,6 +330,7 @@ export default function HomeScreen() {
         onClose={() => setShowLeaderboard(false)}
       />
 
+      <StreakMapModal visible={showStreakMap} onClose={() => setShowStreakMap(false)} />
       <CareerModal
         visible={showCareer}
         onClose={() => {

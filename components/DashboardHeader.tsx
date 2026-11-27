@@ -1,6 +1,7 @@
 import { LevelPill } from "@/components/gamification/LevelRing";
 import TierRing from "@/components/gamification/TierRing";
 import { Text, useInk } from "@/components/Themed";
+import TierGlass from "@/components/ui/TierGlass";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
@@ -38,6 +39,8 @@ interface DashboardHeaderProps {
   levelColor?: string;
   /** Week streak; shows a flame chip on the right (Home, where level lives in the hero card). */
   streakWeeks?: number;
+  /** Opens the streak / workout-map sheet. */
+  onStreakPress?: () => void;
 }
 
 export default function DashboardHeader({
@@ -53,6 +56,7 @@ export default function DashboardHeader({
   onLevelPress,
   levelColor,
   streakWeeks,
+  onStreakPress,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -77,13 +81,10 @@ export default function DashboardHeader({
                 style={styles.logo}
               />
               <TouchableOpacity
-                style={[
-                  styles.viewSelector,
-                  { backgroundColor: currentTheme.colors.surface },
-                ]}
                 onPress={() => setShowDropdown(!showDropdown)}
                 activeOpacity={0.7}
               >
+                <TierGlass style={styles.viewSelector}>
                 <Text
                   variant="screenTitle"
                   tone="primary"
@@ -97,6 +98,7 @@ export default function DashboardHeader({
                   size={20}
                   color={currentTheme.colors.text}
                 />
+                </TierGlass>
               </TouchableOpacity>
             </View>
 
@@ -106,16 +108,22 @@ export default function DashboardHeader({
               </View>
             ) : null}
 
-            {!level && streakWeeks != null && streakWeeks > 0 ? (
-              <View
-                style={[styles.streakChip, { backgroundColor: currentTheme.colors.surface }]}
-                accessibilityLabel={`${streakWeeks} week training streak`}
+            {!level && streakWeeks != null ? (
+              <TouchableOpacity
+                style={styles.streakSlot}
+                onPress={onStreakPress}
+                disabled={!onStreakPress}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`${streakWeeks} week training streak, open workout map`}
               >
-                <Ionicons name="flame" size={16} color={STREAK_FLAME} />
-                <Text variant="meta" tone="primary" weight="bold">
-                  {streakWeeks} wk
-                </Text>
-              </View>
+                <TierGlass style={styles.streakChip}>
+                  <Ionicons name="flame" size={16} color={streakWeeks > 0 ? STREAK_FLAME : currentTheme.colors.text} />
+                  <Text variant="meta" tone="primary" weight="bold">
+                    {streakWeeks} wk
+                  </Text>
+                </TierGlass>
+              </TouchableOpacity>
             ) : null}
 
             {stats?.tier != null && (
@@ -269,8 +277,10 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   // Fills the gap between the selector and the right items; shrinks on SE widths.
-  streakChip: {
+  streakSlot: {
     marginLeft: "auto",
+  },
+  streakChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: space.xs,

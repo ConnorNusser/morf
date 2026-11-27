@@ -41,7 +41,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const CARD_HEIGHT = 236;
+const CARD_HEIGHT = 184;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -119,30 +119,40 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
       <CardCamo camo={camo} tierColor={foil.color} />
       <Sheen mode={sheen.mode} ms={sheen.ms} restMs={sheen.restMs} stops={sheenStops(sheen.tint, sheen.intensity)} width={width} />
 
-      <View style={styles.top}>
-        <View style={styles.flex}>
-          <Text variant="meta" weight="semiBold" tone="secondary">Strength rank</Text>
+      {/* Two balanced halves: strength (who you are) | level (what you've put in). */}
+      <View style={styles.halves}>
+        <View style={styles.half}>
+          <Text variant="meta" weight="semiBold" tone="secondary">Strength</Text>
           <Text style={[styles.tier, { color: letter }]} numberOfLines={1} adjustsFontSizeToFit>
             {ranked ? band.tier : '—'}
           </Text>
           <Text variant="meta" tone="secondary" numberOfLines={1}>
             {ranked
-              ? band.nextTier
-                ? `${band.toNext} to ${band.nextTier}`
-                : 'Max tier reached'
-              : 'Log a ranked lift to earn your tier'}
+              ? `${percentile}${getPercentileSuffix(percentile)} · ${band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'max tier'}`
+              : 'Log a ranked lift'}
           </Text>
         </View>
-        {level && (
-          <View style={styles.levelCol}>
-            <RankEmblem level={level.level} progress={level.progress} size={48} showPips />
-            <View style={styles.levelNumRow}>
-              <Text variant="meta" weight="semiBold" tone="secondary">LV</Text>
-              <Text style={[styles.levelNum, { color: rankAccentForLevel(level.level, dark, level.progress) }]}>{level.level}</Text>
-            </View>
-            <Text variant="meta" weight="semiBold" tone="secondary" numberOfLines={1}>{level.title}</Text>
-          </View>
-        )}
+
+        <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
+
+        <View style={styles.half}>
+          <Text variant="meta" weight="semiBold" tone="secondary">Level</Text>
+          {level ? (
+            <>
+              <View style={styles.levelRow}>
+                <RankEmblem level={level.level} progress={level.progress} size={54} />
+                <Text style={[styles.tier, { color: rankAccentForLevel(level.level, dark, level.progress) }]} numberOfLines={1}>
+                  {level.level}
+                </Text>
+              </View>
+              <Text variant="meta" tone="secondary" numberOfLines={1}>
+                {level.title} · {formatXp(level.xpToNext)} to {level.level + 1}
+              </Text>
+            </>
+          ) : (
+            <Text style={[styles.tier, { color: letter }]}>—</Text>
+          )}
+        </View>
       </View>
 
       {level && (
@@ -154,7 +164,7 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
             )}
           </View>
           <View style={styles.xpRow}>
-            <Text variant="meta" tone="secondary">{formatXp(level.xpToNext)} XP to Lv {level.level + 1}</Text>
+            <Text variant="meta" tone="muted">{formatXp(level.xpIntoLevel)} / {formatXp(level.xpForNext)} XP</Text>
             <Text variant="meta" tone="secondary">
               <Text variant="meta" weight="bold" style={{ color: foil.xp }}>+{nextWorkoutXp}</Text> next workout
             </Text>
@@ -162,22 +172,7 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
         </>
       )}
 
-      <View style={styles.stats}>
-        <Stat value={ranked ? `${percentile}${getPercentileSuffix(percentile)}` : '—'} label="percentile" />
-        <Stat value={String(workouts)} label="workouts" />
-        <Stat value={weekStreak > 0 ? `${weekStreak} wk` : '—'} label="streak" />
-      </View>
     </LinearGradient>
-  );
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  const ink = useInk();
-  return (
-    <View style={[styles.stat, { backgroundColor: ink.ghost }]}>
-      <Text variant="emphasis" weight="bold" tone="primary" numberOfLines={1}>{value}</Text>
-      <Text variant="meta" tone="muted">{label}</Text>
-    </View>
   );
 }
 
@@ -228,24 +223,17 @@ const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
   card: { flex: 1, padding: space.lg, overflow: 'hidden' },
   flex: { flex: 1 },
-  top: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
-  // Display glyph, like CareerModal's hero tier: beyond the type scale on purpose.
-  tier: { fontSize: 64, lineHeight: 70, fontWeight: '800' },
-  // Crest, then the number in the blended rank color, then the rank name.
-  levelCol: { alignItems: 'center', minWidth: 72 },
-  levelNumRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.xs },
-  levelNum: { fontSize: 30, lineHeight: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  track: { height: space.sm, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.md },
+  halves: { flexDirection: 'row', alignItems: 'stretch' },
+  half: { flex: 1, minWidth: 0 },
+  divider: { width: StyleSheet.hairlineWidth, marginHorizontal: space.lg, marginVertical: space.xs },
+  // Display glyphs (tier letter and level number share one size so the halves
+  // balance), like CareerModal's hero tier: beyond the type scale on purpose.
+  tier: { fontSize: 58, lineHeight: 64, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  levelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  track: { height: space.sm, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.lg },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.pill },
   ghost: { position: 'absolute', top: 0, bottom: 0, borderTopRightRadius: radius.pill, borderBottomRightRadius: radius.pill },
   xpRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xs },
-  stats: { flexDirection: 'row', gap: space.sm, marginTop: space.md },
-  stat: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: space.sm,
-    borderRadius: radius.control,
-  },
   sheen: { position: 'absolute', top: -CARD_HEIGHT, bottom: -CARD_HEIGHT },
   backHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   careerLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
