@@ -78,7 +78,7 @@ export default function DashboardHeader({
                 </Text>
                 <Ionicons
                   name={showDropdown ? "chevron-up" : "chevron-down"}
-                  size={24}
+                  size={20}
                   color={currentTheme.colors.text}
                 />
               </TouchableOpacity>
@@ -256,10 +256,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    gap: space.sm,
-    paddingVertical: space.md,
-    paddingLeft: space.xl,
-    paddingRight: space.lg,
+    gap: space.xs,
+    paddingVertical: space.sm,
+    paddingLeft: space.lg,
+    paddingRight: space.md,
     borderRadius: radius.card,
   },
   backdrop: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: "absolute",
-    top: 64,
+    top: 56,
     left: 56,
     borderRadius: radius.card,
     borderWidth: StyleSheet.hairlineWidth,
