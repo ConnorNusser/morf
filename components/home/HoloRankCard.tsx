@@ -26,8 +26,8 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// Swiss minimal: strength headline + one neutral level line.
-const CARD_HEIGHT = 262;
+// Overall strength only (the History card); level lives in the header pill.
+const CARD_HEIGHT = 228;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -86,12 +86,6 @@ function Front({ percentile, level, nextWorkoutXp }: Props) {
   return (
     <View style={styles.flat}>
       <StrengthHeadline percentile={percentile} letterSize={100} />
-      {level ? (
-        <View style={[styles.footer, { borderTopColor: ink.hairline }]}>
-          <RankMark level={level.level} progress={level.progress} />
-          <Text variant="meta" tone="muted" numberOfLines={1}>+{nextWorkoutXp} XP next workout</Text>
-        </View>
-      ) : null}
     </View>
   );
 }
