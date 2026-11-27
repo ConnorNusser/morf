@@ -6,7 +6,10 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { convertWeight } from '@/types';
 import { Achievement, newlyUnlocked, unlockedIds } from './achievements';
 import { CareerStats } from './careerStats';
+import { computeBodyGraph, findLaggingRegion, RegionState } from './bodyGraph';
+import { LevelProgress } from './levelCurve';
 import { computeMuscleMastery, MuscleMastery } from './muscleMastery';
+import { XpLedger } from './xp';
 import { iconUnlockContext, resolveProfileIconId } from './profileIcons';
 import { LiftPR } from './personalRecords';
 import { buildRewardSnapshot } from './sessionRewards';
@@ -26,10 +29,14 @@ export interface CareerData {
   muscleMastery: MuscleMastery[];
   heatmap: TrainingHeatmap;
   profileIconId: string; // resolved career emblem (chosen if unlocked, else default)
+  level: LevelProgress;
+  xp: XpLedger;
+  bodyGraph: RegionState[]; // empty until bodyweight is set
+  laggingRegion: RegionState | null;
 }
 
 export async function loadCareerData(): Promise<CareerData> {
-  const [history, profile, lifts, filters, seen, chosenIconId, leagueResults] = await Promise.all([
+  const [history, profile, lifts, filters, seen, chosenIconId, leagueResults, weeklyGoal] = await Promise.all([
     storageService.getWorkoutHistory(),
     userService.getUserProfileOrDefault(),
     userService.getAllFeaturedLifts(),
@@ -37,6 +44,7 @@ export async function loadCareerData(): Promise<CareerData> {
     storageService.getSeenAchievements(),
     storageService.getProfileIconId(),
     storageService.getLeagueWeekResults(),
+    storageService.getWeeklyGoal(),
   ]);
 
   const unit = profile.weightUnitPreference || 'lbs';
@@ -49,12 +57,18 @@ export async function loadCareerData(): Promise<CareerData> {
   const bodyWeightLbs = profile.weight ? convertWeight(profile.weight.value, profile.weight.unit, 'lbs') : 0;
 
   // Shared snapshot builder, so Career surfaces and the session-reward diff never drift.
-  const { stats, achievements, prs } = buildRewardSnapshot(history, {
+  const { stats, achievements, prs, xp, level } = buildRewardSnapshot(history, {
     unit,
     overall,
     bodyWeightLbs,
     leagueResults,
+    weeklyGoal,
+    gender: profile.gender,
+    age: profile.age,
   });
+
+  const bodyGraph =
+    bodyWeightLbs > 0 ? computeBodyGraph(history, { bodyWeightLbs, gender: profile.gender, age: profile.age }) : [];
 
   const timeline = computeTierTimeline(
     history,
@@ -82,5 +96,9 @@ export async function loadCareerData(): Promise<CareerData> {
     muscleMastery: computeMuscleMastery(visibleLifts),
     heatmap: computeTrainingHeatmap(history, 12),
     profileIconId: resolveProfileIconId(chosenIconId, iconUnlockContext(achievements)),
+    level,
+    xp,
+    bodyGraph,
+    laggingRegion: findLaggingRegion(bodyGraph, overall),
   };
 }
