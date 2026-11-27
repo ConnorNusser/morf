@@ -292,6 +292,8 @@ export default function HomeScreen() {
           weekStreak={levelStats?.weekStreak ?? 0}
           nextWorkoutXp={levelStats?.nextWorkoutXp ?? 0}
           regions={bodyGraphData?.bodyGraph ?? null}
+          uri={currentUser?.profile_picture_url}
+          username={currentUser?.username}
           onOpenCareer={() => setShowCareer(true)}
         />
 
