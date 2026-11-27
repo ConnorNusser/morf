@@ -33,7 +33,8 @@ history (GeneratedWorkout[])
 | XP / level | `xp.ts` (`computeXpLedger(history, ctx)` — retroactive, rules in `XP_RULES`), `levelCurve.ts` (`levelForXp`, titles; next level costs 150 + 40·(L−1)) |
 | Level presentation | `levelDisplay.ts` (pill/breakdown copy, `xpBarSweep`, `decideLevelIntro` one-time intro gate; seen flag + `lastSeenLevel` in storage) |
 | Body graph | `bodyGraph.ts` (`computeBodyGraph` → 16 `RegionState`s: strength tier from rankable primary lifts, set-weighted; sets/week volume for every region; `findLaggingRegion`). Regions + exercise map live in `lib/data/bodyRegions.ts` / `exerciseRegions.ts` |
-| Muscle / heatmap | `muscleMastery.ts` (legacy 6-group view, replaced by the body graph in the UI phase), `trainingHeatmap.ts` |
+| Body graph presentation | `bodyGraphDisplay.ts` (`regionFill`, `formatNextTierLine`, `setsBar`, `laggingLine`, `formatTierUp`, `trainRegionRequest`); `careerData.ts` `loadBodyGraphData()` is the light loader behind `hooks/useBodyGraph`. UI: `components/gamification/BodyGraph.tsx` (+ `bodyGraphPaths.ts`), `MuscleDetailSheet.tsx`, `MuscleTierUpRow.tsx`, `components/home/LaggingMuscleCard.tsx` |
+| Heatmap | `trainingHeatmap.ts` |
 | Profile icons | `profileIcons.ts` (unlocks gated by achievements) |
 
 ## Conventions

@@ -40,3 +40,17 @@ export function getPendingQuickStart(): boolean {
   pendingQuickStart = false;
   return v;
 }
+
+// AI-generation intent (e.g. "Train this" on a body-graph region): the Workout tab
+// opens the plan builder with this request and submits it.
+let pendingGenerateRequest: string | null = null;
+
+export function setPendingGenerate(request: string) {
+  pendingGenerateRequest = request;
+}
+
+export function getPendingGenerate(): string | null {
+  const v = pendingGenerateRequest;
+  pendingGenerateRequest = null;
+  return v;
+}

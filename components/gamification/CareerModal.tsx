@@ -1,6 +1,5 @@
 import Chip from '@/components/Chip';
 import IconButton from '@/components/IconButton';
-import TierBadge from '@/components/TierBadge';
 import SectionLabel from '@/components/ui/SectionLabel';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -18,7 +17,6 @@ import {
 } from '@/lib/gamification/achievements';
 import { CareerData, loadCareerData } from '@/lib/gamification/careerData';
 import { CareerStats, formatCompact, volumeComparison } from '@/lib/gamification/careerStats';
-import { MuscleMastery } from '@/lib/gamification/muscleMastery';
 import { LiftPR } from '@/lib/gamification/personalRecords';
 import { getTierBandProgress, TierMilestone, TierRung } from '@/lib/gamification/tierTimeline';
 import { HeatCell, HEAT_OPACITIES, heatLevel, TrainingHeatmap } from '@/lib/gamification/trainingHeatmap';
@@ -34,6 +32,13 @@ import FlipCard from '@/components/gamification/FlipCard';
 import LevelRing from '@/components/gamification/LevelRing';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
+import BodyGraph from '@/components/gamification/BodyGraph';
+import MuscleDetailSheet from '@/components/gamification/MuscleDetailSheet';
+import EmptyState from '@/components/ui/EmptyState';
+import { useTrainRegion } from '@/hooks/useTrainRegion';
+import { RegionState } from '@/lib/gamification/bodyGraph';
+import { WeightUnit } from '@/types';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -121,6 +126,7 @@ export default function CareerModal({ visible, onClose }: Props) {
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
+            <BodySection regions={data.bodyGraph} unit={data.stats.unit} onLeave={onClose} />
             <NextGoal achievements={data.achievements} />
             {/* Recent achievements — the six you unlocked most recently. (The
                 lifetime stats that used to live here moved up into the hero card.) */}
@@ -129,7 +135,6 @@ export default function CareerModal({ visible, onClose }: Props) {
             {/* Strength */}
             <BestsView stats={data.stats} />
             <PersonalRecordsView prs={data.prs} />
-            <MuscleMasteryView mastery={data.muscleMastery} />
             {/* Tier progression */}
             <TierLadderView ladder={data.ladder} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
@@ -535,29 +540,41 @@ function ConsistencyView({ heatmap, unit }: { heatmap: TrainingHeatmap; unit: st
   );
 }
 
-// ---- Muscle-group mastery: per-group tier with a percentile bar ----
-function MuscleMasteryView({ mastery }: { mastery: MuscleMastery[] }) {
-  const { currentTheme } = useTheme();
-  if (mastery.length === 0) return null;
+// ---- Your body: 16-region body graph + per-region detail ----
+function BodySection({ regions, unit, onLeave }: { regions: RegionState[]; unit: WeightUnit; onLeave: () => void }) {
+  const router = useRouter();
+  const trainRegion = useTrainRegion();
+  const [selected, setSelected] = useState<RegionState | null>(null);
+
   return (
     <View style={styles.section}>
-      <SectionLabel>Muscle mastery</SectionLabel>
-      <View style={[styles.muscleCard, { backgroundColor: currentTheme.colors.surface, borderColor: currentTheme.colors.border }]}>
-        {mastery.map(m => {
-          const color = getTierColor(m.tier);
-          return (
-            <View key={m.group} style={styles.muscleRow}>
-              <Text variant="meta" tone="primary" weight="semiBold" style={styles.muscleName}>
-                {m.group.charAt(0).toUpperCase() + m.group.slice(1)}
-              </Text>
-              <View style={[styles.muscleTrack, { backgroundColor: currentTheme.colors.border }]}>
-                <View style={[styles.muscleFill, { backgroundColor: color, width: `${Math.max(3, m.percentile)}%` }]} />
-              </View>
-              <TierBadge tier={m.tier} size="tiny" variant="outline" showTooltip={false} />
-            </View>
-          );
-        })}
-      </View>
+      <SectionLabel>Your body</SectionLabel>
+      {regions.length === 0 ? (
+        <EmptyState
+          icon="body-outline"
+          title="Add your bodyweight"
+          subtitle="Region tiers are relative to bodyweight. Set it in Profile to rank each muscle."
+          cta={{
+            label: 'Open Profile',
+            onPress: () => {
+              onLeave();
+              router.push('/profile');
+            },
+          }}
+        />
+      ) : (
+        <BodyGraph regions={regions} onRegionPress={setSelected} />
+      )}
+      <MuscleDetailSheet
+        region={selected}
+        unit={unit}
+        onClose={() => setSelected(null)}
+        onTrain={r => {
+          setSelected(null);
+          onLeave(); // the Career modal would otherwise cover the Workout tab
+          trainRegion(r.region);
+        }}
+      />
     </View>
   );
 }
@@ -1026,11 +1043,6 @@ const styles = StyleSheet.create({
   heatLegendCell: { width: 11, height: 11, borderRadius: 2 },
   heatLegendSpacer: { flex: 1 },
 
-  muscleCard: { borderRadius: radius.card, borderWidth: 1, paddingHorizontal: space.lg, paddingVertical: space.sm },
-  muscleRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm },
-  muscleName: { width: 78 },
-  muscleTrack: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
-  muscleFill: { height: 7, borderRadius: 4 },
 
   ladderRow: { flexDirection: 'row', gap: 2 },
   ladderCell: { flex: 1, height: 26, borderRadius: 3 },
