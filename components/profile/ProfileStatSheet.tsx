@@ -3,6 +3,7 @@
 // the only color here). Tapping a lift opens its history.
 import ExerciseHistoryModal from '@/components/history/ExerciseHistoryModal';
 import { Text, useInk } from '@/components/Themed';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { useCustomExercises } from '@/contexts/CustomExercisesContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
@@ -69,6 +70,7 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
 
   return (
     <View style={styles.wrap}>
+      <SectionLabel index={1}>Lifts</SectionLabel>
       {/* Swiss table: hairline rows, no card. Overall lives in the headline above. */}
       <View style={[styles.sheet, { borderTopColor: ink.hairline }]}>
 

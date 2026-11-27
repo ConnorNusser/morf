@@ -5,6 +5,7 @@ import CareerModal from '@/components/gamification/CareerModal';
 import FlipCard from '@/components/gamification/FlipCard';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import TierBadge from '@/components/TierBadge';
+import SectionLabel from '@/components/ui/SectionLabel';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getTierColor } from '@/lib/data/strengthStandards';
@@ -62,7 +63,7 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
   const statItems = [
     { v: `${formatCompact(data.stats.totalVolume)}`, u: data.stats.unit, l: 'lifted', accent: false },
     { v: formatCompact(data.stats.totalWorkouts), u: '', l: 'workouts', accent: false },
-    { v: `${data.stats.currentStreak}`, u: 'w', l: 'streak', accent: streakActive },
+    { v: `${data.stats.currentStreak}`, u: 'w', l: 'streak', accent: false },
     { v: formatCompact(data.stats.daysActive), u: '', l: 'days', accent: false },
   ];
 
@@ -78,15 +79,8 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
       <TouchableOpacity activeOpacity={0.9} onPress={open}>
         <Card style={styles.card} padding={panelPad}>
           <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <RankEmblem level={data.level.level} progress={data.level.progress} size={40} />
-              <View>
-                <Text variant="heading" weight="bold" tone="primary">Career</Text>
-                <Text variant="meta" tone="muted" numberOfLines={1}>
-                  Lifetime stats and activity
-                </Text>
-              </View>
-            </View>
+            {/* Swiss: a numbered section label, no crest (rank is the RankMark in the hero). */}
+            <SectionLabel index={2} style={styles.sectionLabel}>Career</SectionLabel>
             <View style={styles.headerRight}>
               {data.newIds.size > 0 && (
                 <View style={[styles.newBadge, { backgroundColor: currentTheme.colors.primary }]}>
@@ -112,7 +106,7 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
                   tone={s.accent ? undefined : 'primary'}
                   numberOfLines={1}
                 >
-                  {s.v}
+                  <Text variant="emphasis" weight="bold" tone="primary" style={styles.tabular}>{s.v}</Text>
                   {s.u ? (
                     <Text
                       variant="meta"
@@ -259,6 +253,8 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
 
 const styles = StyleSheet.create({
   card: { gap: space.lg },
+  sectionLabel: { marginBottom: 0 },
+  tabular: { fontVariant: ['tabular-nums'] },
   divider: { height: StyleSheet.hairlineWidth, opacity: 0.7 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: space.md, flexShrink: 1 },
@@ -274,7 +270,7 @@ const styles = StyleSheet.create({
   toNext: { marginTop: space.sm },
 
   statRow: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.lg },
-  stat: { alignItems: 'center', flex: 1 },
+  stat: { alignItems: 'flex-start', flex: 1 },
   statUnit: { opacity: 0.6 },
   statLabel: { marginTop: space.xs },
 
