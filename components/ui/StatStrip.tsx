@@ -1,6 +1,5 @@
-import { Text } from "@/components/Themed";
-import { useTheme } from "@/contexts/ThemeContext";
-import { radius, space } from "@/lib/ui/tokens";
+import { Text, useInk } from "@/components/Themed";
+import { space } from "@/lib/ui/tokens";
 import React from "react";
 import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
@@ -15,42 +14,27 @@ interface StatStripProps {
   style?: StyleProp<ViewStyle>;
 }
 
+// Swiss: flat, ruled above and below, values left-aligned in equal columns
+// split by hairlines. Numbers are tabular so columns line up across rows.
 function StatStrip({ items, style }: StatStripProps) {
-  const { currentTheme } = useTheme();
+  const ink = useInk();
 
   return (
-    <View
-      style={[
-        styles.strip,
-        { backgroundColor: currentTheme.colors.surface },
-        style,
-      ]}
-    >
+    <View style={[styles.strip, { borderColor: ink.hairline }, style]}>
       {items.map((item, i) => (
         <React.Fragment key={item.label}>
-          {i > 0 && (
-            <View
-              style={[
-                styles.divider,
-                { backgroundColor: currentTheme.colors.border },
-              ]}
-            />
-          )}
+          {i > 0 && <View style={[styles.divider, { backgroundColor: ink.hairline }]} />}
           <View style={styles.item}>
             <Text
               variant="emphasis"
               tone={item.accent ? undefined : "primary"}
               weight="bold"
               numberOfLines={1}
+              style={styles.value}
             >
               {item.value}
             </Text>
-            <Text
-              variant="meta"
-              tone="faint"
-              style={styles.label}
-              numberOfLines={1}
-            >
+            <Text variant="meta" tone="muted" style={styles.label} numberOfLines={1}>
               {item.label}
             </Text>
           </View>
@@ -65,21 +49,22 @@ export default React.memo(StatStrip);
 const styles = StyleSheet.create({
   strip: {
     flexDirection: "row",
-    alignItems: "center",
-    borderRadius: radius.card,
-    paddingVertical: space.lg,
+    alignItems: "stretch",
+    paddingVertical: space.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   item: {
     flex: 1,
-    alignItems: "center",
-    paddingHorizontal: space.xs,
+    paddingHorizontal: space.md,
+  },
+  value: {
+    fontVariant: ["tabular-nums"],
   },
   label: {
-    marginTop: space.xs,
+    marginTop: 2,
   },
   divider: {
     width: StyleSheet.hairlineWidth,
-    alignSelf: "stretch",
-    marginVertical: space.xs,
   },
 });

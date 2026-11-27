@@ -317,7 +317,7 @@ export default function HomeScreen() {
           onPress={() => setShowLeaderboard(true)}
         />
 
-        <Last14DaysGrid accent={xpAccentForPercentile(overallPercentile)} />
+        <Last14DaysGrid />
       </ScrollView>
       </ScreenBackground>
 

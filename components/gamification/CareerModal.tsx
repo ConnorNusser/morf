@@ -1,3 +1,6 @@
+import StrengthHeadline from '@/components/ui/StrengthHeadline';
+import RankMark from '@/components/ui/RankMark';
+import ProgressHairline from '@/components/ui/ProgressHairline';
 import Chip from '@/components/Chip';
 import IconButton from '@/components/IconButton';
 import SectionLabel from '@/components/ui/SectionLabel';
@@ -161,38 +164,20 @@ function CareerHero({
   level: LevelProgress;
   workouts: number;
 }) {
-  const { currentTheme } = useTheme();
-  const color = getTierColor(tier);
-  const band = getTierBandProgress(overall);
+  const ink = useInk();
 
+  // Swiss: the same poster headline as Home/Profile, then level as a RankMark
+  // line with a neutral XP hairline. Lives inside the share ViewShot.
   return (
-    <View style={styles.hero}>
-      <Text variant="meta" weight="bold" tone="muted" style={styles.heroLabel}>Overall strength</Text>
-      <Text style={[styles.heroTier, { color }]} numberOfLines={1} adjustsFontSizeToFit>{tier}</Text>
-      <Text variant="heading" tone="primary" weight="semiBold" style={styles.heroPercentile}>
-        {overall}{getPercentileSuffix(overall)}
-        <Text variant="body" tone="muted" weight="regular"> percentile</Text>
-      </Text>
-      {band.nextTier ? (
-        <View style={styles.heroProgressWrap}>
-          <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
-            <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
-          </View>
-          <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
-            {band.toNext} to {band.nextTier}
-          </Text>
-        </View>
-      ) : (
-        <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
-      )}
-
-      {/* Level/rank: secondary — small ring + one line. */}
-      <View style={styles.heroLevelRow}>
-        <LevelRing level={level.level} progress={level.progress} size={36} stroke={3} color={currentTheme.colors.border} />
-        <Text variant="meta" tone="secondary" numberOfLines={1}>
-          Lv {level.level} · {level.title} · {formatXp(level.xpToNext)} XP to {level.level + 1}
+    <View style={styles.heroSwiss}>
+      <StrengthHeadline percentile={overall} letterSize={150} />
+      <View style={[styles.heroLevelLine, { borderTopColor: ink.hairline }]}>
+        <RankMark level={level.level} progress={level.progress} />
+        <Text variant="meta" tone="muted" style={styles.heroTabular}>
+          {formatXp(level.xpToNext)} XP to {level.level + 1}
         </Text>
       </View>
+      <ProgressHairline progress={level.progress} color={ink.secondary} />
       <Text variant="meta" tone="muted" style={styles.heroHistory}>
         {formatXp(workouts)} {workouts === 1 ? 'workout' : 'workouts'} · {formatXp(level.totalXp)} XP total
       </Text>
@@ -967,6 +952,9 @@ const styles = StyleSheet.create({
   // The tier letter is THE display glyph of the Career screen — a named
   // exception to the type scale, kept at 72.
   heroTier: { fontSize: 88, fontWeight: '800', lineHeight: 96 },
+  heroSwiss: { paddingTop: space.lg, paddingBottom: space.section },
+  heroLevelLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.sm, marginTop: space.section, paddingTop: space.md, marginBottom: space.sm, borderTopWidth: StyleSheet.hairlineWidth },
+  heroTabular: { fontVariant: ['tabular-nums'] },
   heroLabel: { letterSpacing: track.caps, textTransform: 'uppercase' },
   heroPercentile: { marginTop: space.xs },
   heroLevelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg },

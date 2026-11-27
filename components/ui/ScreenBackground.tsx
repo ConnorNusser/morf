@@ -24,9 +24,9 @@ export default function ScreenBackground({ children, style }: ScreenBackgroundPr
       {colors && (
         <LinearGradient
           pointerEvents="none"
-          // Alpha-baked wash (40 ≈ 25%, 1F ≈ 12% → transparent) so the same
+          // Alpha-baked wash (1A ≈ 10%, 0D ≈ 5% → transparent; Swiss keeps it barely there) so the same
           // stops read as ambient color on both light and dark themes.
-          colors={[colors[0] + '40', colors[1] + '1F', colors[1] + '00']}
+          colors={[colors[0] + '1A', colors[1] + '0D', colors[1] + '00']}
           locations={[0, 0.45, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}

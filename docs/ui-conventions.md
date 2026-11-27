@@ -73,3 +73,14 @@ One component per repeated pattern; don't re-implement these inline:
 - [ ] No literal spacing/radius where a token fits
 - [ ] No inline copy of a `components/ui` primitive
 - [ ] No `backgroundColor: "transparent"` on Themed `View` (it paints none)
+
+## Swiss style (strength-first surfaces)
+
+The house look since the Swiss-minimal Home/Profile (#112). Apply to new and touched screens:
+
+- **Flat surfaces.** Rows and sections are separated by hairlines (`ink.hairline`), not filled cards or shadows. `NavRow variant="card"` and `StatStrip` render this way.
+- **Labels.** `SectionLabel` (small caps, tracked); pass `index` for numbered sections (`01  STRENGTH`).
+- **Numbers.** One display numeral per screen (`StrengthHeadline`); every other number is `tabular-nums`.
+- **Progress.** `ProgressHairline` (2px track, optional end labels), never rounded pill bars.
+- **Tables.** `StatRow` (index · label · value · tier mark), stacked with no card behind.
+- **Color budget.** Tier color for strength only; theme primary for actions; everything else is ink. Rank is shown with `RankMark` (flat metal swatch + division ticks + small caps), never in a rank color.
