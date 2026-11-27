@@ -15,6 +15,7 @@ import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
+import MuscleTierUpRow from '@/components/workout/MuscleTierUpRow';
 import CareerModal from '@/components/gamification/CareerModal';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
@@ -872,6 +873,9 @@ export default function WorkoutCompleteScreen({
               ))}
             </Animated.View>
           )}
+
+          {/* ---- Body graph: regions that ranked up this session ---- */}
+          {!!rewards?.regionTierUps.length && <MuscleTierUpRow tierUps={rewards.regionTierUps} />}
 
           {/* ---- Shareable recap card ---- */}
           <Animated.View entering={FadeIn.delay(350)} style={styles.cardWrap}>

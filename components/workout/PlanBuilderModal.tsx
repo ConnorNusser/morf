@@ -34,6 +34,8 @@ interface PlanBuilderModalProps {
   onComplete: (planText: string) => void;
   onCancel: () => void;
   initialRequest?: string;
+  /** Send `initialRequest` as soon as the modal opens (hand-offs like "Train this"). */
+  autoSubmit?: boolean;
 }
 
 const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
@@ -41,6 +43,7 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
   onComplete,
   onCancel,
   initialRequest = '',
+  autoSubmit = false,
 }) => {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -132,6 +135,19 @@ const PlanBuilderModal: React.FC<PlanBuilderModalProps> = ({
       setIsLoading(false);
     }
   }, [currentPlan, messages, isLoading]);
+
+  // Auto-submit once per open, after the open-reset has cleared the last session.
+  const autoSentRef = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      autoSentRef.current = false;
+      return;
+    }
+    if (!autoSubmit || !initialRequest.trim() || autoSentRef.current) return;
+    if (messages.length > 0 || currentPlan || isLoading) return;
+    autoSentRef.current = true;
+    handleSendMessage(initialRequest);
+  }, [visible, autoSubmit, initialRequest, messages.length, currentPlan, isLoading, handleSendMessage]);
 
   const handleQuestionPress = (question: string) => {
     if (!isLoading) {

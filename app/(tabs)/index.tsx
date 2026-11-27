@@ -6,6 +6,7 @@ import LeagueCard from "@/components/home/league/LeagueCard";
 import LeaderboardModal from "@/components/profile/LeaderboardModal";
 import RankHero from "@/components/home/RankHero";
 import TodayCard from "@/components/home/TodayCard";
+import LaggingMuscleCard from "@/components/home/LaggingMuscleCard";
 import WeeklyGoalCard from "@/components/home/WeeklyGoalCard";
 import UserProfileModal from "@/components/profile/UserProfileModal";
 import SkeletonCard from "@/components/SkeletonCard";
@@ -268,6 +269,7 @@ export default function HomeScreen() {
 
         <WeeklyGoalCard />
         <TodayCard />
+        <LaggingMuscleCard />
 
         {/* Absorbs leftover height; collapses to zero once content scrolls. */}
         <View style={layout.flex1} />

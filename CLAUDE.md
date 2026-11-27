@@ -49,7 +49,7 @@ Google **Gemini** via `@google/generative-ai` (key `EXPO_PUBLIC_GEMINI_API_KEY`;
 
 ### Domain map (`lib/`)
 - `workout/` — session lifecycle & data model. `workoutDraft.ts` is the editable source-of-truth for an in-progress session; `exerciseCatalog.ts` loads the exercise DB from `lib/data/exercises.json` (the `Exercise` type; `getCatalogExercise` is catalog-only and doubles as the rankable-lift predicate, `getExercise` also covers custom exercises); `progression.ts`/`progressiveOverload.ts`, `streak.ts`, `weeklyGoal.ts`, `activeRoutine.ts`, `retentionSignals.ts`.
-- `gamification/` — XP/tier/achievements/PRs computed **purely from workout history** (no stored counters to keep in sync): `careerStats.ts`, `achievements.ts`, `personalRecords.ts`, `muscleMastery.ts`, `tierTimeline.ts`.
+- `gamification/` — XP/tier/achievements/PRs computed **purely from workout history** (no stored counters to keep in sync): `careerStats.ts`, `achievements.ts`, `personalRecords.ts`, `bodyGraph.ts` (16-region body map), `tierTimeline.ts`.
 - `history/` — derived, unit-tested analytics (`sessionRecap.ts`, `liftProgress.ts`, `topMovers.ts`, `exerciseTrend.ts`).
 - `data/` — static reference + calculators (`exercises.json`, `strengthStandards.ts` with `OneRMCalculator`, `programTemplates.ts`, `predictionModels.ts`).
 - `services/` — `supabase.ts`, `analytics.ts` + `feedApi/feedService.ts` (backend at `feed.morf.fyi`), `notificationService.ts`/`retentionNotificationService.ts`, `voiceRecognition.ts`, `userSyncService.ts`, `geoService.ts`.
