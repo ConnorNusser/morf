@@ -23,11 +23,14 @@ import { calculateOverallPercentile } from '@/lib/utils/utils';
 import { LiftDisplayFilters, UserProgress } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import useEquippedCamo from '@/hooks/useEquippedCamo';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Share, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 
 export default function ThemeEvolutionSection() {
   const { currentTheme, currentThemeLevel, themes, setThemeLevel, currentGradientId, setGradientId, gradientEnabled, setGradientEnabled } = useTheme();
+  // Camo choice itself lives in Career; this is just the master switch.
+  const camo = useEquippedCamo(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [liftFilters, setLiftFilters] = useState<LiftDisplayFilters>({ hiddenLiftIds: [] });
@@ -360,6 +363,18 @@ export default function ThemeEvolutionSection() {
                 }}
                 trackColor={{ true: currentTheme.colors.primary, false: currentTheme.colors.border }}
                 accessibilityLabel="Show background gradient"
+              />
+            </View>
+            <View style={styles.toggleRow}>
+              <Text variant="body" tone="primary" weight="medium">Show card camo</Text>
+              <Switch
+                value={camo.enabled}
+                onValueChange={on => {
+                  playHapticFeedback('light', false);
+                  camo.setEnabled(on);
+                }}
+                trackColor={{ true: currentTheme.colors.primary, false: currentTheme.colors.border }}
+                accessibilityLabel="Show card camo on the Home rank card"
               />
             </View>
             <View style={[styles.themeGrid, !gradientEnabled && styles.dimmed]} pointerEvents={gradientEnabled ? 'auto' : 'none'}>

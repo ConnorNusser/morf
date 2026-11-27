@@ -6,8 +6,14 @@
 // Translucent: the card is a light tier tint over the screen's tier gradient
 // (ScreenBackground), so it blends into the page instead of sitting on it.
 // Text uses the theme's ink ramp; only the tier letter and XP carry color.
+// An equipped card camo (lib/gamification/cardCamos, components/home/CardCamo)
+// paints a low-alpha pattern layer under the content and can retune the Sheen.
 import BodyGraph from '@/components/gamification/BodyGraph';
 import FlipCard from '@/components/gamification/FlipCard';
+import CardCamo from '@/components/home/CardCamo';
+import useEquippedCamo from '@/hooks/useEquippedCamo';
+import { CardCamo as CardCamoSpec, camoSheen } from '@/lib/gamification/cardCamos';
+import { sheenStops } from '@/lib/ui/camoPatterns';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { readableInkOn } from '@/lib/ui/contrast';
@@ -54,13 +60,16 @@ interface Props {
 export default function HoloRankCard(props: Props) {
   const foil = tierFoil(props.percentile);
   const frame = { borderRadius: radius.card + 6 };
+  // Equipped camo (standard when camos are off, locked, or level is loading).
+  const { camo } = useEquippedCamo(props.level?.level ?? null);
   return (
     <FlipCard
       height={CARD_HEIGHT}
       style={styles.wrap}
-      front={<Front {...props} />}
+      front={<Front {...props} camo={camo} />}
       back={
         <LinearGradient colors={[foil.foil[0], foil.foil[1]]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, frame]}>
+          <CardCamo camo={camo} tierColor={foil.color} animate={false} />
           <View style={styles.backHead}>
             <Text variant="meta" weight="semiBold" tone="secondary">Your body</Text>
             <TouchableOpacity onPress={props.onOpenCareer} hitSlop={10} style={styles.careerLink} accessibilityRole="button">
@@ -82,8 +91,9 @@ export default function HoloRankCard(props: Props) {
   );
 }
 
-function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props) {
+function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }: Props & { camo: CardCamoSpec }) {
   const foil = tierFoil(percentile);
+  const sheen = camoSheen(foil, camo);
   const ink = useInk();
   const dark = useIsDarkTheme();
   const letter = dark ? foil.light : foil.color;
@@ -104,7 +114,8 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
       style={[styles.card, { borderRadius: radius.card + 6 }]}
       onLayout={onLayout}
     >
-      <Sheen mode={foil.sheen} ms={foil.sheenMs} restMs={foil.sheenRestMs} width={width} />
+      <CardCamo camo={camo} tierColor={foil.color} />
+      <Sheen mode={sheen.mode} ms={sheen.ms} restMs={sheen.restMs} stops={sheenStops(sheen.tint, sheen.intensity)} width={width} />
 
       <View style={styles.top}>
         <View style={styles.flex}>
@@ -166,8 +177,21 @@ function Stat({ value, label }: { value: string; label: string }) {
 }
 
 // Diagonal light sweep. 'once' plays on mount; 'loop' repeats with a rest
-// between passes. Off under Reduce Motion.
-function Sheen({ mode, ms, restMs, width }: { mode: 'none' | 'once' | 'loop'; ms: number; restMs: number; width: number }) {
+// between passes. Off under Reduce Motion. `stops` come from the equipped camo
+// (default: the white 20% sweep).
+function Sheen({
+  mode,
+  ms,
+  restMs,
+  stops,
+  width,
+}: {
+  mode: 'none' | 'once' | 'loop';
+  ms: number;
+  restMs: number;
+  stops: string[];
+  width: number;
+}) {
   const reduced = useReducedMotion();
   const x = useSharedValue(-1);
 
@@ -186,7 +210,7 @@ function Sheen({ mode, ms, restMs, width }: { mode: 'none' | 'once' | 'loop'; ms
   return (
     <Animated.View pointerEvents="none" style={[styles.sheen, { width: width * 0.6, left: width * 0.2 }, style]}>
       <LinearGradient
-        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.2)', 'rgba(255,255,255,0)']}
+        colors={stops as [string, string, ...string[]]}
         start={{ x: 0, y: 0.5 }}
         end={{ x: 1, y: 0.5 }}
         style={StyleSheet.absoluteFill}

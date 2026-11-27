@@ -34,6 +34,7 @@ import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import BodyGraph from '@/components/gamification/BodyGraph';
+import CamoPicker from '@/components/gamification/CamoPicker';
 import MuscleDetailSheet from '@/components/gamification/MuscleDetailSheet';
 import EmptyState from '@/components/ui/EmptyState';
 import { useTrainRegion } from '@/hooks/useTrainRegion';
@@ -128,6 +129,7 @@ export default function CareerModal({ visible, onClose }: Props) {
               </View>
             </ViewShot>
             <BodySection regions={data.bodyGraph} unit={data.stats.unit} onLeave={onClose} />
+            <CamoPicker level={data.level.level} percentile={data.overall} />
             <NextGoal achievements={data.achievements} />
             {/* Recent achievements — the six you unlocked most recently. (The
                 lifetime stats that used to live here moved up into the hero card.) */}

@@ -17,6 +17,7 @@ import AchievementBadge from '@/components/gamification/AchievementBadge';
 import { ACHIEVEMENT_EMBLEMS } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import MuscleTierUpRow from '@/components/workout/MuscleTierUpRow';
+import CamoUnlockRow from '@/components/workout/CamoUnlockRow';
 import CareerModal from '@/components/gamification/CareerModal';
 import { formatCompact } from '@/lib/gamification/careerStats';
 import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
@@ -935,6 +936,9 @@ export default function WorkoutCompleteScreen({
 
           {/* ---- Level: the banner only on a level-up, then the XP this session earned ---- */}
           {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} accent={xpAccentForPercentile(overallAfter)} />}
+          {rewards?.leveledUp && (
+            <CamoUnlockRow beforeLevel={rewards.levelBefore.level} afterLevel={rewards.levelAfter.level} percentile={overallAfter} />
+          )}
           {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} accent={xpAccentForPercentile(overallAfter)} />}
 
           {/* ---- The session's PRs lead: one large gold number per lift ---- */}
