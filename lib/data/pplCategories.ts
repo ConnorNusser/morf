@@ -47,7 +47,7 @@ export const MUSCLE_TO_PPL: Record<MuscleGroup, PPLCategory> = {
 
 // Categorical split colors. Chosen to stay off the strength-tier hues (C green,
 // B blue, A purple, S gold) and off trend.down red, so a split chart is never
-// misread as a tier or a decline. Pinned by __tests__/pplCategories.test.ts.
+// misread as a tier or a decline.
 export const PPL_COLORS: Record<PPLCategory, string> = {
   push: '#FFA64D', // amber-orange (between trend.down red and S gold)
   pull: '#4ECDC4', // teal

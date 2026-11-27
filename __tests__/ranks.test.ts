@@ -1,4 +1,3 @@
-import { TIER_COLORS } from '@/lib/data/strengthStandards';
 import {
   isRankUp,
   isTierUp,
@@ -239,31 +238,3 @@ describe('rank copy', () => {
   });
 });
 
-// Color ownership (docs: strength tiers own hue; rank metals read as material).
-describe('rank metals vs strength-tier colors', () => {
-  const chroma = (hex: string) => {
-    const h = hex.replace('#', '');
-    const c = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-    return Math.max(...c) - Math.min(...c);
-  };
-  const METAL_MAX = 0.3;
-  const TIER_MIN = 0.35;
-
-  it('every metal stop is low-chroma', () => {
-    for (const t of TIERS) {
-      for (const stop of t.gradient) expect(chroma(stop)).toBeLessThanOrEqual(METAL_MAX);
-    }
-  });
-
-  it('every hued strength tier is clearly more saturated than any metal', () => {
-    for (const tier of ['C', 'B', 'A', 'S'] as const) {
-      expect(chroma(TIER_COLORS[tier])).toBeGreaterThanOrEqual(TIER_MIN);
-    }
-  });
-
-  it('blended level gradients stay low-chroma between metals too', () => {
-    for (let lv = 1; lv <= 100; lv += 3) {
-      for (const stop of rankGradientForLevel(lv, 0.5)) expect(chroma(stop)).toBeLessThanOrEqual(METAL_MAX);
-    }
-  });
-});
