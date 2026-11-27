@@ -1,7 +1,10 @@
+import { TIER_COLORS } from '@/lib/data/strengthStandards';
+import { trend } from '@/lib/ui/tokens';
 import {
   calculatePPLBreakdown,
   dominantPPL,
   pplForExercise,
+  PPL_COLORS,
 } from '@/lib/data/pplCategories';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
 import { LoggedWorkout } from '@/types';
@@ -74,5 +77,20 @@ describe('calculatePPLBreakdown', () => {
     ]);
     expect(counts).toEqual({ push: 2, pull: 1, legs: 0 });
     expect(total).toBe(3);
+  });
+});
+
+describe('PPL_COLORS', () => {
+  const rgb = (hex: string) => [0, 2, 4].map(i => parseInt(hex.replace('#', '').slice(i, i + 2), 16));
+  const dist = (a: string, b: string) => {
+    const [x, y] = [rgb(a), rgb(b)];
+    return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
+  };
+
+  it('stays clearly off every strength-tier color and the trend-down red', () => {
+    for (const c of Object.values(PPL_COLORS)) {
+      for (const t of ['C', 'B', 'A', 'S'] as const) expect(dist(c, TIER_COLORS[t])).toBeGreaterThan(85);
+      expect(dist(c, trend.down)).toBeGreaterThan(60);
+    }
   });
 });

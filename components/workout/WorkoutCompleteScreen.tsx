@@ -8,7 +8,6 @@ import { Text, View } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { radius, space, tint, track, trend, xpAccent } from '@/lib/ui/tokens';
-import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
 import { lineHeightFor, type } from '@/lib/ui/typography';
 import { getExerciseBadgeInfo } from '@/components/workout/ExerciseBadge';
 import { e1rmLbs, getStrengthTier, getTierColor } from '@/lib/data/strengthStandards';
@@ -24,7 +23,7 @@ import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp, formatXpBreakdown, nextRankLine, upcomingTitle, xpBarSweep } from '@/lib/gamification/levelDisplay';
-import { isRankUp, isTierUp, rankAccentForLevel, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
+import { isRankUp, isTierUp, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
@@ -353,7 +352,7 @@ function XpGainCard({ rewards, accent }: { rewards: SessionRewards; accent: stri
 
 // Only mounts when the session crossed a level. Reaching a new rung of the
 // ladder springs the new crest in with "Promoted to Gold II" in the blended
-// rank color: a new METAL is a "TIER UP" with the biggest crest and a success
+// crest: a new METAL is a "RANK UP" with the biggest crest and a success
 // haptic, a new division within the metal is "PROMOTED" with a smaller crest.
 // A plain level-up keeps the "LEVEL N" banner with the crest beside it, and
 // teases the next rank when it's within reach.
@@ -372,13 +371,14 @@ function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after
   const crestStyle = useAnimatedStyle(() => ({ transform: [{ scale: crest.value }] }));
   const next = upcomingTitle(after.level);
   // Always-dark screen → the light stop of the blended rank gradient.
-  const color = rankUp ? rankAccentForLevel(after.level, true, after.progress) : accent;
+  // Neutral like every level surface; the crest alone carries the metal.
+  const color = accent;
 
   if (rankUp) {
     return (
       <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: color, backgroundColor: tint(color) }, popStyle]}>
         <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color }]}>
-          {tierUp ? 'TIER UP' : 'PROMOTED'}
+          {tierUp ? 'RANK UP' : 'PROMOTED'}
         </Text>
         <Animated.View style={crestStyle}>
           <RankEmblem level={after.level} progress={after.progress} size={tierUp ? 112 : 80} showPips pipTrackColor="rgba(255,255,255,0.15)" />
@@ -971,11 +971,11 @@ export default function WorkoutCompleteScreen({
           )}
 
           {/* ---- Level: the banner only on a level-up, then the XP this session earned ---- */}
-          {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} accent={xpAccentForPercentile(overallAfter)} />}
+          {rewards?.leveledUp && <LevelUpBanner before={rewards.levelBefore} after={rewards.levelAfter} accent={xpAccent} />}
           {rewards?.leveledUp && (
             <CamoUnlockRow beforeLevel={rewards.levelBefore.level} afterLevel={rewards.levelAfter.level} percentile={overallAfter} />
           )}
-          {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} accent={xpAccentForPercentile(overallAfter)} />}
+          {rewards && rewards.xpGained > 0 && <XpGainCard rewards={rewards} accent={xpAccent} />}
 
           {/* ---- The session's PRs lead: one large gold number per lift ---- */}
           {prs.length > 0 && (

@@ -1,12 +1,12 @@
 // Profile tab hero: your picture in its full rank aura, your name, and your
-// rank line in the rank accent. Data comes from the screen (CareerSection's
+// rank line in neutral ink (the ring carries the rank's metal). Data comes from the screen (CareerSection's
 // load, the synced user row); this component only lays it out.
 import { Text } from '@/components/Themed';
 import RankAvatar from '@/components/ui/RankAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
-import { rankAccentForLevel, rankForLevel } from '@/lib/gamification/ranks';
+import { rankForLevel } from '@/lib/gamification/ranks';
 import { readableInkOn } from '@/lib/ui/contrast';
 import { heroRankLine, heroStrengthLine } from '@/lib/ui/profileHero';
 import { space } from '@/lib/ui/tokens';
@@ -29,7 +29,6 @@ interface ProfileHeroProps {
 export default function ProfileHero({ uri, username, level, tier, overallPercentile = 0, onAvatarPress }: ProfileHeroProps) {
   const { currentTheme } = useTheme();
   const dark = readableInkOn(currentTheme.colors.background) === '#FFFFFF';
-  const accent = level ? rankAccentForLevel(level.level, dark, level.progress) : undefined;
   const strengthLine = heroStrengthLine(tier, overallPercentile);
 
   return (
@@ -61,7 +60,7 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
           {username ? `@${username}` : 'Set a username'}
         </Text>
         {level ? (
-          <Text variant="body" weight="semiBold" style={{ color: accent }} numberOfLines={1}>
+          <Text variant="body" weight="semiBold" tone="secondary" numberOfLines={1}>
             {heroRankLine(rankForLevel(level.level).name, level.level)}
           </Text>
         ) : null}

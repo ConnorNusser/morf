@@ -505,7 +505,6 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                       variant="title"
                       weight="semiBold"
                       tone="primary"
-                      style={tierColor ? { color: tierColor } : undefined}
                     >
                       @{user.username}
                     </Text>
@@ -598,22 +597,21 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     <TouchableOpacity
                       onPress={() => setShowFullScreenPicture(true)}
                       activeOpacity={0.8}
-                      style={tierColor ? [styles.avatarGlow, { shadowColor: tierColor }] : null}
+                      style={null}
                     >
                       <Image
                         source={{ uri: user.profile_picture_url }}
-                        style={[styles.avatarImage, tierColor ? { borderWidth: 2, borderColor: tierColor } : null]}
+                        style={styles.avatarImage}
                       />
                     </TouchableOpacity>
                   ) : (
                     <View
                       style={[
                         styles.avatar,
-                        { backgroundColor: tint(tierColor ?? currentTheme.colors.primary) },
-                        tierColor ? [styles.avatarGlow, { borderWidth: 2, borderColor: tierColor, shadowColor: tierColor }] : null,
+                        { backgroundColor: ink.hairline },
                       ]}
                     >
-                      <Text variant="statHero" weight="semiBold" style={tierColor ? { color: tierColor } : undefined}>
+                      <Text variant="statHero" weight="semiBold" tone="secondary">
                         {user.username.slice(-2).toUpperCase()}
                       </Text>
                     </View>

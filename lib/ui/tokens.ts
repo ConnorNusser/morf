@@ -83,7 +83,9 @@ export const danger = "#FF3B30";
 
 // XP / account-level accent (lime) — every level ring, XP bar and "+N XP".
 // Theme-independent like `trend`; the one place this hex lives.
-export const xpAccent = "#b6f03c";
+// XP/level accent on the always-dark workout-complete screen. Neutral on purpose:
+// strength tiers own hue app-wide; level/rank read as ink + the crest's metal.
+export const xpAccent = "#F2F2F2";
 
 // Shared clock for the History-tab strength animations (Overall Strength bar,
 // Main Lift Total ladder + both count-ups) so they all land together.

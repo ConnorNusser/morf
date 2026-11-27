@@ -3,8 +3,6 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp, nextRankLine, upcomingTitle } from '@/lib/gamification/levelDisplay';
-import { rankAccentForLevel } from '@/lib/gamification/ranks';
-import { readableInkOn } from '@/lib/ui/contrast';
 import { radius, space } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
 import React, { useEffect } from 'react';
@@ -32,8 +30,6 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
 
   if (!show || !level) return null;
   const next = upcomingTitle(level.level, 10);
-  const dark = readableInkOn(currentTheme.colors.surface) === '#FFFFFF';
-  const accent = rankAccentForLevel(level.level, dark, level.progress);
 
   return (
     <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={onDismiss}>
@@ -47,10 +43,10 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
               <Text variant="meta" weight="bold" tone="muted" style={styles.kicker}>
                 INTRODUCING LEVELS
               </Text>
-              <LevelRing level={level.level} progress={level.progress} size={112} emblem="inside" color={accent} />
+              <LevelRing level={level.level} progress={level.progress} size={112} emblem="inside" />
               <Text variant="heading" weight="bold" tone="primary" style={styles.center}>
                 {"You're "}
-                <Text variant="heading" weight="bold" style={{ color: accent }}>
+                <Text variant="heading" weight="bold" tone="primary">
                   {level.title}
                 </Text>
                 {' · Level '}

@@ -2,11 +2,9 @@ import AnimatedBar from '@/components/AnimatedBar';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { Text, TextVariant, useInk } from '@/components/Themed';
 import TierGlass from '@/components/ui/TierGlass';
-import { rankAccentForLevel } from '@/lib/gamification/ranks';
-import { readableInkOn } from '@/lib/ui/contrast';
 import { LevelProgress, levelTitle } from '@/lib/gamification/levelCurve';
 import { levelPillParts } from '@/lib/gamification/levelDisplay';
-import { radius, space, track, xpAccent } from '@/lib/ui/tokens';
+import { radius, space, track } from '@/lib/ui/tokens';
 import { useTheme } from '@/contexts/ThemeContext';
 import React, { useEffect } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -38,7 +36,7 @@ interface LevelRingProps {
   stroke?: number;
   /** Shows a small "LEVEL" caption above the number (rings ≥ 88 only). */
   showCaption?: boolean;
-  /** XP accent; pass xpAccentForPercentile(overall) to match the lifter's tier. */
+  /** Ring stroke. Defaults to neutral ink: level/XP never take a hue (tier owns color). */
   color?: string;
   /**
    * Rank emblem: 'inside' replaces the number with the crest; 'beside' puts
@@ -96,7 +94,7 @@ function Ring({ level, progress, size = 44, stroke, showCaption = true, color, e
           cx={center}
           cy={center}
           r={r}
-          stroke={color ?? xpAccent}
+          stroke={color ?? ink.secondary}
           strokeWidth={sw}
           fill="none"
           strokeLinecap="round"
@@ -138,7 +136,6 @@ interface LevelPillProps {
 // content (no title or XP line — those live on the Home card and in Career).
 export function LevelPill({ level, onPress }: LevelPillProps) {
   const { currentTheme } = useTheme();
-  const accent = rankAccentForLevel(level.level, readableInkOn(currentTheme.colors.background) === '#FFFFFF', level.progress);
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -149,7 +146,7 @@ export function LevelPill({ level, onPress }: LevelPillProps) {
     >
       <TierGlass style={styles.pill}>
         <RankEmblem level={level.level} progress={level.progress} size={28} />
-        <Text variant="title" weight="bold" style={[styles.number, { color: accent }]} numberOfLines={1}>
+        <Text variant="title" weight="bold" tone="primary" style={styles.number} numberOfLines={1}>
           {level.level}
         </Text>
       </TierGlass>

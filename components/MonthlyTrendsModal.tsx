@@ -20,6 +20,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { PPL_COLORS } from '@/lib/data/pplCategories';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BAR_WIDTH = (SCREEN_WIDTH - 80) / 6;
@@ -35,12 +36,6 @@ const MUSCLE_TO_PPL: Record<MuscleGroup, PPLCategory> = {
   glutes: 'legs',
   core: 'push', // categorized with push for simplicity
   'full-body': 'push',
-};
-
-const PPL_COLORS: Record<PPLCategory, string> = {
-  push: '#FF6B6B',
-  pull: '#4ECDC4',
-  legs: '#9B59B6',
 };
 
 const PPL_LABELS: Record<PPLCategory, string> = {

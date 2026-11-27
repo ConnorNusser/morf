@@ -21,7 +21,7 @@ import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
-import { rankAccentForLevel, rankForLevel } from '@/lib/gamification/ranks';
+import { rankForLevel } from '@/lib/gamification/ranks';
 import RankAvatar from '@/components/ui/RankAvatar';
 import { radius, space } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
@@ -111,7 +111,6 @@ function Front({ percentile, level, nextWorkoutXp, camo, uri, username }: Props 
   // foil. Level/rank (Bronze → Challenger) is a quiet footnote — a static
   // avatar ring and the rank name in its soft metal, nothing else.
   const rankName = level ? rankForLevel(level.level).name : null;
-  const rankColor = level ? rankAccentForLevel(level.level, dark, level.progress) : ink.muted;
 
   return (
     <LinearGradient
@@ -149,7 +148,7 @@ function Front({ percentile, level, nextWorkoutXp, camo, uri, username }: Props 
           {level ? (
             <>
               Lv {level.level}
-              {rankName ? <Text variant="meta" style={{ color: rankColor }}> · {rankName}</Text> : null}
+              {rankName ? <Text variant="meta" tone="secondary"> · {rankName}</Text> : null}
             </>
           ) : (username ? `@${username}` : '')}
         </Text>

@@ -5,8 +5,8 @@ import { StyleSheet, View } from 'react-native';
 
 /**
  * Quiet "Lv N" tag for a feed author's synced level. Neutral on purpose: the XP
- * lime (#b6f03c) washes out on the light themes, and the header already carries
- * the tier color on the name and percentile. Renders nothing when unknown.
+ * lime washed out on light themes, and color belongs to strength tiers — the
+ * row's one tier accent is the percentile; rank shows on the avatar ring. Renders nothing when unknown.
  */
 function LevelChip({ level }: { level?: number }) {
   const ink = useInk();

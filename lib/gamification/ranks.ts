@@ -104,20 +104,6 @@ const TIER_DEFS: TierDef[] = [
   { id: 'challenger', name: 'Challenger', gradient: ['#FFE58C', '#C2860C'], shine: '#FFFBE8' },
 ];
 
-export const TIERS: Tier[] = TIER_DEFS.map((d, index) => ({
-  id: d.id,
-  name: d.name,
-  index,
-  minLevel: index === 0 ? 1 : index * TIER_SPAN,
-  hasDivisions: index < 6,
-  gradient: d.gradient,
-  shine: d.shine,
-}));
-
-const safeLevel = (level: number) => Math.max(1, Math.floor(level || 1));
-
-// ---- Color blending ----
-
 const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
 function parseHex(hex: string): [number, number, number] {
@@ -126,6 +112,35 @@ function parseHex(hex: string): [number, number, number] {
 }
 
 const toHex = (n: number) => Math.round(Math.max(0, Math.min(255, n))).toString(16).padStart(2, '0').toUpperCase();
+
+// Color ownership: strength tiers (E–S) own hue across the app; rank metals
+// read as *material*, not as a second palette. Every metal stop keeps only
+// METAL_KEEP of its chroma (mixed toward its own luma gray), so Gold/Emerald/
+// Diamond/Master can never be mistaken for the S/C/B/A tier colors. The
+// emblem's shape, chevrons and sheen carry the rank; tests pin the chroma gap.
+export const METAL_KEEP = 0.4;
+
+export function muteMetal(hex: HexColor, keep: number = METAL_KEEP): HexColor {
+  const [r, g, b] = parseHex(hex);
+  const y = 0.299 * r + 0.587 * g + 0.114 * b;
+  const k = clamp01(keep);
+  return `#${toHex(y + (r - y) * k)}${toHex(y + (g - y) * k)}${toHex(y + (b - y) * k)}`;
+}
+
+export const TIERS: Tier[] = TIER_DEFS.map((d, index) => ({
+  id: d.id,
+  name: d.name,
+  index,
+  minLevel: index === 0 ? 1 : index * TIER_SPAN,
+  hasDivisions: index < 6,
+  gradient: [muteMetal(d.gradient[0]), muteMetal(d.gradient[1])] as Gradient,
+  shine: d.shine,
+}));
+
+const safeLevel = (level: number) => Math.max(1, Math.floor(level || 1));
+
+// ---- Color blending ----
+
 
 // Linear sRGB mix: t=0 → a, t=1 → b.
 export function mixHex(a: HexColor, b: HexColor, t: number): HexColor {
