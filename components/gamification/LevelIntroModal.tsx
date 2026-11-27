@@ -3,7 +3,7 @@ import { Text } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp, nextRankLine, upcomingTitle } from '@/lib/gamification/levelDisplay';
-import { rankAccentForLevel, withArticle } from '@/lib/gamification/ranks';
+import { rankAccentForLevel } from '@/lib/gamification/ranks';
 import { readableInkOn } from '@/lib/ui/contrast';
 import { radius, space } from '@/lib/ui/tokens';
 import playHapticFeedback from '@/lib/utils/haptic';
@@ -51,7 +51,7 @@ export default function LevelIntroModal({ level, visible, onDismiss, onViewCaree
               <Text variant="heading" weight="bold" tone="primary" style={styles.center}>
                 {"You're "}
                 <Text variant="heading" weight="bold" style={{ color: accent }}>
-                  {withArticle(level.title)}
+                  {level.title}
                 </Text>
                 {' · Level '}
                 {level.level}

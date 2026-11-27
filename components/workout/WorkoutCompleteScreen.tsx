@@ -24,7 +24,7 @@ import { RARITY_META, rarityRank } from '@/lib/gamification/rarity';
 import { SessionRewards } from '@/lib/gamification/sessionRewards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp, formatXpBreakdown, nextRankLine, upcomingTitle, xpBarSweep } from '@/lib/gamification/levelDisplay';
-import { isRankUp, rankAccentForLevel, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
+import { isRankUp, isTierUp, rankAccentForLevel, rankForLevel, rankUpLine } from '@/lib/gamification/ranks';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { captureAndShare } from '@/lib/ui/shareUtils';
 import { getCatalogExercise } from '@/lib/workout/exerciseCatalog';
@@ -351,18 +351,21 @@ function XpGainCard({ rewards, accent }: { rewards: SessionRewards; accent: stri
   );
 }
 
-// Only mounts when the session crossed a level. Crossing into a new rank is a
-// rank-up: the new crest springs in big with "Rank up! Now an Ace" in the
-// blended rank color. A plain level-up keeps the "LEVEL N" banner with the
-// crest beside it, and teases the next rank when it's within reach.
+// Only mounts when the session crossed a level. Reaching a new rung of the
+// ladder springs the new crest in with "Promoted to Gold II" in the blended
+// rank color: a new METAL is a "TIER UP" with the biggest crest and a success
+// haptic, a new division within the metal is "PROMOTED" with a smaller crest.
+// A plain level-up keeps the "LEVEL N" banner with the crest beside it, and
+// teases the next rank when it's within reach.
 function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after: LevelProgress; accent: string }) {
   const rankUp = isRankUp(before.level, after.level);
+  const tierUp = isTierUp(before.level, after.level);
   const scale = useSharedValue(0.85);
   const crest = useSharedValue(rankUp ? 0.2 : 1);
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 120 });
-    if (rankUp) crest.value = withDelay(250, withSpring(1, { damping: 7, stiffness: 140, mass: 0.8 }));
-    playHapticFeedback(rankUp ? 'success' : 'heavy', false);
+    if (rankUp) crest.value = withDelay(250, withSpring(1, { damping: tierUp ? 6 : 8, stiffness: 140, mass: 0.8 }));
+    playHapticFeedback(tierUp ? 'success' : 'heavy', false);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only pop + haptic
   }, []);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -375,12 +378,12 @@ function LevelUpBanner({ before, after, accent }: { before: LevelProgress; after
     return (
       <Animated.View entering={FadeIn.duration(400)} style={[styles.levelUp, { borderColor: color, backgroundColor: tint(color) }, popStyle]}>
         <Text variant="meta" weight="bold" style={[styles.levelUpKicker, { color }]}>
-          RANK UP
+          {tierUp ? 'TIER UP' : 'PROMOTED'}
         </Text>
         <Animated.View style={crestStyle}>
-          <RankEmblem level={after.level} progress={after.progress} size={96} showPips pipTrackColor="rgba(255,255,255,0.15)" />
+          <RankEmblem level={after.level} progress={after.progress} size={tierUp ? 112 : 80} showPips pipTrackColor="rgba(255,255,255,0.15)" />
         </Animated.View>
-        <Text variant="heading" weight="bold" style={[styles.levelUpNumber, styles.levelUpCenter]}>
+        <Text variant={tierUp ? 'heading' : 'title'} weight="bold" style={[styles.levelUpNumber, styles.levelUpCenter]}>
           {rankUpLine(rankForLevel(after.level))}
         </Text>
         <Text variant="body" weight="semiBold" style={{ color }}>
