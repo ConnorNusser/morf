@@ -49,6 +49,11 @@ export const STORAGE_KEYS = {
   LAST_OVERALL_PERCENTILE: 'last_overall_percentile',
   // One-time reset of saved gradient picks to 'auto' when the wash became tier-following.
   GRADIENT_AUTO_MIGRATED: 'gradient_auto_migrated_v1',
+  // Equipped Home rank-card camo id (lib/gamification/cardCamos). Unknown or
+  // locked ids resolve to 'standard' at render; the pick survives being locked.
+  EQUIPPED_CARD_CAMO: 'equipped_card_camo',
+  // Card camo master switch ('false' = off). Absent = on.
+  CARD_CAMO_ENABLED: 'card_camo_enabled',
 } as const;
 
 export interface PendingStrengthProgress {
@@ -943,6 +948,42 @@ class StorageService {
       await AsyncStorage.setItem(STORAGE_KEYS.LAST_SEEN_LEVEL, String(Math.max(1, Math.floor(level))));
     } catch (error) {
       console.error('Error saving last seen level:', error);
+    }
+  }
+
+  // Equipped rank-card camo id, or null if never picked.
+  async getEquippedCardCamo(): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(STORAGE_KEYS.EQUIPPED_CARD_CAMO);
+    } catch (error) {
+      console.error('Error loading equipped card camo:', error);
+      return null;
+    }
+  }
+
+  async setEquippedCardCamo(id: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.EQUIPPED_CARD_CAMO, id);
+    } catch (error) {
+      console.error('Error saving equipped card camo:', error);
+    }
+  }
+
+  // Card camo master switch; defaults to on.
+  async getCardCamoEnabled(): Promise<boolean> {
+    try {
+      return (await AsyncStorage.getItem(STORAGE_KEYS.CARD_CAMO_ENABLED)) !== 'false';
+    } catch (error) {
+      console.error('Error loading card camo switch:', error);
+      return true;
+    }
+  }
+
+  async setCardCamoEnabled(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.CARD_CAMO_ENABLED, enabled ? 'true' : 'false');
+    } catch (error) {
+      console.error('Error saving card camo switch:', error);
     }
   }
 
