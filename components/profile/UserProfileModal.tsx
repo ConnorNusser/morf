@@ -12,6 +12,8 @@ import StrengthRadarCard from '@/components/StrengthRadarCard';
 import { Text, View, useInk } from '@/components/Themed';
 import TierBadge from '@/components/TierBadge';
 import EmptyState from '@/components/ui/EmptyState';
+import RankAvatar from '@/components/ui/RankAvatar';
+import { loadLocalLevel } from '@/lib/gamification/localLevel';
 import StatStrip from '@/components/ui/StatStrip';
 import { useTheme } from '@/contexts/ThemeContext';
 import { getCountryName } from '@/lib/services/geoService';
@@ -91,6 +93,8 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
   const [liftHistory, setLiftHistory] = useState<UserProgress[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [expandedWorkoutId, setExpandedWorkoutId] = useState<string | null>(null);
+  // Rank ring level: synced for others, local for yourself; null = plain avatar.
+  const [avatarLevel, setAvatarLevel] = useState<number | null>(null);
 
   const checkFriendStatus = useCallback(async () => {
     if (!user) return;
@@ -152,6 +156,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     if (!user || !supabase) return;
 
     setIsLoading(true);
+    setAvatarLevel(null);
     try {
       const currentUser = await userSyncService.getCurrentUser();
       setCurrentUserId(currentUser?.id || null);
@@ -224,6 +229,12 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         .sort((a, b) => rarityRank(b.rarity) - rarityRank(a.rarity))
         .slice(0, 6);
       setShowcase({ totalPRs, totalAchievements: earnedIds.size, rarest });
+
+      const isSelf = currentUser?.id === user.id;
+      const lvl = isSelf
+        ? await loadLocalLevel().then(l => l.level).catch(() => null)
+        : (await userSyncService.getUserLevels([user.id]))[user.id]?.level ?? null;
+      setAvatarLevel(lvl);
 
       // Current user's lifts and profile, for the comparison
       if (currentUser && currentUser.id !== user.id) {
@@ -569,7 +580,21 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                   )}
                 </View>
                 <View style={styles.userHeaderRight}>
-                  {user.profile_picture_url ? (
+                  {avatarLevel != null ? (
+                    <TouchableOpacity
+                      onPress={() => setShowFullScreenPicture(true)}
+                      disabled={!user.profile_picture_url}
+                      activeOpacity={0.8}
+                      accessibilityLabel={`${user.username}'s profile picture`}
+                    >
+                      <RankAvatar
+                        uri={user.profile_picture_url}
+                        username={user.username}
+                        size={72}
+                        level={avatarLevel}
+                      />
+                    </TouchableOpacity>
+                  ) : user.profile_picture_url ? (
                     <TouchableOpacity
                       onPress={() => setShowFullScreenPicture(true)}
                       activeOpacity={0.8}

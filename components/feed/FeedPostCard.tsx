@@ -1,5 +1,5 @@
 import { Text, View } from '@/components/Themed';
-import UserAvatar from '@/components/ui/UserAvatar';
+import RankAvatar from '@/components/ui/RankAvatar';
 import { useImageCarousel } from '@/hooks/useImageCarousel';
 import { useMute } from '@/hooks/useMute';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -41,6 +41,8 @@ interface FeedPostCardProps {
   overallStrength?: UserStrengthSummary;
   /** Author's synced level — a quiet "Lv N" chip after the percentile; omitted when unknown. */
   authorLevel?: number;
+  /** Animate the avatar's rank ring (the feed turns this off for offscreen rows). */
+  avatarAnimated?: boolean;
 }
 
 function FeedPostCard({
@@ -52,6 +54,7 @@ function FeedPostCard({
   isVisible = false,
   overallStrength,
   authorLevel,
+  avatarAnimated,
 }: FeedPostCardProps) {
   const { currentTheme } = useTheme();
   const { registerPlayer, unregisterPlayer, setActiveVideo, clearActiveIfMatches } = useVideoPlayerContext();
@@ -163,7 +166,7 @@ function FeedPostCard({
       >
         <View style={styles.header}>
           <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
-            <UserAvatar uri={post.profile_picture_url} username={post.username} size={44} />
+            <RankAvatar uri={post.profile_picture_url} username={post.username} size={44} level={authorLevel} animated={avatarAnimated} />
             <View>
               <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}

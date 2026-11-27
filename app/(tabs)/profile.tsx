@@ -8,6 +8,7 @@ import EquipmentFilterSection from '@/components/profile/EquipmentFilterSection'
 import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPreferencesSection';
 import NotificationPreferencesSection from '@/components/profile/NotificationPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
+import ProfileHero from '@/components/profile/ProfileHero';
 import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
@@ -15,6 +16,7 @@ import { Text, View, useInk } from '@/components/Themed';
 import ScreenBackground from '@/components/ui/ScreenBackground';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { CareerData } from '@/lib/gamification/careerData';
 import { analyticsService } from '@/lib/services/analytics';
 import { storageService } from '@/lib/storage/storage';
 import { layout } from '@/lib/ui/styles';
@@ -34,6 +36,9 @@ export default function ProfileScreen() {
   const [showSocialModal, setShowSocialModal] = useState(false);
   const [username, setUsername] = useState<string>('');
   const [friendCount, setFriendCount] = useState(0);
+  const [pictureUrl, setPictureUrl] = useState<string | null>(null);
+  // Hero reuses CareerSection's load (level, tier, percentile) instead of loading twice.
+  const [career, setCareer] = useState<CareerData | null>(null);
 
   const loadSocialData = useCallback(async () => {
     try {
@@ -41,8 +46,12 @@ export default function ProfileScreen() {
       if (storedUsername) {
         setUsername(storedUsername);
       }
-      const friends = await userSyncService.getFriends();
+      const [friends, me] = await Promise.all([
+        userSyncService.getFriends(),
+        userSyncService.getCurrentUser(),
+      ]);
       setFriendCount(friends.length);
+      setPictureUrl(me?.profile_picture_url ?? null);
     } catch (error) {
       console.error('Error loading social data:', error);
     }
@@ -123,7 +132,16 @@ export default function ProfileScreen() {
       <View style={styles.content}>
         <DashboardHeader title="Profile" />
 
-        <CareerSection />
+        <ProfileHero
+          uri={pictureUrl}
+          username={username}
+          level={career?.level ?? null}
+          tier={career?.tier}
+          overallPercentile={career?.overall}
+          onAvatarPress={() => setShowSocialModal(true)}
+        />
+
+        <CareerSection onLoaded={setCareer} />
 
         <TouchableOpacity
           style={styles.socialButton}

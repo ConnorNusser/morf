@@ -19,19 +19,28 @@ import { type as typeScale } from '@/lib/ui/typography';
 import { PPL_COLORS, PPL_LABELS, PPLCategory } from '@/lib/data/pplCategories';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Inline Career section for the Profile: tier hero, lifetime stats, next goal and achievement preview; tap opens the full Career modal.
-export default function CareerSection() {
+interface CareerSectionProps {
+  /** Receives each fresh load, so the Profile hero can reuse it instead of loading twice. */
+  onLoaded?: (data: CareerData) => void;
+}
+
+export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const [data, setData] = useState<CareerData | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
 
   const load = useCallback(async () => {
     try {
-      setData(await loadCareerData());
+      const next = await loadCareerData();
+      setData(next);
+      onLoadedRef.current?.(next);
     } catch (err) {
       console.error('CareerSection: failed to load', err);
     }
