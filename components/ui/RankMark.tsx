@@ -15,9 +15,11 @@ interface Props {
   progress?: number;
   /** Appends " · Lv N". */
   showLevel?: boolean;
+  /** Header pill form: swatch + ticks + "Lv N" (no rank name). */
+  compact?: boolean;
 }
 
-export default function RankMark({ level, progress = 0, showLevel = true }: Props) {
+export default function RankMark({ level, progress = 0, showLevel = true, compact = false }: Props) {
   const { currentTheme } = useTheme();
   const ink = useInk();
   const dark = readableInkOn(currentTheme.colors.background) === '#FFFFFF';
@@ -36,10 +38,14 @@ export default function RankMark({ level, progress = 0, showLevel = true }: Prop
           ))}
         </View>
       ) : null}
+      {compact ? (
+        <Text variant="body" weight="bold" tone="primary" style={styles.tabular} numberOfLines={1}>Lv {level}</Text>
+      ) : (
       <Text variant="meta" weight="semiBold" tone="secondary" style={styles.caps} numberOfLines={1}>
         {rank.name}
         {showLevel ? <Text variant="meta" tone="muted" style={styles.caps}> · Lv {level}</Text> : null}
       </Text>
+      )}
     </View>
   );
 }
@@ -50,4 +56,5 @@ const styles = StyleSheet.create({
   ticks: { flexDirection: 'row', gap: 2 },
   tick: { width: 2, height: 10, borderRadius: 1 },
   caps: { letterSpacing: track.caps, textTransform: 'uppercase' },
+  tabular: { fontVariant: ['tabular-nums'] },
 });

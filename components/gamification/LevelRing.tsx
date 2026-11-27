@@ -1,5 +1,6 @@
 import AnimatedBar from '@/components/AnimatedBar';
 import RankEmblem from '@/components/gamification/RankEmblem';
+import RankMark from '@/components/ui/RankMark';
 import { Text, TextVariant, useInk } from '@/components/Themed';
 import TierGlass from '@/components/ui/TierGlass';
 import { LevelProgress, levelTitle } from '@/lib/gamification/levelCurve';
@@ -145,10 +146,8 @@ export function LevelPill({ level, onPress }: LevelPillProps) {
       accessibilityLabel={`Level ${level.level}, ${level.title}. View career`}
     >
       <TierGlass style={styles.pill}>
-        <RankEmblem level={level.level} progress={level.progress} size={28} />
-        <Text variant="title" weight="bold" tone="primary" style={styles.number} numberOfLines={1}>
-          {level.level}
-        </Text>
+        {/* Swiss: the typographic rank mark, not the shaded crest. */}
+        <RankMark level={level.level} progress={level.progress} compact />
       </TierGlass>
     </TouchableOpacity>
   );
