@@ -16,7 +16,7 @@ import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import { radius, space } from '@/lib/ui/tokens';
-import { hexAlpha, tierFoil } from '@/lib/ui/tierFoil';
+import { tierFoil } from '@/lib/ui/tierFoil';
 import { getPercentileSuffix } from '@/lib/utils/utils';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -53,10 +53,7 @@ interface Props {
 
 export default function HoloRankCard(props: Props) {
   const foil = tierFoil(props.percentile);
-  const frame = {
-    borderColor: hexAlpha(foil.color, foil.edgeOpacity),
-    borderRadius: radius.card + 6,
-  };
+  const frame = { borderRadius: radius.card + 6 };
   return (
     <FlipCard
       height={CARD_HEIGHT}
@@ -104,7 +101,7 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp }: Props
       colors={[foil.foil[0], foil.foil[1]]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[styles.card, { borderColor: hexAlpha(foil.color, foil.edgeOpacity), borderRadius: radius.card + 6 }]}
+      style={[styles.card, { borderRadius: radius.card + 6 }]}
       onLayout={onLayout}
     >
       <Sheen mode={foil.sheen} ms={foil.sheenMs} width={width} />
@@ -200,7 +197,7 @@ function Sheen({ mode, ms, width }: { mode: 'none' | 'once' | 'loop'; ms: number
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
-  card: { flex: 1, borderWidth: 1, padding: space.lg, overflow: 'hidden' },
+  card: { flex: 1, padding: space.lg, overflow: 'hidden' },
   flex: { flex: 1 },
   top: { flexDirection: 'row', alignItems: 'flex-start', gap: space.md },
   // Display glyph, like CareerModal's hero tier: beyond the type scale on purpose.

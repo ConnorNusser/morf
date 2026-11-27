@@ -15,7 +15,6 @@ export interface TierFoil {
   foil: [string, string]; // translucent card tint: tier wash top-left → nearly clear
   sheen: SheenMode; // light sweep across the card
   sheenMs: number; // sweep duration (loop tiers)
-  edgeOpacity: number; // 0..1 border strength
   xp: string; // tier-secondary XP accent (bars, level number, "+N XP")
   xpSoft: string; // translucent XP for the ghost segment
 }
@@ -35,14 +34,14 @@ const LIGHT_BY_TIER: Record<StrengthTierBase, string> = {
   E: '#C9CDD3',
 };
 
-// Rarity escalation: matte → soft → shimmer → fast gold shimmer.
-const SHEEN_BY_TIER: Record<StrengthTierBase, { sheen: SheenMode; ms: number; edge: number }> = {
-  E: { sheen: 'none', ms: 0, edge: 0.25 },
-  D: { sheen: 'none', ms: 0, edge: 0.3 },
-  C: { sheen: 'once', ms: 1600, edge: 0.45 },
-  B: { sheen: 'once', ms: 1400, edge: 0.6 },
-  A: { sheen: 'loop', ms: 4200, edge: 0.75 },
-  S: { sheen: 'loop', ms: 2800, edge: 0.95 },
+// Rarity escalation: matte → one sweep → shimmer → fast gold shimmer.
+const SHEEN_BY_TIER: Record<StrengthTierBase, { sheen: SheenMode; ms: number }> = {
+  E: { sheen: 'none', ms: 0 },
+  D: { sheen: 'none', ms: 0 },
+  C: { sheen: 'once', ms: 1600 },
+  B: { sheen: 'once', ms: 1400 },
+  A: { sheen: 'loop', ms: 4200 },
+  S: { sheen: 'loop', ms: 2800 },
 };
 
 export function xpAccentForTier(base: StrengthTierBase | null): string {
@@ -76,7 +75,6 @@ export function tierFoil(percentile: number): TierFoil {
       foil: [hexAlpha('#808080', 0.16), hexAlpha('#808080', 0.04)],
       sheen: 'none',
       sheenMs: 0,
-      edgeOpacity: 0.25,
       xp: secondaryFor(null),
       xpSoft: hexAlpha(secondaryFor(null), 0.35),
     };
@@ -91,7 +89,6 @@ export function tierFoil(percentile: number): TierFoil {
     foil: [hexAlpha(color, 0.24), hexAlpha(color, 0.05)],
     sheen: s.sheen,
     sheenMs: s.ms,
-    edgeOpacity: s.edge,
     xp,
     xpSoft: hexAlpha(xp, 0.35),
   };

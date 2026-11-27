@@ -20,10 +20,10 @@ describe('tierFoil', () => {
     }
   });
 
-  it('escalates rarity: sheen and edge grow with tier', () => {
+  it('escalates rarity: sheen goes none → once → loop, faster at S', () => {
     const order = [8, 30, 60, 78, 95].map(tierFoil); // D C B A S
     expect(order.map(f => f.sheen)).toEqual(['none', 'once', 'once', 'loop', 'loop']);
-    for (let i = 1; i < order.length; i++) expect(order[i].edgeOpacity).toBeGreaterThan(order[i - 1].edgeOpacity);
+    expect(order[4].sheenMs).toBeLessThan(order[3].sheenMs);
   });
 
   it('treats 0 as unranked', () => {
