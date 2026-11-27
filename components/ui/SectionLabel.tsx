@@ -5,10 +5,12 @@ import { StyleSheet, StyleProp, TextStyle } from "react-native";
 
 interface SectionLabelProps {
   children: React.ReactNode;
+  /** Swiss section number ("01"); renders faint before the label. */
+  index?: number;
   style?: StyleProp<TextStyle>;
 }
 
-function SectionLabel({ children, style }: SectionLabelProps) {
+function SectionLabel({ children, index, style }: SectionLabelProps) {
   return (
     <Text
       variant="meta"
@@ -16,6 +18,11 @@ function SectionLabel({ children, style }: SectionLabelProps) {
       weight="bold"
       style={[styles.label, style]}
     >
+      {index != null ? (
+        <Text variant="meta" tone="faint" weight="bold" style={styles.index}>
+          {String(index).padStart(2, "0")}{"  "}
+        </Text>
+      ) : null}
       {children}
     </Text>
   );
@@ -28,5 +35,8 @@ const styles = StyleSheet.create({
     letterSpacing: track.caps,
     textTransform: "uppercase",
     marginBottom: space.sm,
+  },
+  index: {
+    fontVariant: ["tabular-nums"],
   },
 });

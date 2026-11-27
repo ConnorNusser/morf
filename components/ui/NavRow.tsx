@@ -1,6 +1,6 @@
 import { Text, useInk } from "@/components/Themed";
 import { useTheme } from "@/contexts/ThemeContext";
-import { radius, space } from "@/lib/ui/tokens";
+import { space } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { ComponentProps } from "react";
 import { StyleProp, StyleSheet, TouchableOpacity, View, ViewStyle } from "react-native";
@@ -21,13 +21,8 @@ function NavRow({ label, onPress, icon, variant = "plain", style }: NavRowProps)
     <TouchableOpacity
       style={[
         styles.row,
-        variant === "card" && [
-          styles.card,
-          {
-            backgroundColor: currentTheme.colors.surface,
-            borderColor: currentTheme.colors.border,
-          },
-        ],
+        // Swiss: a "card" row is a ruled row (hairline above and below), not a filled box.
+        variant === "card" && [styles.card, { borderColor: ink.hairline }],
         style,
       ]}
       onPress={onPress}
@@ -56,10 +51,9 @@ const styles = StyleSheet.create({
     paddingVertical: space.md,
   },
   card: {
-    paddingHorizontal: space.lg,
     paddingVertical: space.lg,
-    borderRadius: radius.card,
-    borderWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   labelGroup: {
     flexDirection: "row",
