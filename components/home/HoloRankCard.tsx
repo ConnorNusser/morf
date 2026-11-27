@@ -27,7 +27,7 @@ import React, { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Swiss minimal: strength headline + one neutral level line.
-const CARD_HEIGHT = 316;
+const CARD_HEIGHT = 262;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
