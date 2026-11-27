@@ -3,6 +3,7 @@
 // load, the synced user row); this component only lays it out.
 import { Text } from '@/components/Themed';
 import RankAvatar from '@/components/ui/RankAvatar';
+import HexTierBadge from '@/components/gamification/HexTierBadge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
@@ -14,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-export const PROFILE_HERO_AVATAR = 112;
+export const PROFILE_HERO_AVATAR = 56;
 
 interface ProfileHeroProps {
   uri?: string | null;
@@ -39,7 +40,6 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
         activeOpacity={0.85}
         accessibilityRole={onAvatarPress ? 'button' : 'image'}
         accessibilityLabel={onAvatarPress ? 'Edit profile picture' : 'Profile picture'}
-        style={styles.avatarSlot}
       >
         <RankAvatar
           uri={uri}
@@ -50,7 +50,7 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
         />
         {onAvatarPress ? (
           <View style={[styles.editBadge, { backgroundColor: currentTheme.colors.primary, borderColor: currentTheme.colors.background }]}>
-            <Ionicons name="camera" size={14} color={readableInkOn(currentTheme.colors.primary)} />
+            <Ionicons name="camera" size={12} color={readableInkOn(currentTheme.colors.primary)} />
           </View>
         ) : null}
       </TouchableOpacity>
@@ -60,44 +60,40 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
           {username ? `@${username}` : 'Set a username'}
         </Text>
         {level ? (
-          <Text variant="body" weight="semiBold" tone="secondary" numberOfLines={1}>
-            {heroRankLine(rankForLevel(level.level).name, level.level)}
-          </Text>
-        ) : null}
-        {strengthLine ? (
-          <Text variant="meta" tone="muted" numberOfLines={1}>
-            {strengthLine}
+          <Text variant="meta" tone="secondary" numberOfLines={1}>
+            {rankForLevel(level.level).name} · Lv {level.level}
           </Text>
         ) : null}
       </View>
+
+      {/* Style D: the tier as an object beside your name; the sheet below breaks it down. */}
+      {tier && overallPercentile > 0 ? <HexTierBadge tier={tier} size={64} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: space.lg,
+    gap: space.md,
     paddingTop: space.lg,
-    paddingBottom: space.sm,
-  },
-  // Room for the ring + glow, which draw outside the avatar's footprint.
-  avatarSlot: {
-    margin: space.lg,
+    paddingBottom: space.lg,
   },
   editBadge: {
     position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
-    alignItems: 'center',
-    gap: space.xs,
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
   },
 });

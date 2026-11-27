@@ -9,6 +9,7 @@ import LiftDisplayPreferencesSection from '@/components/profile/LiftDisplayPrefe
 import NotificationPreferencesSection from '@/components/profile/NotificationPreferencesSection';
 import PersonalInformationSection from '@/components/profile/PersonalInformationSection';
 import ProfileHero from '@/components/profile/ProfileHero';
+import ProfileStatSheet from '@/components/profile/ProfileStatSheet';
 import SocialModal from '@/components/profile/SocialModal';
 import ThemeEvolutionSection from '@/components/profile/ThemeEvolutionSection';
 import WeightUnitPreferenceSection from '@/components/profile/WeightUnitPreference';
@@ -140,6 +141,8 @@ export default function ProfileScreen() {
           overallPercentile={career?.overall}
           onAvatarPress={() => setShowSocialModal(true)}
         />
+
+        <ProfileStatSheet tier={career?.tier} overallPercentile={career?.overall ?? 0} />
 
         <CareerSection onLoaded={setCareer} />
 
