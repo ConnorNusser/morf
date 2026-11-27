@@ -27,7 +27,7 @@ import React, { useEffect, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 // Swiss minimal: strength headline + one neutral level line.
-const CARD_HEIGHT = 288;
+const CARD_HEIGHT = 316;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -85,7 +85,7 @@ function Front({ percentile, level, nextWorkoutXp }: Props) {
   // is one neutral line under a hairline. Tap still flips to the body graph.
   return (
     <View style={styles.flat}>
-      <StrengthHeadline percentile={percentile} letterSize={112} />
+      <StrengthHeadline percentile={percentile} letterSize={100} />
       {level ? (
         <View style={[styles.footer, { borderTopColor: ink.hairline }]}>
           <RankMark level={level.level} progress={level.progress} />

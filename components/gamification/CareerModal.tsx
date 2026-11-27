@@ -168,7 +168,7 @@ function CareerHero({
   // line with a neutral XP hairline. Lives inside the share ViewShot.
   return (
     <View style={styles.heroSwiss}>
-      <StrengthHeadline percentile={overall} letterSize={150} />
+      <StrengthHeadline percentile={overall} letterSize={112} />
       <View style={[styles.heroLevelLine, { borderTopColor: ink.hairline }]}>
         <RankMark level={level.level} progress={level.progress} />
         <Text variant="meta" tone="muted" style={styles.heroTabular}>
