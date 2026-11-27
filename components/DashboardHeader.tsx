@@ -289,10 +289,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.control,
   },
   levelSlot: {
-    flex: 1,
-    minWidth: 0,
+    marginLeft: "auto",
     flexDirection: "row",
-    marginLeft: space.md,
   },
   levelButton: {
     flexShrink: 0,

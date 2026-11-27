@@ -1,6 +1,9 @@
 import AnimatedBar from '@/components/AnimatedBar';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { Text, TextVariant, useInk } from '@/components/Themed';
+import TierGlass from '@/components/ui/TierGlass';
+import { rankAccentForLevel } from '@/lib/gamification/ranks';
+import { readableInkOn } from '@/lib/ui/contrast';
 import { LevelProgress, levelTitle } from '@/lib/gamification/levelCurve';
 import { levelPillParts } from '@/lib/gamification/levelDisplay';
 import { radius, space, track, xpAccent } from '@/lib/ui/tokens';
@@ -131,41 +134,25 @@ interface LevelPillProps {
 // Compact header pill: "[crest] Lv 23  Elite  370 to 24" over a thin XP bar. Flexes to
 // fill whatever width it's given; the title truncates first, and on very
 // narrow rows the "to next" label drops so the level + bar always fit.
-export function LevelPill({ level, onPress, color }: LevelPillProps) {
+// Compact header badge: rank crest + level number on tier glass, sized to its
+// content (no title or XP line — those live on the Home card and in Career).
+export function LevelPill({ level, onPress }: LevelPillProps) {
   const { currentTheme } = useTheme();
-  const ink = useInk();
-  const parts = levelPillParts(level);
-  const [width, setWidth] = React.useState(0);
-  // Below this the title is gone anyway and "370 to 24" would crowd "Lv 23".
-  const showToNext = width === 0 || width >= 128;
-
+  const accent = rankAccentForLevel(level.level, readableInkOn(currentTheme.colors.background) === '#FFFFFF', level.progress);
   return (
     <TouchableOpacity
-      style={[styles.pill, { backgroundColor: currentTheme.colors.surface }]}
       onPress={onPress}
       disabled={!onPress}
       activeOpacity={0.7}
-      onLayout={e => setWidth(e.nativeEvent.layout.width)}
       accessibilityRole="button"
-      accessibilityLabel={`Level ${level.level}, ${level.title}, ${level.xpToNext} XP to level ${level.level + 1}. View career`}
+      accessibilityLabel={`Level ${level.level}, ${level.title}. View career`}
     >
-      <View style={styles.pillRow}>
-        <View style={styles.pillEmblem}>
-          <RankEmblem level={level.level} progress={level.progress} size={20} />
-        </View>
-        <Text variant="meta" weight="bold" tone="primary" style={styles.noShrink} numberOfLines={1}>
-          {parts.levelLabel}
+      <TierGlass style={styles.pill}>
+        <RankEmblem level={level.level} progress={level.progress} size={28} />
+        <Text variant="title" weight="bold" style={[styles.number, { color: accent }]} numberOfLines={1}>
+          {level.level}
         </Text>
-        <Text variant="meta" weight="medium" tone="secondary" style={styles.pillTitle} numberOfLines={1}>
-          {parts.title}
-        </Text>
-        {showToNext && (
-          <Text variant="meta" tone="muted" style={styles.noShrink} numberOfLines={1}>
-            {parts.toNextLabel}
-          </Text>
-        )}
-      </View>
-      <AnimatedBar progress={level.progress} color={color ?? xpAccent} trackColor={ink.hairline} height={3} delay={120} />
+      </TierGlass>
     </TouchableOpacity>
   );
 }
@@ -176,19 +163,13 @@ const styles = StyleSheet.create({
   number: { letterSpacing: track.display, fontVariant: ['tabular-nums'] },
 
   pill: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: space.xs,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radius.card,
+    paddingLeft: space.sm,
+    paddingRight: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.control,
   },
-  pillRow: { flexDirection: 'row', alignItems: 'baseline', gap: space.sm },
-  // Title is the one element that gives up width — it truncates first.
-  pillTitle: { flexShrink: 1, flexGrow: 1, minWidth: 0 },
-  noShrink: { flexShrink: 0 },
-  // Crest sits on the text line's center rather than its baseline.
-  pillEmblem: { flexShrink: 0, alignSelf: 'center' },
   beside: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });

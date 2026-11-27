@@ -14,7 +14,6 @@ import CardCamo from '@/components/home/CardCamo';
 import useEquippedCamo from '@/hooks/useEquippedCamo';
 import { CardCamo as CardCamoSpec, camoSheen } from '@/lib/gamification/cardCamos';
 import { sheenStops } from '@/lib/ui/camoPatterns';
-import RankEmblem from '@/components/gamification/RankEmblem';
 import { Text, useInk } from '@/components/Themed';
 import { useTheme } from '@/contexts/ThemeContext';
 import { readableInkOn } from '@/lib/ui/contrast';
@@ -139,12 +138,9 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
           <Text variant="meta" weight="semiBold" tone="secondary">Level</Text>
           {level ? (
             <>
-              <View style={styles.levelRow}>
-                <RankEmblem level={level.level} progress={level.progress} size={54} />
-                <Text style={[styles.tier, { color: rankAccentForLevel(level.level, dark, level.progress) }]} numberOfLines={1}>
-                  {level.level}
-                </Text>
-              </View>
+              <Text style={[styles.tier, { color: rankAccentForLevel(level.level, dark, level.progress) }]} numberOfLines={1}>
+                {level.level}
+              </Text>
               <Text variant="meta" tone="secondary" numberOfLines={1}>
                 {level.title} · {formatXp(level.xpToNext)} to {level.level + 1}
               </Text>
@@ -229,7 +225,6 @@ const styles = StyleSheet.create({
   // Display glyphs (tier letter and level number share one size so the halves
   // balance), like CareerModal's hero tier: beyond the type scale on purpose.
   tier: { fontSize: 58, lineHeight: 64, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  levelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   track: { height: space.sm, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.lg },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.pill },
   ghost: { position: 'absolute', top: 0, bottom: 0, borderTopRightRadius: radius.pill, borderBottomRightRadius: radius.pill },
