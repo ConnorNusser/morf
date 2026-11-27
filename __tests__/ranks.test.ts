@@ -237,3 +237,4 @@ describe('rank copy', () => {
     expect(rankUpLine(rankForLevel(60))).toBe('Promoted to Master');
   });
 });
+

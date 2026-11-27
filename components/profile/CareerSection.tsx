@@ -83,7 +83,7 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
               <View>
                 <Text variant="heading" weight="bold" tone="primary">Career</Text>
                 <Text variant="meta" tone="muted" numberOfLines={1}>
-                  Level {data.level.level} · {data.level.title}
+                  Lifetime stats and activity
                 </Text>
               </View>
             </View>
@@ -100,35 +100,8 @@ export default function CareerSection({ onLoaded }: CareerSectionProps = {}) {
             </View>
           </View>
 
-          <View style={styles.hero}>
-            <View style={styles.heroStatsRow}>
-              <View style={styles.heroStat}>
-                <AnimatedCount
-                  value={data.overall}
-                  duration={1100}
-                  style={[styles.percentile, { color: currentTheme.colors.text }]}
-                />
-                <Text variant="meta" tone="muted" style={styles.heroStatLabel}>percentile</Text>
-              </View>
-              <View style={styles.heroStat}>
-                <TierBadge tier={data.tier} size="large" variant="text" showTooltip={false} />
-                <Text variant="meta" tone="muted" style={styles.heroStatLabel}>tier</Text>
-              </View>
-            </View>
-            <AnimatedBar
-              progress={band.progress}
-              color={color}
-              trackColor={ink.hairline}
-              height={8}
-              delay={150}
-              style={styles.heroBar}
-            />
-            <Text variant="meta" tone="muted" style={styles.toNext}>
-              {band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Max tier reached'}
-            </Text>
-          </View>
-
-          <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
+          {/* Strength (tier, percentile, progress) lives in the Profile hero + stat
+              sheet above; this card is lifetime stats and activity. */}
 
           <View style={[styles.statRow, { borderColor: currentTheme.colors.border }]}>
             {statItems.map(s => (

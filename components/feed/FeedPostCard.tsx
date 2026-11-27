@@ -168,7 +168,7 @@ function FeedPostCard({
           <TouchableOpacity style={styles.userInfo} onPress={() => onUserPress?.(post)} activeOpacity={0.7}>
             <RankAvatar uri={post.profile_picture_url} username={post.username} size={44} level={authorLevel} animated={avatarAnimated} />
             <View>
-              <Text style={[styles.username, { color: overallStrength ? getTierColor(overallStrength.tier) : currentTheme.colors.text, fontWeight: '600' }]}>
+              <Text style={[styles.username, { color: currentTheme.colors.text, fontWeight: '600' }]}>
                 @{post.username}
               </Text>
               <RNView style={styles.metaRow}>
