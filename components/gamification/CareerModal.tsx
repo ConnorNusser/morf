@@ -30,7 +30,7 @@ import AchievementModal, { AchievementModalItem } from '@/components/gamificatio
 import { emblemFor } from '@/lib/gamification/achievementEmblems';
 import FlipCard from '@/components/gamification/FlipCard';
 import LevelRing from '@/components/gamification/LevelRing';
-import { xpAccentForPercentile } from '@/lib/ui/tierFoil';
+import { getPercentileSuffix } from '@/lib/utils/utils';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import BodyGraph from '@/components/gamification/BodyGraph';
@@ -128,20 +128,18 @@ export default function CareerModal({ visible, onClose }: Props) {
                 <ShareStatStrip stats={data.stats} />
               </View>
             </ViewShot>
-            <BodySection regions={data.bodyGraph} unit={data.stats.unit} onLeave={onClose} />
-            <CamoPicker level={data.level.level} percentile={data.overall} />
-            <NextGoal achievements={data.achievements} />
-            {/* Recent achievements — the six you unlocked most recently. (The
-                lifetime stats that used to live here moved up into the hero card.) */}
-            <RecentAchievementsView achievements={data.achievements} unlockedAt={data.achievementUnlockedAt} />
-            <ConsistencyView heatmap={data.heatmap} unit={data.stats.unit} />
-            {/* Strength */}
-            <BestsView stats={data.stats} />
-            <PersonalRecordsView prs={data.prs} />
-            {/* Tier progression */}
+            {/* Strength first: where you sit, how you got here, what's driving it. */}
             <TierLadderView ladder={data.ladder} />
+            <PersonalRecordsView prs={data.prs} />
+            <BodySection regions={data.bodyGraph} unit={data.stats.unit} onLeave={onClose} />
             <TierTimelineView timeline={data.timeline} stats={data.stats} />
+            <BestsView stats={data.stats} />
+            {/* Then training + rewards. */}
+            <ConsistencyView heatmap={data.heatmap} unit={data.stats.unit} />
+            <NextGoal achievements={data.achievements} />
+            <RecentAchievementsView achievements={data.achievements} unlockedAt={data.achievementUnlockedAt} />
             <AchievementGridView achievements={data.achievements} newIds={newIds} />
+            <CamoPicker level={data.level.level} percentile={data.overall} />
             <View style={styles.bottomSpacer} />
           </ScrollView>
         )}
@@ -150,8 +148,8 @@ export default function CareerModal({ visible, onClose }: Props) {
   );
 }
 
-// ---- Hero: account level (XP ring) beside the strength tier, then a level-history line ----
-// Lives inside the ViewShot share card, so both meters land in the shared image.
+// ---- Hero: overall strength leads; account level is a one-line footnote ----
+// Lives inside the ViewShot share card, so the shared image is the tier first.
 function CareerHero({
   overall,
   tier,
@@ -169,38 +167,31 @@ function CareerHero({
 
   return (
     <View style={styles.hero}>
-      <View style={styles.heroRow}>
-        <View style={styles.heroHalf}>
-          <LevelRing level={level.level} progress={level.progress} size={104} color={xpAccentForPercentile(overall)} emblem="inside" />
-          <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile} numberOfLines={1}>
-            Level {level.level} · {level.title}
-          </Text>
+      <Text variant="meta" weight="bold" tone="muted" style={styles.heroLabel}>Overall strength</Text>
+      <Text style={[styles.heroTier, { color }]} numberOfLines={1} adjustsFontSizeToFit>{tier}</Text>
+      <Text variant="heading" tone="primary" weight="semiBold" style={styles.heroPercentile}>
+        {overall}{getPercentileSuffix(overall)}
+        <Text variant="body" tone="muted" weight="regular"> percentile</Text>
+      </Text>
+      {band.nextTier ? (
+        <View style={styles.heroProgressWrap}>
+          <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
+            <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
+          </View>
           <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
-            {formatXp(level.xpToNext)} XP to {level.level + 1}
+            {band.toNext} to {band.nextTier}
           </Text>
         </View>
+      ) : (
+        <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
+      )}
 
-        <View style={[styles.heroRule, { backgroundColor: currentTheme.colors.border }]} />
-
-        <View style={styles.heroHalf}>
-          <Text style={[styles.heroTier, { color }]} numberOfLines={1} adjustsFontSizeToFit>{tier}</Text>
-          <Text variant="body" tone="primary" weight="semiBold" style={styles.heroPercentile}>
-            {overall}
-            <Text variant="meta" tone="muted" weight="regular"> percentile</Text>
-          </Text>
-          {band.nextTier ? (
-            <View style={styles.heroProgressWrap}>
-              <View style={[styles.heroTrack, { backgroundColor: currentTheme.colors.border }]}>
-                <View style={[styles.heroFill, { backgroundColor: color, width: `${Math.round(band.progress * 100)}%` }]} />
-              </View>
-              <Text variant="meta" tone="muted" style={styles.heroNext} numberOfLines={1}>
-                {band.toNext} to {band.nextTier}
-              </Text>
-            </View>
-          ) : (
-            <Text variant="meta" tone="muted" style={styles.heroNext}>Max tier reached</Text>
-          )}
-        </View>
+      {/* Level/rank: secondary — small ring + one line. */}
+      <View style={styles.heroLevelRow}>
+        <LevelRing level={level.level} progress={level.progress} size={36} stroke={3} color={currentTheme.colors.border} />
+        <Text variant="meta" tone="secondary" numberOfLines={1}>
+          Lv {level.level} · {level.title} · {formatXp(level.xpToNext)} XP to {level.level + 1}
+        </Text>
       </View>
       <Text variant="meta" tone="muted" style={styles.heroHistory}>
         {formatXp(workouts)} {workouts === 1 ? 'workout' : 'workouts'} · {formatXp(level.totalXp)} XP total
@@ -975,13 +966,12 @@ const styles = StyleSheet.create({
   hero: { alignItems: 'center', paddingVertical: space.section },
   // The tier letter is THE display glyph of the Career screen — a named
   // exception to the type scale, kept at 72.
-  heroTier: { fontSize: 72, fontWeight: '800', lineHeight: 78 },
+  heroTier: { fontSize: 88, fontWeight: '800', lineHeight: 96 },
+  heroLabel: { letterSpacing: track.caps, textTransform: 'uppercase' },
   heroPercentile: { marginTop: space.xs },
-  heroRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch' },
-  heroHalf: { flex: 1, alignItems: 'center' },
-  heroRule: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', marginVertical: space.sm },
-  heroHistory: { marginTop: space.lg },
-  heroProgressWrap: { width: '70%', marginTop: space.md, alignItems: 'center' },
+  heroLevelRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, marginTop: space.lg },
+  heroHistory: { marginTop: space.sm },
+  heroProgressWrap: { width: '80%', marginTop: space.md, alignItems: 'center' },
   heroTrack: { width: '100%', height: 6, borderRadius: 3, overflow: 'hidden' },
   heroFill: { height: 6, borderRadius: 3 },
   heroNext: { marginTop: space.sm },

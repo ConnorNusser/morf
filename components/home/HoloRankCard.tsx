@@ -21,7 +21,8 @@ import { getTierBandProgress } from '@/lib/gamification/tierTimeline';
 import { RegionState } from '@/lib/gamification/bodyGraph';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
-import { rankAccentForLevel } from '@/lib/gamification/ranks';
+import { rankAccentForLevel, rankForLevel } from '@/lib/gamification/ranks';
+import RankAvatar from '@/components/ui/RankAvatar';
 import { radius, space } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
 import { getPercentileSuffix } from '@/lib/utils/utils';
@@ -40,7 +41,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-const CARD_HEIGHT = 184;
+// Compact: strength tier leads; level/rank is a one-line footnote.
+const CARD_HEIGHT = 124;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -55,6 +57,8 @@ interface Props {
   weekStreak: number;
   nextWorkoutXp: number;
   regions: RegionState[] | null; // back face; null while loading
+  uri?: string | null; // profile picture for the avatar ring
+  username?: string | null;
   onOpenCareer: () => void;
 }
 
@@ -92,82 +96,67 @@ export default function HoloRankCard(props: Props) {
   );
 }
 
-function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }: Props & { camo: CardCamoSpec }) {
+function Front({ percentile, level, nextWorkoutXp, camo, uri, username }: Props & { camo: CardCamoSpec }) {
   const foil = tierFoil(percentile);
   const sheen = camoSheen(foil, camo);
   const ink = useInk();
   const dark = useIsDarkTheme();
-  const letter = dark ? foil.light : foil.color;
   const band = getTierBandProgress(percentile);
   const ranked = foil.base !== null;
+  const letter = dark ? foil.light : foil.color;
   const [width, setWidth] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
-  // Ghost segment = next session's projected XP, clipped to the bar's end.
-  const progress = level?.progress ?? 0;
-  const ghost = level ? Math.min(1 - progress, nextWorkoutXp / level.xpForNext) : 0;
+  // Strength tier is the card: its color drives the letter, the bar and the
+  // foil. Level/rank (Bronze → Challenger) is a quiet footnote — a static
+  // avatar ring and the rank name in its soft metal, nothing else.
+  const rankName = level ? rankForLevel(level.level).name : null;
+  const rankColor = level ? rankAccentForLevel(level.level, dark, level.progress) : ink.muted;
 
   return (
     <LinearGradient
       colors={[foil.foil[0], foil.foil[1]]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
-      style={[styles.card, { borderRadius: radius.card + 6 }]}
+      style={[styles.card, { borderRadius: radius.card + 6, borderColor: foil.color + '33' }]}
       onLayout={onLayout}
     >
       <CardCamo camo={camo} tierColor={foil.color} />
       <Sheen mode={sheen.mode} ms={sheen.ms} restMs={sheen.restMs} stops={sheenStops(sheen.tint, sheen.intensity)} width={width} />
 
-      {/* Two balanced halves: strength (who you are) | level (what you've put in). */}
-      <View style={styles.halves}>
-        <View style={styles.half}>
-          <Text variant="meta" weight="semiBold" tone="secondary">Strength</Text>
-          <Text style={[styles.tier, { color: letter }]} numberOfLines={1} adjustsFontSizeToFit>
-            {ranked ? band.tier : '—'}
+      <View style={styles.row}>
+        <Text style={[styles.tier, { color: ranked ? letter : ink.muted }]} numberOfLines={1}>
+          {ranked ? band.tier : '—'}
+        </Text>
+        <View style={styles.identity}>
+          <Text variant="meta" weight="semiBold" tone="secondary">Overall strength</Text>
+          <Text variant="emphasis" weight="bold" tone="primary" numberOfLines={1}>
+            {ranked ? `${percentile}${getPercentileSuffix(percentile)} percentile` : 'Unranked'}
           </Text>
-          <Text variant="meta" tone="secondary" numberOfLines={1}>
-            {ranked
-              ? `${percentile}${getPercentileSuffix(percentile)} · ${band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'max tier'}`
-              : 'Log a ranked lift'}
+          <Text variant="meta" tone="muted" numberOfLines={1}>
+            {ranked ? (band.nextTier ? `${band.toNext} to ${band.nextTier}` : 'Top tier') : 'Log a ranked lift'}
           </Text>
         </View>
-
-        <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
-
-        <View style={[styles.half, styles.halfEnd]}>
-          <Text variant="meta" weight="semiBold" tone="secondary">Level</Text>
-          {level ? (
-            <>
-              <Text style={[styles.tier, { color: rankAccentForLevel(level.level, dark, level.progress) }]} numberOfLines={1}>
-                {level.level}
-              </Text>
-              <Text variant="meta" tone="secondary" numberOfLines={1}>
-                {level.title} · {formatXp(level.xpToNext)} to {level.level + 1}
-              </Text>
-            </>
-          ) : (
-            <Text style={[styles.tier, { color: letter }]}>—</Text>
-          )}
-        </View>
+        <RankAvatar uri={uri} username={username} size={40} level={level?.level ?? null} progress={level?.progress} animated={false} />
       </View>
 
-      {level && (
-        <>
-          <View style={[styles.track, { backgroundColor: ink.ghost }]}>
-            <View style={[styles.fill, { width: `${Math.max(2, progress * 100)}%`, backgroundColor: foil.xp }]} />
-            {ghost > 0 && (
-              <View style={[styles.ghost, { left: `${progress * 100}%`, width: `${ghost * 100}%`, backgroundColor: foil.xpSoft }]} />
-            )}
-          </View>
-          <View style={styles.xpRow}>
-            <Text variant="meta" tone="muted">{formatXp(level.xpIntoLevel)} / {formatXp(level.xpForNext)} XP</Text>
-            <Text variant="meta" tone="secondary">
-              <Text variant="meta" weight="bold" style={{ color: foil.xp }}>+{nextWorkoutXp}</Text> next workout
-            </Text>
-          </View>
-        </>
-      )}
+      <View style={[styles.track, { backgroundColor: ink.ghost }]}>
+        <View style={[styles.fill, { width: `${Math.max(2, (ranked ? band.progress : 0) * 100)}%`, backgroundColor: foil.color }]} />
+      </View>
 
+      <View style={styles.xpRow}>
+        <Text variant="meta" tone="muted" numberOfLines={1} style={styles.flex}>
+          {level ? (
+            <>
+              Lv {level.level}
+              {rankName ? <Text variant="meta" style={{ color: rankColor }}> · {rankName}</Text> : null}
+            </>
+          ) : (username ? `@${username}` : '')}
+        </Text>
+        {level ? (
+          <Text variant="meta" tone="muted" numberOfLines={1}>+{nextWorkoutXp} XP next workout</Text>
+        ) : null}
+      </View>
     </LinearGradient>
   );
 }
@@ -217,17 +206,16 @@ function Sheen({
 
 const styles = StyleSheet.create({
   wrap: { marginBottom: space.md },
-  card: { flex: 1, padding: space.lg, overflow: 'hidden' },
+  card: { flex: 1, paddingHorizontal: space.lg, paddingVertical: space.md, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   flex: { flex: 1 },
-  halves: { flexDirection: 'row', alignItems: 'stretch' },
-  half: { flex: 1, minWidth: 0 },
   // Level mirrors Strength: right-aligned so the two read as a matched pair.
-  halfEnd: { alignItems: 'flex-end' },
-  divider: { width: StyleSheet.hairlineWidth, marginHorizontal: space.lg, marginVertical: space.xs },
   // Display glyphs (tier letter and level number share one size so the halves
   // balance), like CareerModal's hero tier: beyond the type scale on purpose.
-  tier: { fontSize: 58, lineHeight: 64, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  track: { height: space.sm, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.lg },
+  tier: { fontSize: 46, lineHeight: 52, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  identity: { flex: 1, minWidth: 0, gap: 2 },
+  strength: { alignItems: 'flex-end' },
+  track: { height: 6, borderRadius: radius.pill, overflow: 'hidden', marginTop: space.md },
   fill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: radius.pill },
   ghost: { position: 'absolute', top: 0, bottom: 0, borderTopRightRadius: radius.pill, borderBottomRightRadius: radius.pill },
   xpRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xs },
