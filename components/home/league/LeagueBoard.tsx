@@ -119,13 +119,19 @@ export default function LeagueBoard({ visible, onClose, initialExpandedUserId }:
         ? initialExpandedUserId
         : built.me?.rank != null ? me.id : null;
       setExpandedId(target);
-
-      // Record any freshly-closed weeks so league achievements can unlock.
-      setLeagueResults(await recordClosedWeeks(now));
     } catch (error) {
       console.error('Error loading league:', error);
     } finally {
       setIsLoading(false);
+    }
+
+    // Record any freshly-closed weeks so league achievements can unlock. Runs
+    // after the board renders: it's up to four more RPCs and only feeds the
+    // achievements card, so it shouldn't hold the standings behind skeletons.
+    try {
+      setLeagueResults(await recordClosedWeeks(new Date()));
+    } catch (error) {
+      console.error('Error recording closed league weeks:', error);
     }
   }, [initialExpandedUserId]);
 
@@ -434,8 +440,9 @@ export default function LeagueBoard({ visible, onClose, initialExpandedUserId }:
       );
     }
 
-    // Fewer than two people training this week — no race to frame.
-    if (active.length < 2) {
+    // Nobody has trained this week. A solo week still renders the board so the
+    // one member sees their score; the race framing just has no rival yet.
+    if (active.length === 0) {
       return (
         <View style={styles.list}>
           <EmptyState
