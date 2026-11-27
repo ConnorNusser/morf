@@ -134,7 +134,7 @@ function Front({ percentile, level, workouts, weekStreak, nextWorkoutXp, camo }:
 
         <View style={[styles.divider, { backgroundColor: ink.hairline }]} />
 
-        <View style={styles.half}>
+        <View style={[styles.half, styles.halfEnd]}>
           <Text variant="meta" weight="semiBold" tone="secondary">Level</Text>
           {level ? (
             <>
@@ -221,6 +221,8 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   halves: { flexDirection: 'row', alignItems: 'stretch' },
   half: { flex: 1, minWidth: 0 },
+  // Level mirrors Strength: right-aligned so the two read as a matched pair.
+  halfEnd: { alignItems: 'flex-end' },
   divider: { width: StyleSheet.hairlineWidth, marginHorizontal: space.lg, marginVertical: space.xs },
   // Display glyphs (tier letter and level number share one size so the halves
   // balance), like CareerModal's hero tier: beyond the type scale on purpose.
