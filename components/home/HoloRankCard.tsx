@@ -23,6 +23,7 @@ import { LevelProgress } from '@/lib/gamification/levelCurve';
 import { formatXp } from '@/lib/gamification/levelDisplay';
 import { rankForLevel } from '@/lib/gamification/ranks';
 import StrengthHeadline from '@/components/ui/StrengthHeadline';
+import RankMark from '@/components/ui/RankMark';
 import RankEmblem from '@/components/gamification/RankEmblem';
 import { radius, space, track } from '@/lib/ui/tokens';
 import { tierFoil } from '@/lib/ui/tierFoil';
@@ -43,7 +44,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // Swiss minimal: strength headline + one neutral level line.
-const CARD_HEIGHT = 226;
+const CARD_HEIGHT = 288;
 
 // Dark theme → the bright tier tint reads best; light theme → the saturated hue.
 function useIsDarkTheme(): boolean {
@@ -103,15 +104,10 @@ function Front({ percentile, level, nextWorkoutXp }: Props & { camo: CardCamoSpe
   // is one neutral line under a hairline. Tap still flips to the body graph.
   return (
     <View style={styles.flat}>
-      <StrengthHeadline percentile={percentile} letterSize={96} />
+      <StrengthHeadline percentile={percentile} letterSize={112} />
       {level ? (
         <View style={[styles.footer, { borderTopColor: ink.hairline }]}>
-          <View style={styles.rankLine}>
-            <RankEmblem level={level.level} progress={level.progress} size={18} />
-            <Text variant="meta" tone="secondary" numberOfLines={1}>
-              Lv {level.level} · {rankForLevel(level.level).name}
-            </Text>
-          </View>
+          <RankMark level={level.level} progress={level.progress} />
           <Text variant="meta" tone="muted" numberOfLines={1}>+{nextWorkoutXp} XP next workout</Text>
         </View>
       ) : null}

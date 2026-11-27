@@ -4,6 +4,8 @@
 import { Text, useInk } from '@/components/Themed';
 import RankAvatar from '@/components/ui/RankAvatar';
 import StrengthHeadline from '@/components/ui/StrengthHeadline';
+import RankMark from '@/components/ui/RankMark';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { useTheme } from '@/contexts/ThemeContext';
 import { StrengthTier } from '@/lib/data/strengthStandards';
 import { LevelProgress } from '@/lib/gamification/levelCurve';
@@ -45,26 +47,16 @@ export default function ProfileHero({ uri, username, level, tier, overallPercent
           accessibilityLabel={onAvatarPress ? 'Edit profile picture' : 'Profile picture'}
           style={styles.identity}
         >
-          <RankAvatar
-            uri={uri}
-            username={username}
-            size={PROFILE_HERO_AVATAR}
-            level={level?.level ?? null}
-            progress={level?.progress}
-            animated={false}
-          />
+          {/* Plain avatar here: the rank reads as the RankMark on the right. */}
+          <UserAvatar uri={uri} username={username} size={PROFILE_HERO_AVATAR} />
           <Text variant="body" weight="semiBold" tone="primary" numberOfLines={1} style={styles.handle}>
             {username ? `@${username}` : 'Set a username'}
           </Text>
         </TouchableOpacity>
-        {level ? (
-          <Text variant="meta" tone="muted" numberOfLines={1}>
-            {rankForLevel(level.level).name} · Lv {level.level}
-          </Text>
-        ) : null}
+        {level ? <RankMark level={level.level} progress={level.progress} /> : null}
       </View>
       <View style={[styles.rule, { backgroundColor: ink.hairline }]} />
-      <StrengthHeadline percentile={tier ? overallPercentile : 0} letterSize={128} />
+      <StrengthHeadline percentile={tier ? overallPercentile : 0} letterSize={150} />
     </View>
   );
 }

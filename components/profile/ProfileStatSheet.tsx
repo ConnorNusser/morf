@@ -72,7 +72,7 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
       {/* Swiss table: hairline rows, no card. Overall lives in the headline above. */}
       <View style={[styles.sheet, { borderTopColor: ink.hairline }]}>
 
-        {lifts.map(l => (
+        {lifts.map((l, i) => (
           <TouchableOpacity
             key={l.workoutId}
             onPress={() => openLift(l.workoutId)}
@@ -81,6 +81,7 @@ export default function ProfileStatSheet({ tier, overallPercentile }: Props) {
             accessibilityLabel={`${shortName(getExercise(l.workoutId)?.name ?? l.workoutId)} history`}
             style={[styles.row, { borderBottomColor: ink.hairline, borderBottomWidth: StyleSheet.hairlineWidth }]}
           >
+            <Text variant="meta" tone="faint" style={styles.index}>{String(i + 1).padStart(2, '0')}</Text>
             <Text variant="body" tone="primary" style={styles.name} numberOfLines={1}>
               {shortName(getExercise(l.workoutId)?.name ?? l.workoutId)}
             </Text>
@@ -112,4 +113,5 @@ const styles = StyleSheet.create({
   value: { minWidth: 72, textAlign: 'right', fontVariant: ['tabular-nums'] },
   tier: { minWidth: 40, textAlign: 'right' },
   chevronSlot: { width: 14 },
+  index: { width: 22, fontVariant: ['tabular-nums'] },
 });
