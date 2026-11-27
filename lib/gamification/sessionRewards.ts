@@ -15,7 +15,7 @@ import { computeStrengthMilestones } from './strengthMilestones';
 import { computeBodyGraph } from './bodyGraph';
 import { levelForXp, LevelProgress } from './levelCurve';
 import { computeTierTimeline } from './tierTimeline';
-import { computeXpLedger, XpLedger } from './xp';
+import { computeXpLedger, WorkoutXp, XpLedger } from './xp';
 
 // Minimal derived state needed to diff two points in a lifter's career.
 export interface RewardSnapshot {
@@ -101,6 +101,11 @@ export interface SessionRewards {
   levelAfter: LevelProgress;
   leveledUp: boolean;
   regionTierUps: RegionTierUp[];
+  // XP row of the session just logged (newest workout in `after` absent from
+  // `before`) — the "50 workout · 90 sets · …" breakdown. Undefined if none.
+  sessionXp?: WorkoutXp;
+  // Achievement XP earned this session (not part of sessionXp).
+  achievementXpGained: number;
 }
 
 const tierRank = (t: StrengthTier) => TIER_THRESHOLDS.findIndex(x => x.label === t);
@@ -123,6 +128,13 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     if (from === null || tierRank(to) > tierRank(from)) regionTierUps.push({ region, from, to });
   }
 
+  const beforeIds = new Set(before.xp.workouts.map(w => w.workoutId));
+  let sessionXp: WorkoutXp | undefined;
+  for (const w of after.xp.workouts) {
+    if (beforeIds.has(w.workoutId)) continue;
+    if (!sessionXp || w.date.getTime() >= sessionXp.date.getTime()) sessionXp = w;
+  }
+
   return {
     newAchievements,
     newPRs,
@@ -132,5 +144,7 @@ export function computeSessionRewards(before: RewardSnapshot, after: RewardSnaps
     levelAfter: after.level,
     leveledUp: after.level.level > before.level.level,
     regionTierUps,
+    sessionXp,
+    achievementXpGained: Math.max(0, after.xp.achievementXp - before.xp.achievementXp),
   };
 }

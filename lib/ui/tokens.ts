@@ -81,6 +81,10 @@ export const trend = {
 
 export const danger = "#FF3B30";
 
+// XP / account-level accent (lime) — every level ring, XP bar and "+N XP".
+// Theme-independent like `trend`; the one place this hex lives.
+export const xpAccent = "#b6f03c";
+
 // Shared clock for the History-tab strength animations (Overall Strength bar,
 // Main Lift Total ladder + both count-ups) so they all land together.
 export const STRENGTH_ANIM_MS = 1200;

@@ -42,6 +42,8 @@ export const STORAGE_KEYS = {
   REVIEW_PROMPT_STATE: 'review_prompt_state',
   LEAGUE_WEEK_RESULTS: 'league_week_results',
   LEAGUE_OVERTAKES_SENT: 'league_overtakes_sent',
+  LEVEL_INTRO_SEEN: 'level_intro_seen',
+  LAST_SEEN_LEVEL: 'last_seen_level',
 } as const;
 
 export interface PendingStrengthProgress {
@@ -897,6 +899,45 @@ class StorageService {
       await AsyncStorage.removeItem(STORAGE_KEYS.PENDING_STRENGTH_PROGRESS);
     } catch (error) {
       console.error('Error clearing pending strength progress:', error);
+    }
+  }
+
+  // One-time "You're Level N" intro (lib/gamification/levelDisplay decideLevelIntro).
+  async hasSeenLevelIntro(): Promise<boolean> {
+    try {
+      return (await AsyncStorage.getItem(STORAGE_KEYS.LEVEL_INTRO_SEEN)) === 'true';
+    } catch (error) {
+      console.error('Error loading level intro flag:', error);
+      // Fail closed: never re-show the intro because storage hiccuped.
+      return true;
+    }
+  }
+
+  async markLevelIntroSeen(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LEVEL_INTRO_SEEN, 'true');
+    } catch (error) {
+      console.error('Error saving level intro flag:', error);
+    }
+  }
+
+  // Last account level the user was shown (intro or completion screen), or null.
+  async getLastSeenLevel(): Promise<number | null> {
+    try {
+      const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SEEN_LEVEL);
+      const parsed = data ? parseInt(data, 10) : NaN;
+      return Number.isFinite(parsed) ? parsed : null;
+    } catch (error) {
+      console.error('Error loading last seen level:', error);
+      return null;
+    }
+  }
+
+  async setLastSeenLevel(level: number): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SEEN_LEVEL, String(Math.max(1, Math.floor(level))));
+    } catch (error) {
+      console.error('Error saving last seen level:', error);
     }
   }
 

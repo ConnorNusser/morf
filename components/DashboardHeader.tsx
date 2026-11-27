@@ -1,8 +1,10 @@
+import { LevelPill } from "@/components/gamification/LevelRing";
 import TierRing from "@/components/gamification/TierRing";
 import { Text, useInk } from "@/components/Themed";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { useTheme } from "@/contexts/ThemeContext";
 import { StrengthTier } from "@/lib/data/strengthStandards";
+import { LevelProgress } from "@/lib/gamification/levelCurve";
 import { radius, space, tint, track } from "@/lib/ui/tokens";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
@@ -26,6 +28,9 @@ interface DashboardHeaderProps {
   onProfilePress?: () => void;
   profileImageUrl?: string;
   profileUsername?: string;
+  /** Account level; renders the XP pill between the view selector and the right items. */
+  level?: LevelProgress | null;
+  onLevelPress?: () => void;
 }
 
 export default function DashboardHeader({
@@ -37,6 +42,8 @@ export default function DashboardHeader({
   onProfilePress,
   profileImageUrl,
   profileUsername,
+  level,
+  onLevelPress,
 }: DashboardHeaderProps) {
   const { currentTheme } = useTheme();
   const ink = useInk();
@@ -83,6 +90,12 @@ export default function DashboardHeader({
                 />
               </TouchableOpacity>
             </View>
+
+            {level ? (
+              <View style={styles.levelSlot}>
+                <LevelPill level={level} onPress={onLevelPress} />
+              </View>
+            ) : null}
 
             {stats?.tier != null && (
               <TouchableOpacity
@@ -233,6 +246,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
+  },
+  // Fills the gap between the selector and the right items; shrinks on SE widths.
+  levelSlot: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    marginLeft: space.md,
   },
   levelButton: {
     flexShrink: 0,
