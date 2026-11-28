@@ -22,6 +22,8 @@ export interface Theme {
   };
   fonts: ThemeFonts;
   borderRadius: number;
+  /** Optional theme-owned screen wash (top → fade). Overrides the tier wash. */
+  wash?: [string, string];
 }
 
 export const themes: Record<ThemeLevel, Theme> = {
@@ -29,18 +31,21 @@ export const themes: Record<ThemeLevel, Theme> = {
   // E gray, C green, B blue, A purple, S gold. On dark grounds the primary is
   // the tier's light shade so links and pills stay readable. Every theme is
   // dark — the light grounds fought the tier colors and the Swiss style.
-  // E Tier (warm charcoal)
+  // E Tier · Ember: navy ink with a coral primary and amber accent. E's tier
+  // color is gray (badges, bars), so the theme carries the fun instead, using
+  // hues no tier owns (coral/amber, hot pink/cyan).
   beginner: {
     name: "beginner",
     colors: {
-      background: "#161616",
-      text: "#EDEDED",
-      primary: "#E4E4E7",
-      secondary: "#1F1F1F",
-      accent: "#A1A1AA",
-      surface: "#1F1F1F",
-      border: "#2C2C2C",
+      background: "#12131C",
+      text: "#EEEEF6",
+      primary: "#FF8A6B",
+      secondary: "#1A1C28",
+      accent: "#FFC56B",
+      surface: "#1A1C28",
+      border: "#2A2D3E",
     },
+    wash: ["#FF8A6B", "#FFC56B"],
     fonts: {
       regular: "Raleway_400Regular",
       medium: "Raleway_500Medium",
@@ -50,18 +55,19 @@ export const themes: Record<ThemeLevel, Theme> = {
     borderRadius: 16,
   },
 
-  // E Tier Dark
+  // E Tier · Neon: near-black with hot pink and electric cyan.
   beginner_dark: {
     name: "beginner_dark",
     colors: {
-      background: "#121215",
-      text: "#E4E4E7",
-      primary: "#D4D4D8",
-      secondary: "#18181B",
-      accent: "#A1A1AA",
-      surface: "#1C1C1F",
-      border: "#27272A",
+      background: "#111014",
+      text: "#F1EEF5",
+      primary: "#FF6FAE",
+      secondary: "#1B1820",
+      accent: "#6FE3FF",
+      surface: "#1B1820",
+      border: "#2C2733",
     },
+    wash: ["#FF6FAE", "#6FE3FF"],
     fonts: {
       regular: "Raleway_400Regular",
       medium: "Raleway_500Medium",

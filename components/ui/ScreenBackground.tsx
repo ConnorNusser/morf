@@ -17,7 +17,9 @@ export default function ScreenBackground({ children, style }: ScreenBackgroundPr
   const { currentTheme, currentGradientId, userPercentile, gradientEnabled } = useTheme();
   // 'auto' follows the lifter's tier and blends toward the next one; an explicit
   // unlocked pick paints as-is. The Profile toggle turns the wash off entirely.
-  const colors = gradientEnabled ? resolveBackgroundColors(currentGradientId, userPercentile) : null;
+  // E themes own their wash (the E tier color is gray, so the theme brings the fun).
+  const themed = currentTheme.wash;
+  const colors = gradientEnabled ? themed ?? resolveBackgroundColors(currentGradientId, userPercentile) : null;
 
   return (
     <View style={[styles.root, { backgroundColor: currentTheme.colors.background }, style]}>
@@ -26,7 +28,7 @@ export default function ScreenBackground({ children, style }: ScreenBackgroundPr
           pointerEvents="none"
           // Alpha-baked wash (1A ≈ 10%, 0D ≈ 5% → transparent; Swiss keeps it barely there) so the same
           // stops read as ambient color on both light and dark themes.
-          colors={[colors[0] + '1A', colors[1] + '0D', colors[1] + '00']}
+          colors={themed ? [colors[0] + '2E', colors[1] + '14', colors[1] + '00'] : [colors[0] + '1A', colors[1] + '0D', colors[1] + '00']}
           locations={[0, 0.45, 1]}
           start={{ x: 0.5, y: 0 }}
           end={{ x: 0.5, y: 1 }}
